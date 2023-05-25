@@ -26,7 +26,6 @@
 #  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
   ALBD               |     1	   | xy  |   |    |   |   |	|      | surface_albedo_for_visible_diffuse
-  LWI                |     1	   | xy  |   |    |   |   |	|      | 
   TSKIN              |     1	   | xy  |   |    |   |   |	|      | 
   U10M               |     1	   | xy  |   |    |   |   |	|      | 
   V10M               |     1	   | xy  |   |    |   |   |	|      | 

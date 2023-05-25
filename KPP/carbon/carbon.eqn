@@ -1,0 +1,74 @@
+{ carbon.eqn
+===============================================================================
+DESCRIPTION
+===============================================================================
+
+GEOS-Chem KPP file containing species and equations for the carbon
+chemistry mechanism
+
+===============================================================================
+FILE HISTORY
+===============================================================================
+
+v14.1.0 (release TBD)
+---------------------
+(1) Initial version (MSL)
+
+}
+
+#include atoms.kpp     { Periodic table information               }
+
+#DEFVAR
+CH4         = IGNORE;  { Active methane species                   }
+CO          = IGNORE;  { Active carbon monoxide species           }
+CO2         = IGNORE;  { Active carbon dioxide species            }
+COfromCH4   = IGNORE;  { Tracks P(CO)  from CH4   for diagnostics }
+COfromNMVOC = IGNORE;  { Tracks P(CO)  from NMVOC for diagnostics }
+CO2fromOH   = IGNORE;  { Tracks P(CO2) from OH    for diagnostics }
+Dummy       = IGNORE;  { Dummy placeholder product                }
+
+#DEFFIX
+FixedOH     = IGNORE;  { Externally-supplied OH concentration     }
+FixedCl     = IGNORE;  { Externally-supplied Cl concentration     }
+DummyCH4    = IGNORE;  { Dummy placeholder for CH4   reactant     }
+DummyNMVOC  = IGNORE;  { Dummy placeholder for NMVOC reactant     }
+
+#EQUATIONS
+//
+// Reactions extracted from ch4_co_co2_mod.F
+// Based on Bukosa et al. (2021) with additions for OCS
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%  TROP CHEM   %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%
+//
+// Rate k_Trop(1) [1/s] is set to HEMCO-supplied P(CO) from CH4
+CH4 + FixedOH = CO    + COfromCH4   : k_Trop(1);
+//
+// Rate [1/s] is from Kirschke et al, 2013 (Nature Geosci.)
+CH4 + FixedCl = Dummy               : 9.60d-12*EXP(-1360.0d0/TEMP)*TROP;
+//
+// Rate k_trop(2) [1/s] is the output of rate law function GC_OHCO
+CO  + FixedOH = CO2   + CO2fromOH   : k_Trop(2);
+//
+// DummyNMVOC is a placeholder species set to 1 molec/cm3.
+// This is a KPP "trick" in order to set the final CO concentration
+// to k_Trop(3) [molec/cm3/s] * dt [s], where dt is the chemistry
+// timestep.  k_Trop(3) contains externally-supplied P(CO) from NMVOC.
+DummyNMVOC    = CO    + COfromNMVOC : k_Trop(3);
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%%  STRAT CHEM  %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%
+//
+// Rate k_Strat(1) [1/s] is set to HEMCO-supplied loss of CH4 by OH
+CH4           = Dummy               : k_Strat(1);
+//
+// DummyCH4 is a placeholder species set to 1 molec/cm3.
+// This is a KPP "trick" in order to set the final CO concentration
+// to k_Strat(2) [molec/cm3/s] * dt [s], where dt is the chemistry
+// timestep.  k_Strat(2) contains externally-supplied strat P(CO).
+DummyCH4      = CO                  : k_Strat(2);
+//
+// Rate k_Strat(3) [1/s] is set to HEMCO-supplied stratospheric loss of CO
+CO            = CO2   + CO2fromOH   : k_Strat(3);

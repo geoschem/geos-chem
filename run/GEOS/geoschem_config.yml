@@ -12,7 +12,9 @@ simulation:
   name: fullchem
   chem_inputs_dir: /discover/nobackup/cakelle2/data/CHEM_INPUTS/
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
 
 #============================================================================
 # Settings for GEOS-Chem operations
@@ -28,6 +30,17 @@ operations:
       activate: true
       use_static_bnd_cond: true
     gamma_HO2: 0.2
+    autoreduce_solver:
+      activate: false
+      use_target_threshold:
+        activate: true
+        oh_tuning_factor: 0.00005
+        no2_tuning_factor: 0.0001
+      use_absolute_threshold:
+        scale_by_pressure: true
+        absolute_threshold: 100.0
+      keep_halogens_active: false
+      append_in_internal_timestep: false
 
   convection:
     activate: true
@@ -45,15 +58,17 @@ operations:
      use_non_local_pbl: false
 
   photolysis:
-    input_dir: /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2021-10/
+    activate: true
+    input_directories:
+      fastjx_input_dir: /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2021-10/
     overhead_O3:
       use_online_O3_from_model: true
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
     photolyze_nitrate_aerosol:
-      activate: false
-      NITs_Jscale_JHNO3: 0.0
-      NIT_Jscale_JHNO2: 0.0
+      activate: true
+      NITs_Jscale_JHNO3: 100.0
+      NIT_Jscale_JHNO2: 100.0
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 

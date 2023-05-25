@@ -14,6 +14,7 @@ RUNDIR_MET_EXT='nc'
 RUNDIR_MET_CN_YR=2011
 RUNDIR_MET_PRES_UNIT='hPa'
 RUNDIR_MET_PRES_SCALE='1.0'
+RUNDIR_MET_LCLIM='2014-2019'
 
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
 #
@@ -29,7 +30,6 @@ GWETROOT 1 N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1
 GWETTOP  1 N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 HFLUX    1 N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 LAI      1 N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
-LWI      1 N Y F0;003000 none none LWI      ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 RADLWG   1 N Y F0;003000 none none LWGNT    ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 PARDF    1 N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 PARDR    1 N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc

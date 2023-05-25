@@ -1,27 +1,47 @@
 #!/bin/bash
 
-# createRunDir.sh: Create GCHP run directory
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
 #
-# Optional argument: run directory name
+# !MODULE: createRunDir.sh
 #
-# If optional run directory name argument is not passed then the user
-# will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{met}_{sim_name}.
+# !DESCRIPTION: Creates a GCHP run directory.
+#\\
+#\\
+# !CALLING SEQUENCE:
+#  ./createRunDir.sh [rundirname]
 #
-# Usage: ./createRunDir.sh [rundirname]
+# !REMARKS:
+#  If optional run directory name argument is not passed then the user
+#  will be prompted to enter a name interactively, or choose to use the
+#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
 #
-# Initial version: E. Lundgren,10/5/2018
+# !REVISION HISTORY:
+#  Initial version: E. Lundgren,10/5/2018
+#  See the subsequent Git history with the gitk browser!
+#------------------------------------------------------------------------------
+#BOC
 
+# Directory w/ GCHP rundir scripts (i.e. this directory)
 srcrundir=$(pwd -P)
 cd ${srcrundir}
+
+# GEOS-Chem "science codebase" directory
 cd ../..
 gcdir=$(pwd -P)
+
+# GCHP "wrapper" directory
 cd ../../../..
 wrapperdir=$(pwd -P)
+
+# Return to 
 cd ${srcrundir}
 
-# Load file with utility functions to setup configuration files
-. ${gcdir}/run/shared/setupConfigFiles.sh
+# Source common bash functions from scripts in the run/shared folder
+. ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
+. ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -55,7 +75,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
-	read -e extdata
+	read -e -p "${USER_PROMPT}" extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -71,6 +91,11 @@ fi
 
 RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 
+# --------------------------------------------------------------
+# registration for first time users
+# --------------------------------------------------------------
+[[ -z "${GC_USER_REGISTERED}" ]] && registerNewUser "gchp"
+
 #-----------------------------------------------------------------
 # Ask user to select simulation type
 #-----------------------------------------------------------------
@@ -78,9 +103,12 @@ printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   4. Tagged O3\n"
+printf "   5. Carbon\n"
+
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
-    read sim_num
+    read -p "${USER_PROMPT}" sim_num
     valid_sim=1
     if [[ ${sim_num} = "1" ]]; then
 	sim_name=fullchem
@@ -88,6 +116,10 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
 	sim_name=CO2
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -115,7 +147,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
-	read sim_option
+	read -p "${USER_PROMPT}" sim_option
 	valid_sim_option=1
 	if [[ ${sim_option} = "1" ]]; then
 	    sim_extra_option=none
@@ -127,7 +159,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. Complex SOA with semivolatile POA\n"
 	    valid_soa=0
 	    while [ "${valid_soa}" -eq 0 ]; do
-		read soa_option
+		read -p "${USER_PROMPT}" soa_option
 		valid_soa=1
 		if [[ ${soa_option} = "1" ]]; then
 		    sim_extra_option="complexSOA"
@@ -148,7 +180,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
-		read tomas_option
+		read -p "${USER_PROMPT}" tomas_option
 		valid_tomas=1
 		if [[ ${tomas_option} = "1" ]]; then
 		    sim_extra_option="TOMAS15"
@@ -163,13 +195,11 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
 	fi
     done
-
 
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
@@ -230,7 +260,7 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -244,7 +274,7 @@ printf "  3. GEOS-FP native data\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
-    read met_num
+    read -p "${USER_PROMPT}" met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
@@ -281,7 +311,7 @@ done
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read -e rundir_path
+    read -e -p "${USER_PROMPT}" rundir_path
 
     # Test for quitting
     if [[ "x${rundir_path}" == "xq" ]]; then
@@ -301,7 +331,7 @@ while [ "$valid_path" -eq 0 ]; do
     if [[ ! -d ${rundir_path} ]]; then
         if [[ -d $(dirname ${rundir_path} ) ]]; then
             printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
-            read mk_rundir
+            read -p "${USER_PROMPT}" mk_rundir
             if [[ "x${mk_rundir}" == "xy" ]]; then
                 mkdir $rundir_path
 	    elif [[ "x${mk_rundir}" == "xq" ]]; then
@@ -325,7 +355,7 @@ done
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:\n\n"
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
-    read -e rundir_name
+    read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gchp_${met}_${sim_name}
@@ -347,7 +377,7 @@ while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read -e new_rundir
+	read -e -p "${USER_PROMPT}" new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -374,7 +404,7 @@ mkdir -p ${rundir_config}
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README                           ${rundir}
+cp ./README.md                        ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -415,16 +445,27 @@ ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
-if [[ ${sim_name} = "fullchem" ]]; then
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     start_date='20190701'
-    restart_dir='v2021-09'
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+    restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
+elif [[ "x${sim_name}" == "xtagO3" ]]; then
+    # NOTE: we use the fullchem restart file for tagO3
+    start_date='20190701'
+    restart_dir='GC_14.0.0'
+    restart_name="fullchem"
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_13.0.0'
+    restart_dir='GC_14.0.0'
+    restart_name="${sim_name}"
+elif [[ ${sim_name} = "carbon" ]]; then
+    start_date='20190101'
+    restart_dir='v2023-01'
+    restart_name="${sim_name}"
 fi
 for N in 24 48 90 180 360
 do
-    old_prefix="GCHP.Restart.${sim_name}"
+    old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
     initial_rst="${restarts}/${restart_dir}/${old_prefix}.${start_date}_0000z.c${N}.nc4"
@@ -489,6 +530,18 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
 RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+if [[ "x${sim_extra_option}" == "xbenchmark"        ||
+      "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
+else
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='1'\n"
+fi
 
 #--------------------------------------------------------------------
 # Replace settings in config files with RUNDIR variables
@@ -501,21 +554,11 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 # Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
-#--------------------------------------------------------------------
-# Print run direcory setup info to screen
-#--------------------------------------------------------------------
-
-printf "\n  -- This run directory has been set up to start on $start_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n"
-printf "\n  -- Update start time in configuration file cap_restart.\n"
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc4.\n"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh."
-
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCHP"
 fi
 
 # Call setCommonRunSettings.sh so that all config files are consistent with its
@@ -556,7 +599,7 @@ printf "\n  Hash: ${commit_hash}"      >> ${version_log}
 printf "${thinline}Do you want to track run directory changes with git? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
-    read enable_git
+    read -p "${USER_PROMPT}" enable_git
     if [[ ${enable_git} = "y" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
@@ -577,6 +620,52 @@ done
 #-----------------------------------------------------------------
 # Done!
 #-----------------------------------------------------------------
-printf "\nCreated ${rundir}\n"
+
+printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- This run directory is set up for simulation start date $start_date"
+printf "\n  -- Restart files for this date at different grid resolutions are in the"
+printf "\n     Restarts subdirectory"
+printf "\n  -- To update start time, edit configuration file cap_restart and"
+printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+printf "\n     where YYYYMMDD_HHmm is start date and time"
+printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
+printf "\n  -- See build/README for compilation instructions"
+printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
+printf "\n  -- For more information visit the GCHP user guide at"
+printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
 
 exit 0

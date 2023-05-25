@@ -72,6 +72,7 @@ Diag_Collections=(SpeciesConc    \
                   AerosolMass    \
                   Aerosols       \
                   Budget         \
+                  Carbon         \
                   CloudConvFlux  \
                   ConcAfterChem  \
                   DryDep         \
@@ -79,6 +80,7 @@ Diag_Collections=(SpeciesConc    \
                   Emissions      \
                   JValues        \
                   KppDiags       \
+                  KppARDiags     \
                   LevelEdgeDiags \
                   Metrics        \
                   ProdLoss       \
@@ -86,7 +88,9 @@ Diag_Collections=(SpeciesConc    \
                   RRTMG 	 \
                   StateChm	 \
                   StateMet       \
+                  StratBM        \
                   Transport	 \
+                  UVFlux         \
                   WetLossConv    \
                   WetLossLS      \
 )
@@ -94,14 +98,15 @@ Diag_Collections=(SpeciesConc    \
 #------------------------------------------------------------
 #    MID-RUN CHECKPOINT FILES
 #------------------------------------------------------------
-Periodic_Checkpoint=OFF
-Checkpoint_Freq="1680000"
+Midrun_Checkpoint=OFF
+Checkpoint_Freq=monthly
 
 # Instructions for configuring restart output before end of run:
-#  1. Set Periodic_Checkpoint=ON
-#  2. Set Checkpoint_Freq to a string of format HHmmss. More than 2 digits for
-#     hours string is permitted, e.g. 168000 for 7 days.
-#  NOTE: Frequency of output will be measured from start datetime in cap_restart
+#  1. Set Midrun_Checkpoint=ON
+#  2. Set Checkpoint_Freq to either monthly or a string of format HHmmss
+#     where HHmmss is frequency hours, minutes, and seconds.
+#     More than 2 digits for hours is permitted, e.g. "1680000" for 7 days.
+#  NOTE: Frequency of output will be measured from start date set in cap_restart.
 
 ###################################################################
 #    INFREQUENTLY CHANGED SETTINGS
@@ -112,6 +117,11 @@ Checkpoint_Freq="1680000"
 #------------------------------------------------
 # FORWARD for forward model, ADJOINT for adjoint model
 Model_Phase=FORWARD
+
+#------------------------------------------------
+#   REQUIRE ALL SPECIES IN INITIAL RESTART FILE
+#------------------------------------------------
+Require_Species_in_Restart=${RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED}
 
 #------------------------------------------------
 #    TIMESTEPS
@@ -217,8 +227,10 @@ fi
 if [[ ${AutoUpdate_NXNY} == 'ON' ]]; then
    Z=$(( ${NUM_NODES}*${NUM_CORES_PER_NODE}/6 ))
    # Use "bash calculator" if available; Python if not; fail otherwise
-   which bc &> /dev/null; bc_ok=$?
-   which python &> /dev/null; py_ok=$?
+   bc_ok=0
+   py_ok=0
+   which bc &> /dev/null || bc_ok=$?
+   which python &> /dev/null || py_ok=$?
    if [[ $bc_ok -eq 0 ]]; then
       # Use bash calculator
       SQRT=$(echo "sqrt (${Z})" | bc -l)
@@ -555,28 +567,34 @@ if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
 fi
 
+###  Set initial restart file options
+print_msg ""
+print_msg "Initial restart settings:"
+print_msg "-------------------------"
+replace_val INITIAL_RESTART_SPECIES_REQUIRED ${Require_Species_in_Restart} GCHP.rc
+
 #### Set frequency of writing restart files
 # Set to a very large number if turned off
 print_msg " "
-print_msg "Periodic checkpoints:"
+print_msg "Mid-run checkpoints:"
 print_msg "---------------------"
-if [[ ${Periodic_Checkpoint} == "ON" ]]; then
+if [[ ${Midrun_Checkpoint} == "ON" ]]; then
     uncomment_line RECORD_FREQUENCY GCHP.rc
     uncomment_line RECORD_REF_DATE  GCHP.rc
     uncomment_line RECORD_REF_TIME  GCHP.rc
     replace_val RECORD_FREQUENCY "${Checkpoint_Freq}" GCHP.rc
-    start_str=$(echo cap_restart)
+    start_str=$(cat cap_restart)
     Checkpoint_Ref_Date="${start_str:0:8}"
     Checkpoint_Ref_Time="${start_str:9:6}"
     replace_val RECORD_REF_DATE "${Checkpoint_Ref_Date}" GCHP.rc
     replace_val RECORD_REF_TIME "${Checkpoint_Ref_Time}" GCHP.rc
-elif [[ ${Periodic_Checkpoint} == "OFF" ]]; then
-    print_msg "WARNING: Periodic checkpoints are turned off"
+elif [[ ${Midrun_Checkpoint} == "OFF" ]]; then
+    print_msg "WARNING: Midrun checkpoints are turned off"
     comment_line RECORD_FREQUENCY GCHP.rc
     comment_line RECORD_REF_DATE  GCHP.rc
     comment_line RECORD_REF_TIME  GCHP.rc
 else
-    print_msg "ERROR: unknown setting for Periodic_Checkpoint. Must be ON or OFF."
+    print_msg "ERROR: unknown setting for Midrun_Checkpoint. Must be ON or OFF."
     exit 1
 fi
 

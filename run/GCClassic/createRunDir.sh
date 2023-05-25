@@ -1,27 +1,48 @@
 #!/bin/bash
 
-# createRunDir.sh: Create GEOS-Chem Classic run directory
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
 #
-# Optional argument: run directory name
+# !MODULE: createRunDir.sh
 #
-# If optional run directory name argument is not passed then the user
-# will be prompted to enter a name interactively, or choose to use the
-# default name gc_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
+# !DESCRIPTION: Creates a GEOS-Chem Classic run directory.
+#\\
+#\\
+# !CALLING SEQUENCE:
+#  ./createRunDir.sh [rundirname]
 #
-# Usage: ./createRunDir.sh [rundirname]
+# !REMARKS:
+#  If optional run directory name argument is not passed then the user
+#  will be prompted to enter a name interactively, or choose to use the
+#  default name gc_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
 #
-# Initial version: M. Sulprizio, 6/24/2020 (based off GCHP/createRunDir.sh)
+# !REVISION HISTORY:
+#  Initial version: M. Sulprizio, 6/24/2020 (based off GCHP/createRunDir.sh)
+#  See the subsequent Git history with the gitk browser!
+#------------------------------------------------------------------------------
+#BOC
 
+# Directory with GEOS-Chem Classic rundir scripts (i.e. this dir)
+# Current directory
 srcrundir=$(pwd -P)
 cd ${srcrundir}
+
+# GEOS-Chem "science codebase" directory
 cd ../..
 gcdir=$(pwd -P)
+
+# GCClassic "wrapper" directory
 cd ../../
 wrapperdir=$(pwd -P)
+
+# Return to directory w/ GEOS-Chem Classic rundir scripts
 cd ${srcrundir}
 
-# Load file with utility functions to setup configuration files
-. ${gcdir}/run/shared/setupConfigFiles.sh
+# Source common bash functions from scripts in the run/shared folder
+. ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
+. ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -55,7 +76,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
-	read -e extdata
+	read -e -p "${USER_PROMPT}" extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -70,6 +91,11 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
 fi
 
 RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
+
+# --------------------------------------------------------------
+# registration for first time users
+# --------------------------------------------------------------
+[[ -z "${GC_USER_REGISTERED}" ]] && registerNewUser "gcc"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -86,10 +112,10 @@ printf "   8. Tagged CO\n"
 printf "   9. Tagged O3\n"
 printf "  10. TransportTracers\n"
 printf "  11. Trace metals\n"
-
+printf "  12. Carbon\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
-    read sim_num
+    read -p "${USER_PROMPT}" sim_num
     valid_sim=1
     if [[ ${sim_num} = "1" ]]; then
 	sim_name=fullchem
@@ -113,6 +139,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "11" ]]; then
 	sim_name=metals
+    elif [[ ${sim_num} = "12" ]]; then
+	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -140,7 +168,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
-	read sim_option
+	read -p "${USER_PROMPT}" sim_option
 	valid_sim_option=1
 	if [[ ${sim_option} = "1" ]]; then
 	    sim_extra_option=none
@@ -152,7 +180,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. Complex SOA with semivolatile POA\n"
 	    valid_soa=0
 	    while [ "${valid_soa}" -eq 0 ]; do
-		read soa_option
+		read -p "${USER_PROMPT}" soa_option
 		valid_soa=1
 		if [[ ${soa_option} = "1" ]]; then
 		    sim_extra_option="complexSOA"
@@ -173,7 +201,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
-		read tomas_option
+		read -p "${USER_PROMPT}" tomas_option
 		valid_tomas=1
 		if [[ ${tomas_option} = "1" ]]; then
 		    sim_extra_option="TOMAS15"
@@ -188,7 +216,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -207,7 +234,7 @@ elif [[ ${sim_name} = "POPs" ]]; then
     printf "  3. PYR\n"
     valid_pops=0
     while [ "${valid_pops}" -eq 0 ]; do
-	read pops_num
+	read -p "${USER_PROMPT}" pops_num
 	valid_pops=1
 	if [[ ${pops_num} = "1" ]]; then
 	    sim_extra_option="BaP"
@@ -288,7 +315,7 @@ printf "  3. GISS ModelE2.1 (GCAP 2.0)\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
-    read met_num
+    read -p "${USER_PROMPT}" met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
@@ -322,75 +349,90 @@ if [[ ${met} = "ModelE2.1" ]]; then
 
     valid_scen=0
     while [ "${valid_scen}" -eq 0 ]; do
-	read scen_num
+	read -p "${USER_PROMPT}" scen_num
 	valid_scen=1
 	if [[ ${scen_num} = "1" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40"
+	    runid="E213f10aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1851-1860; 2001-2014'\n"
 	elif [[ ${scen_num} = "2" ]]; then
 	    scenario="HIST"
-            runid="E213f10aF40oQ40nudge"
-	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014"
+	    runid="E213f10aF40oQ40nudge"
+            gissres="F40"
+	    vertres="40L"
+	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2001-2014'\n"
 	elif [[ ${scen_num} = "3" ]]; then
 	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    runid="E213SSP119aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "4" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP126"
+	    runid="E213SSP126aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "5" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP434"
+	    runid="E213SSP434aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "6" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP245"
+	    runid="E213SSP245aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "7" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP460"
+	    runid="E213SSP460aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "8" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP370"
+	    runid="E213SSP370aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	elif [[ ${scen_num} = "9" ]]; then
-	    scenario="SSP119"
-            runid="E213SSP119aF40oQ40"
+	    scenario="SSP585"
+	    runid="E213SSP585aF40oQ40"
+            gissres="F40"
+	    vertres="40L"
 	    RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 2040-2049; 2090-2099'\n"
 	else
   	    valid_scen=0
 	    printf "Invalid GCAP 2.0 scenario. Try again.\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='$scenario'\n"
+        RUNDIR_VARS+="RUNDIR_GISS_RES='$gissres'\n"
+	RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='$vertres'\n"
 	RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='$runid'\n"
     done
 
-    if [[ "x${sim_name}" == "xfullchem" ]] || \
-       [[ "x${sim_name}" == "xaerosol" ]]; then
-	printf "${thinline}Choose a fixed year for volcanic emissions (1978-2020)\n or -1 for year of simulation (assuming year exists):${thinline}"
-	valid_volc=0
-	while [ "${valid_volc}" -eq 0 ]; do
-	    read volc_year
-	    valid_volc=1
-	    echo $volc_year
-	    if [[ $volc_year -ge 1978 ]] && [[ $volc_year -le 2020 ]]; then
-		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$volc_year'\n"
-            elif [[ $volc_year -eq -1 ]]; then
-		RUNDIR_VARS+="RUNDIR_VOLC_YEAR='$YYYY'\n"
-	    else
-  		valid_volc=0
-		printf "Invalid volcano year. Try again.\n"
-            fi
-	done
+    RUNDIR_VARS+="RUNDIR_USE_AEIC='false'\n"
+
+    # Define the volcano paths for the HEMCO_Config.rc file
+    # NOTE: Benchmark simulations always use the climatological emissions!
+    if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
+       [[ "x${sim_name}" == "xaerosol"  ]]; then
+        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+        RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
     fi
 
 else
     RUNDIR_VARS+="RUNDIR_GCAP2_SCENARIO='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
+    RUNDIR_VARS+="RUNDIR_GCAP2_VERTRES='not_used'\n"
     RUNDIR_VARS+="RUNDIR_GCAP2_RUNID='not_used'\n"
     RUNDIR_VARS+="RUNDIR_MET_AVAIL='# 1980-2021'\n"
+
+    RUNDIR_VARS+="RUNDIR_USE_AEIC='true'\n"
 
     # Define the volcano paths for the HEMCO_Config.rc file
     # NOTE: Benchmark simulations always use the climatological emissions!
@@ -428,7 +470,7 @@ fi
 
 valid_res=0
 while [ "${valid_res}" -eq 0 ]; do
-    read res_num
+    read -p "${USER_PROMPT}" res_num
     valid_res=1
     if [[ ${res_num} = "1" ]]; then
 	grid_res='4x5'
@@ -458,7 +500,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 
     valid_domain=0
     while [ "${valid_domain}" -eq 0 ]; do
-	read domain_num
+	read -p "${USER_PROMPT}" domain_num
 	valid_domain=1
 	if [[ ${domain_num} = "1" ]]; then
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
@@ -562,32 +604,24 @@ if [[ ${met} = "ModelE2.1" ]]; then
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00243979'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00276896'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00254319'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
   	fi
     else
         if [[ "$grid_res" ==  "4x5" ]]; then
             RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.03564873'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "2x25" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01050036'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "05x0625" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01340854'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
         elif [[ "$grid_res" == "025x03125" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.01066495'\n"
-	    RUNDIR_VARS+="RUNDIR_GISS_RES='F40'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
@@ -622,7 +656,7 @@ if [[ ${met} = "geosfp" ]] || [[ ${met} = "merra2" ]]; then
 
     valid_lev=0
     while [ "${valid_lev}" -eq 0 ]; do
-        read lev_num
+        read -p "${USER_PROMPT}" lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
             RUNDIR_VARS+="RUNDIR_GRID_NLEV='72'\n"
@@ -640,7 +674,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
     printf "  1. 40 (native)\n"
     valid_lev=0
     while [ "${valid_lev}" -eq 0 ]; do
-        read lev_num
+        read -p "${USER_PROMPT}" lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
             RUNDIR_VARS+="RUNDIR_GRID_NLEV='40'\n"
@@ -656,7 +690,7 @@ if [[ ${met} = "ModelE2.2" ]]; then
     printf "  2. 74 (reduced)\n"
     valid_lev=0
     while [ "${valid_lev}" -eq 0 ]; do
-        read lev_num
+        read -p "${USER_PROMPT}" lev_num
         valid_lev=1
         if [[ ${lev_num} = "1" ]]; then
             RUNDIR_VARS+="RUNDIR_GRID_NLEV='102'\n"
@@ -675,7 +709,7 @@ fi
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read -e rundir_path
+    read -e -p "${USER_PROMPT}" rundir_path
 
     # Test for quitting
     if [[ "x${rundir_path}" == "xq" ]]; then
@@ -695,7 +729,7 @@ while [ "$valid_path" -eq 0 ]; do
     if [[ ! -d ${rundir_path} ]]; then
         if [[ -d $(dirname ${rundir_path} ) ]]; then
             printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
-            read mk_rundir
+            read -p "${USER_PROMPT}" mk_rundir
             if [[ "x${mk_rundir}" == "xy" ]]; then
                 mkdir $rundir_path
 	    elif [[ "x${mk_rundir}" == "xq" ]]; then
@@ -719,7 +753,7 @@ done
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:\n\n"
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
-    read -e rundir_name
+    read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	grid_display="${grid_res}"
         [[ "x${grid_nest}" != "x" ]] && grid_display+="_${grid_nest}"
@@ -744,7 +778,7 @@ while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read -e new_rundir
+	read -e -p "${USER_PROMPT}" new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -756,13 +790,15 @@ while [ "${valid_rundir}" -eq 0 ]; do
     fi
 done
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/rundirConfig
-
 #-----------------------------------------------------------------
 # Create run directory
 #-----------------------------------------------------------------
+
 mkdir -p ${rundir}
+mkdir -p ${rundir}/Restarts
+
+# Define a subdirectory for rundir configuration files
+rundir_config=${rundir}/CreateRunDirLogs
 mkdir -p ${rundir_config}
 
 # Copy run directory files and subdirectories
@@ -771,8 +807,13 @@ cp ${gcdir}/run/shared/download_data.py     ${rundir}
 cp ${gcdir}/run/shared/download_data.yml    ${rundir}
 cp ./getRunInfo                             ${rundir}
 cp ./archiveRun.sh                          ${rundir}
-cp ./README                                 ${rundir}
+cp ./README.md                              ${rundir}
 cp ./gitignore                              ${rundir}/.gitignore
+
+# Use data downloader that points to GCAP2 restart files
+if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
+  cp ${gcdir}/run/shared/download_data.gcap2.40L.yml ${rundir}/download_data.yml
+fi
 
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
@@ -807,17 +848,14 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-    cp ./runScriptSamples/geoschem.benchmark.run ${rundir}
+    scriptDir="./runScriptSamples/operational_examples/harvard_cannon"
+    cp ${scriptDir}/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
 
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
-
-# Create build directory
-mkdir ${rundir}/build
-printf "To build GEOS-Chem type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
@@ -829,6 +867,7 @@ cd ${rundir}
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
       "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'
     enddate='20190201'
@@ -840,7 +879,7 @@ else
     enddate='20190801'
 fi
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
-    if [[ "x$scenario" == "HIST" ]]; then
+    if [[ "$scenario" == "HIST" ]]; then
 	startdate='20050701'
 	enddate='20050801'
     else
@@ -876,6 +915,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -927,17 +968,20 @@ rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
-# Call init_rd.sh
+# Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
-printf "\n  See rundirConfig/rundir_vars.txt for run directory settings.\n\n"
 
-printf "\n  -- This run directory has been set up for $startdate - $enddate."
-printf "\n     You may modify these settings in geoschem_config.yml.\n"
+printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
 
+printf "\n  -- This run directory has been set up to start on $state_date and"
+printf "\n     restart files for this date are in the Restarts subdirectory.\n" 
+printf "\n  -- Update start and end dates in geoschem_config.yml.\n"
+
+printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.nc4.\n"
 printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
 printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
 
@@ -969,38 +1013,22 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
           "x${sim_name}" == "xaerosol"      ||
           "x${sim_name}" == "xtagO3"    ]]; then
 
-        # NOTE: We need to read the fullchem restart files from the v2021-09/
-        # folder and TOMAS restart files from the v2021-12/ folder.  These
-        # restart files contain extra species (e.g HMS, HSO3m, SO3mm), for
-        # chemistry updates that were added in 13.3.0 and 13.4.0.  This is
-        # necessary to avoid GEOS-Chem Classic simulations from halting if
-        # these species are not found in the restart file (i.e. with time
-        # cycle flag "EFYO").
-        #   -- Bob Yantosca (14 Jan 2022)
-        #
-        # Aerosol-only simulations can use the fullchem restart since all
-        # of the aerosol species are included.
-	#
-	# For TagO3, we now use the same restart file as the fullchem
-	# to ensure that we start with the same initial conditions.
-	#  -- Bob Yantosca (02 Mar 2022)
-	#
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/v2021-09/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
 	# For TransportTracers, use restart from latest benchmark
-	sample_rst=${rst_root}/GC_13.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xHg" ]]; then
 
-	# For Hg, point to the restert file w/ KPP species (in v2021-12)
+	# For Hg, point to the restart file w/ KPP species (in v2021-12)
 	sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
@@ -1012,6 +1040,11 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 
 	# For metals, use the extra option is in the restart file name
 	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+
+    elif [[ "x${sim_name}" == "xcarbon" ]]; then
+
+	# For carbon, point to the restarts in v2023-01
+	sample_rst=${rst_root}/v2023-01/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
 
     else
 
@@ -1061,12 +1094,13 @@ fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
 if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
+    ${s3_cp} ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
 elif [[ -f ${sample_rst} ]]; then
-    cp ${sample_rst} ${rundir}/GEOSChem.Restart.${startdate}_0000z.nc4
+    cp ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4
 else
-    printf "\n  -- No sample restart provided for this simulation."
-    printf "\n     You will need to provide an initial restart file or disable"
+    printf "\n  -- The following sample restart provided for this simulation was not found:"
+    printf "\n     ${sample_rst}"
+    printf "\n     You will need to provide this initial restart file or disable"
     printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
     printf "\n     with default background species concentrations.\n"
 fi
@@ -1097,8 +1131,10 @@ fi
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to
 # input_options.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCClassic"
 fi
+
+#
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
@@ -1137,7 +1173,7 @@ printf "\n  Hash: ${commit_hash}\n"                     >> ${version_log}
 printf "${thinline}Do you want to track run directory changes with git? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
-    read enable_git
+    read -p "${USER_PROMPT}" enable_git
     if [[ "x${enable_git}" == "xy" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
@@ -1158,6 +1194,40 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
+
 #-----------------------------------------------------------------
 # Add the version info to the top of the rundir configuration log
 #-----------------------------------------------------------------
@@ -1176,9 +1246,6 @@ mv tmp.txt ${rundir_config_log}
 
 # Remove the version log
 rm -rf ${version_log}
-
-# Remove a few blanks spaces
-
 
 # Save the updated rundir_vars file to the git repo
 if [[ "x${enable_git}" == "xy" ]]; then

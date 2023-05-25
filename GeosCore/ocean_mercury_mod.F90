@@ -27,14 +27,13 @@ MODULE OCEAN_MERCURY_MOD
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: INIT_OCEAN_MERCURY
-  PUBLIC :: CHECK_OCEAN_MERCURY
   PUBLIC :: CLEANUP_OCEAN_MERCURY
   PUBLIC :: OCEAN_MERCURY_FLUX
   PUBLIC :: LDYNSEASALT, LGCAPEMIS, LPOLARBR, LBRCHEM, LBROCHEM
   PUBLIC :: L_ADD_MBL_BR
   PUBLIC :: LGEIA05
   PUBLIC :: LVEGEMIS
-  PUBLIC :: LRED_JNO2,   LGEOSLWC
+  PUBLIC :: LGEOSLWC
   PUBLIC :: LHALOGENCHEM
   PUBLIC :: LHGAQCHEM
   PUBLIC :: LRED_CLOUDONLY
@@ -94,10 +93,6 @@ MODULE OCEAN_MERCURY_MOD
 !
   !============================================================================
   ! Hg_RST_FILE : Name of restart file with ocean tracers
-  ! USE_CHECKS  : Flag for turning on error-checking
-  ! MAX_RELERR  : Max error for total-tag error check [unitless]
-  ! MAX_ABSERR  : Max abs error for total-tag err chk [unitless]
-  ! MAX_FLXERR  : Max error tol for flux error check  [unitless]
   ! Hg2aq_tot   : Total Hg2 conc. in the mixed layer  [kg      ]
   ! DD_Hg2      : Array for Hg(II) dry dep'd to ocean [kg      ]
   ! Hgaq_tot    : Total Hg conc. in the mixed layer   [kg      ]
@@ -145,9 +140,9 @@ MODULE OCEAN_MERCURY_MOD
   REAL(fpp)            :: FLOWNOW
 
   ! Private arrays
-  REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:,:)
+  REAL(fpp),  ALLOCATABLE :: Hgaq_tot(:,:)
   REAL(fpp),  ALLOCATABLE :: dMLD(:,:)
-  REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:,:)
+  REAL(fpp),  ALLOCATABLE :: HgPaq_SUNK(:,:)
   REAL(fpp),  ALLOCATABLE :: MLDav(:,:)
   REAL(fpp),  ALLOCATABLE :: newMLD(:,:)
   REAL(fpp),  ALLOCATABLE :: prevMLD(:,:)
@@ -176,7 +171,7 @@ MODULE OCEAN_MERCURY_MOD
   LOGICAL   :: L_ADD_MBL_BR, LRED_CLOUDONLY
   LOGICAL   :: LGEIA05
   LOGICAL   :: LVEGEMIS 
-  LOGICAL   :: LRED_JNO2,   LGEOSLWC
+  LOGICAL   :: LGEOSLWC
   LOGICAL   :: LHALOGENCHEM
   LOGICAL   :: LHGAQCHEM
   LOGICAL   :: LHg2HalfAerosol
@@ -206,25 +201,6 @@ MODULE OCEAN_MERCURY_MOD
   REAL(f4), POINTER :: UPVEL (:,:) => NULL()
   REAL(f4), POINTER :: dMLD1 (:,:) => NULL()
   REAL(f4), POINTER :: dMLD2 (:,:) => NULL()
-
-  !-----------------------------------------------------------------
-  ! Now keep local Hg tracer indexing variables instead of getting
-  ! them from tracerid_mod.f.  The tracerid_mod.f module is going
-  ! to be removed for the FlexChem implementation. (bmy, 4/26/16)
-  !-----------------------------------------------------------------
-
-  ! Scalars for Hg indexing
-  INTEGER           :: N_Hg_CATS
-  INTEGER           :: ID_Hg_atl,  ID_Hg_nat,  ID_Hg_sat
-  INTEGER           :: ID_Hg_npa,  ID_Hg_arc,  ID_Hg_ant
-  INTEGER           :: ID_Hg_ocn,  ID_Hg_tot
-
-  ! Pointers for Hg indexing
-  ! NOTE: We can declare these NULL here because
-  ! these are SAVED global pointers (bmy, 4/29/16)
-  INTEGER, POINTER  :: Hg0_Id_List(:) => NULL()
-  INTEGER, POINTER  :: Hg2_Id_List(:) => NULL()
-  INTEGER, POINTER  :: HgP_Id_List(:) => NULL()
 
 CONTAINS
 !EOC
@@ -528,32 +504,6 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-#ifdef BPCH_DIAG
-    !-------------------------------------------!
-    ! Store Fg and Fp in ND03 diagnostic.       !
-    !-------------------------------------------!
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! error check
-       IF (Fg(I,J,L)+Fp(I,J,L) > 1) THEN
-          PRINT*, ' Fg + Fp > 1 @ ocean_mercury_mod.F90'
-          CALL GEOS_CHEM_STOP
-       ENDIF
-
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    ! Increment diagnostic timestep counter.
-    CALL SET_Hg2_DIAG( INCREMENT=.TRUE. )
-#endif
-
     ! Free pointers
     ARRAYso4  => NULL()
     ARRAYnit  => NULL()
@@ -602,7 +552,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    REAL(fpp),      INTENT(OUT)   :: SNOW_Hg2aq(N_Hg_CATS)  ! Hg2 from snow
+    REAL(fpp),      INTENT(OUT)   :: SNOW_Hg2aq  ! Hg2 from snow
 !
 ! !REMARKS:
 !  Snowpack Hg is delivered to the ocean instantaneously in an ionic pulse
@@ -626,10 +576,10 @@ CONTAINS
     LOGICAL       :: IS_OPEN_OCEAN, IS_OPEN_LAND
 
     ! Pointers
-    REAL(fpp), POINTER :: SNOW_HG_OC(:,:,:)
-    REAL(fpp), POINTER :: SNOW_HG_LN(:,:,:)
-    REAL(fpp), POINTER :: SNOW_HG_STORED_OC(:,:,:)
-    REAL(fpp), POINTER :: SNOW_HG_STORED_LN(:,:,:)
+    REAL(fpp), POINTER :: SNOW_HG_OC(:,:)
+    REAL(fpp), POINTER :: SNOW_HG_LN(:,:)
+    REAL(fpp), POINTER :: SNOW_HG_STORED_OC(:,:)
+    REAL(fpp), POINTER :: SNOW_HG_STORED_LN(:,:)
 
     !=================================================================
     ! DELIVER_SNOW_HG begins here!
@@ -657,19 +607,21 @@ CONTAINS
 
     IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
 
-    DO NN = 1, N_Hg_CATS
+       !%%% Removed loop over Hg categories here
+       !%%% and also removed NN as the 3rd array index
+       !%%%  -- Bob Yantosca (23 Jun 2022)
 
-       IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J,NN)        > 0e+0_fpp) .OR. &
-                        (SNOW_HG_STORED_OC(I,J,NN) > 0e+0_fpp) )
-       IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J,NN)        > 0e+0_fpp) .OR. &
-                        (SNOW_HG_STORED_LN(I,J,NN) > 0e+0_fpp) )
+       IS_SNOWHG_OC = ( (SNOW_HG_OC(I,J)        > 0e+0_fpp) .OR. &
+                        (SNOW_HG_STORED_OC(I,J) > 0e+0_fpp) )
+       IS_SNOWHG_LN = ( (SNOW_HG_LN(I,J)        > 0e+0_fpp) .OR. &
+                        (SNOW_HG_STORED_LN(I,J) > 0e+0_fpp) )
 
        ! OCEAN
        ! Check if melt conditions reached and snow in grid box
        IF ( IS_MELT .AND. IS_SNOWHG_OC .AND. IS_OPEN_OCEAN ) THEN
 
           ! Add all snow Hg to aqueous Hg2 reservoir
-          SNOW_Hg2aq(NN) = ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) )
+          SNOW_Hg2aq = ( SNOW_HG_OC(I,J) + SNOW_HG_STORED_OC(I,J) )
 
           !===========================================================
           ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -678,23 +630,21 @@ CONTAINS
           !===========================================================
           IF ( State_Diag%Archive_EmisHg2snowToOcean ) THEN
              State_Diag%EmisHg2snowToOcean(I,J) = &
-                  ( SNOW_HG_OC(I,J,NN) + SNOW_HG_STORED_OC(I,J,NN) ) / DT
+                  ( SNOW_HG_OC(I,J) + SNOW_HG_STORED_OC(I,J) ) / DT
           ENDIF
 
           ! Zero reservoirs over ocean box, since we've added it
           ! all to the ocean
-          SNOW_HG_OC(I,J,NN) = 0e+0_fpp
-          SNOW_HG_STORED_OC(I,J,NN) = 0e+0_fpp
+          SNOW_HG_OC(I,J) = 0e+0_fpp
+          SNOW_HG_STORED_OC(I,J) = 0e+0_fpp
 
        ENDIF ! ocean box
 
        ! Zero reservoirs if there is exposed land
        IF ( IS_MELT .AND. IS_SNOWHG_LN .AND. IS_OPEN_LAND ) THEN
-          SNOW_HG_LN(I,J,NN) = 0e+0_fpp
-          SNOW_HG_STORED_LN(I,J,NN) = 0e+0_fpp
+          SNOW_HG_LN(I,J) = 0e+0_fpp
+          SNOW_HG_STORED_LN(I,J) = 0e+0_fpp
        ENDIF
-
-    ENDDO ! Hg Tracers
 
     ! Free pointers
     SNOW_HG_OC        => NULL()
@@ -749,7 +699,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     ! Flux of Hg(0) from the ocean [kg/s]
-    REAL(fpp),      INTENT(OUT)   :: FLUX(State_Grid%NX,State_Grid%NY,N_Hg_CATS)
+    REAL(fpp),      INTENT(OUT)   :: FLUX(State_Grid%NX,State_Grid%NY)
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
@@ -893,7 +843,7 @@ CONTAINS
     LOGICAL              :: IS_OCEAN_BOX
     CHARACTER(LEN=255)   :: FILENAME
     INTEGER              :: nAdvect,   NA
-    INTEGER              :: I,         J,        NN, C
+    INTEGER              :: I,         J,        C
     INTEGER              :: N,         N_tot_oc
     INTEGER              :: NEXTMONTH, THISMONTH
     INTEGER              :: THISYEAR
@@ -905,8 +855,8 @@ CONTAINS
     REAL(fpp)            :: Hg2_RED,  Hg2_GONE, Hg2_CONV
     REAL(fpp)            :: FRAC_L,   FRAC_O,   H,        TOTDEP
     REAL(fpp)            :: oldMLD,   XTAU,     TOTDEPall
-    REAL(fpp)            :: FUP(State_Grid%NX,State_Grid%NY,N_Hg_CATS)
-    REAL(fpp)            :: FDOWN(State_Grid%NX,State_Grid%NY,N_Hg_CATS)
+    REAL(fpp)            :: FUP(State_Grid%NX,State_Grid%NY)
+    REAL(fpp)            :: FDOWN(State_Grid%NX,State_Grid%NY)
     REAL(fpp)            :: X,        Y,        D
     REAL(fpp)            :: NPP_tot,  A_ocean,  NPP_avg,  RADz
     REAL(fpp)            :: EC
@@ -919,7 +869,7 @@ CONTAINS
     REAL(fpp)            :: FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE
     REAL(fpp)            :: OLDFLOW,            RIVER_HG
     REAL(fpp)            :: FRAC_REDUCIBLE,     UVI_RATIO
-    REAL(fpp)            :: SNOW_Hg2aq(N_Hg_CATS)
+    REAL(fpp)            :: SNOW_Hg2aq
 
     ! Parameters
     REAL(fpp), PARAMETER :: EC_w      = 0.0145e+0_fpp
@@ -967,9 +917,9 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER   :: Spc(:)
-    REAL(fpp),     POINTER   :: Hg0aq(:,:,:)
-    REAL(fpp),     POINTER   :: Hg2aq(:,:,:)
-    REAL(fpp),     POINTER   :: HgPaq(:,:,:)
+    REAL(fpp),     POINTER   :: Hg0aq(:,:)
+    REAL(fpp),     POINTER   :: Hg2aq(:,:)
+    REAL(fpp),     POINTER   :: HgPaq(:,:)
 
     ! Pointers to fields in the HEMCO data structure
     REAL(f4), POINTER    :: TOMS   (:,:)   ! O3
@@ -1006,11 +956,7 @@ CONTAINS
     HgPaq    => State_Chm%OceanHgP
 
     ! Loop limit for use below
-    IF ( LSPLIT ) THEN
-       N_tot_oc = 2
-    ELSE
-       N_tot_oc = 1
-    ENDIF
+    N_tot_oc = 1
 
     ! Molecular weight of Hg (applicable to all tagged tracers)
     MHg = State_Chm%SpcData(1)%Info%MW_g * 1e-3_fpp
@@ -1020,19 +966,6 @@ CONTAINS
 
     ! Get current year to check if leap year (jaf, 8/12/11)
     THISYEAR  = GET_YEAR()
-
-!%% Tagged Hg simulation no longer works, so comment out (bmy, 04 Apr 2022)
-!%%    !-----------------------------------------------
-!%%    ! Check tagged & total sums (if necessary)
-!%%    !-----------------------------------------------
-!%%    IF ( USE_CHECKS .and. LSPLIT ) THEN
-!%%       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
-!%%                                 'start of OCEAN_MERCURY_FLUX' )
-!%%       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-!%%                                 'start of OCEAN_MERCURY_FLUX' )
-!%%       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
-!%%                                 'start of OCEAN_MERCURY_FLUX' )
-!%%    ENDIF
 
     !-----------------------------------------------------------------
     ! Read O3 data from HEMCO
@@ -1147,7 +1080,7 @@ CONTAINS
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( I,   vi,   A_M2,    Hg2_RED                         ) &
-    !$OMP PRIVATE( J,   NN,   k_ox,    OC_tot,  Hg2_CONV               ) &
+    !$OMP PRIVATE( J,   k_ox, OC_tot,  Hg2_CONV                        ) &
     !$OMP PRIVATE( N,   TK,   CHg0,    k_red_bio                       ) &
     !$OMP PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              ) &
     !$OMP PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              ) &
@@ -1238,16 +1171,7 @@ CONTAINS
                              State_Diag )
 
        ! Loop over total Hg (and ocean Hg if necessary)
-       DO C = 1, N_tot_oc
-
-          ! Get Hg category #
-          IF ( C == 1 ) NN = ID_Hg_tot
-          IF ( C == 2 ) NN = ID_Hg_ocn
-
-          ! Add snowpack Hg to ocean reservoirs
-          Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + SNOW_Hg2aq(NN)
-
-       ENDDO
+       Hg2aq(I,J) = Hg2aq(I,J) + SNOW_Hg2aq
 
        !===========================================================
        ! Make sure we are in an ocean box
@@ -1458,18 +1382,12 @@ CONTAINS
           ! Use CDEEPATL to scale deepwater in NAtlantic
           IF ( UPVEL(I,J) > 0e+0_fpp ) THEN
 
-             ! Loop over total Hg (and ocean Hg if necessary)
-             DO C = 1, N_tot_oc
-
-                ! Move to start of loop for use earlier (jaf, 12/8/11)
-                ! Grid-box latitude [degrees]
-                !Y = State_Grid%YMid(I,J)
+             !%%% Removed loop over Hg categories here
+             !%%% and also removed NN as the 3rd array index
+             !%%%  -- Bob Yantosca (23 Jun 2022)
 
                 ! Grid box longitude [degrees]
                 X = State_Grid%XMid(I,J)
-
-                ! Get Hg category #
-                IF ( C == 1 ) NN = ID_Hg_tot
 
                 !--------------------------------------------------------
                 ! Atlantic
@@ -1477,22 +1395,19 @@ CONTAINS
                 IF ( ( X >= -80.0 .and. X < 25.0 )  .and. &
                      ( Y >= -25.0 .and. Y < 55.0 ) ) THEN    !(anls,100114)
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_atl
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
                    !   HgC(I,J)   = HgC(I,J) + UPVEL(I,J) &
                    !      * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(3) )
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepatl(3) )
                    !ENDIF
 
@@ -1502,20 +1417,17 @@ CONTAINS
                 ELSE IF ( ( X >= -180.0 .and. X < -80.0 )  .and. &
                           ( Y >=   30.0 .and. Y <  70.0 ) ) THEN
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_npa
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                    !ENDIF
 
@@ -1523,20 +1435,17 @@ CONTAINS
                 ELSE IF ( ( X >= 25.0 .and. X < 180.0 )  .and. &
                           ( Y >= 30.0 .and. Y <  70.0 ) ) THEN
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_npa
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                        * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(2) )
 
                    ! Hg particulate &
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnpa(3) )
                    !ENDIF
 
@@ -1546,20 +1455,17 @@ CONTAINS
                 ELSE IF ( ( X >= -80.0 .and. X < 25.0 )  .and. &
                           ( Y >=  55.0 .and. Y < 70.0 ) ) THEN
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_nat
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepnat(3) )
                    !ENDIF
 
@@ -1569,20 +1475,17 @@ CONTAINS
                 ELSE IF ( ( X >= -80.0 .and. X <  25.0 )  .and. &
                           ( Y >= -65.0 .and. Y < -25.0 ) ) THEN   !(anls,100114)
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_sat
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepsat(3) )
                    !ENDIF
 
@@ -1591,20 +1494,17 @@ CONTAINS
                 !--------------------------------------------------------
                 ELSE IF ( Y >=  -90.0 .and. Y <  -65.0 ) THEN
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_ant
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeepant(3) )
                    !ENDIF
 
@@ -1613,46 +1513,35 @@ CONTAINS
                 !--------------------------------------------------------
                 ELSE IF ( Y >=  70.0 .and. Y <  90.0 ) THEN
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_arc
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(2) )
 
                    ! Hg particulate
                    !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeeparc(3) )
                    !ENDIF
 
                 ELSE
 
-                   ! Assign region tag
-                   IF ( C == 2 ) NN = ID_Hg_ocn
-
                    ! Hg0 (kg)
-                   Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + UPVEL(I,J) &
+                   Hg0aq(I,J) = Hg0aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(1) )
 
                    ! Hg2
-                   Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + UPVEL(I,J) &
+                   Hg2aq(I,J) = Hg2aq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(2) )
 
                    ! Hg particulate
-                   !IF ( C == 1 ) THEN
-                   HgPaq(I,J,NN)   = HgPaq(I,J,NN) + UPVEL(I,J) &
+                   HgPaq(I,J)   = HgPaq(I,J) + UPVEL(I,J) &
                         * ( MHg * A_M2 * FRAC_O * DTSRCE * CDeep(3) )
-                   !ENDIF
 
                 ENDIF
-
-             ENDDO
-
 
              !----------------------------------------------------------
              ! Physical transport for TOTAL TRACERS, Part III:
@@ -1662,25 +1551,24 @@ CONTAINS
              !----------------------------------------------------------
           ELSE
 
-             ! Loop over all types of tagged tracers
-             DO NN = 1, N_Hg_CATS
+             !%%% Removed loop over Hg categories here
+             !%%% and also removed NN as the 3rd array index
+             !%%%  -- Bob Yantosca (23 Jun 2022)
 
                 ! Hg0
-                Hg0aq(I,J,NN) = Hg0aq(I,J,NN) &
+                Hg0aq(I,J) = Hg0aq(I,J) &
                      * ( 1e+0_fpp + UPVEL(I,J) * DTSRCE / &
                      ( MLDcm * 1e-2_fpp ) )
 
                 ! Hg2
-                Hg2aq(I,J,NN) = Hg2aq(I,J,NN) &
+                Hg2aq(I,J) = Hg2aq(I,J) &
                      * ( 1e+0_fpp + UPVEL(I,J) * DTSRCE / &
                      ( MLDcm * 1e-2_fpp ) )
 
                 ! Hg particulate
-                HgPaq(I,J,NN)  = HgPaq(I,J,NN) &
+                HgPaq(I,J)  = HgPaq(I,J) &
                      * ( 1e+0_fpp + UPVEL(I,J) * DTSRCE / &
                      ( MLDcm * 1e-2_fpp ) )
-
-             ENDDO
 
           ENDIF
 
@@ -1694,13 +1582,14 @@ CONTAINS
           !       and NN is the Hg category # (for Hg0aq, Hg2aq, HgP)
           !===========================================================
 
-          ! Loop over all Hg categories
-          DO NN = 1, N_Hg_CATS
+          !%%% Removed loop over Hg categories here
+          !%%% and also removed NN as the 3rd array index
+          !%%%  -- Bob Yantosca (23 Jun 2022)
 
              ! Reset flux each timestep
-             FLUX(I,J,NN)  = 0e+0_fpp
-             FUP(I,J,NN)   = 0e+0_fpp
-             FDOWN(I,J,NN) = 0e+0_fpp
+             FLUX(I,J)  = 0e+0_fpp
+             FUP(I,J)   = 0e+0_fpp
+             FDOWN(I,J) = 0e+0_fpp
 
              !--------------------------------------------------------
              ! Calculate new Hg(II) mass
@@ -1709,7 +1598,7 @@ CONTAINS
              ! Convert to kg/box/timestep and add to Hg2aq
              !--------------------------------------------------------
              IF ( (LArcticRiv) .AND. (Y >= 70) ) THEN
-                Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + RIVER_HG * &
+                Hg2aq(I,J) = Hg2aq(I,J) + RIVER_HG * &
                                 A_M2 * DTSRCE * FRAC_O
 
                 !-----------------------------------------------------
@@ -1730,13 +1619,13 @@ CONTAINS
 
              ! Before 11/3/2009 (cdh, hamos)
              !! Total Hg(II) deposited on ocean surface [kg]
-             !TOTDEP = (WD_Hg2(I,J,NN) + DD_Hg2(I,J,NN))*FRAC_O
+             !TOTDEP = (WD_Hg2(I,J) + DD_Hg2(I,J))*FRAC_O
              !
              ! Total Hg(II) deposited on ocean surface [kg]
              ! Includes gaseous and particulate reactive Hg(II)
              ! plus anthropogenic primary Hg(p) (cdh, hamos 11/3/2009)
-             TOTDEPall = (WD_Hg2(I,J,NN) + DD_Hg2(I,J,NN) + &
-                          WD_HgP(I,J,NN) + DD_HgP(I,J,NN) )
+             TOTDEPall = (WD_Hg2(I,J) + DD_Hg2(I,J) + &
+                          WD_HgP(I,J) + DD_HgP(I,J) )
 
              ! When distinguishing open ocean vs ice, only deposition
              ! to ocean should be included in Hg exchange (jaf, 11/28/11)
@@ -1744,9 +1633,9 @@ CONTAINS
              TOTDEP        = TOTDEPall * FRAC_OPEN_OCEAN
 
              ! Add deposited Hg(II) to the Hg(II)tot ocean mass [kg]
-             Hg2aq_tot     = Hg2aq(I,J,NN) + HgPaq(I,J,NN) + TOTDEP
+             Hg2aq_tot     = Hg2aq(I,J) + HgPaq(I,J) + TOTDEP
 
-             Hg2aq(I,J,NN) = Hg2aq_tot * Frac_Hg2
+             Hg2aq(I,J) = Hg2aq_tot * Frac_Hg2
 
              ! Mass of Hg(II)  -->  Hg(0)
              !---------------------------
@@ -1816,46 +1705,46 @@ CONTAINS
 
              ! Now use new FRAC_REDUCIBLE for photo-reduction only.
              ! Retain 40% for biological reduction
-             !Hg2_RED       = Hg2aq(I,J,NN) * 0.4d0 * k_red * DTSRCE
-             Hg2_RED = Hg2aq(I,J,NN) * DTSRCE * ( 0.4e+0_fpp * &
+             !Hg2_RED       = Hg2aq(I,J) * 0.4d0 * k_red * DTSRCE
+             Hg2_RED = Hg2aq(I,J) * DTSRCE * ( 0.4e+0_fpp * &
                        k_red_bio + FRAC_REDUCIBLE * k_red_rad )
 
              ! Mass of Hg(0) --> Hg(II)
-             Hg0_OX        = Hg0aq(I,J,NN) * k_ox * DTSRCE
+             Hg0_OX        = Hg0aq(I,J) * k_ox * DTSRCE
 
              ! Amount of Hg(II) that is lost [kg]
              Hg2_GONE      = Hg2_RED - Hg0_OX
 
              ! Cap Hg2_GONE with available Hg2
-             IF ( Hg2_GONE > Hg2aq(I,J,NN) ) THEN
-                Hg2_GONE   = MIN( Hg2_GONE, Hg2aq(I,J,NN) )
+             IF ( Hg2_GONE > Hg2aq(I,J) ) THEN
+                Hg2_GONE   = MIN( Hg2_GONE, Hg2aq(I,J) )
              ENDIF
 
-             IF ( (Hg2_GONE * (-1e+0_fpp)) >  Hg0aq(I,J,NN)) THEN
-                Hg2_GONE   = (Hg0aq(I,J,NN)*(-1))
-                !MAX (Hg2_GONE ,(Hg0aq(I,J,NN)*(-1e+0_fpp)))
+             IF ( (Hg2_GONE * (-1e+0_fpp)) >  Hg0aq(I,J)) THEN
+                Hg2_GONE   = (Hg0aq(I,J)*(-1))
+                !MAX (Hg2_GONE ,(Hg0aq(I,J)*(-1e+0_fpp)))
              ENDIF
 
              ! Hg(II) ocean mass after reduction and conversion [kg]
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) - Hg2_GONE
+             Hg2aq(I,J) = Hg2aq(I,J) - Hg2_GONE
 
              !--------------------------------------------------------
              ! Calculate new Hg(P) mass
              !--------------------------------------------------------
 
              ! HgP ocean mass after conversion
-             HgPaq(I,J,NN)   = Hg2aq_tot * ( 1 - Frac_Hg2)
+             HgPaq(I,J)   = Hg2aq_tot * ( 1 - Frac_Hg2)
 
              !----------------------------------------------------
              ! Conversion between OC and Hg
              !----------------------------------------------------
              ! Hg/C ratio based on HgP(kg) and Stock of organic C(kg)
              ! HgPaq_sunk funtion of C sunk and HgP/C ratio
-             HgPaq_SUNK(I,J,NN)  = JorgC_kg * ( HgPaq(I,J,NN ) / OC_tot_kg )
+             HgPaq_SUNK(I,J)  = JorgC_kg * ( HgPaq(I,J ) / OC_tot_kg )
 
              ! HgP ocean mass after sinking [kg]
-             HgPaq(I,J,NN)   = HgPaq(I,J,NN) - HgPaq_SUNK(I,J,NN)
-             HgPaq(I,J,NN)   = MAX ( HgPaq(I,J,NN) , 0e+0_fpp )
+             HgPaq(I,J)   = HgPaq(I,J) - HgPaq_SUNK(I,J)
+             HgPaq(I,J)   = MAX ( HgPaq(I,J) , 0e+0_fpp )
 
              !-----------------------------------------------------
              ! %%%%% HISTORY DIAGNOSTIC %%%%%
@@ -1870,19 +1759,16 @@ CONTAINS
              ! Calculate new Hg(0) mass
              !--------------------------------------------------------
 
-             ! Hg0 tracer number (for Spc)
-             N             = Hg0_Id_List(NN)
-
              ! Add converted Hg(II) and subtract converted Hg(0) mass
              ! to the ocean mass of Hg(0) [kg]
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + Hg2_GONE
+             Hg0aq(I,J) = Hg0aq(I,J) + Hg2_GONE
 
              !--------------------------------------------------------
              ! Calculate oceanic and gas-phase concentration of Hg(0)
              !--------------------------------------------------------
 
              ! Concentration of Hg(0) in the ocean [ng/L]
-             CHg0aq        = ( Hg0aq(I,J,NN) * 1e+11_fpp   ) / &
+             CHg0aq        = ( Hg0aq(I,J) * 1e+11_fpp   ) / &
                              ( A_M2          * FRAC_O ) / MLDcm
 
              ! Gas phase Hg(0) concentration: convert [kg] -> [ng/L]
@@ -1894,34 +1780,34 @@ CONTAINS
              !--------------------------------------------------------
 
              ! Compute ocean flux of Hg0 [cm/h*ng/L]
-             FLUX(I,J,NN)  = Kw * ( CHg0aq - ( CHg0 / H ) )
+             FLUX(I,J)  = Kw * ( CHg0aq - ( CHg0 / H ) )
 
              ! TURN OFF EVASION
-             !FLUX(I,J,NN)= MIN(0.,FLUX(I,J,NN))
+             !FLUX(I,J)= MIN(0.,FLUX(I,J))
 
              !Prior to 09 Nov 2011, H Amos ---------------------
              !Extra diagnostic: compute flux up and flux down
-             !FUP(I,J,NN)   = ( Kw * CHg0aq )
-             !FDOWN(I,J,NN) = ( Kw * CHg0 / H )
+             !FUP(I,J)   = ( Kw * CHg0aq )
+             !FDOWN(I,J) = ( Kw * CHg0 / H )
              !--------------------------------------------------
 
              ! Convert [cm/h*ng/L] --> [kg/m2/s] --> [kg/s]
              ! Also account for ocean fraction of grid box
-             !FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+             !FLUX(I,J)  = FLUX(I,J) * TO_KGM2S * A_M2 * FRAC_O
              ! Assume fast horizontal equilibration w/in the grid box
              ! therefore no need to scale by open ocean fraction
              ! (jaf, 6/22/11)
              ! Evasive flux only if there is some open ocean in the
              ! grid box (not 100% sea ice)
              IF ( FRAC_OPEN_OCEAN > 0d0 ) THEN
-                FLUX(I,J,NN)  = FLUX(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+                FLUX(I,J)  = FLUX(I,J) * TO_KGM2S * A_M2 * FRAC_O
              ELSE
-                FLUX(I,J,NN)  = 0e+0_fpp
+                FLUX(I,J)  = 0e+0_fpp
              ENDIF
 
              !Prior to 09 Nov 2011, H Amos ---------------------
-             !FUP(I,J,NN)  = FUP(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
-             !FDOWN(I,J,NN)  = FDOWN(I,J,NN) * TO_KGM2S * A_M2 * FRAC_O
+             !FUP(I,J)  = FUP(I,J) * TO_KGM2S * A_M2 * FRAC_O
+             !FDOWN(I,J)  = FDOWN(I,J) * TO_KGM2S * A_M2 * FRAC_O
              !--------------------------------------------------
 
              !--------------------------------------------------------
@@ -1930,42 +1816,40 @@ CONTAINS
 
              !Prior to 09 Nov 2011, H Amos ---------------------
              ! Cap the flux w/ the available Hg(0) ocean mass
-             !IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN
-             !   FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE
-             !   FUP(I,J,NN)  = FLUX(I,J,NN)-FDOWN(I,J,NN)
+             !IF ( FLUX(I,J) * DTSRCE > Hg0aq(I,J) ) THEN
+             !   FLUX(I,J) = Hg0aq(I,J) / DTSRCE
+             !   FUP(I,J)  = FLUX(I,J)-FDOWN(I,J)
              !ENDIF
-             IF ( FLUX(I,J,NN) * DTSRCE > Hg0aq(I,J,NN) ) THEN
-                FLUX(I,J,NN) = Hg0aq(I,J,NN) / DTSRCE
+             IF ( FLUX(I,J) * DTSRCE > Hg0aq(I,J) ) THEN
+                FLUX(I,J) = Hg0aq(I,J) / DTSRCE
              ENDIF
              !--------------------------------------------------
 
              ! Cap the neg flux w/ the available Hg(0) atm mass
-             IF ( (-FLUX(I,J,NN) * DTSRCE ) > Spc(N)%Conc(I,J,1) ) THEN
-                FLUX(I,J,NN) = -Spc(N)%Conc(I,J,1) / DTSRCE
+             IF ( (-FLUX(I,J) * DTSRCE ) > Spc(N)%Conc(I,J,1) ) THEN
+                FLUX(I,J) = -Spc(N)%Conc(I,J,1) / DTSRCE
              ENDIF
 
              ! Cap FDOWN with available Hg(0) atm mass
-             !IF ((FDOWN(I,J,NN)*DTSRCE)>Spc(N)%Conc(I,J,1)) THEN
-             !   FDOWN(I,J,NN) = Spc(N)%Conc(I,J,1) / DTSRCE
+             !IF ((FDOWN(I,J)*DTSRCE)>Spc(N)%Conc(I,J,1)) THEN
+             !   FDOWN(I,J) = Spc(N)%Conc(I,J,1) / DTSRCE
              !ENDIF
 
              ! make sure Fup and Fdown do not underflow either
              ! debug 2x2.5 diagnostic?
-             FUP(I,J,NN) = MAX (FUP(I,J,NN), SMALLNUM )
-             FDOWN(I,J,NN) = MAX (FDOWN(I,J,NN),SMALLNUM )
+             FUP(I,J) = MAX (FUP(I,J), SMALLNUM )
+             FDOWN(I,J) = MAX (FDOWN(I,J),SMALLNUM )
 
              !--------------------------------------------------------
              ! Remove amt of Hg(0) that is leaving the ocean [kg]
              !--------------------------------------------------------
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) - ( FLUX(I,J,NN) * DTSRCE )
+             Hg0aq(I,J) = Hg0aq(I,J) - ( FLUX(I,J) * DTSRCE )
 
              ! Make sure Hg0aq does not underflow (cdh, bmy, 3/28/06)
-             Hg0aq(I,J,NN) = MAX( Hg0aq(I,J,NN), SMALLNUM )
+             Hg0aq(I,J) = MAX( Hg0aq(I,J), SMALLNUM )
 
-             !Hgaq_tot = HgC(I,J) + Hg0aq(I,J,NN) + Hg2aq(I,J,NN)
-             Hgaq_tot(I,J,NN) = HgPaq(I,J,NN) + Hg0aq(I,J,NN) + Hg2aq(I,J,NN)
-
-          ENDDO
+             !Hgaq_tot = HgC(I,J) + Hg0aq(I,J) + Hg2aq(I,J)
+             Hgaq_tot(I,J) = HgPaq(I,J) + Hg0aq(I,J) + Hg2aq(I,J)
 
           !-----------------------------------------------------------
           ! %%%%% HISTORY (aka netCDF) DIAGNOSTICS %%%%%
@@ -1975,48 +1859,45 @@ CONTAINS
           ! NOTE: We have converted units from kg
           !-----------------------------------------------------------
 
-          ! NOTE: for now just use the total category
-          NN = 1
-
           ! Mass of oceanic Hg0 [kg]
           IF ( State_Diag%Archive_MassHg0inOcean ) THEN
-             State_Diag%MassHg0inOcean(I,J) = Hg0aq(I,J,NN)
+             State_Diag%MassHg0inOcean(I,J) = Hg0aq(I,J)
           ENDIF
 
           ! Mass of oceanic Hg2 [kg]
           IF ( State_Diag%Archive_MassHg2inOcean ) THEN
-             State_Diag%MassHg2inOcean(I,J) = Hg2aq(I,J,NN)
+             State_Diag%MassHg2inOcean(I,J) = Hg2aq(I,J)
           ENDIF
 
           ! Mass of oceanic HgP [kg]
           IF ( State_Diag%Archive_MassHgPinOcean ) THEN
-             State_Diag%MassHgPinOcean(I,J) = HgPaq(I,J,NN)
+             State_Diag%MassHgPinOcean(I,J) = HgPaq(I,J)
           ENDIF
 
           ! Total oceanic mercury [kg]
           IF ( State_Diag%Archive_MassHgTotalInOcean ) THEN
-             State_Diag%MassHgTotalInOcean(I,J) = Hgaq_tot(I,J,NN)
+             State_Diag%MassHgTotalInOcean(I,J) = Hgaq_tot(I,J)
           ENDIF
 
           ! Flux of Hg2 sunk to deep ocean [kg/s]
           IF ( State_Diag%Archive_FluxHg2toDeepOcean ) THEN
-             State_Diag%FluxHg2toDeepOcean(I,J) = HgPaq_SUNK(I,J,NN) / DTSRCE
+             State_Diag%FluxHg2toDeepOcean(I,J) = HgPaq_SUNK(I,J) / DTSRCE
           ENDIF
 
           ! Ocean-to-air and air-to-ocean fluxes
-          IF ( FLUX(I,J,NN) > 0e+0_fpp ) THEN
+          IF ( FLUX(I,J) > 0e+0_fpp ) THEN
 
              ! Volatization flux of Hg0 from ocean to air
              ! NOTE: Units are kg/s
              IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-                State_Diag%FluxHg0fromOceanToAir(I,J) = FLUX(I,J,NN)
+                State_Diag%FluxHg0fromOceanToAir(I,J) = FLUX(I,J)
              ENDIF
 
-          ELSE IF ( FLUX(I,J,NN) < 0e+0_fpp)  THEN
+          ELSE IF ( FLUX(I,J) < 0e+0_fpp)  THEN
 
              ! Drydep flux of Hg0 from air to ocean
              IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-                State_Diag%FluxHg0fromAirToOcean(I,J) = ABS( FLUX(I,J,NN) )
+                State_Diag%FluxHg0fromAirToOcean(I,J) = ABS( FLUX(I,J) )
              ENDIF
 
           ENDIF
@@ -2032,11 +1913,12 @@ CONTAINS
           !==============================================================
        ELSE
 
-          DO NN = 1, N_Hg_CATS
-             FLUX(I,J,NN) = 0e+0_fpp
-             FUP(I,J,NN)=0e+0_fpp
-             FDOWN(I,J,NN)=0e+0_fpp
-          ENDDO
+          !%%% Removed loop over Hg categories here
+          !%%% and also removed NN as the 3rd array index
+          !%%%  -- Bob Yantosca (23 Jun 2022)
+          FLUX(I,J) = 0e+0_fpp
+          FUP(I,J)=0e+0_fpp
+          FDOWN(I,J)=0e+0_fpp
 
        ENDIF
 
@@ -2056,21 +1938,6 @@ CONTAINS
     TOMS     => NULL()
     TOMS_PD  => NULL()
     TOMS_LT  => NULL()
-
-!%% Tagged simulation no longer works so comment out (bmy, 04 Apr 2022)
-!%%    !=================================================================
-!%%    ! Check tagged & total sums (if necessary)
-!%%    !=================================================================
-!%%    IF ( USE_CHECKS .and. LSPLIT ) THEN
-!%%       CALL CHECK_ATMOS_MERCURY( State_Chm, State_Grid, &
-!%%                                 'end of OCEAN_MERCURY_FLUX' )
-!%%       CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-!%%                                 'end of OCEAN_MERCURY_FLUX' )
-!%%       CALL CHECK_OCEAN_FLUXES ( State_Grid, &
-!%%                                 'end of OCEAN_MERCURY_FLUX' )
-!%%       CALL CHECK_FLUX_OUT( State_Grid, FLUX, &
-!%%                            'end of OCEAN_MERCURY_FLUX' )
-!%%    ENDIF
 
   END SUBROUTINE OCEAN_MERCURY_FLUX
 !EOC
@@ -2390,7 +2257,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: C,    NN,     N_tot_oc
+    INTEGER               :: C,    NN
     INTEGER               :: K, L
     REAL(fpp)             :: A_M2, DELTAH, FRAC_O,  MHg
     REAL(fpp)             :: X, Y                   !(added anls 01/05/09)
@@ -2399,9 +2266,9 @@ CONTAINS
     LOGICAL               :: LSPLIT
 
     ! Pointers
-    REAL(fpp), POINTER   :: Hg0aq(:,:,:)
-    REAL(fpp), POINTER   :: Hg2aq(:,:,:)
-    REAL(fpp), POINTER   :: HgPaq(:,:,:)
+    REAL(fpp), POINTER   :: Hg0aq(:,:)
+    REAL(fpp), POINTER   :: Hg2aq(:,:)
+    REAL(fpp), POINTER   :: HgPaq(:,:)
 
     !=================================================================
     ! MLD_ADJUSTMENT begins here!
@@ -2414,13 +2281,6 @@ CONTAINS
     Hg0aq       => State_Chm%OceanHg0
     Hg2aq       => State_Chm%OceanHg2
     HgPaq       => State_Chm%OceanHgP
-
-    ! Loop limit for use below
-    IF ( LSPLIT ) THEN
-       N_tot_oc = 2
-    ELSE
-       N_tot_oc = 1
-    ENDIF
 
     ! Grid box surface area [m2]
     A_M2   = State_Grid%Area_M2(I,J)
@@ -2435,7 +2295,7 @@ CONTAINS
     FRAC_O     = State_Met%FROCEAN(I,J)
 
     ! Molecular weight of Hg (valid for all tagged tracers)
-    MHg    = State_Chm%SpcData(ID_Hg_tot)%Info%MW_g * 1e-3_fpp
+    MHg    = State_Chm%SpcData(1)%Info%MW_g * 1e-3_fpp
 
     ! Test if MLD increased
     IF ( MLDnew > MLDold ) THEN
@@ -2461,11 +2321,9 @@ CONTAINS
        ! Grid box longitude [degrees]
        X = State_Grid%XMid(I,J)
 
-       ! Loop over total Hg (and ocean Hg if necessary)
-       DO C = 1, N_tot_oc
-
-          ! Get Hg category number
-          IF ( C == 1 ) NN = ID_Hg_tot
+       !%%% Removed loop over Hg categories here
+       !%%% and also removed NN as the 3rd array index
+       !%%%  -- Bob Yantosca (23 Jun 2022)
 
           !------------------------------------------------
           ! Atlantic
@@ -2473,20 +2331,17 @@ CONTAINS
           IF ( ( X >= -80.0 .and. X < 25.0 )  .and. &
                ( Y >= -25.0 .and. Y < 55.0 ) ) THEN !(anls,100114)
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_atl
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepatl(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepatl(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
              !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepatl(3) * MHg * A_M2 * FRAC_O )
              !ENDIF
 
@@ -2496,20 +2351,17 @@ CONTAINS
           ELSE IF ( ( X >= -180.0 .and. X < -80.0 )  .and. &
                     ( Y >=   30.0 .and. Y <  70.0 ) ) THEN
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_npa
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepnpa(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepnpa(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
              !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
              !ENDIF
 
@@ -2519,22 +2371,17 @@ CONTAINS
           ELSE IF ( ( X >= 25.0 .and. X < 180.0 )  .and. &
                     ( Y >= 30.0 .and. Y <  70.0 ) ) THEN
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_npa
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepnpa(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepnpa(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepnpa(3) * MHg * A_M2 * FRAC_O )
-             !ENDIF
 
           !------------------------------------------------
           ! North Atlantic
@@ -2542,20 +2389,16 @@ CONTAINS
           ELSE IF ( ( X >= -80.0 .and. X < 25.0 )  .and. &
                     ( Y >=  55.0 .and. Y < 70.0 ) ) THEN
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_nat
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepnat(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepnat(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepnat(3) * MHg * A_M2 * FRAC_O )
              !ENDIF
 
@@ -2565,93 +2408,72 @@ CONTAINS
           ELSE IF ( ( X >= -80.0 .and. X <  25.0 )  .and. &
                     ( Y >= -65.0 .and. Y < -25.0 ) ) THEN    !(anls,100114)
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_sat
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepsat(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepsat(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepsat(3) * MHg * A_M2 * FRAC_O )
-             !ENDIF
 
           !------------------------------------------------
           ! Antarctic
           !------------------------------------------------
           ELSE IF ( Y >=  -90.0 .and. Y <  -65.0 ) THEN
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_ant
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeepant(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeepant(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeepant(3) * MHg * A_M2 * FRAC_O )
-             !ENDIF
 
           !------------------------------------------------
           ! Arctic
           !------------------------------------------------
           ELSE IF ( Y >=  70.0 .and. Y <  90.0 ) THEN
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_arc
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeeparc(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeeparc(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeeparc(3) * MHg * A_M2 * FRAC_O )
-             !ENDIF
 
           ELSE
 
-             ! Assign region tag
-             IF ( C == 2 ) NN = ID_Hg_ocn
-
              ! Hg0
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) + &
+             Hg0aq(I,J) =    Hg0aq(I,J) + &
                              ( DELTAH * CDeep(1) * MHg * A_M2 * FRAC_O )
 
              ! Hg2
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) + &
+             Hg2aq(I,J) =    Hg2aq(I,J) + &
                              ( DELTAH * CDeep(2) * MHg * A_M2 * FRAC_O )
 
              ! HgP
-             !IF ( C == 1 ) THEN
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) + &
+             HgPaq(I,J) =    HgPaq(I,J) + &
                              ( DELTAH * CDeep(3) * MHg * A_M2 * FRAC_O )
-             !ENDIF
 
           ENDIF
-       ENDDO
 
     ELSE
 
        !==============================================================
-       ! IF MIXED LAYER DEPTH HAS DECREASED:
+       ! IF MIXED LAYER DEPTH HAS CREASED:
        !
        ! Conserve concentration, but shed mass for ALL tracers.
        ! Mass changes by same ratio as volume.
@@ -2660,12 +2482,12 @@ CONTAINS
        ! Avoid dividing by zero
        IF ( MLDold > 0e+0_fpp ) THEN
 
-          ! Update Hg0 and Hg2 categories
-          DO NN = 1, N_Hg_CATS
-             Hg0aq(I,J,NN) = Hg0aq(I,J,NN) * ( MLDnew / MLDold )
-             Hg2aq(I,J,NN) = Hg2aq(I,J,NN) * ( MLDnew / MLDold )
-             HgPaq(I,J,NN) = HgPaq(I,J,NN) * ( MLDnew / MLDold )
-          ENDDO
+          !%%% Removed loop over Hg categories here
+          !%%% and also removed NN as the 3rd array index
+          !%%%  -- Bob Yantosca (23 Jun 2022)
+          Hg0aq(I,J) = Hg0aq(I,J) * ( MLDnew / MLDold )
+          Hg2aq(I,J) = Hg2aq(I,J) * ( MLDnew / MLDold )
+          HgPaq(I,J) = HgPaq(I,J) * ( MLDnew / MLDold )
 
        ENDIF
 
@@ -2677,543 +2499,6 @@ CONTAINS
     HgPaq    => NULL()
 
   END SUBROUTINE MLD_ADJUSTMENT
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_atmos_mercury
-!
-! !DESCRIPTION: Subroutine CHECK\_ATMOS\_MERCURY tests whether the total and
-!  tagged tracers the GEOS-CHEM species array sum properly within each grid box.
-!  (cdh, bmy, 3/28/06)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CHECK_ATMOS_MERCURY( State_Chm, State_Grid, LOC )
-!
-! !USES:
-!
-    USE ERROR_MOD,           ONLY : ERROR_STOP
-    USE Species_Mod,         ONLY : SpcConc
-    USE State_Chm_Mod,       ONLY : ChmState
-    USE State_Grid_Mod,      ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN)    :: LOC         ! Calling routine
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL            :: FLAG
-    INTEGER            :: I,       J,       L
-    INTEGER            :: N,       NN
-    REAL(fpp)          :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-    REAL(fpp)          :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-    REAL(fpp)          :: HgP_tot, HgP_tag, RELERRP, ABSERRP
-
-    ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
-
-    !=================================================================
-    ! CHECK_ATMOS_MERCURY begins here!
-    !=================================================================
-
-    ! Set error flags
-    FLAG = .FALSE.
-
-    ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
-
-    ! Loop over grid boxes
-    !OMP PARALLEL DO       &
-    !OMP DEFAULT( SHARED ) &
-    !OMP PRIVATE( I,       J,       L,       N,      NN            ) &
-    !OMP PRIVATE( Hg0_tot, RELERR0, ABSERR0                        ) &
-    !OMP PRIVATE( Hg2_tot, RELERR2, ABSERR2                        ) &
-    !OMP PRIVATE( HgP_tot, RELERRP, ABSERRP                        ) &
-    !OMP REDUCTION( +:     Hg0_tag, Hg2_tag, HgP_tag               )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! Initialize
-       Hg0_tot = 0e+0_fpp
-       Hg0_tag = 0e+0_fpp
-       RELERR0 = 0e+0_fpp
-       ABSERR0 = 0e+0_fpp
-       Hg2_tot = 0e+0_fpp
-       Hg2_tag = 0e+0_fpp
-       RELERR2 = 0e+0_fpp
-       ABSERR2 = 0e+0_fpp
-       HgP_tot = 0e+0_fpp
-       Hgp_tag = 0e+0_fpp
-       RELERRP = 0e+0_fpp
-       ABSERRP = 0e+0_fpp
-
-       !--------
-       ! Hg(0)
-       !--------
-
-       ! Total Hg(0)
-       N       = Hg0_Id_List(ID_Hg_tot)
-       Hg0_tot = Spc(N)%Conc(I,J,L)
-
-       ! Sum of tagged Hg(0)
-       DO NN = 2, N_Hg_CATS
-          N       = Hg0_Id_List(NN)
-          Hg0_tag = Hg0_tag + Spc(N)%Conc(I,J,L)
-       ENDDO
-
-       ! Absolute error for Hg0
-       ABSERR0 = ABS( Hg0_tot - Hg0_tag )
-
-       ! Relative error for Hg0 (avoid div by zero)
-       IF ( Hg0_tot > 0e+0_fpp ) THEN
-          RELERR0 = ABS( ( Hg0_tot - Hg0_tag ) / Hg0_tot )
-       ELSE
-          RELERR0 = -999e+0_fpp
-       ENDIF
-
-       !--------
-       ! Hg(II)
-       !--------
-
-       ! Total Hg(II)
-       N       = Hg2_Id_List(ID_Hg_tot)
-       Hg2_tot = Spc(N)%Conc(I,J,L)
-
-       ! Sum of tagged Hg(II)
-       DO NN = 2, N_Hg_CATS
-          N       = Hg2_Id_List(NN)
-          Hg2_tag = Hg2_tag + Spc(N)%Conc(I,J,L)
-       ENDDO
-
-       ! Absolute error for Hg2
-       ABSERR2 = ABS( Hg2_tot - Hg2_tag )
-
-       ! Relative error for Hg2 (avoid div by zero)
-       IF ( Hg2_tot > 0e+0_fpp ) THEN
-          RELERR2 = ABS( ( Hg2_tot - Hg2_tag ) / Hg2_tot )
-       ELSE
-          RELERR2 = -999e+0_fpp
-       ENDIF
-
-       !--------
-       ! HgP
-       !--------
-
-       ! Total Hg(P)
-       N       = HgP_Id_List(ID_Hg_tot)
-       HgP_tot = Spc(N)%Conc(I,J,L)
-
-       ! Sum of tagged Hg(P)
-       DO NN = 2, N_Hg_CATS
-          N = HgP_Id_List(NN)
-          IF ( N > 0 ) HgP_tag = HgP_tag + Spc(N)%Conc(I,J,L)
-       ENDDO
-
-       ! Absolute error for HgP
-       ABSERRP = ABS( HgP_tot - HgP_tag )
-
-       ! Relative error for HgP (avoid div by zero)
-       IF ( HgP_tot > 0e+0_fpp ) THEN
-          RELERRP = ABS( ( HgP_tot - HgP_tag ) / HgP_tot )
-       ELSE
-          RELERRP = -999e+0_fpp
-       ENDIF
-
-       !----------------------------
-       ! Hg(0) error is too large
-       !----------------------------
-       IF ( RELERR0 > MAX_RELERR .and. ABSERR0 > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 100 ) I, J, L, Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-          !OMP END CRITICAL
-       ENDIF
-
-       !----------------------------
-       ! Hg(0) error is too large
-       !----------------------------
-       IF ( RELERR2 > MAX_RELERR .and. ABSERR2 > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 110 ) I, J, L, Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-          !OMP END CRITICAL
-       ENDIF
-
-       !----------------------------
-       ! HgP error is too large
-       !----------------------------
-       IF ( RELERRP > MAX_RELERR .and. ABSERRP > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 120 ) I, J, L, HgP_tot, HgP_tag, RELERRP, ABSERRP
-          !OMP END CRITICAL
-       ENDIF
-    ENDDO
-    ENDDO
-    ENDDO
-    !OMP END PARALLEL DO
-
-    ! Free pointer
-    Spc => NULL()
-    
-    ! FORMAT strings
-100 FORMAT( 'Hg0 error: ', 3i5, 4es13.6 )
-110 FORMAT( 'Hg2 error: ', 3i5, 4es13.6 )
-120 FORMAT( 'HgP error: ', 3i5, 4es13.6 )
-
-    ! Stop if Hg0 and Hg2 errors are too large
-    IF ( FLAG ) THEN
-       CALL ERROR_STOP( 'Tagged Hg0, Hg2, HgP do not add up!', LOC )
-    ENDIF
-
-  END SUBROUTINE CHECK_ATMOS_MERCURY
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_ocean_mercury
-!
-! !DESCRIPTION: Subroutine CHECK\_OCEAN_MERCURY tests whether tagged tracers in
-!  Hg0aq and Hg2aq add properly within each grid box. (cdh, bmy, 3/28/06)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CHECK_OCEAN_MERCURY( State_Chm, State_Grid, LOC )
-!
-! !USES:
-!
-    USE ERROR_MOD,           ONLY : ERROR_STOP
-    USE State_Chm_Mod,       ONLY : ChmState
-    USE State_Grid_Mod,      ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN)    :: LOC         ! Calling routine
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL, SAVE                :: FIRST = .TRUE.
-    LOGICAL                      :: FLAG
-    INTEGER                      :: I,       J
-    REAL(fpp)                    :: Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-    REAL(fpp)                    :: Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-
-    !=================================================================
-    ! CHECK_OCEAN_MERCURY begins here!
-    !=================================================================
-
-    ! Set error condition flag
-    FLAG = .FALSE.
-
-    ! Loop over ocean surface boxes
-    !OMP PARALLEL DO       &
-    !OMP DEFAULT( SHARED ) &
-    !OMP PRIVATE( I, J   ) &
-    !OMP PRIVATE( Hg0_tot, Hg0_tag, RELERR0, ABSERR0 )
-    !OMP PRIVATE( Hg2_tot, Hg2_tag, RELERR2, ABSERR2 )
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       !--------------------------------------
-       ! Relative and absolute errors for Hg0
-       !--------------------------------------
-       Hg0_tot = State_Chm%OceanHg0(I,J,ID_Hg_tot)
-       Hg0_tag = SUM( State_Chm%OceanHg0(I,J,2:N_Hg_CATS) )
-       ABSERR0 = ABS( Hg0_tot - Hg0_tag )
-
-       ! Avoid div by zero
-       IF ( Hg0_tot > 0e+0_fpp ) THEN
-          RELERR0 = ABS( ( Hg0_tot - Hg0_tag ) / Hg0_tot )
-       ELSE
-          RELERR0 = -999e+0_fpp
-       ENDIF
-
-       !--------------------------------------
-       ! Relative and absolute errors for Hg2
-       !--------------------------------------
-       Hg2_tot = State_Chm%OceanHg2(I,J,ID_Hg_tot)
-       Hg2_tag = SUM( State_Chm%OceanHg2(I,J,2:N_Hg_CATS) )
-       ABSERR2 = ABS( Hg2_tot - Hg2_tag )
-
-       ! Avoid div by zero
-       IF ( Hg2_tot > 0e+0_fpp ) THEN
-          RELERR2 = ABS( ( Hg2_tot - Hg2_tag ) / Hg2_tot )
-       ELSE
-          RELERR2 = -999e+0_fpp
-       ENDIF
-
-       !--------------------------------------
-       ! Hg(0) error is too large
-       !--------------------------------------
-       IF ( RELERR0 > MAX_RELERR .and. ABSERR0 > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 100 ) I, J, Hg0_tot, Hg0_tag, RELERR0, ABSERR0
-          !OMP END CRITICAL
-       ENDIF
-
-       !--------------------------------------
-       ! Hg(II) error is too large
-       !--------------------------------------
-       IF ( RELERR2 > MAX_RELERR .and. ABSERR2 > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 110 ) I, J, Hg2_tot, Hg2_tag, RELERR2, ABSERR2
-          !OMP END CRITICAL
-       ENDIF
-
-    ENDDO
-    ENDDO
-    !OMP END PARALLEL DO
-
-    ! FORMAT strings
-100 FORMAT( 'Hg0aq error: ', 2i5, 4es13.6 )
-110 FORMAT( 'Hg2aq error: ', 2i5, 4es13.6 )
-
-    ! Stop if Hg0 and Hg2 errors are too large
-    IF ( FLAG ) THEN
-       CALL ERROR_STOP( 'Tagged Hg0aq, Hg2aq do not add up!', LOC )
-    ENDIF
-
-  END SUBROUTINE CHECK_OCEAN_MERCURY
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_ocean_fluxes
-!
-! !DESCRIPTION: Subroutine CHECK\_OCEAN\_FLUXES tests whether the drydep and
-!  wetdep fluxes in DD_Hg2 and WD_Hg2 sum together in each grid box. (cdh, bmy,
-!  3/28/06)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CHECK_OCEAN_FLUXES( State_Grid, LOC )
-!
-! !USES:
-!
-    USE DEPO_MERCURY_MOD,    ONLY : DD_Hg2, WD_Hg2, DD_HgP, WD_HgP
-    USE ERROR_MOD,           ONLY : ERROR_STOP
-    USE State_Grid_Mod,      ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    CHARACTER(LEN=*), INTENT(IN) :: LOC         ! Calling routine
-    TYPE(GrdState),   INTENT(IN) :: State_Grid  ! Grid State object
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL                      :: FLAG
-    INTEGER                      :: I,         J
-    REAL(fpp)                    :: DD_tot,    DD_tag
-    REAL(fpp)                    :: DD_RELERR, DD_ABSERR
-    REAL(fpp)                    :: WD_tot,    WD_tag
-    REAL(fpp)                    :: WD_RELERR, WD_ABSERR
-
-    !=================================================================
-    ! CHECK_OCEAN_MERCURY begins here!
-    !=================================================================
-
-    ! Echo
-    WRITE( 6, 100 )
-100 FORMAT( '     - In CHECK_OCEAN_FLUXES' )
-
-    ! Set error condition flag
-    FLAG = .FALSE.
-
-    ! Loop over ocean surface boxes
-    !OMP PARALLEL DO       &
-    !OMP DEFAULT( SHARED ) &
-    !OMP PRIVATE( I, J   ) &
-    !OMP PRIVATE( DD_tot, DD_tag, DD_RELERR, DD_ABSERR ) &
-    !OMP PRIVATE( WD_tot, WD_tag, WD_RELERR, WD_ABSERR )
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       !---------------------------------------
-       ! Absolute & relative errors for DD_Hg2
-       !---------------------------------------
-       DD_tot    = DD_Hg2(I,J,1)
-       DD_tag    = SUM( DD_Hg2(I,J,2:N_Hg_CATS) )
-       DD_ABSERR = ABS( DD_tot - DD_tag )
-
-       ! Avoid div by zero
-       IF ( DD_tot > 0e+0_fpp ) THEN
-          DD_RELERR = ABS( ( DD_tot - DD_tag ) / DD_tot )
-       ELSE
-          DD_RELERR = -999e+0_fpp
-       ENDIF
-
-       !---------------------------------------
-       ! Absolute & relative errors for WD_Hg2
-       !---------------------------------------
-       WD_tot    = WD_Hg2(I,J,1)
-       WD_tag    = SUM( WD_Hg2(I,J,2:N_Hg_CATS) )
-       WD_ABSERR = ABS( WD_tot - WD_tag )
-
-       ! Avoid div by zero
-       IF ( WD_tot > 0e+0_fpp ) THEN
-          WD_RELERR = ABS( ( WD_tot - WD_tag ) / WD_tot )
-       ELSE
-          WD_RELERR = -999e+0_fpp
-       ENDIF
-
-       !---------------------------------------
-       ! DD flux error is too large
-       !---------------------------------------
-       IF ( DD_RELERR > MAX_RELERR .and. DD_ABSERR > MAX_FLXERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 110 ) I, J, DD_tot, DD_tag, DD_RELERR, DD_ABSERR
-          !OMP END CRITICAL
-       ENDIF
-
-       !---------------------------------------
-       ! WD flux error is too large
-       !---------------------------------------
-       IF ( WD_RELERR > MAX_RELERR .and. WD_ABSERR > MAX_FLXERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 120 ) I, J, WD_tot, WD_tag, WD_RELERR, WD_ABSERR
-          !OMP END CRITICAL
-       ENDIF
-
-    ENDDO
-    ENDDO
-    !OMP END PARALLEL DO
-
-    ! FORMAT strings
-110 FORMAT( 'DD_Hg2 flux error: ', 2i5, 4es13.6 )
-120 FORMAT( 'WD_Hg2 flux error: ', 2i5, 4es13.6 )
-
-    ! Stop if Hg0 and Hg2 errors are too large
-    IF ( FLAG ) THEN
-       CALL ERROR_STOP( 'Tagged DD, WD fluxes do not add up!', LOC )
-    ENDIf
-
-  END SUBROUTINE CHECK_OCEAN_FLUXES
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: check_flux_out
-!
-! !DESCRIPTION: Subroutine CHECK\_FLUX\_OUT tests whether tagged quantities in
-!  FLUX sum together in each grid box. (cdh, bmy, 3/20/06)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CHECK_FLUX_OUT( State_Grid, FLUX, LOC )
-!
-! !USES:
-!
-    USE ERROR_MOD,           ONLY : ERROR_STOP
-    USE State_Grid_Mod,      ONLY : GrdState
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(GrdState),   INTENT(IN) :: State_Grid
-    REAL(fpp),        INTENT(IN) :: FLUX(State_Grid%NX,State_Grid%NY,N_Hg_CATS)
-    CHARACTER(LEN=*), INTENT(IN) :: LOC
-
-    ! Local variables
-    LOGICAL                      :: FLAG
-    INTEGER                      :: I,          J
-    REAL(fpp)                    :: FLX_tot,    FLX_tag
-    REAL(fpp)                    :: FLX_RELERR, FLX_ABSERR
-
-    !=================================================================
-    ! CHECK_FLUX_OUT begins here!
-    !=================================================================
-
-    ! Echo
-    WRITE( 6, 100 )
-100 FORMAT( '     - In CHECK_FLUX_OUT' )
-
-    ! Set error condition flag
-    FLAG = .FALSE.
-
-    ! Loop over ocean surface boxes
-    !OMP PARALLEL DO       &
-    !OMP DEFAULT( SHARED ) &
-    !OMP PRIVATE( I, J, FLX_tot, FLX_tag, FLX_err )
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       !----------------------------------------
-       ! Absolute & relative errors for FLX_Hg2
-       !----------------------------------------
-       FLX_tot    = FLUX(I,J,1)
-       FLX_tag    = SUM( FLUX(I,J,2:N_Hg_CATS) )
-       FLX_ABSERR = ABS( FLX_tot - FLX_tag )
-
-       ! Avoid div by zero
-       IF ( FLX_tot > 0e+0_fpp ) THEN
-          FLX_RELERR = ABS( ( FLX_tot - FLX_tag ) / FLX_tot )
-       ELSE
-          FLX_RELERR = -999e+0_fpp
-       ENDIF
-
-       !----------------------------
-       ! Flux error is too large
-       !----------------------------
-       IF ( FLX_RELERR > MAX_RELERR  .and. FLX_ABSERR > MAX_ABSERR ) THEN
-          !OMP CRITICAL
-          FLAG = .TRUE.
-          WRITE( 6, 110 ) I, J, FLX_tot, FLX_tag, FLX_RELERR, FLX_ABSERR
-          !OMP END CRITICAL
-       ENDIF
-
-    ENDDO
-    ENDDO
-    !OMP END PARALLEL DO
-
-    ! FORMAT strings
-110 FORMAT( 'FLX_Hg2 flux error: ', 2i5, 4es13.6 )
-
-    ! Stop if Hg0 and Hg2 errors are too large
-    IF ( FLAG ) THEN
-       CALL ERROR_STOP( 'Tagged emission fluxes do not add up!', LOC )
-    ENDIf
-
-  END SUBROUTINE CHECK_FLUX_OUT
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3282,47 +2567,6 @@ CONTAINS
     ! Exit if this is a dry-run
     IF ( Input_Opt%DryRun ) RETURN
 
-    ! Store the # of tagHg categories in a module variable
-    N_Hg_CATS =  State_Chm%N_Hg_CATS
-
-    ! Hg species index corresponding to a given Hg category number
-    Hg0_Id_List    => State_Chm%Hg0_Id_List
-    Hg2_Id_List    => State_Chm%Hg2_Id_List
-    HgP_Id_List    => State_Chm%HgP_Id_List
-
-    ! Loop over all Hg species
-    DO N = 1, State_Chm%nSpecies
-
-       ! Point to the Species Database entry for tracer # N
-       SpcInfo => State_Chm%SpcData(N)%Info
-
-       ! Save ocean Hg categories into module variable indices
-       SELECT CASE( TRIM( SpcInfo%Name ) )
-       CASE( 'Hg0'     )
-          ID_Hg_tot = SpcInfo%Hg_Cat
-       CASE( 'Hg0_atl' )
-          ID_Hg_atl = SpcInfo%Hg_Cat
-       CASE( 'Hg0_nat' )
-          ID_Hg_nat = SpcInfo%Hg_Cat
-       CASE( 'Hg0_sat' )
-          ID_Hg_sat = SpcInfo%Hg_Cat
-       CASE( 'Hg0_npa' )
-          ID_Hg_npa = SpcInfo%Hg_Cat
-       CASE( 'Hg0_arc' )
-          ID_Hg_arc = SpcInfo%Hg_Cat
-       CASE( 'Hg0_ant' )
-          ID_Hg_ant = SpcInfo%Hg_Cat
-       CASE( 'Hg0_ocn' )
-          ID_Hg_ocn = SpcInfo%Hg_Cat
-       CASE DEFAULT
-          ! Do nothing
-       END SELECT
-
-       ! Free pointer
-       SpcInfo => NULL()
-
-    ENDDO
-
     !-----------------------------------------------------------------
     ! Allocate these arrays regardless of whether you are using
     ! the dynamic ocean.  These are needed for Hg2 partitioning.
@@ -3385,17 +2629,13 @@ CONTAINS
     Fp = 0e+0_fpp
 
     !eds 5/15/12 fix
-    ALLOCATE( Hgaq_tot (State_Grid%NX, State_Grid%NY, N_Hg_CATS ), &
-              STAT=RC )
+    ALLOCATE( Hgaq_tot (State_Grid%NX, State_Grid%NY ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'Hgaq_tot' )
     Hgaq_tot = 0e+0_fpp
 
     !-----------------------------------------------------------------
     ! These variables are only needed for the dynamic ocean option
     !-----------------------------------------------------------------
-
-    ! Turn on error checks for tagged & total sums?
-    USE_CHECKS  = Input_Opt%USE_CHECKS
 
     ! Get current year for scale factor application
     THISYEAR = GET_YEAR()
@@ -3510,8 +2750,7 @@ CONTAINS
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'dMLD' )
     dMLD = 0e+0_fpp
 
-    ALLOCATE( HgPaq_SUNK (State_Grid%NX, State_Grid%NY, N_Hg_CATS ), &
-              STAT=RC )
+    ALLOCATE( HgPaq_SUNK( State_Grid%NX, State_Grid%NY ), STAT=RC )
     IF ( RC /= 0 ) CALL ALLOC_ERR( 'HgPaq_SUNK' )
     HgPaq_SUNK = 0e+0_fpp
 
@@ -3577,9 +2816,6 @@ CONTAINS
     UPVEL       => NULL()
     dMLD1       => NULL()
     dMLD2       => NULL()
-    Hg0_Id_List => NULL()
-    Hg2_Id_List => NULL()
-    HgP_Id_List => NULL()
 
   END SUBROUTINE CLEANUP_OCEAN_MERCURY
 !EOC

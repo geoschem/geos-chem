@@ -79,7 +79,6 @@ MODULE Vdiff_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  LOGICAL               :: prtDebug          ! Should we print debug info?
   INTEGER               :: nspcmix           ! # of species for mixing
   INTEGER               :: plev              ! # of levels
   INTEGER               :: plevp             ! # of level edges
@@ -341,7 +340,7 @@ CONTAINS
     pblh     = pblh_arg(:,lat)
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
@@ -385,7 +384,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
 
 !-----------------------------------------------------------------------
@@ -407,7 +406,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
@@ -456,7 +455,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
@@ -485,7 +484,7 @@ CONTAINS
     endif
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
 !-----------------------------------------------------------------------
@@ -652,7 +651,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
 !-----------------------------------------------------------------------
@@ -1878,8 +1877,9 @@ CONTAINS
     ENDDO
 
     ! Compute the number of PBL levels
+    ! Write out the message as debug output (bmy, 05 Dec 2022)
     npbl = MAX( 1, plev - k )
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
             ' model levels.'
        WRITE(6,*) 'Top is ',ref_pmid(plevp-npbl),' hpa'
@@ -1922,7 +1922,6 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE GET_NDEP_MOD,       ONLY : SOIL_DRYDEP
-    USE GLOBAL_CH4_MOD,     ONLY : CH4_EMIS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PBL_MIX_MOD,        ONLY : COMPUTE_PBL_HEIGHT
     USE Species_Mod,        ONLY : Species
@@ -1932,8 +1931,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CONV, GET_TS_EMIS, GET_TS_CHEM
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_DD, ADD_HgP_DD
-    USE DEPO_MERCURY_MOD,   ONLY : ADD_Hg2_SNOWPACK
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !hma
     USE OCEAN_MERCURY_MOD,  ONLY : OMMFP => Fp
     USE OCEAN_MERCURY_MOD,  ONLY : LHg2HalfAerosol !cdh
@@ -2023,7 +2020,9 @@ CONTAINS
     !=================================================================
 
     !### Debug info
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    ENDIF
 
     ! Initialize
     RC       =  GC_SUCCESS
@@ -2088,7 +2087,9 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    ENDIF
 
     !--------------------------------------------------------------------
     ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
@@ -2121,7 +2122,9 @@ CONTAINS
     p_shp              =  p_shp * 1.e-3_fp
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+    ENDIF
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -2139,7 +2142,9 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+    ENDIF
 
     ! Convert kg/kg -> v/v
     DO NA = 1, nAdvect
@@ -2169,7 +2174,9 @@ CONTAINS
     p_cgs    => NULL()
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    ENDIF
 
   END SUBROUTINE VDIFFDR
 !EOC
@@ -2232,7 +2239,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: TS_Dyn
     REAL(fp)           :: DT_Dyn
 
@@ -2247,7 +2253,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS                                ! Assume success
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Print debug output?
     ErrMsg   = ''
     ThisLoc  = ' -> at DO_PBL_MIX_2 (in module GeosCore/vdiff_mod.F90)'
 
@@ -2323,7 +2328,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( prtDebug ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
@@ -2348,7 +2353,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( prtDebug ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
     ENDIF
 
@@ -2442,13 +2447,13 @@ CONTAINS
     IF ( ALLOCATED( ml2 ) ) THEN
        DEALLOCATE( ml2, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:ML2', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
     IF ( ALLOCATED( qmincg ) ) THEN
        DEALLOCATE( qmincg, STAT=RC )
        CALL GC_CheckVar( 'vdiff_mod.F90:QMINCG', 2, RC )
-       RETURN
+       IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
   END SUBROUTINE Cleanup_Vdiff

@@ -79,13 +79,13 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
+    USE CMN_FJX_Mod,     ONLY : Init_CMN_FJX
     USE ErrCode_Mod
     USE Input_Opt_Mod
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Grid_Mod,  ONLY : GrdState
 #ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
-    USE CMN_O3_Mod,         ONLY : Init_CMN_O3
+    USE CMN_DIAG_MOD,    ONLY : Init_CMN_DIAG
+    USE CMN_O3_Mod,      ONLY : Init_CMN_O3
 #endif
 
     IMPLICIT NONE
@@ -144,7 +144,7 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
     ! Initialize CMN_FJX_mod.F90
-    CALL Init_CMN_FJX( Input_Opt, State_Grid, RC )
+    CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -412,6 +412,7 @@ CONTAINS
 !
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
+    USE Carbon_Gases_Mod,   ONLY : Init_Carbon_Gases
     USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
@@ -419,6 +420,7 @@ CONTAINS
     USE Dust_Mod,           ONLY : Init_Dust
     USE ErrCode_Mod
     USE Error_Mod,          ONLY : Debug_Msg
+    USE FullChem_Mod,       ONLY : Init_FullChem
     USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
     USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
@@ -437,10 +439,12 @@ CONTAINS
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
+#ifdef MODEL_CLASSIC
 #ifdef BPCH_DIAG
-    USE Diag51_Mod,         ONLY : Init_Diag51
-    USE Diag51b_Mod,        ONLY : Init_Diag51b
+    ! NOTE: Restore this call until we can remove TOMAS BPCH diagnostics
+    !  -- Bob Yantosca (03 Nov 2022)
     USE Gamap_Mod,          ONLY : Do_Gamap
+#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -477,7 +481,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: prtDebug
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -486,7 +489,6 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
     ErrMsg    = ''
     ThisLoc   = &
        ' -> at GC_Init_Extra (in module GeosCore/gc_environment_mod.F90)'
@@ -526,22 +528,10 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-
-       ! Print extra info message for Hg simulation
-       IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT ) THEN
-          WRITE ( 6, 120 )
-          WRITE ( 6, 121 )
-       ENDIF
     ENDIF
 
     ! Exit for dry-run simulations
     IF ( Input_Opt%DryRun ) RETURN
-
-    ! FORMAT strings
-120 FORMAT( /, 'All tagged Hg2 species have the same dep velocity '          &
-               'as the total Hg2 species.' )
-121 FORMAT( 'All tagged HgP species have the same dep velocity '             &
-            'as the total HgP species.' )
 
     !=================================================================
     ! Call setup routines for wetdep
@@ -655,73 +645,41 @@ CONTAINS
     ENDIF
 
     !=================================================================
-    ! Initialize specialty simulation modules here
+    ! Initialize simulation modules here
     !=================================================================
 
     !-----------------------------------------------------------------
-    ! CO2
+    ! Fullchem via KPP
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL Init_CO2( Input_Opt, State_Grid, RC )
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+       CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_CO2"!'
+          ErrMsg = 'Error encountered in "Init_FullChem"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
-    ! CH4
+    ! Carbon gases via KPP
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       CALL Init_Global_Ch4( Input_Opt, State_Diag, State_Grid, RC )
+    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
+       CALL Init_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,             &
+                               State_Grid, RC                                )
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Global_CH4"!'
+          ErrMsg = 'Error encountered in "Init_Carbon_Gases"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
     ENDIF
 
     !-----------------------------------------------------------------
-    ! Tagged CO
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-       CALL Init_Tagged_CO( Input_Opt, State_Diag, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Tagged_CO"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Tagged O3
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-       CALL Init_Tagged_O3( Input_Opt, State_Chm, State_Diag, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Tagged_O3"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-#ifdef TOMAS
-    !-----------------------------------------------------------------
-    ! TOMAS
-    !-----------------------------------------------------------------
-
-    ! Initialize the TOMAS microphysics package, if necessary
-    CALL Init_Tomas_Microphysics( Input_Opt, State_Chm, State_Grid, RC )
-#endif
-
-    !-----------------------------------------------------------------
-    ! Mercury
+    ! Mercury via KPP
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -754,6 +712,64 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
+    ! CO2
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
+       CALL Init_CO2( Input_Opt, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_CO2"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! CH4
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+       CALL Init_Global_Ch4( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Global_CH4"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !-----------------------------------------------------------------
+    ! Tagged CO
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
+       CALL Init_Tagged_CO( Input_Opt, State_Diag, State_Grid, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Tagged_CO"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+
+    !-----------------------------------------------------------------
+    ! Tagged O3
+    !-----------------------------------------------------------------
+    IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
+       CALL Init_Tagged_O3( Input_Opt, State_Chm, State_Diag, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_Tagged_O3"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+#ifdef TOMAS
+    !-----------------------------------------------------------------
+    ! TOMAS
+    !-----------------------------------------------------------------
+
+    ! Initialize the TOMAS microphysics package, if necessary
+    CALL Init_Tomas_Microphysics( Input_Opt, State_Chm, State_Grid, RC )
+#endif
+
+    !-----------------------------------------------------------------
     ! POPs
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
@@ -765,6 +781,7 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef MODEL_CLASSIC
 #ifdef BPCH_DIAG
     !=================================================================
     ! These routines are only needed when compiling GEOS-Chem
@@ -778,15 +795,6 @@ CONTAINS
     ! Allocate and initialize variables
     CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
 
-    ! Satellite timeseries (bpch)
-    IF ( Input_Opt%DO_ND51 ) THEN
-       CALL Init_Diag51 ( Input_Opt, State_Grid, RC )
-    ENDIF
-    IF ( Input_Opt%DO_ND51b ) THEN
-       CALL Init_Diag51b( Input_Opt, State_Grid, RC )
-    ENDIF
-
-#if defined( MODEL_CLASSIC )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
@@ -800,7 +808,7 @@ CONTAINS
 #endif
 #endif
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
   END SUBROUTINE GC_Init_Extra
 !EOC

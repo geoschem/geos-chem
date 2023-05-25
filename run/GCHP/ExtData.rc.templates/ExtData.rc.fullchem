@@ -36,6 +36,10 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
 CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
 #
+# To utilize climatology lightning fields, comment the two lines above and uncomment these lines
+#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#
 ###############################################################################
 ###
 ### Land data (not handled by HEMCO)
@@ -1262,35 +1266,60 @@ TRASH_BCPI kg/m2/s N Y - none none BC  ./HcoDir/TrashEmis/v2015-03/TrashBurn_v2_
 TRASH_OCPI kg/m2/s N Y - none none OC  ./HcoDir/TrashEmis/v2015-03/TrashBurn_v2_generic.01x01.nc
 #
 #==============================================================================
-# --- HTAP v2 (HTAP) ---
-# HTAP is off by default in HEMCO_Config.rc
+# --- HTAP v3 (HTAPv3) ---
+# HTAPv3 is off by default in HEMCO_Config.rc; Make sure to uncomment
+# these entries if you activate HTAPv3 or HTAPv3_SHIP in HEMCO_Config.rc
 #==============================================================================
-#HTAP_NO_IND    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_INDUSTRY.generic.01x01.nc
-#HTAP_NO_POW    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_ENERGY.generic.01x01.nc
-#HTAP_NO_RES    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_RESIDENTIAL.generic.01x01.nc
-#HTAP_NO_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_TRANSPORT.generic.01x01.nc
-##HTAP_NO_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_AIR_LTO.generic.01x01.nc
-##HTAP_NO_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_AIR_CDS.generic.01x01.nc
-##HTAP_NO_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_no  ./HcoDir/HTAP/v2015-03/NO/EDGAR_HTAP_NO_AIR_CRS.generic.01x01.nc
-#HTAP_CO_IND    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_INDUSTRY.generic.01x01.nc
-#HTAP_CO_POW    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_ENERGY.generic.01x01.nc
-#HTAP_CO_RES    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_RESIDENTIAL.generic.01x01.nc
-#HTAP_CO_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_TRANSPORT.generic.01x01.nc
-##HTAP_CO_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc
-##HTAP_CO_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc
-##HTAP_CO_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
-#HTAP_SO2_IND   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_INDUSTRY.generic.01x01.nc
-#HTAP_SO2_POW   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_ENERGY.generic.01x01.nc
-#HTAP_SO2_RES   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_RESIDENTIAL.generic.01x01.nc
-#HTAP_SO2_TRA   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_TRANSPORT.generic.01x01.nc
-##HTAP_SO2_AIR1 kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_LTO.generic.01x01.nc
-##HTAP_SO2_AIR2 kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_CDS.generic.01x01.nc
-##HTAP_SO2_AIR3 kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_so2 ./HcoDir/HTAP/v2015-03/SO2/EDGAR_HTAP_SO2_AIR_CRS.generic.01x01.nc
-#HTAP_NH3_IND   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./HcoDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_INDUSTRY.generic.01x01.nc
-#HTAP_NH3_POW   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./HcoDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_ENERGY.generic.01x01.nc
-#HTAP_NH3_RES   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./HcoDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_RESIDENTIAL.generic.01x01.nc
-#HTAP_NH3_TRA   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./HcoDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_TRANSPORT.generic.01x01.nc
-#HTAP_NH3_AGR   kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_nh3 ./HcoDir/HTAP/v2015-03/NH3/EDGAR_HTAP_NH3_AGRICULTURE.generic.01x01.nc
+## HTAPv3
+#HTAPv3_BCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_AGR  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ENE  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_IND  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_TRA  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_RCO  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_SLV  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_BCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_WST  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_CO_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_AGR  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ENE  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_IND  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_TRA  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_RCO  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_SLV  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_CO_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_WST  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_NH3_AGR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_AGR ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_ENE   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ENE ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_IND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_IND ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_TRA   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_TRA ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_RCO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_RCO ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_SLV   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_SLV ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NH3_WST   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_WST ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NO_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ENE  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_NO_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_IND  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_NO_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_TRA  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_NO_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_RCO  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_NO_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_SLV  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_NO_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_WST  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_AGR  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ENE  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_IND  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_TRA  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_RCO  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_SLV  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_WST  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_NO_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_AGR  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_SO2_AGR   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_AGR ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_ENE   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ENE ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_IND   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_IND ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_TRA   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_TRA ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_RCO   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_RCO ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_SLV   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_SLV ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+#HTAPv3_SO2_WST   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_WST ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
+## HTAPv3_SHIP
+#HTAPv3_BCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_SHP  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_BC_0.1x0.1_%y4.nc
+#HTAPv3_CO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_SHP  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_CO_0.1x0.1_%y4.nc
+#HTAPv3_NH3_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_SHP ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NH3_0.1x0.1_%y4.nc
+#HTAPv3_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_SHP  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_NO_0.1x0.1_%y4.nc
+#HTAPv3_OCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_SHP  ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_OC_0.1x0.1_%y4.nc
+#HTAPv3_SO2_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_SHP ./HcoDir/HTAPv3/v2022-12/%y4/HTAPv3_SO2_0.1x0.1_%y4.nc
 #
 #==============================================================================
 # --- GEIA (GEIA_NH3) ---
@@ -1519,6 +1548,38 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 # --- GFAS biomass burning (GFAS) ---
 # GFAS is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
+#GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_SOAP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_NO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_OCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_OCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ocfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none co2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH4   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch4fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_SO2   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_pFe   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none so2fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_NH3   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none nh3fire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ACET  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ALD2  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4ofire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ALK4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkanesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_PRPE1 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none hialkenesfire ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_PRPE2 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C2H6  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C3H8  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c3h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH2O  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch2ofire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_C2H4  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h4fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_ISOP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c5h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_DMS   kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c2h6sfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_TOLU  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c7h8fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_BENZ  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c6h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_XYLE  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c8h10fire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_EMITL m       N Y F%y4-%m2-%d2T00:00:00 none none mami          ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#
+#==============================================================================
+# --- GFED4 climatology ---
+# GFED4_CLIMATOLOGY is off by default in HEMCO_Config.rc; fill in this section if turning on
+#==============================================================================
 #
 #==============================================================================
 # --- Anthropogenic dust emissions (AFCID)---
@@ -1684,18 +1745,18 @@ MEGAN_ORVC 1 Y Y F1990-%m2-01T00:00:00 none none OCPI ./HcoDir/SOA/v2014-07/NVOC
 # --- GFED biomass burning emissions (Extension 111)
 #==============================================================================
 # --- GFED4 ---
-GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2020-02/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 #
 # --- GFED_daily ---
 GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2015-10/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 #
 # --- GFED_3hourly ---
-GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2020-02/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 #
 #==============================================================================
 # --- FINN v1.5 biomass burning emissions (Extension 114)
@@ -2090,18 +2151,8 @@ surf_iodide   1 Y Y F1970-%m2-01T00:00:00 none none Ensemble_Monthly_mean ./HcoD
 # --- annual scale factors ---
 #==============================================================================
 # Need DC0360xPC0181_CFnnnnx6C.bin
-TOTFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2002      1 N Y F2002-01-01T00:00:00 none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-TOTFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none NOxscalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 LIQFUEL_1985      1 N Y F1985-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2006      1 N Y F2006-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2002      1 N Y F2002-01-01T00:00:00 none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-LIQFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none COscalar  ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_THISYR    1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2002      1 N Y F2002-01-01T00:00:00 none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2008      1 N Y F2008-01-01T00:00:00 none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
-SOLFUEL_2008_2010 1 N Y F%y4-01-01T00:00:00  none none SO2scalar ./HcoDir/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
 #
 #==============================================================================
 # --- Diurnal scale factors ---
@@ -2136,19 +2187,19 @@ FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./HcoDir/EDGARv43/v2016-11/EDGAR_v
 #==============================================================================
 # --- NEI 2005 scale factors ---
 #==============================================================================
-NEI99_DOW_NOX  1 D N F1999-%m2-01T00:00:00 none none NOX  ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_CO   1 D N F1999-%m2-01T00:00:00 none none CO   ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_ALK4 1 D N F1999-%m2-01T00:00:00 none none ALK4 ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_ACET 1 D N F1999-%m2-01T00:00:00 none none ACET ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_MEK  1 D N F1999-%m2-01T00:00:00 none none MEK  ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_PRPE 1 D N F1999-%m2-01T00:00:00 none none PRPE ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_C3H8 1 D N F1999-%m2-01T00:00:00 none none C3H8 ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_C2H6 1 D N F1999-%m2-01T00:00:00 none none C2H6 ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_SO2  1 D N F1999-%m2-01T00:00:00 none none SO2  ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_SO4  1 D N F1999-%m2-01T00:00:00 none none SO4  ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_MSA  1 D N F1999-%m2-01T00:00:00 none none MSA  ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_BCPI 1 D N F1999-%m2-01T00:00:00 none none BCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
-NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2014-09/scaling/NEI99.dow.geos.1x1.nc
+NEI99_DOW_NOX  1 D N F1999-%m2-01T00:00:00 none none NOX  ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_CO   1 D N F1999-%m2-01T00:00:00 none none CO   ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_ALK4 1 D N F1999-%m2-01T00:00:00 none none ALK4 ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_ACET 1 D N F1999-%m2-01T00:00:00 none none ACET ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_MEK  1 D N F1999-%m2-01T00:00:00 none none MEK  ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_PRPE 1 D N F1999-%m2-01T00:00:00 none none PRPE ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_C3H8 1 D N F1999-%m2-01T00:00:00 none none C3H8 ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_C2H6 1 D N F1999-%m2-01T00:00:00 none none C2H6 ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_SO2  1 D N F1999-%m2-01T00:00:00 none none SO2  ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_SO4  1 D N F1999-%m2-01T00:00:00 none none SO4  ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_MSA  1 D N F1999-%m2-01T00:00:00 none none MSA  ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_BCPI 1 D N F1999-%m2-01T00:00:00 none none BCPI ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
+NEI99_DOW_OCPI 1 D N F1999-%m2-01T00:00:00 none none OCPI ./HcoDir/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc
 #
 #==============================================================================
 # --- CEDS vertical partitioning ---

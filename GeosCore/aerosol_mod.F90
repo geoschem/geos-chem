@@ -46,7 +46,6 @@ MODULE AEROSOL_MOD
   ! HMS         : Hydroxymethane sulfonate aerosol   [kg/m3] ! (jmm, 06/29/18)
   ! NH4         : Ammonium aerosol                   [kg/m3]
   ! NIT         : Inorganic nitrate aerosol          [kg/m3]
-  ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
   ! SLA         : Stratospheric liquid aerosol       [kg/m3]
   ! SPA         : Stratospheric particulate aerosol  [kg/m3]
   ! TSOA        : Terpene SOA                        [kg/m3]
@@ -74,7 +73,6 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: NH4(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: FRAC_SNA(:,:,:,:)
-  REAL(fp), ALLOCATABLE, PUBLIC :: SOILDUST(:,:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SLA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SPA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: TSOA(:,:,:)
@@ -175,7 +173,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,      ONLY : REAA
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
@@ -188,7 +185,6 @@ CONTAINS
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
-    USE UCX_MOD,           ONLY : KG_STRAT_AER
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
@@ -232,7 +228,6 @@ CONTAINS
     REAL(fp)            :: REFF
 
     ! Logical flags
-    LOGICAL             :: prtDebug
     LOGICAL             :: LCARB
     LOGICAL             :: LDUST
     LOGICAL             :: LSSALT
@@ -248,9 +243,12 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER   :: Spc(:)
+    REAL*8,        POINTER   :: REAA(:,:)
     REAL(fp),      POINTER   :: AIRVOL(:,:,:)
     REAL(fp),      POINTER   :: PMID(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
+    REAL(fp),      POINTER   :: SOILDUST(:,:,:,:)
+    REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -279,9 +277,6 @@ CONTAINS
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
 
-    ! Do we have to print debug output?
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
     ! Define logical flags
     IS_OCPI    = ( id_OCPI  > 0 )
     IS_OCPO    = ( id_OCPO  > 0 )
@@ -304,6 +299,9 @@ CONTAINS
     Is_SimpleSOA  = ( id_SOAS > 0 )
     Is_ComplexSOA = Input_Opt%LSOA
 
+    ! Set pointers
+    REAA => State_Chm%Phot%REAA
+
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             'kg', RC, OrigUnit=OrigUnit )
@@ -316,10 +314,12 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc    => State_Chm%Species
-    AIRVOL => State_Met%AIRVOL
-    PMID   => State_Met%PMID
-    T      => State_Met%T
+    Spc      => State_Chm%Species
+    AIRVOL   => State_Met%AIRVOL
+    PMID     => State_Met%PMID
+    T        => State_Met%T
+    SOILDUST => State_Chm%SoilDust
+    KG_STRAT_AER => State_Chm%KG_AER
 
     !=================================================================
     ! OM/OC ratio
@@ -416,7 +416,7 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Print values to log file
-       IF ( Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6,'(a)') 'Growth factors at 35% RH:'
           WRITE( 6, 100 ) SIA_GROWTH, ' for SO4, NIT, and NH4'
           WRITE( 6, 100 ) ORG_GROWTH, ' for OCPI and SOA'
@@ -1020,8 +1020,12 @@ CONTAINS
     ENDIF
 
     ! Free pointers
-    Spc    => NULL()
-    AIRVOL => NULL()
+    Spc      => NULL()
+    REAA     => NULL()
+    AIRVOL   => NULL()
+    PMID     => NULL()
+    T        => NULL()
+    SOILDUST => NULL()
 
   END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1046,8 +1050,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_SIZE_Mod,   ONLY : NRH, NRHAER, NSTRATAER
-    USE CMN_FJX_MOD
+    USE CMN_SIZE_Mod,   ONLY : NAER, NRH, NDUST, NRHAER, NSTRATAER
     USE ErrCode_Mod
     USE ERROR_MOD,      ONLY : ERROR_STOP, Safe_Div
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -1059,7 +1062,6 @@ CONTAINS
     USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
     USE UCX_MOD,        ONLY : GET_STRAT_OPT
-    USE UCX_MOD,        ONLY : NDENS_AER
     USE Species_Mod,    ONLY : Species
 
     IMPLICIT NONE
@@ -1177,14 +1179,33 @@ CONTAINS
     REAL(fp)            :: GF_RH
     REAL(fp)            :: BCAE_1, BCAE_2
 
-    ! Pointers
-    REAL(fp), POINTER   :: BXHEIGHT(:,:,:)
-    REAL(fp), POINTER   :: ERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: TAREA(:,:,:,:)
-    REAL(fp), POINTER   :: WERADIUS(:,:,:,:)
-    REAL(fp), POINTER   :: WTAREA(:,:,:,:)
+    ! Pointers to State_Chm%Phot
+    INTEGER,  POINTER   :: IWVREQUIRED(:)
+    INTEGER,  POINTER   :: IWVSELECT  (:,:)
+    INTEGER,  POINTER   :: IRHARR     (:,:,:)
+    REAL*8,   POINTER   :: ACOEF_WV (:)
+    REAL*8,   POINTER   :: BCOEF_WV (:)
+    REAL*8,   POINTER   :: REAA     (:,:)
+    REAL*8,   POINTER   :: QQAA     (:,:,:)
+    REAL*8,   POINTER   :: ALPHAA   (:,:,:)
+    REAL*8,   POINTER   :: SSAA     (:,:,:)
+    REAL*8,   POINTER   :: ASYMAA   (:,:,:)
+    REAL*8,   POINTER   :: ISOPOD   (:,:,:,:)
+    REAL*8,   POINTER   :: ODAER    (:,:,:,:,:)
+#ifdef RRTMG
+    REAL*8,   POINTER   :: RTODAER  (:,:,:,:,:)
+    REAL*8,   POINTER   :: RTSSAER  (:,:,:,:,:)
+    REAL*8,   POINTER   :: RTASYMAER(:,:,:,:,:)
+#endif
+
+    ! Other pointers
+    REAL(fp), POINTER   :: BXHEIGHT (:,:,:)
+    REAL(fp), POINTER   :: ERADIUS  (:,:,:,:)
+    REAL(fp), POINTER   :: TAREA    (:,:,:,:)
+    REAL(fp), POINTER   :: WERADIUS (:,:,:,:)
+    REAL(fp), POINTER   :: WTAREA   (:,:,:,:)
     REAL(fp), POINTER   :: ACLRADIUS(:,:,:)
-    REAL(fp), POINTER   :: ACLAREA(:,:,:)
+    REAL(fp), POINTER   :: ACLAREA  (:,:,:)
 
     ! For diagnostics
     LOGICAL                :: IsWL1
@@ -1223,13 +1244,30 @@ CONTAINS
     IS_POA               = ( id_POA1 > 0 .AND. id_POA2 > 0 )
 
     ! Initialize pointers
-    BXHEIGHT            => State_Met%BXHEIGHT    ! Grid box height [m]
-    ERADIUS             => State_Chm%AeroRadi    ! Aerosol Radius [cm]
-    TAREA               => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
-    WERADIUS            => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
-    WTAREA              => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
-    ACLRADIUS           => State_Chm%AClRadi     ! Fine Cl- Radius [cm]
-    ACLAREA             => State_Chm%AClArea     ! Fine Cl- Area [cm2/cm3]
+    IWVREQUIRED => State_Chm%Phot%IWVREQUIRED ! WL indexes for interpolation
+    IWVSELECT   => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
+    IRHARR      => State_Chm%Phot%IRHARR      ! Relative humidity indexes
+    ACOEF_WV    => State_Chm%Phot%ACOEF_WV    ! Coeffs for WL interpolation
+    BCOEF_WV    => State_Chm%Phot%BCOEF_WV    ! Coeffs for WL interpolation
+    REAA        => State_Chm%Phot%REAA
+    QQAA        => State_Chm%Phot%QQAA
+    ALPHAA      => State_Chm%Phot%ALPHAA
+    SSAA        => State_Chm%Phot%SSAA
+    ASYMAA      => State_Chm%Phot%ASYMAA
+    ISOPOD      => State_Chm%Phot%ISOPOD      ! Isoprene optical depth
+    ODAER       => State_Chm%Phot%ODAER       ! Aerosol optical depth
+#ifdef RRTMG
+    RTODAER     => State_Chm%Phot%RTODAER     ! Optical dust
+    RTSSAER     => State_Chm%Phot%RTSSAER
+    RTASYMAER   => State_Chm%Phot%RTASYMAER
+#endif
+    BXHEIGHT    => State_Met%BXHEIGHT    ! Grid box height [m]
+    ERADIUS     => State_Chm%AeroRadi    ! Aerosol Radius [cm]
+    TAREA       => State_Chm%AeroArea    ! Aerosol Area [cm2/cm3]
+    WERADIUS    => State_Chm%WetAeroRadi ! Wet Aerosol Radius [cm]
+    WTAREA      => State_Chm%WetAeroArea ! Wet Aerosol Area [cm2/cm3]
+    ACLRADIUS   => State_Chm%AClRadi     ! Fine Cl- Radius [cm]
+    ACLAREA     => State_Chm%AClArea     ! Fine Cl- Area [cm2/cm3]
 
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
@@ -1285,7 +1323,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 100 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 100 )
 100       FORMAT( '     - RDAER: Using online SO4 NH4 NIT!' )
        ENDIF
 
@@ -1323,7 +1361,7 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 110 )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) WRITE( 6, 110 )
 110       FORMAT( '     - RDAER: Using online BCPI OCPI BCPO OCPO!' )
        ENDIF
 
@@ -1374,8 +1412,10 @@ CONTAINS
        ! Use online aerosol concentrations
        !-----------------------------------
        IF ( FIRST ) THEN
-          IF ( Input_Opt%amIRoot ) WRITE( 6, 120 )
-120       FORMAT( '     - RDAER: Using online SALA SALC' )
+          IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+             WRITE( 6, 120 )
+120          FORMAT( '     - RDAER: Using online SALA SALC' )
+          ENDIF
        ENDIF
 
        !$OMP PARALLEL DO       &
@@ -1459,12 +1499,13 @@ CONTAINS
        IF ( LRAD ) THEN
           !Loop over all RT wavelengths (30)
           ! plus any required for calculating the AOD
-          NWVS = NWVAA-NWVAA0+NWVREQUIRED
+          NWVS = State_Chm%Phot%NWVAA - State_Chm%Phot%NWVAA0 + &
+                 State_Chm%Phot%NWVREQUIRED
        ELSE
           !Loop over wavelengths needed for
           !interpolation to those requested in geoschem_config.yml
           !(determined in RD_AOD)
-          NWVS = NWVREQUIRED
+          NWVS = State_Chm%Phot%NWVREQUIRED
        ENDIF
     ENDIF
 
@@ -1473,16 +1514,16 @@ CONTAINS
        IF (ODSWITCH .EQ. 0) THEN
           ! only doing for 1000nm (IWV1000 is set in RD_AOD)
           ! N.B. NWVS is fixed to 1 above - only one wavelength
-          IWV=IWV1000
+          IWV=State_Chm%Phot%IWV1000
        ELSE
           IF ( LRAD ) THEN
              ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
              ! but add on any others required
              IF (IIWV.LE.30) THEN
                 !index of RRTMG wavelengths starts after the standard NWVAA0
-                !(currently NWVAA0=11, set in CMN_FJX_mod based on the
-                ! .dat LUT)
-                IWV = IIWV+NWVAA0
+                !(currently NWVAA0=11, hard-coded in phot_container_mod based
+                ! on the .dat LUT)
+                IWV = IIWV + State_Chm%Phot%NWVAA0
              ELSE
                 !now we calculate at wvs for the requested AOD
                 IWV = IWVREQUIRED(IIWV-30)
@@ -1719,7 +1760,7 @@ CONTAINS
                 !--------------------------------------------------------
 
                 ! Get aerosol effective radius
-                CALL GET_STRAT_OPT(I, J, L, ISTRAT, RAER, REFF, &
+                CALL GET_STRAT_OPT(State_Chm, I, J, L, ISTRAT, RAER, REFF, &
                                    SADSTRAT, XSASTRAT)
 
                 ! SDE 2014-02-04
@@ -1947,7 +1988,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! Get aerosol effective radius
-          CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+          CALL GET_STRAT_OPT(State_Chm, I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
           ! Moved this from a separate loop for clarity
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1983,7 +2024,7 @@ CONTAINS
              IF ( IsSLA ) THEN
                 IF ( State_Diag%Archive_AerNumDenSLA ) THEN
                    State_Diag%AerNumDenSLA(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODSLAWL1 ) THEN
                    State_Diag%AODSLAWL1(I,J,L) = &
@@ -2000,7 +2041,7 @@ CONTAINS
              ELSEIF ( IsPSC ) THEN
                 IF ( State_Diag%Archive_AerNumDenPSC ) THEN
                    State_Diag%AerNumDenPSC(I,J,L) = &
-                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODPSCWL1 ) THEN
                    State_Diag%AODPSCWL1(I,J,L) = &
@@ -2239,7 +2280,30 @@ CONTAINS
     !TAREA(:,NDUST+NRHAER+2) = 0.d0 !SPA
 
     ! Free pointers
-    NULLIFY( BXHEIGHT, ERADIUS, TAREA, WERADIUS, WTAREA, ACLRADIUS, ACLAREA )
+    IWVREQUIRED => NULL()
+    IWVSELECT   => NULL()
+    IRHARR      => NULL()
+    ACOEF_WV    => NULL()
+    BCOEF_WV    => NULL()
+    REAA        => NULL()
+    QQAA        => NULL()
+    ALPHAA      => NULL()
+    SSAA        => NULL()
+    ASYMAA      => NULL()
+    ISOPOD      => NULL()
+    ODAER       => NULL()
+#ifdef RRTMG
+    RTODAER     => NULL()
+    RTSSAER     => NULL()
+    RTASYMAER   => NULL()
+#endif
+    BXHEIGHT    => NULL()
+    ERADIUS     => NULL()
+    TAREA       => NULL()
+    WERADIUS    => NULL()
+    WTAREA      => NULL()
+    ACLRADIUS   => NULL()
+    ACLAREA     => NULL()
 
     ! Reset first-time flag
     FIRST = .FALSE.
@@ -2420,12 +2484,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     FRAC_SNA = 0.0_fp
 
-    ALLOCATE( SOILDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NDUST ), &
-              STAT=RC )
-    CALL GC_CheckVar( 'aerosol_mod.F90:SOILDUST', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    SOILDUST = 0.0_fp
-
     ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2541,7 +2599,6 @@ CONTAINS
     IF ( ALLOCATED( NH4         ) ) DEALLOCATE( NH4         )
     IF ( ALLOCATED( NIT         ) ) DEALLOCATE( NIT         )
     IF ( ALLOCATED( FRAC_SNA    ) ) DEALLOCATE( FRAC_SNA    )
-    IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
     IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
     IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
     IF ( ALLOCATED( TSOA        ) ) DEALLOCATE( TSOA        )

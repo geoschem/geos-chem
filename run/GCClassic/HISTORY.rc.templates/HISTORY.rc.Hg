@@ -29,12 +29,15 @@ EXPID:  ./OutputDir/GEOSChem
 #==============================================================================
 COLLECTIONS: 'Restart',
              #'MercuryChem',
+             #'MercuryEmis',
              #'MercuryOcean',
              'SpeciesConc',
              #'Budget',
              #'CloudConvFlux',
              #'DryDep',
              #'LevelEdgeDiags',
+             #'ProdLoss',
+             #'SatDiagn',
              #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
@@ -54,7 +57,7 @@ COLLECTIONS: 'Restart',
 #
 # Available for all simulations
 #==============================================================================
-  Restart.filename:           './GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          'End',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
@@ -63,26 +66,30 @@ COLLECTIONS: 'Restart',
                               'Met_DELPDRY                    ',
                               'Met_BXHEIGHT                   ',
                               'Met_TropLev                    ',
-                              #'Chem_OceanHg0                  ',
-                              #'Chem_OceanHg2                  ',
-                              #'Chem_OceanHgP                  ',
-                              #'Chem_SnowHgOcean               ',
-                              #'Chem_SnowHgLand                ',
-                              #'Chem_SnowHgOceanStored         ',
-                              #'Chem_SnowHgLandStored          ',
+                              'Chem_OceanHg0                  ',
+                              'Chem_OceanHg2                  ',
+                              'Chem_OceanHgP                  ',
+                              'Chem_SnowHgOcean               ',
+                              'Chem_SnowHgLand                ',
+                              'Chem_SnowHgOceanStored         ',
+                              'Chem_SnowHgLandStored          ',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
-# GEOS-Chem species concentrations (default = advected species)
+# GEOS-Chem species concentrations (default = all species)
 #
 # Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
   SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              #'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -187,6 +194,23 @@ COLLECTIONS: 'Restart',
                               'Hg2GasToSSA                   ',
 ::
 #==============================================================================
+# %%%%% THE MercuryEmis COLLECTION %%%%%
+#
+# Concentration and prod/loss diagnostics for mercury species that are
+# not archived by HEMCO.
+#
+# Available for the Hg and tagged Hg simulations
+#==============================================================================
+  MercuryEmis.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  MercuryEmis.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  MercuryEmis.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  MercuryEmis.mode:           'time-averaged'
+  MercuryEmis.fields:         'EmisHg0land                   ',
+                              'EmisHg0ocean                  ',
+                              'EmisHg0snow                   ',
+                              'EmisHg0soil                   ',
+::
+#==============================================================================
 # %%%%% THE MercuryOcean COLLECTION %%%%%
 #
 # Oceanic masses and fluxes of mercury species
@@ -206,6 +230,65 @@ COLLECTIONS: 'Restart',
                               'MassHg2inOcean                ',
                               'MassHgPinOcean                ',
                               'MassHgTotalInOcean            ',
+::
+#==============================================================================
+# %%%%% THE ProdLoss COLLECTION %%%%%
+#
+# Chemical production and loss rates
+#
+# Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
+#==============================================================================
+  ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  ProdLoss.mode:              'time-averaged'
+  ProdLoss.fields:            'Prod_?PRD?                    ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_Hg0               ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_Hg0          ',
+                              'SatDiagnWetLossConv_Hg0        ',
+                              'SatDiagnJval_Hg0               ',
+                              'SatDiagnDryDep_Hg0             ',
+                              'SatDiagnOHreactivity           ',
+                              'SatDiagnColEmis_Hg0            ',
+                              'SatDiagnSurfFlux_Hg0           ',
+                              'SatDiagnColEmis_CH2O           ',
+                              'SatDiagnSurfFlux_CH2O          ',
+                              'SatDiagnColEmis_NO             ',
+                              'SatDiagnSurfFlux_NO            ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
@@ -244,7 +327,6 @@ COLLECTIONS: 'Restart',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',

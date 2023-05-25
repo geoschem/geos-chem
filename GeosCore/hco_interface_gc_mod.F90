@@ -12,8 +12,8 @@
 ! to run HEMCO within GEOS-Chem.
 !\\
 !\\
-! The HEMCO driver is now present in this file as HEMCO is restructured to provide
-! a unified point-of-entry for coupling with other models.
+! The HEMCO driver is now present in this file as HEMCO is restructured to
+! provide a unified point-of-entry for coupling with other models.
 !\\
 !\\
 ! Notes:
@@ -96,11 +96,6 @@ MODULE HCO_Interface_GC_Mod
 
   ! Internal met fields (will be used by some extensions)
   INTEGER,  TARGET    :: HCO_PBL_MAX                      ! level
-  REAL(hp), POINTER   :: HCO_SZAFACT(:,:)
-
-  ! Arrays to store J-values (used by Paranox extension)
-  REAL(hp), POINTER   :: JNO2(:,:)
-  REAL(hp), POINTER   :: JOH(:,:)
 
 #if defined( MODEL_CLASSIC )
 
@@ -1079,7 +1074,7 @@ CONTAINS
        IF ( notDryRun ) THEN
           ! Set fields either as pointer targets or else.
           ! Regrid those for ImGrid.
-          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Met, &
+          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, &
                                    HcoState,  ExtState,  HMRC )
 
           ! Trap potential errors
@@ -1277,24 +1272,6 @@ CONTAINS
     !-----------------------------------------------------------------------
     ! Deallocate module variables
     !-----------------------------------------------------------------------
-    IF ( ASSOCIATED( HCO_SZAFACT ) ) THEN
-       DEALLOCATE( HCO_SZAFACT, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( JNO2 ) ) THEN
-       DEALLOCATE( JNO2, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    IF ( ASSOCIATED( JOH ) ) THEN
-       DEALLOCATE( JOH, STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
 
 #if defined( MODEL_CLASSIC )
     IF ( ASSOCIATED( REGR_3DI ) ) THEN
@@ -1518,7 +1495,7 @@ CONTAINS
     ! Due to the extensions requiring met fields and some of them are derived
     ! data, we need to initialize targets here.
     !
-    ! Some variables are stored on the MODEL grid, e.g. SZAFACT, JNO2, JOH.
+    ! Some variables are stored on the MODEL grid, i.e., SZAFACT.
     ! Because they need to be computed here, before a regrid.
     !
     ! Shadow targets for all derived met fields (not read from HEMCO) are
@@ -1695,45 +1672,8 @@ CONTAINS
     ENDIF
 #endif
 
-
-    !-----------------------------------------------------------------------
-    ! HCO_SZAFACT is not defined in Met_State.  Hence need to
-    ! define here so that we can point to them.
-    !
-    ! Now include HCO_FRAC_OF_PBL and HCO_PBL_MAX for POPs specialty
-    ! simulation (mps, 8/20/14)
-    !
-    ! Removed HCO_FRAC_OF_PBL, can directly point to State_Met%F_OF_PBL.
-    ! Moved SUMCOSZA to State_Met%SUNCOSsum
-    ! (hplin, 6/9/20)
-    ! ----------------------------------------------------------------------
-    IF ( ExtState%SZAFACT%DoUse ) THEN
-       ALLOCATE( HCO_SZAFACT( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:HCO_SZAFACT', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       HCO_SZAFACT = 0e0_hp
-
-    ENDIF
-
     ! Initialize max. PBL
     HCO_PBL_MAX = 0
-
-    ! ----------------------------------------------------------------------
-    ! The J-Values for NO2 and O3 are not defined in Met_State. We
-    ! need to compute them separately.
-    ! ----------------------------------------------------------------------
-    IF ( ExtState%JNO2%DoUse ) THEN
-       ALLOCATE( JNO2( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JNO2', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       JNO2 = 0.0e0_hp
-    ENDIF
-
-    IF ( ExtState%JOH%DoUse ) THEN
-       ALLOCATE( JOH( IM, JM ), STAT=RC )
-       CALL GC_CheckVar( 'hco_interface_gc_mod.F90:JOH', 0, RC )
-       JOH = 0.0e0_hp
-    ENDIF
 
     ! ----------------------------------------------------------------------
     ! Arrays to be copied physically because HEMCO units are not the
@@ -1854,13 +1794,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Met, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, HcoState, ExtState, RC )
 !
 ! !USES:
 !
     USE Hcox_State_Mod, ONLY : ExtDat_Set
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Drydep_Mod,     ONLY : DryCoeff
@@ -1873,6 +1814,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
     TYPE(EXT_STATE),  POINTER        :: ExtState   ! HEMCO ext. state
     INTEGER,          INTENT(INOUT)  :: RC         ! Return code
@@ -1891,6 +1833,9 @@ CONTAINS
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
+#if defined ( MODEL_WRF )
+    LOGICAL, DIMENSION(1:8), SAVE      :: FIRST_PERID = .TRUE.
+#endif
 
     ! Scalars
     INTEGER            :: HMRC
@@ -1922,6 +1867,11 @@ CONTAINS
     ! To avoid code duplication, in GEOS-Chem classic data is also loaded
     ! directly from HEMCO met pointers, when possible.
 
+#if defined( MODEL_WRF )
+    ! For WRF-GC, the FIRST call needs to be domain-ID specific.
+    FIRST = FIRST_PERID(State_Grid%ID)
+#endif
+
     !-----------------------------------------------------------------------
     ! Pointers to local module arrays
     !-----------------------------------------------------------------------
@@ -1931,7 +1881,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
-                       HMRC,     FIRST,            HCO_SZAFACT )
+                       HMRC,     FIRST,            State_Met%SZAFACT )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
@@ -1952,7 +1902,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
-                       HMRC,     FIRST,         JNO2 )
+                       HMRC,     FIRST,         State_Chm%JNO2 )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
@@ -1973,7 +1923,7 @@ CONTAINS
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
-                       HMRC,     FIRST,        JOH )
+                       HMRC,     FIRST,        State_Chm%JOH )
 #if defined( MODEL_CLASSIC )
     ELSE
       CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
@@ -2294,23 +2244,6 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
        ErrMsg = 'Error encountered in "ExtDat_Set( ALBD_FOR_EMIS )"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       RETURN
-    ENDIF
-
-    ! WLI (LWI)
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'LWI', &
-                     HMRC,     FIRST=FIRST )
-#else
-    CALL ExtDat_Set( HcoState, ExtState%WLI, 'WLI_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%LWI )
-#endif
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( WLI_FOR_EMIS )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
@@ -2873,6 +2806,9 @@ CONTAINS
 
     ! Not first call any more
     FIRST  = .FALSE.
+#if defined( MODEL_WRF )
+    FIRST_PERID(State_Grid%ID) = .FALSE.
+#endif
     Trgt3D => NULL()
 
     ! Leave with success
@@ -2900,9 +2836,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -3003,7 +2937,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Compute SZAFACT, JNO2 and JOH on MODEL GRID
+    ! Compute SZAFACT on MODEL GRID
 !$OMP PARALLEL DO                                                 &
 !$OMP DEFAULT( SHARED )                                           &
 !$OMP PRIVATE( I, J, L )
@@ -3016,36 +2950,12 @@ CONTAINS
        ! (This is mostly needed for offline simulations where a diurnal
        ! scale factor has to be imposed on monthly mean OH concentrations.)
        IF ( ExtState%SZAFACT%DoUse .AND. L==1 ) THEN
-          HCO_SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
+          State_Met%SZAFACT(I,J) = GET_SZAFACT(I,J,State_Met)
        ENDIF
 
        ! Maximum extent of the PBL [model level]
        HCO_PBL_MAX = State_Met%PBL_MAX_L
 
-       ! J-values for NO2 and O3 (2D field only)
-       ! This code was moved from hcox_paranox_mod.F90 to break
-       ! dependencies to GC specific code (ckeller, 07/28/14).
-       IF ( L==1 .AND.                                    &
-            (ExtState%JNO2%DoUse .OR. ExtState%JOH%DoUse) ) THEN
-
-          ! Check if sun is up
-          IF ( State_Met%SUNCOS(I,J) == 0d0 ) THEN
-             IF ( ExtState%JNO2%DoUse ) JNO2 = 0.0_hp
-             IF ( ExtState%JOH%DoUse  ) JOH  = 0.0_hp
-          ELSE
-             IF ( ExtState%JNO2%DoUse ) THEN
-                ! RXN_NO2: NO2 + hv --> NO  + O
-!                JNO2(I,J) = ZPJ(L,RXN_NO2,I,J)
-                JNO2(I,J) = State_Chm%JNO2(I,J)
-             ENDIF
-             IF ( ExtState%JOH%DoUse ) THEN
-                ! RXN_O3_1: O3  + hv --> O2  + O
-!                JOH(I,J) = ZPJ(L,RXN_O3_1,I,J)
-                JOH(I,J) = State_Chm%JOH(I,J)
-             ENDIF
-          ENDIF
-
-       ENDIF
     ENDDO
     ENDDO
     ENDDO
@@ -3077,7 +2987,7 @@ CONTAINS
 
     ! SZAFACT
     IF ( ExtState%SZAFACT%DoUse ) THEN
-      REGR_3DI(:,:,1) = HCO_SZAFACT(:,:)
+      REGR_3DI(:,:,1) = State_Met%SZAFACT(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
@@ -3086,7 +2996,7 @@ CONTAINS
 
     ! JNO2
     IF ( ExtState%JNO2%DoUse ) THEN
-      REGR_3DI(:,:,1) = JNO2(:,:)
+      REGR_3DI(:,:,1) = State_Chm%JNO2(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
@@ -3095,7 +3005,7 @@ CONTAINS
 
     ! JOH
     IF ( ExtState%JOH%DoUse ) THEN
-      REGR_3DI(:,:,1) = JOH(:,:)
+      REGR_3DI(:,:,1) = State_Chm%JOH(:,:)
       CALL Regrid_MDL2HCO( Input_Opt, State_Grid, State_Grid_HCO,           &
                            REGR_3DI,  REGR_3DO,   ZBND=1,                   & ! 2D data
                            ResetRegrName=.true. )
@@ -3690,6 +3600,7 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
          Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
+         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
          Input_Opt%ITS_A_CO2_SIM          .or.                               &
          Input_Opt%ITS_A_CH4_SIM          .or.                               &
          Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
@@ -3698,7 +3609,6 @@ CONTAINS
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
          Input_Opt%ITS_A_TRACEMETAL_SIM   .or.                               &
          Input_Opt%ITS_A_TRACER_SIM       ) THEN
-
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -3713,7 +3623,7 @@ CONTAINS
           nSpc = nSpc + 1
        ENDIF
 
-       !%%%%% FOR THE TAGGED CO SIMULATION %%%%%
+       !%%%%% FOR THE CARBON OR TAGGED CO SIMULATIONS %%%%%
        ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
        IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
           nSpc = nSpc + 5
@@ -3722,8 +3632,8 @@ CONTAINS
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
 
-          ! Verbose
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Verbose (only written if debug printout is requested)
+          IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3752,8 +3662,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, N )
+             ! Logfile output (only written if debug printout is requested)
+             IF ( Input_Opt%Verbose ) THEN
+                CALL HCO_SPEC2LOG( HcoState, N )
+             ENDIF
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -3773,8 +3685,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG(  HcoState, N )
+             ! Logfile output (only written if debug output is requested)
+             IF ( Input_Opt%Verbose ) THEN 
+                CALL HCO_SPEC2LOG(  HcoState, N )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -3813,13 +3727,17 @@ CONTAINS
                 HcoState%Spc(M)%HenryCR    = 0.0_hp
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
-                ! Write to log file
-                IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, M )
+                ! Logfile output (only written if debug printout is requested)
+                IF ( Input_Opt%Verbose ) THEN
+                   CALL HCO_SPEC2LOG( HcoState, M )
+                ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( Input_Opt%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%Verbose ) THEN
+             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          ENDIF
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
@@ -4350,8 +4268,8 @@ CONTAINS
 
     ENDIF
 
-    ! Print value of shadow fields
-    IF ( Input_Opt%amIRoot ) THEN
+    ! Print value of shadow fields (only if debug output is requested)
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'
@@ -4620,18 +4538,20 @@ CONTAINS
     USE Depo_Mercury_Mod,     ONLY : Add_Hg2_SnowPack
     USE ErrCode_Mod
     USE Get_Ndep_Mod,         ONLY : Soil_Drydep
-    USE Global_CH4_Mod,       ONLY : CH4_Emis
     USE HCO_Utilities_GC_Mod, ONLY : GetHcoValEmis, GetHcoValDep, InquireHco
     USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValEmis, LoadHcoValDep
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
     USE HCO_State_GC_Mod,     ONLY : ExtState
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE Input_Opt_Mod,        ONLY : OptInput
+#if !defined( MODEL_CESM )
+    USE Mercury_Mod,          ONLY : Hg_Emis
+#endif
     USE PhysConstants
-    USE Species_Mod,          ONLY : Species
+    USE Species_Mod,          ONLY : Species,  SpcConc
     USE State_Chm_Mod,        ONLY : ChmState
     USE State_Chm_Mod,        ONLY : Ind_
-    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnState, DgnMap
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
@@ -4694,6 +4614,9 @@ CONTAINS
     REAL(fp), TARGET        :: eflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: colEflx(State_Grid%NX,                        &
+                                       State_Grid%NY,                        &
+                                       State_Chm%nAdvect                    )
     REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
@@ -4705,6 +4628,7 @@ CONTAINS
     REAL(f4),       POINTER :: PNOxLoss_HNO3(:,:)
 
     TYPE(Species),  POINTER :: ThisSpc
+    TYPE(DgnMap),   POINTER :: mapData
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
@@ -4714,6 +4638,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
+    colEflx =  0.0_fp
     ThisSpc => NULL()
     errMsg  = ''
     thisLoc = &
@@ -4807,7 +4732,13 @@ CONTAINS
       ThisSpc => State_Chm%SpcData(N)%Info
 
       ! Check if there is emissions or deposition for this species
+#if !defined( MODEL_CESM )
       CALL InquireHco ( N, Emis=EmisSpec, Dep=DepSpec )
+#else
+      ! Do not apply for MODEL_CESM as its handled by HEMCO-CESM independently
+      EmisSpec = .False.
+      DepSpec  = .False.
+#endif
 
       ! If there is emissions for this species, it must be loaded into
       ! memory first.   This is achieved by attempting to retrieve a
@@ -4821,16 +4752,17 @@ CONTAINS
          CALL LoadHcoValDep ( Input_Opt, State_Grid, NA )
       ENDIF
 
-      !$OMP PARALLEL DO                                                        &
-      !$OMP DEFAULT( SHARED )                                                  &
-      !$OMP PRIVATE( I,       J,            topMix                            )&
-      !$OMP PRIVATE( tmpflx,  found,        emis,      dep                    )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED )                                                &
+      !$OMP PRIVATE( I,       J,       topMix                               )&
+      !$OMP PRIVATE( tmpFlx,  found,   emis,      dep                       )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
       ! Below emissions. Do not apply for MODEL_CESM as its handled by
       ! HEMCO-CESM independently
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
+
         ! PBL top level [integral model levels]
         topMix = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
 
@@ -4840,7 +4772,7 @@ CONTAINS
         !------------------------------------------------------------------
         IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
-           ! CH4 emissions become stored in CH4_EMIS in global_ch4_mod.F90.
+           ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
            ! in a multi-tracer CH4 simulation. For a single-tracer simulation
@@ -4849,7 +4781,7 @@ CONTAINS
            ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
            !
            !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-           eflx(I,J,NA) = CH4_EMIS(I,J,NA)
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
@@ -4863,6 +4795,23 @@ CONTAINS
            ENDDO
            eflx(I,J,NA) = eflx(I,J,NA) + tmpFlx
 
+           ! Compute column emission fluxes for satellite diagnostics
+           IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+              tmpFlx = 0.0_fp
+              DO L = 1, State_Grid%NZ
+                 CALL GetHcoValEmis( Input_Opt, State_Grid, NA,    I,        &
+                                     J,         L,          found, emis     )
+                 IF ( .NOT. found ) EXIT
+                 tmpFlx = tmpFlx + emis
+              ENDDO
+              colEflx(I,J,NA) = colEflx(I,J,NA) + tmpFlx
+           ENDIF
+
+        ENDIF
+
+        ! For Hg simulations, also add Hg emissions not handled by HEMCO
+        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+           eflx(I,J,NA) = eflx(I,J,NA) + Hg_EMIS(I,J,NA)
         ENDIF
 #endif
 
@@ -4907,8 +4856,9 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED )                                                  &
     !$OMP PRIVATE( I,       J,            N                                 )&
-    !$OMP PRIVATE( thisSpc, dep                                             )&
-    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep, Hg_cat                )
+    !$OMP PRIVATE( thisSpc, dep,          S                                 )&
+    !$OMP PRIVATE( ND,      fracNoHg0Dep, zeroHg0Dep                        )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -4990,6 +4940,29 @@ CONTAINS
        State_Chm%SurfaceFlux(I,J,:) = eflx(I,J,:) - dflx(I,J,:) ! kg/m2/s
 
        !=====================================================================
+       ! Defining Satellite Diagnostics
+       !=====================================================================
+
+       ! Define emission satellite diagnostics
+       IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
+             N = State_Diag%Map_SatDiagnColEmis%slot2id(S)
+             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)
+          ENDDO
+       ENDIF
+
+       ! N.B. SatDiagnSurfFlux contains within it the underlying eflx
+       ! variable as opposed to colEflx.
+       ! Thus, taking SatDiagnSurfFlux - SatDiagnColEmis will not
+       ! necessarily equal the dry deposition flux (dflx)
+       IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
+             N = State_Diag%Map_SatDiagnSurfFlux%slot2id(S)
+             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+          ENDDO
+       ENDIF
+
+       !=====================================================================
        ! Archive Hg deposition for surface reservoirs (cdh, 08/28/09)
        !=====================================================================
        IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -5009,22 +4982,16 @@ CONTAINS
 
              IF ( ThisSpc%Is_Hg2 ) THEN
 
-                ! Get the category number for this Hg2 tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited Hg2
-                CALL ADD_Hg2_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_Hg2_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                    &
                                        State_Met, State_Chm, State_Diag     )
 
              ELSE IF ( ThisSpc%Is_HgP ) THEN
 
-                ! Get the category number for this HgP tracer
-                Hg_Cat = ThisSpc%Hg_Cat
-
                 ! Archive dry-deposited HgP
-                CALL ADD_HgP_DD      ( I, J, Hg_Cat, dep                    )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, dep,                    &
+                CALL ADD_HgP_DD      ( I, J, dep                            )
+                CALL ADD_Hg2_SNOWPACK( I, J, dep,                            &
                                        State_Met, State_Chm, State_Diag     )
 
              ENDIF

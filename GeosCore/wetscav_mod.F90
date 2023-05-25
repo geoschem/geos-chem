@@ -161,7 +161,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                 :: prtDebug
     INTEGER                 :: TS_Dyn
     REAL(f8)                :: DT_Dyn
 
@@ -184,9 +183,6 @@ CONTAINS
     LDYNOCEAN         = Input_Opt%LDYNOCEAN
     ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
     ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
-
-    ! Only print output on the root CPU
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !------------------------------------------------------------------------
     ! WetDep budget diagnostics - Part 1 of 2
@@ -235,7 +231,12 @@ CONTAINS
 !###    IF ( State_Diag%Archive_PrecipFracLS ) State_Diag%PrecipFracLS = 0.0_f4
 !###    IF ( State_Diag%Archive_RainFracLS   ) State_Diag%RainFracLS   = 0.0_f4
 !###    IF ( State_Diag%Archive_WashFracLS   ) State_Diag%WashFracLS   = 0.0_f4
-    IF ( State_Diag%Archive_WetLossLS    ) State_Diag%WetLossLS    = 0.0_f4
+    IF ( State_Diag%Archive_WetLossLS  ) THEN
+       State_Diag%WetLossLS = 0.0_f4
+    ENDIF
+    IF ( State_Diag%Archive_SatDiagnWetLossLS  ) THEN
+       State_Diag%SatDiagnWetLossLS = 0.0_f4
+    ENDIF
 
     !------------------------------------------
     ! Create precip fields
@@ -255,7 +256,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    ENDIF
 
     !-----------------------------------------
     ! Do wet deposition
@@ -277,7 +280,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Wet deposition budget diagnostics - Part 2 of 2
@@ -3751,23 +3756,17 @@ CONTAINS
              ! Check if it is a gaseous Hg2 tag
              IF ( SpcInfo%Is_Hg2 ) THEN
 
-                ! Get the category # for this Hg2 species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited Hg2
-                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_Hg2_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ! Check if it is a HgP tag
              ELSE IF ( SpcInfo%Is_HgP ) THEN
 
-                ! Get the category # for this HgP species
-                Hg_Cat = SpcInfo%Hg_Cat
-
                 ! Archive wet-deposited HgP
-                CALL ADD_HgP_WD      ( I, J, Hg_Cat, DEP_HG  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, DEP_HG, &
+                CALL ADD_HgP_WD      ( I, J, DEP_HG  )
+                CALL ADD_Hg2_SNOWPACK( I, J, DEP_HG, &
                                        State_Met, State_Chm, State_Diag )
 
              ENDIF
@@ -4177,6 +4176,17 @@ CONTAINS
              State_Diag%WetLossLs(I,J,L,S) =                                 &
              State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
                                            * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
 
@@ -4704,7 +4714,18 @@ CONTAINS
           IF ( S > 0 ) THEN
              State_Diag%WetLossLS(I,J,L,S) =                                 &
              State_Diag%WetLossLS(I,J,L,S) + ( WetLoss / DT )                &
-                                           *  State_Grid%Area_M2(I,J)
+                                           * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
 
@@ -4963,6 +4984,17 @@ CONTAINS
              State_Diag%WetLossLs(I,J,L,S) =                                 &
              State_Diag%WetLossLs(I,J,L,S) + ( WetLoss / DT )                &
                                            * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
 
@@ -5229,6 +5261,18 @@ CONTAINS
                                            * State_Grid%Area_M2(I,J)
           ENDIF
        ENDIF
+
+       ! Satellite diagnostic collection
+       ! Units: [kg/s], but eventually consider changing to [kg/m2/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossLS ) THEN
+          S = State_Diag%Map_SatDiagnWetLossLS%id2slot(NW)
+          IF ( S > 0 ) THEN
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) =                         &
+             State_Diag%SatDiagnWetLossLS(I,J,L,S) + ( WetLoss / DT )        &
+                                                   * State_Grid%Area_M2(I,J)
+          ENDIF
+       ENDIF
+
 
        ! Archive wet loss in kg/m2/s (check source code for this routine - ewl )
        !IF ( LSOILNOX ) THEN
@@ -5644,7 +5688,8 @@ CONTAINS
     !=================================================================
     ! Print information about wet-depositing species
     !=================================================================
-    IF ( Input_Opt%amIRoot .and. State_Chm%nWetDep > 0 ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose                              &
+                           .and. State_Chm%nWetDep > 0 ) THEN
 
        ! Title
        LINE = 'INIT_WETSCAV: List of soluble species: '

@@ -17,8 +17,8 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
   USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
+  USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
-  USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
   USE DUST_MOD,                ONLY : CLEANUP_DUST
@@ -26,7 +26,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FullChem_MOD,            ONLY : Cleanup_FullChem
   USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
-  USE GLOBAL_CH4_MOD,          ONLY : CLEANUP_GLOBAL_CH4
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE Input_Opt_Mod,           ONLY : OptInput
@@ -44,15 +43,12 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
   USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
-  USE UCX_MOD,                 ONLY : CLEANUP_UCX
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
 #ifdef BPCH_DIAG
   USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
   USE DIAG_MOD,                ONLY : CLEANUP_DIAG
-  USE DIAG51_MOD,              ONLY : CLEANUP_DIAG51
-  USE DIAG51b_MOD,             ONLY : CLEANUP_DIAG51b
 #endif
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
@@ -120,11 +116,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
-  ! UCX needs to be cleaned up before emissions, because the UCX
-  ! restart variables needs to be passed to the HEMCO diagnostics
-  ! first.
-  CALL CLEANUP_UCX()
-
   !=================================================================
   ! Cleanup HEMCO
   !=================================================================
@@ -155,9 +146,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
-  CALL Cleanup_Global_CH4( RC )
+  CALL Cleanup_Carbon_Gases( RC )
   IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Global_CH4"!'
+     ErrMsg = 'Error encountered in "Cleanup_Carbon_Gases"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
@@ -181,13 +172,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL CLEANUP_TAGGED_CO( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_Tagged_CO"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  CALL Cleanup_CMN_FJX( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_CMN_FJX"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
@@ -220,8 +204,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   ENDIF
 
 #ifdef BPCH_DIAG
-  CALL CLEANUP_DIAG()
-  CALL CLEANUP_DIAG51()
 
   CALL Cleanup_CMN_O3( RC )
   IF ( RC /= GC_SUCCESS ) THEN

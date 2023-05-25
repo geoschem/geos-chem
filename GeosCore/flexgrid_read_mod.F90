@@ -322,11 +322,6 @@ CONTAINS
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%LAI = Q
 
-    ! Read LWI
-    v_name = "LWI"
-    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-    State_Met%LWI = Q
-
     !--------------------------------------------------------------------------
     ! For now, skip reading RADLWG. It's not used in GEOS-Chem. (mps, 9/14/17)
     !! Read LWGNT

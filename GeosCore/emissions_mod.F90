@@ -123,12 +123,14 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CARBON_MOD,            ONLY : EMISSCARBON
-    USE CO2_MOD,               ONLY : EMISSCO2
+    USE CARBON_MOD,            ONLY : EmissCarbon
+    USE Carbon_Gases_Mod,      ONLY : Emiss_Carbon_Gases
+    USE CO2_MOD,               ONLY : EmissCO2
     USE ErrCode_Mod
-    USE GLOBAL_CH4_MOD,        ONLY : EMISSCH4
-    USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_RUN
+    USE GLOBAL_CH4_MOD,        ONLY : EmissCH4
+    USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
     USE Input_Opt_Mod,         ONLY : OptInput
+    USE Mercury_Mod,           ONLY : EmissMercury
     USE Precision_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnState
@@ -138,8 +140,8 @@ CONTAINS
     USE Tracer_Mod,            ONLY : Tracer_Source_Phase
     Use SfcVmr_Mod,            ONLY : FixSfcVmr_Run
 #ifdef TOMAS
-    USE CARBON_MOD,            ONLY : EMISSCARBONTOMAS !jkodros
-    USE SULFATE_MOD,           ONLY : EMISSSULFATETOMAS !jkodros
+    USE CARBON_MOD,            ONLY : EmissCarbonTomas
+    USE SULFATE_MOD,           ONLY : EmissSulfateTomas
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -257,7 +259,7 @@ CONTAINS
     ! in HEMCO_Config.rc as is done for other species. 
     ! (mps, 2/12/21)
     IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       CALL EmissCh4( Input_Opt, State_Grid, State_Met, RC )
+       CALL EmissCh4( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -280,6 +282,35 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Carbon simulation (e.g. CO2-CO-CH4-OCS via KPP)
+    !
+    ! This will get the individual CH4 emission terms in the same way
+    ! as done for the CH4 simulation above.
+    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
+       CALL Emiss_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,            &
+                                State_Grid, State_Met, RC                    )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Emiss_Carbon_Gases"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! For mercury, use old emissions code for now
+    IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       CALL EmissMercury( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "EmissMercury"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Prescribe some concentrations if needed
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        ! Set other (non-UCX) fixed VMRs
@@ -293,7 +324,7 @@ CONTAINS
              RETURN
           ENDIF
 
-       endif
+       ENDIF
 
     ENDIF
 

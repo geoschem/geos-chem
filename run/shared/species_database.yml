@@ -517,6 +517,12 @@ BrSALA:
   FullName: Fine sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.90
+BUTDI:
+  Formula: C4H4O2
+  FullName: Butenedial
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 84.07
 BZCO3:
   Formula: C7H5O3
   FullName: Acyl peroxy radical from benzaldehyde
@@ -792,7 +798,7 @@ CH4_PROP: &CH4properties
   Formula: CH4
   Is_Advected: true
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -829,6 +835,10 @@ CH4_OTA:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from other anthropogenic emissions
+CH4_RES:
+  << : *CH4properties
+  Background_VV: 1.0e-20
+  FullName: Methane from hydroelectric reservoir emissions
 CH4_RIC:
   << : *CH4properties
   Background_VV: 1.0e-20
@@ -993,6 +1003,10 @@ CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
+CO2fromOH:
+  << : *CO2properties
+  Background_VV: 1.0e-20
+  FullName: Carbon dioxide loss by OH (carbon mechanism)
 CO_PROP: &COproperties
   Formula: CO
   Is_Advected: true
@@ -1096,6 +1110,14 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
+COfromCH4:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from methane oxidation (carbon mechanism)
+COfromNMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from non-methane VOCs oxidation (carbon mechanism)
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -1149,6 +1171,18 @@ DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
+Dummy:
+  FullName: Dummy species (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
+DummyCH4:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Methane (external input for carbon mechanism)
+DummyNMVOC:
+  << : *COproperties
+  Background_VV: 1.0e-20
+  FullName: CO produced from NMVOC oxidation (external input for carbon mechanism)
 e90_PROP: &e90properties
   Background_VV: 1.0e-20
   Is_Advected: true
@@ -1284,6 +1318,32 @@ FeF2:
   Formula: Fe
   Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
+FixedCl:
+  Formula: Cl
+  FullName: Atomic chlorine (external input for carbon mechanism)
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 35.45
+FixedOH:
+  Background_VV: 4.0e-15
+  Formula: OH
+  FullName: Hydroxyl radical (external input for carbon mechanism)
+  Is_Gas: true
+  MW_g: 17.01
+FURA:
+  DD_F0: 1.0
+  DD_Hstar: 1.80e-1
+  Formula: C4H4O
+  FullName: Furan
+  Henry_CR: 6100.0
+  Henry_K0: 1.80e-1
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: false
+  Is_WetDep: true
+  MW_g: 68.07
+  WD_RetFactor: 2.0e-2
 GLYC:
   DD_F0: 1.0
   DD_Hstar: 4.1e+4
@@ -1464,7 +1524,7 @@ HCOOH:
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
 Hg0_PROP: &Hg0properties
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   Is_Advected: true
@@ -2726,7 +2786,7 @@ LBRO2N:
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
@@ -3438,6 +3498,7 @@ NITs:
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
   MW_g: 31.4
+  WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
   Formula: 'NO'
@@ -3726,7 +3787,7 @@ PassiveTracer:
   Is_Tracer: true
   MW_g: 1.0
   Snk_Mode: none
-  Src_Add: false
+  Src_Mode: none
 Pb210_PROP: &Pbproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -4499,6 +4560,7 @@ SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
   MW_g: 31.4
+  WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0

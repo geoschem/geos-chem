@@ -232,8 +232,8 @@ CONTAINS
     ! Get settings for specialty simulations from the YAML Config object
     !========================================================================
 
-    ! CH4 simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim ) THEN
+    ! CH4/carbon simulation settings
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -245,7 +245,7 @@ CONTAINS
     ENDIF
 
     ! CO simulation settings
-    IF ( Input_Opt%Its_A_TagCO_Sim ) THEN
+    IF ( Input_Opt%Its_A_TagCO_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO"!'
@@ -257,8 +257,8 @@ CONTAINS
     ENDIF
 
 
-    ! CO2 simulation settings
-    IF ( Input_Opt%Its_A_CO2_Sim ) THEN
+    ! CO2/carbon simulation settings
+    IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO2( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO2"!'
@@ -451,6 +451,7 @@ CONTAINS
     CHARACTER(LEN=6)             :: timeStr
     CHARACTER(LEN=8)             :: dateStr
     CHARACTER(LEN=12)            :: met
+    CHARACTER(LEN=15)            :: verboseMsg
     CHARACTER(LEN=24)            :: sim
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
@@ -487,22 +488,24 @@ CONTAINS
          TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
          TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
          TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
+         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
+         TRIM(Sim) /= 'CARBON'                                       ) THEN
+         
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
-                ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
+                ' aerosol, carbon, CH4, CO2, fullchem, Hg, POPs,'    // &
+                ' TransportTracers, TagCO, TagCH4, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
+    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
     Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
                                        TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
-    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
-                                       TRIM(Sim) == 'TAGHG'                 )
+    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
@@ -524,9 +527,22 @@ CONTAINS
     Input_Opt%SpcDataBaseFile = TRIM( v_str )
 
     !------------------------------------------------------------------------
+    ! Species metadata output file
+    !------------------------------------------------------------------------
+    key   = "simulation%species_metadata_output_file"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%SpcMetaDataOutFile = TRIM( v_str )
+
+    !------------------------------------------------------------------------
     ! Turn on debug output
     !------------------------------------------------------------------------
-    key    = "simulation%debug_printout"
+    key    = "simulation%verbose%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -534,9 +550,38 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%LPRT = v_bool
+    Input_Opt%VerboseRequested = v_bool
 
-#if defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
+    !------------------------------------------------------------------------
+    ! Which cores for verbose output: root or all?
+    !------------------------------------------------------------------------
+    key  = "simulation%verbose%on_cores"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%VerboseOnCores = To_UpperCase( v_str )
+
+    ! Should verbose output be printed only on root or on all cores?
+    SELECT CASE ( TRIM( Input_Opt%VerboseOnCores ) )
+       CASE( 'ROOT' )
+          verboseMsg = 'root core only'
+          Input_Opt%Verbose =                                                &
+             ( Input_Opt%VerboseRequested .and. Input_Opt%amIRoot )    
+       CASE( 'ALL' )
+          verboseMsg = 'all cores'
+          Input_Opt%Verbose = Input_Opt%VerboseRequested
+       CASE DEFAULT
+          errMsg = 'Invalid selection!' // NEW_LINE( 'a' ) //                &
+               'simulation:verbose:on_cores must be either "root" or "all"'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+    END SELECT
+
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
     !          %%%%%%% GCHP and NASA/GEOS (with ESMF & MPI) %%%%%%%
     !
@@ -739,6 +784,7 @@ CONTAINS
     ENDIF
     Input_Opt%MetField = TRIM( v_str )
 
+#if !defined( MODEL_CESM )
     ! Make sure a valid met field is specified
     Met = To_UpperCase( TRIM( Input_Opt%MetField ) )
     SELECT CASE( TRIM( Met ) )
@@ -758,6 +804,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     END SELECT
+#endif
 
     !------------------------------------------------------------------------
     ! Turn on timers
@@ -771,7 +818,6 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%UseTimers = v_bool
-
 
     !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
@@ -829,8 +875,10 @@ CONTAINS
                         TRIM( Input_Opt%CHEM_INPUTS_DIR )
        WRITE( 6, 110 ) 'Species database file       : ',                     &
                         TRIM( Input_Opt%SpcDatabaseFile )
-       WRITE( 6, 120 ) 'Turn on debug output        : ',                     &
-                        Input_Opt%LPRT
+       WRITE( 6, 120 ) 'Turn on verbose output      : ',                     &
+                        Input_Opt%Verbose
+       WRITE( 6, 110 ) 'Verbose output printed on   : ',                     &
+                        TRIM( verboseMsg )
 #ifdef MODEL_CLASSIC
        WRITE( 6, 100 ) 'Start time of run           : ',                     &
                         Input_Opt%NYMDb, Input_Opt%NHMSb
@@ -1530,15 +1578,11 @@ CONTAINS
 
     ! Split into tagged species (turn off for full-chemistry)
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-       ! There are no tagged species for fullchem
-       Input_Opt%LSPLIT = .FALSE.
-
+       Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
+    ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
     ELSE
-
-       ! All other simulations: tagged if more than 1 species listed
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )
-
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ENDIF
 
     ! Initialize arrays in Input_Opt that depend on N_ADVECT
@@ -2025,7 +2069,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "tagged_CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2038,7 +2082,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "tagged_CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2435,6 +2479,107 @@ CONTAINS
     ENDIF
     Input_Opt%GAMMA_HO2 = Cast_and_RoundOff( v_str, places=2 )
 
+    !------------------------------------------------------------------------
+    ! Auto-reduce solver options (hplin, 10/3/22)
+    ! autoreduce_solver:
+    !   activate: false
+    !   use_target_threshold:
+    !     activate: true
+    !     oh_tuning_factor: 0.00005
+    !     no2_tuning_factor: 0.0001
+    !   use_absolute_threshold:
+    !     scale_by_pressure: true
+    !     absolute_threshold: 100.0
+    !   keep_halogens_active: false
+    !   append_in_internal_timestep: false
+    !------------------------------------------------------------------------
+    key   = "operations%chemistry%autoreduce_solver%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%USE_AUTOREDUCE = v_bool
+
+    ! Use target species (OH, NO2) based threshold?
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD = v_bool
+
+    ! ... OH and NO2 tuning factors?
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%oh_tuning_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_TUNING_OH = Cast_and_RoundOff( v_str, places=0 )
+
+    key   = "operations%chemistry%autoreduce_solver%use_target_threshold%no2_tuning_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_TUNING_NO2 = Cast_and_RoundOff( v_str, places=0 )
+
+    ! If not target species, absolute rate threshold
+    key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%absolute_threshold"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_THRESHOLD = Cast_and_RoundOff( v_str, places=0 )
+
+    ! Would this absolute threshold be scaled by pressure?
+    key   = "operations%chemistry%autoreduce_solver%use_absolute_threshold%scale_by_pressure"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD = v_bool
+
+    ! Keep halogens active?
+    key   = "operations%chemistry%autoreduce_solver%keep_halogens_active"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_KEEPACTIVE = v_bool
+
+    ! Append species over the course of the external time step
+    ! (aka. in internal timesteps?)
+    key   = "operations%chemistry%autoreduce_solver%append_in_internal_timestep"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AUTOREDUCE_IS_APPEND = v_bool
+
     ! Return success
     RC = GC_SUCCESS
 
@@ -2450,6 +2595,17 @@ CONTAINS
        WRITE( 6,100 ) 'Online strat. H2O?          : ', Input_Opt%LACTIVEH2O
        WRITE( 6,100 ) 'Use robust strat H2O BC?    : ', Input_Opt%LStaticH2OBC
        WRITE( 6,110 ) 'GAMMA HO2                   : ', Input_Opt%GAMMA_HO2
+       WRITE( 6,100 ) 'Use auto-reduce solver?     : ', Input_Opt%USE_AUTOREDUCE
+       IF ( Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD ) THEN
+         WRITE( 6,100 ) 'Use target species threshold: ', Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD
+         WRITE( 6,130 ) 'OH tuning factor:             ', Input_Opt%AUTOREDUCE_TUNING_OH
+         WRITE( 6,130 ) 'NO2 tuning factor:            ', Input_Opt%AUTOREDUCE_TUNING_NO2
+       ELSE
+         WRITE( 6,120 ) 'Absolute AR threshold       : ', Input_Opt%AUTOREDUCE_THRESHOLD
+         WRITE( 6,100 ) 'Use prs. dependent thres?   : ', Input_Opt%AUTOREDUCE_IS_PRS_THRESHOLD
+       ENDIF
+       WRITE( 6,100 ) 'Keep halogen spec. active?  : ', Input_Opt%AUTOREDUCE_IS_KEEPACTIVE
+       WRITE( 6,100 ) 'Use append in auto-reduce?  : ', Input_Opt%AUTOREDUCE_IS_APPEND
     ENDIF
 
     ! FORMAT statements
@@ -2457,6 +2613,8 @@ CONTAINS
 95  FORMAT( A       )
 100 FORMAT( A, L5   )
 110 FORMAT( A, F4.2 )
+120 FORMAT( A, F5.1 )
+130 FORMAT( A, ES7.1 )
 
   END SUBROUTINE Config_Chemistry
 !EOC
@@ -2730,9 +2888,24 @@ CONTAINS
     thisLoc = ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Directory with photolysis input files
+    ! Turn on photolysis
     !------------------------------------------------------------------------
-    key   = "operations%photolysis%input_dir"
+
+    key    = "operations%photolysis%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Directories with photolysis input files
+    !------------------------------------------------------------------------
+
+    key   = "operations%photolysis%input_directories%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2924,6 +3097,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
+       WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
@@ -3214,7 +3388,7 @@ CONTAINS
     !========================================================================
     ! Error check settings
     !========================================================================
-
+    
     ! Turn off drydep for simulations that don't need it
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
@@ -3734,7 +3908,8 @@ CONTAINS
     !------------------------------------------------------------------------
     key   = "extra_diagnostics%obspack%output_species"
     a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str,                         &
+                         "",     RC,          dynamic_size=.TRUE.           )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -3856,7 +4031,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on ND51 diagnostic
     !------------------------------------------------------------------------
-    key    = "extra_diagnostics%ND51_satellite%activate"
+    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4661,7 +4836,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use AIRS observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%AIRS"
+    key    = "CH4_simulation_options%use_observational_operators%AIRS"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4669,12 +4844,12 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AIRS_CH4_OBS = Input_Opt%GOSAT_CH4_OBS
+    Input_Opt%AIRS_CH4_OBS = v_bool
 
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%GOSAT"
+    key    = "CH4_simulation_options%use_observational_operators%GOSAT"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4687,7 +4862,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use TCCON observational operator?
     !------------------------------------------------------------------------
-    key    = "ch4_simulation_options%use_observational_operators%TCCON"
+    key    = "CH4_simulation_options%use_observational_operators%TCCON"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4700,7 +4875,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Do an analytical inversion?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%activate"
+    key    = "CH4_simulation_options%analytical_inversion%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4713,7 +4888,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Emission perturbation
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%emission_perturbation"
+    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4726,7 +4901,8 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Current state vector element number
     !------------------------------------------------------------------------
-    key   = "analytical_inversion%state_vector_element_number"
+    key   = &
+     "CH4_simulation_options%analytical_inversion%state_vector_element_number"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4739,7 +4915,8 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use emission scale factor?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_emission_scale_factor"
+    key = &
+     "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4752,7 +4929,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use OH scale factors?
     !------------------------------------------------------------------------
-    key    = "analytical_inversion%use_OH_scale_factors"
+    key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4768,8 +4945,8 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
        WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
        WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis
@@ -5070,12 +5247,14 @@ CONTAINS
     ! Skip for dry-runs
     IF ( Input_Opt%DryRun ) RETURN
 
+#if !defined( MODEL_CESM )
     ! Check directories
     CALL Check_Directory( Input_Opt, Input_Opt%DATA_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+#endif
 
     CALL Check_Directory( Input_Opt, Input_Opt%CHEM_INPUTS_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -5083,11 +5262,13 @@ CONTAINS
        RETURN
     ENDIF
 
+#if !defined( MODEL_CESM )
     CALL Check_Directory( Input_Opt, Input_Opt%RUN_DIR, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
+#endif
 
   END SUBROUTINE Validate_Directories
 !EOC
@@ -5695,7 +5876,14 @@ CONTAINS
         MAX( Ind_('ASOA1','A'), 0 ) + &
         MAX( Ind_('ASOA2','A'), 0 ) + &
         MAX( Ind_('ASOA3','A'), 0 ) + &
-        MAX( Ind_('ASOAN','A'), 0 )
+        MAX( Ind_('ASOAN','A'), 0 ) + &
+        MAX( Ind_('ASOG1','A'), 0 ) + &
+        MAX( Ind_('ASOG2','A'), 0 ) + &
+        MAX( Ind_('ASOG3','A'), 0 ) + &
+        MAX( Ind_('TSOG0','A'), 0 ) + &
+        MAX( Ind_('TSOG1','A'), 0 ) + &
+        MAX( Ind_('TSOG2','A'), 0 ) + &
+        MAX( Ind_('TSOG3','A'), 0 )
 
     IF ( Input_Opt%LSOA ) THEN
        IF ( I == 0 ) THEN

@@ -1,0 +1,129 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the CH4 mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ch4
+  start_date: [19970215, 031100]
+  end_date: [20180415, 040000]
+  root_data_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData
+  chem_inputs_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/
+  met_field: GEOSFP
+  species_database_file: ./species_database.yml
+  debug_printout: false
+  use_gcclassic_timers: false
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: true
+
+  transport:
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
+    transported_species:
+      - CH4
+
+#============================================================================
+# Options for CH4
+#============================================================================
+CH4_simulation_options:
+
+  use_observational_operators:
+    AIRS: false
+    GOSAT: false
+    TCCON: false
+
+  analytical_inversion:
+    activate: false
+    emission_perturbation: 1.0
+    state_vector_element_number: 0
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+# These options are currently unsupported for WRF-GC!
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - CH4
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD
+
+  legacy_bpch:                #          1         2         3
+    output_menu:             # 1234567890123456789012345678901
+      schedule_output_for_JAN: 3000000000000000000000000000000
+      schedule_output_for_FEB: 30000000000000000000000000000
+      schedule_output_for_MAR: 3000000000000000000000000000000
+      schedule_output_for_APR: 300000000000000000000000000000
+      schedule_output_for_MAY: 3000000000000000000000000000000
+      schedule_output_for_JUN: 300000000000000000000000000000
+      schedule_output_for_JUL: 3000000000000000000000000000000
+      schedule_output_for_AUG: 3000000000000000000000000000000
+      schedule_output_for_SEP: 300000000000000000000000000000
+      schedule_output_for_OCT: 3000000000000000000000000000000
+      schedule_output_for_NOV: 300000000000000000000000000000
+      schedule_output_for_DEC: 3000000000000000000000000000000
+
+    gamap:
+      diaginfo_dat_file: ./diaginfo.dat
+      tracerinfo_dat_file: ./tracerinfo.dat
+
+    bpch_diagnostics:
+      TOMAS_aerosol_emissions: "0 all"
+      TOMAS_rate: "0 all"
+      TOMAS_3D_rate: "0 all"
+
+    ND51_satellite:
+      activate: false
+      output_file: ts_satellite.YYYYMMDD.bpch
+      tracers:
+        - 1
+        - 2
+        - 501
+      UTC_hour_for_write: 0
+      averaging_period_in_LT: [9, 11]
+      IMIN_and_IMAX_of_region: [1, 72]
+      JMIN_and_JMAX_of_region: [1, 46]
+      LMIN_and_LMAX_of_region: [1, 1]
+
+    ND51b_satellite:
+      activate: false
+      output_file: ts_13_15_NA..YYYYMMDD.bpch
+      tracers:
+        - 1
+        - 2
+        - 501
+      UTC_hour_for_write: 1
+      averaging_period_in_LT: [13, 15]
+      IMIN_and_IMAX_of_region: [1, 72]
+      JMIN_and_JMAX_of_region: [1, 46]
+      LMIN_and_LMAX_of_region: [1, 1]

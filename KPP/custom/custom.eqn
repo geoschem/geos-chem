@@ -4,156 +4,103 @@
 DESCRIPTION
 -------------------------------------------------------------------------------
 
-GEOS-Chem KPP  file containing species and equations for the full chemistry
+GEOS-Chem KPP file containing species and equations for the full chemistry
 (NOx-Ox-HC-Aer-Br-Cl-I) mechanism.
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%% NOTE: custom.kpp and custom.eqn are copies of the fullchem mechanism %%%
-%%% that you can further modify for your own purposes.                   %%%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 ===============================================================================
 FILE HISTORY
 ===============================================================================
 
-v11-01g (Sep 2016)
-----------------------
+Version: 14.2.0
 
- (1) Initial version for FlexChem (MSL,MJE,MPS,EWL)
+Please see "CHANGELOG_fullchem.md" in this folder for the revision history
+of the fullchem mechanism, which the "custom" mechanism is based on.
 
-v11-02a (Mar 2017)
-----------------------
-
- (1) Update rate constants based on JPL 15-10 (MJE,BHH)
-     - See wiki.geos-chem.org/Updates_in_JPL_Publication_15-10
- (2) Fix ALK4 lumping issue in R4O2 + NO reaction (BHH)
- (3) PAN chemistry updates (EVF)
-     - Added several new NMVOCs. The extended mechanism includes ethanol,
-       benzene, toluene and ethylbenzene (lumped), xylenes and trimethyl
-       benzenes (lumped), and monoterpenes (lumped).
-     - Treatment of monoterpene oxidation is adopted from theRACM2 chemical
-       mechanism (Goliff et al., 2013), lumping terpenes with one double bond
-       (alpha-pinene, beta-pinene, sabinene, delta-3-carene) into one proxy.
-
-v11-02c (Jul 2017)
-----------------------
-
- (1) Add isoprene SOA updates from Marais2016 (EAM,MPS)
- (2) Update isoprene and monoterpene chemistry (KRT,JAF,CCM,EAM,KHB,RHS)
-      - Based on Travis2016, Fisher2016, ChanMiller2017, Marais2016
-      - Add Bates2014 epoxide scheme
-      - Update isoprene nitrate chemistry following Lee2014
-      - Add Muller2014 fast photolysis of carbonyl nitrates
-      - Add HNO2 chemistry from Lee2014
-      - Updated product yields and rx rate for RIO2+RIO2 (Xie2013)
- (3) Add fixes for carbon-creating reactions (SAS,BHH,MJE)
-
-v11-02d (Sep 2017)
-----------------------
-
- (1) Add halogen chemistry from Sherwen2016b/Sherwen2017 (TS,JAS,SDE,LZHU)
- (2) Add HOBr + S(IV) from Chen2017 (QJC)
-
-12.6.0 (Jul 2019)
------------------------
-
- (1) Add photolysis of NITs (off by default) (TMS, PK)
- (2) Aerosol heterogeneous uptake for NOx (CDH)
-
-12.7.0 (Dec 2019)
------------------------
- (1) Add MENO3, ETNO3, PRNO3 chemistry from Fisher2018 (JAF)
- (2) Remove old MNO3 (same as MENO3 but not actually used (JAF)
- (3) Add "OTHRO2" that is equivalent to ETO2 but is not derived from C2H6
-     oxidation. Necessary to prevent overestimates of ETNO3. All ETO2
-     reactions are duplicated except ETO2+NO->ETNO3 channel (JAF)
- (4) Add MOH as active species (XC, DBM)
-
-12.8.0 (Feb 2020)
-----------------------
- (1) Update isoprene chemistry from Bates2019 (KHB)
-
-Version 13.y.z (actual version TBA) (Dec 2020 onward)
------------------------------------------------------
- (1) Use double precision numeric constants to each numeric value (e.g.
-     1.0d0 instead of 1.0e0).  This will prevent having to call the DBLE()
-     functions in the rate law functions, which wastes CPU cycles, and
-     also is a "lossy" conversion. (BMY)
+You may list updates specific to the "custom" mechanism below:
 
 ===============================================================================
-DEVELOPERS (alphabetical order; add your name!)
+DEVELOPERS (initials and email/GitHub)
 ===============================================================================
 
-BHH : Barron Henderson;        barronh@gmail.com
-BMY : Bob Yantosca;            yantosca@seas.harvard.edu
-CCM : Christopher Chan Miller; cmiller@fas.harvard.edu
-CDH : Christopher Holmes;      cdholmes@fsu.edu
-DBM : Dylan Millet             dbm@umn.edu
-EAM : Eloise Marais;           e.a.marais@bham.ac.uk
-ECB : Ellie Browne             eleanor.browne@colorado.edu
-EVF : Emily Fischer;           evf@rams.colostate.edu
-EWL : Lizzie Lundgren;         elundgren@seas.harvard.edu
-FP  : Fabien Paulot;           fabien.paulot@noaa.gov
-HOTP: Havala Pye;              pye.havala@epa.gov
-JAF : Jenny Fisher;            jennyf@uow.edu.au
-JAS : Johan Schmidt;           johanalbrechtschmidt@gmail.com
-JMAO: Jingqiu Mao;             jmao2@alaska.edu
-JPP : Justin Parrella;         justin.parrella@gmail.com
-KHB : Kelvin Bates;            kelvin@caltech.edu
-KRT : Katie Travis;            ktravis@fas.harvard.edu
-LZHU: Lei Zhu;                 leizhu@fas.harvard.edu
-MJE : Mat Evans;               mat.evans@york.ac.uk
-MPS : Melissa Sulprizio;       mpayer@seas.harvard.edu
-MSL : Michael Long;            msl3v@virginia.edu
-PK  : Prasad Kasibhatla;       psk9@duke.edu
-QJC : Qianjie Chen;            chenqjie@uw.edu
-RHS : Rebecca Schwantes;       rschwant@caltech.edu
-SAS : Sarah Safieddine;        sarahsaf@mit.edu
-SDE : Sebastian Eastham;       seastham@seas.harvard.edu
-TMS : Tomas Sherwen;           tomas.sherwen@york.ac.uk
-XC  : Xin Chen;                chen3849@umn.edu
-XW  : Xuan Wang;               wangx@seas.harvard.edu
+* BA   :  Becky Alexander          : @beckyalexander
+* BHH  :  Barron Henderson         : @barronh
+* BMY  :  Bob Yantosca             : @yantosca
+* CCM  :  Christopher Chan Miller  : cmiller@fas.harvard.edu
+* CDH  :  Christopher Holmes       : @cdholmes
+* DBM  :  Dylan Millet             : @dylanbm
+* EAM  :  Eloise Marais            : @eamarais
+* ECB  :  Ellie Browne             : eleanor.browne@colorado.edu
+* EVF  :  Emily Fischer            : evf@rams.colostate.edu
+* EWL  :  Lizzie Lundgren          : @lizziel
+* FP   :  Fabien Paulot            : fabien.paulot@noaa.gov
+* HOTP :  Havala Pye               : pye.havala@epa.gov
+* JAF  :  Jenny Fisher             : @jennyfisher
+* JAS  :  Johan Schmidt            : johanalbrechtschmidt@gmail.com
+* JMAO :  Jingqiu Mao              : @jingqiumao
+* JMM  :  Jonathan Moch            : jmoch@g.harvard.edu
+* JPP  :  Justin Parrella          : justin.parrella@gmail.com
+* KHB  :  Kelvin Bates             : @kelvinhb
+* KRT  :  Katie Travis             : @ktravis213
+* LZHU :  Lei Zhu                  : leizhu@fas.harvard.edu
+* MJE  :  Mat Evans                : @msl3v
+* MPS  :  Melissa Sulprizio        : @msulprizio
+* MSL  :  Michael Long             : @msl3v
+* PK   :  Prasad Kasibhatla        : @pkasibhatla
+* QJC  :  Qianjie Chen             : chenqjie@uw.edu
+* RHS  :  Rebecca Schwantes        : rschwant@caltech.edu
+* SAS  :  Sarah Safieddine         : sarahsaf@mit.edu
+* SDE  :  Sebastian Eastham        : @sdeastham
+* TMS  :  Tomas Sherwen            : @tsherwen
+* TSC  :  Therese Carter           : @tscarter
+* XC   :  Xin Chen                 : @xin-chen-github
+* XW   :  Xuan Wang                : @xuanw0316
 
 ===============================================================================
 REFERENCES (alphabetical order)
 ===============================================================================
-* Atkinson2003: Atkinson and Arey, Chem. Rev., doi:10.1021/cr0206420, 2003.
-* Bates2014:    Bates et al., J. Phys. Chem A, 118, doi:10.1021/jp4107958, 2014.
-* Bates2019:    Bates and Jacob, Atmos. Chem. Phys., doi:10.5194/acp-19-9613-2019, 2019.
-* Browne2011:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-11-4209-2011, 2011.
-* Browne2014:   Browne et al., Atmos. Chem. Phys., doi:10.5194/acp-14-1225-2014, 2014.
-* Chen2017:     Chen et al., Geophys. Res. Lett., doi:10.1002/2017GL073812, 2017.
-* Crounse2012:  Crounse et al., J. Phys. Chem. A, doi:10.1021/jp211560u, 2012.
-* Eastham2014:  Eastham et al., Atmos. Env., doi:10.1016/j.atmosenv.2014.02.001, 2014.
-* Fischer2014:  Fischer et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2679-2014, 2014.
-* Fisher2016:   Fisher et al., Atmos. Chem. Phys., doi:10.5194/acp-16-5969-2016, 2016.
-* Fisher2018:   Fisher et al., J. Geophys. Res., doi:10.1029/2018JD029046, 2018.
-* Fry2014:      Fry et al. Environ. Sci. Technol., doi:10.1021/es502204x, 2014.
-* Gill2002:     Gill and Hites, J. Phys. Chem. A, doi:10.1021/jp013532, 2002.
-* Goliff2013:   Goliff et al., Atmos. Environ., doi:10.1016/j.atmosenv.2012.11.038, 2013.
-* Jacobs2014:   Jacobs et al., Atmos. Chem. Phys., doi:10.5194/acp-14-8933-2014, 2014.
-* Jenkin2015:   Jenkin et al., Atmos. Chem. Phys., doi:10.5194/acp-15-11433-2015, 2015.
-* Kasibhatla2018: Kasibhatla et al., Atmos. Chem. Phys., doi:10.5194/acp-18-11185-2018, 2018
-* JPL 10-6:     JPL Publication 10-6, https://jpldataeval.jpl.nasa.gov/previous_evaluations.html, 2011.
-* JPL 15-10:    JPL Publication 15-10, https://jpldataeval.jpl.nasa.gov, 2015.
-* Lee2014:      Lee et al., J. Phys. Chem. A, doi:10.1021/jp4107603, 2014.
-* Marais2016:   Marais et al., Atmos. Chem. Phys, doi:10.5194/acp-16-1603-2016, 2016.
-* Miller2017:   Miller et al., Atmos. Chem. Phys. Discuss., doi:10.5194/acp-2016-1042, 2017.
-* Millet2015:   Millet et al., Atmos. Chem. Phys., doi:10.5194/acp-15-6283-2015, 2015.
-* Muller2014:   Muller et al., Atmos. Chem. Phys., doi:10.5194/acp-14-2497-2014, 2014.
-* Parrella2012: Parrella et al. Atmos. Chem. Phys, doi:10.5194/acp-12-6723-2012, 2012.
-* Paulot2009:   Paulot et al., Atmos. Chem. Phys., doi:10.5194/acp-9-1479-2009, 2009a and
-                Paulot et al., Science, doi:10.1126/science.1172910, 2009b.
-* Peeters2010:  Peeters and Muller, Phys. Chem. Chem. Phys., doi:10.1039/C0CP00811G, 2010.
-* Peeters2014:  Peeters et al., J. Phys. Chem. A, doi:10.1021/jp5033146, 2014.
-* Pye2010:      Pye et al., Atmos. Chem. Phys., doi:10.5194/acp-10-11261-2010, 2010.
-* Roberts1992:  Roberts and Bertman, Int. J. Chem. Kinet., doi:10.1002/kin.550240307, 1992.
-* Sherwen2016b: Sherwen et al., Atmos. Chem. Phys., doi:10.5194/acp-16-12239-2016, 2016b.
-* Sherwen2017:  Sherwen et al., Faraday Discuss., doi:10.1039/C7FD00026J, 2017.
-* StClair2016:  St. Clair et al., J. Phys. Chem. A, doi:10.1021/acs.jpca.5b065322016, 2016.
-* Travis2016:   Travis et al., Atmos. Chem. Phys., doi:10.5194/acp-16-13561-2016, 2016.
-* Wolfe2012:    Wolfe et al., Phys. Chem. Chem. Phys., doi: 10.1039/C2CP40388A, 2012.
-* Xie2013:      Xie et al., Atmos. Chem. Phys., doi:10.5194/acp-13-8439-2013, 2013.
+* Atkinson2003   : https://doi.org/10.1021/cr0206420
+* Bates2014      : https://doi.org/10.1021/jp4107958
+* Bates2019      : https://doi.org/10.5194/acp-19-9613-2019
+* Bates2021a     : https://doi.org/10.1029/2020JD033439
+* Bates2021b     : https://doi.org/10.5194/acp-2021-605
+* Browne2011     : https://doi.org/10.5194/acp-11-4209-2011
+* Browne2014     : https://doi.org/10.5194/acp-14-1225-2014
+* Carter2022     : https://doi.org/10.5194/acp-22-12093-2022
+* Chen2017       : https://doi.org/10.1002/2017GL073812
+* Crounse2012    : https://doi.org/10.1021/jp211560u
+* Eastham2014    : https://doi.org/10.1016/j.atmosenv.2014.02.001
+* Fischer2014    : https://doi.org/10.5194/acp-14-2679-2014
+* Fisher2016     : https://doi.org/10.5194/acp-16-5969-2016
+* Fisher2018     : https://doi.org/10.1029/2018JD029046
+* Fry2014        : https://doi.org/10.1021/es502204x
+* Gill2002       : https://doi.org/10.1021/jp013532, 2002.
+* Goliff2013     : https://doi.org/10.1016/j.atmosenv.2012.11.038
+* Jacobs2014     : https://doi.org/10.5194/acp-14-8933-2014
+* Jenkin2015     : https://doi.org/10.5194/acp-15-11433-2015
+* Kasibhatla2018 : https://doi.org/10.5194/acp-18-11185-2018
+* IUPAC ROO_19   : https://iupac-aeris.ipsl.fr/htdocs/datasheets/pdf/ROO_19_CH3O2_NO3.pdf
+* JPL 10-6       : https://jpldataeval.jpl.nasa.gov/previous_evaluations.html
+* JPL 15-10      : https://jpldataeval.jpl.nasa.gov, 2015.
+* Kwon2020       : https://doi.org/10.1525/elementa.2021.00109
+* Lee2014        : https://doi.org/10.1021/jp4107603
+* Marais2016     : https://doi.org/10.5194/acp-16-1603-2016
+* Miller2017     : https://doi.org/10.5194/acp-2016-1042
+* Millet2015     : https://doi.org/10.5194/acp-15-6283-2015
+* Moch2020       : https;//doi.org/10.1029/2020JD032706, 2020.
+* Muller2014     : https://doi.org/10.5194/acp-14-2497-2014
+* Parrella2012   : https://doi.org/10.5194/acp-12-6723-2012
+* Paulot2009     : https://doi.org/10.5194/acp-9-1479-2009 and 
+                   https://doi.org/10.1126/science.1172910
+* Peeters2010    : https://doi.org/10.1039/C0CP00811G
+* Peeters2014    : https://doi.org/10.1021/jp5033146.
+* Pye2010        : https://doi.org/10.5194/acp-10-11261-2010
+* Roberts1992    : https://doi.org/10.1002/kin.550240307
+* Sherwen2016b   : https://doi.org/10.5194/acp-16-12239-2016
+* Sherwen2017    : https://doi.org/10.1039/C7FD00026J
+* StClair2016    : https://doi.org/10.1021/acs.jpca.5b065322016
+* Travis2016     : https://doi.org/10.5194/acp-16-13561-2016
+* Wolfe2012      : https://doi.org/ 10.1039/C2CP40388A, 2012
+* Xie2013        : https://doi.org/10.5194/acp-13-8439-2013
 
 ===============================================================================
 NOTES
@@ -174,10 +121,18 @@ ACTA       = IGNORE; {CH3C(O)OH; Acetic acid}
 AERI       = IGNORE; {I; Dissolved iodine}
 ALD2       = IGNORE; {CH3CHO; Acetaldehyde}
 ALK4       = IGNORE; {>= C4 alkanes}
+AONITA     = IGNORE; {Aerosol-phase organic nitrate from aromatic precursors}
+AROMRO2    = IGNORE; {generic peroxy radical from aromatic oxidation}
+AROMP4     = IGNORE; {Generic C4 product from aromatic oxidation}
+AROMP5     = IGNORE; {Generic C5 product from aromatic oxidation}
 ATO2       = IGNORE; {CH3C(O)CH2O2; RO2 from acetone}
 ATOOH      = IGNORE; {CH3C(O)CH2OOH; ATO2 peroxide}
 B3O2       = IGNORE; {CH3CH(OO)CH3; Secondary RO2 from C3H8}
+BALD       = IGNORE; {benzaldehyde and tolualdehyde}
 BENZ       = IGNORE; {C6H6; Benzene}
+BENZO      = IGNORE; {C6H5O radical}
+BENZO2     = IGNORE; {C6H5O2 radical}
+BENZP      = IGNORE; {hydroperoxide from BENZO2}
 Br         = IGNORE; {Br; Atomic bromine}
 Br2        = IGNORE; {Br2; Molecular bromine}
 BrCl       = IGNORE; {BrCl; Bromine chloride}
@@ -187,6 +142,12 @@ BrO        = IGNORE; {BrO; Bromine monoxide}
 BRO2       = IGNORE; {C6H5O2 ; Peroxy radical from BENZ oxidation}
 BrSALA     = IGNORE; {Br; Fine sea salt bromine}
 BrSALC     = IGNORE; {Br; Course sea salt bromine}
+BUTDI      = IGNORE; {Butenedial}
+BZCO3      = IGNORE; {benzoylperoxy radical}
+BZCO3H     = IGNORE; {perbenzoic acid}
+BZPAN      = IGNORE; {peroxybenzoyl nitrate}
+C2H2       = IGNORE; {C2H2; Ethyne}
+C2H4       = IGNORE; {Ethylene}
 C2H6       = IGNORE; {C2H6; Ethane}
 C3H8       = IGNORE; {C3H8; Propane}
 C4HVP1     = IGNORE; {C4 hydroxy-vinyl-peroxy radicals from HPALDs}
@@ -221,12 +182,18 @@ ClO        = IGNORE; {ClO; Chlorine monoxide}
 ClOO       = IGNORE; {ClOO; Chlorine dioxide}
 CO         = IGNORE; {CO; Carbon monoxide}
 CO2        = IGNORE; {CO2; Carbon dioxide}
+CSL        = IGNORE; {cresols and xylols}
 DMS        = IGNORE; {(CH3)2S; Dimethylsulfide}
 EOH        = IGNORE; {C2H5OH; Ethanol}
 ETHLN      = IGNORE; {CHOCH2ONO2; Ethanal nitrate}
+ETHN       = IGNORE; {stable hydroxy-nitrooxy-ethane}
+ETHP       = IGNORE; {stable hydroxy-hydroperoxy-ethane}
 ETNO3      = IGNORE; {C2H5ONO2; Ethyl nitrate}
+ETO        = IGNORE; {hydroxy-alkoxy-ethane radical}
+ETOO       = IGNORE; {hydroxy-peroxy-ethane radical, formed from ethene + OH}
 ETO2       = IGNORE; {CH3CH2OO; Ethylperoxy radical}
 ETP        = IGNORE; {CH3CH2OOH; Ethylhydroperoxide}
+FURA       = IGNORE; {FURAN conglomerate}
 GLYC       = IGNORE; {HOCH2CHO; Glycoaldehyde}
 GLYX       = IGNORE; {CHOCHO; Glyoxal}
 H          = IGNORE; {H; Atomic hydrogen}
@@ -247,7 +214,7 @@ HCOOH      = IGNORE; {HCOOH; Formic acid}
 HI         = IGNORE; {HI; Hydrogen iodide}
 HMHP       = IGNORE; {HOCH2OOH; Hydroxymethyl hydroperoxide}
 HMML       = IGNORE; {C4H6O3; Hydroxymethyl-methyl-a-lactone}
-HMS	   = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
+HMS        = IGNORE; {HOCH2SO3-; hydroxymethanesulfonate}
 HNO2       = IGNORE; {HONO; Nitrous acid}
 HNO3       = IGNORE; {HNO3; Nitric acid}
 HNO4       = IGNORE; {HNO4; Pernitric acid}
@@ -256,7 +223,6 @@ HOBr       = IGNORE; {HOBr; Hypobromous acid}
 HOCl       = IGNORE; {HOCl; Hypochlorous acid}
 HOI        = IGNORE; {HOI; Hypoiodous acid}
 HONIT      = IGNORE; {2nd gen monoterpene organic nitrate}
-DUMMY	   = IGNORE;
 HPALD1     = IGNORE; {O=CHC(CH3)=CHCH2OOH; d-4,1-C5-hydroperoxyaldehyde}
 HPALD1OO   = IGNORE; {peroxy radicals from HPALD1}
 HPALD2     = IGNORE; {HOOCH2C(CH3)=CHCH=O; d-1,4-C5-hydroperoxyaldehyde}
@@ -264,7 +230,6 @@ HPALD2OO   = IGNORE; {peroxy radicals from HPALD2}
 HPALD3     = IGNORE; {O=CHC(CH3)OOHCH=CH2; b-2,1-C5-hydroperoxyaldehyde}
 HPALD4     = IGNORE; {CH2=C(CH3)CHOOHCH=O; b-3,4-C5-hydroperoxyaldehyde}
 HPETHNL    = IGNORE; {CHOCH2OOH; hydroperoxyethanal}
-HSO3m	   = IGNORE;
 I          = IGNORE; {I; Atmoic iodine}
 I2         = IGNORE; {I2; Molecular iodine}
 I2O2       = IGNORE; {I2O2; Diiodine dioxide}
@@ -348,6 +313,7 @@ MCRHN      = IGNORE; {HOCH2C(ONO2)(CH3)CHO; Hydroxynitrate from MACR}
 MCRHNB     = IGNORE; {O2NOCH2C(OH)(CH3)CHO; Hydroxynitrate from MACR}
 MCRHP      = IGNORE; {HOCH2C(OOH)(CH3)CHO; Hydroxy-hydroperoxy-MACR}
 MCROHOO    = IGNORE; {peroxy radical from MACR + OH}
+MCT        = IGNORE; {methylcatechols}
 MEK        = IGNORE; {RC(O)R; Methyl ethyl ketone}
 MENO3      = IGNORE; {CH3ONO2; methyl nitrate}
 MGLY       = IGNORE; {CH3COCHO; Methylglyoxal}
@@ -379,6 +345,7 @@ NITs       = IGNORE; {NITs; Coarse mode inorganic nitrate}
 NO         = IGNORE; {NO; Nitric oxide}
 NO2        = IGNORE; {NO2; Nitrogen dioxide}
 NO3        = IGNORE; {NO3; Nitrate radical}
+NPHEN      = IGNORE; {nitrophenols}
 NPRNO3     = IGNORE; {C3H8ONO2; n-propyl nitrate}
 NRO2       = IGNORE; {Peroxy radical from NAP oxidation}
 O          = IGNORE; {O(3P); Ground state atomic oxygen}
@@ -394,6 +361,7 @@ OLND       = IGNORE; {Monoterpene-derived NO3-alkene adduct}
 OLNN       = IGNORE; {Monoterpene-derived NO3 adduct}
 OTHRO2     = IGNORE; {Other C2 RO2 not from C2H6 oxidation}
 PAN        = IGNORE; {CH3C(O)OONO2; Peroxyacetylnitrate}
+PHEN       = IGNORE; {phenol}
 PIO2       = IGNORE; {RO2 from MTPA}
 PIP        = IGNORE; {Peroxides from MTPA}
 PO2        = IGNORE; {HOCH2CH(OO)CH3; RO2 from propene}
@@ -418,8 +386,8 @@ RIPC       = IGNORE; {C5H10O3; d(1,4)-ISOPOOH}
 RIPD       = IGNORE; {C5H10O3; d(4,1)-ISOPOOH}
 ROH        = IGNORE; {C3H7OH; > C2 alcohols}
 RP         = IGNORE; {CH3CH2C(O)OOH; Peroxide from RCO3}
-SALAAL	   = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
-SALCAL	   = IGNORE; {Coarse mode seasalt aerosol alkalinity}
+SALAAL     = IGNORE; {Accumulation mode seasalt aerosol alkalinity}
+SALCAL     = IGNORE; {Coarse mode seasalt aerosol alkalinity}
 SALACL     = IGNORE; {Cl; Fine chloride}
 SALCCL     = IGNORE; {Cl; Coarse chloride}
 SALASO2    = IGNORE; {SO2; Fine seasalt}
@@ -427,9 +395,8 @@ SALCSO2    = IGNORE; {SO2; Coarse seasalt}
 SALASO3    = IGNORE; {SO3--; Fine seasalt}
 SALCSO3    = IGNORE; {SO3--; Coarse chloride}
 SO2        = IGNORE; {SO2; Sulfur dioxide}
-SO3mm      = IGNORE; 
 SO4        = IGNORE; {SO4; Sulfate}
-SO4s       = IGNORE; {SO4; Sulfate}
+SO4s       = IGNORE; {SO4 on sea-salt; Sulfate}
 SOAGX      = IGNORE; {CHOCHO; Aerosol-phase glyoxal}
 SOAIE      = IGNORE; {C5H10O3; Aerosol-phase IEPOX}
 TOLU       = IGNORE; {C7H8; Toluene}
@@ -445,33 +412,32 @@ O2         = IGNORE; {O2; Molecular oxygen}
 RCOOH      = IGNORE; {C2H5C(O)OH; > C2 organic acids}
 
 #EQUATIONS
-//
-// Reactions extracted from sulfate_mod.F90
-// Initial version, Mar. 23, 2021 - MSL + Bob Y. updates (7/27/21)
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Reactions extracted from sulfate_mod.F90 (MSL, BMY)             %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 // Seasalt
-SO2  + SALAAL + O3  = SO4 - SALAAL  : AqRate_SALAAL_SO2_O3( State_Het );
-HCl  + SALAAL       = SALACL        : AqRate_SALAAL_HCl( State_Het );
-HNO3 + SALAAL       = NIT           : AqRate_SALAAL_HNO3( State_Het );
-SO2  + SALCAL + O3  = SO4s - SALCAL : AqRate_SALCAL_SO2_O3( State_Het );
-HCl  + SALCAL       = SALCCL        : AqRate_SALCAL_HCl( State_Het );
-HNO3 + SALCAL       = NITs          : AqRate_SALCAL_HNO3( State_Het );
+SO2  + SALAAL + O3  = SO4 - SALAAL       : K_MT(1);
+HCl  + SALAAL       = SALACL             : K_MT(2);
+HNO3 + SALAAL       = NIT                : K_MT(3);
+SO2  + SALCAL + O3  = SO4s - SALCAL      : K_MT(4);
+HCl  + SALCAL       = SALCCL             : K_MT(5);
+HNO3 + SALCAL       = NITs               : K_MT(6);
 //
-// Dust
-//
-// Cloud 
+// Cloud
 // S(IV) --> S(VI)
-SO2 + H2O2 	    = SO4   	    : K_CLD(1);
-SO2 + O3            = SO4  	    : K_CLD(2);
-SO2 {+O2} 	    = SO4  	    : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
+SO2 + H2O2          = SO4                : K_CLD(1);
+SO2 + O3            = SO4                : K_CLD(2);
+SO2 {+O2}           = SO4                : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
 // HMS
-// NOTE: Turn off HMS rxns so that we can validate without them (bmy, 7/27/21)
-//CH2O + SO2       = HMS            : K_CLD(4);
-//HMS              = SO2 + CH2O     : K_CLD(5);
-//HMS + OH         = 2SO4 + CH2O    : K_CLD(6);
+CH2O + SO2          = HMS                : K_CLD(4);  {Sep 2021; Moch2020; MSL}
+HMS                 = SO2 + CH2O         : K_CLD(5);  {Sep 2021; Moch2020; MSL}
+HMS + OH            = 2SO4 + CH2O - SO2  : K_CLD(6);  {Sep 2021; Moch2020; MSL}
 //
-// Gas-phase reactions
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Gas-phase chemistry reactions                                   %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 // NOTES:
 // ------
@@ -495,7 +461,6 @@ SO2 {+O2} 	    = SO4  	    : K_CLD(3); {Mn & Fe catalysis + HET_DROP_CHEM()}
 //     are called (sometimes multiple times) for each grid box where we
 //     perform chemistry.
 //        -- Bob Yantosca (25 Jan 2020)
-//]
 //
 O3 + NO = NO2 + O2 :                         GCARR_ac(3.00d-12, -1500.0d0);
 O3 + OH = HO2 + O2 :                         GCARR_ac(1.70d-12, -940.0d0);
@@ -507,14 +472,15 @@ OH + OH {+M} = H2O2 :                        GCJPLPR_aba(6.90d-31, 1.0d+00, 2.6d
 OH + HO2 = H2O + O2 :                        GCARR_ac(4.80d-11, 250.0d0);
 OH + H2O2 = H2O + HO2 :                      1.80d-12;
 HO2 + NO = OH + NO2 :                        GCARR_ac(3.30d-12, 270.0d0);                                                      {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
-O2 + HO2 = H2O2 + O2 :                       GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
+HO2 + HO2 = H2O2 + O2 :                      GC_HO2HO2_acac(3.00d-13, 460.0d0, 2.1d-33, 920.0d0);                              {2014/02/03; Eastham2014; SDE}
 OH + CO = HO2 + CO2 :                        GC_OHCO_a(1.50d-13);                                                              {2017/02/22; JPL 15-10; BHH,MJE}
 OH + CH4 = MO2 + H2O :                       GCARR_ac(2.45d-12, -1775.0d0);
 MO2 + NO = CH2O + HO2 + NO2 :                GC_RO2NO_B1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}
 MO2 + NO = MENO3 :                           GC_RO2NO_A1_ac(2.80d-12, 300.0d0);                                                {2019/05/10; Fisher2018; JAF}
-MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10E-13, 0.0E+00, 750.0);
+MO2 + HO2 = MP + O2 :                        GCARR_abc(4.10d-13, 0.0d0, 750.0d0);
 MO2 + MO2 = MOH + CH2O + O2 :                GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 2.62d1, -1130.0d0);
 MO2 + MO2 = 2.000CH2O + 2.000HO2 :           GC_TBRANCH_1_acac(9.50d-14, 390.0d0, 4.0d-2, 1130.0d0);
+MO2 + OH = 0.13MOH + 0.87CH2O + 1.74HO2 :    1.60d-10 ;                                                                        {2021/09/22; Bates2021a; KHB,MSL}
 MP + OH = MO2 + H2O :                        GCARR_ac(2.66d-12, 200.0d0);
 MP + OH = CH2O + OH + H2O :                  GCARR_ac(1.14d-12, 200.0d0);
 ATOOH + OH = ATO2 + H2O :                    GCARR_ac(2.66d-12, 200.0d0);                                                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
@@ -562,8 +528,8 @@ R4N1 + NO = 2.000NO2 + 0.570RCHO +
 ATO2 + NO = NO2 + CH2O + MCO3 :              GCARR_ac(2.80d-12, 300.0d0);                                                      {2017/07/27; Fix C creation; SAS,BHH,MJE}
 KO2 + NO = 0.930NO2 + 0.930ALD2 +
  0.930MCO3 + 0.070R4N2 :                     GCARR_ac(2.70d-12, 350.0d0);
-B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO_B2_aca(2.70E-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
-B3O2 + NO = IPRNO3 :                         GC_RO2NO_A2_aca(2.70E-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = NO2 + HO2 + ACET :               GC_RO2NO_B2_aca(2.70d-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
+B3O2 + NO = IPRNO3 :                         GC_RO2NO_A2_aca(2.70d-12, 360.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
 PRN1 + NO = 2.000NO2 + CH2O + ALD2 :         GCARR_ac(2.70d-12, 350.0d0);
 ALK4 + NO3 = HNO3 + R4O2 :                   GCARR_ac(2.80d-12, -3280.0d0);
 R4N2 + OH = R4N1 + H2O :                     1.60d-12;
@@ -849,7 +815,7 @@ Cl + C3H8 = HCl + A3O2 :                     GCARR_ac(8.12d-11, -90.0d0);       
 Cl + ACET = HCl + ATO2 :                     GCARR_ac(7.70d-11, -1000.0d0);                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Cl + ISOP = HCl + 0.5IHOO1 + 0.5IHOO4 :      GCARR_ac(7.60d-11, 500.0d0);                                                      {2019/11/06; Sherwen2016b;KHB,TS,JAS,SDE}
 Cl + ALK4 = HCl + R4O2 :                     2.05d-10;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-Cl + PRPE {+M} = HCl + PO2 {+M} :            GCJPLPR_aa(4.00d-28, 2.8E-10, 0.6);                                               {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+Cl + PRPE {+M} = HCl + PO2 {+M} :            GCJPLPR_aa(4.00d-28, 2.8d-10, 0.6d0);                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 Br + PRPE = HBr + PO2 :                      3.60d-12;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I + NO {+M} = INO {+M} :                     GCJPLPR_aba(1.80d-32, 1.0d0, 1.77d-11, 0.6d0);                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 INO + INO = I2 + 2.000NO :                   GCARR_ac(8.40d-11, -2620.0d0);                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -857,7 +823,7 @@ I + NO2 {+M} = IONO {+M} :                   GCJPLPR_aba(3.00d-31, 1.0d0, 6.6d-1
 IONO {+M} = I + NO2 {+M} :                   GCARR_ac(9.94d+17, -11859.0d0);                                                   {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 IONO + IONO = I2 + 2.000NO2 :                GCARR_ac(2.90d-11, -2600.0d0);                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2 + NO3 = I + IONO2 :                       1.50d-12;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IO + NO2 {+M} = IONO2 {+M} :                 GCJPLPR_abab(7.50d-31, 3.5d0, 7.6d-12, 1.5d0, 0.6d0);                              {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IO + NO2 {+M} = IONO2 {+M} :                 GCJPLPR_abab(7.50d-31, 3.5d0, 7.6d-12, 1.5d0, 0.6d0);                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 IONO2 {+M} = IO + NO2 {+M} :                 GCARR_ac(2.10d+15, -13670.0d0);                                                   {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 IONO2 + I = I2 + NO3 :                       GCARR_ac(9.10d-11, -146.0d0);                                                     {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I + BrO = IO + Br :                          1.20d-11;                                                                         {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -899,19 +865,6 @@ CH3CHOO + NO2 = ALD2 + NO3 :                 1.00d-15;                          
 CH3CHOO + SO2 = ALD2 + SO4 :                 7.00d-14;                                                                         {2015/09/25; Millet2015; DBM,EAM}
 CH3CHOO + H2O = ALD2 + H2O2 :                6.00d-18;                                                                         {2015/09/25; Millet2015; DBM,EAM}
 CH3CHOO + H2O = ACTA :                       1.00d-17;                                                                         {2015/09/25; Millet2015; DBM,EAM}
-BENZ + OH = BRO2 + 1.920CH2O + 0.252GLYX +
- OH :                                        GCARR_ac(2.33d-12, -193.0d0);                                                     {2017/03/23; Fischer2014 ; EVF}
-TOLU + OH = TRO2 + 1.920CH2O + 0.260GLYX +
- 0.215MGLY + OH :                            GCARR_ac(1.81d-12, 338.0d0);                                                      {2017/03/23; Fischer2014 ; EVF}
-XYLE + OH = XRO2 + 1.920CH2O + 0.268GLYX +
- 0.463MGLY + OH :                            2.31d-11;                                                                         {2017/03/23; Fischer2014 ; EVF}
-XYLE + NO3 = CO2 :                           2.60d-16;
-BRO2 + HO2 = LBRO2H :                        GCARR_ac(1.40d-12, 700.0d0);
-BRO2 + NO = LBRO2N :                         GCARR_ac(2.60d-12, 350.0d0);
-TRO2 + HO2 = LTRO2H :                        GCARR_ac(1.40d-12, 700.0d0);
-TRO2 + NO = LTRO2N :                         GCARR_ac(2.60d-12, 350.0d0);
-XRO2 + HO2 = LXRO2H :                        GCARR_ac(1.40d-12, 700.0d0);
-XRO2 + NO = LXRO2N :                         GCARR_ac(2.60d-12, 350.0d0);
 MTPA + OH = PIO2 :                           GCARR_ac(1.21d-11, 440.0d0);                                                      {2017/03/23; IUPAC2010; EVF}
 MTPO + OH = PIO2 :                           GCARR_ac(1.21d-11, 440.0d0);                                                      {2017/03/23; IUPAC2010; EVF}
 PIO2 + NO = 0.820HO2 + 0.820NO2 +
@@ -1362,22 +1315,115 @@ NAP + OH = NRO2 + OH :                       GCARR_ac(1.56d-11, 117.0d0);       
 NRO2 + HO2 = LNRO2H + HO2 :                  GCARR_ac(1.40d-12, 700.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 //
-// Heterogeneous reactions
+// --- C2H2 & C2H4 chemistry (per KHB)
+C2H4 + O3 = CH2O + CH2OO :                   GCARR_abc(9.10d-15, 0.0d0, -2580.0d0);                                            {2021/09/22; Kwon2020; KHB,MSL}
+C2H4 + OH = ETOO :                           GCJPLPR_abab(1.10d-28, 3.5d+00, 8.4d-12, 1.75d0, 0.5d0);                          {2021/09/22; Kwon2020; KHB,MSL}
+C2H2 + OH = 0.636GLYX + 0.636OH +
+ 0.364CO + 0.364HO2 + 0.364HCOOH :           GCJPLPR_abab(5.50d-30, 0.0d0, 8.3d-13, -2.0d0, 0.5d0);                            {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + HO2 = ETHP :                          GCARR_abc(1.53d-13, 0.0d0, 1300.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + NO = 0.995ETO +
+ 0.995NO2 + 0.005ETHN :                      GCARR_abc(2.7d-12, 0.0d+00, 360.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + NO3 = ETO + NO2 :                     2.3d-12;                                                                          {2021/09/22; Kwon2020; KHB,MSL}
+ETOO + MO2 = 0.6ETO + 0.6HO2 + 0.8CH2O +
+ 0.2MOH + 0.2ETHP + 0.2GLYC :                6.00d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
+ETO = HO2 + 2.000CH2O :                      GCARR_abc(9.5d+13, 0.0d0, -5988.0d0);                                             {2021/09/22; Kwon2020; KHB,MSL}
+ETO + O2 = GLYC + HO2 :                      GCARR_abc(2.5d-14, 0.0d0, -300.0d0);                                              {2021/09/22; Kwon2020; KHB,MSL}
+ETHN + OH = GLYC + NO2 :                     8.40d-13;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
+ETHP + OH = ETOO :                           GCARR_abc(1.90d-12, 0.0d+00, 190.0d0);                                            {2021/09/22; Kwon2020; KHB,MSL}
+ETHP + OH = OH + GLYC :                      1.38d-11;                                                                         {2021/09/22; Kwon2020; KHB,MSL}
+//
+// --- Aromatic Chemistry (per KHB)
+BENZ + OH = BRO2 + 0.54PHEN + 0.54HO2 +
+ 0.46AROMRO2 + 0.18GLYX +
+ 0.2CO +0.56AROMP4 :                         GCARR_abc(2.3d-12, 0.0d0, -193.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+TOLU + OH = TRO2 + 0.19CSL + 0.19HO2 +
+ 0.81AROMRO2 + 0.06BALD + 0.12GLYX +
+ 0.12MGLY + 0.27CO + 0.04MVK + 0.3AROMP5 +
+ 0.68AROMP4 :                                GCARR_abc(1.8d-12, 0.0d0, 340.0d0);                                               {2021/09/29; Bates2021b; KHB,MSL}
+XYLE + OH = XRO2 + 0.15CSL + 0.15HO2 +
+ 0.85AROMRO2 + 0.06BALD + 0.1GLYX +
+ 0.2MGLY + 0.3CO + 0.04MVK + 0.56AROMP5 +
+ 0.28AROMP4 + 0.45RCOOH :                    1.7d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+AROMRO2 + HO2 = OH + HO2 :                   2.91d-13 * EXP( 1300.0d0 / TEMP ) * 0.82d0;                                       {2021/09/29; Bates2021b; KHB,MSL}
+AROMRO2 + NO = NO2 + HO2 :                   GCARR_abc(2.60d-12, 0.0d+00, 365.0d0);                                            {2021/09/29; Bates2021b; KHB,MSL}
+AROMRO2 + NO3 = NO2 + HO2 :                  2.30d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+AROMRO2 + MO2 = CH2O + HO2 + HO2 :           GCARR_abc(1.70d-14, 0.0d0, 220.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+AROMRO2 + MCO3 = MO2 + HO2 :                 GCARR_abc(4.20d-14, 0.0d0, 220.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+PHEN + OH = 0.06BENZO + 0.06GLYX +
+ 0.18AROMP4 + 0.14AROMRO2 +
+ 0.8MCT + 0.8HO2 :                           GCARR_abc(4.70d-13, 0.0d0, 1220.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
+PHEN + NO3 = 0.258NPHEN + 0.742HNO3 +
+ 0.742BENZO :                                3.8d-12;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+CSL + OH = 0.727MCT + 0.727HO2 +
+ 0.2AROMRO2 + 0.073BENZO + 0.44AROMP5 :      4.7d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+CSL + NO3 = 0.5NPHEN + 0.2AROMRO2 +
+ 0.5HNO3 + 0.3BENZO + 0.44AROMP5 :           1.4d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+MCT + OH = 0.3BENZO + 0.7AROMRO2 +
+ 1.05AROMP4 :                                2.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+MCT + O3 = GLYC + HO2 + OH + AROMP4 :        9.2d-18;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+MCT + NO3 = 0.5NPHEN + 0.5HNO3 +
+ 0.3BENZO + 0.2AROMRO2 + 0.3AROMP4 :         9.9d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+BALD + OH = BZCO3 :                          GCARR_abc(5.90d-12, 0.0d0, 225.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+BALD + NO3 = BZCO3 + HNO3 :                  2.4d-15;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3 + HO2 = 0.35CO2 + 0.2BENZO2 +
+ 0.15O3 + 0.2OH + 0.15BENZP + 0.65BZCO3H :   GCARR_abc(1.10d-11, 0.0d0, 340.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3 + NO = NO2 + CO2 + BENZO2 :            GCARR_abc(7.50d-12, 0.0d0, 290.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3 + NO2 = BZPAN :                        GC_PAN_acac(3.28d-28, -6.87d0, 1.125d-11, -1.105d0, 0.3d0);                       {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3H + OH = BZCO3 :                        4.66d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BZPAN = BZCO3 + NO2 :                        GC_PAN_abab(1.10d-5, -10100.0d0, 1.90d+17, -14100.0d0, 0.3d0)*0.67d0;             {2021/09/29; Bates2021b; KHB,MSL}
+BZPAN + OH = BENZP + CO2 + NO2 :             1.06d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO2 + NO2 = BENZO + NO3 :                 7.00d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO2 + NO = BENZO + NO2 :                  GCARR_abc(2.670d-12, 0.0d0, 365.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
+BENZO2 + NO3 = BENZO + NO2 :                 2.30d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO2 + HO2 = BENZP :                       GCARR_abc(2.24d-13, 0.0d0, 1300.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
+BENZP + OH = BENZO2 :                        3.60d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO + O3 = BENZO2 :                        2.86d-13;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO + NO2 = NPHEN :                        2.08d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+NPHEN + OH = 0.5R4N1 + AROMP4 + 0.5NO2 :     3.47d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+NPHEN + NO3 = 0.5HNO3 +
+ NO2 + 0.5R4N1 + AROMP4 :                    2.60d-12;                                                                         {2021/09/29; Bates2021b; KHB,MSL}
+BENZO2 + MO2 = BENZO + HO2 + CH2O :          GCARR_abc(2.670d-13, 0.0d0, 365.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3 + MO2 = BENZO2 + CO2 + HO2 + CH2O :    GCARR_abc(2.670d-12, 0.0d0, 365.0d0);                                             {2021/09/29; Bates2021b; KHB,MSL}
+AROMP4 + OH = 0.6GLYX + 0.25CO + 0.25HCOOH +
+ 0.25OH + 0.33HO2 + 0.33RCO3 + 0.45RCOOH :   5.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+AROMP4 + O3 = 0.5HCOOH + 0.5CO + 0.6GLYX +
+ 0.9GLYC + 0.1HO2 + 0.1OH :                  8.0d-16;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+AROMP4 = 0.2HO2 + 0.2GLYX + 1.2RCHO :        1.5d-3;                                                                           {2021/09/29; Bates2021b; KHB,MSL}
+AROMP5 + OH = 0.6MGLY + 0.15ACTA +
+ 0.1HCOOH + 0.25OH + 0.33HO2 +
+ 0.33RCO3 + 0.25CO + 0.52RCOOH :             5.0d-11;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+AROMP5 + O3 = 0.6MGLY + 0.3ACTA + 0.2HCOOH +
+ 0.5CO + 0.95GLYC + 0.1HO2 + 0.1OH :         8.0d-16;                                                                          {2021/09/29; Bates2021b; KHB,MSL}
+AROMP5 = 0.2HO2 + 0.2R4O2 +
+ 0.2MGLY + 1.2RCHO :                         1.5d-3;                                                                           {2021/09/29; Bates2021b; KHB,MSL}
+//
+// KHB -- "we still need to include the dummy species for aromatic oxidation
+//         to make the complex SOA code work. Hopefully this will be changed
+//         very soon when Jared Brewer updates the aromatic SOA, but I think it's
+//         still necessary, in which case, we need to add the following reactions too.
+//         (If I'm wrong, we can delete XRO2, TRO2, BRO2, LXRO2N, LXRO2H,
+//         LTRO2N, LTRO2H, LBRO2N, and LBRO2H from the species list, delete
+//         XRO2, TRO2, and BRO2 as products from the BENZ + OH, TOLU + OH,
+//         and XYLE + OH reactions above, and not include the following reactions)"
+//
+BRO2 + HO2 = HO2 + LBRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+BRO2 + NO  = NO + LBRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+TRO2 + HO2 = HO2 + LTRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+TRO2 + NO  = NO + LTRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+XRO2 + HO2 = HO2 + LXRO2H :                  GCARR_abc(1.40d-12, 0.0d0, 700.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+XRO2 + NO  = NO + LXRO2N  :                  GCARR_abc(2.60d-12, 0.0d0, 350.0d0);                                              {2021/09/29; Bates2021b; KHB,MSL}
+MO2  + NO3 = NO2 + CH2O + HO2 :              1.20d-12;                                                                         {2022/10/18: IUPAC ROO_19; KHB,BMY}
+FURA + OH = BUTDI :                          GCARR_ac(1.32d-11,334.0d0);                                                       {2023/02/07; Carter2022; TSC}
+//
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Heterogeneous chemistry reactions                               %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 HO2 = H2O :                    HO2uptk1stOrd( State_Het );                                                  {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
 NO2 = 0.500HNO3 + 0.500HNO2 :  NO2uptk1stOrdAndCloud( State_Het );
 NO3 = HNO3 :                   NO3uptk1stOrdAndCloud( State_Het );
 NO3 = NIT :                    NO3hypsisClonSALA( State_Het );                                              {2018/03/16; XW}
 NO3 = NITs :                   NO3hypsisClonSALC( State_Het );                                              {2018/03/16; XW}
-//
-// NOTE: N2O5 + H2O reaction rate is still calculated as first-order,
-// based on Evans and Jacob [2005]. However this is converted to a
-// second-order rate in gckpp_HetRates.F90 by dividing by [H2O],
-// allowing the reaction to be listed here as second order
-// (N2O5 + H2O -> 2HNO3) and thereby permitting chemical loss
-// of H2O in the stratosphere.
-//    -- Seb Eastham (14 May 2018)
-//
 N2O5 + H2O = 2.000HNO3 :       N2O5uptkByH2O( State_Het );
 N2O5 + HCl = ClNO2 + HNO3 :    N2O5uptkByStratHCl( State_Het );                                             {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 N2O5 = 2.000HNO3 :             N2O5uptkByCloud( State_Het );                                                {2018/10/17; Cloud uptake, CDH}
@@ -1394,9 +1440,9 @@ ClNO3 + BrSALA = BrCl + HNO3 : ClNO3uptkByBrSALA( State_Het );                  
 ClNO3 + BrSALC = BrCl + HNO3 : ClNO3uptkByBrSALC( State_Het );                                              {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 ClNO3 + SALACL = Cl2 + HNO3 :  ClNO3uptkBySALACL( State_Het );                                              {2018/01/22; XW}
 ClNO3 + SALCCL = Cl2 + HNO3 :  ClNO3uptkBySALCCL( State_Het );                                              {2018/01/22; XW}
-ClNO2 + SALACL = Cl2 + HNO3 :  ClNO2uptkBySALACL( State_Het );                                              {2018/01/22; XW}
-ClNO2 + SALCCL = Cl2 + HNO3 :  ClNO2uptkBySALCCL( State_Het );                                              {2018/01/22; XW}
-ClNO2 + HCl = Cl2 + HNO3 :     ClNO2uptkByHCl( State_Het );                                                 {2018/01/22; XW}
+ClNO2 + SALACL = Cl2 + HNO2 :  ClNO2uptkBySALACL( State_Het );                                              {2018/01/22; XW}
+ClNO2 + SALCCL = Cl2 + HNO2 :  ClNO2uptkBySALCCL( State_Het );                                              {2018/01/22; XW}
+ClNO2 + HCl = Cl2 + HNO2 :     ClNO2uptkByHCl( State_Het );                                                 {2018/01/22; XW}
 ClNO2 + BrSALA = BrCl + HNO2 : ClNO2uptkByBrSALA( State_Het );                                              {2018/01/22; XW}
 ClNO2 + BrSALC = BrCl + HNO2 : ClNO2uptkByBrSALC( State_Het );                                              {2018/01/22; XW}
 ClNO2 + HBr = BrCl + HNO2 :    ClNO2uptkByHBr( State_Het );                                                 {2018/01/22; XW}
@@ -1404,16 +1450,14 @@ HOCl + HCl = Cl2 + H2O :       HOClUptkByHCl( State_Het );                      
 HOCl + HBr = BrCl + H2O :      HOClUptkByHBr( State_Het );                                                  {2014/02/03; Eastham2014; SDE}
 HOCl + SALACL = Cl2 + H2O :    HOClUptkBySALACL( State_Het );                                               {2018/01/22; XW}
 HOCl + SALCCL = Cl2 + H2O :    HOClUptkBySALCCL( State_Het );                                               {2018/01/22; XW}
-HOCl + HSO3m = SO4 + HCl :     HOClUptkByHSO3m( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
-HOCl + SO3mm = SO4 + HCl :     HOClUptkBySO3mm( State_Het );                                                {2018/11/08; XW; June 6, 2021, MSL}
+HOCl + SO2 = SO4 + HCl :       HOClUptkByHSO3m( State_Het ) + HOClUptkBySO3mm( State_Het );                 {2018/11/08; XW; June 6, 2021, MSL}
 HOBr + HBr = Br2 + H2O :       HOBrUptkByHBr( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + HCl = BrCl + H2O :      HOBrUptkByHCl( State_Het );                                                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HOBr + SALACL = BrCl + H2O :   HOBrUptkBySALACL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE;XW}
 HOBr + SALCCL = BrCl + H2O :   HOBrUptkBySALCCL( State_Het );                                               {2018/01/22; Sherwen2017;TS,JAS,SDE,XW}
 HOBr + BrSALA = Br2 :          HOBrUptkByBrSALA( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
 HOBr + BrSALC = Br2 :          HOBrUptkByBrSALC( State_Het );                                               {2017/09/22; Sherwen2017;TS,JAS,SDE}
-HOBr + HSO3m = SO4 + HBr :     HOBrUptkByHSO3m( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
-HOBr + SO3mm = SO4 + HBr :     HOBrUptkBySO3mm( State_Het );                                                {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
+HOBr + SO2 = SO4 + HBr :       HOBrUptkByHSO3m( State_Het ) + HOBrUptkBySO3mm( State_Het );                 {2017/11/15; Chen2017; QJC; June 6, 2021, MSL}
 O3 + HBr = HOBr :              O3uptkByHBr( State_Het );                                                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALA = HOBr :           O3uptkByBrSALA( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 O3 + BrSALC = HOBr :           O3uptkByBrSALC( State_Het );                                                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -1422,8 +1466,8 @@ HBr = BrSALC :                 HBrUptkBySALC( State_Het );                      
 HI = AERI :                    IuptkBySulf1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HI = ISALA :                   IuptkBySALA1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 HI = ISALC :                   IuptkBySALC1stOrd( SR_MW(ind_HI), 0.10_dp, State_Het );                      {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOI = ISALA :                  IuptkByAlkSALA1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-HOI = ISALC :                  IuptkByAlkSALC1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+HOI = ISALA :                  IuptkByAlkSALA1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2023/01/24; Restored deleted rxn:BA}
+HOI = ISALC :                  IuptkByAlkSALC1stOrd( SR_MW(ind_HOI), 0.01_dp, State_Het );                  {2022/12/02; Restored deleted rxn:BA}
 I2O2 = 2.000AERI :             IuptkBySulf1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2O2 = 2.000ISALA :            IuptkBySALA1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2O2 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O2), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
@@ -1433,10 +1477,11 @@ I2O3 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O3), 0.02_dp, Stat
 I2O4 = 2.000AERI :             IuptkBySulf1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2O4 = 2.000ISALA :            IuptkBySALA1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
 I2O4 = 2.000ISALC :            IuptkBySALC1stOrd( SR_MW(ind_I2O4), 0.02_dp, State_Het );                    {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO = ISALA :                 IuptkByAlkSALA1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO = ISALC :                 IuptkByAlkSALC1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO2 = ISALA :                IuptkByAlkSALA1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2017/09/22; Sherwen2016b;TS,JAS,SDE}
-IONO2 = ISALC :                IuptkByAlkSALC1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2017/09/22; Sherwen2016b;TS,JAS,SDE}
+IONO = ISALA + HNO2 :          IuptkByAlkSALA1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2022/12/02; Restored deleted rxn:BA}
+IONO = ISALC + HNO2 :          IuptkByAlkSALC1stOrd( SR_MW(ind_IONO), 0.02_dp, State_Het );                 {2022/12/02; Restored deleted rxn:BA}
+IONO2 = ISALA + HNO3 :         IuptkByAlkSALA1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2022/12/02; Restored deleted rxn:BA}
+IONO2 = ISALC + HNO3 :         IuptkByAlkSALC1stOrd( SR_MW(ind_IONO2), 0.01_dp, State_Het );                {2022/12/02; Restored deleted rxn:BA}
+IONO2 + H2O = HOI + HNO3 :     IONO2uptkByH2O( State_Het );                                                 {2021/09/16 XW, TSherwen}
 IONO + BrSALA = IBr + HNO2 :   IbrkdnByAcidBrSALA( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
 IONO + BrSALC = IBr + HNO2 :   IbrkdnByAcidBrSALC( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
 IONO + SALACL = ICl + HNO2 :   IbrkdnByAcidSALACl( SR_MW(ind_IONO), C(ind_IONO), 0.02_dp, State_Het );      {2017/09/22; Sherwen2017;TS,JAS,SDE,XW}
@@ -1474,8 +1519,11 @@ ITCN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITCN), 5.0E-3_dp, State_
 ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_Het );                      {2019/11/06; Bates2019; KHB}
 MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
 MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
+NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
 //
-// Photolysis reactions
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+// %%%%% Photolysis reactions                                            %%%%%
+// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 //
 O3 + hv = O + O2 :                           PHOTOL(2);      {2014/02/03; Eastham2014; SDE}
 O3 + hv = O1D + O2 :                         PHOTOL(3);      {2014/02/03; Eastham2014; SDE}
@@ -1672,3 +1720,9 @@ ITHN + hv = NO2 + 0.8HAC + 0.7HO2 +
 ITCN + hv = MGLY + OH + NO2 + GLYC :         PHOTOL(160);    {2019/11/06; Bates2019; KHB}
 ITCN + hv = 0.5MVKHP + 0.5MCRHP + CO +
  NO2 + HO2 :                                 PHOTOL(161);    {2019/11/06; Bates2019; KHB}
+ETHP + hv = ETO + OH :                       PHOTOL(162);    {2021/09/22; Bates2021a; KHB,MSL}
+BALD + hv = BENZO2 + CO + HO2 :              PHOTOL(163);    {2021/09/29; Bates2021b; KHB,MSL}
+BZCO3H + hv = BENZO2 + OH + CO2 :            PHOTOL(164);    {2021/09/29; Bates2021b; KHB,MSL}
+BENZP + hv = BENZO :                         PHOTOL(165);    {2021/09/29; Bates2021b; KHB,MSL}
+NPHEN + hv = HNO2 + CO +
+ CO2 + AROMP4 + HO2 :                        PHOTOL(166);    {2021/09/29; Bates2021b; KHB,MSL}

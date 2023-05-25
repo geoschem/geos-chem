@@ -41,6 +41,8 @@ add_library(KPP STATIC EXCLUDE_FROM_ALL
   # These are symbolic links to files in the ../stubs folder.
   #
   stub_aciduptake_DustChemFuncs.F90
+  stub_carbon_Funcs.F90
+  stub_fullchem_AutoReduceFuncs.F90
   stub_fullchem_HetStateFuncs.F90
   stub_fullchem_SulfurChemFuncs.F90
 )

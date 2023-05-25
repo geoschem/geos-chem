@@ -200,7 +200,7 @@ CONTAINS
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units
 
     ! Debugging print
-    IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,'(a)') '     ### Species Unit Conversion: ' // &
                       TRIM(InUnit) // ' -> ' // TRIM(OutUnit) // ' ###'
     ENDIF
@@ -267,6 +267,13 @@ ENDIF
                                                       IS_ADJOINT, RC )
                 CALL ConvertSpc_KgKgDry_to_Kg( State_Chm, State_Grid, &
                                                State_Met, IS_ADJOINT, RC )
+             CASE ( 'molec/cm3' )
+                CALL ConvertSpc_KgKgTotal_to_KgKgDry( State_Chm, State_Grid, &
+                                                      State_Met,             &
+                                                      IS_ADJOINT, RC )
+                CALL ConvertSpc_KgKgDry_to_MND( State_Chm, State_Grid,           &
+                                                State_Met, IS_ADJOINT, &
+                                                RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT
@@ -351,6 +358,13 @@ ENDIF
                 CALL ConvertSpc_MND_to_KgKgDry( State_Chm, State_Grid, &
                                                 State_Met,             &
                                                 IS_ADJOINT, RC )
+             CASE ( 'kg/kg total' )
+                CALL ConvertSpc_MND_to_KgKgDry( State_Chm, State_Grid, &
+                                                State_Met,             &
+                                                IS_ADJOINT, RC )
+                CALL ConvertSpc_KgKgDry_to_KgKgTotal( State_Chm, State_Grid, &
+                                                      State_Met,             &
+                                                      IS_ADJOINT, RC )
              CASE DEFAULT
                 CALL GC_Error( ErrMsg_noOut, RC, LOC )
           END SELECT

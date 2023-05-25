@@ -55,7 +55,6 @@ RUNID:   ${RUNDIR_GCAP2_RUNID}
 * GWETROOT   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     GWETROOT    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * HFLUX      $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     HFLUX       1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * LAI        $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     LAI         1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-* LWI        $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     LWI         1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDF      $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     PARDF       1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PARDR      $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     PARDR       1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * PBLH       $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     PBLH        1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1

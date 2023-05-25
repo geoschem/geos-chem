@@ -9,6 +9,13 @@
 
 #INCLUDE Hg.eqn           { Chemical reactions for Hg mechanism        }
 
+#FAMILIES                 { Chemical families for prod/loss diagnostic }
+PHg2 : HgBrNO2 + HgBrHO2 + HgBrClO + HgBrBrO + HgBr2 + HgBrOH + HgBrO + HgOHNO2 + HgOHHO2 + HgOHClO + HgOHBrO + HgOHOH + HgOHO + HgClNO2 + HgClHO2 + HgClClO + HgClBrO + HgClBr + HgClOH + HgClO + HgCl2 + Hg2ClP + Hg2ORGP + HgBr + HgOH + HgCl; {gross GOM production}
+PHg0 : Hg0; {gross Hg0 production}
+PHg2Br : HgBrNO2 + HgBrHO2 + HgBrClO + HgBrBrO + HgBr2 + HgBrOH + HgBrO + HgBr; {GOM production from Br}
+PHg2OH : HgOHNO2 + HgOHHO2 + HgOHClO + HgOHBrO + HgOHOH + HgOHO + HgOH; {GOM production from OH}
+PHg2Cl : HgClNO2 + HgClHO2 + HgClClO + HgClBrO + HgClBr + HgClOH + HgClO + HgCl2 + HgCl; {GOM production from Cl}
+
 #INLINE F90_RATES
   ! All rates are included in Hg_RateLawFuncs.F90, which
   ! gets referenced directly from subroutine Update_Rconst.

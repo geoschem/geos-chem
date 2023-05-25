@@ -18,7 +18,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
   USE BPCH2_MOD                          ! For binary punch I/O routines
   USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
-  USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
   USE CMN_O3_MOD                         ! FMOL
   USE CMN_SIZE_MOD,   ONLY : NDSTBIN
   USE DEPO_MERCURY_MOD                   ! For offline Hg simulation

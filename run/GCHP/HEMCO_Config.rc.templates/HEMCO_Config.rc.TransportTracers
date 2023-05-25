@@ -37,8 +37,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -49,7 +49,7 @@ Warnings:                    1
 0       Base                   : on    *
 # ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
-    --> METEOROLOGY            :       false    # 1980-2021
+    --> METEOROLOGY            :       false
 # ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
 # ----- GLOBAL INVENTORIES ----------------------------------------------------

@@ -41,6 +41,8 @@ MODULE HCO_Utilities_GC_Mod
   PUBLIC   :: HCO_GC_EvalFld     ! Shim interface for HCO_EvalFld
   PUBLIC   :: HCO_GC_GetPtr      ! Shim interface for HCO_GetPtr
   PUBLIC   :: HCO_GC_GetDiagn    ! Shim interface for GetHcoDiagn
+  PUBLIC   :: HCO_GC_GetOption   ! Shim interface for HCO_GetOpt
+  PUBLIC   :: HCO_GC_HcoStateOK  ! Test if HCO_State is allocated
 
 #if defined( MODEL_CLASSIC )
   !=========================================================================
@@ -236,7 +238,10 @@ CONTAINS
                            Emis=TMP_Value )
       ENDIF
 
-      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValEmis/ImGrid: Loading", TrcID, PRESENT( AltBuffer )
+      IF ( Input_Opt%Verbose ) THEN
+         WRITE(6,*) "# LoadHcoValEmis/ImGrid: Loading", &
+              TrcID, PRESENT( AltBuffer )
+      ENDIF
 
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
@@ -300,7 +305,9 @@ CONTAINS
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
 
-      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValDep/ImGrid: Loading", TrcID
+      IF ( Input_Opt%Verbose ) THEN
+         WRITE(6,*) "# LoadHcoValDep/ImGrid: Loading", TrcID
+      ENDIF
     ENDIF
 #endif
   END SUBROUTINE LoadHcoValDep
@@ -398,7 +405,11 @@ CONTAINS
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
 
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb
+        IF ( Input_Opt%Verbose ) THEN
+           WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", &
+                TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, &
+                LAST_TMP_REGRID_H2Mb
+        ENDIF
 
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val) ) THEN  ! Present! Read in the data
@@ -414,7 +425,9 @@ CONTAINS
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1:ZBND) = HcoState%Spc(TrcID)%Emis%Val(:,:,1:ZBND)
 
-            ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Read from HEMCO"
+            ! IF ( Input_Opt%Verbose ) THEN
+            !    WRITE(6,*) "# GetHcoValEmis/ImGrid: Read from HEMCO"
+            ! ENDIF
 
             ! Now perform the on-demand regrid
             CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL_target, ZBND )
@@ -430,7 +443,10 @@ CONTAINS
               LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
             ENDIF
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName, PRESENT( AltBuffer )
+            IF ( Input_Opt%Verbose ) THEN
+               WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", &
+                    TMP_TrcIDFldName, PRESENT( AltBuffer )
+            ENDIF
           ENDIF ! Associated
         ENDIF ! TrcID > 0
       ELSE ! Already in buffer! Just read the pointer data
@@ -529,7 +545,7 @@ CONTAINS
       IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val) ) THEN  ! Present! Read in the data
@@ -541,7 +557,7 @@ CONTAINS
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1) = HcoState%Spc(TrcID)%Depv%Val(:,:)
 
-            ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Read from HEMCO"
+            ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# GetHcoValDep/ImGrid: Read from HEMCO"
 
             ! Now perform the on-demand regrid
             ! Note deposition is surface layer, so L is always 1. Read ZBND = 1
@@ -553,7 +569,10 @@ CONTAINS
             Dep = TMP_MDLb(I,J,1)
             LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Regrid OK return", TMP_TrcIDFldName
+            IF ( Input_Opt%Verbose ) THEN
+               WRITE(6,*) "# GetHcoValDep/ImGrid: Regrid OK return", &
+                    TMP_TrcIDFldName
+            ENDIF
           ENDIF
         ENDIF
       ELSE ! Already in buffer! Just read the pointer data
@@ -657,7 +676,7 @@ CONTAINS
       ! Check if cName is existing in the regrid buffer.
       !If not, regrid on-the-fly
       IF ( cName /= LAST_TMP_REGRID_H2M ) THEN
-        !IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
+        !IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
 
         ! Now retrieve data into the HEMCO temporary!
         ! The bdy is a slice to ensure safety
@@ -667,7 +686,7 @@ CONTAINS
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Lookup complete", cName, FND
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Lookup complete", cName, FND
 
         IF ( FND ) THEN
 
@@ -680,7 +699,10 @@ CONTAINS
           ! ( Input_Opt, State_Grid, State_Grid_HCO, PtrIn, PtrOut, ZBND )
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, Arr3D, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Regrid complete, ", cName, " z-boundary", ZBND
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_EvalFld_3D: Regrid complete, ", &
+                  cName, " z-boundary", ZBND
+          ENDIF
 
           ! The output should be in Arr3D and ready to go.
           LAST_TMP_REGRID_H2M = cName
@@ -692,7 +714,7 @@ CONTAINS
         Arr3D(:,:,1:ZBND) = TMP_MDL(:,:,1:ZBND)
         FND = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid equal, reading from buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
       !=====================================================================
@@ -789,7 +811,7 @@ CONTAINS
 
       ! Check if cName is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( cName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid not equal, looking up field ", cName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid not equal, looking up field ", cName
 
         ! Now retrieve data into the HEMCO temporary!
         ! The bdy is a slice to ensure safety
@@ -799,7 +821,7 @@ CONTAINS
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Lookup complete", cName, FND
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Lookup complete", cName, FND
 
         ! If not found, return
         IF ( FND ) THEN
@@ -812,7 +834,9 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Regrid", cName, " complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_EvalFld_2D: Regrid", cName, " complete"
+          ENDIF
 
           ! Note that we cannot pass Arr2D to call above directly because it accepts a
           ! 3-D argument. So we regrid to the target dummy and copy
@@ -827,7 +851,7 @@ CONTAINS
         Arr2D(:,:) = TMP_MDL(:,:,1)
         FND = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid equal, reading from buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
       !=====================================================================
@@ -943,7 +967,7 @@ CONTAINS
 
       ! Check if is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( TMP_GetPtrFldName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
         LAST_TMP_REGRID_H2M = "_HCO_Ptr2D_TBD"
@@ -958,9 +982,9 @@ CONTAINS
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Dim Debug", SIZE(TMP_HCO, 1), SIZE(TMP_HCO, 2), SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Dim Debug", SIZE(TMP_HCO, 1), SIZE(TMP_HCO, 2), SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
@@ -970,7 +994,10 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid", TMP_GetPtrFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid", TMP_GetPtrFldName, &
+                  "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr2D => NULL()
@@ -992,7 +1019,7 @@ CONTAINS
         iFOUND = .true.
         iFILLED = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
       ENDIF
     ELSE
       ! Not within the intermediate grid code path
@@ -1108,7 +1135,7 @@ CONTAINS
 
       ! Check if is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( TMP_GetPtrFldName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
         LAST_TMP_REGRID_H2M = "_HCO_Ptr3D_TBD"
@@ -1126,7 +1153,7 @@ CONTAINS
           ! Get z-boundary
           ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
@@ -1136,7 +1163,10 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Regrid", TMP_GetPtrFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetPtr_3D: Regrid", &
+                  TMP_GetPtrFldName, "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr3D => NULL()
@@ -1159,7 +1189,7 @@ CONTAINS
         iFOUND = .true.
         iFILLED = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
       ENDIF
     ELSE
       ! Not within the intermediate grid code path
@@ -1289,7 +1319,7 @@ CONTAINS
       IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
                   (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 
         ! Now retrieve data into the HEMCO temporary!
         ! Note that the data is in sp and has to be promoted for regridding,
@@ -1306,14 +1336,17 @@ CONTAINS
           ! Get z-boundary
           ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Lookup complete", TMP_DiagnFldName, ZBND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Lookup complete", TMP_DiagnFldName, ZBND
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete", PRESENT(AltBuffer)
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", &
+                  TMP_DiagnFldName, "complete", PRESENT(AltBuffer)
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr3D => NULL()
@@ -1454,7 +1487,7 @@ CONTAINS
       IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
                   (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 
         ! Now retrieve data into the HEMCO temporary!
         ! Note that the data is in sp and has to be promoted for regridding,
@@ -1468,14 +1501,17 @@ CONTAINS
           ! For safety, overwrite the temporary
           LAST_TMP_REGRID_H2M = "_HCO_Dgn2D_TBD"
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Lookup complete", TMP_DiagnFldName
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Lookup complete", TMP_DiagnFldName
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Regrid", TMP_DiagnFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetDiagn_2D: Regrid", &
+                  TMP_DiagnFldName, "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr2D => NULL()
@@ -1551,7 +1587,6 @@ CONTAINS
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
-   USE Ocean_Mercury_Mod, ONLY : Check_Ocean_Mercury
 !
 ! !INPUT PARAMETERS:
 !
@@ -1628,23 +1663,6 @@ CONTAINS
 
    ! Set pointer to species concentrations
    Spc => State_Chm%Species
-
-   !=================================================================
-   ! If running Hg simulation, set Hg-specific local variables
-   !=================================================================
-   IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
-
-      ! Set the # of tagHg categories from State_Chm
-      Num_Hg_Categories   =  State_Chm%N_Hg_CATS
-
-      ! Set variable storing names for each of the Hg categories
-      Hg_Cat_Name => State_Chm%Hg_Cat_Name
-
-      ! Set Hg species index corresponding to a given Hg category number;
-      ! total is always the first category
-      Total_Hg_Id   =  State_Chm%Hg0_Id_List(1)
-
-   ENDIF
 
    !=================================================================
    ! Open GEOS-Chem restart file
@@ -1890,7 +1908,7 @@ CONTAINS
    State_Chm%Spc_Units = 'kg/kg dry'
 
    ! If in debug mode, print out species min and max in [molec/cm3]
-   IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
 
       ! Convert units
       PRINT *, " "
@@ -2286,18 +2304,18 @@ CONTAINS
 
             ! Assign ocean mercury data and write total mass to log file
             SELECT CASE( M )
-            CASE ( 1 )
-               State_Chm%OceanHg0(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ), &
-                            SUM( State_Chm%OceanHg0(:,:,Total_Hg_Id) ), 'kg'
-            CASE ( 2 )
-               State_Chm%OceanHg2(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ),  &
-                            SUM( State_Chm%OceanHg2(:,:,Total_Hg_Id) ), 'kg'
-            CASE ( 3 )
-               State_Chm%OceanHgP(:,:,Total_Hg_Id) = Ptr2D
-               WRITE( 6, 240 ) TRIM( v_name ),  &
-                            SUM( State_Chm%OceanHgP(:,:,Total_Hg_Id) ), 'kg'
+               CASE ( 1 )
+                  State_Chm%OceanHg0 = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHg0 ), 'kg'
+               CASE ( 2 )
+                  State_Chm%OceanHg2 = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHg2 ), 'kg'
+               CASE ( 3 )
+                  State_Chm%OceanHgP = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                                  SUM( State_Chm%OceanHgP ), 'kg'
             END SELECT
 
          ELSE
@@ -2309,78 +2327,13 @@ CONTAINS
 
       ENDDO
 
-!-----------------------------------------------------------------------------
-! Tagged Hg simulation has been disabled in 13.4.0 -- the Hg mechanism
-! generated via KPP does not use these species any longer:
-! -- Bob Yantosca (08 Apr 2022)
-!      !--------------------------------------------------------------
-!      ! Additional tagged ocean Hg species
-!      !--------------------------------------------------------------
-!      IF ( Input_Opt%LSPLIT ) THEN
-!         DO M = 1, 3
-!            DO N = 2, Num_Hg_Categories
-!
-!               ! Define variable name. Include appended region.
-!               SELECT CASE( M )
-!               CASE ( 1 )
-!                  HgSpc = 'Hg0'
-!               CASE ( 2 )
-!                  HgSpc = 'Hg2'
-!               CASE ( 3 )
-!                  HgSpc = 'HgP'
-!               END SELECT
-!               v_name = 'OCEAN_' // TRIM( HgSpc ) //  &
-!                        '_'      // TRIM( Hg_Cat_Name(N) )
-!
-!               ! Get variable from HEMCO and store in local array
-!               CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), &
-!                                Ptr2D, RC, FOUND=FOUND )
-!
-!               ! Check if variable is in file
-!               IF ( FOUND ) THEN
-!
-!                  ! Assign ocean mercury data and write total mass to log
-!                  SELECT CASE( M )
-!                  CASE ( 1 )
-!                     State_Chm%OceanHg0(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHg0(:,:,N) ), 'kg'
-!                  CASE ( 2 )
-!                     State_Chm%OceanHg2(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHg2(:,:,N) ), 'kg'
-!                  CASE ( 3 )
-!                     State_Chm%OceanHgP(:,:,N) = Ptr2D
-!                     WRITE( 6, 240 ) TRIM( v_name ),  &
-!                                     SUM( State_Chm%OceanHgP(:,:,N) ), 'kg'
-!                  END SELECT
-!
-!               ELSE
-!                  WRITE( 6, 230 ) TRIM( v_name )
-!               ENDIF
-!
-!               ! Nullify pointer
-!               Ptr2D => NULL()
-!
-!            ENDDO
-!         ENDDO
-!
-!         ! Make sure tagged & total species sum up
-!         IF ( Input_Opt%USE_CHECKS ) THEN
-!            CALL CHECK_OCEAN_MERCURY( State_Chm, State_Grid, &
-!                                      'end of READ_GC_RESTART' )
-!         ENDIF
-!      ENDIF
-!-----------------------------------------------------------------------------
-
       !--------------------------------------------------------------
       ! Hg snowpack on land and ocean
       !--------------------------------------------------------------
       DO M = 1, 4
-         DO N = 1, Num_Hg_Categories
 
-            ! Define variable name prefix
-            SELECT CASE( M )
+         ! Define variable name prefix
+         SELECT CASE( M )
             CASE ( 1 )
                Prefix = 'SNOW_HG_OCEAN'        ! Reducible on ocean
             CASE ( 2 )
@@ -2389,51 +2342,41 @@ CONTAINS
                Prefix = 'SNOW_HG_LAND'         ! Reducible on land
             CASE ( 4 )
                Prefix = 'SNOW_HG_LAND_STORED'  ! Non-reducible on land
-            END SELECT
+         END SELECT
 
-            IF ( N == 1 ) THEN
-               v_name = TRIM( Prefix )
-            ELSE
-               ! Append category name if tagged
-               v_name = TRIM( Prefix         ) // '_' // &
-                        TRIM( Hg_Cat_Name(N) )
-            ENDIF
+         v_name = TRIM( Prefix )
 
-            ! Get variable from HEMCO and store in local array
-            CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),       &
-                                Ptr2D,     RC,         FOUND=FOUND          )
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),          &
+                             Ptr2D,     RC,         FOUND=FOUND             )
 
-            ! Check if variable is in file
-            IF ( FOUND ) THEN
+         ! Check if variable is in file
+         IF ( FOUND ) THEN
 
-               ! Assign ocean mercury data and write total mass to file
-               SELECT CASE( M )
+            ! Assign ocean mercury data and write total mass to file
+            SELECT CASE( M )
                CASE ( 1 )
-                  State_Chm%SnowHgOcean(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgOcean(:,:,N) ), 'kg'
+                  State_Chm%SnowHgOcean = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgOcean       ), 'kg'
                CASE ( 2 )
-                  State_Chm%SnowHgOceanStored(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgOceanStored(:,:,N) ),'kg'
+                  State_Chm%SnowHgOceanStored = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgOceanStored ),'kg'
                CASE ( 3 )
-                  State_Chm%SnowHgLand(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgLand(:,:,N) ), 'kg'
+                  State_Chm%SnowHgLand = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgLand        ), 'kg'
                CASE ( 4 )
-                  State_Chm%SnowHgLandStored(:,:,N) = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name ),  &
-                                  SUM( State_Chm%SnowHgLandStored(:,:,N) ), 'kg'
+                  State_Chm%SnowHgLandStored = Ptr2D
+                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                                  SUM( State_Chm%SnowHgLandStored  ), 'kg'
                END SELECT
 
-            ELSE
-               WRITE( 6, 230 ) TRIM( v_name )
-            ENDIF
+         ELSE
+            WRITE( 6, 230 ) TRIM( v_name )
+         ENDIF
 
-            ! Nullify pointer
-            Ptr2D => NULL()
-
-         ENDDO
       ENDDO
 
       ! Format strings
@@ -2461,7 +2404,7 @@ CONTAINS
    Spc => NULL()
 
    ! Mark end of section in log
-   IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%Verbose .AND. Input_Opt%amIRoot ) THEN
       CALL DEBUG_MSG('### DONE GET_GC_RESTART')
    ENDIF
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2612,7 +2555,7 @@ CONTAINS
          ! Print the min & max of each species as it is read from
          ! the BC file in mol/mol if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
-            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+            IF ( FIRST .or. Input_Opt%Verbose ) THEN
                WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
                                MINVAL( Ptr3D ), MAXVAL( Ptr3D )
 120            FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
@@ -2634,7 +2577,7 @@ CONTAINS
 
          ! Print to log if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
-            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+            IF ( FIRST .or. Input_Opt%Verbose ) THEN
                WRITE( 6, 130 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
 130            FORMAT('Species ', i3, ', ', a9, ': Use background = ', es15.9)
             ENDIF
@@ -3010,4 +2953,83 @@ CONTAINS
   END SUBROUTINE Init_IMGrid
 !EOC
 #endif
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_GetOption
+!
+! !DESCRIPTION: Shim interface for HCO_GetOpt.  Used to return a value
+!  from the HEMCO config file into GEOS-Chem.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_GC_GetOption( optName, extNr ) RESULT( optVal )
+!
+! !USES:
+!
+    USE HCO_State_GC_Mod, ONLY : HcoState
+    USE HCO_ExtList_Mod,  ONLY : HCO_GetOpt
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: optName
+    INTEGER,          OPTIONAL   :: extNr
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=255)           :: optVal
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    INTEGER :: extension
+
+    ! Extension number
+    extension = 0
+    IF ( PRESENT( extNr ) ) extension = extNr
+
+    ! Return character variable
+    optVal = HCO_GetOpt( HcoState%Config%ExtList, optName, extNr=extension )
+
+  END FUNCTION HCO_GC_GetOption
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCO_GC_HcoStateOK
+!
+! !DESCRIPTION: Returns TRUE if the HcoState object is allocated, or FALSE
+!  otherwise.  This allows us to abstract the HcoState object out of
+!  GEOS-Chem source code.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION HCO_GC_HcoStateOk() RESULT( HcoStateIsOk )
+!
+! !USES:
+!
+    USE HCO_State_GC_Mod, ONLY : HcoState
+!
+! !RETURN VALUE:
+!
+    LOGICAL :: HcoStateIsOK
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Return status of HcoState
+    HcoStateIsOK = ASSOCIATED( HcoState )
+
+  END FUNCTION HCO_GC_HcoStateOk
+!EOC
+
 END MODULE HCO_Utilities_GC_Mod

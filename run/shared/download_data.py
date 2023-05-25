@@ -10,9 +10,8 @@ the following:
     (1) Creates a list of unique files that are required for the
         GEOS-Chem or HEMCO-standalone simulation;
 
-    (2) Creates a bash script to download missing files from either
-        the ComputeCanada server (default) or the AWS s3://gcgrid
-        bucket;
+    (2) Creates a bash script to download missing files from the AWS
+        s3://gcgrid bucket or from a specified server;
 
     (3) Executes the bash script to download the necessary data;
 
@@ -319,8 +318,8 @@ def write_unique_paths(paths, unique_log):
 def create_download_script(paths, args):
     """
     Creates a data download script to obtain missing files
-    from the ComputeCanada data archive (default), or the
-    GEOS-Chem s3://gcgrid bucket on the AWS cloud,
+    from the s3://gcgrid bucket on the AWS cloud or from a
+    specified server.
 
     Args:
     -----
@@ -519,8 +518,8 @@ def create_download_script(paths, args):
 
 def download_the_data(args):
     """
-    Downloads GEOS-Chem data files from the ComputeCanada server
-    or the AWS s3://gcgrid bucket.
+    Downloads GEOS-Chem data files from the AWS s3://gcgrid bucket
+    or from a specified server.
 
     Args:
     -----

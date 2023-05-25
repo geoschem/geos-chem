@@ -128,7 +128,6 @@ CONTAINS
     LOGICAL                     :: found_wd_rainouteff_luo
     LOGICAL                     :: found_wd_retfactor_luo
     LOGICAL                     :: no_luo
-    LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
     INTEGER                     :: v_int
@@ -171,7 +170,6 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     errMsg     = ""
     thisLoc    = &
     " -> at Init_Species_Database (in module Headers/species_database_mod.F90"
@@ -558,7 +556,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg0  = SpcCount%nHg0 + 1
-                ThisSpc%Hg_Cat = SpcCount%nHg0
                 ThisSpc%Is_Hg0 = v_bool
              ENDIF
 
@@ -567,7 +564,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg2  = SpcCount%nHg2 + 1
-                ThisSpc%Hg_Cat = SpcCount%nHg2
                 ThisSpc%Is_Hg2 = v_bool
              ENDIF
 
@@ -576,7 +572,6 @@ CONTAINS
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHgP  = SpcCount%nHgP + 1
-                ThisSpc%Hg_Cat = SpcCount%nHgP
                 ThisSpc%Is_HgP = v_bool
              ENDIF
 
@@ -932,7 +927,9 @@ CONTAINS
 #endif
 
        ! Debug printout
-       IF ( prtDebug ) CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       IF ( Input_Opt%Verbose ) THEN
+          CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       ENDIF
 
        ! Free pointer
        ThisSpc => NULL()
@@ -945,6 +942,24 @@ CONTAINS
 31  FORMAT( a30, " | ", 2f10.2 )
 32  FORMAT( a30, " | ", 3f10.2 )
 40  FORMAT( a30, " | ", i10    )
+
+    !=======================================================================
+    ! Print metadata for only the species that are defined in this
+    ! simulation (but not the entire species database) to a YAML file.
+    ! This file may be used for pre-processing files in other models
+    ! when updating GEOS-Chem versions, such as in WRF and CESM. It
+    ! should not be generated when running those models. Output file is
+    ! set in simulation%species_metadata_output_file in geoschem_config.yml.
+    !=======================================================================
+    IF ( LEN(TRIM( Input_Opt%SpcMetaDataOutFile )) > 0 ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
+          CALL QFYAML_Print( yml        = yml,                               &
+                             fileName   = Input_Opt%SpcMetaDataOutFile,      &
+                             searchKeys = species_names,                     &
+                             RC         = RC                                )
+
+       ENDIF
+    ENDIF
 
     !=======================================================================
     ! Normal exit
@@ -1219,10 +1234,12 @@ CONTAINS
     nSpecies = nAdvect
 
     !=======================================================================
-    ! For full-chemistry and Hg simulations with KPP, get the list of all of
+    ! For KPP-based simulations, get the list of all of
     ! species names in the KPP mechanism, and their indices
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                             &
+         Input_Opt%ITS_A_MERCURY_SIM       .or.                             &
+         Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        ! Allocate a temporary array large enough to hold all of the
        ! advected species listed in geoschem_config.yml as well as all of the

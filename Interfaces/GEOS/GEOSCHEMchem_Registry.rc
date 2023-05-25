@@ -63,7 +63,6 @@
   WET2               |     1	   | xy  |   |    |   |   |	|      |    | root_soil_wetness
   SH                 |    W/m2     | xy  |   |    |   |   |	|      |    | sensible_heat_flux_from_turbulence
   LHFX               |    W/m2     | xy  |   |    |   |   |	|      |    | latent_heat_flux_from_turbulence 
-  LWI                |     1	   | xy  |   |    |   |   |	|      |    | land-ocean-ice_mask
   ITY                |     1	   | xy  |   |    |   |   |	|      |    | land type index
   DRPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_beam_flux
   DFPAR              |    W/m2     | xy  |   |    |   |   |	|      |    | surface_downwelling_par_diffuse_flux
@@ -181,7 +180,7 @@
 #======================
 #  O3PPMV	                  | ppmv	   | xyz | C |    |   |   |	| ozone_volume_mixing_ratio_in_ppm
 #  OX_TEND	                  | kg kg-1 s-1    | xyz | C |    |   |   |	| tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry
-  H2O_TEND                       | kg kg-1 s-1    | xyz | C |    |   |   |     | Tendency_of_water_vapor_mixing_ratio_due_to_chemistry
+#  H2O_TEND                       | kg kg-1 s-1    | xyz | C |    |   |   |     | Tendency_of_water_vapor_mixing_ratio_due_to_chemistry
 #===========	                  
 # GCHP only:	                  
 #===========	                  

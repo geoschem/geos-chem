@@ -81,11 +81,13 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)     ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)   ! Names of RRTMG outputs (tags)
-  INTEGER,           PUBLIC  :: nRadOut      ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: IsFullChem   ! Is this a fullchem simulation?
-  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc  ! Alt for O3, HNO3 diagnostics
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)    ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
+  LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
+  LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
+  LOGICAL,           PUBLIC  :: IsCarbon      ! Is it a carbon sim?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -179,6 +181,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                      :: doPrintCollList
     LOGICAL                      :: EOF, found, isWildcard, isTagged
     LOGICAL                      :: InDefSection, InFieldsSection
     INTEGER                      :: QMatch, CMatch
@@ -226,8 +229,11 @@ CONTAINS
     RadOut          =  ''
     nRadOut         =  0
     IsFullChem      = .FALSE.
+    IsHg            = .FALSE.
+    IsCarbon        = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
+    doPrintCollList = .FALSE.
     Name            =  ''
     LastCollName    =  ''
 
@@ -264,7 +270,9 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored  )
        RETURN
     ENDIF
-    IsFullChem = ( To_UpperCase( v_str ) == "FULLCHEM" )
+    IsFullChem  = ( To_UpperCase( v_str ) == "FULLCHEM"    )
+    IsHg        = ( To_UpperCase( v_str ) == "HG"          )
+    IsCarbon    = ( To_UpperCase( v_str ) == "CARBON" )
 
     ! Read the altitude above the surface in meters for drydep diags
     key   = "operations%dry_deposition%diag_alt_above_sfc_in_m"
@@ -297,6 +305,17 @@ CONTAINS
        WRITE ( RadWL(I), "(a5)" ) a_str(N)
        RadWL(I) = ADJUSTL( RadWL(I) )
     ENDDO
+
+    ! Read the simulation name
+    key  = "simulation%debug_printout"
+    CALL QFYAML_Add_Get( Config, key, doPrintCollList, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config          )
+       CALL QFYAML_CleanUp( ConfigAnchored  )
+       RETURN
+    ENDIF
 
     ! Clean up YAML config objects
     CALL QFYAML_CleanUp( Config          )
@@ -379,7 +398,9 @@ CONTAINS
              collname = CleanText( Line )
 
           ENDDO
-          CALL Print_ColList( am_I_Root, CollList, RC )
+          IF ( doPrintCollList ) THEN
+             CALL Print_ColList( am_I_Root, CollList, RC )
+          ENDIF
           CYCLE
        ENDIF
 
@@ -680,10 +701,10 @@ CONTAINS
           isWildcard = .FALSE.
           wildcard   = ''
           IF ( INDEX( name, '?' ) > 0 ) THEN
-#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS )
+#if defined( MODEL_GCHPCTM ) || defined( MODEL_GEOS ) || defined( MODEL_CESM )
              ! Exit with an error if using GCHP and wildcard is present
              ErrMsg = 'ERROR: HISTORY.rc wildcard handling is not ' // &
-                      'implemented in GCHP: ' // TRIM(name) // '. Replace ' // &
+                      'implemented in GCHP/CESM: ' // TRIM(name) // '. Replace ' // &
                       'wildcard with a specific tag.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN

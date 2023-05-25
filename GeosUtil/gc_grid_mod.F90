@@ -980,7 +980,7 @@ CONTAINS
       IF ( State_Grid%NestedGrid ) THEN
          TLON = TLON - I0
          TLAT = TLAT - J0
-         IF ( TLAT < 1 .or. TLAT > State_Grid%NX ) THEN
+         IF ( TLAT < 1 .or. TLAT > State_Grid%NY ) THEN
             CALL ERROR_STOP('Beyond the nested window', 'GET_IJ')
          ENDIF
       ELSE
@@ -988,7 +988,7 @@ CONTAINS
 
          ! Check for impossible values
          IF ( TLON > State_Grid%NX .or. TLAT > State_Grid%NY .or. &
-              TLON < 1     .or. TLAT < 1          ) THEN
+              TLON < 1             .or. TLAT < 1          ) THEN
             CALL ERROR_STOP('Error finding grid box', 'GET_IJ')
          ENDIF
       ENDIF

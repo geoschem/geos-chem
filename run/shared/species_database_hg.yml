@@ -16,7 +16,7 @@ CH4:
   Formula: CH4
   Fullname: Methane
   Is_Gas: true
-  MW_g: 16.05
+  MW_g: 16.04
 Cl:
   Formula: Cl
   FullName: Atomic chlorine
@@ -34,7 +34,7 @@ CO:
   Is_Gas: true
   MW_g: 28.01
 Hg0:
-  DD_F0: 1.0e-5
+  DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
   FullName: Elemental mercury
@@ -44,59 +44,58 @@ Hg0:
   Is_Hg0: true
   MW_g: 200.59
 Hg_CHEM_PROP: &HgChemProperties
+  DD_F0: 0.0
+  DD_Hstar: 1.0e+14
   Henry_CR: 8.40e+03
   Henry_K0: 1.40e+06
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
+  Is_Hg2: true
   WD_RetFactor: 1.0
+  MW_g: 200.59
 HgBr:
   Fullname: HgBr
   Formula: HgBr
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 280.49
+  MW_g: 200.59
 HgBrNO2:
+  << : *HgChemProperties
   Fullname: syn-HgBrONO
   Formula: BrHgONO
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
   Is_Photolysis: true
-  MW_g: 326.50
 HgBrHO2:
   << : *HgChemProperties
   Fullname: HgBrHO2
   Formula:  BrHgOOH
-  MW_g: 313.50
+  Is_Photolysis: true
 HgBrBrO:
   << : *HgChemProperties
   Fullname: HgBrBrO
   Formula: BrHgOBr
-  MW_g: 376.40
+  Is_Photolysis: true
 HgBrClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: BrHgOCl
-  MW_g: 331.95
+  Is_Photolysis: true
 HgBrO:
   FullName: HgBrO
   Formula: HgBrO
   Is_Gas: true
-  MW_g: 296.49
 HgBrOH:
   << : *HgChemProperties
   Fullname: HgBrOH
   Formula: BrHgOH
-  MW_g: 297.50
+  Is_Photolysis: true
 HgBr2:
   << : *HgChemProperties
   Fullname: HgBr2
   Formula: HgBr2
-  MW_g:  360.40
+  Is_Photolysis: true
 HgCl:
   Fullname: HgCl
   Formula: HgCl
@@ -104,96 +103,95 @@ HgCl:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: false
-  MW_g: 236.04
+  MW_g: 200.59
 HgClNO2:
   << : *HgChemProperties
   Fullname: syn-HgClONO
   Formula: ClHgONO
-  MW_g: 282.00
+  Is_Photolysis: true
 HgClHO2:
-  WD_RetFactor: 1.0
   << : *HgChemProperties
   Fullname: HgClHO2
   Formula: ClHgOOH
-  MW_g: 269.00
-  WD_RetFactor: 1.0
+  Is_Photolysis: true
 HgClClO:
   << : *HgChemProperties
   Fullname: HgClClO
   Formula: ClHgOCl
-  MW_g: 287.50
+  Is_Photolysis: true
 HgClBrO:
   << : *HgChemProperties
   Fullname: HgClBrO
   Formula: ClHgOBr
-  MW_g: 332.00
+  Is_Photolysis: true
 HgClBr:
   << : *HgChemProperties
   Fullname: HgClBr
   Formula: HgBrCl
-  MW_g: 316.00
+  Is_Photolysis: true
 HgClO:
   Fullname: HgClO
   Formula: ClHgO
   Is_Gas: true
-  MW_g: 252.04
+  MW_g: 200.59
 HgClOH:
   << : *HgChemProperties
   Fullname: HgClOH
   Formula: ClHgOH
-  MW_g: 253.00
+  Is_Photolysis: true
 HgOH:
   Fullname: HgOH
   Formula: HgOH
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 201.00
+  MW_g: 200.59
 HgOHO:
   Fullname: HgOHO
   Formula: HgOHO
   Is_Gas: true
-  MW_g: 233.60
+  MW_g: 200.59
 HgOHNO2:
   << : *HgChemProperties
   Fullname: syn-HgOHONO
   Formula: HOHgONO
-  MW_g:  263.60
+  Is_Photolysis: true
 HgOHHO2:
   << : *HgChemProperties
   Fullname: HgOHHO2
   Formula: HOHgOOH
-  MW_g:  250.60
+  Is_Photolysis: true
 HgOHClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: HOHgOCl
-  MW_g:  269.0000
+  Is_Photolysis: true
 HgOHBrO:
   << : *HgChemProperties
   Fullname: HgOHBrO
   Formula: HOHgOBr
-  MW_g: 313.5000
+  Is_Photolysis: true
 HgOHOH:
   << : *HgChemProperties
   Fullname: HgOH2
   Formula: HOHgOH
-  MW_g:  234.60
+  Is_Photolysis: false
 HgCl2:
   << : *HgChemProperties
   Fullname: HgCl2
   Formula: HgCl2
-  MW_g: 271.50
+  Is_Photolysis: false
 Hg2ClP:
   Fullname: Hg(II) chloride salts on sea-salt aerosols
   Formula: HgCln
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  MW_g: 201.00
+  Is_HgP: true
+  MW_g: 200.59
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2ORGP:
   Fullname: Hg(II) organic complex in aerosols
   Formula: R-Hg
@@ -202,17 +200,18 @@ Hg2ORGP:
   Is_DryDep: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 201.00
-  WD_AerScavEff: 1.0
+  Is_HgP: true
+  MW_g: 200.59
+  WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2STRP:
   Fullname: Hg(II) in stratospheric aerosols
   Formula: Hg2+
   Is_Advected: true
   Is_Aerosol: true
-  MW_g: 201.00
-  MW_g: 35.45
+  Is_HgP: true
+  MW_g: 200.59
 HO2:
   Background_VV: 4.0e-15
   Formula: HO2
@@ -244,3 +243,23 @@ OH:
   FullName: Hydroxyl radical
   Is_Gas: true
   MW_g: 17.01
+PHg2:
+  FullName: Gross production of gaseous oxidized Hg
+  Is_Gas: true
+  MW_g: 200.59
+PHg0:
+  FullName: Gross production of Hg2
+  Is_Gas: true
+  MW_g: 200.59
+PHg2Br:
+  FullName: Gaseous oxidized Hg production from Br
+  Is_Gas: true
+  MW_g: 200.59
+PHg2OH:
+  FullName: Gaseous oxidized Hg production from OH
+  Is_Gas: true
+  MW_g: 200.59
+PHg2Cl:
+  FullName: Gaseous oxidized Hg production from Cl
+  Is_Gas: true
+  MW_g: 200.59

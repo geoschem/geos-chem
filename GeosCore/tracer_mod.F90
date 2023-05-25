@@ -91,7 +91,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug
     INTEGER                :: I, J,  L
     INTEGER                :: N, DT
     REAL(fp)               :: Local_Tally
@@ -121,7 +120,6 @@ CONTAINS
 
     ! Initialize
     RC          = GC_SUCCESS
-    prtDebug    = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg      = ''
     ThisLoc     = &
        ' -> at Tracer_Source_Phase (in module GeosCore/tracer_mod.F90)'
@@ -156,8 +154,10 @@ CONTAINS
        ! Skip Rn-Pb-Be tracers for now
        IF ( SpcInfo%Is_RadioNuclide ) CYCLE
 
-       ! Skip if this species source is handled by HEMCO
-       IF ( TRIM(SpcInfo%Src_Mode) == 'HEMCO' ) CYCLE
+       ! Skip if this species does not have a source or if the 
+       ! source is handled by HEMCO
+       IF ( TRIM(SpcInfo%Src_Mode) == 'none'   .or. &
+            TRIM(SpcInfo%Src_Mode) == 'HEMCO' ) CYCLE
 
        IF ( First ) THEN
  
@@ -504,7 +504,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug
     INTEGER                :: I, J, L, N
     REAL(fp)               :: DT
     REAL(fp)               :: DecayConstant
@@ -533,7 +532,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at Tracer_Sink_Phase (in module GeosCore/tracer_mod.F90)'
@@ -579,7 +577,7 @@ CONTAINS
           DecayRate  = EXP( - DecayConstant * DT )
 
           !### Debug output
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              WRITE( 6,100 ) ADJUSTL( SpcInfo%Name ), DecayRate
  100         FORMAT( '     -  Species name, decay rate: ', a15, es13.6 )
           ENDIF
@@ -589,7 +587,7 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Get chemical loss (if needed)
        !--------------------------------------------------------------------
-       IF ( TRIM(SpcInfo%Snk_Mode) == 'constant' ) THEN
+       IF ( TRIM(SpcInfo%Snk_Mode) == 'chemical_loss' ) THEN
 
           ! For stOX tracer get O3 loss [molec/cm3/s] from HEMCO
           IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN

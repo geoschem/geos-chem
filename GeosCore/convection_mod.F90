@@ -167,7 +167,8 @@ CONTAINS
     DT         = DBLE( TS_DYN )                         ! Dyn timestep [sec]
     FSOL       = 0e+0_fp                                ! Zero the FSOL array
     DoConvFlux = State_Diag%Archive_CloudConvFlux       ! Save mass flux?
-    DoWetLoss  = State_Diag%Archive_WetLossConv         ! Save wet loss?
+    DoWetLoss  = ( State_Diag%Archive_WetLossConv                       .or. &
+                   State_Diag%Archive_SatDiagnWetLossConv )
 
     ! Number of advected species
     nAdvect = State_Chm%nAdvect
@@ -309,6 +310,17 @@ CONTAINS
 #else
                 State_Diag%WetLossConv(I,J,L,S) = Diag38(L,NW)
 #endif
+             ENDDO
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic
+       ! Loss of soluble species in convective updrafts [kg/s]
+       IF ( State_Diag%Archive_SatDiagnWetLossConv ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnWetLossConv%nSlots
+             NW = State_Diag%Map_SatDiagnWetLossConv%slot2id(S)
+             DO L = 1, State_Grid%NZ
+                State_Diag%SatDiagnWetLossConv(I,J,L,S) = Diag38(L,NW)
              ENDDO
           ENDDO
        ENDIF
@@ -1290,12 +1302,9 @@ CONTAINS
                 ! Wet scavenged Hg(II) in [kg]
                 WET_Hg2 = ( T0_SUM * AREA_M2 )
 
-                ! Category # for this Hg2 species
-                Hg_Cat  = SpcInfo%Hg_Cat
-
                 ! Pass to "ocean_mercury_mod.f"
-                CALL ADD_Hg2_WD      ( I, J, Hg_Cat, WET_Hg2  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_Hg2, &
+                CALL ADD_Hg2_WD      ( I, J, WET_Hg2  )
+                CALL ADD_Hg2_SNOWPACK( I, J, WET_Hg2, &
                                        State_Met, State_Chm, State_Diag )
              ENDIF
 
@@ -1307,12 +1316,9 @@ CONTAINS
                 ! Wet scavenged Hg(P) in [kg]
                 WET_HgP = ( T0_SUM * AREA_M2 )
 
-                ! Category # for this Hg2 species
-                Hg_Cat  = SpcInfo%Hg_Cat
-
                 ! Pass to "ocean_mercury_mod.f"
-                CALL ADD_HgP_WD      ( I, J, Hg_Cat, WET_HgP  )
-                CALL ADD_Hg2_SNOWPACK( I, J, Hg_Cat, WET_HgP, &
+                CALL ADD_HgP_WD      ( I, J, WET_HgP  )
+                CALL ADD_Hg2_SNOWPACK( I, J, WET_HgP, &
                                        State_Met, State_Chm, State_Diag )
              ENDIF
           ENDIF

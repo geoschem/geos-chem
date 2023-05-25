@@ -15,6 +15,9 @@ MODULE Species_Mod
 !
 ! USES:
 !
+#if defined( MODEL_GCHPCTM)
+  USE ESMF
+#endif
   USE Precision_Mod
 
   IMPLICIT NONE
@@ -63,7 +66,11 @@ MODULE Species_Mod
   ! Type for single species concentrations
   !=========================================================================
   TYPE, PUBLIC :: SpcConc
+#if defined( MODEL_GCHPCTM )
+     REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:)
+#else
      REAL(fp), POINTER :: Conc(:,:,:)
+#endif
   END TYPE SpcConc
 
   !=========================================================================
@@ -181,10 +188,9 @@ MODULE Species_Mod
      LOGICAL            :: MP_SizeResNum    ! T=size-resolved aerosol number
 
      ! Tagged mercury parameters
-     LOGICAL            :: Is_Hg0           ! T=total or tagged Hg0 species
-     LOGICAL            :: Is_Hg2           ! T=total or tagged Hg2 species
-     LOGICAL            :: Is_HgP           ! T=total or tagged HgP species
-     INTEGER            :: Hg_Cat           ! Tagged Hg category number
+     LOGICAL            :: Is_Hg0           ! Is a Hg0 species?
+     LOGICAL            :: Is_Hg2           ! Is a Hg2 species?
+     LOGICAL            :: Is_HgP           ! Is a HgP species?
 
   END TYPE Species
 !
@@ -406,7 +412,6 @@ CONTAINS
     Spc%DryAltId        = MISSING_INT
     Spc%DryDepId        = MISSING_INT
     Spc%GasSpcId        = MISSING_INT
-    Spc%Hg_Cat          = MISSING_INT
     Spc%HygGrthId       = MISSING_INT
     Spc%KppFixId        = MISSING_INT
     Spc%KppSpcId        = MISSING_INT

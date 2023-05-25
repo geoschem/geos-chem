@@ -40,7 +40,6 @@ GWETROOT 1 N Y F0;003000 none none GWETROOT /dev/null
 GWETTOP  1 N Y F0;003000 none none GWETTOP  /dev/null
 HFLUX    1 N Y F0;003000 none none HFLUX    /dev/null
 LAI      1 N Y F0;003000 none none LAI      /dev/null
-LWI      1 N Y F0;003000 none none LWI      /dev/null
 RADLWG   1 N Y F0;003000 none none LWGNT    /dev/null
 PARDF    1 N Y F0;003000 none none PARDF    /dev/null
 PARDR    1 N Y F0;003000 none none PARDR    /dev/null
