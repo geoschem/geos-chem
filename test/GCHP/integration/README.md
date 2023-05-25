@@ -29,7 +29,7 @@ Integration tests are short GCHP simulations.  Executables are compiled with all
 
 - `commonFunctionsForTests.sh`
   - Link to `../../shared/commonFunctionsForTests.sh`, which contains global variables and functions for the integration and parallelization tests.
-- `intDiffTest.sh`
+- `integrationDiffTest.sh`
   - Checks diagnostic files and restart files in two different integration test root paths for differences.  Useful for verifying zero-diff updates.
 
 ## Running GCHP Integration and/or Parallelization Tests

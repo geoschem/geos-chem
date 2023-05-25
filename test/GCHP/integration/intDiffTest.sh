@@ -1,1 +1,0 @@
-../../shared/intDiffTest.sh

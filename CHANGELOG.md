@@ -6,12 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 ### Added
-- Script `intDiffTest.sh`, checks 2 different integration tests for differences
+- Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
 - Rename restart files in GCHP integration tests (as we do in non-test runs)
-
+- The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
 
 ## [Unreleased 14.2.0]
 ### Added

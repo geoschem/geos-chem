@@ -139,9 +139,8 @@ ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
 cp -f ${envFile}                            ${envDir}/gchp.env
-cp -f ${thisDir}/integrationTest*.sh        ${scriptsDir}
+cp -f ${thisDir}/integration*.sh            ${scriptsDir}
 cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
-cp -f ${thisDir}/intDiffTest.sh             ${scriptsDir}
 cp -f ${thisDir}/README.md                  ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md         ${itRoot}/README.md
 

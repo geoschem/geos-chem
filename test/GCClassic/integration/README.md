@@ -29,7 +29,7 @@ Integration tests are short GEOS-Chem Classic simulations.  Executables are comp
 
 - `commonFunctionsForTests.sh`
   - Link to `../../shared/commonFunctionsForTests.sh`, which contains global variables and functions for the integration and parallelization tests.
-- `intDiffTest.sh`
+- `integrationDiffTest.sh`
   - Checks diagnostic files and restart files in two different integration test root paths for differences.  Useful for verifying zero-diff updates.
 
 ## Running GEOS-Chem Classic Integration and/or Parallelization Tests

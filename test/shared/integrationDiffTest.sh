@@ -6,7 +6,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: intDiffTest.sh
+# !MODULE: integrationDiffTest.sh
 #
 # !DESCRIPTION: Looks for differences in two integration test or parallel
 #  test directories.  Checks both diagnostic files (in the OutputDir/ folder
@@ -15,7 +15,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE
-#  ./intDiffTest.sh <ref_it_dir> <dev_it_dir>
+#  ./integrationDiffTest.sh <ref_it_dir> <dev_it_dir>
 #
 #  where <ref_it_dir> is the path to the "Ref" integration test root folder
 #  and   <dev_it_dir> is the path to the "Dev" integration test root folder
