@@ -65,7 +65,7 @@ Warnings:                    1
     --> OLSON_LANDMAP          :       false    # 1985
     --> YUAN_MODIS_LAI         :       false    # 2000-2020
 #------------------------------------------------------------------------------
-100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
+100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7s/Be10/Be10s
 # ----- Always Leave Extension 100 turned on.  Furthermore:
 # ----- Turning on  ZHANG_Rn222 will use Zhang et al [2020] Rn222 emissions
 # ----- Turning off ZHANG_Rn222 will use default emissions (Jacob et al [1997])
