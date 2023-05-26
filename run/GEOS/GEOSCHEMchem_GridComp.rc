@@ -233,5 +233,5 @@ CO_Mesosphere_FieldName: CO_CMAM
 
 #
 # To set CH4 boundary condition from GEOS 
-# Note: if set to 1, need to make sure that an import named 'GEOS_CH4' is set in ExtData.
+# This is not yet implemented. Set to zero for now. If you want GEOS CH4, need to activate GEOS_CH4 in HEMCO_Config.rc
 CH4_from_GEOS: 0
