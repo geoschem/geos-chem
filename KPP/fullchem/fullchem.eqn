@@ -790,7 +790,7 @@ H + O2 {+M} = HO2 {+M} :                     GCJPLPR_abab(5.30d-32, 1.8d+00, 9.5
 H + O3 = OH + O2 :                           GCARR_ac(1.40d-10, -470.0d0);                                                     {2014/02/03; Eastham2014; SDE}
 H + HO2 = 1.788OH + 0.020O +
  0.020H2O + 0.086H2 + 0.086O2 :              8.05d-11;                                                                         {2014/02/03; Eastham2014; SDE}
-N + O2 = NO + O :                            GCARR_ac(3.30d-11, -3150.0d0);                                                    {2023/04/18; JPL 19-5; KHB}
+N + O2 = NO + O :                            GCARR_ac(3.30d-12, -3150.0d0);                                                    {2023/04/18; JPL 19-5; KHB}
 N + NO = N2 + O :                            GCARR_ac(2.10d-11, 100.0d0);                                                      {2014/02/03; Eastham2014; SDE}
 N + NO2 = N2O + O :                          GCARR_ac(5.80d-12, 220.0d0);                                                      {2014/02/03; Eastham2014; SDE}
 BrO + O = Br + O2 :                          GCARR_ac(1.90d-11, 230.0d0);                                                      {2014/02/03; Eastham2014; SDE}
