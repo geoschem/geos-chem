@@ -48,7 +48,7 @@
 #SBATCH -n 60
 #SBATCH -N 2
 #SBATCH -t 2:00:00
-#SBATCH -p seas_compute
+#SBATCH -p huce_intel,seas_compute,shared
 #SBATCH --mem=110G
 #SBATCH --mail-type=ALL
 #
