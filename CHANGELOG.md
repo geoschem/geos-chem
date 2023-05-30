@@ -69,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Prevent repeated printing of KPP integrate errors to the stdout stream.
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
+- Fixed parallelization in Luo wetdep simulations caused by uninitialized variable
 
 ## [14.1.1] - 2023-03-03
 ### Added

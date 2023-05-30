@@ -1027,7 +1027,11 @@ CONTAINS
     ! Get liquid water content [m3 H2O/m3 air] within cloud from met flds
     ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg H2O]
 #ifdef LUO_WETDEP
-    ! Luo et al wetdep scheme
+    ! QQ3D and similar arrays are only allocated for wetdep or convection
+    Is_QQ3D = ( Input_Opt%LWETD .or. Input_Opt%LCONV )
+
+    ! If QQ3D is allocated, compute LWC according to Luo et al wetdep scheme.
+    ! Otherwise, compute LWC according to the default wetdep scheme.
     IF ( Is_QQ3D ) THEN
        LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp + &
             MAX( 0.0_fp, State_Chm%QQ3D(I,J,L) * DTCHEM )
@@ -1035,7 +1039,7 @@ CONTAINS
        LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
     ENDIF
 #else
-    ! Default scheme
+    ! Compute LWC according to the default wetdep scheme
     LWC = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
 #endif
 
