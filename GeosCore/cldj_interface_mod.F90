@@ -428,7 +428,7 @@ CONTAINS
                                Input_Opt,  State_Grid, State_Chm )
 
        !-----------------------------------------------------------------
-       ! Clouds
+       ! Clouds and humidity
        !-----------------------------------------------------------------
 
        CLDIW(:) = 0     ! Cloud type flag: 0=none, 1=water, 2=ice, 3=both
@@ -438,7 +438,7 @@ CONTAINS
        REFFI(:) = 0.d0  ! Ice cloud effective radius   [units?]
        REFFL(:) = 0.d0  ! Water cloud effective radius [units?]
 
-       ! Initialize cloud fraction to State_Met values
+       ! Set cloud fraction from input meteorology field
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
 
@@ -453,12 +453,11 @@ CONTAINS
 
           ! Compute cloud type flag and reset cloud fraction if below threshold
           IF ( CLDF(L) .GT. 0.005d0 ) THEN
-             ! Do State_Met CLDLIQ and CLDICE already take into account cloud fraction?
-             ! Convert State_Met CLDLIQ and CLDICE from [cm3/cm3] to [g/g]
-             CLDLIQ_MMR = State_Met%CLDLIQ(I,J,L) * H2OMW / AIRMW
-             CLDICE_MMR = State_Met%CLDICE(I,J,L) * H2OMW / AIRMW
-             WLC = CLDLIQ_MMR / CLDF(L)
-             WIC = CLDICE_MMR / CLDF(L)
+             ! Use mass fraction of cloud liquid and ice water from met-fields
+             CLDLIQ_MMR = State_Met%QL(I,J,L) ! kg/kg, in-cloud only
+             CLDICE_MMR = State_Met%QI(I,J,L) ! kg/kg, in-cloud only
+             WLC = CLDLIQ_MMR / CLDF(L)       ! kg/kg, entire cell
+             WIC = CLDICE_MMR / CLDF(L)       ! kg/kg, entire cell
              IF ( WLC .GT. 1.d-11 ) CLDIW(L) = 1
              IF ( WIC .GT. 1.d-11 ) CLDIW(L) = CLDIW(L) + 2
           ELSE
@@ -471,21 +470,21 @@ CONTAINS
           ! Compute water cloud mass and effective radius
           IF ( WLC .gt. 1.d-12 ) THEN
              IF ( CLDLIQ_MMR .GT. 1.d-12 ) THEN
-                LWP(L) = 1000.d0 * CLDLIQ_MMR * DELTA_P * g0_100
+                LWP(L) = 1000.d0 * CLDLIQ_MMR * DELTA_P * g0_100 ! g/m2
              ENDIF
              PMID = 0.5d0 * ( P_CTM(L) + P_CTM(L+1) )
              F1   = 0.005d0 * ( PMID - 610.d0 )
              F1   = MIN( 1.d0, MAX( 0.d0, F1 ) )
-             REFFL(L) = 9.6d0 * F1 + 12.68d0 * ( 1.d0 - F1 )
+             REFFL(L) = 9.6d0 * F1 + 12.68d0 * ( 1.d0 - F1 ) ! microns
           ENDIF
 
           ! Compute ice cloud mass and effective radius
           IF ( WIC .gt. 1.d-12 ) THEN
              IF ( CLDICE_MMR .GT. 1.d-12 ) THEN
-                IWP(L) = 1000.d0 * CLDICE_MMR * DELTA_P * g0_100
+                IWP(L) = 1000.d0 * CLDICE_MMR * DELTA_P * g0_100 ! g/m2
              ENDIF
              ICWC = IWP(L) / ( ( Z_CLIM(L+1) - Z_CLIM(L) ) * 0.01d0 )
-             REFFI(L) = 164.d0 * ( ICWC**0.23d0 )
+             REFFI(L) = 164.d0 * ( ICWC**0.23d0 ) ! microns
           ENDIF
 
           ! Relative humidity [unitless] as fraction, e.g. 0.8
