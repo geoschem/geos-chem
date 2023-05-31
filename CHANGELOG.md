@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `AUTHORS.txt` for version 14.2.0
 - Updated links in `README.md` to point to `http://geos-chem.org`
 - Changed GCHP default settings to use dry pressure rather than total pressure in advection and correct native mass fluxes for humidity
+- Updated partitions requested in Harvard run script examples
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
