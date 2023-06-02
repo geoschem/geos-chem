@@ -306,6 +306,9 @@ CONTAINS
     INTEGER, SAVE :: id_SALA
     INTEGER, SAVE :: id_SALC
 
+    ! Index for Cloud-J prints if GEOS-Chem verbose is on
+    INTEGER :: I_PRT, J_PRT
+
     !=================================================================
     ! Run_CloudJ begins here!
     !=================================================================
@@ -379,6 +382,17 @@ CONTAINS
     ! Loop over latitudes and longitudes
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Debug prints in Cloud-J. Limit to one grid cell so not excessive.
+       ! Use this for debugging purposes only.
+       LPRTJ = .false.
+       I_PRT = 1
+       J_PRT = 10
+       IF ( I .eq. I_PRT .and. J .eq. J_PRT .and. Input_Opt%Verbose ) THEN
+          print *, "cldj_interface_mod.F90: Dloud-J prints on for lat, lon: ", &
+                   State_Grid%GlobalYMid(I,J), State_Grid%GlobalXMid(I,J)
+          LPRTJ = .true.
+       ENDIF
 
        !-----------------------------------------------------------------
        ! Solar zenith angle
@@ -583,10 +597,6 @@ CONTAINS
 
        ! Cloud correlation coefficient
        CLDCOR = 0.33
-
-       ! Eebug prints
-       LPRTJ = .false. ! Limit Cloud-J debug prints to 1 grid cell
-       IF ( I .eq. 1 .and. J .eq. 1 ) LPRTJ = .true.
 
        ! Only used for CLDFLAG = 5
        IRAN = 1
