@@ -407,10 +407,9 @@ CONTAINS
        ! Skip if dark conditions SZA > 98.0 deg => tan ht = 63 km
        if (SZA .gt. 98.e+0_fp) cycle
 
-       ! Offset used for GEOS-Chem slightly different. ewl: different than what???
-       !SOLFX  = 1.e+0_fp-(0.034e+0_fp*cos(dble(NDAY-186)*2.e+0_fp*PI/365.e+0_fp))
-       SOLF  = 1.e+0_fp - ( 0.034e+0_fp * cos( dble( DAY_OF_YEAR - 172 ) &
-                * 2.e+0_fp * PI / 365.e+0_fp ) )
+       ! Offset used for GEOS-Chem with fast-jx is 186; 172 in Cloud-J
+       SOLF  = 1.e+0_fp - ( 0.034e+0_fp   &
+               * cos( dble( DAY_OF_YEAR - 172 ) * 2.e+0_fp * PI / 365.e+0_fp ) )
 
        !-----------------------------------------------------------------
        ! Vertical climatology profiles
