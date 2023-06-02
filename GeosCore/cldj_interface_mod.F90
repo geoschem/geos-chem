@@ -379,7 +379,7 @@ CONTAINS
     !$OMP PRIVATE( FJBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST ) &
     !$OMP SCHEDULE( DYNAMIC )
 
-    ! Loop over latitudes and longitudes
+    ! Loop over all latitudes and all longitudes
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -467,11 +467,19 @@ CONTAINS
 
           ! Compute cloud type flag and reset cloud fraction if below threshold
           IF ( CLDF(L) .GT. 0.005d0 ) THEN
+
              ! Use mass fraction of cloud liquid and ice water from met-fields
-             CLDLIQ_MMR = State_Met%QL(I,J,L) ! kg/kg, in-cloud only
-             CLDICE_MMR = State_Met%QI(I,J,L) ! kg/kg, in-cloud only
-             WLC = CLDLIQ_MMR / CLDF(L)       ! kg/kg, entire cell
-             WIC = CLDICE_MMR / CLDF(L)       ! kg/kg, entire cell
+             CLDLIQ_MMR = State_Met%QL(I,J,L) ! kg/kg, in-cloud? cell-averaged?
+             CLDICE_MMR = State_Met%QI(I,J,L) ! kg/kg, in-cloud? cell-averaged?
+
+             ! ewl debug: If QL and QI are cell-averaged...
+!             WLC = CLDLIQ_MMR / CLDF(L)       ! kg/kg, in-cloud
+!             WIC = CLDICE_MMR / CLDF(L)       ! kg/kg, in-cloud
+
+             ! ewl debug: If QL and QI are in-cloud...
+             WLC = CLDLIQ_MMR       ! kg/kg, in-cloud
+             WIC = CLDICE_MMR       ! kg/kg, in-cloud
+
              IF ( WLC .GT. 1.d-11 ) CLDIW(L) = 1
              IF ( WIC .GT. 1.d-11 ) CLDIW(L) = CLDIW(L) + 2
           ELSE
@@ -482,6 +490,7 @@ CONTAINS
           DELTA_P = P_CTM(L) - P_CTM(L+1)
 
           ! Compute water cloud mass and effective radius
+          !ewl debug: do we need both these ifs?
           IF ( WLC .gt. 1.d-12 ) THEN
              IF ( CLDLIQ_MMR .GT. 1.d-12 ) THEN
                 LWP(L) = 1000.d0 * CLDLIQ_MMR * DELTA_P * g0_100 ! g/m2
@@ -528,8 +537,8 @@ CONTAINS
           ! Layer height [m]
           BoxHt = State_Met%BXHEIGHT(I,J,L)   
           
-          ! Leave AERSP(L,1:3) as zero since non-aerosols (black carbon absorber, 
-          ! water cloud, and irregular ice cloud)
+          ! Leave AERSP(L,1:3) as zero since non-aerosols (black carbon
+          ! absorber, water cloud, and irregular ice cloud)
 
           ! Mineral dust [kg/m3] -> [g/m2]
           DO K = 4, 10
@@ -538,14 +547,14 @@ CONTAINS
 
           ! Sulfate [molec/cm3] -> [g/m2]
           MW_kg = State_Chm%SpcData(id_SO4)%Info%MW_g * 1.e-3_fp
-          AERSP(L,11:15) = &!AERSP(L,10+A) =                                   
+          AERSP(L,11:15) =                                            &
               ( State_Chm%Species(id_SO4)%Conc(I,J,L)                 &
               * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
               * BoxHt
 
           ! Black carbon [molec/cm3] -> [g/m2]
           MW_kg = State_Chm%SpcData(id_BCPI)%Info%MW_g * 1.e-3_fp
-          AERSP(L,16:20) = &!AERSP(L,10+NRHAER+A) =                                  &
+          AERSP(L,16:20) =                                            &
               ( ( State_Chm%Species(id_BCPI)%Conc(I,J,L) +            &
                 State_Chm%Species(id_BCPO)%Conc(I,J,L) )              &
               * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
@@ -553,7 +562,7 @@ CONTAINS
 
           ! Organic carbon [molec/cm3] -> [g/m2]
           MW_kg = State_Chm%SpcData(id_OCPI)%Info%MW_g * 1.e-3_fp
-          AERSP(L,21:25) = & !AERSP(L,10+NRHAER*2+A) =                             &
+          AERSP(L,21:25) =                                            &
               ( ( State_Chm%Species(id_OCPI)%Conc(I,J,L) +            &
                 State_Chm%Species(id_OCPO)%Conc(I,J,L) )              &
               * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
@@ -561,14 +570,14 @@ CONTAINS
 
           ! Seasalt (accum) [molec/cm3] -> [g/m2]
           MW_kg = State_Chm%SpcData(id_SALA)%Info%MW_g * 1.e-3_fp
-          AERSP(L,26:30) = & !AERSP(L,10+NRHAER*3+A) =                           &
+          AERSP(L,26:30) =                                            &
               ( State_Chm%Species(id_SALA)%Conc(I,J,L)                &
               * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
               * BoxHt
 
           ! Seasalt (coarse) [molec/cm3] -> [g/m2]
           MW_kg = State_Chm%SpcData(id_SALC)%Info%MW_g * 1.e-3_fp
-          AERSP(L,31:35) = & !AERSP(L,10+NRHAER*4+A) =            &
+          AERSP(L,31:35) =                                            &
               ( State_Chm%Species(id_SALC)%Conc(I,J,L)                &
               * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
               * BoxHt
@@ -592,7 +601,8 @@ CONTAINS
        ! Set remaining inputs needed for Cloud_JX
        !-----------------------------------------------------------------
 
-       ! UV surface albedo [unitless]. Use same value for all levels and wavelengths.
+       ! UV surface albedo [unitless]
+       ! Use same value for all levels and wavelengths
        RFL(1:5,:) = State_Met%UVALBEDO(I,J)
 
        ! Cloud correlation coefficient
@@ -617,6 +627,32 @@ CONTAINS
        ! JCOUNT
        ! LDARK
        ! WTQCA
+
+       ! ewl debug
+       IF ( LPRTJ ) THEN
+          print *, "ewl: Calling Cloud_JX with the following inputs: "
+          print *, " -> U0       : ", U0         ! cldj 1.0
+          print *, " -> SZA      : ", SZA        ! cldj 0.0
+          print *, " -> RFL      : ", RFL        ! looks ok 5e-2 vs 6e-2
+          print *, " -> SOLF     : ", SOLF       ! looks ok 1 vs 0.97
+          print *, " -> P_CTM    : ", P_CTM      ! looks ok
+          print *, " -> Z_CLIM   : ", Z_CLIM     ! looks ok. gc sfc is 0, vs 171
+          print *, " -> T_CLIM   : ", T_CLIM     ! looks ok
+          print *, " -> HHH      : ", HHH        ! not used
+          print *, " -> AIR_CLIM : ", AIR_CLIM   ! looks ok
+          print *, " -> RRR      : ", RRR        ! FIXED
+          print *, " -> O3_CLIM  : ", O3_CLIM    ! looks ok
+          print *, " -> CCC      : ", CCC        ! not used
+          print *, " -> LWP      : ", LWP        ! LOOKS WRONG! cldj 0-15, gc 1e10 where not zero.??
+          print *, " -> IWP      : ", IWP        ! SAME ISSUE AS LWP!!!
+          print *, " -> REFFL    : ", REFFL      ! TOTALLY OFF!! GC is huge!
+          print *, " -> REFFI    : ", REFFI      ! SAME ISSUE AS REFFL!!!
+          print *, " -> CLDF     : ", CLDF       ! presumably ok. highly variable
+          print *, " -> CLDCOR   : ", CLDCOR     ! ok
+          print *, " -> CLDIW    : ", CLDIW      ! looks like bug in cldj???
+          print *, " -> AERSP    : ", AERSP      ! all zeros in cldj??
+          print *, " -> IRAN     : ", IRAN       ! ok
+       ENDIF
 
        ! ewl: deleted arguments CLDFLAG, NRANDO, and LNRG since globally
        ! set in cloud-j init via reading CJ77_inputs file
