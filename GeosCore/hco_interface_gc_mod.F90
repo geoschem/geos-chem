@@ -4772,17 +4772,16 @@ CONTAINS
         ! Add total emissions in the PBL to the EFLX array
         ! which tracks emission fluxes.  Units are [kg/m2/s].
         !------------------------------------------------------------------
-        IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
+
+        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
            ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-           ! and/or all other source types, we could use the HEMCO internal
-           ! values set above and would not need the code below.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           ! in a multi-tracer CH4 simulation.
            eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
