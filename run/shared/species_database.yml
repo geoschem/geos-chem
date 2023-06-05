@@ -136,55 +136,35 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
+aoa_PROP: &aoaproperties
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  Snk_Mode: constant
+  Snk_Value: 0
+  Src_Add: true
+  Src_Horiz: all
+  Src_Mode: constant
+  Src_Units: timestep
+  Src_Value: 1
+  Src_Vert: all
+  Units: days
 aoa:
+  << : *aoaproperties
   FullName: Age of air uniform source tracer
-  Is_Advected: true
-  Is_Gas: true
-  Is_Tracer: true
   Snk_Horiz: all
-  Snk_Mode: constant
-  Snk_Value: 0
   Snk_Vert: surface
-  Src_Add: true
-  Src_Horiz: all
-  Src_Mode: constant
-  Src_Units: timestep
-  Src_Value: 1
-  Src_Vert: all
-  Units: days
 aoa_bl:
+  << : *aoaproperties
   FullName: Age of air uniform source tracer with sink restricted to the boundary layer
-  Is_Advected: true
-  Is_Gas: true
-  Is_Tracer: true
   Snk_Horiz: all
-  Snk_Mode: constant
-  Snk_Value: 0
   Snk_Vert: boundary_layer
-  Src_Add: true
-  Src_Horiz: all
-  Src_Mode: constant
-  Src_Units: timestep
-  Src_Value: 1
-  Src_Vert: all
-  Units: days
 aoa_nh:
+  << : *aoaproperties
   FullName: Age of air uniform source tracer with surface sink restricted to a zone in the northern hemisphere
-  Is_Advected: true
-  Is_Gas: true
-  Is_Tracer: true
   Snk_Horiz: lat_zone
   Snk_Lats: [30.0, 50.0]
-  Snk_Mode: constant
-  Snk_Value: 0
   Snk_Vert: surface
-  Src_Add: true
-  Src_Horiz: all
-  Src_Mode: constant
-  Src_Units: timestep
-  Src_Value: 1
-  Src_Vert: all
-  Units: days
 AONITA:
   DD_F0: 1.0
   DD_Hstar: 2.9e+3
