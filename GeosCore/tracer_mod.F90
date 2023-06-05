@@ -237,7 +237,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J                                               )
+          !$OMP PRIVATE( I, J                                               )&
+          !$OMP COLLAPSE( 2                                                 )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
@@ -262,7 +263,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -282,7 +284,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -299,7 +302,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -322,7 +326,8 @@ CONTAINS
        
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -354,7 +359,8 @@ CONTAINS
 
              !$OMP PARALLEL DO                                               &
              !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L                                         )
+             !$OMP PRIVATE( I, J, L                                         )&
+             !$OMP COLLAPSE( 3                                              )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
@@ -619,7 +625,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J                                               )
+          !$OMP PRIVATE( I, J                                               )&
+          !$OMP COLLAPSE( 2                                                 )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
@@ -644,7 +651,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -663,7 +671,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -681,7 +690,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -706,7 +716,8 @@ CONTAINS
 
           !$OMP PARALLEL DO                                                  &
           !$OMP DEFAULT( SHARED                                             )&
-          !$OMP PRIVATE( I, J, L                                            )
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
@@ -730,7 +741,8 @@ CONTAINS
 
              !$OMP PARALLEL DO                                               &
              !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L, LO3_kg                                 )
+             !$OMP PRIVATE( I, J, L, LO3_kg                                 )&
+             !$OMP COLLAPSE( 3                                              )
              DO L = 1, State_Grid%NZ
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
