@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP run-time option in GCHP.rc to choose dry or total pressure in GCHP advection
 - Added GCHP run-time option in GCHP.rc to correct native mass fluxes for humidity
 - Added new tracer_mod.F90 containing subroutines for applying sources and sinks for the TransportTracer simulation
+- Added new species to the TransportTracer simulation: aoa (replaces CLOCK), aoa_bl, aoa_nh, st80_25, stOX
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`

@@ -380,7 +380,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, __RC__)
 #else
@@ -402,7 +402,7 @@ CONTAINS
           ENDDO
           ENDDO
 
-#ifdef MODEL_GEOS
+#if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
           ! Sum across all nodes
           call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Spc, cnt=1, __RC__)
 #else
