@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 - Added CH4 emissions from hydroelectric reservoirs to CH4, Carbon, and tagCH4 simulations
 - Added RxnConst diagnostic for archiving reaction rate constants
+- Added GCHP run-time option in GCHP.rc to choose dry or total pressure in GCHP advection
+- Added GCHP run-time option in GCHP.rc to correct native mass fluxes for humidity
 - Added new tracer_mod.F90 containing subroutines for applying sources and sinks for the TransportTracer simulation
 
 ### Changed
@@ -47,6 +49,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated CH4 global anthropogenic emission inventory from EDGARv6 to EDGARv7
 - Updated `AUTHORS.txt` for version 14.2.0
 - Updated links in `README.md` to point to `http://geos-chem.org`
+- Changed GCHP default settings to use dry pressure rather than total pressure in advection and correct native mass fluxes for humidity
+- Updated partitions requested in Harvard run script examples
+- Change RTOL value from 0.5e-3 back to 0.5e-2 to address model slowdown
 - Renamed TransportTracer species for consistency with GMAO's TR_GridComp
 
 ### Removed
