@@ -199,7 +199,7 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 #==============================================================================
 # --- O3 concentrations ---
 #==============================================================================
-GLOBAL_O3  1  N Y F%y4-%m2-01T00:00:00 none none SpeciesConc_O3 ./HcoDir/GCClassic_Output/13.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+GLOBAL_O3  1  N Y F%y4-%m2-01T00:00:00 none none SpeciesConc_O3 ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
 #
 #==============================================================================
 # --- O3 loss rates ---
