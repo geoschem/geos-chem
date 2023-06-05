@@ -2862,17 +2862,26 @@ VerboseOnCores:              root       # Accepted values: root all
 
 #==============================================================================
 # --- Offline sea salt emissions ---
+# Note: Seasalt emissions in GEOS-Chem within CESM are generally handled by MAM4.
+# However, it does not include emissions of SSA alkalinity, chlorine, and bromine.
+#
+# If OFFLINE_SEASALT is used in GEOS-Chem within CESM, SALA and SALC will not be
+# emitted by HEMCO, but the offline emissions will be used to scale for AL/Cl/Br.
+# Alternatively, do not use OFFLINE_SEASALT and scale emissions within chemistry.F90.
+# The latter approach is preferred but not implemented, so we scale the offline
+# emissions for now.
+#
+# This means that the below entries differ from GEOS-Chem "Classic" and others
+# by not having SALA / SALC entries. (hplin, 5/23/23)
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALA    -   3 2
-0 SEASALT_SALAAL  -                                                                                     -            -                     - -  -       SALAAL  615 3 2
+0 SEASALT_SALAAL  $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALA_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s          SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                     -            -                     - -  -       SALACL  616 3 2
 (((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                     -            -                     - -  -       BrSALA  617 3 2
 )))CalcBrSeasalt
-0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s SALC    -   3 2
-0 SEASALT_SALCAL  -                                                                                     -            -                     - -  -       SALCAL  615 3 2
+0 SEASALT_SALCAL  $ROOT/OFFLINE_SEASALT/v2019-01/0.5x0.625/$YYYY/$MM/seasalt_05.$YYYY$MM$DD.nc SALC_TOTAL   1980-2021/1-12/1-31/* C xy kg/m2/s          SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                     -            -                     - -  -       SALCCL  616 3 2
 (((CalcBrSeasalt
 0 SEASALT_BrSALC  -                                                                                     -            -                     - -  -       BrSALC  617 3 2
