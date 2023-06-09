@@ -1,3 +1,6 @@
+#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+#include "MAPL_Generic.h"
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -64,6 +67,11 @@ CONTAINS
     USE State_Met_Mod,    ONLY : MetState
     USE Time_Mod,         ONLY : Get_Ts_Chem
     USE UnitConv_Mod,     ONLY : Convert_Spc_Units
+
+#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+    USE ESMF
+    USE MAPL
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -114,6 +122,11 @@ CONTAINS
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
+#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+    INTEGER       :: status
+    TYPE(ESMF_VM) :: vm
+#endif
+
     !========================================================================
     ! Tracer_Source_Phase begins here!
     !========================================================================
@@ -129,6 +142,11 @@ CONTAINS
     Total_Spc   = 0.0_fp
     Mask        = 1.0_fp
     Flux        = 0.0_fp
+
+#if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
+    call ESMF_VmGetCurrent(vm, rc=status)
+    _VERIFY(status)
+#endif
 
     !=======================================================================
     ! Convert species units to v/v dry
@@ -388,7 +406,7 @@ CONTAINS
 
 #if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
           ! Sum across all nodes
-          call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, __RC__)
+          call MAPL_CommsAllReduceSum(vm, sendbuf=Local_Tally, recvbuf=Total_Area, cnt=1, RC=status)
 #else
           Total_Area = Local_Tally
 #endif
