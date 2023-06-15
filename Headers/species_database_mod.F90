@@ -5111,10 +5111,23 @@ CONTAINS
           CASE( 'H2' )
              FullName      = 'Molecular hydrogen'
              Formula       = 'H2'
-             BackgroundVV  = 5.0e-07_fp
+             MW_g          = 2.0_fp
+          !  Modified in Feb. 2020 by Maria Paula Perez-Pena
+          !   BackgroundVV  = 5.0e-07_fp
              Is_Gas        = T
-             Is_Drydep     = F
+             Is_Drydep     = T
              Is_Wetdep     = F
+          ! Use the Henry's Law constant summarized by 
+          ! Sanders (2015) in [mol m-3 Pa-1]
+          !   Henry_K0      = 7.70e-6_f8 * To_M_atm
+          !   DD_Hstar_Old  = 7.70e-6_fp * To_M_atm
+          ! Use the Henry's Volatility constant from
+          ! NIST Chemistry WebBook, SRD 69
+          !   Henry_CR      = 500.0_f8
+          ! Include DD_F0 - react. factor for oxidation
+          ! of biological substances, choose 0.1 as
+          ! slightly reactive
+          !   DD_F0         = 0.1_fp
 
           CASE( 'N' )
              FullName      = 'Atomic nitrogen'

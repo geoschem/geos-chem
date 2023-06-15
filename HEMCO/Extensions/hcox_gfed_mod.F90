@@ -102,6 +102,8 @@ MODULE HCOX_GFED_MOD
 !  29 Mar 2018 - K. Travis    - Update GFED4 emission factors, increase to 34 species
 !  29 Mar 2018 - K. Travis    - Remove GFED3
 !  12 Sep 2018 - C. Keller    - Added instance wrapper
+!  05 Feb 2020 - M.Perez-Pena - Add parameters to calculate H2 based on CO as a fraction
+!                               following the procedures done for SOAP
 !EOP
 !------------------------------------------------------------------------------
 !
@@ -114,7 +116,7 @@ MODULE HCOX_GFED_MOD
   ! N_SPEC  : Max. number of species
   !=================================================================
   INTEGER,           PARAMETER :: N_EMFAC = 6
-  INTEGER,           PARAMETER :: N_SPEC  = 34
+  INTEGER,           PARAMETER :: N_SPEC  = 35
 !
 ! !PRIVATE TYPES:
 !
@@ -169,6 +171,7 @@ MODULE HCOX_GFED_MOD
    REAL(sp)                       :: BCPIfrac
    REAL(sp)                       :: POG1frac
    REAL(sp)                       :: SOAPfrac
+   !REAL(sp)                       :: H2frac
  
    !=================================================================
    ! DATA ARRAY POINTERS 
@@ -418,6 +421,8 @@ CONTAINS
              SpcArr = SpcArr * (1.0_sp - Inst%POG1frac)
           CASE ( 'SOAP' )
              SpcArr = SpcArr * Inst%SOAPfrac
+          !CASE ( 'H2'   )
+          !   SpcArr = SpcArr * Inst%H2frac
 !==============================================================================
 ! This code is required for partitioning NOx emissions directly to PAN and HNO3.
 ! We will keep it here as an option for users focusing on North American fires.
@@ -689,14 +694,25 @@ CONTAINS
     ELSE
        Inst%SOAPfrac = ValSp
     ENDIF
+    
+    !CALL GetExtOpt( HcoState%Config, ExtNr, 'CO to H2', &
+    !                 OptValSp=ValSp, FOUND=FOUND, RC=RC )
 
+    !IF ( RC /= HCO_SUCCESS ) RETURN
+    !IF ( .NOT. FOUND ) THEN
+    !   Inst%H2frac = 0.0
+    !ELSE
+    !   Inst%H2frac = ValSp
+    !ENDIF
+    
     ! Error check: OCPIfrac, BCPIfrac, and POG1frac must be between 0 and 1
     IF ( Inst%OCPIfrac < 0.0_sp .OR. Inst%OCPIfrac > 1.0_sp .OR. &
          Inst%BCPIfrac < 0.0_sp .OR. Inst%BCPIfrac > 1.0_sp .OR. &
          Inst%SOAPfrac < 0.0_sp .OR. Inst%SOAPfrac > 1.0_sp .OR. &
+         !Inst%H2frac < 0.0_sp .OR. Inst%H2frac > 1.0_sp .OR. &
          Inst%POG1frac < 0.0_sp .OR. Inst%POG1frac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'fractions must be between 0-1: ', &
-          Inst%OCPIfrac, Inst%BCPIfrac, Inst%POG1frac, Inst%SOAPfrac
+          Inst%OCPIfrac, Inst%BCPIfrac, Inst%POG1frac, Inst%SOAPfrac !, Inst%H2frac
        CALL HCO_ERROR(HcoState%Config%Err,MSG, RC )
        RETURN
     ENDIF
@@ -775,6 +791,8 @@ CONTAINS
        CALL HCO_MSG(HcoState%Config%Err,MSG )
        WRITE(MSG,*) '   - SOAP fraction           : ', Inst%SOAPfrac
        CALL HCO_MSG(HcoState%Config%Err,MSG )
+       !WRITE(MSG,*) '   - H2 fraction             : ', Inst%H2frac
+       !CALL HCO_MSG(HcoState%Config%Err,MSG )
     ENDIF
 
     ! Get HEMCO species IDs of all species specified in configuration file
@@ -855,6 +873,8 @@ CONTAINS
              SpcName = 'BC'
           ELSEIF ( SpcName(1:2) == 'OC' ) THEN
              SpcName = 'OC'
+          !ELSEIF ( SpcName(1:2) == 'H2' ) THEN
+          !   SpcName = 'H2'
           ENDIF
        ENDIF
        IF ( TRIM(SpcName) == 'POG1' ) SpcName = 'OC'
@@ -872,6 +892,11 @@ CONTAINS
        IF ( TRIM(SpcName) == 'CO' ) THEN
          Inst%SOAPfrac = Inst%SOAPfrac * Inst%SpcScal(N)
        END IF
+       
+       ! include H2 scale factor by CO scale factor 
+       !IF ( TRIM(SpcName) == 'CO' ) THEN
+       !  Inst%H2frac = Inst%H2frac * Inst%SpcScal(N)
+       !END IF
 
        ! Search for matching GFED species by name
        Matched = .FALSE.

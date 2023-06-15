@@ -364,10 +364,10 @@ VRO2       = IGNORE; {HOCH2CH(OO)C(O)CH3; RO2 from MVK+OH}
 VRP        = IGNORE; {HOCH2CH(OOH)C(O)CH3; Peroxide from VRO2}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
+H2         = IGNORE; {H2; Molecular hydrogen}
 
 #DEFFIX
 
-H2         = IGNORE; {H2; Molecular hydrogen}
 MNO3       = IGNORE; {CH3ONO2; Methylnitrate}
 MOH        = IGNORE; {CH3OH; Methanol}
 N2         = IGNORE; {N2; Molecular nitrogen}

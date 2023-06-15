@@ -147,7 +147,7 @@
 
       ! OCS and H2 surface boundary conditions
       REAL(fp),PARAMETER :: OCS_MR = 5.00e-10_fp ! OCS is fixed to 500 pptv
-      REAL(fp),PARAMETER :: H2_MR  = 5.00e-7_fp  ! H2 is fixed to 500 ppbv
+      !REAL(fp),PARAMETER :: H2_MR  = 5.00e-7_fp  ! H2 is fixed to 500 ppbv
 !
 ! PRIVATE TYPES:
 !
@@ -1437,9 +1437,9 @@
                CASE ('OCS')
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = OCS_MR
-               CASE ('H2')
+               !CASE ('H2')
                   ! Simple boundary condition
-                  GRID_EMIT(:,:,N) = H2_MR
+               !   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
                   ! Now obtain monthly mean surface CH4 concentrations
                   ! in main.F (mps, 1/18/18)
@@ -1492,9 +1492,9 @@
                CASE ('OCS')
                   ! Simple boundary condition
                   GRID_EMIT(:,:,N) = OCS_MR
-               CASE ('H2')
+               !CASE ('H2')
                   ! Simple boundary condition
-                  GRID_EMIT(:,:,N) = H2_MR
+               !   GRID_EMIT(:,:,N) = H2_MR
                CASE ('CH4')
                   ! Now obtain monthly mean surface CH4 concentrations
                   ! in main.F (mps, 1/18/18)
@@ -5007,10 +5007,6 @@
                LOCAL_NAME = TRIM('OCS')
                CALL SFCMR_READ( am_I_Root,  Input_Opt, 
      &                          LOCAL_NAME, ID,        iMR=OCS_MR )
-            CASE ('H2')
-               LOCAL_NAME = TRIM('H2')
-               CALL SFCMR_READ( am_I_Root,  Input_Opt, 
-     &                          LOCAL_NAME, ID,        iMR=H2_MR )
             CASE DEFAULT
                LOCAL_NAME = TRIM(TRAC_EMIT(I))
                CALL SFCMR_READ( am_I_Root, Input_Opt, LOCAL_NAME, ID ) 
@@ -5639,7 +5635,7 @@
       id_ClOO    = Ind_('ClOO'      )
       id_H1211   = Ind_('H1211'     )
       id_H1301   = Ind_('H1301'     )
-      id_H2      = Ind_('H2',    'A') ! Need advected species index for H2
+      id_H2      = Ind_('H2'        ) ! Need advected species index for H2
       id_H2402   = Ind_('H2402'     )
       id_H2O     = Ind_('H2O'       )
       id_HBr     = Ind_('HBr'       )
@@ -5897,11 +5893,11 @@
          TRAC_EMIT(N_EMIT) = 'CH3Br'
       ENDIF
 
-      IF (id_H2.gt.0) THEN
-         N_EMIT = N_EMIT + 1
-         IDT_EMIT( N_EMIT) = id_H2
-         TRAC_EMIT(N_EMIT) = 'H2'
-      ENDIF
+      !IF (id_H2.gt.0) THEN
+      !   N_EMIT = N_EMIT + 1
+      !   IDT_EMIT( N_EMIT) = id_H2
+      !   TRAC_EMIT(N_EMIT) = 'H2'
+      !ENDIF
 
       IF (N_EMIT.gt.0) THEN
          ALLOCATE( GRID_EMIT( State_Grid%NX, State_Grid%NY, N_EMIT ),

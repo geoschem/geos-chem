@@ -193,6 +193,13 @@
 !  16 Mar 2017 - R. Yantosca - Remove references to obsolete vars in Input_Opt
 !  24 Aug 2017 - M. Sulprizio- Remove support for GCAP, GEOS-4, GEOS-5 and MERRA
 !  01 Dec 2018 - H.P. Lin    - Move DEPSAV to State_Chm%DryDepSav
+!  26 Jun 2020 - M.P Perez-Pena - Added special case for the dry
+!                              deposition of H2.
+!  21 Sep 2020 - M.P Perez-Pena - Added call to dry deposition velocity
+!                              fields H2_DEPVEL from the work developed 
+!                              by Yashiro et al. (2011) with the two layer soil 
+!                              model to account for soil uptake of H2.
+!                              See special case for H2.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -250,6 +257,7 @@
       INTEGER                        :: id_ACET,  id_ALD2
       INTEGER                        :: id_NK1
       INTEGER                        :: id_HNO3,  id_PAN,   id_ISOPND
+      INTEGER                        :: id_H2
 
       ! Arrays for Baldocchi drydep polynomial coefficients
       REAL(fp), TARGET               :: DRYCOEFF(NPOLY    )
@@ -287,6 +295,7 @@
       ! Allocatable arrays
       REAL(f8),          ALLOCATABLE :: DMID    (:    )
       REAL(f8),          ALLOCATABLE :: SALT_V  (:    )
+      REAL(f8),          ALLOCATABLE :: H2_DEPVEL(:, :) ! H2 dd vel [cm/s]
       
       !=================================================================
       ! MODULE ROUTINES -- follow below the "CONTAINS" statement
@@ -316,6 +325,7 @@
       USE ErrCode_Mod
       USE HCO_ERROR_MOD
       USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
       USE HCO_DIAGN_MOD,      ONLY : Diagn_Update
       USE Input_Opt_Mod,      ONLY : OptInput
       USE Species_Mod,        ONLY : Species
@@ -430,14 +440,18 @@
 !
       ! Scalars
       INTEGER            :: I,   J,   L,   D,   N, NDVZ
-      REAL(f8)           :: DVZ, THIK
+      REAL(f8)           :: DVZ, THIK, DVH2
       CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
-
+      CHARACTER(LEN=255) :: LOC='DRY DEP (drydep_mod.F)'
+      REAL(fp)           :: YMID
 
       ! Arrays
       LOGICAL       :: LSNOW (State_Grid%NX,State_Grid%NY) ! Flag for snow/ice on the sfc
+      LOGICAL       :: DESERT(State_Grid%NX,State_Grid%NY) ! Flag for denoting a desert area
       REAL(f8)      :: CZ1   (State_Grid%NX,State_Grid%NY) ! Midpt ht of 1st model lev[m]
       REAL(f8)      :: TC0   (State_Grid%NX,State_Grid%NY) ! Grid box sfc temperature [K]
+      REAL(f8)      :: FLAND (State_Grid%NX,State_Grid%NY) ! Fraction of land in the grid
+      REAL(f8)      :: FSNOW (State_Grid%NX,State_Grid%NY) ! Fraction of snow in the grid
       REAL(f8)      :: ZH    (State_Grid%NX,State_Grid%NY) ! PBL height [m]
       REAL(f8)      :: OBK   (State_Grid%NX,State_Grid%NY) ! Monin-Obhukov Length [m]
       REAL(f8)      :: CFRAC (State_Grid%NX,State_Grid%NY) ! Column cloud frac [unitless]
@@ -485,7 +499,8 @@
       ! Added sfc pressure as PRESSU and 10m windspeed as W10 
       !  (jaegle 5/11/11, mpayer 1/10/12)
       CALL METERO( State_Grid, State_Met, CZ1,     TC0, OBK,  CFRAC,  
-     &             RADIAT,     AZO,       USTAR,   ZH,        LSNOW, 
+     &             RADIAT,     AZO,       USTAR,   ZH,  LSNOW, DESERT,
+     &             FLAND,      FSNOW,
      &             RHB,        PRESSU,    W10,     SUNCOS_MID          )
 
       ! Call DEPVEL to compute dry deposition velocities [m/s]
@@ -503,17 +518,31 @@
          RETURN
       ENDIF
 
+      ! Call the dry deposition velocities for H2
+      CALL HCO_EvalFld( am_I_Root, HcoState, 'H2_DEPVEL',
+     &                         H2_DEPVEL, RC )
+
+      IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not find offline H2DV in HEMCO data list!'
+          CALL GC_Error( ErrMsg, RC, LOC )
+          RETURN
+      ENDIF
+
       !=================================================================
       ! Compute dry deposition frequencies; archive diagnostics
       !=================================================================
 !$OMP PARALLEL DO
 !$OMP+DEFAULT( SHARED )
 !$OMP+PRIVATE( I, J, THIK, D, N, NDVZ, DVZ, SpcInfo )
+!$OMP+PRIVATE( YMID, DVH2 )
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
 
          ! THIK = thickness of surface layer [m]
          THIK   = State_Met%BXHEIGHT(I,J,1)
+
+         ! Latitude of grid box
+         YMID   = State_Grid%YMid(I,J)
 
          ! Now we calculate drydep throughout the entire PBL.  
          ! Make sure that the PBL depth is greater than or equal 
@@ -625,6 +654,23 @@
             ENDIF
 
             !-----------------------------------------------------------
+            ! Special treatment for H2
+            ! Sep. 21 2020
+            !-----------------------------------------------------------
+            ! Added special case to read the dry deposition of H2 using
+            ! HEMCO. HEMCO re-grids the information of the spatial
+            ! distributed dry deposition velocity fields provided by
+            ! Yashiro et al. (2011) (result from the implementation of a
+            ! two layer soil model). The fields (netCDF files 2D data
+            ! with a resolution of T42 (~2.8deg, 64x128 grid) are
+            ! specified in the NON-EMISSION-DATA section in the
+            ! HEMCO_Config.rc file.
+
+            IF ( N == id_H2 ) THEN
+             DVZ  = H2_DEPVEL(I, J)
+            ENDIF
+
+            !-----------------------------------------------------------
             ! Compute drydep frequency and update diagnostics
             !-----------------------------------------------------------
 
@@ -682,7 +728,8 @@
 ! !INTERFACE:
 !
       SUBROUTINE METERO( State_Grid, State_Met, CZ1, TC0, OBK, CFRAC,  
-     &                   RADIAT,    AZO,    USTR, ZH,        LSNOW, 
+     &                   RADIAT,    AZO,    USTR, ZH,  LSNOW, DESERT,
+     &                   FLAND,     FSNOW,
      &                   RHB,       PRESSU, W10,  SUNCOS_MID        )
 !
 ! !USES:
@@ -698,8 +745,11 @@
 ! !OUTPUT PARAMETERS:
 !
       LOGICAL,  INTENT(OUT) :: LSNOW (State_Grid%NX,State_Grid%NY)  ! Flag for denoting snow/ice
+      LOGICAL,  INTENT(OUT) :: DESERT(State_Grid%NX,State_Grid%NY)  ! Flag for denoting a desert area
       REAL(f8), INTENT(OUT) :: CZ1   (State_Grid%NX,State_Grid%NY)  ! Midpt ht of 1st model lev [m]
       REAL(f8), INTENT(OUT) :: TC0   (State_Grid%NX,State_Grid%NY)  ! Grid box sfc temp [K]
+      REAL(f8), INTENT(OUT) :: FLAND (State_Grid%NX,State_Grid%NY)  ! Fraction of land in the grid
+      REAL(f8), INTENT(OUT) :: FSNOW (State_Grid%NX,State_Grid%NY)  ! Fraction of snow in the grid
       REAL(f8), INTENT(OUT) :: OBK   (State_Grid%NX,State_Grid%NY)  ! Monin-Obhukov length [m]
       REAL(f8), INTENT(OUT) :: CFRAC (State_Grid%NX,State_Grid%NY)  ! Column cloud fraction [unitless]
       REAL(f8), INTENT(OUT) :: RADIAT(State_Grid%NX,State_Grid%NY)  ! Solar radiation @ ground [W/m2]
@@ -753,6 +803,10 @@
 !  25 Jul 2014 - R. Yantosca - Now remove reference to function SFCWINDSQR
 !  17 May 2016 - M. Sulprizio- Remove IJLOOP and change dimension of output
 !                              arrays from (MAXIJ) to (IIPAR,JJPAR)
+!  27 Feb 2020 - M.P Perez-Pena - Include a separate definition for desert
+!                              areas based on the GWETTOP variable
+!  25 Jun 2020 - M.P Perez-Pena - Added fraction of land and fraction of
+!                              snow
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -800,6 +854,15 @@
 
          ! Set logical LSNOW if snow and sea ice (ALBEDO > 0.4)
          LSNOW(I,J)  = ( State_Met%ALBD(I,J) > 0.4 )
+
+         ! Set logical DESERT if low soil top wetness ( GWETTOP < 0.35 )
+         DESERT(I,J) = ( State_Met%GWETTOP(I,J) < 0.35 )
+
+         ! Fraction of land
+         FLAND(I,J)  = State_Met%FRLAND(I,J)
+
+         ! Fraction of snow
+         FSNOW(I,J)  = State_Met%FRSNO(I,J)
 
          ! Monin-Obhukov length [m]
          OBK(I,J)    = GET_OBK( I, J, State_Met )
@@ -851,12 +914,14 @@
 !\\
 ! !INTERFACE:
 !
-      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,    
+
+      SUBROUTINE DEPVEL( am_I_Root, Input_Opt, State_Chm, State_Diag,
      &                   State_Grid, State_Met, RADIAT,   TEMP, SUNCOS,
-     &                   F0,        HSTAR,     XMW,       AIROSOL,     
-     &                   USTAR,     CZ1,       OBK,       CFRAC,           
-     &                   ZH,        LSNOW,     DVEL,      ZO,            
+     &                   F0,        HSTAR,     XMW,       AIROSOL,
+     &                   USTAR,     CZ1,       OBK,       CFRAC,
+     &                   ZH,        LSNOW,     DVEL,      ZO,
      &                   RHB,       PRESSU,    W10,       RC          )
+
 !
 ! !USES:
 !
@@ -4024,6 +4089,8 @@
 !
       USE ErrCode_Mod
       USE Input_Opt_Mod,  ONLY : OptInput
+      USE HCO_INTERFACE_MOD,  ONLY : HcoState
+      USE HCO_Calc_Mod,       ONLY : HCO_EvalFld
       USE Species_Mod,    ONLY : Species
       USE State_Chm_Mod,  ONLY : ChmState
       USE State_Chm_Mod,  ONLY : Ind_
@@ -4118,6 +4185,7 @@
 !                              PAN, and ISOPN (from K. Travis, J. Fisher)
 !  05 Oct 2017 - R. Yantosca - Now accept State_Diag as an argument
 !  07 Nov 2017 - R. Yantosca - Now return error condition to calling program
+!  21 Sep 2020 - M. Perez-Pena- Add call to H2_DEPVEL
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -4126,10 +4194,12 @@
 !
       LOGICAL                :: LDRYD
       LOGICAL                :: IS_Hg
+      INTEGER                :: AS, INDICES(4), YYYYMMDD, HHMMSS
       INTEGER                :: N
 
       ! Strings
       CHARACTER(LEN=255)     :: Msg, ErrMsg, ThisLoc
+      CHARACTER(LEN=255)     :: LOC='DRY DEP (drydep_mod.F)'
 
       ! Objects
       TYPE(Species), POINTER :: SpcInfo 
@@ -4145,6 +4215,7 @@
       NUMDEP    = 0
       id_ACET   = 0
       id_ALD2   = 0
+      id_H2     = 0
       id_HNO3   = IND_('HNO3'  )
       id_PAN    = IND_('PAN'   )
       id_ISOPND = IND_('ISOPND')
@@ -4232,6 +4303,12 @@
          IF ( RC /= GC_SUCCESS ) RETURN
          XMW = 0e+0_f8
 
+         ! Dry deposition velocity for H2 spatial fields
+         ALLOCATE( H2_DEPVEL(State_Grid%NX,State_Grid%NY),
+     &                 STAT=AS)
+         IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2_DEPVEL' )
+         H2_DEPVEL = 0e+0_fp
+
       ENDIF
 
       !=================================================================
@@ -4307,6 +4384,10 @@
                CASE( 'ALD2' )
                   ! Flag the species ID of ALD2 for use above.
                   id_ALD2 = SpcInfo%ModelId
+
+               CASE( 'H2' )
+                  ! Flag the species ID of H2 for use above.
+                  id_H2 = SpcInfo%ModelId
 
                CASE( 'NITs', 'NITS' )
                   ! DEPNAME for NITs has to be in all caps, for
@@ -4500,6 +4581,7 @@
       IF ( ALLOCATED( NTRAIND  ) ) DEALLOCATE( NTRAIND  )
       IF ( ALLOCATED( SALT_V   ) ) DEALLOCATE( SALT_V   )
       IF ( ALLOCATED( XMW      ) ) DEALLOCATE( XMW      )
+      IF ( ALLOCATED( H2_DEPVEL ) ) DEALLOCATE( H2_DEPVEL )
 
       END SUBROUTINE CLEANUP_DRYDEP
 !EOC

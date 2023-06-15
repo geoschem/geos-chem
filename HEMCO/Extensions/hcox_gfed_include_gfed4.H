@@ -45,6 +45,9 @@
 !  29 Mar 2018 - K. Travis   - Updated to latest GFED4 emission factors from
 !                           https://www.geo.vu.nl/~gwerf/GFED/GFED4/ancill/
 !                            - Added HAC, GLYX, Hg0   
+!  05 Feb 2020 - M.P Perez-Pena - Added H2
+!  24 Mar 2022 - M.P Perez-Pena - Added biome-specific emission factors for
+!                            H2 biomass burning emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -354,4 +357,14 @@ Inst%GFED4_EMFAC(34,3)=9.95E-04_hp
 Inst%GFED4_EMFAC(34,4)=9.95E-04_hp
 Inst%GFED4_EMFAC(34,5)=9.95E-04_hp
 Inst%GFED4_EMFAC(34,6)=9.95E-04_hp
+
+! H2 Added from Akagi (2011) and Andrae (2019)
+GFED4_SPEC_NAME(35)="H2"
+Inst%GFED4_EMFAC(35,1)=1.70E-03_hp ! SAVA
+Inst%GFED4_EMFAC(35,2)=1.60E-03_hp ! BORF
+Inst%GFED4_EMFAC(35,3)=2.10E-03_hp ! TEMP
+Inst%GFED4_EMFAC(35,4)=3.10E-03_hp ! DEFO
+Inst%GFED4_EMFAC(35,5)=1.20E-03_hp ! PEAT
+Inst%GFED4_EMFAC(35,6)=2.60E-03_hp ! AGRI
+
 !EOC

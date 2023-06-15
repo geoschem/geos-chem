@@ -939,6 +939,8 @@ CONTAINS
                    Dta%MustFind  = .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "EC" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_EXACT
+                   Dta%MustFind  = .TRUE.
+                   Dta%UseSimYear= .TRUE.
                 ELSEIF ( TRIM(TmCycle) == "ECF" ) THEN
                    Dta%CycleFlag = HCO_CFLAG_EXACT
                    Dta%MustFind  = .TRUE.

@@ -52,6 +52,9 @@
 !                              - Updated the emission factors for NMVOCs and
 !                                NOx from extratropical forests, savannas and
 !                                agricultural fires from Akagi et al. (2011,ACP)
+!  05 Feb 2020 - M.P Perez-Pena - Added H2
+!  24 Mar 2022 - M.P Perez-Pena - Added biome-specific emission factors for
+!                            H2 biomass burning emissions
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -316,4 +319,14 @@ GFED3_EMFAC(29,3)=GFED3_EMFAC(2,3)
 GFED3_EMFAC(29,4)=GFED3_EMFAC(2,4)
 GFED3_EMFAC(29,5)=GFED3_EMFAC(2,5)
 GFED3_EMFAC(29,6)=GFED3_EMFAC(2,6)
+
+! H2 Added from Akagi (2011) and Andrae (2019)
+GFED3_SPEC_NAME(30)="H2"
+GFED3_EMFAC(30,1)=2.60E-03_hp ! AGR
+GFED3_EMFAC(30,2)=3.10E-03_hp ! TROP. DEFOREST
+GFED3_EMFAC(30,3)=2.10E-03_hp ! TEMPERATE
+GFED3_EMFAC(30,4)=1.20E-03_hp ! PEAT
+GFED3_EMFAC(30,5)=1.70E-03_hp ! SAV
+GFED3_EMFAC(30,6)=1.60E-03_hp ! BOR
+
 !EOC
