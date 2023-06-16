@@ -53,7 +53,6 @@ MODULE Input_Opt_Mod
      INTEGER                     :: Max_BPCH_Diag
      INTEGER                     :: Max_Families
      INTEGER                     :: Max_AdvectSpc
-     INTEGER                     :: Max_PassiveSpc
 
      !----------------------------------------
      ! SIMULATION MENU fields
@@ -70,34 +69,21 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
      CHARACTER(LEN=255)          :: SpcMetaDataOutFile
+     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_RnPbBe_SIM
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
+     LOGICAL                     :: ITS_A_TRACER_SIM
      LOGICAL                     :: VerboseRequested
      CHARACTER(LEN=10)           :: VerboseOnCores
      LOGICAL                     :: Verbose
-     LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: useTimers
-
-     !----------------------------------------
-     ! PASSIVE SPECIES MENU fields
-     !----------------------------------------
-     INTEGER                     :: NPASSIVE
-     INTEGER                     :: NPASSIVE_DECAY
-     CHARACTER(LEN=63),  POINTER :: PASSIVE_NAME    (:)
-     CHARACTER(LEN=255), POINTER :: PASSIVE_LONGNAME(:)
-     INTEGER,            POINTER :: PASSIVE_ID      (:)
-     REAL(fp),           POINTER :: PASSIVE_MW      (:)
-     REAL(fp),           POINTER :: PASSIVE_TAU     (:)
-     REAL(fp),           POINTER :: PASSIVE_INITCONC(:)
-     INTEGER,            POINTER :: PASSIVE_DECAYID (:)
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -520,12 +506,6 @@ CONTAINS
     ! Set pointers to NULL for safety's sake
     !----------------------------------------
     RC                               =  GC_SUCCESS
-    Input_Opt%PASSIVE_NAME           => NULL()
-    Input_Opt%PASSIVE_ID             => NULL()
-    Input_Opt%PASSIVE_MW             => NULL()
-    Input_Opt%PASSIVE_TAU            => NULL()
-    Input_Opt%PASSIVE_INITCONC       => NULL()
-    Input_Opt%PASSIVE_DECAYID        => NULL()
     Input_Opt%AdvectSpc_Name         => NULL()
     Input_Opt%SALA_REDGE_um          => NULL()
     Input_Opt%SALC_REDGE_um          => NULL()
@@ -567,7 +547,6 @@ CONTAINS
 #endif
     Input_Opt%Max_Families           = 250
     Input_Opt%Max_AdvectSpc          = 600
-    Input_Opt%Max_PassiveSpc         = 50
 
     !----------------------------------------
     ! SIMULATION MENU fields
@@ -590,11 +569,11 @@ CONTAINS
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_RnPbBe_SIM       = .FALSE.
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
+    Input_Opt%ITS_A_TRACER_SIM       = .FALSE.
     Input_Opt%VerboseRequested       = .FALSE.
     Input_Opt%VerboseOnCores         = ''
     Input_Opt%Verbose                = .FALSE.
@@ -611,28 +590,6 @@ CONTAINS
     Input_Opt%N_ADVECT               = 0
     Input_Opt%AdvectSpc_Name         = ''
     Input_Opt%LSPLIT                 = .FALSE.
-
-    !----------------------------------------
-    ! PASSIVE SPECIES MENU fields
-    !----------------------------------------
-
-    ALLOCATE( Input_Opt%PASSIVE_NAME    ( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_LONGNAME( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_ID      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_MW      ( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_TAU     ( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_INITCONC( Input_Opt%Max_PassiveSpc ), STAT=RC )
-    ALLOCATE( Input_Opt%PASSIVE_DECAYID ( Input_Opt%Max_PassiveSpc ), STAT=RC )
-
-    Input_Opt%NPASSIVE               = 0
-    Input_Opt%NPASSIVE_DECAY         = 0
-    Input_Opt%PASSIVE_NAME           = ''
-    Input_Opt%PASSIVE_LONGNAME       = ''
-    Input_Opt%PASSIVE_ID             = 0
-    Input_Opt%PASSIVE_MW             = 0.0_fp
-    Input_Opt%PASSIVE_TAU            = 0.0_fp
-    Input_Opt%PASSIVE_INITCONC       = 0.0_fp
-    Input_Opt%PASSIVE_DECAYID        = 0
 
     !----------------------------------------
     ! AEROSOL MENU fields
@@ -1125,49 +1082,6 @@ CONTAINS
     !======================================================================
     ! Deallocate fields of the Input Options object
     !======================================================================
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_NAME ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_NAME, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%PASSIVE_NAME', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%PASSIVE_NAME => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_LONGNAME ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_LONGNAME )
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_ID ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_ID, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%PASSIVE_ID', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%PASSIVE_ID => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_MW ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_MW, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%PASSIVE_MW', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%PASSIVE_MW => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_TAU ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_TAU, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%PASSIVE_TAU', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%PASSIVE_TAU => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_INITCONC ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_INITCONC, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%PASSIVE_INITCONC', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%PASSIVE_INITCONC => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%PASSIVE_DECAYID ) ) THEN
-       DEALLOCATE( Input_Opt%PASSIVE_DECAYID )
-    ENDIF
-
     IF ( ASSOCIATED( Input_Opt%AdvectSpc_Name ) ) THEN
        DEALLOCATE( Input_Opt%AdvectSpc_Name, STAT=RC )
        CALL GC_CheckVar( 'Input_Opt%AdvectSpcName', 2, RC )

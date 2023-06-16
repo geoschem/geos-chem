@@ -3916,9 +3916,9 @@ CONTAINS
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
-    ! THE Rn-Pb-Be-Passive SPECIALTY SIMULATION
+    ! THE TransportTracers SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay
@@ -3970,7 +3970,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! the Rn-Pb-Be-Passive simulation.
+       ! the TransportTracers simulation.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -3990,7 +3990,7 @@ CONTAINS
           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC  )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for Rn-Pb-Be-Passive '// &
+                      'but this is only appropriate for TransportTracers '// &
                       'simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN

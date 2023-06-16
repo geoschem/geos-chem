@@ -6,7 +6,7 @@
 ! !MODULE: RnPbBe_mod.F90
 !
 ! !DESCRIPTION: Module RnPbBe\_MOD contains variables and routines used
-!  for the 222Rn-210Pb-7Be simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)
+!  for the Rn222-Pb210-Be7 simulation. (hyl, swu, bmy, 6/14/01, 8/4/06)
 !\\
 !\\
 ! !INTERFACE:
@@ -50,12 +50,12 @@ MODULE RnPbBe_MOD
 !BOC
   ! Species ID flags
   INTEGER  :: id_Rn222
-  INTEGER  :: id_Pb210, id_Pb210Strat
-  INTEGER  :: id_Be7,   id_Be7Strat
-  INTEGER  :: id_Be10,  id_Be10Strat
+  INTEGER  :: id_Pb210, id_Pb210s
+  INTEGER  :: id_Be7,   id_Be7s
+  INTEGER  :: id_Be10,  id_Be10s
 
   ! Exponential terms
-  REAL(fp) :: EXP_Rn, EXP_Pb, EXP_Be7, EXP_Be10
+  REAL(fp) :: EXP_Rn, EXP_Pb210, EXP_Be7, EXP_Be10
 
 CONTAINS
 !EOC
@@ -66,8 +66,8 @@ CONTAINS
 !
 ! !IROUTINE: chemRnPbBe
 !
-! !DESCRIPTION: Subroutine CHEMRnPbBe performs loss chemistry on 222Rn,
-!  210Pb, 7Be, and 10Be.
+! !DESCRIPTION: Subroutine CHEMRnPbBe performs loss chemistry on Rn222,
+!  Pb210, Be7, and Be10.
 !\\
 !\\
 ! !INTERFACE:
@@ -113,12 +113,12 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: I, J, L, S
-    REAL(fp)            :: ADD_Pb
+    REAL(fp)            :: ADD_Pb210
     REAL(fp)            :: Decay
     REAL(fp)            :: DTCHEM
-    REAL(fp)            :: Pb_LOST,   PbStrat_LOST
-    REAL(fp)            :: Be7_LOST,  Be7Strat_LOST
-    REAL(fp)            :: Be10_LOST, Be10Strat_LOST
+    REAL(fp)            :: Pb210_LOST,   Pb210s_LOST
+    REAL(fp)            :: Be7_LOST,  Be7s_LOST
+    REAL(fp)            :: Be10_LOST, Be10s_LOST
 
     ! SAVEd scalars
     LOGICAL, SAVE       :: FIRSTCHEM = .TRUE.
@@ -135,7 +135,7 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS
 !
-    ! Ratio of molecular weights of 210Pb/222Rn
+    ! Ratio of molecular weights of Pb210/Rn222
     REAL(fp), PARAMETER :: Pb_Rn_RATIO = 210e+0_fp / 222e+0_fp
 
     ! Ln 2
@@ -173,7 +173,7 @@ CONTAINS
 
        ! Fraction of Pb210 left after radioactive decay
        !Decay    = ln2 / ( PbTau * 24.E+00_fp * 3600.E+00_fp )
-       EXP_Pb    = EXP( -DTCHEM * 9.725E-10_fp )
+       EXP_Pb210 = EXP( -DTCHEM * 9.725E-10_fp )
 
        ! Fraction of Be7 left after radioactive decay
        !Decay    = ln2 / ( Be7Tau * 24.E+00_fp * 3600.E+00_fp )
@@ -184,13 +184,13 @@ CONTAINS
        EXP_Be10  = EXP( -DTCHEM * Decay        )
 
        ! Species ID flags
-       id_Rn222      = Ind_('Rn222'      )
-       id_Pb210      = Ind_('Pb210'      )
-       id_Pb210Strat = Ind_('Pb210Strat' )
-       id_Be7        = Ind_('Be7'        )
-       id_Be7Strat   = Ind_('Be7Strat'   )
-       id_Be10       = Ind_('Be10'       )
-       id_Be10Strat  = Ind_('Be10Strat'  )
+       id_Rn222  = Ind_('Rn222'  )
+       id_Pb210  = Ind_('Pb210'  )
+       id_Pb210s = Ind_('Pb210s' )
+       id_Be7    = Ind_('Be7'    )
+       id_Be7s   = Ind_('Be7s'   )
+       id_Be10   = Ind_('Be10'   )
+       id_Be10s  = Ind_('Be10s'  )
 
        ! Reset FIRSTCHEM flag
        FIRSTCHEM = .FALSE.
@@ -219,7 +219,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          ! Rn_LOST = amount of 222Rn lost to decay [kg]
+          ! Rn_LOST = amount of Rn222 lost to decay [kg]
           Rn_LOST(I,J,L) = Spc(id_Rn222)%Conc(I,J,L) * ( 1.0_fp - EXP_Rn )
 
           !-----------------------------------------------------------
@@ -249,16 +249,16 @@ CONTAINS
     !=================================================================
 
     ! Make sure Pb210 is a defined species
-    IF ( id_Pb210 > 0 .or. id_Pb210Strat > 0 ) THEN
+    IF ( id_Pb210 > 0 .or. id_Pb210s > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, ADD_Pb, Pb_LOST, PbStrat_LOST, S )
+       !$OMP PRIVATE( I, J, L, ADD_Pb210, Pb210_LOST, Pb210s_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          ! ADD_Pb = Amount of 210Pb gained by decay from 222Rn [kg]
-          ADD_Pb = Rn_LOST(I,J,L) * Pb_Rn_RATIO
+          ! ADD_Pb = Amount of Pb210 gained by decay from Rn222 [kg]
+          ADD_Pb210 = Rn_LOST(I,J,L) * Pb_Rn_RATIO
 
           !-----------------------------------------------------------
           ! HISTORY (aka netCDF diagnostics)
@@ -268,22 +268,22 @@ CONTAINS
 
           ! Units: [kg/s], but consider eventually changing to [kg/m2/s]
           IF ( State_Diag%Archive_PbFromRnDecay ) THEN
-             State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb / DTCHEM )
+             State_Diag%PbFromRnDecay(I,J,L) = ( ADD_Pb210 / DTCHEM )
           ENDIF
 
-          ! Add 210Pb gained by decay from 222Rn into Spc [kg]
-          Spc(id_Pb210)%Conc(I,J,L) = Spc(id_Pb210)%Conc(I,J,L) + ADD_Pb
+          ! Add Pb210 gained by decay from Rn222 into Spc [kg]
+          Spc(id_Pb210)%Conc(I,J,L) = Spc(id_Pb210)%Conc(I,J,L) + ADD_Pb210
 
-          ! Update stratospheric 210Pb [kg]
-          IF ( State_Met%InStratosphere(I,J,L) .and. id_Pb210Strat > 0 ) THEN
-             Spc(id_Pb210Strat)%Conc(I,J,L) = Spc(id_Pb210Strat)%Conc(I,J,L) + ADD_Pb
+          ! Update stratospheric Pb210 [kg]
+          IF ( State_Met%InStratosphere(I,J,L) .and. id_Pb210s > 0 ) THEN
+             Spc(id_Pb210s)%Conc(I,J,L) = Spc(id_Pb210s)%Conc(I,J,L) + ADD_Pb210
           ENDIF
 
-          ! Amount of 210Pb lost to radioactive decay [kg]
-          ! NOTE: we've already added in the 210Pb gained from 222Rn
-          Pb_LOST = Spc(id_Pb210)%Conc(I,J,L) * ( 1.0_fp - EXP_Pb )
-          IF ( id_Pb210Strat > 0 ) THEN
-             PbStrat_LOST = Spc(id_Pb210Strat)%Conc(I,J,L) * ( 1.0_fp - EXP_Pb)
+          ! Amount of Pb210 lost to radioactive decay [kg]
+          ! NOTE: we've already added in the Pb210 gained from Rn222
+          Pb210_LOST = Spc(id_Pb210)%Conc(I,J,L) * ( 1.0_fp - EXP_Pb210 )
+          IF ( id_Pb210s > 0 ) THEN
+             Pb210s_LOST = Spc(id_Pb210s)%Conc(I,J,L) * ( 1.0_fp - EXP_Pb210)
           ENDIF
 
           !-----------------------------------------------------------
@@ -297,25 +297,25 @@ CONTAINS
              IF ( id_Pb210 > 0 ) THEN
                 S = State_Diag%Map_RadDecay%id2slot(id_Pb210)
                 IF ( S > 0 ) THEN
-                   State_Diag%RadDecay(I,J,L,S) = ( Pb_LOST / DTCHEM )
+                   State_Diag%RadDecay(I,J,L,S) = ( Pb210_LOST / DTCHEM )
                 ENDIF
              ENDIF
 
              ! Loss of Pb210 produced in stratosphere [kg/s]
-             IF ( id_Pb210Strat > 0 ) THEN
-                S = State_Diag%Map_RadDecay%id2slot(id_Pb210Strat)
+             IF ( id_Pb210s > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Pb210s)
                 IF ( S > 0 ) THEN
-                   State_Diag%RadDecay(I,J,L,S) = ( PbStrat_LOST / DTCHEM )
+                   State_Diag%RadDecay(I,J,L,S) = ( Pb210s_LOST / DTCHEM )
                 ENDIF
              ENDIF
           ENDIF
 
-          ! Subtract 210Pb lost to decay from Spc [kg]
-          Spc(id_Pb210)%Conc(I,J,L) = Spc(id_Pb210)%Conc(I,J,L) - Pb_LOST
+          ! Subtract Pb210 lost to decay from Spc [kg]
+          Spc(id_Pb210)%Conc(I,J,L) = Spc(id_Pb210)%Conc(I,J,L) - Pb210_LOST
 
-          ! Update stratospheric 210Pb [kg]
-          IF ( id_Pb210Strat > 0 ) THEN
-             Spc(id_Pb210Strat)%Conc(I,J,L) = Spc(id_Pb210Strat)%Conc(I,J,L) - PbStrat_LOST
+          ! Update stratospheric Pb210 [kg]
+          IF ( id_Pb210s > 0 ) THEN
+             Spc(id_Pb210s)%Conc(I,J,L) = Spc(id_Pb210s)%Conc(I,J,L) - Pb210s_LOST
           ENDIF
 
        ENDDO
@@ -329,18 +329,18 @@ CONTAINS
     !=================================================================
 
     ! Make sure Be7 is a defined species
-    IF ( id_Be7 > 0 .or. id_Be7Strat > 0 ) THEN
+    IF ( id_Be7 > 0 .or. id_Be7s > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7Strat_LOST, S )
+       !$OMP PRIVATE( I, J, L, Be7_LOST, Be7s_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          ! Amount of 7Be lost to decay [kg]
+          ! Amount of Be7 lost to decay [kg]
           Be7_LOST = Spc(id_Be7)%Conc(I,J,L) * ( 1d0 - EXP_Be7 )
-          IF ( id_Be7Strat > 0 ) THEN
-             Be7Strat_LOST = Spc(id_Be7Strat)%Conc(I,J,L) * ( 1d0 - EXP_Be7 )
+          IF ( id_Be7s > 0 ) THEN
+             Be7s_LOST = Spc(id_Be7s)%Conc(I,J,L) * ( 1d0 - EXP_Be7 )
           ENDIF
 
           !-----------------------------------------------------------
@@ -359,20 +359,20 @@ CONTAINS
              ENDIF
              
              ! Loss of Be7 produced in stratosphere [kg/s]
-             IF ( id_Be7Strat > 0 ) THEN
-                S = State_Diag%Map_RadDecay%id2slot(id_Be7Strat)
+             IF ( id_Be7s > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be7s)
                 IF ( S > 0 ) THEN
-                   State_Diag%RadDecay(I,J,L,S) = ( Be7Strat_LOST / DTCHEM )
+                   State_Diag%RadDecay(I,J,L,S) = ( Be7s_LOST / DTCHEM )
                 ENDIF
              ENDIF
           ENDIF
 
-          ! Subtract amount of 7Be lost to decay from Spc [kg]
+          ! Subtract amount of Be7 lost to decay from Spc [kg]
           Spc(id_Be7)%Conc(I,J,L) = Spc(id_Be7)%Conc(I,J,L) - Be7_LOST
 
-          ! Update stratospheric 7Be [kg]
-          IF ( id_Be7Strat > 0 ) THEN
-             Spc(id_Be7Strat)%Conc(I,J,L) = Spc(id_Be7Strat)%Conc(I,J,L) - Be7Strat_LOST
+          ! Update stratospheric Be7 [kg]
+          IF ( id_Be7s > 0 ) THEN
+             Spc(id_Be7s)%Conc(I,J,L) = Spc(id_Be7s)%Conc(I,J,L) - Be7s_LOST
           ENDIF
 
        ENDDO
@@ -386,18 +386,18 @@ CONTAINS
     !=================================================================
 
     ! Make sure Be10 is a defined species
-    IF ( id_Be10 > 0 .or. id_Be10Strat > 0 ) THEN
+    IF ( id_Be10 > 0 .or. id_Be10s > 0 ) THEN
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10Strat_LOST, S )
+       !$OMP PRIVATE( I, J, L, Be10_LOST, Be10s_LOST, S )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          ! Amount of 10Be lost to decay [kg]
+          ! Amount of Be10 lost to decay [kg]
           Be10_LOST = Spc(id_Be10)%Conc(I,J,L) * ( 1d0 - EXP_Be10 )
-          IF ( id_Be10Strat > 0 ) THEN
-             Be10Strat_LOST = Spc(id_Be10Strat)%Conc(I,J,L) * ( 1d0 - EXP_Be10 )
+          IF ( id_Be10s > 0 ) THEN
+             Be10s_LOST = Spc(id_Be10s)%Conc(I,J,L) * ( 1d0 - EXP_Be10 )
           ENDIF
 
           !-----------------------------------------------------------
@@ -416,20 +416,20 @@ CONTAINS
              ENDIF
 
              ! Loss of Be10 produced in stratosphere [kg/s]
-             IF ( id_Be10Strat > 0 ) THEN
-                S = State_Diag%Map_RadDecay%id2slot(id_Be10Strat)
+             IF ( id_Be10s > 0 ) THEN
+                S = State_Diag%Map_RadDecay%id2slot(id_Be10s)
                 IF ( S > 0 ) THEN
-                   State_Diag%RadDecay(I,J,L,S) = ( Be10Strat_LOST / DTCHEM)
+                   State_Diag%RadDecay(I,J,L,S) = ( Be10s_LOST / DTCHEM)
                 ENDIF
              ENDIF
           ENDIF
 
-          ! Subtract amount of 10Be lost to decay from Spc [kg]
+          ! Subtract amount of Be10 lost to decay from Spc [kg]
           Spc(id_Be10)%Conc(I,J,L) = Spc(id_Be10)%Conc(I,J,L) - Be10_LOST
 
-          ! Update stratospheric 10Be [kg]
-          IF ( id_Be10Strat > 0 ) THEN
-             Spc(id_Be10Strat)%Conc(I,J,L) = Spc(id_Be10Strat)%Conc(I,J,L) - Be10Strat_LOST
+          ! Update stratospheric Be10 [kg]
+          IF ( id_Be10s > 0 ) THEN
+             Spc(id_Be10s)%Conc(I,J,L) = Spc(id_Be10s)%Conc(I,J,L) - Be10s_LOST
           ENDIF
 
        ENDDO

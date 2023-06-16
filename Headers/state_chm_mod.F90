@@ -83,6 +83,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nPhotol              ! # photolysis species
      INTEGER                    :: nProd                ! # of prod species
      INTEGER                    :: nRadNucl             ! # of radionuclides
+     INTEGER                    :: nTracer              ! # of transport tracers
      INTEGER                    :: nWetDep              ! # wetdep species
 
      !-----------------------------------------------------------------------
@@ -103,6 +104,7 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_Prod   (:      ) ! Prod diag species
      CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
      INTEGER,           POINTER :: Map_RadNucl(:      ) ! Radionuclide IDs
+     INTEGER,           POINTER :: Map_Tracer (:      ) ! Transport tracer IDs
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
      INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
@@ -467,6 +469,7 @@ CONTAINS
     State_Chm%Map_Prod          => NULL()
     State_Chm%Name_Prod         => NULL()
     State_Chm%Map_RadNucl       => NULL()
+    State_Chm%Map_Tracer        => NULL()
     State_Chm%Map_WetDep        => NULL()
     State_Chm%Map_WL            => NULL()
 
@@ -800,6 +803,7 @@ CONTAINS
     State_Chm%nOmitted = SpcCount%nOmitted
     State_Chm%nPhotol  = SpcCount%nPhotol
     State_Chm%nRadNucl = SpcCount%nRadNucl
+    State_Chm%nTracer  = SpcCount%nTracer
     State_Chm%nWetDep  = SpcCount%nWetDep
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
@@ -2494,6 +2498,13 @@ CONTAINS
        State_Chm%Map_RadNucl = 0
     ENDIF
 
+    IF ( State_Chm%nTracer > 0 ) THEN
+       ALLOCATE( State_Chm%Map_Tracer( State_Chm%nTracer ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Tracer', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Tracer = 0
+    ENDIF
+
     IF ( State_Chm%nWetDep > 0 ) THEN
        ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_WetDep', 0, RC )
@@ -2612,11 +2623,19 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
-       ! Set up the mapping for WETDEP SPECIES
+       ! Set up the mapping for RADIONUCLIDE SPECIES
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_RadioNuclide ) THEN
           C                        = ThisSpc%RadNuclId
           State_Chm%Map_RadNucl(C) = ThisSpc%ModelId
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Set up the mapping for TRANSPORT TRACER SPECIES
+       !---------------------------------------------------------------------
+       IF ( ThisSpc%Is_Tracer ) THEN
+          C                       = ThisSpc%TracerId
+          State_Chm%Map_Tracer(C) = ThisSpc%ModelId
        ENDIF
 
        !---------------------------------------------------------------------
@@ -3075,9 +3094,16 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Map_RadNucl ) ) THEN
        DEALLOCATE( State_Chm%Map_RadNucl, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_WetDep', 2, RC )
+       CALL GC_CheckVar( 'State_Chm%Map_RadNucl', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_RadNucl => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_Tracer ) ) THEN
+       DEALLOCATE( State_Chm%Map_Tracer, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Tracer', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Tracer => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
@@ -6616,6 +6642,7 @@ CONTAINS
 !   'N' or 'n' : Returns radionuclide species index
 !   'P' or 'p' : Returns photolysis species index
 !   'S' or 's' : Returns main species index (aka "ModelId")
+!   'T' or 't' : Returns transport tracer index
 !   'V' or 'v' : Returns KPP variable species index
 !   'W' or 'w' : Returns wet-deposition species index
 !
@@ -6690,6 +6717,11 @@ CONTAINS
        ! Species/ModelID
        CASE ( 'S', 's' )
           Indx = SpcDataLocal(N)%Info%ModelID
+          RETURN
+
+       ! Transport tracer ID
+       CASE( 'T', 't' )
+          Indx = SpcDataLocal(N)%Info%TracerId
           RETURN
 
        ! KPP variable species ID
