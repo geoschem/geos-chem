@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.2.0]
+## [Unreleased]
 ### Added
 - Added a printout of GEOS-Chem species and indices
 - Added `NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
@@ -80,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
+- Use proper species names in GCHP `HISTORY.rc.TransportTracers` template
 
 ## [14.1.1] - 2023-03-03
 ### Added
