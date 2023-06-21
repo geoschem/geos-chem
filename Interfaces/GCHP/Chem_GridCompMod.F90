@@ -513,10 +513,10 @@ CONTAINS
                                   Label = "Shortlived_species_in_restart:", &
                                   Default = 1, __RC__ )
     IF ( DoIt==1 ) THEN
-       restartAttr  = MAPL_RestartOptional
+       SpcRestartAttr  = MAPL_RestartOptional
        SpcInRestart = .TRUE.
     ELSE
-       restartAttr  = MAPL_RestartSkip
+       SpcRestartAttr  = MAPL_RestartSkip
        SpcInRestart = .FALSE.
     ENDIF
     ! Check if we want to use a reduced set of species for transport
