@@ -120,7 +120,6 @@ CONTAINS
 
     ! For fields from Input_Opt
     LOGICAL            :: ITS_A_CH4_SIM
-    LOGICAL            :: prtDebug
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Arrays of state vector elements for applying emissions perturbations
@@ -147,10 +146,7 @@ CONTAINS
     ! Copy values from Input_Opt
     ITS_A_CH4_SIM  = Input_Opt%ITS_A_CH4_SIM
 
-    ! Do we have to print debug output?
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-
-    IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%Verbose ) THEN
        print*,'BEGIN SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -465,6 +461,25 @@ CONTAINS
     ENDIF
     Ptr2D => NULL()
 
+    !-------------------
+    ! Reservoirs
+    !-------------------
+    DgnName = 'CH4_RESERVOIRS'
+    CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+
+    ! Trap potential errors and assign HEMCO pointer to array
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Cannot get pointer to HEMCO field ' // TRIM(DgnName)
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ELSEIF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
+       ErrMsg = 'Unassociated pointer to HEMCO field ' // TRIM(DgnName)
+       CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc )
+    ELSE
+       State_Chm%CH4_EMIS(:,:,16) =  Ptr2D(:,:)
+    ENDIF
+    Ptr2D => NULL()
+
     ! =================================================================
     ! Total emission: sum of all emissions - (2*soil absorption)
     ! We have to substract soil absorption twice because it is added
@@ -472,7 +487,7 @@ CONTAINS
     ! =================================================================
     State_Chm%CH4_EMIS(:,:,1) = SUM(State_Chm%CH4_EMIS, 3) - (2 * State_Chm%CH4_EMIS(:,:,15))
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
        WRITE(*,*) 'Total        : ', SUM(State_Chm%CH4_EMIS(:,:,1))
        WRITE(*,*) 'Oil          : ', SUM(State_Chm%CH4_EMIS(:,:,2))
@@ -489,6 +504,7 @@ CONTAINS
        WRITE(*,*) 'Lakes        : ', SUM(State_Chm%CH4_EMIS(:,:,13))
        WRITE(*,*) 'Termites     : ', SUM(State_Chm%CH4_EMIS(:,:,14))
        WRITE(*,*) 'Soil absorb  : ', SUM(State_Chm%CH4_EMIS(:,:,15))
+       WRITE(*,*) 'Reservoirs   : ', SUM(State_Chm%CH4_EMIS(:,:,16))
     ENDIF
 
     ! =================================================================
@@ -544,7 +560,7 @@ CONTAINS
 
     ENDIF
 
-    IF ( ITS_A_CH4_SIM .and. prtDebug ) THEN
+    IF ( ITS_A_CH4_SIM .and. Input_Opt%Verbose ) THEN
        print*,'END SUBROUTINE: EMISSCH4'
     ENDIF
 
@@ -632,7 +648,6 @@ CONTAINS
 
     ! For fields from Input_Opt
     LOGICAL            :: LSPLIT
-    LOGICAL            :: prtDebug
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -652,12 +667,11 @@ CONTAINS
 
     ! Copy values from Input_Opt
     LSPLIT  = Input_Opt%LSPLIT
-    prtDebug= ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to the chemical species
     Spc     => State_Chm%Species
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) '% --- ENTERING CHEMCH4! ---'
     ENDIF
 
@@ -902,14 +916,14 @@ CONTAINS
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH ) &
-    !$OMP PRIVATE( C_Cl, KRATE_Cl ) &
+    !$OMP PRIVATE( C_Cl, KRATE_Cl                       ) &
     !$OMP REDUCTION( +:TROPOCH4 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
        ! Only consider tropospheric boxes
-       IF ( State_Met%InChemGrid(I,J,L) ) THEN
+       IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
           ! Calculate rate coefficients
           KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L))
@@ -957,8 +971,8 @@ CONTAINS
           ENDIF
 
           ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt)
-          GCH4 = GCH4 * ( 1e+0_fp - KRATE    * C_OH * DT )
-          GCH4 = GCH4 * ( 1e+0_fp - KRATE_Cl * C_Cl * DT )
+          GCH4 = GCH4 *                                                      &
+             ( 1.0_fp - ( KRATE * C_OH * DT ) - ( KRATE_Cl * C_Cl * DT )    )
 
           ! Convert back from [molec/cm3] --> [kg/box]
           Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4
@@ -1385,7 +1399,7 @@ CONTAINS
     DO I = 1, State_Grid%NX
 
        ! Only proceed if we are outside of the chemistry grid
-       IF ( .not. State_Met%InChemGrid(I,J,L) ) THEN
+       IF ( .not. State_Met%InTroposphere(I,J,L) ) THEN
 
           ! Conversion factor [kg/box] --> [molec/cm3]
           ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]

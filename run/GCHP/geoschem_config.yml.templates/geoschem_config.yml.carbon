@@ -9,7 +9,10 @@ simulation:
   name: ${RUNDIR_SIM_NAME}
   chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
-  debug_printout: false
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
 
 #============================================================================
 # Settings for GEOS-Chem operations

@@ -140,9 +140,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    LOGICAL            :: prtDebug
-
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
@@ -159,7 +156,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at ChemPops (in module GeosCore/pops_mod.F90)'
 
@@ -230,12 +226,12 @@ CONTAINS
 
     ! Compute diurnal scaling for OH
     CALL OHNO3TIME( State_Grid )
-    IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( 'CHEMPOPS: a OHNO3TIME' )
 
     !-------------------------
     ! GAS AND PARTICLE PHASE chemistry
     !-------------------------
-    IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( 'CHEMPOPS: b CHEM_GASPART' )
 
     ! Add option for non-local PBL (cdh, 08/27/09)
     IF ( Input_Opt%LNLPBL ) THEN
@@ -398,8 +394,10 @@ CONTAINS
 
     ENDIF
 
-    IF ( prtDebug ) CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
-
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( 'CHEMPOPS: a CHEM_GASPART' )
+    ENDIF
+    
     ! Nullify pointers
     NULLIFY( DepFreq )
 

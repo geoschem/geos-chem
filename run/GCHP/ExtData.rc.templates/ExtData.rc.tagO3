@@ -217,8 +217,8 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 #==============================================================================
 #--- Prod/Loss rates from the fullchem simulation ---
 #==============================================================================
-O3_PROD  1  N Y F%y4-%m2-01T00:00:00 none none Prod_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
-O3_LOSS  1  N Y F%y4-%m2-01T00:00:00 none none Loss_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m2%d2_0000z.nc4
+O3_PROD  1  N Y F%y4-%m2-01T00:00:00 none none Prod_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+O3_LOSS  1  N Y F%y4-%m2-01T00:00:00 none none Loss_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 #
 #==============================================================================
 # --- Oceanic ozone deposition ---

@@ -1,6 +1,7 @@
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
@@ -20,9 +21,9 @@ VERSION: 1
 #   SpeciesConc.conservative: 1
 #
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution
@@ -101,6 +102,7 @@ COLLECTIONS: 'Emissions',
                               'EmisCH4_Lakes        ', 'GCHPchem',
                               'EmisCH4_Termites     ', 'GCHPchem',
                               'EmisCH4_SoilAbsorb   ', 'GCHPchem',
+                              'EmisCH4_Reservoirs   ', 'GCHPchem',
                               'EmisCO_Total         ', 'GCHPchem',
                               'EmisCO_Aircraft      ', 'GCHPchem',
                               'EmisCO_Anthro        ', 'GCHPchem',
@@ -272,7 +274,6 @@ COLLECTIONS: 'Emissions',
                            'Met_GWETTOP    ', 'GCHPchem',
                            'Met_HFLUX      ', 'GCHPchem',
                            'Met_LAI        ', 'GCHPchem',
-                           'Met_LWI        ', 'GCHPchem',
                            'Met_PARDR      ', 'GCHPchem',
                            'Met_PARDF      ', 'GCHPchem',
                            'Met_PBLTOPL    ', 'GCHPchem',

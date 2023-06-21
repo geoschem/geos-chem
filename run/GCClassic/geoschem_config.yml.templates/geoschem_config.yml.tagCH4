@@ -16,7 +16,9 @@ simulation:
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
   species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
-  debug_printout: false
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
 #============================================================================
@@ -78,6 +80,7 @@ operations:
       - CH4_LAK
       - CH4_TER
       - CH4_SAB
+      - CH4_RES
 
 #============================================================================
 # Settings specific to the CH4 simulation / Integrated Methane Inversion

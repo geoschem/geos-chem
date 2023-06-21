@@ -48,7 +48,7 @@
 #SBATCH -n 60
 #SBATCH -N 2
 #SBATCH -t 2:00:00
-#SBATCH -p seas_compute
+#SBATCH -p huce_intel,seas_compute,shared
 #SBATCH --mem=110G
 #SBATCH --mail-type=ALL
 #
@@ -144,7 +144,7 @@ source checkRunSettings.sh
 #
 # POST-RUN COMMANDS
 #
-# If new start time in cap_restart is okay, rename and move restart file
+# If new start time in cap_restart is okay, rename restart file
 # and update restart symlink
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
@@ -152,6 +152,22 @@ if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi
+
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done

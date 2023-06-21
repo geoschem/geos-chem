@@ -14,7 +14,9 @@ simulation:
   end_date: 20000101 010000
   chem_inputs_dir: ./
   species_database_file: ./species_database.yml
-  debug_printout: false
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
 
 #============================================================================
 # Settings for GEOS-Chem operations
@@ -53,9 +55,9 @@ operations:
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
     photolyze_nitrate_aerosol:
-      activate: false
-      NITs_Jscale_JHNO3: 0.0
-      NIT_Jscale_JHNO2: 0.0
+      activate: true
+      NITs_Jscale_JHNO3: 100.0
+      NIT_Jscale_JHNO2: 100.0
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 

@@ -61,3 +61,17 @@ target_compile_options(KPP
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
 )
+
+# FOR GFORTRAN ONLY: Disable variable tracking for gckpp_Jacobian.F90 in the
+# KPP/fullchem mechanism generated with KPP.  This will avoid a compiler
+# warning and a restart of the KPP library build.  This only has to be done
+# for release types "Release" and "RelWithDebugInfo".
+#   -- Bob Yantosca (16 Feb 2023)
+if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
+  if(NOT ("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Debug"))
+    set_source_files_properties(gckpp_Jacobian.F90
+      PROPERTIES
+      COMPILE_OPTIONS -fno-var-tracking-assignments
+    )
+  endif()
+endif()

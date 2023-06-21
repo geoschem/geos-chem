@@ -133,8 +133,6 @@ CONTAINS
        _VERIFY(STATUS)
     ENDIF
     
-
-
     _RETURN(ESMF_SUCCESS)
 
   END SUBROUTINE GEOS_CarbonSetServices

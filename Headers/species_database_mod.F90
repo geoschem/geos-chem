@@ -128,7 +128,6 @@ CONTAINS
     LOGICAL                     :: found_wd_rainouteff_luo
     LOGICAL                     :: found_wd_retfactor_luo
     LOGICAL                     :: no_luo
-    LOGICAL                     :: prtDebug
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
     INTEGER                     :: v_int
@@ -158,7 +157,8 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(48)
+    CHARACTER(LEN=17)           :: tags(64)
+    CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
     TYPE(QFYAML_t)              :: yml
@@ -170,7 +170,6 @@ CONTAINS
 
     ! Initialize
     RC         = GC_SUCCESS
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     errMsg     = ""
     thisLoc    = &
     " -> at Init_Species_Database (in module Headers/species_database_mod.F90"
@@ -189,6 +188,7 @@ CONTAINS
     SpcCount%nPhotol  = 0
     SpcCount%nRadNucl = 0
     SpcCount%nRealSpc = 0
+    SpcCount%nTracer  = 0
     SpcCount%nWetDep  = 0
     SpcCount%nHg0     = 0
     SpcCount%nHg2     = 0
@@ -218,6 +218,7 @@ CONTAINS
              "Is_HgP           ",  &
              "Is_Photolysis    ",  &
              "Is_RadioNuclide  ",  &
+             "Is_Tracer        ",  &
              "Is_WetDep        ",  &
              "Henry_CR         ",  &
              "Henry_CR_Luo     ",  &
@@ -228,6 +229,21 @@ CONTAINS
              "MP_SizeResNum    ",  &
              "MW_g             ",  &
              "Radius           ",  &
+             "Snk_Horiz        ",  &
+             "Snk_Lats         ",  &
+             "Snk_Mode         ",  &
+             "Snk_Period       ",  &
+             "Snk_Value        ",  &
+             "Snk_Vert         ",  &
+             "Src_Add          ",  &
+             "Src_Horiz        ",  &
+             "Src_Lats         ",  &
+             "Src_Mode         ",  &
+             "Src_Pressures    ",  &
+             "Src_Units        ",  &
+             "Src_Value        ",  &
+             "Src_Vert         ",  &
+             "Units            ",  &
              "WD_AerScavEff    ",  &
              "WD_CoarseAer     ",  &
              "WD_ConvFacI2G    ",  &
@@ -577,6 +593,15 @@ CONTAINS
                 ThisSpc%Is_RadioNuclide = v_bool
              ENDIF
 
+          ELSE IF ( INDEX( key, "%Is_Tracer" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             IF ( v_bool ) THEN
+                SpcCount%nTracer       = SpcCount%nTracer + 1
+                ThisSpc%TracerId       = SpcCount%nTracer
+                ThisSpc%Is_Tracer      = v_bool
+             ENDIF
+
           ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -605,6 +630,87 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Radius = DBLE( v_real )         ! Don't round off
+
+          ELSE IF ( INDEX( key, "%Snk_Horiz" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Horiz = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Snk_Lats" ) > 0 ) THEN
+             a_str = MISSING_STR
+             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_LatMin = Cast_and_RoundOff( a_str(1), places=4 )
+             ThisSpc%Snk_LatMax = Cast_and_RoundOff( a_str(2), places=4 )
+
+          ELSE IF ( INDEX( key, "%Snk_Mode" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Mode = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Snk_Period" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Period = DBLE( v_real )
+
+          ELSE IF ( INDEX( key, "%Snk_Value" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Value = DBLE( v_real )
+
+          ELSE IF ( INDEX( key, "%Snk_Vert" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Snk_Vert = TRIM( v_str )
+ 
+          ELSE IF ( INDEX( key, "%Src_Add" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Add = v_bool
+
+          ELSE IF ( INDEX( key, "%Src_Horiz" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Horiz = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Src_Lats" ) > 0 ) THEN
+             a_str = MISSING_STR
+             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_LatMin = Cast_and_RoundOff( a_str(1), places=4 )
+             ThisSpc%Src_LatMax = Cast_and_RoundOff( a_str(2), places=4 )
+
+          ELSE IF ( INDEX( key, "%Src_Mode" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Mode = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Src_Pressures" ) > 0 ) THEN
+             a_str = MISSING_STR
+             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_PresMin = Cast_and_RoundOff( a_str(1), places=4 )
+             ThisSpc%Src_PresMax = Cast_and_RoundOff( a_str(2), places=4 )
+
+          ELSE IF ( INDEX( key, "%Src_Units" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Units = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Src_Value" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Value = DBLE( v_real )
+
+          ELSE IF ( INDEX( key, "%Src_Vert" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Src_Vert = TRIM( v_str )
+
+          ELSE IF ( INDEX( key, "%Units" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%Units = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%WD_AerScavEff" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -820,6 +926,11 @@ CONTAINS
        ENDIF
 #endif
 
+       ! Debug printout
+       IF ( Input_Opt%Verbose ) THEN
+          CALL Spc_Print( Input_Opt, ThisSpc, RC )
+       ENDIF
+
        ! Free pointer
        ThisSpc => NULL()
     ENDDO
@@ -835,22 +946,19 @@ CONTAINS
     !=======================================================================
     ! Print metadata for only the species that are defined in this
     ! simulation (but not the entire species database) to a YAML file.
-    !
-    ! Also note: Input_Opt%amIRoot is always set to False in MODEL_CESM
-    ! so we will need to block out the test for it for CESM only.
+    ! This file may be used for pre-processing files in other models
+    ! when updating GEOS-Chem versions, such as in WRF and CESM. It
+    ! should not be generated when running those models. Output file is
+    ! set in simulation%species_metadata_output_file in geoschem_config.yml.
     !=======================================================================
-    IF ( TRIM( Input_Opt%SpcMetaDataOutFile ) /= "none" ) THEN
-#ifndef MODEL_CESM
+    IF ( LEN(TRIM( Input_Opt%SpcMetaDataOutFile )) > 0 ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-#endif
           CALL QFYAML_Print( yml        = yml,                               &
                              fileName   = Input_Opt%SpcMetaDataOutFile,      &
                              searchKeys = species_names,                     &
                              RC         = RC                                )
 
-#ifndef MODEL_CESM
        ENDIF
-#endif
     ENDIF
 
     !=======================================================================

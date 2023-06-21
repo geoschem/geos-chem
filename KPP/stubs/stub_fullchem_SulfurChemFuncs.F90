@@ -21,7 +21,7 @@ CONTAINS
     !
   END SUBROUTINE fullchem_ConvertEquivToAlk
   !
-  SUBROUTINE fullchem_HetDropChem( I,         J,         L,         SR,      &
+  SUBROUTINE fullchem_HetDropChem( I,         J,         L,                  &
                                    Input_Opt, State_Met, State_Chm          )
     !
     ! Stub for GeosCore/fullchem_mod.F90:fullchem_HetDropChem
@@ -35,7 +35,6 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(MetState), INTENT(IN)    :: State_Met
     TYPE(ChmState), INTENT(INOUT) :: State_Chm
-    REAL(dp),       INTENT(OUT)   :: SR
   END SUBROUTINE fullchem_HetDropChem
   !
   SUBROUTINE fullchem_InitSulfurChem( RC )

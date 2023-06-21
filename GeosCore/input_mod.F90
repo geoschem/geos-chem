@@ -170,16 +170,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Passive Species settigns (if any)
-    CALL Config_PassiveSpecies( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_PassiveSpecies"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
     ! Convection and PBL mixing settings
     CALL Config_Convection_Mixing( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -461,6 +451,7 @@ CONTAINS
     CHARACTER(LEN=6)             :: timeStr
     CHARACTER(LEN=8)             :: dateStr
     CHARACTER(LEN=12)            :: met
+    CHARACTER(LEN=15)            :: verboseMsg
     CHARACTER(LEN=24)            :: sim
     CHARACTER(LEN=255)           :: thisLoc
     CHARACTER(LEN=512)           :: errMsg
@@ -509,18 +500,18 @@ CONTAINS
     ENDIF
 
     ! Set simulation type flags in Input_Opt
+    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
     Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
                                        TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
+    Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
 
     !------------------------------------------------------------------------
     ! Species database file
@@ -551,7 +542,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Turn on debug output
     !------------------------------------------------------------------------
-    key    = "simulation%debug_printout"
+    key    = "simulation%verbose%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -559,7 +550,36 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%LPRT = v_bool
+    Input_Opt%VerboseRequested = v_bool
+
+    !------------------------------------------------------------------------
+    ! Which cores for verbose output: root or all?
+    !------------------------------------------------------------------------
+    key  = "simulation%verbose%on_cores"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%VerboseOnCores = To_UpperCase( v_str )
+
+    ! Should verbose output be printed only on root or on all cores?
+    SELECT CASE ( TRIM( Input_Opt%VerboseOnCores ) )
+       CASE( 'ROOT' )
+          verboseMsg = 'root core only'
+          Input_Opt%Verbose =                                                &
+             ( Input_Opt%VerboseRequested .and. Input_Opt%amIRoot )    
+       CASE( 'ALL' )
+          verboseMsg = 'all cores'
+          Input_Opt%Verbose = Input_Opt%VerboseRequested
+       CASE DEFAULT
+          errMsg = 'Invalid selection!' // NEW_LINE( 'a' ) //                &
+               'simulation:verbose:on_cores must be either "root" or "all"'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+    END SELECT
 
 #if defined( MODEL_GCHP ) || defined( MODEL_GEOS )
     !========================================================================
@@ -799,38 +819,6 @@ CONTAINS
     ENDIF
     Input_Opt%UseTimers = v_bool
 
-    ! Error check simulation name
-    Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
-         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
-         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
-         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
-         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'CARBON'                                         .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
-       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
-                ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
-                ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
-                                       TRIM(Sim) == 'TAGCH4'                )
-    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
-    Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
-    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
-                                       TRIM(Sim) == 'TAGHG'                 )
-    Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
-    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
-    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
-    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
-    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(SIM) == 'CARBON'                )
-
     !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
     !------------------------------------------------------------------------
@@ -887,8 +875,10 @@ CONTAINS
                         TRIM( Input_Opt%CHEM_INPUTS_DIR )
        WRITE( 6, 110 ) 'Species database file       : ',                     &
                         TRIM( Input_Opt%SpcDatabaseFile )
-       WRITE( 6, 120 ) 'Turn on debug output        : ',                     &
-                        Input_Opt%LPRT
+       WRITE( 6, 120 ) 'Turn on verbose output      : ',                     &
+                        Input_Opt%Verbose
+       WRITE( 6, 110 ) 'Verbose output printed on   : ',                     &
+                        TRIM( verboseMsg )
 #ifdef MODEL_CLASSIC
        WRITE( 6, 100 ) 'Start time of run           : ',                     &
                         Input_Opt%NYMDb, Input_Opt%NHMSb
@@ -2898,9 +2888,24 @@ CONTAINS
     thisLoc = ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Directory with photolysis input files
+    ! Turn on photolysis
     !------------------------------------------------------------------------
-    key   = "operations%photolysis%input_dir"
+
+    key    = "operations%photolysis%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Directories with photolysis input files
+    !------------------------------------------------------------------------
+
+    key   = "operations%photolysis%input_directories%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3092,6 +3097,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
+       WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
@@ -5186,200 +5192,6 @@ CONTAINS
     RC = GC_SUCCESS
 
   END SUBROUTINE Config_POPs
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_passivespecies
-!
-! !DESCRIPTION: Copies passive species information from the Config
-!  object to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_PassiveSpecies( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  04 Sep 2015 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                      :: C
-    INTEGER                      :: P
-    REAL(yp)                     :: v_real
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! String arrays
-    CHARACTER(LEN=QFYAML_NamLen) :: passSpcName(Input_Opt%Max_PassiveSpc)
-
-    !========================================================================
-    ! Config_PassiveSpecies
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at Config_PassiveSpecies (in module GeosCore/input_mod.F90)'
-
-    !========================================================================
-    ! Check for passive species
-    !========================================================================
-    key = "operations%transport%passive_species%"
-    CALL QFYAML_FindNextHigher( Config,             TRIM( key ),             &
-                                Input_Opt%nPassive, passSpcName             )
-
-    ! Return if there are no passive species
-    IF ( Input_Opt%nPassive == 0 ) RETURN
-
-    ! Throw an error if there are more than the max # of passive species
-    IF ( Input_Opt%nPassive > Input_Opt%Max_PassiveSpc ) THEN
-       errMsg = 'Number of passive species exceeds maximum. ' // &
-            'This value can be modified in input_opt_mod.F90.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !========================================================================
-    ! Copy the passive species names & metadata into Input_Opt
-    !========================================================================
-
-    ! Write header
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES SETTINGS'
-       WRITE( 6, '(  a)' ) '------------------------'
-    ENDIF
-
-    ! Loop over passive species
-    DO P = 1, Input_Opt%nPassive
-
-       !---------------------------------------------------------------------
-       ! Passive species index and name
-       !---------------------------------------------------------------------
-
-       ! Index
-       Input_Opt%Passive_Id(P)   = P
-
-       ! NOTE: passSpcName is the full YAML variable name
-       ! (e.g. operations%trasnport%passive_species%...",
-       ! but we'll extract the last part of that for saving into
-       ! Input_Opt%Passive_Name.
-       C = INDEX( passSpcName(P), '%', back=.TRUE. )
-       Input_Opt%Passive_Name(P) = TRIM( passSpcName(P)(C+1:) )
-
-       !---------------------------------------------------------------------
-       ! Passive species long name (if found)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%long_name'
-       v_str = MISSING_STR
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_LongName(P) = TRIM( v_str )
-
-       !---------------------------------------------------------------------
-       ! Passive species molecular weight (g)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%mol_wt_in_g'
-       v_str = MISSING_STR
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_MW(P) = Cast_and_RoundOff( v_str, places=2 )
-
-       !---------------------------------------------------------------------
-       ! Passive species lifetime (s); -1 means it never decays
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%lifetime_in_s'
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_Tau(P) = Cast_and_RoundOff( v_str, places=-1 )
-
-       ! Determine if the passive species decays (i.e. if it has
-       ! an atmospheric lifetime that is not -1).  This will allow
-       ! us to skip those passive species that do not decay in
-       ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-       IF ( Input_Opt%Passive_Tau(P) > 0.0_fp ) THEN
-          Input_Opt%nPassive_Decay = Input_Opt%nPassive_Decay + 1
-          Input_Opt%Passive_DecayId(Input_Opt%nPassive_Decay) = P
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Default background concentration (v/v)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%default_bkg_conc_in_vv'
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_Initconc(P) = Cast_and_RoundOff( v_str, places=-1 )
-
-       !---------------------------------------------------------------------
-       ! Logfile output
-       !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 95  ) 'Added passive species: '
-          WRITE( 6, 110 ) ' - Species name                : ',               &
-                           TRIM( Input_Opt%Passive_Name(P) )
-          WRITE( 6, 120 ) ' - Molec. weight [g/mol]       : ',               &
-                          Input_Opt%Passive_MW(P)
-          WRITE( 6, 130 ) ' - Lifetime [s]                : ',               &
-                          Input_Opt%Passive_TAU(P)
-          WRITE( 6, 130 ) ' - Initial concentration [v/v] : ',               &
-                          Input_Opt%Passive_InitConc(P)
-          WRITE( 6, 110 ) ' - Species long name           : ',               &
-                          TRIM( Input_Opt%Passive_LongName(P) )
-       ENDIF
-    ENDDO
-
-    ! Format statememnts
-90  FORMAT( /, A      )
-95  FORMAT( A         )
-110 FORMAT( A, A      )
-120 FORMAT( A, F10.2  )
-130 FORMAT( A, ES10.2 )
-
-  END SUBROUTINE Config_PassiveSpecies
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

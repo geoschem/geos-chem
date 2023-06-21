@@ -39,8 +39,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             0
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 ### END SECTION SETTINGS ###
 
@@ -62,10 +62,12 @@ Warnings:                    1
     --> HTAP                   :       false    # 2008-2010
     --> UNIFORM_CO             :       true
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
+    --> GLOBAL_O3              :       true     # 2010-2019
+    --> O3_LOSS                :       true     # 2010-2019
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
 #------------------------------------------------------------------------------
-100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7Strat/Be10/Be10Strat
+100     GC_Rn-Pb-Be            : on    Rn222/Be7/Be7s/Be10/Be10s
 # ----- Always Leave Extension 100 turned on.  Furthermore:
 # ----- Turning on  ZHANG_Rn222 will use Zhang et al [2020] Rn222 emissions
 # ----- Turning off ZHANG_Rn222 will use default emissions (Jacob et al [1997])
@@ -217,6 +219,20 @@ Warnings:                    1
 * SPC_           ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
 * DELPDRY        ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
+
+#==============================================================================
+# --- O3 concentrations ---
+#==============================================================================
+(((GLOBAL_O3
+${RUNDIR_GLOBAL_O3}
+)))GLOBAL_O3
+
+#==============================================================================
+# --- O3 loss rates ---
+#==============================================================================
+(((O3_LOSS
+${RUNDIR_O3_LOSS}
+)))O3_LOSS
 
 #==============================================================================
 # --- Olson land map masks ---

@@ -1,0 +1,151 @@
+###############################################################################
+###  HISTORY.rc file for GEOS-Chem CH4 specialty simulations                ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
+###############################################################################
+
+#============================================================================
+# EXPID allows you to specify the beginning of the file path corresponding
+# to each diagnostic collection.  For example:
+#
+#   EXPID: ./GEOSChem
+#      Will create netCDF files whose names begin "GEOSChem",
+#      in this run directory.
+#
+#   EXPID: ./OutputDir/GEOSChem
+#      Will create netCDF files whose names begin with "GEOSChem"
+#      in the OutputDir sub-folder of this run directory.
+#
+#============================================================================
+EXPID:  ./WRFGC
+
+#==============================================================================
+# %%%%% COLLECTION NAME DECLARATIONS %%%%%
+#
+# To enable a collection, remove the "#" character in front of its name. The
+# Restart collection should always be turned on.
+#
+# NOTE: These are the "default" collections for GEOS-Chem, but you can create
+# your own customized diagnostic collections as well.
+#==============================================================================
+COLLECTIONS: 'CH4',
+             'Metrics',
+             'SpeciesConc',
+             'Budget',
+             #'CloudConvFlux',
+             #'ConcAfterChem',
+::
+###############################################################################
+### The rest of this file consists of collection definitions.               ###
+### Above collections whose declarations are commented out will be ignored. ###
+### Make sure that each collection definition, as well as the list of       ###
+### collections above, ends with a double-colon ("::").                     ###
+###############################################################################
+
+#==============================================================================
+# %%%%% THE Metrics COLLECTION %%%%%
+#
+# Diagnostics for chemistry metrics such as global mean OH concentration,
+# MCF lifetime, and CH4 lifetime.
+#
+# This diagnostic collection should always be left on.
+# Use the run-directory script ./metrics_ch4.py to print results.
+#
+# Available for full-chemistry and CH4 simulations only.
+#==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull             ',
+                              'CH4emission                   ',
+                              'CH4massColumnFull             ',
+                              'CH4massColumnTrop             ',
+                              'LossOHbyCH4columnTrop         ',
+                              'LossOHbyMCFcolumnTrop         ',
+                              'OHwgtByAirMassColumnFull      ',
+::
+#==============================================================================
+# %%%%% THE SpeciesConc COLLECTION %%%%%
+#
+# GEOS-Chem species concentrations (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.frequency:      00000000 010000,
+  SpeciesConc.duration:       00000000 120000,
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+::
+#==============================================================================
+# %%%%% THE Budget COLLECTION %%%%%
+#
+# GEOS-Chem budget diagnostics defined as species kg/s in the column
+# (full, troposphere, or PBL) due to a single component (e.g. chemistry)
+# (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.frequency:    00000000 010000,
+  Budget.duration:     00000000 120000,
+  Budget.mode:         'time-averaged'
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
+                       'BudgetChemistryFull_?ADV?            ',
+                       'BudgetChemistryTrop_?ADV?            ',
+                       'BudgetChemistryPBL_?ADV?             ',
+                       'BudgetTransportFull_?ADV?            ',
+                       'BudgetTransportTrop_?ADV?            ',
+                       'BudgetTransportPBL_?ADV?             ',
+                       'BudgetMixingFull_?ADV?               ',
+                       'BudgetMixingTrop_?ADV?               ',
+                       'BudgetMixingPBL_?ADV?                ',
+                       'BudgetConvectionFull_?ADV?           ',
+                       'BudgetConvectionTrop_?ADV?           ',
+                       'BudgetConvectionPBL_?ADV?            ',
+::
+#==============================================================================
+# %%%%% THE CH4 COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CH4.template:               '%y4%m2%d2_%h2%n2z.nc4',
+  CH4.frequency:              00000000 010000,
+  CH4.duration:               00000000 120000,
+  CH4.mode:                   'time-averaged'
+  CH4.fields:                 'OHconcAfterChem               ',
+                              'LossCH4byClinTrop             ',
+                              'LossCH4byOHinTrop             ',
+                              'LossCH4inStrat                ',
+::
+#==============================================================================
+# %%%%% THE CloudConvFlux COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.frequency:    00000000 010000,
+  CloudConvFlux.duration:     00000000 120000,
+  CloudConvFlux.mode:         'time-averaged'
+  CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
+::
+#==============================================================================
+# %%%%% THE ConcAfterChem COLLECTION %%%%%
+#
+# Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
+# or OH after the CH4 specialty-simulation chemistry routine.
+#
+# OH:       Available for all full-chemistry simulations and CH4 specialty sim
+#==============================================================================
+  ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  ConcAfterChem.frequency:    00000000 010000,
+  ConcAfterChem.duration:     00000000 120000,
+  ConcAfterChem.mode:         'time-averaged'
+  ConcAfterChem.fields:       'OHconcAfterChem               ',
+::

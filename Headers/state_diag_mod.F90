@@ -21,7 +21,6 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
-  USE CMN_FJX_MOD,        ONLY : W_
   USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
   USE Dictionary_M,       ONLY : dictionary_t
@@ -298,6 +297,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: SatDiagnRxnRate(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnRxnRate
      LOGICAL                     :: Archive_SatDiagnRxnRate     
+
+     REAL(f4),           POINTER :: RxnConst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnConst
+     LOGICAL                     :: Archive_RxnConst
 
      REAL(f4),           POINTER :: OHreactivity(:,:,:)
      LOGICAL                     :: Archive_OHreactivity
@@ -1519,6 +1522,10 @@ CONTAINS
     State_Diag%Map_SatDiagnRxnRate                 => NULL()
     State_Diag%Archive_SatDiagnRxnRate             = .FALSE.
 
+    State_Diag%RxnConst                            => NULL()
+    State_Diag%Map_RxnConst                        => NULL()
+    State_Diag%Archive_RxnConst                    = .FALSE.
+
     State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
 
@@ -2486,10 +2493,10 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+       WRITE( 6, 10 )
+ 10    FORMAT(/, 'Allocating the following fields of the State_Diag object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
     !------------------------------------------------------------------------
@@ -3909,9 +3916,9 @@ CONTAINS
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
-    ! THE Rn-Pb-Be-Passive SPECIALTY SIMULATION
+    ! THE TransportTracers SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay
@@ -3963,7 +3970,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! the Rn-Pb-Be-Passive simulation.
+       ! the TransportTracers simulation.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -3983,7 +3990,7 @@ CONTAINS
           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC  )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for Rn-Pb-Be-Passive '// &
+                      'but this is only appropriate for TransportTracers '// &
                       'simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -5072,6 +5079,30 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! KPP Reaction Rate Constants
+       !--------------------------------------------------------------------
+       diagID  = 'RxnConst'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnConst,                            &
+            archiveData    = State_Diag%Archive_RxnConst,                    &
+            mapData        = State_Diag%Map_RxnConst,                        &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
        diagID  = 'OHreactivity'
@@ -6086,7 +6117,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 34
+       DO N = 1, 35
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6165,6 +6196,8 @@ CONTAINS
                 diagID = 'KppcNONZERO'
              CASE( 38 )
                 diagID = 'KppAutoReduceThres'
+             CASE( 39 )
+                diagID = 'RxnConst'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -10324,16 +10357,25 @@ CONTAINS
     !========================================================================
     ! Print information about the registered fields (short format)
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Diag%Registry,               &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Diag%Registry,                  &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
     !========================================================================
     ! Set high-level logicals for diagnostics
@@ -10451,13 +10493,6 @@ CONTAINS
                                                3                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
   END SUBROUTINE Init_State_Diag
@@ -10762,6 +10797,12 @@ CONTAINS
     CALL Finalize( diagId   = 'SatDiagnRxnRate',                             &
                    Ptr2Data = State_Diag%SatDiagnRxnRate,                    &
                    mapData  = State_Diag%Map_SatDiagnRxnRate,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RxnConst',                                    &
+                   Ptr2Data = State_Diag%RxnConst,                           &
+                   mapData  = State_Diag%Map_RxnConst,                       &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -12504,7 +12545,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'RXN'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNCONST' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rate constants'
+       IF ( isUnits   ) Units = '(cm3 molec-1)**(nreactants - 1) s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
@@ -14170,7 +14217,7 @@ CONTAINS
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
-          numTags = W_
+          numTags = State_Chm%Phot%nWLbins
        CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )
@@ -16731,7 +16778,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -16916,7 +16963,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17097,7 +17144,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17288,7 +17335,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17473,7 +17520,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17651,7 +17698,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
