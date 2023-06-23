@@ -149,7 +149,7 @@ EDGAR_CO_25_TRO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGA
 EDGAR_CO_25_TNG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
 EDGAR_CO_25_RCO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
 EDGAR_CO_25_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
-#EDGAR_C_O2d_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
+#EDGAR_CO_25_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
 EDGAR_CO_25_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
 EDGAR_CO_25_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
 #
@@ -187,13 +187,12 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 #==============================================================================
 # --- O3 concentrations ---
 #==============================================================================
-GLOBAL_O3  1  N Y F%y4-%m2-01T00:00:00 none none SpeciesConc_O3 ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+GLOBAL_O3  1  N Y F%y4-%m2-01T00:00:00 none none SpeciesConc_O3 ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 #
 #==============================================================================
 # --- O3 loss rates ---
 #==============================================================================
-O3_LOSS  1  N Y F%y4-%m2-01T00:00:00 none none Loss_Ox ./HcoDir/GCClassic_Output/14.0.0/%y
-4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+O3_LOSS  1  N Y F%y4-%m2-01T00:00:00 none none Loss_Ox ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 #
 ###############################################################################
 ###
