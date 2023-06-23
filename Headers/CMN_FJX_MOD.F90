@@ -240,9 +240,6 @@ CONTAINS
     JXL1_  = JXL_+1        ! Vertical levs edges for J-values
     JXL2_  = 2*JXL_+2      ! Max # levs in the basic Fast-JX grid (mid-level)
 
-    JTAUMX = ( N_ - 4*JXL_ ) / 2  ! Maximum number of divisions ( i.e., may
-                                  ! not get to ATAUMN)
-
 #ifdef MODEL_GEOS
     ! N_  = no. of levels in Mie scattering arrays
     IF ( Input_Opt%LLFASTJX > 0 ) THEN
@@ -251,6 +248,9 @@ CONTAINS
        N_ = 601
     ENDIF
 #endif
+
+    JTAUMX = ( N_ - 4*JXL_ ) / 2  ! Maximum number of divisions ( i.e., may
+                                  ! not get to ATAUMN)
 
     AN_       = 37  ! # of separate aerosols per layer; Including PSCs
     W_        = 18  ! # of wavelength bins
