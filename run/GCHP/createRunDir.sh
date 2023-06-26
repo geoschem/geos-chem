@@ -300,6 +300,7 @@ printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
 printf "  3. GEOS-FP native data\n"
+printf "  4. GEOS-IT \n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -327,7 +328,15 @@ while [ "${valid_met}" -eq 0 ]; do
             RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
         fi
 	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
+    elif [[ ${met_num} = "4" ]]; then
+	met="geosit"
+        read -p "Are you running on NASA discover? (yes/no, default=no): " use_discover
+	if [[ "$use_discover" =~ ^[Yy] ]]; then
+	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
+        else
+	    printf "\nRunning with GEOS-IT data is only supported on NASA discover at this time.\n"
+	    exit 1
+	fi
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
