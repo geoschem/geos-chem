@@ -501,7 +501,7 @@ elif [[ ${sim_name} = "carbon" ]]; then
     restart_dir='v2023-01'
     restart_name="${sim_name}"
 fi
-for N in 24 48 90 180 360
+for N in 24 30 48 90 180 360
 do
     old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
