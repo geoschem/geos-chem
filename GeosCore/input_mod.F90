@@ -792,6 +792,8 @@ CONTAINS
           Input_Opt%MetField = 'GEOSFP'
        CASE( 'MERRA-2', 'MERRA2' )
           Input_Opt%MetField = 'MERRA2'
+       CASE( 'GEOS-IT', 'GEOSIT' )
+          Input_Opt%MetField = 'GEOSIT'
        CASE( 'MODELE2.1' )
           Input_Opt%MetField = 'MODELE2.1'
        CASE( 'MODELE2.2' )
