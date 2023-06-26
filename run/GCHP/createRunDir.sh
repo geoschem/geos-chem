@@ -598,6 +598,13 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 # Initialize run directory
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
+# Reset run directory symbolic links if using NASA discover
+if [[ "$use_discover" =~ ^[Yy] ]]; then
+   ln -nsf /home/dao_ops/d5294_geosit_jan18/run/.../archive/diag/ MetDir
+   ln -nsf ${GC_DATA_ROOT}/v0.0.0/CHEM_INPUTS/                    ChemDir
+   ln -nsf ${GC_DATA_ROOT}/../                                    HcoDir
+fi
+
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
