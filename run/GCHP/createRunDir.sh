@@ -332,7 +332,13 @@ while [ "${valid_met}" -eq 0 ]; do
 	met="geosit"
         read -p "Are you running on NASA discover? (yes/no, default=no): " use_discover
 	if [[ "$use_discover" =~ ^[Yy] ]]; then
-	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
+	    read -p "Are you using native files? (yes/no, default=no): " use_discover_native
+	    if [[ "$use_discover_native" =~ ^[Yy] ]]; then
+		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
+	    else
+                printf "\nWARNING: Only processed lat-lon fields available. Will use lat-lon winds with dry pressure in advection.\n"
+		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.txt)\n"
+	    fi
         else
 	    printf "\nRunning with GEOS-IT data is only supported on NASA discover at this time.\n"
 	    exit 1
