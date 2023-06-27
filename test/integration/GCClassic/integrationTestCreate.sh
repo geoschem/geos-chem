@@ -5,15 +5,15 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: paralleltestCreate.sh
+# !MODULE: integrationTestCreate.sh
 #
-# !DESCRIPTION: Creates parallelization test run directories in a
-#  user-specified root folder, and copies a run script there.
+# !DESCRIPTION: Creates integration test run directories in a user-specified
+#  root folder, and copies a run script there.
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./paralleltestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./paralleltestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -22,9 +22,9 @@
 # Arguments
 #=============================================================================
 
-# Parallelization test root folder
-ptRoot="${1}"
-if [[ "x${ptRoot}" == "x" ]]; then
+# Integration test root folder
+itRoot="${1}"
+if [[ "x${itRoot}" == "x" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
@@ -40,7 +40,7 @@ if [[ ! -f ${envFile} ]]; then
     exit 1
 fi
 
-# Run a short parallelization test?
+# Run a short integration test?
 quick="${3}"
 
 #=============================================================================
@@ -51,7 +51,7 @@ quick="${3}"
 thisDir=$(pwd -P)
 cd "${thisDir}"
 
-# GCClassic superproject directory
+# GCClassic superproject directory (absolute paths)
 cd ../../../../../
 superProjectDir=$(pwd -P)
 cd ${superProjectDir}
@@ -69,13 +69,14 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Source the script containing utility functions and variables
-. "${geosChemDir}/test/shared/commonFunctionsForTests.sh"
+commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
+. "${commonFuncs}"
 
 # Echo header
 printf "${SEP_MAJOR}\n"
-printf "Creating GEOS-Chem Classic Parallelization Tests\n\n"
+printf "Creating GEOS-Chem Classic Integration Tests\n\n"
 printf "GCClassic #${head_gcc}\n"
-printf "GEOS_Chem #${head_gc}\n"
+printf "GEOS-Chem #${head_gc}\n"
 printf "HEMCO     #${head_hco}\n"
 printf "${SEP_MAJOR}\n"
 
@@ -83,21 +84,24 @@ printf "${SEP_MAJOR}\n"
 # Create integration test folder and subdirectories
 #=============================================================================
 
-# Create parallelization test root folder if it doesn't exist
-ptRoot=$(absolute_path "${ptRoot}")
-[[ ! -d "${ptRoot}" ]] && mkdir -p "${ptRoot}"
+# Create integration test root folder if it doesn't exist
+itRoot=$(absolute_path "${itRoot}")
+[[ ! -d "${itRoot}" ]] && mkdir -p "${itRoot}"
 
 # Create local convenience variables
-binDir="${ptRoot}/${BIN_DIR}"
-buildDir="${ptRoot}/${BUILD_DIR}"
-envDir="${ptRoot}/${ENV_DIR}"
-execDir="${ptRoot}/${EXEC_DIR}"
-logsDir="${ptRoot}/${LOGS_DIR}"
-scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
-rundirsDir="${ptRoot}/${RUNDIRS_DIR}"
+binDir="${itRoot}/${BIN_DIR}"
+buildDir="${itRoot}/${BUILD_DIR}"
+envDir="${itRoot}/${ENV_DIR}"
+execDir="${itRoot}/${EXEC_DIR}"
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
-# Remove everything in the parallelization test root folder
-cleanup_files "${ptRoot}"
+# Get absolute path of the environment file
+envFile=$(absolute_path "${envFile}")
+
+# Remove run directories in the test folder
+cleanup_files "${itRoot}"
 
 # Subdir for CMake builds (note: will create ${itRoot}
 printf "\nCreating CMake build directories:\n"
@@ -127,22 +131,22 @@ printf "Creating rundirs directory   ${rundirsDir}\n"
 mkdir -p "${rundirsDir}"
 
 # Create a symbolic link to the code from the Integration Test root folder
-printf "Linking to superproject      ${ptRoot}/CodeDir\n"
-ln -s "${superProjectDir}" ${ptRoot}/CodeDir
+printf "Linking to superproject      ${itRoot}/CodeDir\n"
+ln -s "${superProjectDir}" ${itRoot}/CodeDir
 
 #=============================================================================
 # Copy files to the proper folders
 #=============================================================================
 
-printf "\nCopying run scripts to: ${ptRoot}\n"
-cp -f ${envFile}                            ${envDir}/gcclassic.env
-cp -f ${thisDir}/parallelTest*.sh           ${scriptsDir}
-cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
-cp -f ${thisDir}/README.md                  ${scriptsDir}
-cp -f ${thisDir}/README.testroot.md         ${ptRoot}/README.md
+printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
+cp -f ${envFile}                     ${envDir}/gcclassic.env
+cp -f ${thisDir}/integration*.sh     ${scriptsDir}
+cp -f ${commonFuncs}                 ${scriptsDir}
+cp -f ${thisDir}/README.md           ${scriptsDir}
+cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
 
 # Log file with echoback from rundir creation
-log="${logsDir}/createParallelTests.log"
+log="${logsDir}/createIntegrationTests.log"
 
 # Switch to folder where rundir creation scripts live
 cd "${geosChemDir}/run/GCClassic"
@@ -152,19 +156,22 @@ cd "${geosChemDir}/run/GCClassic"
 #=============================================================================
 printf "\nCreating new run directories:\n"
 
+# 4x5 merra2 CH4
+create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+# 4x5 merra2 CO2
+create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
 # 4x5 merra2 aerosol
 create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-#4x5 merra2 carbon
+# 4x5 merra2 carbon
 create_rundir "12\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 CH4
-create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # 4x5 merra2 fullchem
 create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
+# DEBUG: Exit after creating a couple of rundirsDirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
     exit 0
@@ -198,6 +205,9 @@ create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 # 4x5 merra2 fullchem_TOMAS15_47L
 create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
+# 4x5 merra2 fullchem_TOMAS40_47L
+create_rundir "1\n6\n2\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
+
 # 4x5 merra2 Hg
 create_rundir "5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
@@ -220,22 +230,25 @@ create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 dir="gc_4x5_merra2_TransportTracers_LuoWd"
 create_rundir "10\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
 
-# 4x5 merra2 metals"
+# 4x5 merra2 metals
 create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Create individual run directories: 4x5 and 47L (MERRA2)
 #=============================================================================
 
-# 4x5 merra2 fullchem_47L"
+# 4x5 merra2 fullchem_47L
 create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Nested-grid simulations
 #=============================================================================
 
-# 05x0625 merra2 CH4_47L_na"
+# 05x0625 merra2 CH4_47L_na
 create_rundir "3\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+
+# 05x0625 merra2 fullchem_47L_na
+create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Cleanup and quit
@@ -247,14 +260,16 @@ cd "${thisDir}"
 # Free local variables
 unset binDir
 unset buildDir
+unset commonFuncs
 unset dir
 unset envDir
 unset geosChemDir
+unset itRoot
 unset log
 unset logsDir
-unset ptRoot
 unset rundirsDir
 unset superProjectDir
+unset scriptsDir
 unset thisDir
 
 # Free imported variables

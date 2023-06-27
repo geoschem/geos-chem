@@ -7,8 +7,8 @@
 #
 # !MODULE: integrationTest.sh
 #
-# !DESCRIPTION: Runs integration tests on the various GCHP run directories
-# (interactively, or with a scheduler).
+# !DESCRIPTION: Runs integration tests on the various GEOS-Chem Classic
+#  run directories (interactively, or with a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
@@ -17,20 +17,20 @@
 #  Where the command-line arguments are as follows:
 #
 #    -d root-dir  : Specify the root folder for integration tests
-#    -e env-file  : Specify the environment file (w/ module loads)
-#    -h           : Display a help message
+#    -e env-file  : Specitify the environment file (w/ module loads)
+#    -h help      : Display a help message
 #    -p partition : Select partition for SLURM or LSF schedulers
 #    -q           : Run a quick set of integration tests (for testing)
 #    -s scheduler : Specify the scheduler (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-dir  (instead of -d root-directory)
-#    --env-file  env-file  (instead of -e env-file      )
-#    --help                (instead of -h               )
-#    --partition partition (instead of -p partition     )
-#    --quick               (instead of -q               )
-#    --scheduler scheduler (instead of -s scheduler     )
+#    --directory root-dir  (instead of -d root-dir )
+#    --env-file  env-file  (instead of -e env-file )
+#    --help                (instead of -h          )
+#    --partition partition (instead of -p partition)
+#    --quick               (instead of -q          )
+#    --scheduler scheduler (instead of -s scheduler)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -142,8 +142,12 @@ fi
 thisDir=$(pwd -P)
 
 # Load common functions
-. "${thisDir}/commonFunctionsForTests.sh"
-
+if [[ -f "../../shared/commonFunctionsForTests.sh" ]]; then
+    . "${thisDir}/../../shared/commonFunctionsForTests.sh"
+elif [[ -f "${thisDir}/commonFunctionsForTests.sh" ]]; then
+    . "${thisDir}/commonFunctionsForTests.sh"
+fi
+    
 #=============================================================================
 # Create integration test directories in the root folder
 #=============================================================================
@@ -158,7 +162,7 @@ if [[ $? -ne 0 ]]; then
    exit 1
 fi
 
-# Change to the integration test root folder
+# Navigate to the root test folder
 if [[ -d "${itRoot}" ]]; then
     cd "${itRoot}"
 else
@@ -185,7 +189,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     # Remove LSF #BSUB tags
     sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -W 01:30/d'               "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -W 0:30/d'                "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
@@ -195,7 +199,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 	"${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie '/#BSUB -W 3:30/d'                "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -W 6:00/d'                "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
@@ -218,6 +222,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     output=($output)
     exeId=${output[3]}
 
+    # Echo SLURM jobIDs
     echo ""
     echo "Compilation tests submitted as SLURM job ${cmpId}"
     echo "Execution   tests submitted as SLURM job ${exeId}"
@@ -231,14 +236,14 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     # Remove SLURM #SBATCH tags
     sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-01:30/d'             "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-0:30/d'              "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-03:30/d'             "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-6:00/d'              "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestExecute.sh"
@@ -261,10 +266,6 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     exeId=${exeId/<}
     exeId=${exeId/>}
 
-    echo ""
-    echo "Compilation tests submitted as LSF job ${cmpId}"
-    echo "Execution   tests submitted as LSF job ${exeId}"
-
 else
 
     #-------------------------------------------------------------------------
@@ -276,10 +277,11 @@ else
     echo "Compiliation tests are running..."
     ${scriptsDir}/integrationTestCompile.sh &
 
-    # Change back to this directory
-    cd "${thisDir}"
-
 fi
+
+# Change back to this directory
+cd "${thisDir}"
+
 
 #=============================================================================
 # Cleanup and quit
