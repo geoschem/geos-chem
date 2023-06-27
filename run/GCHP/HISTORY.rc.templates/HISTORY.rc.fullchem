@@ -73,6 +73,7 @@ COLLECTIONS: @#'DefaultCollection',
              @#'ProdLoss',
              @##'RRTMG',
              @##'RxnRates',
+             @##'RxnConst',
              #'SpeciesConc',
              @#'StateChm',
              #'StateMet',
@@ -4966,6 +4967,29 @@ COLLECTIONS: @#'DefaultCollection',
   RxnRates.mode:           'time-averaged'
   RxnRates.fields:         'RxnRate_EQ001     ', 'GCHPchem',
                            'RxnRate_EQ002     ', 'GCHPchem',
+::
+#==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of reactants
+# in the reaction.
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnConst.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.format:         'CFIO',
+  RxnConst.timestampStart: .true.
+  RxnConst.monthly:        1
+  RxnConst.frequency:      010000
+  RxnConst.duration:       010000
+  RxnConst.mode:           'time-averaged'
+  RxnConst.fields:         'RxnConst_EQ001    ', 'GCHPchem',
+                           'RxnConst_EQ002    ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%

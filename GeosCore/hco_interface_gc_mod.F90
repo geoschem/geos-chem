@@ -3600,16 +3600,15 @@ CONTAINS
     !-----------------------------------------------------------------
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
          Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
+         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
          Input_Opt%ITS_A_CO2_SIM          .or.                               &
          Input_Opt%ITS_A_CH4_SIM          .or.                               &
          Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
          Input_Opt%ITS_A_POPS_SIM         .or.                               &
-         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
          Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
          Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
-         Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
-
+         Input_Opt%ITS_A_TRACEMETAL_SIM   .or.                               &
+         Input_Opt%ITS_A_TRACER_SIM       ) THEN
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect

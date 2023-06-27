@@ -94,6 +94,7 @@ add_library(GeosCore
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90
+  tracer_mod.F90
   ucx_mod.F90
   uvalbedo_mod.F90
   vdiff_mod.F90

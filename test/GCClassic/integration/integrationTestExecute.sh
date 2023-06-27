@@ -2,13 +2,13 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-3:00
+#SBATCH -t 0-6:00
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
-#BSUB -W 3:00
+#BSUB -W 6:00
 #BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt

@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
 - Rename restart files in GCHP integration tests (as we do in non-test runs)
 - The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
-- Request 3 hours of execution time for GEOS-Chem Classic integration tests
+- Request 6 hours of execution time for GEOS-Chem Classic integration tests
 
 ## [Unreleased 14.2.0]
 ### Added
@@ -30,6 +30,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added speed of light and Planck's constant to PhysConstants module
 - Added `GFED4_CLIMATOLOGY` option to HEMCO_Config.rc
 - Added CH4 emissions from hydroelectric reservoirs to CH4, Carbon, and tagCH4 simulations
+- Added RxnConst diagnostic for archiving reaction rate constants
+- Added GCHP run-time option in GCHP.rc to choose dry or total pressure in GCHP advection
+- Added GCHP run-time option in GCHP.rc to correct native mass fluxes for humidity
+- Added new tracer_mod.F90 containing subroutines for applying sources and sinks for the TransportTracer simulation
+- Added new species to the TransportTracer simulation: aoa (replaces CLOCK), aoa_bl, aoa_nh, st80_25, stOX
+- Added GEOS-IT and GEOSIT as allowable meteorology source options in geoschem_config.yml
 
 ### Changed
 - Most printout has been converted to debug printout (toggled by `debug_printout: true` in `geoschem_config.yml`
@@ -55,6 +61,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated CH4 global anthropogenic emission inventory from EDGARv6 to EDGARv7
 - Updated `AUTHORS.txt` for version 14.2.0
 - Updated links in `README.md` to point to `http://geos-chem.org`
+- Changed GCHP default settings to use dry pressure rather than total pressure in advection and correct native mass fluxes for humidity
+- Updated partitions requested in Harvard run script examples
+- Change RTOL value from 0.5e-3 back to 0.5e-2 to address model slowdown
+- Allow the use of OFFLINE_SEASALT for seasalt alkalinity, Cl, and Br in GEOS-Chem within CESM
+- Renamed TransportTracer species for consistency with GMAO's TR_GridComp
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
@@ -79,6 +90,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Prevent repeated printing of KPP integrate errors to the stdout stream.
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
+- Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
 
 ## [14.1.1] - 2023-03-03
 ### Added

@@ -117,7 +117,7 @@ MODULE Chem_GridCompMod
 
   TYPE GCRA_wrap
      type(GC_run_alarms), pointer  :: ptr
-  END TYPE
+  END TYPE GCRA_wrap
 
   ! For mapping State_Chm%Tracers/Species arrays onto the internal state.
   TYPE(Int2SpcMap), POINTER        :: Int2Spc(:) => NULL()
@@ -401,6 +401,16 @@ CONTAINS
     call MAPL_AddImportSpec(GC, &
        SHORT_NAME         = 'PLE',  &
        LONG_NAME          = 'pressure_level_edges',  &
+       UNITS              = 'Pa', &
+       PRECISION          = ESMF_KIND_R8, &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationEdge,    &
+                                                      RC=STATUS  )
+    _VERIFY(STATUS)
+
+    call MAPL_AddImportSpec(GC, &
+       SHORT_NAME         = 'DryPLE',  &
+       LONG_NAME          = 'dry_pressure_level_edges',  &
        UNITS              = 'Pa', &
        PRECISION          = ESMF_KIND_R8, &
        DIMS               = MAPL_DimsHorzVert,    &
@@ -1132,8 +1142,7 @@ CONTAINS
     ! Internal run alarms
     type(GC_run_alarms), pointer :: GC_alarms
     type(GCRA_wrap)              :: GC_alarm_wrapper
-    TYPE(ESMF_Time)              :: startTime      ! Simulation start time
-    TYPE(ESMF_Time)              :: currTime
+    TYPE(ESMF_Time)              :: currTime       ! Current (start) time
     TYPE(ESMF_Time)              :: ringTime
     type(ESMF_TimeInterval)      :: tsRad_TI
     type(ESMF_TimeInterval)      :: tsChem_TI
@@ -1595,7 +1604,9 @@ CONTAINS
        RadTS = ChemTS
     End If
 
+    !=======================================================================
     ! Establish the internal alarms for GEOS-Chem
+    !=======================================================================
     allocate(GC_alarms,stat=status)
     _ASSERT(rc==0,'Could not allocate GC alarms')
     GC_alarm_wrapper%ptr => GC_alarms
@@ -1605,25 +1616,24 @@ CONTAINS
 
     ! Get information about/from the clock
     CALL ESMF_ClockGet( Clock,                    &
-                        startTime    = startTime, &
                         currTime     = currTime,  &
                         calendar     = cal,       &
                         __RC__ )
+
 
     ! Set up the radiation alarm
     ! Must ring once per tsRad
     call ESMF_TimeIntervalSet(tsRad_TI, S=nint(tsRad), calendar=cal, RC=STATUS)
     _ASSERT(STATUS==0,'Could not set radiation alarm time interval')
 
-    ! Initially, just set the ring time to be midnight on the starting day
-    call ESMF_TimeGet( startTime, YY = yyyy, MM = mm, DD = dd, H=h, M=m, S=s, rc = STATUS )
-    _ASSERT(STATUS==0,'Could not extract start time information')
-    call ESMF_TimeSet( ringTime,  YY = yyyy, MM = mm, DD = dd, H=0, M=0, S=0, rc = STATUS )
+    ! Initialize the ring time to midnight on the starting (current) day
+    call ESMF_TimeGet( currTime, YY=yyyy, MM=mm, DD=dd, H=h, M=m, S=s, rc=STATUS )
+    _ASSERT(STATUS==0,'Could not extract ESMF clock current time information')
+    call ESMF_TimeSet( ringTime, YY=yyyy, MM=mm, DD=dd, H=0, M=0, S=0, rc=STATUS )
     _ASSERT(STATUS==0,'Could not set initial radiation alarm ring time')
 
-    ! NOTE: RRTMG is run AFTER chemistry has completed. So we actually want the
-    ! alarm to go off on the chemistry timestep immediately before the target
-    ! output time.
+    ! Adjust the alarm to go off on the chemistry timestep immediately before the
+    ! target output time. This is because RRTMG is run after chemistry.
     call ESMF_TimeIntervalSet(tsChem_TI, S=nint(tsChem), calendar=cal, RC=STATUS)
     _ASSERT(STATUS==0,'Could not set chemistry alarm time interval')
     ringTime = ringTime - tsChem_TI
@@ -3521,7 +3531,6 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Objects
-    TYPE(ESMF_Time)               :: startTime      ! ESMF start time obj
     TYPE(ESMF_Time)               :: stopTime       ! ESMF stop time obj
     TYPE(ESMF_Time)               :: currTime       ! ESMF current time obj
     TYPE(ESMF_TimeInterval)       :: elapsedTime    ! ESMF elapsed time obj
@@ -3548,6 +3557,10 @@ CONTAINS
     REAL(ESMF_KIND_R8)            :: dt_r8          ! chemistry timestep
 
     CHARACTER(len=ESMF_MAXSTR)    :: OUTSTR         ! Parallel write nonsense
+
+    ! Saved variables
+    LOGICAL, SAVE                 :: FIRST = .TRUE.
+    TYPE(ESMF_Time), SAVE         :: startTime
 
     __Iam__('Extract_')
 
@@ -3682,47 +3695,20 @@ CONTAINS
 
     ! Get the ESMF time object
     CALL ESMF_ClockGet( Clock,                    &
-                        startTime    = startTime, &
                         stopTime     = stopTime,  &
                         currTime     = currTime,  &
                         advanceCount = count,     &
                          __RC__ )
 
-    ! Get starting-time fields from the time object
-    CALL ESMF_TimeGet( startTime, yy=yyyy, mm=mm, dd=dd, dayOfYear=doy, &
-                                  h=h,     m=m,   s=s,   __RC__ )
-
-    ! Save fields for return
-    IF ( PRESENT( nymd     ) ) CALL MAPL_PackTime( nymd, yyyy, mm, dd )
-    IF ( PRESENT( nhms     ) ) CALL MAPL_PackTime( nhms, h,    m,  s  )
-
-    ! Get ending-time fields from the time object
-    CALL ESMF_TimeGet( stopTime, yy=yyyy, mm=mm, dd=dd, dayOfYear=doy, &
-                                 h=h,     m=m,   s=s,   __RC__ )
-
-    ! Save packed fields for return
-    IF ( PRESENT( nymdE    ) ) CALL MAPL_PackTime( nymdE, yyyy, mm, dd )
-    IF ( PRESENT( nhmsE    ) ) CALL MAPL_PackTime( nhmsE, h,    m,  s  )
-
-    IF ( PRESENT( advCount ) ) advCount = count
-
     !=======================================================================
-    ! SDE 2017-01-05: The following calls must be kept as a single block,
-    ! or the wrong date/time elements will be returned (the yyyy/mm/dd
-    ! etc variables are re-used). Specifically, the output variables must
-    ! be set now, before the variables are re-used.
+    ! Current, start, and end times
     !=======================================================================
-    ! Start of current-time block
-    !=======================================================================
-    ! Get current-time fields from the time object
+
+    ! Get current-time fields from the time object. Set start/end if first.
     CALL ESMF_TimeGet( currTime, yy=yyyy, mm=mm, dd=dd, dayOfYear=doy, &
                                  h=h,     m=m,   s=s,   __RC__ )
-
-    ! Save packed fields for return
     IF ( PRESENT( nymd     ) ) CALL MAPL_PackTime( nymd, yyyy, mm, dd )
     IF ( PRESENT( nhms     ) ) CALL MAPL_PackTime( nhms, h,    m,  s  )
-
-    ! Save the various extacted current-time fields for return
     IF ( PRESENT( year     ) ) year     = yyyy
     IF ( PRESENT( month    ) ) month    = mm
     IF ( PRESENT( day      ) ) day      = dd
@@ -3734,24 +3720,22 @@ CONTAINS
                                           ( DBLE( m )/60d0   ) + &
                                           ( DBLE( s )/3600d0 )
 
-    !=======================================================================
-    ! End of current-time block
-    !=======================================================================
-
+    ! Simulation start
+    IF ( FIRST ) THEN
+       startTime = currTime
+    ENDIF
     CALL ESMF_TimeGet( startTime, yy=yyyy, mm=mm, dd=dd, dayOfYear=doy, &
-                                 h=h,     m=m,   s=s,   __RC__ )
+                                  h=h,     m=m,   s=s,   __RC__ )
+    IF ( PRESENT ( nymdB ) ) CALL MAPL_PackTime( nymdB, yyyy, mm, dd )
+    IF ( PRESENT ( nhmsB ) ) CALL MAPL_PackTime( nhmsB, h,    m,  s  )
 
-    ! Save fields for return
-    IF ( PRESENT( nymdB    ) ) CALL MAPL_PackTime( nymdB, yyyy, mm, dd )
-    IF ( PRESENT( nhmsB    ) ) CALL MAPL_PackTime( nhmsB, h,    m,  s  )
-
+    ! Simulation end
     CALL ESMF_TimeGet( stopTime, yy=yyyy, mm=mm, dd=dd, dayOfYear=doy, &
                                  h=h,     m=m,   s=s,   __RC__ )
+    IF ( PRESENT( nymdE ) ) CALL MAPL_PackTime( nymdE, yyyy, mm, dd )
+    IF ( PRESENT( nhmsE ) ) CALL MAPL_PackTime( nhmsE, h,    m,  s  )
 
-    ! Save fields for return
-    IF ( PRESENT( nymdE    ) ) CALL MAPL_PackTime( nymdE, yyyy, mm, dd )
-    IF ( PRESENT( nhmsE    ) ) CALL MAPL_PackTime( nhmsE, h,    m,  s  )
-
+    ! # clock steps
     IF ( PRESENT( advCount ) ) advCount = count
 
     ! Compute elapsed time since start of simulation
@@ -3842,6 +3826,7 @@ CONTAINS
     !=======================================================================
     ! All done
     !=======================================================================
+    FIRST = .FALSE.
     _RETURN(ESMF_SUCCESS)
 
   END SUBROUTINE Extract_
