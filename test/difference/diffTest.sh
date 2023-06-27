@@ -40,16 +40,17 @@ function check_for_diffs() {
     #========================================================================
 
     # Directories to compare
-    rootDir="${1}"
-    refDir="${2}"
-    devDir="${3}"
+    refRoot="${1}"
+    devRoot="${2}"
+    refRunDir="${3}"
+    devRunDir="${4}"
 
     # Dir where files are found ("OutputDir" or "Restarts")
-    refBase=$(basename "${refDir}")
-    devBase=$(basename "${devDir}")
+    refBase=$(basename "${refRunDir}")
+    devBase=$(basename "${devRunDir}")
 
     # Compare files in data directories
-    result=$(diff -r "${refDir}" "${devDir}")
+    result=$(diff -r "${refRunDir}" "${devRunDir}")
 
     # No differences found!  Print and exit.
     if [[ "x${result}" == "x" ]]; then
@@ -67,8 +68,10 @@ function check_for_diffs() {
 
     # Format the result to remove extraneous characters
     for (( i=1; i<=$nDiffs; i++ )) do
-	result=${result/"${rootDir}/"}
-	result=${result/"${rootDir}/"}
+	result=${result/"${refRoot}/"}
+	result=${result/"${refRoot}/"}
+	result=${result/"${devRoot}/"}
+	result=${result/"${devRoot}/"}
 	if (( $i == 1 )); then
 	   result=${result/'Binary files '/'* '}
 	else
@@ -87,38 +90,39 @@ function main() {
     #========================================================================
     # Main program.  Loops over all run directories in the <ref_it_dir>
     # and <dev_it_dir> paths, and checks diagnostic & restart files
-    # for differences.  
+    # for differences.
     #========================================================================
 
     # Error check # of arguments
     if [[ $# -ne 2 ]]; then
-	echo "Usage: ./intDiffTest <ref_it_dir> <dev_it_dir>"
+	echo "Usage: ./diffTest.sh <ref_it_dir> <dev_it_dir>"
 	exit 1
     fi
 
-    # Integration test root directory
-    rootDir=$(pwd)
+    # Paths to Ref & Def root directories
+    refRoot=$(dirname "${1}")
+    devRoot=$(dirname "${2}")
 
-    # Ref & Dev root directories
-    refRoot="${rootDir}/${1}/rundirs"
-    devRoot="${rootDir}/${2}/rundirs"
+    # Paths to Ref/rundirs and Dev/rundirs directories
+    refRunDirs="${1}/rundirs"
+    devRunDirs="${2}/rundirs"
 
-    # List of run directories
-    runDirs=$(ls "${refRoot}")
+    # Get a list of all the run directories
+    runDirs=$(ls "${refRunDirs}")
 
     # Loop over run directories
     for dir in ${runDirs[@]}; do
 	printf "Checking ${dir}\n"
 
 	# Check diagnostic files for differences
-	ref="${refRoot}/${dir}/OutputDir"
-	dev="${devRoot}/${dir}/OutputDir"
-	check_for_diffs "${rootDir}" "${ref}" "${dev}"
+	ref="${refRunDirs}/${dir}/OutputDir"
+	dev="${devRunDirs}/${dir}/OutputDir"
+	check_for_diffs "${refRoot}" "${devRoot}" "${ref}" "${dev}"
 
 	# Check restart files for differences
-	ref="${refRoot}/${dir}/Restarts"
-	dev="${devRoot}/${dir}/Restarts"
-	check_for_diffs "${rootDir}" "${ref}" "${dev}"
+	ref="${refRunDirs}/${dir}/Restarts"
+	dev="${devRunDirs}/${dir}/Restarts"
+	check_for_diffs "${refRoot}" "${devRoot}" "${ref}" "${dev}"
 
 	# Print a space between rundirs
 	ref=""
@@ -129,7 +133,7 @@ function main() {
     # Return with success
     return 0
 }
-    
+
 #========================================================================
 # Call main with command-line arguments
 #========================================================================
