@@ -54,14 +54,14 @@ Hg_CHEM_PROP: &HgChemProperties
   Is_WetDep: true
   Is_Hg2: true
   WD_RetFactor: 1.0
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBr:
   Fullname: HgBr
   Formula: HgBr
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrNO2:
   << : *HgChemProperties
   Fullname: syn-HgBrONO
@@ -86,11 +86,13 @@ HgBrO:
   FullName: HgBrO
   Formula: HgBrO
   Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrOH:
   << : *HgChemProperties
   Fullname: HgBrOH
   Formula: BrHgOH
   Is_Photolysis: true
+  MW_g:
 HgBr2:
   << : *HgChemProperties
   Fullname: HgBr2
@@ -103,7 +105,7 @@ HgCl:
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: false
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgClNO2:
   << : *HgChemProperties
   Fullname: syn-HgClONO
@@ -133,24 +135,25 @@ HgClO:
   Fullname: HgClO
   Formula: ClHgO
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgClOH:
   << : *HgChemProperties
   Fullname: HgClOH
   Formula: ClHgOH
   Is_Photolysis: true
+  MW_g:
 HgOH:
   Fullname: HgOH
   Formula: HgOH
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHO:
   Fullname: HgOHO
   Formula: HgOHO
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHNO2:
   << : *HgChemProperties
   Fullname: syn-HgOHONO
@@ -166,6 +169,7 @@ HgOHClO:
   Fullname: HgBrClO
   Formula: HOHgOCl
   Is_Photolysis: true
+  MW_g:
 HgOHBrO:
   << : *HgChemProperties
   Fullname: HgOHBrO
@@ -188,7 +192,7 @@ Hg2ClP:
   Is_DryDep: true
   Is_WetDep: true
   Is_HgP: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -201,7 +205,7 @@ Hg2ORGP:
   Is_Photolysis: true
   Is_WetDep: true
   Is_HgP: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
   WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -211,7 +215,7 @@ Hg2STRP:
   Is_Advected: true
   Is_Aerosol: true
   Is_HgP: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HO2:
   Background_VV: 4.0e-15
   Formula: HO2
@@ -246,20 +250,20 @@ OH:
 PHg2:
   FullName: Gross production of gaseous oxidized Hg
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 PHg0:
   FullName: Gross production of Hg2
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 PHg2Br:
   FullName: Gaseous oxidized Hg production from Br
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 PHg2OH:
   FullName: Gaseous oxidized Hg production from OH
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
 PHg2Cl:
   FullName: Gaseous oxidized Hg production from Cl
   Is_Gas: true
-  MW_g: 200.59
+  MW_g: 200.59   # Use mol wt of atomic Hg
