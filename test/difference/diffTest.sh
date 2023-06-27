@@ -6,7 +6,7 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: integrationDiffTest.sh
+# !MODULE: diffTest.sh
 #
 # !DESCRIPTION: Looks for differences in two integration test or parallel
 #  test directories.  Checks both diagnostic files (in the OutputDir/ folder
@@ -15,10 +15,13 @@
 #\\
 #\\
 # !CALLING SEQUENCE
-#  ./integrationDiffTest.sh <ref_it_dir> <dev_it_dir>
+#  ./diffTest.sh <ref_it_dir> <dev_it_dir>
 #
 #  where <ref_it_dir> is the path to the "Ref" integration test root folder
 #  and   <dev_it_dir> is the path to the "Dev" integration test root folder
+#
+# !REMARKS:
+#  TODO: Add capability to check parallel tests for identicality
 #
 # !AUTHORS
 #  Lizzie Lundgren (@lizziel)
@@ -131,3 +134,4 @@ function main() {
 # Call main with command-line arguments
 #========================================================================
 main $@
+
