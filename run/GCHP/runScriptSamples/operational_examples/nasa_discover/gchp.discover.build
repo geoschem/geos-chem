@@ -2,14 +2,17 @@
 
 # For discover
 #SBATCH --time 00:45:00
-#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --nodes=1 --ntasks-per-node=12
 #SBATCH --job-name=gchp_build
 #SBATCH --constraint=sky
-#SBATCH --account=s____
+#SBATCH --account=s1043
 
-source gchp.env
-cd build
-cmake ../CodeDir -DRUNDIR=..
+rundir=$(pwd -P)
+blddir=../build
+
+source ${rundir}/gchp.env
+cd ${blddir}
+cmake ${rundir}/CodeDir -DRUNDIR=${rundir}
 make -j > build.log
 make install >> build.log
-cd ..
+cd ${rundir}

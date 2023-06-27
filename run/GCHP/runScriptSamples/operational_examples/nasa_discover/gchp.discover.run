@@ -6,7 +6,7 @@
 #SBATCH --mem=60G
 #SBATCH --job-name=gchp_c30_run
 #SBATCH --constraint=sky
-#SBATCH --account=s____
+#SBATCH --account=s1043
 
 # If a subsequent command fails, treat it as fatal (don't continue)
 set -e
@@ -22,7 +22,7 @@ ulimit -u 50000              # maxproc
 ulimit -v unlimited          # vmemoryuse
 ulimit -s unlimited          # stacksize
 
-source gchp.env
+source gchp.discover.env
 
 # Print loaded modules
 module list     
