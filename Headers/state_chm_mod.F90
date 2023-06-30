@@ -2668,7 +2668,7 @@ CONTAINS
     ENDDO
 
     ! Write closing line
-    WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
+    IF ( Input_Opt%amIRoot ) WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
 
     !------------------------------------------------------------------------
     ! Set up the mapping for UVFlux Diagnostics
