@@ -140,6 +140,7 @@ aoa_PROP: &aoaproperties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
+  MW_g: 1.0   # Use dummy value of 1 to get past checks for missing MW_g
   Snk_Mode: constant
   Snk_Value: 0
   Src_Add: true
