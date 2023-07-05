@@ -5,32 +5,32 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !MODULE: parallelTest.sh
+# !MODULE: integrationTest.sh
 #
-# !DESCRIPTION: Runs parallelization tests on the various GEOS-Chem Classic
-#  run directories (interactively, or with a scheduler).
+# !DESCRIPTION: Runs integration tests on the various GCHP run directories
+# (interactively, or with a scheduler).
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./parallelTest.sh -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]
+#  ./integrationTest.sh -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]
 #
 #  Where the command-line arguments are as follows:
 #
-#    -d root-dir  : Specify the root folder for parallelization tests
-#    -e env-file  : Specitify the environment file (w/ module loads)
+#    -d root-dir  : Specify the root folder for integration tests
+#    -e env-file  : Specify the environment file (w/ module loads)
 #    -h           : Display a help message
 #    -p partition : Select partition for SLURM or LSF schedulers
-#    -q           : Run a quick set of parallelization tests (for testing)
+#    -q           : Run a quick set of integration tests (for testing)
 #    -s scheduler : Specify the scheduler (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-dir  (instead of -d root-dir )
-#    --env-file  env-file  (instead of -e env-file )
-#    --help                (instead of -h          )
-#    --partition partition (instead of -p partition)
-#    --quick               (instead of -q          )
-#    --scheduler scheduler (instead of -s scheduler)
+#    --directory root-dir  (instead of -d root-directory)
+#    --env-file  env-file  (instead of -e env-file      )
+#    --help                (instead of -h               )
+#    --partition partition (instead of -p partition     )
+#    --quick               (instead of -q               )
+#    --scheduler scheduler (instead of -s scheduler     )
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -40,7 +40,7 @@
 #=============================================================================
 this="$(basename ${0})"
 usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]"
-ptRoot="none"
+itRoot="none"
 envFile="none"
 scheduler="none"
 sedCmd="none"
@@ -66,7 +66,7 @@ while [ : ]; do
 
 	# -d or --directory specifies the root folder for tests
 	-d | --directory)
-	    ptRoot="${2}"
+	    itRoot="${2}"
             shift 2
             ;;
 
@@ -82,19 +82,19 @@ while [ : ]; do
             exit 1
             ;;
 
-	# -p or --partition replaces REQUESTED_PARTITON w/ the user's choice
+	# -p or --partition replaces REQUESTED_PARTITION with the user's choice
 	-p | --partition)
 	    sedCmd="s/REQUESTED_PARTITION/${2}/"
 	    shift 2
 	    ;;
 
-	# -q or --quick runs a quick set of parallelization tests (for testing)
+	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
 	    quick="yes"
             shift
 	    ;;
-	
-	# -s or --scheduler selects the scheduler to use
+
+	# -s or --scheduler selects the scheduler (case-insensitive)
 	-s | --scheduler)
 	    scheduler="${2^^}"
             shift 2
@@ -106,9 +106,9 @@ while [ : ]; do
     esac
 done
 
-# Error check parallelization tests root path
-if [[ "x${ptRoot}" == "xnone" ]]; then
-    echo "ERROR: The parallelization test root directory has not been specified!"
+# Error check integration tests root path
+if [[ "x${itRoot}" == "xnone" ]]; then
+    echo "ERROR: The integration test root directory has not been specified!"
     echo "${usage}"
     exit 1
 fi
@@ -142,79 +142,83 @@ fi
 thisDir=$(pwd -P)
 
 # Load common functions
-. "${thisDir}/commonFunctionsForTests.sh"
+if [[ -f "../../shared/commonFunctionsForTests.sh" ]]; then
+    . "${thisDir}/../../shared/commonFunctionsForTests.sh"
+elif [[ -f "${thisDir}/commonFunctionsForTests.sh" ]]; then
+    . "${thisDir}/commonFunctionsForTests.sh"
+fi
 
 #=============================================================================
-# Create parallelization test directories in the root folder
+# Create integration test directories in the root folder
 #=============================================================================
 
-# Convert parallelization test root folder to an absolute path
-ptRoot=$(absolute_path "${ptRoot}")
+# Convert integration test root folder to an absolute path
+itRoot=$(absolute_path "${itRoot}")
 
-# Create GEOS-Chem run directories in the parallelization test root folder
-./parallelTestCreate.sh "${ptRoot}" "${envFile}" "${quick}"
+# Create GEOS-Chem run directories in the integration test root folder
+./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
 if [[ $? -ne 0 ]]; then
-   echo "ERROR: Could not create parallelization test run directories!"
+   echo "ERROR: Could not create integration test run directories!"
    exit 1
 fi
 
-# Change to the parallelization test root folder
-if [[ -d ${ptRoot} ]]; then
-    cd "${ptRoot}"
+# Change to the integration test root folder
+if [[ -d "${itRoot}" ]]; then
+    cd "${itRoot}"
 else
-    echo "ERROR: ${ptRoot} is not a valid directory!  Exiting..."
+    echo "ERROR: ${itRoot} is not a valid directory!  Exiting..."
     exit 1
 fi
 
 # Define local convenience variables
-logsDir="${ptRoot}/${LOGS_DIR}"
-scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
+logsDir="${itRoot}/${LOGS_DIR}"
+scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
 
 #=============================================================================
-# Compile the code and run the parallelization tests
+# Compile the code and run the integration tests
 #=============================================================================
 if [[ "x${scheduler}" == "xSLURM" ]]; then
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run via SLURM
+    # Integration tests will run via SLURM
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -W 00:30/d'               "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -W 1:30/d'                "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-	"${scriptsDir}/parallelTestCompile.sh"
+	"${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -W 3:30/d'                "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/parallelTestExecute.sh"
+	"${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -W 3:30/d'                "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
-	"${scriptsDir}/parallelTestExecute.sh"
+	"${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${scriptsDir}/parallelTestExecute.sh"
+	"${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch ${scriptsDir}/parallelTestCompile.sh)
+    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
 
     # Submit execution tests script as a job dependency
-    output=$(sbatch --dependency=afterok:${cmpId} ${scriptsDir}/parallelTestExecute.sh)
+    output=$(sbatch --dependency=afterok:${cmpId} ${scriptsDir}/integrationTestExecute.sh)
     output=($output)
     exeId=${output[3]}
 
@@ -225,58 +229,62 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 elif [[ "x${scheduler}" == "xLSF" ]]; then
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run via LSF
+    # Integration tests will run via LSF
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags
-    sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-00:30/d'             "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-03:30/d'             "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/parallelTestExecute.sh"
-    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-1:30/d'              "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-3:30/d'              "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(bsub $scriptsDir}/parallelTestCompile.sh)
+    output=$(bsub ${scriptsDir}/integrationTestCompile.sh)
     output=($output)
     cmpId=${output[1]}
     cmpId=${cmpId/<}
     cmpId=${cmpId/>}
 
     # Submit execution tests script as a job dependency
-    output=$(bsub -w "exit(${cmpId},0)" ${scriptsDir}/parallelTestExecute.sh)
+    output=$(bsub -w "exit(${cmpId},0)" ${scriptsDir}/integrationTestExecute.sh)
     output=($output)
     exeId=${output[1]}
     exeId=${exeId/<}
     exeId=${exeId/>}
 
+    echo ""
+    echo "Compilation tests submitted as LSF job ${cmpId}"
+    echo "Execution   tests submitted as LSF job ${exeId}"
+
 else
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run interactively
+    # Integration tests will run interactively
     #-------------------------------------------------------------------------
 
     # Run compilation tests
     echo ""
     echo "Compiliation tests are running..."
-    ${scriptsDir}/parallelTestCompile.sh &
+    ${scriptsDir}/integrationTestCompile.sh &
+
+    # Change back to this directory
+    cd "${thisDir}"
 
 fi
 
-# Change back to this directory
-cd "${thisDir}"
-						      
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
@@ -285,8 +293,8 @@ cd "${thisDir}"
 unset cmpId
 unset envFile
 unset exeId
+unset itRoot
 unset logsDir
-unset ptRoot
 unset quick
 unset output
 unset scheduler

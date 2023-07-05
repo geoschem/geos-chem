@@ -4,6 +4,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
+
+### Changed
+- Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
+- Rename restart files in GCHP integration tests (as we do in non-test runs)
+- The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
+- Request 6 hours of execution time for GEOS-Chem Classic integration tests
+- Invert directory structure where integration and parallel test scripts are stored
+
 ## [Unreleased 14.2.0]
 ### Added
 - Added a printout of GEOS-Chem species and indices
