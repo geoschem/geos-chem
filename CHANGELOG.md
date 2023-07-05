@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased 14.2.1]
 ### Added
 - Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
 
@@ -14,6 +14,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
 - Request 6 hours of execution time for GEOS-Chem Classic integration tests
 - Invert directory structure where integration and parallel test scripts are stored
+- Error check to stop run if any `MW_g` values are undefined
+
+### Fixed
+- Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
 
 ## [Unreleased 14.2.0]
 ### Added
