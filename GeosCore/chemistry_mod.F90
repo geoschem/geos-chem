@@ -966,7 +966,7 @@ CONTAINS
        !=====================================================================
        ! CH4
        !=====================================================================
-       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+       ELSE IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
           ! Do CH4 chemistry
           CALL ChemCh4( Input_Opt  = Input_Opt,                              &

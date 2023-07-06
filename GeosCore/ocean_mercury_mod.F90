@@ -912,7 +912,6 @@ CONTAINS
     REAL(fpp), PARAMETER :: CHLMINNUM   = 1e-1_fpp
 
     ! For values from Input_Opt
-    LOGICAL              :: LSPLIT
     LOGICAL              :: LArcticRiv,  LKRedUV
 
     ! Pointers
@@ -945,7 +944,6 @@ CONTAINS
     TOMS_LT => NULL()
 
     ! Copy values from Input_Opt
-    LSPLIT       = Input_Opt%LSPLIT
     LArcticRiv   = Input_Opt%LArcticRiv
     LKRedUV      = Input_Opt%LKRedUV
 
@@ -2262,9 +2260,6 @@ CONTAINS
     REAL(fpp)             :: A_M2, DELTAH, FRAC_O,  MHg
     REAL(fpp)             :: X, Y                   !(added anls 01/05/09)
 
-    ! For fields from Input_Opt
-    LOGICAL               :: LSPLIT
-
     ! Pointers
     REAL(fpp), POINTER   :: Hg0aq(:,:)
     REAL(fpp), POINTER   :: Hg2aq(:,:)
@@ -2273,9 +2268,6 @@ CONTAINS
     !=================================================================
     ! MLD_ADJUSTMENT begins here!
     !=================================================================
-
-    ! Copy values from Input_Opt
-    LSPLIT       = Input_Opt%LSPLIT
 
     ! Point to fields in State_Chm
     Hg0aq       => State_Chm%OceanHg0

@@ -3292,7 +3292,7 @@ CONTAINS
 
     ENDIF
 
-    ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
+    ! Only doing Hg0 overall
     Hg0aq = OCEAN_CONC(:,:,1)
 
     ! Emission timestep [s]

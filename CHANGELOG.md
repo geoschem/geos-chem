@@ -15,9 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Request 6 hours of execution time for GEOS-Chem Classic integration tests
 - Invert directory structure where integration and parallel test scripts are stored
 - Error check to stop run if any `MW_g` values are undefined
+- Explicitly define tagCH4 simulations in `Input_Opt` rather than basing off of number of advected species
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
+
+### Removed
+- Remove references to the obsolete tagged Hg simulation
 
 ## [Unreleased 14.2.0]
 ### Added

@@ -2222,7 +2222,7 @@ CONTAINS
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to CH4 simulations
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
         ! CH4_EMIS
         chmId = 'CH4_EMIS'
         CALL Init_and_Register(                                              &

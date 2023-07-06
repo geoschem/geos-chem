@@ -1630,10 +1630,7 @@ CONTAINS
    REAL*4,  POINTER          :: Ptr3D(:,:,:)
 
    ! For Hg simulation
-   INTEGER                   :: Num_Hg_Categories
-   INTEGER                   :: Total_Hg_Id
    CHARACTER(LEN=60)         :: HgSpc
-   CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
    ! Default background concentration
    REAL(fp)                  :: Background_VV
@@ -1653,7 +1650,6 @@ CONTAINS
    Ptr2D       => NULL()
    Ptr3D       => NULL()
    SpcInfo     => NULL()
-   Hg_Cat_Name => NULL()
 
    ! Name of this routine
    LOC = ' -> at Get_GC_Restart (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -2382,17 +2378,6 @@ CONTAINS
       ! Format strings
 230   FORMAT( a24, ' not found in restart file, set to zero')
 240   FORMAT( a24, ':   ', es15.9, 1x, a4)
-
-      ! Print note that variables are initialized to zero if not
-      ! found (currently only happens in tagged Hg simulation)
-      IF ( Input_Opt%LSPLIT ) THEN
-         WRITE( 6, 250 )
-250      FORMAT( /, 'NOTE: all variables not found in restart ', &
-                    'are initialized to zero')
-      ENDIF
-
-      ! Free pointers for Hg indexing
-      Hg_Cat_Name => NULL()
 
    ENDIF
 
