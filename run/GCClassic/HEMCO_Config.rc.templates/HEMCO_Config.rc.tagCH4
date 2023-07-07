@@ -353,6 +353,8 @@ VerboseOnCores:              root       # Accepted values: root all
 ### Oil ###
 0 EDGAR6_CH4_OIL__1B2a_T          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_OIL - 1 1
 0 EDGAR6_CH4_OIL__1B2a            $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4     - 1 1
+0 EDGAR6_CH4_OTHER__1A1_1B1_1B2_T $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_OTA - 1 1
+0 EDGAR6_CH4_OTHER__1A1_1B1_1B2   $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4     - 1 1
 
 ### Gas ###
 0 EDGAR6_CH4_OIL__1B2c_T          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_GAS - 2 1
@@ -381,8 +383,6 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EDGAR6_CH4_RICE__4C_4D          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4     - 7 1
 
 ### Other Anthro ###
-0 EDGAR6_CH4_OTHER__1A1_1B1_1B2_T $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_OTA - 8 1
-0 EDGAR6_CH4_OTHER__1A1_1B1_1B2   $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4     - 8 1
 0 EDGAR6_CH4_OTHER__1A1a_T        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_OTA - 8 1
 0 EDGAR6_CH4_OTHER__1A1a          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4     - 8 1
 0 EDGAR6_CH4_OTHER__1A2_T         $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4_OTA - 8 1
@@ -422,6 +422,8 @@ VerboseOnCores:              root       # Accepted values: root all
 ### Oil ###
 0 EDGAR7_CH4_OIL__1B2a_T          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OIL 32 1 1
 0 EDGAR7_CH4_OIL__1B2a            $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     32 1 1
+0 EDGAR7_CH4_OTHER__1A1_1B1_1B2_T $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OTA 34 1 1
+0 EDGAR7_CH4_OTHER__1A1_1B1_1B2   $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     34 1 1
 
 ### Gas ###
 0 EDGAR7_CH4_OIL__1B2c_T          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_GAS 31 2 1
@@ -450,8 +452,6 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EDGAR7_CH4_RICE__4C_4D          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     20 7 1
 
 ### Other Anthro ###
-0 EDGAR7_CH4_OTHER__1A1_1B1_1B2_T $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OTA 34 8 1
-0 EDGAR7_CH4_OTHER__1A1_1B1_1B2   $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     34 8 1
 0 EDGAR7_CH4_OTHER__1A1a_T        $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OTA 23 8 1
 0 EDGAR7_CH4_OTHER__1A1a          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     23 8 1
 0 EDGAR7_CH4_OTHER__1A2_T         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OTA 26 8 1
