@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
+## [Unreleased]
+### Changed
+- The `fullchem` mechanism must now be built with KPP 3.0.0 or later
+
 ## [Unreleased 14.2.0]
 ### Added
 - Added lumped furan chemistry following Carter2020
