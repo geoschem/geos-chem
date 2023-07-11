@@ -120,12 +120,12 @@ OCEAN_MASK 1 N Y - none none FROCEAN  ./MetDir/2018/01/GEOSIT.20180101.CN.05x062
 # These fields are stored in State_Met, along with the other met fields
 # WARNING: Offline lightning is not available for GEOS-IT. Using GEOS-FP.
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.325_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.325_%y4_%m2.nc4
+FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.3125_%y4_%m2.nc4
+CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.3125_%y4_%m2.nc4
 
 # To utilize climatology lightning fields, comment the two lines above and uncomment these lines
-#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.325_1980-2019.ymonmean.nc4
-#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.325_1980-2019.ymonmean.nc4
+#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.3125_1980-2019.ymonmean.nc4
+#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.3125_1980-2019.ymonmean.nc4
 
 """
 
