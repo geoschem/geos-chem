@@ -293,7 +293,7 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
-# GEOS-Chem data (on level edges) during satellite overpass
+# GEOS-Chem data during satellite overpass
 #
 # Available for all simulations
 #==============================================================================
@@ -335,7 +335,7 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE SatDiagnEdge COLLECTION %%%%%
 #
-# GEOS-Chem data during satellite overpass
+# GEOS-Chem data (on level edges) during satellite overpass
 #
 # Available for all simulations
 #==============================================================================
