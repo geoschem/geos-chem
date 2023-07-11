@@ -1800,19 +1800,34 @@ CONTAINS
    ! add KRO2XXX to private (hotp 5/7/10)
    ! add JSV to private (hotp 5/13/10)
    ! remove NOX (hotp 5/22/10)
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I,        J,        L,     JHC,   IPR,   GM0,  AM0  ) &
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
 #ifdef APM
-   !$OMP PRIVATE( N, NTEMP) &
+   !$OMP PRIVATE( IFINORG,  OCBIN_SUM, N,     NTEMP                         )&
 #endif
-   !$OMP PRIVATE( VOL,      FAC,      RTEMP, KO3,   KOH,   KNO3, CAIR ) &
-   !$OMP PRIVATE( MPRODUCT, MSOA_OLD, VALUE, UPPER, LOWER, MNEW, TOL  ) &
-   !$OMP PRIVATE( ORG_AER,  ORG_GAS,  KOM,   MPOC                     ) &
-   !$OMP PRIVATE( KRO2NO,   KRO2HO2,  JSV                             )
+   !$OMP PRIVATE( I,        J,         L,      JHC,   IPR,   GM0,  AM0      )&
+   !$OMP PRIVATE( VOL,      FAC,       RTEMP,  KO3,   KOH,   KNO3, CAIR     )&
+   !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
+   !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
+   !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
    DO L = 1, State_Grid%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
+
+      ! Zero important variables at top of loop
+      AM0     = 0.0_fp
+      GM0     = 0.0_fp
+      KO3     = 0.0_fp
+      KOH     = 0.0_fp
+      KNO3    = 0.0_fp
+      KRO2NO  = 0.0_fp
+      KRO2HO2 = 0.0_fp
+      LOWER   = 0.0_fp
+      MNEW    = 0.0_fp
+      MPOC    = 0.0_fp
+      TOL     = 0.0_fp
+      UPPER   = 0.0_fp
+      VALUE   = 0.0_fp
 
       ! Skip non-chemistry boxes
       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -1821,7 +1836,7 @@ CONTAINS
       VOL    = State_Met%AIRVOL(I,J,L)
 
       ! conversion factor from kg to ug/m3
-      FAC    = 1.e+9_fp / VOL
+      FAC    = 1.0e+9_fp / VOL
 
       ! air conc. in kg/m3
       CAIR   = State_Met%AD(I,J,L) / VOL
@@ -1832,7 +1847,7 @@ CONTAINS
       ! Get SOA yield parameters
       ! ALPHA is a module variable now. (ccc, 2/2/10)
       ! add arguments for RO2+NO, RO2+HO2 rates (hotp 5/7/10)
-      CALL SOA_PARA( RTEMP, KO3, KOH, KNO3, KOM, &
+      CALL SOA_PARA( RTEMP, KO3, KOH, KNO3,   KOM, &
                      I,     J,   L,   KRO2NO, KRO2HO2, State_Met )
 
       ! Partition mass of gas & aerosol species
@@ -1858,8 +1873,8 @@ CONTAINS
 
       ! Initialize other arrays to be safe  (dkh, 11/10/06)
       ! update dims (hotp 5/22/10)
-      ORG_AER(:,:) = 0e+0_fp
-      ORG_GAS(:,:) = 0e+0_fp
+      ORG_AER = 0.0_fp
+      ORG_GAS = 0.0_fp
 
       ! Individual SOA's: convert from [kg] to [ug/m3] or [kgC] to [ugC/m3]
       DO JSV = 1, MAXSIMSV
@@ -1913,85 +1928,95 @@ CONTAINS
       ! (Colette Heald, 12/3/09)
       !-----------------------------------------------------------
 #ifdef APM
-      OCBIN_SUM = 0.e+0_fp
+      OCBIN_SUM = 0.0_fp
       DO N = 1, NBCOC
-         OCBIN_SUM = OCBIN_SUM + SUM(Spc(APMIDS%id_OCBIN1+N-1)%Conc(:,:,:))
+         OCBIN_SUM = OCBIN_SUM + SUM( Spc(APMIDS%id_OCBIN1+N-1)%Conc )
       ENDDO
-      MPOC = FAC * OCBIN_SUM
+      MPOC = FAC  * OCBIN_SUM
       MPOC = MPOC * 2.1d0
 
       IFINORG = 2
-      IF(IFINORG.EQ.1) THEN !Yu+  consider inorg in the SOA partition
+!#############################################################################
+! NOTE: IFINORG is always 2 so the other IF branches never get done.
+! Comment these out for now for better numerical efficiency
+!  -- Bob Yantosca (23 May 2023)
+!      IF(IFINORG.EQ.1) THEN !Yu+  consider inorg in the SOA partition
+!
+!         IF ( APMIDS%id_SO4 > 0 .and. &
+!              APMIDS%id_NH4 > 0 .and. &
+!              APMIDS%id_NIT > 0 ) THEN
+!            ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
+!            MPOC = MPOC + ( Spc(APMIDS%id_NH4)%Conc(I,J,L) + &
+!                            Spc(APMIDS%id_NIT)%Conc(I,J,L) ) * FAC
+!
+!            IF(NSO4>=1)THEN
+!               NTEMP=APMIDS%id_SO4BIN1-1
+!               DO N=(NTEMP+1),(NTEMP+NSO4)
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            IF(NCTSO4>=1)THEN
+!               NTEMP=APMIDS%id_CTSO4-1
+!               DO N=(NTEMP+1),(NTEMP+NCTSO4)
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            IF(NCTBC>=1)THEN
+!               NTEMP=APMIDS%id_CTBC-1
+!               DO N=(NTEMP+1),(NTEMP+NCTBC)
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            IF(NCTOC>=1)THEN
+!               NTEMP=APMIDS%id_CTOC-1
+!               DO N=(NTEMP+1),(NTEMP+NCTOC)
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            IF(NCTSEA>=1)THEN
+!               NTEMP=APMIDS%id_CTSEA-1
+!               DO N=(NTEMP+1),(NTEMP+NCTSEA)
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            IF(NSEA>=1)THEN
+!               NTEMP=APMIDS%id_SEABIN1-1
+!               DO N=(NTEMP+1),(NTEMP+16) ! SALTbin16 = 1 um
+!                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
+!               ENDDO
+!            ENDIF
+!
+!            !Add MSA
+!            MPOC = MPOC + Spc(APMIDS%id_MSA)%Conc(I,J,L) * FAC
+!
+!         ENDIF
+!
+!      ELSEIF(IFINORG.EQ.2) THEN !Consider SV SOA partition on LV SOA
+!#############################################################################
 
-         IF ( APMIDS%id_SO4 > 0 .and. &
-              APMIDS%id_NH4 > 0 .and. &
-              APMIDS%id_NIT > 0 ) THEN
-            ! Then compute SOG condensation onto SO4, NH4, NIT aerosols
-            MPOC = MPOC + ( Spc(APMIDS%id_NH4)%Conc(I,J,L) + &
-                            Spc(APMIDS%id_NIT)%Conc(I,J,L) ) * FAC
+         MPOC = MPOC + FAC * (Spc(APMIDS%id_CTSO4  )%Conc(I,J,L) + & !MSULFLV
+                              Spc(APMIDS%id_CTBC +1)%Conc(I,J,L) + & !MBCLV
+                              Spc(APMIDS%id_CTOC +1)%Conc(I,J,L) + & !MOCLV
+                              Spc(APMIDS%id_CTDST+1)%Conc(I,J,L) + & !MDSTLV
+                              Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L))    !MSALTLV
 
-            IF(NSO4>=1)THEN
-               NTEMP=APMIDS%id_SO4BIN1-1
-               DO N=(NTEMP+1),(NTEMP+NSO4)
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            IF(NCTSO4>=1)THEN
-               NTEMP=APMIDS%id_CTSO4-1
-               DO N=(NTEMP+1),(NTEMP+NCTSO4)
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            IF(NCTBC>=1)THEN
-               NTEMP=APMIDS%id_CTBC-1
-               DO N=(NTEMP+1),(NTEMP+NCTBC)
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            IF(NCTOC>=1)THEN
-               NTEMP=APMIDS%id_CTOC-1
-               DO N=(NTEMP+1),(NTEMP+NCTOC)
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            IF(NCTSEA>=1)THEN
-               NTEMP=APMIDS%id_CTSEA-1
-               DO N=(NTEMP+1),(NTEMP+NCTSEA)
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            IF(NSEA>=1)THEN
-               NTEMP=APMIDS%id_SEABIN1-1
-               DO N=(NTEMP+1),(NTEMP+16) ! SALTbin16 = 1 um
-                  MPOC = MPOC + Spc(N)%Conc(I,J,L) * FAC
-               ENDDO
-            ENDIF
-
-            !Add MSA
-            MPOC = MPOC + Spc(APMIDS%id_MSA)%Conc(I,J,L) * FAC
-
-         ENDIF
-
-      ELSEIF(IFINORG.EQ.2) THEN !Consider SV SOA partition on LV SOA
-
-         MPOC = MPOC + FAC * (Spc(APMIDS%id_CTSO4)%Conc(I,J,L) + & !MSULFLV
-                Spc(APMIDS%id_CTBC+1)%Conc(I,J,L)  + & !MBCLV
-                Spc(APMIDS%id_CTOC+1)%Conc(I,J,L)  + & !MOCLV
-                Spc(APMIDS%id_CTDST+1)%Conc(I,J,L) + & !MDSTLV
-                Spc(APMIDS%id_CTSEA+1)%Conc(I,J,L))    !MSALTLV
-
-      ELSE
-
-         ! Compute SOG condensation onto OC aerosol
-         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
-         MPOC = MPOC * 2.1d0
-
-      ENDIF
+!#############################################################################
+! NOTE: IFINORG is always 2 so the other IF branches never get done.
+! Comment these out for now for better numerical efficiency
+!  -- Bob Yantosca (23 May 2023)
+!      ELSE
+!
+!         ! Compute SOG condensation onto OC aerosol
+!         MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
+!         MPOC = MPOC * 2.1d0
+!
+!      ENDIF
+!#############################################################################
 #else
       ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
       IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
@@ -8357,7 +8382,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: bcdry_settlingbin
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
@@ -8465,6 +8490,23 @@ CONTAINS
    !$OMP SCHEDULE( DYNAMIC )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
+
+      ! Zero private loop variables
+      CONST = 0.0_fp
+      DELZ  = 0.0_fp
+      DELZ1 = 0.0_fp
+      DEN   = 0.0_fp
+      DP    = 0.0_fp
+      MASS  = 0.0_fp
+      OLD   = 0.0_fp
+      P     = 0.0_fp
+      PDP   = 0.0_fp
+      REFF  = 0.0_fp
+      SLIP  = 0.0_fp
+      TEMP  = 0.0_fp
+      TC0   = 0.0_fp
+      VISC  = 0.0_fp
+      VTS   = 0.0_fp
 
       DO L = 1, State_Grid%NZ
          DO N = APMIDS%id_BCBIN1, IDTEMP
@@ -8608,7 +8650,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: ocdry_settlingbin
 !
 ! !DESCRIPTION: Subroutine DRY\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
@@ -8716,6 +8758,23 @@ CONTAINS
    !$OMP SCHEDULE( DYNAMIC )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
+
+      ! Zero private loop variables
+      CONST = 0.0_fp
+      DELZ  = 0.0_fp
+      DELZ1 = 0.0_fp
+      DEN   = 0.0_fp
+      DP    = 0.0_fp
+      MASS  = 0.0_fp
+      OLD   = 0.0_fp
+      P     = 0.0_fp
+      PDP   = 0.0_fp
+      REFF  = 0.0_fp
+      SLIP  = 0.0_fp
+      TEMP  = 0.0_fp
+      TC0   = 0.0_fp
+      VISC  = 0.0_fp
+      VTS   = 0.0_fp
 
       DO L = 1, State_Grid%NZ
          DO N = APMIDS%id_OCBIN1, IDTEMP
@@ -8855,4 +8914,4 @@ CONTAINS
  END SUBROUTINE OCDRY_SETTLINGBIN
 #endif
 !EOC
-      END MODULE CARBON_MOD
+END MODULE CARBON_MOD

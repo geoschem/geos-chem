@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.2.1]
+## [Unreleased 14.2.1] - TBD
 ### Added
 - Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
 
@@ -24,11 +24,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved the `EDGAR REF_TRF CH4` emissions to the Oil emissions category so it is superseded by GFEIv2 for carbon simulations.
 - Prevent `State_Diag%SatDiagnCount` from not being allocated
 - For satellite diagnostics, do not test for `id_OH` if OH is not a species
+- Fixed parallelization in Luo wetdep simulations caused by uninitialized variable
+- Fixed parallelization for Hg0 species in `GeosCore/drydep_mod.F90`
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
 
-## [Unreleased 14.2.0]
+## [Unreleased 14.2.0] - TBD
 ### Added
 - Added a printout of GEOS-Chem species and indices
 - Added `NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts

@@ -332,6 +332,13 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
                                                         ! third dim is cat, total 15
 
+#ifdef APM
+     !-----------------------------------------------------------------------
+     ! Fields for APM aerosol microphysics
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: PSO4_SO2APM2(:,:,: )
+#endif
+
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !-----------------------------------------------------------------------
@@ -614,6 +621,10 @@ CONTAINS
 #ifdef MODEL_CESM
     ! Add quantities for coupling to CESM
     State_Chm%H2SO4_PRDR        => NULL()
+#endif
+#ifdef APM
+    ! Add fields for APM microphysics
+    State_Chm%PSO4_SO2APM2      => NULL()
 #endif
 
   END SUBROUTINE Zero_State_Chm
@@ -2272,6 +2283,27 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef APM
+    !=======================================================================
+    ! Initialize State_Chm quantities for APM microphysics simulations
+    !=======================================================================
+    chmId = 'PSO4SO2APM2'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%PSO4_SO2APM2,                                &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+#endif
+
     !========================================================================
     ! Once we are done registering all fields, we need to define the
     ! registry lookup table.  This algorithm will avoid hash collisions.
@@ -3742,6 +3774,15 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%NOXLAT => NULL()
     ENDIF
+
+#ifdef APM
+    IF ( ASSOCIATED( State_Chm%PSO4_SO2APM2 ) ) THEN
+      DEALLOCATE( State_Chm%PSO4_SO2APM2, STAT=RC )
+      CALL GC_CheckVar( 'State_Chm%PSO4_SO2APM2', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Chm%PSO4_SO2APM2 => NULL()
+    ENDIF
+#endif
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
