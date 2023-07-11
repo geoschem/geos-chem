@@ -7,7 +7,7 @@
 # EXPID allows you to specify the beginning of the file path corresponding
 # to each diagnostic collection.  For example:
 #
-#   EXPID: ./GEOSChem 
+#   EXPID: ./GEOSChem
 #      Will create netCDF files whose names begin "GEOSChem",
 #      in this run directory.
 #
@@ -37,8 +37,9 @@ COLLECTIONS: 'Restart',
              #'LevelEdgeDiags',
              #'ProdLoss',
 	     #'SatDiagn',
-             #'StateChm',     
-             #'StateMet',      
+	     #'SatDiagnEdge',
+             #'StateChm',
+             #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
              #'BoundaryConditions',
@@ -101,24 +102,24 @@ COLLECTIONS: 'Restart',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:         'time-averaged'
-  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
-                       'BudgetEmisDryDepTrop_?ADV?           ',  
-                       'BudgetEmisDryDepPBL_?ADV?            ',  
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
                        'BudgetChemistryFull_?ADV?            ',
                        'BudgetChemistryTrop_?ADV?            ',
-                       'BudgetChemistryPBL_?ADV?             ',  
+                       'BudgetChemistryPBL_?ADV?             ',
                        'BudgetTransportFull_?ADV?            ',
                        'BudgetTransportTrop_?ADV?            ',
-                       'BudgetTransportPBL_?ADV?             ',  
+                       'BudgetTransportPBL_?ADV?             ',
                        'BudgetMixingFull_?ADV?               ',
                        'BudgetMixingTrop_?ADV?               ',
-                       'BudgetMixingPBL_?ADV?                ',    
+                       'BudgetMixingPBL_?ADV?                ',
                        'BudgetConvectionFull_?ADV?           ',
                        'BudgetConvectionTrop_?ADV?           ',
-                       'BudgetConvectionPBL_?ADV?            ',  
+                       'BudgetConvectionPBL_?ADV?            ',
                        'BudgetWetDepFull_?WET?               ',
                        'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',  
+                       'BudgetWetDepPBL_?WET?                ',
 ::
 #==============================================================================
 # %%%%% THE AerosolMass COLLECTION %%%%%
@@ -274,7 +275,7 @@ COLLECTIONS: 'Restart',
   ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
   ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
-  ProdLoss.fields:            'ProdBCPIfromBCPO              ', 
+  ProdLoss.fields:            'ProdBCPIfromBCPO              ',
                               'ProdOCPIfromOCPO              ',
 			      'ProdSO2fromDMSandOH           ',
 			      'ProdSO2fromDMSandNO3          ',
@@ -330,6 +331,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnSurfFlux_BCPI          ',
                               'SatDiagnProd_?PRD?             ',
                               'SatDiagnLoss_?LOS?             ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

@@ -47,6 +47,7 @@ COLLECTIONS: 'Restart',
              ##'RxnRates',
              ##'RxnConst',
              ##'SatDiagn',
+             ##'SatDiagnEdge',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
@@ -652,6 +653,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnRxnRate_EQ386          ',
                               'SatDiagnRxnRate_EQ387          ',
                               'SatDiagnRxnRate_EQ388          ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%

@@ -17,10 +17,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Error check to stop run if any `MW_g` values are undefined
 - Explicitly define tagCH4 simulations in `Input_Opt` rather than basing off of number of advected species
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
+- Added `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
 - Moved the `EDGAR REF_TRF CH4` emissions to the Oil emissions category so it is superseded by GFEIv2 for carbon simulations.
+- Prevent `State_Diag%SatDiagnCount` from not being allocated
+- For satellite diagnostics, do not test for `id_OH` if OH is not a species
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
