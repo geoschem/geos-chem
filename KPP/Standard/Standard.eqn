@@ -1248,25 +1248,27 @@ NO3 + hv = NO2 + O :                         PHOTOL(12);     {2014/02/03; Eastha
 NO3 + hv = NO + O2 :                         PHOTOL(13);
 N2O5 + hv = NO3 + NO2 :                      PHOTOL(14);
 ALD2 + hv = 0.880MO2 + HO2 + 0.880CO +
- 0.120MCO3 :                                 PHOTOL(61);     {2014/12/19; FAST-JX v7.0 fix; JMAO}
+ 0.120MCO3 + 0.01H2:                         PHOTOL(61);     {2014/12/19; FAST-JX v7.0 fix; JMAO}
 ALD2 + hv = CH4 + CO :                       PHOTOL(62);
 PAN + hv = 0.700MCO3 + 0.700NO2 +
  0.300MO2 + 0.300NO3 :                       PHOTOL(59);     {2014/05/23; Eastham2014; JMAO,SDE}
-RCHO + hv = ETO2 + HO2 + CO :                PHOTOL(70);
+RCHO + hv = ETO2 + HO2 + CO + 0.01H2 :       PHOTOL(70);
 ACET + hv = MCO3 + MO2 :                     PHOTOL(76);
 ACET + hv = 2.000MO2 + CO :                  PHOTOL(77);
 MEK + hv = 0.850MCO3 + 0.850ETO2 +
  0.150MO2 + 0.150RCO3 :                      PHOTOL(69);
 GLYC + hv = 0.900CH2O + 1.730HO2 + CO +
- 0.070OH + 0.100MOH :                        PHOTOL(68);     {2014/05/23; Eastham2014; JMAO,SDE}
+ 0.070OH + 0.100MOH + 0.01H2 :               PHOTOL(68);     {2014/05/23; Eastham2014; JMAO,SDE}
 GLYX + hv = 2.000HO2 + 2.000CO :             PHOTOL(72);
 GLYX + hv = H2 + 2.000CO :                   PHOTOL(73);
 GLYX + hv = CH2O + CO :                      PHOTOL(74);
 MGLY + hv = MCO3 + CO + HO2 :                PHOTOL(71);
+MGLY + hv = H2 :                             PHOTOL(131);    {2021/05/08; Perez-Pena; UNSW}
 MVK + hv = PRPE + CO :                       PHOTOL(63);
 MVK + hv = MCO3 + CH2O + CO + HO2 :          PHOTOL(64);
 MVK + hv = MO2 + RCO3 :                      PHOTOL(65);     {2014/05/23; Eastham2014; JMAO,SDE}
 MACR + hv = CO + HO2 + CH2O + MCO3 :         PHOTOL(66);     {2014/05/23; Eastham2014; JMAO,SDE}
+MACR + hv = H2 + GLYC :                      PHOTOL(130);    {2021/03/15; Perez-Pena; UNSW}
 HAC + hv = MCO3 + CH2O + HO2 :               PHOTOL(75);
 INPN + hv = OH + HO2 + RCHO + NO2 :          PHOTOL(78);
 PRPN + hv = OH + HO2 + RCHO + NO2 :          PHOTOL(79);
@@ -1370,7 +1372,7 @@ ETHLN + hv = NO2 + CH2O + CO + HO2 :         PHOTOL(107);    {2017/06/15; Marais
 DHDC + hv = MGLY + GLYX + 2.000OH :          PHOTOL(108);    {2017/07/14; Crounse2012; KRT,JAF,CCM,EAM,KHB,RHS}
 HPALD + hv = 0.500MGLY + 0.390HAC +
  0.110GLYC + 0.110MCO3 + 1.890CO +
- 0.890HO2 + 2.000OH :                        PHOTOL(109);    {2017/07/14; Peeters2014; KRT,JAF,CCM,EAM,KHB,RHS}
+ 0.890HO2 + 2.000OH + 0.01H2 :               PHOTOL(109);    {2017/07/14; Peeters2014; KRT,JAF,CCM,EAM,KHB,RHS}
 ISN1 + hv = NO2 + HO2 + 0.500GLYC +
  0.250GLYX + 0.250MGLY + CH2O + 0.500HAC :   PHOTOL(110);    {2017/07/14; Muller2014; KRT,JAF,CCM,EAM,KHB,RHS}
 MONITS + hv = MEK + NO2 :                    PHOTOL(111);    {2017/07/14; Browne2014; KRT,JAF,CCM,EAM,KHB,RHS}

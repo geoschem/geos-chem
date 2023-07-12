@@ -709,7 +709,7 @@ CONTAINS
     IF ( Inst%OCPIfrac < 0.0_sp .OR. Inst%OCPIfrac > 1.0_sp .OR. &
          Inst%BCPIfrac < 0.0_sp .OR. Inst%BCPIfrac > 1.0_sp .OR. &
          Inst%SOAPfrac < 0.0_sp .OR. Inst%SOAPfrac > 1.0_sp .OR. &
-         !Inst%H2frac < 0.0_sp .OR. Inst%H2frac > 1.0_sp .OR. &
+     !    Inst%H2frac < 0.0_sp .OR. Inst%H2frac > 1.0_sp .OR. &
          Inst%POG1frac < 0.0_sp .OR. Inst%POG1frac > 1.0_sp     ) THEN
        WRITE(MSG,*) 'fractions must be between 0-1: ', &
           Inst%OCPIfrac, Inst%BCPIfrac, Inst%POG1frac, Inst%SOAPfrac !, Inst%H2frac
