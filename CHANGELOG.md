@@ -6,19 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.2.1] - TBD
 ### Added
-- Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
+- Script `test/difference/diffTest.sh`, checks 2 different integration tests for differences
 - Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster
+`SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
 - Rename restart files in GCHP integration tests (as we do in non-test runs)
-- The `integrationTestCreate.sh` copy `integrationDiffTest.sh` to the integration test scripts folder
 - Request 6 hours of execution time for GEOS-Chem Classic integration tests
 - Invert directory structure where integration and parallel test scripts are stored
 - Error check to stop run if any `MW_g` values are undefined
 - Explicitly define tagCH4 simulations in `Input_Opt` rather than basing off of number of advected species
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
-- Added `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
+- Changed the AEIC 2019 monthly climatology specification format in ExtData.rc to match standard convention for climatology
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
