@@ -373,7 +373,7 @@ CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp  ./HcoDir/CEDS/v2
 
 # --- AEIC 2019 aircraft (AEIC) ---
 #AEIC19_DAILY_CO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_CO kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_CO kg/m2/s Y Y F2019-%m2-01T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 
 # --- RCP future emissions scenarios ---
 #RCP3PD_CO   kg/m2/s N Y %y4-01-01T00:00:00 none none ACCMIP ./HcoDir/RCP/v2020-07/RCP_3PD/RCPs_anthro_CO_2005-2100_23474.nc

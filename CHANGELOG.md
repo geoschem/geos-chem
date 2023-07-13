@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 14.2.1]
 ### Added
 - Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
+`SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
@@ -17,7 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Error check to stop run if any `MW_g` values are undefined
 - Explicitly define tagCH4 simulations in `Input_Opt` rather than basing off of number of advected species
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
-- Added `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
+- Changed the AEIC 2019 monthly climatology specification format in ExtData.rc to match standard convention for climatology
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
