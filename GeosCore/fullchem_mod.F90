@@ -52,7 +52,6 @@ MODULE FullChem_Mod
 #endif
   INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC, id_SALA
   LOGICAL               :: ok_OH,     ok_HO2,    ok_O1D, ok_O3P
-  LOGICAL               :: Failed2x
 
   ! Diagnostic flags
   LOGICAL               :: Do_Diag_OH_HO2_O1D_O3P
@@ -1126,10 +1125,14 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
-          ! C with concentrations prior to the 1st call to "Integrate".
+          ! Zero the first time step (Hstart, used by Rosenbrock)
           RCNTRL(3) = 0.0_dp
+
+          ! Reset C with concentrations prior to the 1st call to "Integrate"
           C         = C_before_integrate
+
+          ! Adjust relative tolerance
+          RTOL      = 0.5e-3_dp
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
