@@ -23,6 +23,17 @@ cd $PBS_O_WORKDIR
 # Exit if command fails, and log all commands
 set -xe
 
+# Export and unset certain environment variables
+export MPI_LAUNCH_TIMEOUT=40
+export PATH=$PATH:/u/scicon/tools/bin
+export FOR_IGNORE_EXCEPTIONS=false
+export MPI_COLL_REPRODUCIBLE
+unset MPI_MEMMAP_OFF
+unset MPI_NUM_MEMORY_REGIONS
+export MPI_XPMEM_ENABLED=yes
+unset SUPPRESS_XPMEM_TRIM_THRESH
+unset PMI_RANK
+
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str:0:13}z.log

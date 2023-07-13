@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 14.2.1] - TBD
 ### Added
 - Script `integrationDiffTest.sh`, checks 2 different integration tests for differences
+- Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
