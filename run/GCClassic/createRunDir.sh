@@ -855,7 +855,7 @@ fi
 
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
-ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
+ln -s ${wrapperdir}/run/GCClassic/runScriptSamples ${rundir}/runScriptSamples
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files
