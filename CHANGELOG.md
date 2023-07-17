@@ -56,6 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change RTOL value from 0.5e-3 back to 0.5e-2 to address model slowdown
 - Allow the use of OFFLINE_SEASALT for seasalt alkalinity, Cl, and Br in GEOS-Chem within CESM
 - Renamed TransportTracer species for consistency with GMAO's TR_GridComp
+- Adjusted relative tolerance value if first KPP integration attempt fails
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files

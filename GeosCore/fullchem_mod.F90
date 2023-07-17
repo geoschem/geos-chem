@@ -1131,7 +1131,8 @@ CONTAINS
           ! Reset C with concentrations prior to the 1st call to "Integrate"
           C         = C_before_integrate
 
-          ! Adjust relative tolerance
+          ! Adjust relative tolerance after first failure for
+          ! this grid box and time step only (mps, 7/13/23)
           RTOL      = 0.5e-3_dp
 
           ! Disable auto-reduce solver for the second iteration for safety
