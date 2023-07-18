@@ -28,7 +28,6 @@ MODULE NCDF_MOD
 
   IMPLICIT NONE
   PRIVATE
-# include "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -86,7 +85,6 @@ MODULE NCDF_MOD
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
 ! !REVISION HISTORY:
-!  27 Jul 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -157,7 +155,6 @@ CONTAINS
     INTEGER,          INTENT(OUT) :: fID
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -196,7 +193,6 @@ CONTAINS
     INTEGER,          OPTIONAL    :: nTime
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -216,11 +212,7 @@ CONTAINS
     ! Also return the number of time slices so that we can
     ! append to an existing file w/o clobbering any data
     IF ( PRESENT( nTime ) ) THEN
-       nTime = -1
-       RC = Nf_Inq_DimId( fId, 'time', vId )
-       IF ( RC == NF_NOERR ) THEN
-          RC = Nf_Inq_DimLen( fId, vId, nTime )
-       ENDIF
+       CALL Ncget_Unlim_Dimlen( fId, nTime )
     ENDIF
 
   END SUBROUTINE NC_APPEND
@@ -244,7 +236,6 @@ CONTAINS
     INTEGER, INTENT(IN   ) :: fID
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -283,7 +274,6 @@ CONTAINS
 !  NcdfUtil module m_netcdf_define_mod.F90.
 !
 ! !REVISION HISTORY:
-!  06 Jan 2015 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -346,7 +336,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -410,7 +399,32 @@ CONTAINS
 
     ! Read calendar attribute
     IF ( PRESENT( timeCalendar ) ) THEN
-       CALL NcGet_Var_Attributes( fId, v_name, 'calendar', timeCalendar )
+
+       ! We now get the status variable RC.  This will allow program
+       ! flow to continue if the "time:calendar" attribute is not found.
+       CALL NcGet_Var_Attributes( fId, v_name, 'calendar', timeCalendar, RC )
+
+       ! If "time:calendar" is found, then throw an error for
+       ! climatological calendars without leap years.
+       IF ( RC == 0 ) THEN
+        SELECT CASE( TRIM( v_name ) )
+          CASE( '360_day', '365_day', '366_day', 'all_leap',                 &
+                'allleap', 'no_leap', 'noleap'                              )
+             WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+             WRITE( 6, '(a  )' ) 'HEMCO does not support calendar type '  // &
+                                 TRIM( v_name )
+             WRITE( 6, '(/,a)' )  'HEMCO supports the following calendars:'
+             WRITE( 6, '(a)'   )  ' - standard (i.e. mixed gregorian/julian)'
+             WRITE( 6, '(a)'   )  ' - gregorian'
+             WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
+             RC = -1
+          CASE DEFAULT
+             ! Do nothing
+        END SELECT
+       ENDIF
+
+       ! Reset RC so that we won't halt execution elsewhere
+       RC = 0
     ENDIF
 
   END SUBROUTINE NC_READ_TIME
@@ -446,7 +460,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -487,7 +500,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -529,7 +541,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)            :: RC
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -680,7 +691,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)         :: RC
 !
 ! !REVISION HISTORY:
-!  27 Jul 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1162,12 +1172,12 @@ CONTAINS
     a_name  = "missing_value"
     ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( ReadAtt ) THEN
-       IF ( a_type == NF_REAL ) THEN
+       IF ( a_type == NF90_REAL ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
           WHERE ( ncArr == miss4 )
              ncArr = MissValue
           END WHERE
-       ELSE IF ( a_type == NF_DOUBLE ) THEN
+       ELSE IF ( a_type == NF90_DOUBLE ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
           miss4 = REAL( miss8 )
           WHERE ( ncArr == miss4 )
@@ -1180,12 +1190,12 @@ CONTAINS
     a_name  = "_FillValue"
     ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( ReadAtt ) THEN
-       IF ( a_type == NF_REAL ) THEN
+       IF ( a_type == NF90_REAL ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
           WHERE ( ncArr == miss4 )
              ncArr = MissValue
           END WHERE
-       ELSE IF ( a_type == NF_DOUBLE ) THEN
+       ELSE IF ( a_type == NF90_DOUBLE ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss8 )
           miss4 = REAL( miss8 )
           WHERE ( ncArr == miss4 )
@@ -1269,7 +1279,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT)           :: RC
 !
 ! !REVISION HISTORY:
-!  27 Jul 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1278,7 +1287,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    CHARACTER(LEN=255)  :: ncUnit
+    CHARACTER(LEN=255)  :: ncUnit, cal
     INTEGER             :: refYr, refMt, refDy, refHr, refMn, refSc
     INTEGER             :: T, YYYYMMDD, hhmmss
     REAL*8              :: realrefDy, refJulday, tJulday
@@ -1297,8 +1306,14 @@ CONTAINS
     IF ( PRESENT(refYear ) ) refYear  = 0
 
     ! Read time vector
-    CALL NC_READ_TIME ( fID, nTime, ncUnit, timeVec=tVec, RC=RC )
-    IF ( RC/=0 ) RETURN
+    CALL NC_READ_TIME ( fID,          nTime,            ncUnit,              &
+                        timeVec=tVec, timeCalendar=cal, RC=RC               )
+    IF ( RC/=0 ) THEN
+       WRITE( 6, '(/,a)' ) REPEAT( '=', 79 )
+       WRITE( 6, '(a)'   ) 'Error encountered in NC_READ_TIME (ncdf_mod.F90)'
+       WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
+       RETURN
+    ENDIF
 
     ! If nTime is zero, return here!
     IF ( nTime == 0 ) RETURN
@@ -1398,7 +1413,6 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  18 Jan 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1615,7 +1629,6 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  04 Nov 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1778,7 +1791,6 @@ CONTAINS
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
-!  18 Jan 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1964,7 +1976,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  16 Jul 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2014,7 +2025,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  16 Jul 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2063,7 +2073,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  16 Jul 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2266,7 +2275,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  03 Oct 2014 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2313,7 +2321,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  03 Oct 2014 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2371,7 +2378,6 @@ CONTAINS
     REAL*8, OPTIONAL, POINTER       :: SigLev8(:,:,:)  ! specified boundaries
 !
 ! !REVISION HISTORY:
-!  03 Oct 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2552,7 +2558,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  03 Oct 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2792,7 +2797,6 @@ CONTAINS
     INTEGER,          INTENT(INOUT) :: RC              ! Return code
 !
 ! !REVISION HISTORY:
-!  03 Oct 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2872,7 +2876,6 @@ CONTAINS
 !  with subsequent hand-editing.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -2945,7 +2948,6 @@ CONTAINS
 !  with subsequent hand-editing.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3019,7 +3021,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3062,7 +3063,7 @@ CONTAINS
     CALL NcCr_Wr( fId, TRIM(ncFile) )
 
     ! Turn filling off
-    CALL NcSetFill( fId, NF_NOFILL, omode )
+    CALL NcSetFill( fId, NF90_NOFILL, omode )
 
     !--------------------------------
     ! GLOBAL ATTRIBUTES
@@ -3117,7 +3118,7 @@ CONTAINS
     ! Define the "lon" variable
     v_name = "lon"
     var1d = (/ id_lon /)
-    CALL NcDef_Variable( fId, TRIM(v_name), NF_FLOAT, 1, var1d, vId )
+    CALL NcDef_Variable( fId, TRIM(v_name), NF90_FLOAT, 1, var1d, vId )
 
     ! Define the "lon:long_name" attribute
     a_name = "long_name"
@@ -3136,7 +3137,7 @@ CONTAINS
     ! Define the "lat" variable
     v_name = "lat"
     var1d = (/ id_lat /)
-    CALL NcDef_Variable( fId, TRIM(v_name), NF_FLOAT, 1, var1d, vId )
+    CALL NcDef_Variable( fId, TRIM(v_name), NF90_FLOAT, 1, var1d, vId )
 
     ! Define the "lat:long_name" attribute
     a_name = "long_name"
@@ -3157,7 +3158,7 @@ CONTAINS
        ! Define the "levels" variable
        v_name = "lev"
        var1d = (/ id_lev /)
-       CALL NcDef_Variable( fId, TRIM(v_name), NF_INT, 1, var1d, vId )
+       CALL NcDef_Variable( fId, TRIM(v_name), NF90_INT, 1, var1d, vId )
 
        ! Define the "time:long_name" attribute
        a_name = "long_name"
@@ -3177,7 +3178,7 @@ CONTAINS
     ! Define the "time" variable
     v_name = "time"
     var1d = (/ id_time /)
-    CALL NcDef_Variable( fId, TRIM(v_name), NF_INT, 1, var1d, vId )
+    CALL NcDef_Variable( fId, TRIM(v_name), NF90_INT, 1, var1d, vId )
 
     ! Define the "time:long_name" attribute
     a_name = "long_name"
@@ -3198,10 +3199,10 @@ CONTAINS
        v_name = TRIM(ncVars(I))
        IF ( PRESENT(nlev) ) THEN
           var4d = (/ id_lon, id_lat, id_lev, id_time /)
-          CALL NcDef_Variable(fId,TRIM(v_name),NF_DOUBLE,4,var4d,vId)
+          CALL NcDef_Variable(fId,TRIM(v_name),NF90_DOUBLE,4,var4d,vId)
        ELSE
           var3d = (/ id_lon, id_lat, id_time /)
-          CALL NcDef_Variable(fId,TRIM(v_name),NF_DOUBLE,3,var3d,vId)
+          CALL NcDef_Variable(fId,TRIM(v_name),NF90_DOUBLE,3,var3d,vId)
        ENDIF
 
        ! Define the long_name attribute
@@ -3261,7 +3262,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3344,7 +3344,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3397,7 +3396,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  30 Jan 2012 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3487,7 +3485,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3594,7 +3591,7 @@ CONTAINS
     CALL NcCr_Wr( fId, TRIM( ncFile ), Save_As_Nc4 )
 
     ! Turn filling off
-    CALL NcSetFill( fId, NF_NOFILL, omode )
+    CALL NcSetFill( fId, NF90_NOFILL, omode )
 
     !=======================================================================
     ! Set global attributes
@@ -3736,7 +3733,6 @@ CONTAINS
 !  (2) The NcdfUtilities package (from Bob Yantosca) source code
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3830,20 +3826,20 @@ CONTAINS
 
     ! Set data type
     IF ( DataType == 1 ) THEN
-       NF_TYPE = NF_INT
+       NF90_TYPE = NF90_INT
     ELSEIF ( DataType == 4 ) THEN
-       NF_TYPE = NF_FLOAT
+       NF90_TYPE = NF90_FLOAT
     ELSEIF ( DataType == 8 ) THEN
-       NF_TYPE = NF_DOUBLE
+       NF90_TYPE = NF90_DOUBLE
     ELSE
-       NF_TYPE = NF_FLOAT
+       NF90_TYPE = NF90_FLOAT
     ENDIF
 
     !-----------------------------------------------------------------------
     ! Define variable
     !-----------------------------------------------------------------------
-    CALL NcDef_Variable( fId,  TRIM(VarName), NF_TYPE,              &
-                         nDim, VarDims,       VarCt,     Compress  )
+    CALL NcDef_Variable( fId,  TRIM(VarName), NF90_TYPE,                     &
+                         nDim, VarDims,       VarCt,      Compress          )
     DEALLOCATE( VarDims )
 
     !-----------------------------------------------------------------------
@@ -3852,7 +3848,7 @@ CONTAINS
 
     ! long_name (reuired)
     Att = 'long_name'
-    CALL NcDef_Var_Attributes(  fId, VarCt, TRIM(Att), TRIM(VarLongName) )
+    CALL NcDef_Var_Attributes( fId, VarCt, TRIM(Att), TRIM(VarLongName) )
 
     ! units (requited)
     Att = 'units'
@@ -3976,7 +3972,6 @@ CONTAINS
 !  an error code of -111.
 !
 ! !REVISION HISTORY:
-!  28 Aug 2017 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -3988,7 +3983,7 @@ CONTAINS
 
     ! Turn on chunking for this variable
     ! But only if the netCDF library supports it
-    RC = NF_Def_Var_Chunking( fId, vId, NF_CHUNKED, ChunkSizes )
+    RC = NF90_Def_Var_Chunking( fId, vId, NF90_CHUNKED, ChunkSizes )
 
 #else
 
@@ -4028,7 +4023,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  25 Aug 2017 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4074,7 +4068,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4127,7 +4120,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4186,7 +4178,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4245,7 +4236,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4304,7 +4294,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  25 Aug 2017 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4350,7 +4339,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4403,7 +4391,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4462,7 +4449,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4521,7 +4507,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4579,7 +4564,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  25 Aug 2017 - R. Yantosca - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4625,7 +4609,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4678,7 +4661,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4737,7 +4719,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4796,7 +4777,6 @@ CONTAINS
 !  hand-editing may be required.
 !
 ! !REVISION HISTORY:
-!  15 Jun 2012 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -4961,7 +4941,6 @@ CONTAINS
     LOGICAL                      :: IsModelLevel
 !
 ! !REVISION HISTORY:
-!  12 Dec 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -5028,7 +5007,6 @@ CONTAINS
     LOGICAL                      :: IsSigmaLevel
 !
 ! !REVISION HISTORY:
-!  12 Dec 2014 - C. Keller   - Initial version
 !  See https://github.com/geoschem/ncdfutil for complete history
 !EOP
 !------------------------------------------------------------------------------
