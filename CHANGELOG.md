@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
 - Changed the AEIC 2019 monthly climatology specification format in ExtData.rc to match standard convention for climatology
 - Changed default ESMF logging in GCHP to be ESMF_LOGKIND_NONE (no log)
+- NetCDF utilities in `NcdfUtil` folder now use the netCDF-F90 API
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
