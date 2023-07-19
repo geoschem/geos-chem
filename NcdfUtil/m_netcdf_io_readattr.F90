@@ -19,6 +19,7 @@ MODULE m_netcdf_io_readattr
   PUBLIC :: NcGet_Var_Attributes
   INTERFACE NcGet_Var_Attributes
      MODULE PROCEDURE NcGet_Var_Attr_C
+     MODULE PROCEDURE NcGet_Var_Attr_C_nostop
      MODULE PROCEDURE NcGet_Var_Attr_I4
      MODULE PROCEDURE NcGet_Var_Attr_R4
      MODULE PROCEDURE NcGet_Var_Attr_R8
@@ -885,6 +886,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_R4_arr( fid, attName, attValue )
 !
+! !USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -1058,4 +1064,4 @@ CONTAINS
 
   END SUBROUTINE NcGet_Var_Attr_C_nostop
 !EOC
-END MODULE HCO_m_netcdf_io_readattr
+END MODULE m_netcdf_io_readattr

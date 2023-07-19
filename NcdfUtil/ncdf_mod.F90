@@ -16,6 +16,7 @@ MODULE NCDF_MOD
 ! !USES:
 !
   ! Modules for netCDF read
+  USE netCDF
   USE m_netcdf_io_open
   USE m_netcdf_io_get_dimlen
   USE m_netcdf_io_read
@@ -3744,8 +3745,8 @@ CONTAINS
     INTEGER, ALLOCATABLE :: VarDims(:)
 
     ! Scalars
-    INTEGER              :: nDim,     Pos
-    INTEGER              :: NF_TYPE,  tmpIlevId, tmpBoundsId
+    INTEGER              :: nDim,      Pos
+    INTEGER              :: NF90_TYPE, tmpIlevId, tmpBoundsId
     LOGICAL              :: isDefMode
 
     ! Strings
@@ -4927,10 +4928,6 @@ CONTAINS
 !
   FUNCTION NC_IsModelLevel( fID, lev_name ) RESULT ( IsModelLevel )
 !
-! !USES:
-!
-#   include "netcdf.inc"
-!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN) :: fID        ! file ID
@@ -4992,10 +4989,6 @@ CONTAINS
 ! !INTERFACE:
 !
   FUNCTION NC_IsSigmaLevel( fID, lev_name ) RESULT ( IsSigmaLevel )
-!
-! !USES:
-!
-#   include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !
