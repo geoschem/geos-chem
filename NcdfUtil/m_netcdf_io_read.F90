@@ -1382,12 +1382,7 @@ CONTAINS
        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
     end if
 
-      if (ierr /= NF_NOERR) then
-        err_msg = 'In Ncrd_7d_R8 #2:  ' // Nf_Strerror (ierr)
-        call Do_Err_Out (err_msg, .true., 2, ncid, varid, 0, 0.0d0, 0.0d0)
-      end if
-
-      end subroutine Ncrd_7d_R8
+  end subroutine Ncrd_7d_R8
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

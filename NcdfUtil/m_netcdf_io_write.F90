@@ -164,7 +164,7 @@ CONTAINS
        call Do_Err_Out(err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
     end if
 
-    ierr = NF90_Put_Var_Double(ncid, varid, varwr_scal)
+    ierr = NF90_Put_Var(ncid, varid, varwr_scal)
 
     if (ierr /= NF90_NOERR) then
        err_msg = 'In Ncwr_Scal_R8 #2:  ' // NF90_strerror(ierr)
