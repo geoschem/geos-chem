@@ -26,7 +26,10 @@ CS_RES=${RUNDIR_CS_RES}
 # Turn stretched grid ON/OFF. Follow these rules if ON:
 #    (1) Minimum STRETCH_FACTOR value is 1.0001
 #    (2) TARGET_LAT and TARGET_LON are floats containing decimal
-#    (3) TARGET_LON in range [0,360)
+#    (3) TARGET_LON in range [0,360) or [-180,180)
+#    (4) STRETCH_FACTOR, TARGET_LAT, and TARGET_LON exactly match
+#        the global attribute values of these parameters in the
+#        initial restart file
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
