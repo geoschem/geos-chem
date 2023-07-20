@@ -651,4 +651,31 @@ else
     print_msg "Auto-update of diagnostic settings in HISTORY.rc is turned off"
 fi
 
+
+#### Auto-update ExtData.rc for lightning climatology based on HEMCO_Config.rc
+lightningClimEntry=$(grep "LightningClimatology" HEMCO_Config.rc || echo "missing")
+if [[ ${lightningClimEntry} != "missing" ]]; then
+    lightningClimSetting=(${lightningClimEntry// / })
+    FlashYearlyEntry=$(grep "FLASH_DENS.*y4/FLASH" ExtData.rc)
+    ConvYearlyEntry=$(grep "CONV_DEPTH.*y4/FLASH"  ExtData.rc)
+    FlashClimEntry=$(grep "FLASH_DENS.*CLIM"       ExtData.rc)
+    ConvClimEntry=$(grep "CONV_DEPTH.*CLIM"        ExtData.rc)
+    if [[ ${lightningClimSetting[3]} = "true" ]]; then
+	comment_line   ${FlashYearlyEntry} ExtData.rc
+	comment_line   ${ConvYearlyEntry}  ExtData.rc
+	uncomment_line ${FlashClimEntry}   ExtData.rc
+	uncomment_line ${ConvClimEntry}    ExtData.rc
+    elif [[ ${lightningClimSetting[3]} = "false" ]]; then
+	uncomment_line ${FlashYearlyEntry} ExtData.rc
+	uncomment_line ${ConvYearlyEntry}  ExtData.rc
+	comment_line   ${FlashClimEntry}   ExtData.rc
+	comment_line   ${ConvClimEntry}    ExtData.rc
+    else
+        "ERROR: LightningClimatology must be set to true or false in HEMCO_Config.rc."
+	exit 1
+    fi
+fi
+
+
+#### Done
 print_msg " "
