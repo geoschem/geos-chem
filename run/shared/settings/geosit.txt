@@ -15,11 +15,15 @@ RUNDIR_MET_EXT='nc4'
 RUNDIR_MET_CN_YR=2018
 RUNDIR_MET_PRES_UNIT='Pa '
 RUNDIR_MET_PRES_SCALE='0.01'
-RUNDIR_MET_LCLIM='1998-2022'
+
+RUNDIR_METLIGHTNING='MERRA2'
+RUNDIR_METLIGHTNING_DIR_NATIVE="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
+RUNDIR_METLIGHTNING_NATIVE_RES='0.5x0.625'
 RUNDIR_LIGHTNOX_CLIM=true
+RUNDIR_MET_LCLIM='1980-2019'
 
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
-#
+
 # --- 2D variables, 1-hr averaged ---
 ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 CLDFRC   1 N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
@@ -52,37 +56,37 @@ SEAICE60 1 N Y F0;003000 none none SEAICE60 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1
 SEAICE70 1 N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 SEAICE80 1 N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 SEAICE90 1 N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 SLP Pa  N Y F0;003000 none 0.01 SLP ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 SNODP  1 N Y F0;003000 none none SNODP  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 SNOMAS 1 N Y F0;003000 none none SNOMAS ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 RADSWG 1 N Y F0;003000 none none SWGDN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 TO3 dobson N Y F0;003000 none none TO3 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 TROPP Pa  N Y F0;003000 none 0.01 TROPPT ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 TSKIN 1 N Y F0;003000 none none TS    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 TS    1 N Y F0;003000 none none T2M   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 USTAR 1 N Y F0;003000 none none USTAR ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 U10M m_s-1 N Y F0;003000 none none U10M ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-#
+
 # --- Surface pressure, 3-hr instantaneous ---
 PS1 hPa  N Y 0        none none PS ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
 PS2 hPa  N Y 0;001000 none none PS ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
-#
+
 # --- 3D variables, 3-hr instantaneous ---
 SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
 SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
-#
+
 TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
 TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.05x0625.nc
-#
+
 # --- 3D variables, 3-hr averaged ---
 QI     1 N Y F0;013000 none none QI       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.05x0625.nc
 QL     1 N Y F0;013000 none none QL       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.05x0625.nc
@@ -91,13 +95,13 @@ TAUCLW 1 N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cl
 OPTDEP 1 N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.05x0625.nc
 CLDF   1 N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.05x0625.nc
 DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.05x0625.nc
-#
+
 OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.05x0625.nc
-#
+
 RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.05x0625.nc
-#
+
 UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.05x0625.nc
-#
+
 DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.05x0625.nc
 DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.05x0625.nc
 REEVAPCN 1 N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.05x0625.nc
@@ -107,7 +111,7 @@ PFICU    1 N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3
 PFILSAN  1 N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.05x0625.nc
 PFLCU    1 N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.05x0625.nc
 PFLLSAN  1 N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.05x0625.nc
-#
+
 # --- Fixed variables, from constants file ---
 FRLAKE   1   N Y - none none FRLAKE   ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
 FRLAND   1   N Y - none none FRLAND   ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
@@ -115,18 +119,6 @@ FRLANDIC 1   N Y - none none FRLANDIC ./MetDir/2018/01/GEOSIT.20180101.CN.05x062
 FROCEAN  1   N Y - none none FROCEAN  ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
 PHIS m2_s-2  N Y - none none PHIS     ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
 OCEAN_MASK 1 N Y - none none FROCEAN  ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-
-#==============================================================================
-# --- Fields for lightning emissions (Extension 103) ---
-# These fields are stored in State_Met, along with the other met fields
-# WARNING: Offline lightning is not available for GEOS-IT. Using GEOS-FP.
-#==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.3125_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/%y4/FLASH_CTH_GEOSFP_0.25x0.3125_%y4_%m2.nc4
-
-# To utilize climatology lightning fields, comment the two lines above and uncomment these lines
-#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.3125_1980-2019.ymonmean.nc4
-#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/GEOSFP/CLIM/FLASH_CTH_GEOSFP_0.25x0.3125_1980-2019.ymonmean.nc4
 
 """
 
