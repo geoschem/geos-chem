@@ -1144,9 +1144,10 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml *.py geoschem_config.yml getRunInfo
-	[[ -f geoschem.benchmark.run ]] && git add geoschem.benchmark.run
-	[[ -f geoschem.run           ]] && git add geoschem.run
-	[[ -f ${rundir_config_log}   ]] && git add ${rundir_config_log}
+	[[ -f geoschem.benchmark.run         ]] && git add geoschem.benchmark.run
+	[[ -f geoschem.run                   ]] && git add geoschem.run
+	[[ -f HEMCO_Config.rc.gmao_metfields ]] && git add HEMCO_Config.rc.gmao_metfields
+	[[ -f ${rundir_config_log}           ]] && git add ${rundir_config_log}
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
