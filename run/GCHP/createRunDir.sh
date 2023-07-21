@@ -298,21 +298,29 @@ fi
 #-----------------------------------------------------------------
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
-printf "  2. GEOS-FP \n"
+printf "  2. GEOS-FP\n"
 printf "  3. GEOS-FP native data\n"
-printf "  4. GEOS-IT \n"
+printf "  4. GEOS-IT\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
     read -p "${USER_PROMPT}" met_num
     valid_met=1
+
     if [[ ${met_num} = "1" ]]; then
+
 	met="merra2"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+
     elif [[ ${met_num} = "2" ]]; then
+
 	met="geosfp"
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+
     elif [[ ${met_num} = "3" ]]; then
+
+	met="geosfp"
+
         read -p "Do you want to use mass fluxes for advection? (yes/no, default=no): " use_mass_fluxes
 	if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
             use_mass_flux_derived_wind=no
@@ -327,22 +335,35 @@ while [ "${valid_met}" -eq 0 ]; do
         else 
             RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
         fi
-	met="geosfp"
+
     elif [[ ${met_num} = "4" ]]; then
+
 	met="geosit"
-        read -p "Are you running on NASA discover? (yes/no, default=no): " use_discover
-	if [[ "$use_discover" =~ ^[Yy] ]]; then
-	    read -p "Are you using native files? (yes/no, default=no): " use_discover_native
-	    if [[ "$use_discover_native" =~ ^[Yy] ]]; then
+
+	# Ask user to specify grid type
+	printf "${thinline}Choose meteorology grid and platform:${thinline}"
+	printf "  1. Lat-lon processed files on any cluster\n"
+	printf "  2. Lat-lon native files on NASA discover\n"
+	printf "  3. Cubed-sphere native files on NASA discover\n"
+
+	valid_geosit_option=0
+	while [ "${valid_geosit_option}" -eq 0 ]; do
+	    valid_geosit_option=1
+	    read -p "${USER_PROMPT}" geosit_metdata
+	    if [[ ${geosit_metdata} = "1" ]]; then
+		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.txt)\n"
+	    elif [[ ${geosit_metdata} = "2" ]]; then
+		# TODO: use file with lat-lon
+		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
+	    elif [[ ${geosit_metdata} = "3" ]]; then
+		# TODO: use file with cs
 		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
 	    else
-                printf "\nWARNING: Only processed lat-lon fields available. Will use lat-lon winds with dry pressure in advection.\n"
-		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.txt)\n"
+		valid_geosit_option=0
+		printf "Invalid meteorology data option. Try again.\n"
 	    fi
-        else
-	    printf "\nRunning with GEOS-IT data is only supported on NASA discover at this time.\n"
-	    exit 1
-	fi
+	done
+
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
