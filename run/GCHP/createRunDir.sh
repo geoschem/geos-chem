@@ -537,6 +537,7 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xAPM"              ||
       "x${sim_name}"         == "xPOPs"             ||
       "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xTransportTracers" ||
       "x${sim_name}"         == "xtagO3"        ]]; then
     RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
 else
