@@ -19,7 +19,7 @@ MODULE GEOS_Interface
   ! MAPL/ESMF
   USE ESMF     
   USE MAPL_Mod 
-  ! GEOS-Chem
+  ! GEOS-Chem stuff
   USE Precision_Mod
   USE ErrCode_Mod                                    ! Error numbers
   USE PHYSCONSTANTS

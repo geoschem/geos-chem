@@ -296,7 +296,8 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR)    :: ShortName
     CHARACTER(LEN=255)            :: MYFRIENDLIES
     CHARACTER(LEN=127)            :: FullName
-    LOGICAL                       :: FriendMoist, SpcInRestart, ReduceSpc
+    LOGICAL                       :: FriendMoist, FriendGAAS
+    LOGICAL                       :: SpcInRestart, ReduceSpc
     CHARACTER(LEN=40)             :: SpcsBlacklist(255)
     INTEGER                       :: nBlacklist
     CHARACTER(LEN=ESMF_MAXSTR)    :: Blacklist
@@ -497,6 +498,27 @@ CONTAINS
     IF ( MAPL_am_I_Root() ) THEN
        WRITE(*,*) 'GCC species friendly to MOIST: ',FriendMoist
     ENDIF
+    ! Check if species are friendly to GAAS
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Species_friendly_to_GAAS:",&
+                                  Default = 0, &
+                                  __RC__ )
+    FriendGAAS = (DoIt==1)
+    IF ( MAPL_am_I_Root() ) THEN
+       WRITE(*,*) 'GCC species friendly to GAAS: ',FriendGAAS
+    ENDIF
+
+    ! Determine if non-advected species shall be included in restart file
+    CALL ESMF_ConfigGetAttribute( myState%myCF, DoIt, &
+                                  Label = "Shortlived_species_in_restart:", &
+                                  Default = 1, __RC__ )
+    IF ( DoIt==1 ) THEN
+       SpcRestartAttr  = MAPL_RestartOptional
+       SpcInRestart = .TRUE.
+    ELSE
+       SpcRestartAttr  = MAPL_RestartSkip
+       SpcInRestart = .FALSE.
+    ENDIF
     ! Check if we want to use a reduced set of species for transport
     SpcsBlacklist(:) = ''
     nBlacklist = 0
@@ -579,6 +601,29 @@ CONTAINS
                 ENDIF
              ENDDO
           ENDIF
+          ! Make some species also friendly to GAAS
+          IF ( FriendGAAS ) THEN
+             IF ( TRIM(FullName)== 'DST1' .OR. &
+                  TRIM(FullName)== 'DST2' .OR. &
+                  TRIM(FullName)== 'DST3' .OR. &
+                  TRIM(FullName)== 'DST4' .OR. &
+                  TRIM(FullName)== 'SALA' .OR. &
+                  TRIM(FullName)== 'SALC' .OR. &
+                  TRIM(FullName)== 'OCPI' .OR. &
+                  TRIM(FullName)== 'SOAS' .OR. &
+                  TRIM(FullName)== 'OCPO' .OR. &
+                  TRIM(FullName)== 'BCPI' .OR. &
+                  TRIM(FullName)== 'BCPO' .OR. &
+                  TRIM(FullName)== 'NH4'  .OR. &
+                  TRIM(FullName)== 'NIT'  .OR. &
+                  TRIM(FullName)== 'NITs' .OR. &
+                  TRIM(FullName)== 'HMS'  .OR. &
+                  TRIM(FullName)== 'SO4'  ) THEN
+                MYFRIENDLIES = TRIM(MYFRIENDLIES)//':GAAS'
+             ENDIF 
+          ENDIF 
+
+          ! Now add to internal state
           CALL MAPL_AddInternalSpec(GC,                                     &
                SHORT_NAME      = TRIM(SPFX)//TRIM(SUBSTRS(1)),              &
                LONG_NAME       = TRIM(FullName)//                           &
@@ -1958,7 +2003,7 @@ CONTAINS
                                         GEOS_RATSandOxDiags,       &
                                         GEOS_PreRunChecks
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
-    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonGetConc,        &
+    USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonSetConc,        &
                                         GEOS_CarbonRunPhoto
 #endif
 
@@ -2614,11 +2659,11 @@ CONTAINS
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
-       ! Import CO2 concentrations from external field (e.g., GOCART)
+       ! Set CO2 / mesosphere CO concentrations from external field (e.g., GOCART)
        ! Note: comment out for now and call this below immediately before doing
        ! CO2 photolysis. Reason for this is that CO2 is currently hardcoded to 
        ! 0.0 in fullchem to match the old SMVGEAR code (??)
-!       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+!       CALL GEOS_CarbonSetConc( Import,    Input_Opt,  State_Chm,        &
 !                                State_Met, State_Diag, State_Grid, __RC__ )
 
        ! Eventually initialize species concentrations from external field.
@@ -2859,7 +2904,7 @@ CONTAINS
        ! Import CO2 concentrations from external field (e.g., GOCART)
        ! Note: this call should be moved to the beginning of the routine once
        ! CO2 is not hardcoded to 0.0 anymore (in fullchem)
-       CALL GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,        &
+       CALL GEOS_CarbonSetConc( Import,    Input_Opt,  State_Chm,        &
                                 State_Met, State_Diag, State_Grid, __RC__ )
 
        IF ( PHASE == CHEMPHASE ) THEN

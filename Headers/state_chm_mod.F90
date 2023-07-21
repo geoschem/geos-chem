@@ -350,6 +350,10 @@ MODULE State_Chm_Mod
      ! Carbon stuff for GEOS 
      !-----------------------------------------------------------------------
 #if defined( MODEL_GEOS )
+     ! CO mesosphere boundary
+     INTEGER            :: COmesosphere 
+     CHARACTER(LEN=255) :: impCOmeso
+     ! CO2 photolysis
      INTEGER            :: CO2fromGOCART
      CHARACTER(LEN=255) :: impCO2name
      INTEGER            :: numphoto
@@ -599,8 +603,9 @@ CONTAINS
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
 
-#ifdef MODEL_GEOS
-    ! Add quantities for coupling to the NASA/GEOS ESM
+#if defined( MODEL_GEOS )
+    State_Chm%COmesosphere      = .FALSE.
+    State_Chm%impCOmeso         = "unknown" 
     State_Chm%CO2fromGOCART     = .FALSE.
     State_Chm%impCO2name        = "unknown" 
     State_Chm%numphoto          = 0
@@ -2700,7 +2705,7 @@ CONTAINS
     ENDDO
 
     ! Write closing line
-    WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
+    IF ( Input_Opt%amIRoot ) WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
 
     !------------------------------------------------------------------------
     ! Set up the mapping for UVFlux Diagnostics
