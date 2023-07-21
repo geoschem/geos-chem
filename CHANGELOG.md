@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster
 `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 - Added new GCHP config file ESMF.rc for configuring ESMF logging
+- Added several new run directory files for use with GEOS-Chem in GEOS
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
@@ -21,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
 - Changed the AEIC 2019 monthly climatology specification format in ExtData.rc to match standard convention for climatology
 - Changed default ESMF logging in GCHP to be ESMF_LOGKIND_NONE (no log)
+- GEOS-only updates for running GEOS-Chem in GEOS
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
