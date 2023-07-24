@@ -81,6 +81,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
+- Disabled SpeciesConcMND output for benchmark simulations
 
 ## [14.1.1] - 2023-03-03
 ### Added
