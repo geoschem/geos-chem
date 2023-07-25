@@ -76,8 +76,10 @@ MODULE gckpp_Global
   REAL(kind=dp) :: DT
 ! ATOL - Absolute tolerance
   REAL(kind=dp) :: ATOL(NVAR)
+  !$OMP THREADPRIVATE( ATOL )
 ! RTOL - Relative tolerance
   REAL(kind=dp) :: RTOL(NVAR)
+  !$OMP THREADPRIVATE( RTOL )
 ! STEPMIN - Lower bound for integration step
   REAL(kind=dp) :: STEPMIN
 ! STEPMAX - Upper bound for integration step

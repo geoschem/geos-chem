@@ -436,14 +436,6 @@ CONTAINS
     TIN       = T
     TOUT      = T + DT
 
-    !%%%%% CONVERGENCE CRITERIA %%%%%
-
-    ! Absolute tolerance
-    ATOL      = 1e-2_dp
-
-    ! Relative tolerance
-    RTOL      = 0.5e-2_dp
-
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -539,6 +531,14 @@ CONTAINS
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
 #endif
+
+       !%%%%% CONVERGENCE CRITERIA %%%%%
+
+       ! Absolute tolerance
+       ATOL      = 1e-2_dp
+
+       ! Relative tolerance
+       RTOL      = 0.5e-2_dp
 
        ! Per discussions for Lin et al., force keepActive throughout the
        ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
