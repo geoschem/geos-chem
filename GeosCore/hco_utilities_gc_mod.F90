@@ -2505,7 +2505,7 @@ CONTAINS
    !=================================================================
 
    ! Print header for min/max concentration to log
-   IF ( Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%amIRoot .AND. (FIRST .or. Input_Opt%Verbose) ) THEN
       WRITE( 6, 110 )
 110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
    ENDIF
