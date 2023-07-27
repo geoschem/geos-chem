@@ -299,8 +299,10 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP\n"
-printf "  3. GEOS-FP native data\n"
-printf "  4. GEOS-IT\n"
+printf "  3. GEOS-IT\n"
+
+metSettingsDir=${gcdir}/run/shared/settings
+metAdvDir=${metSettingsDir}/gchp_adv_winds_and_fluxes
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -310,60 +312,151 @@ while [ "${valid_met}" -eq 0 ]; do
     if [[ ${met_num} = "1" ]]; then
 
 	met="merra2"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+	RUNDIR_VARS+="$(cat ${metSettingsDir}/merra2.txt)\n"
 
     elif [[ ${met_num} = "2" ]]; then
 
-	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+       	met="geosfp"
 
-    elif [[ ${met_num} = "3" ]]; then
-
-	met="geosfp"
-
-        read -p "Do you want to use mass fluxes for advection? (yes/no, default=no): " use_mass_fluxes
-	if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
-            use_mass_flux_derived_wind=no
-        else
-            read -p "Do you want to use mass fluxes derived winds for advection? (yes/no, default=no): " use_mass_flux_derived_wind
-        fi
-        
-        if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux.txt)\n"
-        elif [[ "$use_mass_flux_derived_wind" =~ ^[Yy] ]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux_derived_wind.txt)\n"
-        else 
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
-        fi
-
-    elif [[ ${met_num} = "4" ]]; then
-
-	met="geosit"
-
-	# Ask user to specify grid type
-	printf "${thinline}Choose meteorology grid and platform:${thinline}"
-	printf "  1. Lat-lon processed files on any cluster\n"
-	printf "  2. Lat-lon native files on NASA discover\n"
-	printf "  3. Cubed-sphere native files on NASA discover\n"
-
-	valid_geosit_option=0
-	while [ "${valid_geosit_option}" -eq 0 ]; do
-	    valid_geosit_option=1
-	    read -p "${USER_PROMPT}" geosit_metdata
-	    if [[ ${geosit_metdata} = "1" ]]; then
-		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.txt)\n"
-	    elif [[ ${geosit_metdata} = "2" ]]; then
-		# TODO: use file with lat-lon
-		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
-	    elif [[ ${geosit_metdata} = "3" ]]; then
-		# TODO: use file with cs
-		RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosit.discover.txt)\n"
+ 	# Set file type (met_file_type) by asking user to specify processed or native files
+	printf "${thinline}Choose meteorology file type:${thinline}"
+	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
+	printf "  2. 0.25x0.3125 hourly and 3-hourly native files produced by GEOS\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		met_file_type="processed"
+	    elif [[ ${response} = "2" ]]; then
+		met_file_type="native"
 	    else
-		valid_geosit_option=0
-		printf "Invalid meteorology data option. Try again.\n"
+		valid_response=0
+		printf "Invalid option. Try again.\n"
 	    fi
 	done
 
+       	# Ask user to specify meteoerology for advection
+	printf "${thinline}Choose meteorology for advection:${thinline}"
+	printf "  1. 0.25x0.3125 3-hourly winds\n"
+	printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
+	printf "  3. C720 1-hourly mass fluxes\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		adv_flux_src=wind
+	    elif [[ ${response} = "2" ]]; then
+		adv_flux_src=derived_wind
+	    elif [[ ${response} = "3" ]]; then
+		adv_flux_src=mass_flux
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
+	# Set text files containing settings for met data. The logic has some redundancies but
+	# is written out fully for clarity on what settings are used in combination.
+	if [[ ${met_file_type} = "native" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp_native.txt)\n"
+
+	    if [[ ${adv_flux_src} = "wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_3hr_wind.txt)\n"
+
+	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_derived_1hr_wind.txt)\n"
+
+	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_1hr_mass_flux_cs.txt)\n"
+	    fi
+
+	elif [[ ${met_file_type} = "processed" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp_processed.txt)\n"
+
+	    if [[ ${adv_flux_src} = "wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_processed_3hr_wind.txt)\n"
+
+	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_derived_1hr_wind.txt)\n"
+
+	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_1hr_mass_flux_cs.txt)\n"
+	    fi
+	fi
+	
+    elif [[ ${met_num} = "3" ]]; then
+
+	met="geosit"
+
+	# Set file type (met_file_type) by asking user to specify processed or native files
+	printf "${thinline}Choose meteorology files:${thinline}"
+	printf "  1. Native C180 hourly and 3-hourly files produced by GEOS (recommended)\n"
+	printf "  2. Native 0.5x0.625 hourly and 3-hourly files produced by GEOS\n"
+	printf "  3. Pre-processed C180 daily files (currently unavailable)\n"
+	printf "  4. Pre-procesed 0.5x0.625 daily files (5% faster run-time than using native files)\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		met_file_type="native_cs"
+	    elif [[ ${response} = "2" ]]; then
+		met_file_type="native_ll"
+	    elif [[ ${response} = "3" ]]; then
+		met_file_type="processed_cs"
+		valid_response=0
+		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
+	    elif [[ ${response} = "4" ]]; then
+		met_file_type="processed_ll"
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
+	# If using native files, ask user if they are using discover
+	if [[ ${met_file_type} = "native_cs" or ${met_file_type} = "native_ll" ]]; then
+	    printf "${thinline}Are you running on the NASA discover cluster? (y/n)${thinline}"
+	    valid_response=0
+	    while [ "$valid_response" -eq 0 ]; do
+		read -p "${USER_PROMPT}" use_discover
+		if [[ ${use_discover} = "y" ]]; then
+		    valid_response=1
+		elif [[ ${use_discover} = "n" ]]; then
+		    valid_response=1
+		else
+		    printf "Invalid option. Try again.\n"
+		fi
+	    done
+	else
+	    use_discover=n
+	fi
+	
+	# Set text files containing settings for met data. Winds will always be
+	# used for advection by default. Using mass fluxes instead can be set
+	# at run-time in the run directory.
+	if [[ ${met_file_type} = "processed_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.preprocessed_ll.txt)\n"
+	    
+	elif [[ ${met_file_type} = "native_cs" ]]; then
+	    
+	    if [[ ${use_discover} = "y" ]]; then
+	    	RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_cs.discover.txt)\n"
+	    else
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_cs.txt)\n"
+	    fi
+	    
+	elif [[ ${met_file_type} = "native_ll" ]]; then
+
+	    if [[ ${use_discover} = "y" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_ll.discover.txt)\n"
+	    else
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_ll.txt)\n"
+	    fi
+	fi
+	    
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -597,7 +690,7 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
-RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+RUNDIR_VARS+="$(cat ${settingsDir}/gmao_hemco.txt)\n"
 if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xaciduptake"       ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
