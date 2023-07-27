@@ -2627,8 +2627,7 @@ CONTAINS
    ! Echo output
    IF ( Input_Opt%amIRoot ) THEN
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 140 ) STAMP
-140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', STAMP, ' using ', HHMMSS, t_index
    ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions
