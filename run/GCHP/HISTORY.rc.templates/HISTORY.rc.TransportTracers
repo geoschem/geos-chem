@@ -53,7 +53,7 @@ GRID_LABELS: #PE24x144-CF
 # You can disable collections by commenting out with #
 #==============================================================================
 COLLECTIONS: 'Emissions',
-             'Budget',
+             #'Budget',
              'CloudConvFlux',
              'DryDep',
              'LevelEdgeDiags',      
