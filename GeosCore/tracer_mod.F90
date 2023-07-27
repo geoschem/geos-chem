@@ -325,18 +325,16 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             IF ( SpcInfo%Src_Add ) THEN
+             IF ( Mask(I,J,L) > 0 ) THEN
 
-                ! Add source
-                State_Chm%Species(N)%Conc(I,J,L) =      &
-                   State_Chm%Species(N)%Conc(I,J,L) +   &
-                   ( SpcInfo%Src_Value * Mask(I,J,L) )
-
-             ELSE
-
-                ! Replace value
-                State_Chm%Species(N)%Conc(I,J,L) =      &
-                   ( SpcInfo%Src_Value * Mask(I,J,L) )
+                IF ( SpcInfo%Src_Add ) THEN
+                   ! Add source
+                   State_Chm%Species(N)%Conc(I,J,L) =      &
+                      State_Chm%Species(N)%Conc(I,J,L) + SpcInfo%Src_Value
+                ELSE
+                   ! Replace value
+                   State_Chm%Species(N)%Conc(I,J,L) = SpcInfo%Src_Value
+                ENDIF
 
              ENDIF
 
@@ -493,7 +491,6 @@ CONTAINS
 
     ! Arrays
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-
 
     ! Parameters
     REAL(fp),    PARAMETER :: ln2 = 0.693147181E+00_fp
@@ -665,8 +662,10 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Chm%Species(N)%Conc(I,J,L) =                &
-               State_Chm%Species(N)%Conc(I,J,L) * ( DecayRate * Mask(I,J,L) )
+             IF ( Mask(I,J,L) > 0 ) THEN
+                State_Chm%Species(N)%Conc(I,J,L) =                &
+                     State_Chm%Species(N)%Conc(I,J,L) * DecayRate
+             ENDIF
           ENDDO
           ENDDO
           ENDDO
@@ -674,19 +673,20 @@ CONTAINS
 
        ELSE IF ( TRIM(SpcInfo%Snk_Mode) == 'constant' ) THEN
 
-!          DO L = 1, State_Grid%NZ
-!          DO J = 1, State_Grid%NY
-!          DO I = 1, State_Grid%NX
-!             ! Snk_Value may be zero so we can't simply multiply by Mask
-!             IF ( Mask(I,J,L) > 0 ) THEN
-!                State_Chm%Species(N)%Conc(I,J,L) = SpcInfo%Snk_Value
-!             ENDIF
-!          ENDDO
-!          ENDDO
-!          ENDDO
-          WHERE( Mask > 0.0_fp )
-             State_Chm%Species(N)%Conc =  SpcInfo%Snk_Value
-          ENDWHERE
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             IF ( Mask(I,J,L) > 0 ) THEN
+                State_Chm%Species(N)%Conc(I,J,L) = SpcInfo%Snk_Value
+             ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
 
        ENDIF
 
