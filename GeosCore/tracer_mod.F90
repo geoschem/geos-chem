@@ -116,9 +116,6 @@ CONTAINS
     ! Arrays
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
-    ! Pointers to fields in the HEMCO data structure
-    REAL(f4),      POINTER :: O3(:,:,:)   => NULL()
-
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
 
@@ -221,33 +218,6 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
-
-          ENDIF
-
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Get model fields (if needed)
-       !---------------------------------------------------------------------
-       IF ( TRIM(SpcInfo%Src_Mode) == 'model_field' ) THEN
-
-          ! For stOX tracer get O3 [v/v] from HEMCO
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_O3', O3, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Cannot get pointer to GLOBAL_O3!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             ErrMsg = 'Src_Mode: model_field not currently supported for' // &
-                   TRIM( SpcInfo%Name ) // &
-                   'Please modify species_database.yml or add this '      // &
-                   'capability in tracer_mod.F90.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
 
           ENDIF
 
@@ -374,26 +344,6 @@ CONTAINS
           ENDDO
           ENDDO
           !$OMP END PARALLEL DO
-
-       ELSE IF ( TRIM(SpcInfo%Src_Mode) == 'model_field' ) THEN
-
-          ! Special handling for stOX tracer
-          IF ( TRIM(SpcInfo%Name) == 'stOX' ) THEN
-
-             !$OMP PARALLEL DO                                               &
-             !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L                                         )&
-             !$OMP COLLAPSE( 3                                              )
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-                ! Replace value
-                State_Chm%Species(N)%Conc(I,J,L) = O3(I,J,L) * Mask(I,J,L)
-             ENDDO
-             ENDDO
-             ENDDO
-             !$OMP END PARALLEL DO
-          ENDIF
 
        ELSE IF ( TRIM(SpcInfo%Src_Mode) == 'maintain_mixing_ratio' ) THEN
 
@@ -537,7 +487,6 @@ CONTAINS
     REAL(fp)               :: DT
     REAL(fp)               :: DecayConstant
     REAL(fp)               :: DecayRate
-    REAL(fp)               :: LO3_kg
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg,  ThisLoc
@@ -545,8 +494,6 @@ CONTAINS
     ! Arrays
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
-    ! Pointers to fields in the HEMCO data structure
-    REAL(f4),    POINTER   :: LOSS_O3(:,:,:)   => NULL()
 
     ! Parameters
     REAL(fp),    PARAMETER :: ln2 = 0.693147181E+00_fp
@@ -611,34 +558,6 @@ CONTAINS
           IF ( Input_Opt%Verbose ) THEN
              WRITE( 6,100 ) ADJUSTL( SpcInfo%Name ), DecayRate
  100         FORMAT( '     -  Species name, decay rate: ', a15, es13.6 )
-          ENDIF
-
-       ENDIF
-
-       !--------------------------------------------------------------------
-       ! Get chemical loss (if needed)
-       !--------------------------------------------------------------------
-       IF ( TRIM(SpcInfo%Snk_Mode) == 'chemical_loss' ) THEN
-
-          ! For stOX tracer get O3 loss [molec/cm3/s] from HEMCO
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-
-             CALL HCO_GetPtr( HcoState, 'O3_LOSS', LOSS_O3,   RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Cannot get pointer to O3_LOSS!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             ErrMsg = 'Snk_Mode: chemical_loss not currently supported '  // &
-                   'for ' // TRIM( SpcInfo%Name )  // &
-                   'Please modify species_database.yml or add this '      // &
-                   'capability in tracer_mod.F90.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-
           ENDIF
 
        ENDIF
@@ -768,35 +687,6 @@ CONTAINS
           WHERE( Mask > 0.0_fp )
              State_Chm%Species(N)%Conc =  SpcInfo%Snk_Value
           ENDWHERE
-
-       ELSE IF ( TRIM(SpcInfo%Snk_Mode) == 'chemical_loss' ) THEN
-
-          ! Special handling for stOX tracer
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-
-             !$OMP PARALLEL DO                                               &
-             !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L, LO3_kg                                 )&
-             !$OMP COLLAPSE( 3                                              )
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-
-                ! Convert L(O3) from [molec/cm3/s] to [kg]
-                LO3_kg = LOSS_O3(I,J,L)               & ! in molec/cm3/s
-                 *  (SpcInfo%MW_g * 1000.0_fp) / AVO  & ! molec/cm3/s -> kg/m3/s
-                 * State_Met%AIRVOL(I,J,L)            & ! kg/m3/s     -> kg/s
-                 * DT                                   ! kg/s        -> kg
-
-                State_Chm%Species(N)%Conc(I,J,L) = &
-                   State_Chm%Species(N)%Conc(I,J,L) - ( LO3_kg * MASK(I,J,L) )
-
-             ENDDO
-             ENDDO
-             ENDDO
-             !$OMP END PARALLEL DO
-
-          ENDIF
 
        ENDIF
 

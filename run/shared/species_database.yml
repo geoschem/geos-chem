@@ -4609,20 +4609,6 @@ st80_25:
   Src_Units: ppbv
   Src_Value: 200
   Src_Vert: pressures
-stOX:
-  FullName: Tracer with O3 values in stratosphere and O3 loss applied in troposphere
-  Is_Advected: true
-  Is_Gas: true
-  Is_Tracer: true
-  MW_g: 1.0
-  Loss_Species: O3
-  Snk_Horiz: all
-  Snk_Mode: chemical_loss
-  Snk_Vert: troposphere
-  Src_Add: false
-  Src_Horiz: all
-  Src_Mode: model_field
-  Src_Vert: stratosphere
 TiF1:
   << : *DST1properties
   Formula: Ti
