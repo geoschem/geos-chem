@@ -15,18 +15,6 @@ MODULE NCDF_MOD
 !
 ! !USES:
 !
-  ! Modules for netCDF read
-  USE netCDF
-  USE m_netcdf_io_open
-  USE m_netcdf_io_get_dimlen
-  USE m_netcdf_io_read
-  USE m_netcdf_io_readattr
-  USE m_netcdf_io_close
-  USE m_netcdf_io_create
-  USE m_netcdf_io_define
-  USE m_netcdf_io_write
-  USE m_netcdf_io_checks
-
   IMPLICIT NONE
   PRIVATE
 !
@@ -80,7 +68,6 @@ MODULE NCDF_MOD
   PRIVATE :: NC_GET_SIGMA_LEVELS_DP
   PRIVATE :: NC_GET_SIGMA_LEVELS_C
   PRIVATE :: NC_GET_SIG_FROM_HYBRID
-  PRIVATE :: NC_READ_VAR_CORE
 !
 ! !REMARKS:
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
@@ -147,6 +134,10 @@ CONTAINS
 !
   SUBROUTINE NC_OPEN( FileName, fID )
 !
+! !USES:
+!
+    USE m_netcdf_io_open
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: FileName
@@ -184,6 +175,11 @@ CONTAINS
 !
   SUBROUTINE NC_APPEND( FileName, fID, nTime )
 !
+! !USES:
+!
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_open
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: FileName
@@ -208,7 +204,7 @@ CONTAINS
     !=================================================================
 
     ! Open netCDF file
-    CALL Ncop_Wr( fId, TRIM(FileName) )
+    CALL NcOp_Wr( fId, TRIM(FileName) )
 
     ! Also return the number of time slices so that we can
     ! append to an existing file w/o clobbering any data
@@ -231,6 +227,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_CLOSE( fID )
+!
+! !USES:
+!
+    USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !
@@ -264,6 +264,10 @@ CONTAINS
 !
   SUBROUTINE Nc_Set_DefMode( fId, On, Off )
 !
+! !USES:
+!
+    USE m_netcdf_io_define
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN) :: fId   ! netCDF file ID
@@ -282,26 +286,31 @@ CONTAINS
 
     ! If the ON switch is passed then ...
     IF ( PRESENT( On ) ) THEN
+
+       ! Turn define mode on
        IF ( On ) THEN
-          CALL NcBegin_Def( fId )  ! Turn define mode on
-          RETURN
-       ELSE
-          CALL NcEnd_Def( fId )    ! Turn define mode off
+          CALL NcBegin_Def( fId )
           RETURN
        ENDIF
+
+       ! Else turn define mode off
+       CALL NcEnd_Def( fId )
+       RETURN
     ENDIF
 
     ! If the OFF switch is passed then ,,,
     IF ( PRESENT( Off ) ) THEN
+
+       ! Turn define mode off
        IF ( Off ) THEN
-          CALL NcEnd_Def( fId )      ! Turn define mode off
-          RETURN
-       ELSE
-          CALL NcBegin_Def( fId )    ! Turn define mode on
+          CALL NcEnd_Def( fId )
           RETURN
        ENDIF
-    ENDIF
 
+       ! Else turn define mode on
+       CALL NcBegin_Def( fId )
+       RETURN
+    ENDIF
 
   END SUBROUTINE Nc_Set_DefMode
 !EOC
@@ -320,6 +329,13 @@ CONTAINS
 !
   SUBROUTINE NC_READ_TIME( fID,     nTime,        timeUnit, &
                            timeVec, timeCalendar, RC       )
+!
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
 !
 ! !INPUT PARAMETERS:
 !
@@ -367,19 +383,19 @@ CONTAINS
     v_name = "time"
 
     ! Check if dimension "time" exist
-    hasTime = Ncdoes_Dim_Exist ( fID, TRIM(v_name) )
+    hasTime = Ncdoes_Dim_Exist( fID, TRIM(v_name) )
 
     ! If time dim not found, also check for dimension "date"
     IF ( .NOT. hasTime ) THEN
        v_name   = "date"
-       hasTime = Ncdoes_Dim_Exist ( fID, TRIM(v_name) )
+       hasTime = Ncdoes_Dim_Exist( fID, TRIM(v_name) )
     ENDIF
 
     ! Return here if no time variable defined
     IF ( .NOT. hasTime ) RETURN
 
     ! Get dimension length
-    CALL Ncget_Dimlen ( fID, TRIM(v_name), nTime )
+    CALL Ncget_Dimlen( fID, TRIM(v_name), nTime )
 
     ! Read time/date units attribute
     a_name = "units"
@@ -445,6 +461,13 @@ CONTAINS
 !
   SUBROUTINE NC_READ_VAR_SP( fID, Var, nVar, varUnit, varVec, RC )
 !
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN   )            :: fID
@@ -455,87 +478,6 @@ CONTAINS
     INTEGER,          INTENT(  OUT)            :: nVar
     CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit
     REAL*4,           POINTER                  :: varVec(:)
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)            :: RC
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    CALL NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecSp=varVec, RC=RC )
-
-  END SUBROUTINE NC_READ_VAR_SP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Nc_Read_Var_Dp
-!
-! !DESCRIPTION: Subroutine NC\_READ\_VAR\_DP reads the given variable from the
-! given fID and returns the corresponding variable values and units.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE NC_READ_VAR_DP( fID, Var, nVar, varUnit, varVec, RC )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,          INTENT(IN   )            :: fID
-    CHARACTER(LEN=*), INTENT(IN   )            :: var
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(  OUT)            :: nVar
-    CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit
-    REAL*8,           POINTER                  :: varVec(:)
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(INOUT)            :: RC
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    CALL NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecDp=varVec, RC=RC )
-
-  END SUBROUTINE NC_READ_VAR_DP
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Nc_Read_Var_Core
-!
-! !DESCRIPTION: Subroutine NC\_READ\_VAR\_CORE reads the given variable from the
-! given fID and returns the corresponding variable values and units.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE NC_READ_VAR_CORE( fID, Var, nVar, varUnit, varVecDp, varVecSp, RC )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,          INTENT(IN   )            :: fID
-    CHARACTER(LEN=*), INTENT(IN   )            :: var
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,          INTENT(  OUT)            :: nVar
-    CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit
-    REAL*4,           POINTER,       OPTIONAL  :: varVecSp(:)
-    REAL*8,           POINTER,       OPTIONAL  :: varVecDp(:)
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -557,10 +499,6 @@ CONTAINS
     INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays
     INTEGER                :: I
 
-    !=================================================================
-    ! NC_READ_VAR_CORE begins here
-    !=================================================================
-
     ! Init
     RC      = 0
     nVar    = 0
@@ -570,35 +508,26 @@ CONTAINS
     v_name = var
 
     ! Check if variable exists
-    hasVar = Ncdoes_Dim_Exist ( fID, TRIM(v_name) )
+    hasVar = Ncdoes_Dim_Exist( fID, TRIM(v_name) )
 
     ! Return here if variable not defined
     IF ( .NOT. hasVar ) RETURN
 
     ! Get dimension length
-    CALL Ncget_Dimlen ( fID, TRIM(v_name), nVar )
+    CALL Ncget_Dimlen( fID, TRIM(v_name), nVar )
 
     ! Read vector from file.
-    IF ( PRESENT(VarVecSp) ) THEN
-       IF ( ASSOCIATED( VarVecSp ) ) DEALLOCATE(VarVecSp)
-       ALLOCATE ( VarVecSp(nVar) )
-       st1d = (/ 1    /)
-       ct1d = (/ nVar /)
-       CALL NcRd( VarVecSp, fID, TRIM(v_name), st1d, ct1d )
-    ENDIF
-    IF ( PRESENT(VarVecDp) ) THEN
-       IF ( ASSOCIATED( VarVecDp ) ) DEALLOCATE(VarVecDp)
-       ALLOCATE ( VarVecDp(nVar) )
-       st1d = (/ 1    /)
-       ct1d = (/ nVar /)
-       CALL NcRd( VarVecDp, fID, TRIM(v_name), st1d, ct1d )
-    ENDIF
+    IF ( ASSOCIATED( VarVec ) ) DEALLOCATE(VarVec)
+    ALLOCATE ( VarVec(nVar) )
+    st1d = (/ 1    /)
+    ct1d = (/ nVar /)
+    CALL NcRd( VarVec, fID, TRIM(v_name), st1d, ct1d )
 
     ! Read units attribute. If unit attribute does not exist, return
     ! empty string (dimensionless vertical coordinates do not require
     ! a units attribute).
     a_name  = "units"
-    hasVar  = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    hasVar  = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( .NOT. hasVar ) THEN
        varUnit = ''
     ELSE
@@ -618,7 +547,110 @@ CONTAINS
        ENDIF
     ENDIF
 
-  END SUBROUTINE NC_READ_VAR_CORE
+  END SUBROUTINE NC_READ_VAR_SP
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Nc_Read_Var_Dp
+!
+! !DESCRIPTION: Subroutine NC\_READ\_VAR\_DP reads the given variable from the
+! given fID and returns the corresponding variable values and units.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NC_READ_VAR_DP( fID, Var, nVar, varUnit, varVec, RC )
+!
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN   )            :: fID
+    CHARACTER(LEN=*), INTENT(IN   )            :: var
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(  OUT)            :: nVar
+    CHARACTER(LEN=*), INTENT(  OUT)            :: varUnit
+    REAL*8,           POINTER                  :: varVec(:)
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT)            :: RC
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/ncdfutil for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL                :: hasVar
+    CHARACTER(LEN=255)     :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255)     :: a_name             ! netCDF attribute name
+    CHARACTER(LEN=255)     :: a_val              ! netCDF attribute value
+    INTEGER                :: a_type             ! netCDF attribute type
+    INTEGER                :: st1d(1), ct1d(1)   ! For 1D arrays
+    INTEGER                :: I
+
+    ! Init
+    RC      = 0
+    nVar    = 0
+    hasVar  = .FALSE.
+
+    ! Variable name
+    v_name = var
+
+    ! Check if variable exists
+    hasVar = Ncdoes_Dim_Exist( fID, TRIM(v_name) )
+
+    ! Return here if variable not defined
+    IF ( .NOT. hasVar ) RETURN
+
+    ! Get dimension length
+    CALL Ncget_Dimlen( fID, TRIM(v_name), nVar )
+
+    ! Read vector from file.
+    IF ( ASSOCIATED( VarVec ) ) DEALLOCATE( VarVec )
+    ALLOCATE ( VarVec(nVar) )
+    st1d = (/ 1    /)
+    ct1d = (/ nVar /)
+    CALL NcRd( VarVec, fID, TRIM(v_name), st1d, ct1d )
+
+    ! Read units attribute. If unit attribute does not exist, return
+    ! empty string (dimensionless vertical coordinates do not require
+    ! a units attribute).
+    a_name  = "units"
+    hasVar  = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
+    IF ( .NOT. hasVar ) THEN
+       varUnit = ''
+    ELSE
+       CALL NcGet_Var_Attributes( fID,          TRIM(v_name), &
+                                  TRIM(a_name), varUnit     )
+
+       ! Check if the last character of VarUnit is the ASCII null character
+       ! ("\0", ASCII value = 0), which is used to denote the end of a string.
+       ! The ASCII null character may be introduced if the netCDF file was
+       ! written using a language other than Fortran.  The compiler might
+       ! interpret the null character as part of the string instead of as
+       ! an empty space.  If the null space is there, then replace it with
+       ! a Fortran empty string value (''). (bmy, 7/17/18)
+       I = LEN_TRIM( VarUnit )
+       IF ( ICHAR( VarUnit(I:I) ) == 0 ) THEN
+          VarUnit(I:I) = ''
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE NC_READ_VAR_DP
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -663,7 +695,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CHARPAK_MOD, ONLY : TRANLC
+    USE CharPak_Mod,  ONLY : TRANLC
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_get_dimlen
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+    USE netCDF
 !
 ! !INPUT PARAMETERS:
 !
@@ -1141,7 +1178,7 @@ CONTAINS
 
     ! Check for scale factor
     a_name  = "scale_factor"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    ReadAtt = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
@@ -1150,7 +1187,7 @@ CONTAINS
 
     ! Check for offset factor
     a_name  = "add_offset"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    ReadAtt = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
 
     IF ( ReadAtt ) THEN
        CALL NcGet_Var_Attributes(fId,TRIM(v_name),TRIM(a_name),corr)
@@ -1171,7 +1208,7 @@ CONTAINS
 
     ! 1: 'missing_value'
     a_name  = "missing_value"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    ReadAtt = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( ReadAtt ) THEN
        IF ( a_type == NF90_REAL ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
@@ -1189,7 +1226,7 @@ CONTAINS
 
     ! 2: '_FillValue'
     a_name  = "_FillValue"
-    ReadAtt = Ncdoes_Attr_Exist ( fId, TRIM(v_name), TRIM(a_name), a_type )
+    ReadAtt = Ncdoes_Attr_Exist( fId, TRIM(v_name), TRIM(a_name), a_type )
     IF ( ReadAtt ) THEN
        IF ( a_type == NF90_REAL ) THEN
           CALL NcGet_Var_Attributes( fId, TRIM(v_name), TRIM(a_name), miss4 )
@@ -2358,6 +2395,11 @@ CONTAINS
                                     lat2, lev1,   lev2,    time, dir,  RC,   &
                                     SigLev4, SigLev8 )
 !
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_readattr
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN   ) :: fID             ! Ncdf File ID
@@ -2538,6 +2580,13 @@ CONTAINS
   SUBROUTINE NC_GET_SIG_FROM_HYBRID ( fID,  levName, lon1,   lon2, lat1,     &
                                       lat2, lev1,    lev2,   time, dir,      &
                                       RC,   sigLev4, sigLev8                )
+!
+! !USES:
+!
+  USE m_netcdf_io_checks
+  USE m_netcdf_io_get_dimlen
+  USE m_netcdf_io_read
+  USE m_netcdf_io_readattr
 !
 ! !INPUT PARAMETERS:
 !
@@ -2855,6 +2904,13 @@ CONTAINS
                           time,    timeUnit, ncVars,  ncUnits,  &
                           ncLongs, ncShorts, ncArrays            )
 !
+! !USES:
+!
+    USE m_netcdf_io_close
+    USE m_netcdf_io_define
+    USE m_netcdf_io_write
+    USE netCDF
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: ncFile             ! file path+name
@@ -2925,6 +2981,14 @@ CONTAINS
                           time,    timeUnit, ncVars,  ncUnits,   &
                           ncLongs, ncShorts, ncArrays             )
 !
+! !USES:
+!
+    USE m_netcdf_io_create
+    USE m_netcdf_io_close
+    USE m_netcdf_io_define
+    USE m_netcdf_io_write
+    USE netCDF
+!
 ! !INPUT PARAMETERS:
 !
     CHARACTER(LEN=*), INTENT(IN)  :: ncFile   ! file path+name
@@ -2993,8 +3057,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE NC_DEFINE ( ncFile,  nLon,    nLat,    nLev,    nTime,&
-                         timeUnit, ncVars,  ncUnits, ncLongs, ncShorts, fId )
+  SUBROUTINE NC_DEFINE( ncFile,   nLon,    nLat,    nLev,    nTime,          &
+                        timeUnit, ncVars,  ncUnits, ncLongs, ncShorts, fId  )
+!
+! !USES:
+!
+    USE m_netcdf_io_close
+    USE m_netcdf_io_create
+    USE m_netcdf_io_define
+    USE m_netcdf_io_write
+    USE netCDF
 !
 ! !INPUT PARAMETERS:
 !
@@ -3243,6 +3315,10 @@ CONTAINS
 !
   SUBROUTINE NC_WRITE_DIMS( fID, lon, lat, time, lev )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: fId
@@ -3327,6 +3403,10 @@ CONTAINS
 !
   SUBROUTINE NC_WRITE_DATA_3D ( fID, ncVar, Array )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(INOUT) :: fId
@@ -3378,6 +3458,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_WRITE_DATA_4D ( fID, ncVar, Array )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3440,6 +3524,12 @@ CONTAINS
                         Reference,   Contact,        nIlev,                  &
                         iLevId,      StartTimeStamp, EndTimeStamp,           &
                         nBounds,     boundsId                               )
+!
+! !USES:
+!
+    USE m_netcdf_io_create
+    USE m_netcdf_io_define
+    USE netCDF
 !
 ! !INPUT PARAMETERS:
 !
@@ -3692,6 +3782,12 @@ CONTAINS
                          Axis,      StandardName, FormulaTerms, AvgMethod,   &
                          Positive,  iLevId,       nUpdates,     boundsId,    &
                          bounds                                             )
+!
+! !USES:
+!
+    USE m_netcdf_io_create
+    USE m_netcdf_io_define
+    USE netCDF
 !
 ! !INPUT PARAMETERS:
 !
@@ -3956,6 +4052,10 @@ CONTAINS
 !
   SUBROUTINE Nc_Var_Chunk( fId, vId, ChunkSizes, RC )
 !
+! !USES:
+!
+    USE netCDF
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER, INTENT(IN)  :: fId            ! NetCDF file ID
@@ -4009,6 +4109,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_R8_0D( fId, VarName, Var )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId           ! file ID
@@ -4053,6 +4157,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_R8_1D( fId, VarName, Arr1D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4105,6 +4213,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_R8_2D( fId, VarName, Arr2D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4164,6 +4276,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_R8_3D( fId, VarName, Arr3D )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN) :: fId            ! file ID
@@ -4221,6 +4337,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_R8_4D( fId, VarName, Arr4D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4280,6 +4400,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_R4_0d( fId, VarName, Var )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId           ! file ID
@@ -4324,6 +4448,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_R4_1D( fId, VarName, Arr1D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4376,6 +4504,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_R4_2D( fId, VarName, Arr2D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4435,6 +4567,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_R4_3D( fId, VarName, Arr3D )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId            ! file ID
@@ -4493,6 +4629,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_R4_4D( fId, VarName, Arr4D )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN) :: fId            ! file ID
@@ -4550,6 +4690,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_INT_0d( fId, VarName, Var )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId           ! file ID
@@ -4594,6 +4738,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_INT_1D( fId, VarName, Arr1D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4646,6 +4794,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_INT_2D( fId, VarName, Arr2D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4705,6 +4857,10 @@ CONTAINS
 !
   SUBROUTINE NC_VAR_WRITE_INT_3D( fId, VarName, Arr3D )
 !
+! !USES:
+!
+    USE m_netcdf_io_write
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN) :: fId            ! file ID
@@ -4762,6 +4918,10 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE NC_VAR_WRITE_INT_4D( fId, VarName, Arr4D )
+!
+! !USES:
+!
+    USE m_netcdf_io_write
 !
 ! !INPUT PARAMETERS:
 !
@@ -4911,6 +5071,7 @@ CONTAINS
                 ( TMP_MIN   / 60d0 ) + ( TMP_SEC / 3600d0 )
 
   END FUNCTION GET_TAU0
+!EOC
 !------------------------------------------------------------------------------
 !       NcdfUtilities: by Harvard Atmospheric Chemistry Modeling Group        !
 !                      and NASA/GFSC, SIVO, Code 610.3                        !
@@ -4927,6 +5088,11 @@ CONTAINS
 ! !INTERFACE:
 !
   FUNCTION NC_IsModelLevel( fID, lev_name ) RESULT ( IsModelLevel )
+!
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_readattr
 !
 ! !INPUT PARAMETERS:
 !
@@ -4989,6 +5155,11 @@ CONTAINS
 ! !INTERFACE:
 !
   FUNCTION NC_IsSigmaLevel( fID, lev_name ) RESULT ( IsSigmaLevel )
+!
+! !USES:
+!
+    USE m_netcdf_io_checks
+    USE m_netcdf_io_readattr
 !
 ! !INPUT PARAMETERS:
 !

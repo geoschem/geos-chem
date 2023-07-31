@@ -932,7 +932,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Ncwr_3d_Int
+! !IROUTINE: Ncwr_4d_Int
 !
 ! !INTERFACE:
 !

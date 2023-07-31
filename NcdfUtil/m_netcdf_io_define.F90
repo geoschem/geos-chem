@@ -1003,7 +1003,7 @@ CONTAINS
     character (len=512) :: err_msg
     integer             :: ierr
 !
-    ierr = NF90_Set_Fill(ncid, NF90_NOFILL, omode)
+    ierr = NF90_Set_Fill(ncid, ifill, omode)
 
     IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NF90_Set_FIll: Error in omode  '
