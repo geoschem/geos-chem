@@ -2570,24 +2570,32 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_IONO2)
     !
-    ! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
-    area  = H%ClearFr * H%xArea(SUL)
-    gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
-    k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
+    !########################################################################
+    ! Prevent double-counting of IONO2 loss by alkaline SALA and SALC
+    ! aerosols. See the discussion at:
+    ! https://github.com/geoschem/geos-chem/issues/1880#issuecomment-1655958296
+    ! https://github.com/geoschem/geos-chem/issues/1880#issuecomment-1655971484
     !
-    ! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSA_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSA) * H%f_Alk_SSA
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
-    ENDIF
-    !
-    ! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSC_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSC) * H%f_Alk_SSA
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
-    ENDIF
+    !IF ( H%SSA_is_Alk ) THEN
+    !! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
+    !area  = H%ClearFr * H%xArea(SUL)
+    !gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
+    !k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
+    !!
+    !! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
+    !IF ( H%SSA_is_Alk ) THEN
+    !   area  = H%ClearFr * H%xArea(SSA) * H%f_Alk_SSA
+    !   gamma = 0.01_dp
+    !   k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
+    !ENDIF
+    !!
+    !! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
+    !IF ( H%SSC_is_Alk ) THEN
+    !   area  = H%ClearFr * H%xArea(SSC) * H%f_Alk_SSA
+    !   gamma = 0.01_dp
+    !   k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
+    !ENDIF
+    !########################################################################
     !
     ! Stratospheric liquid aerosol
     k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
@@ -3300,7 +3308,7 @@ CONTAINS
     !
     ! Exit if in the stratosphere
     k = 0.0_dp
-    IF ( H%stratBox ) RETURN    
+    IF ( H%stratBox ) RETURN
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
     gamma = 0.04_dp * H%Cl_conc_SSC
