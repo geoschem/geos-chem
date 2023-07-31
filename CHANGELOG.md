@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - For satellite diagnostics, do not test for `id_OH` if OH is not a species
 - Fixed parallelization in Luo wetdep simulations caused by uninitialized variable
 - Fixed parallelization for Hg0 species in `GeosCore/drydep_mod.F90`
+- Fixed incorrect time-slice when reading nested-grid boundary conditions
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
