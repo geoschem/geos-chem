@@ -2505,7 +2505,7 @@ CONTAINS
    !=================================================================
 
    ! Print header for min/max concentration to log
-   IF ( Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%amIRoot .AND. (FIRST .or. Input_Opt%Verbose) ) THEN
       WRITE( 6, 110 )
 110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
    ENDIF
@@ -2627,8 +2627,7 @@ CONTAINS
    ! Echo output
    IF ( Input_Opt%amIRoot ) THEN
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 140 ) STAMP
-140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', STAMP, ' using ', HHMMSS, t_index
    ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions

@@ -3946,7 +3946,7 @@ CONTAINS
 
        CASE( 'BOUNDARYCOND' )
           IF ( isDesc  ) Desc   = 'Transport boundary conditions for species'
-          IF ( isUnits ) Units  = 'v/v'
+          IF ( isUnits ) Units  = 'kg kg-1 dry'
           IF ( isRank  ) Rank   = 3
           IF ( isSpc   ) PerSpc = 'ADV'
 
