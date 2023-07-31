@@ -2418,7 +2418,7 @@ CONTAINS
    USE HCO_State_GC_Mod, ONLY : HcoState
    USE Input_Opt_Mod,    ONLY : OptInput
    USE PhysConstants,    ONLY : AIRMW
-   USE Species_Mod,      ONLY : Species, SpcConc
+   USE Species_Mod,      ONLY : Species
    USE State_Chm_Mod,    ONLY : ChmState
    USE State_Grid_Mod,   ONLY : GrdState
    USE State_Met_Mod,    ONLY : MetState
@@ -2462,7 +2462,6 @@ CONTAINS
    ! Temporary arrays and pointers
    REAL*4,  TARGET        :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
    REAL*4,  POINTER       :: Ptr3D(:,:,:)
-   TYPE(SpcConc), POINTER :: Spc(:)
 
    ! Objects
    TYPE(Species), POINTER :: SpcInfo
@@ -2481,9 +2480,6 @@ CONTAINS
    ! Initialize pointers
    Ptr3D     => NULL()
    SpcInfo   => NULL()
-
-   ! Point to species array [kg/kg]
-   Spc       => State_Chm%Species
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -2574,52 +2570,10 @@ CONTAINS
 
       ENDIF
 
-
-      ! Loop over grid boxes and apply BCs to the specified buffer zone
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L )
-      DO L = 1, State_Grid%NZ
-
-         ! First loop over all latitudes of the nested domain
-         DO J = 1, State_Grid%NY
-
-            ! West BC
-            DO I = 1, State_Grid%WestBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! East BC
-            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-         ENDDO
-
-         ! Then loop over the longitudes of the nested domain
-         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-            ! South BC
-            DO J = 1, State_Grid%SouthBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! North BC
-            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-         ENDDO
-
-      ENDDO
-      !OMP END PARALLEL DO
-
       ! Free pointer
       SpcInfo => NULL()
 
    ENDDO
-
-   ! Free pointer
-   Spc => NULL()
 
    ! Reset FIRST flag
    FIRST = .FALSE.
@@ -2627,7 +2581,7 @@ CONTAINS
    ! Echo output
    IF ( Input_Opt%amIRoot ) THEN
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', STAMP, ' using ', HHMMSS, t_index
+      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done reading BCs at ', STAMP, ' using ', HHMMSS, t_index
    ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions
