@@ -1,4 +1,4 @@
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -19,6 +19,7 @@ MODULE Set_Boundary_Conditions_Mod
   USE Precision_Mod    ! For GEOS-Chem Precision (fp)
 
   IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -26,9 +27,10 @@ MODULE Set_Boundary_Conditions_Mod
 !
 ! !REMARKS:
 !  This module was split for two purposes:
-!  (1) avoid subroutine creep in HCO_Utilities_GC_Mod as this is purely GC code.
-!  (2) allow for future extension if handling of boundary conditions will change
-!      (for example introducing rate-of-change)
+!  (1) Avoid subroutine creep in HCO_Utilities_GC_Mod as this is
+!      purely GC code.
+!  (2) Allow for future extension if handling of boundary conditions
+!      will change (for example introducing rate-of-change)
 !
 ! !REVISION HISTORY:
 !  28 Jul 2023 - H.P. Lin   - Initial version
@@ -45,8 +47,9 @@ CONTAINS
 !
 ! !IROUTINE: set_boundary_conditions
 !
-! !DESCRIPTION: Subroutine SET\_BOUNDARY\_CONDITIONS sets the boundary conditions
-!  using the boundary conditions read from HEMCO for nested-grid simulations.
+! !DESCRIPTION: Subroutine SET\_BOUNDARY\_CONDITIONS sets the boundary
+!  conditions using the boundary conditions read from HEMCO for nested-grid
+!  simulations.
 !\\
 !\\
 ! !INTERFACE:
@@ -64,13 +67,16 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-   TYPE(OptInput),   INTENT(IN   )          :: Input_Opt  ! Input options
-   TYPE(GrdState),   INTENT(IN   )          :: State_Grid ! Grid State
+   TYPE(OptInput),   INTENT(IN)    :: Input_Opt  ! Input options
+   TYPE(GrdState),   INTENT(IN)    :: State_Grid ! Grid State
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
-   INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
+   TYPE(ChmState),   INTENT(INOUT) :: State_Chm  ! Chemistry State
+!
+! !OUTPUT PARAMETERS:
+!
+   INTEGER,          INTENT(OUT)   :: RC         ! Failure or success
 !
 ! !REMARKS:
 !  Split off from HEMCO code (Get\_Boundary\_Conditions) in order to be called
@@ -94,7 +100,8 @@ CONTAINS
    !=================================================================
 
    ! Name of this routine
-   LOC = ' -> at Set_Boundary_Conditions (in GeosCore/set_boundary_conditions_mod.F90)'
+   LOC = &
+ ' -> at Set_Boundary_Conditions (in GeosCore/set_boundary_conditions_mod.F90)'
 
    ! Assume success
    RC        = GC_SUCCESS
@@ -106,57 +113,61 @@ CONTAINS
    ! Ensure species array is in kg/kg as State_Chm%BoundaryCond is in kg/kg dry
    IF ( TRIM(State_Chm%Spc_Units) /= 'kg/kg dry' ) THEN
       IF ( Input_Opt%amIRoot ) THEN
-          WRITE(6,*) 'Unit check failure: Current units are ', State_Chm%Spc_Units, ', expected kg/kg dry'
+          WRITE(6,*) 'Unit check failure: Current units are ', &
+               State_Chm%Spc_Units, ', expected kg/kg dry'
       ENDIF
       CALL GC_Error( 'Unit check failure: Cannot apply nested-grid boundary conditions if units are not kg/kg dry. Your run may have failed previous to this error.', RC, LOC )
       RETURN
    ENDIF
 
-   ! Loop over advected species
+   !=========================================================================
+   ! Loop over grid boxes and apply BCs to the specified buffer zone
+   !=========================================================================
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, N                                                )&
+   !$OMP COLLAPSE( 2                                                        )
    DO NA = 1, State_Chm%nAdvect
+   DO L  = 1, State_Grid%NZ
+
       ! Get the species ID from the advected species ID
       N = State_Chm%Map_Advect(NA)
 
-      ! Loop over grid boxes and apply BCs to the specified buffer zone
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L )
-      DO L = 1, State_Grid%NZ
+      ! First loop over all latitudes of the nested domain
+      DO J = 1, State_Grid%NY
 
-         ! First loop over all latitudes of the nested domain
-         DO J = 1, State_Grid%NY
-
-            ! West BC
-            DO I = 1, State_Grid%WestBuffer
-               State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! East BC
-            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-               State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
+         ! West BC
+         DO I = 1, State_Grid%WestBuffer
+            State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
 
-         ! Then loop over the longitudes of the nested domain
-         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-            ! South BC
-            DO J = 1, State_Grid%SouthBuffer
-               State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! North BC
-            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-               State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
+         ! East BC
+         DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+            State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
 
       ENDDO
-      !OMP END PARALLEL DO
-   ENDDO
 
-   ! Echo output. This will be at every time step, so comment this out when unnecessary.
+      ! Then loop over the longitudes of the nested domain
+      DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
+
+         ! South BC
+         DO J = 1, State_Grid%SouthBuffer
+            State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
+         ENDDO
+
+         ! North BC
+         DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+            State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
+         ENDDO
+      ENDDO
+
+   ENDDO
+   ENDDO
+   !OMP END PARALLEL DO
+
+   ! Echo output. This will be at every time step,
+   ! so comment this out when unnecessary.
    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
       STAMP = TIMESTAMP_STRING()
       WRITE( 6, * ) 'SET_BOUNDARY_CONDITIONS: Done applying BCs at ', STAMP
