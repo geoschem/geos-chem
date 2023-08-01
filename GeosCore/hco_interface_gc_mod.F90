@@ -1035,6 +1035,11 @@ CONTAINS
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    ! This only retrieves boundary conditions from HEMCO and puts them into
+    ! State_Chm%BoundaryCond. It no longer applies the boundary conditions
+    ! to the species array, which is handled by Set_Boundary_Conditions().
+    ! This is so that boundary conditions can be updated at a higher frequency
+    ! than the emissions timestep. (hplin, 7/28/23)
     !=======================================================================
 
     ! Assume BCs are 3-hourly and only get from HEMCO when needed
