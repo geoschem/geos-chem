@@ -2570,17 +2570,16 @@ CONTAINS
     k    = 0.0_dp
     srMw = SR_MW(ind_IONO2)
     !
+    ! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
+    area  = H%ClearFr * H%xArea(SUL)
+    gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
+    k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
+    !
     !########################################################################
     ! Prevent double-counting of IONO2 loss by alkaline SALA and SALC
     ! aerosols. See the discussion at:
     ! https://github.com/geoschem/geos-chem/issues/1880#issuecomment-1655958296
     ! https://github.com/geoschem/geos-chem/issues/1880#issuecomment-1655971484
-    !
-    !IF ( H%SSA_is_Alk ) THEN
-    !! Tropopsheric sulfate (use T-dependent gamma, cf Deiber et al 2004)
-    !area  = H%ClearFr * H%xArea(SUL)
-    !gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
-    !k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
     !!
     !! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
     !IF ( H%SSA_is_Alk ) THEN
