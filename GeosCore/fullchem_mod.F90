@@ -37,7 +37,7 @@ MODULE FullChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_NH3
+  INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -50,7 +50,6 @@ MODULE FullChem_Mod
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC, id_SALA
   LOGICAL               :: ok_OH,     ok_HO2,    ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
 
@@ -852,10 +851,6 @@ CONTAINS
        CALL fullchem_SetStateHet( I         = I,                             &
                                   J         = J,                             &
                                   L         = L,                             &
-                                  id_SALA   = id_SALA,                       &
-                                  id_SALAAL = id_SALAAL,                     &
-                                  id_SALC   = id_SALC,                       &
-                                  id_SALCAL = id_SALCAL,                     &
                                   Input_Opt = Input_Opt,                     &
                                   State_Chm = State_Chm,                     &
                                   State_Met = State_Met,                     &
@@ -2623,10 +2618,6 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
-    id_SALA     = Ind_( 'SALA'         )
-    id_SALAAL   = Ind_( 'SALAAL'       )
-    id_SALC     = Ind_( 'SALC'         )
-    id_SALCAL   = Ind_( 'SALCAL'       )
     id_SO4      = Ind_( 'SO4'          )
 
 #ifdef MODEL_GEOS
