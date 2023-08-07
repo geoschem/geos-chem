@@ -82,6 +82,9 @@ MODULE FAST_JX_MOD
   INTEGER, PUBLIC :: RXN_BrO   = -1
   INTEGER, PUBLIC :: RXN_ClO   = -1
 
+  ! for number of radii [hzhu, 08/2023]
+  INTEGER :: g 
+
   ! Species ID flags
   INTEGER :: id_CH2IBr, id_IBr,  id_CH2ICl, id_ICl,   id_I2
   INTEGER :: id_HOI,    id_IO,   id_OIO,    id_INO,   id_IONO
@@ -314,14 +317,14 @@ CONTAINS
 
        ! Overhead ozone column [DU] at (NLON, NLAT)
        ! These values are either from the met fields or TOMS/SBUV,
-       ! depending on the settings in geoschem_config.yml
+       ! depending on the settings in input.geos
        O3_TOMS = GET_OVERHEAD_O3( State_Chm, NLON, NLAT )
 
        ! CTM ozone densities (molec/cm3) at (NLON, NLAT)
        O3_CTM = 0e+0_fp
        LCHEM  = State_Met%ChemGridLev(NLON,NLAT)
        DO L = 1, LCHEM
-          O3_CTM(L) = State_Chm%Species(id_O3)%Conc(NLON,NLAT,L)
+          O3_CTM(L) = State_Chm%Species(NLON,NLAT,L,id_O3)
        ENDDO
 
        ! Aerosol OD profile [unitless] at (NLON,NLAT)
@@ -2609,19 +2612,43 @@ CONTAINS
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
 
+       IF (k == 1 .OR. k == 3) THEN
+       ! for SO4 and ORGANICS, dry aerosol size varies, therefore all 
+       ! opt properties vary. 
+       DO g = 1, NRG
        DO i = 1, NRAA
        DO j = 1, NWVAA
 
           READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
-                      RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),   &
-                      ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),         &
-                      ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
 
           ! make note of where 1000nm is for FAST-J calcs
           IF (WVAA(j,k).EQ.1000.0) IWV1000=J
 
        ENDDO
        ENDDO
+       ENDDO
+
+       ELSE
+       ! For other species, keep g = default Rg (DRG) 
+       g = DRG
+       DO i = 1, NRAA
+       DO j = 1, NWVAA
+
+          READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
+
+          ! make note of where 1000nm is for FAST-J calcs
+          IF (WVAA(j,k).EQ.1000.0) IWV1000=J
+
+       ENDDO
+       ENDDO
+
+       ENDIF
 
        ! Close file
        CLOSE( NJ1 )
@@ -2703,7 +2730,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  Now the user is able to select any 3 wavelengths for optics
-!  output in the geoschem_config.yml file we need to be able to interpolate
+!  output in the input.geos file we need to be able to interpolate
 !  to those wavelengths based on what is available in the optics
 !  look-up table.
 !                                                                             .
@@ -3674,13 +3701,13 @@ CONTAINS
                 IF (AOD999) THEN
                    ! Aerosol/dust (999 nm scaling)
                    ! Fixed to dry radius
-                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
+                   QSCALING = QQAA(KMIE2,1,IDXAER,DRG)/QQAA(10,1,IDXAER,DRG)
                 ELSE
                    ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
+                   QSCALING = QQAA(KMIE2,1,IDXAER,DRG)/QQAA(5,1,IDXAER,DRG)
                 ENDIF
                 LOCALOD    = QSCALING*AERX_COL(M,L)
-                LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
+                LOCALSSA   = SSAA(KMIE2,1,IDXAER,DRG)*LOCALOD
                 OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                 SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                 DO I=1,8
@@ -3697,20 +3724,20 @@ CONTAINS
                 IDXAER=NSPAA !dust is last in LUT
                 IR=M-3
                 IF (AOD999) THEN
-                   QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
-                              QQAA(10,IR,IDXAER) !1000nm in new .dat
+                   QSCALING = QQAA(KMIE2,IR,IDXAER,DRG)/ &
+                              QQAA(10,IR,IDXAER,DRG) !1000nm in new .dat
                 ELSE
                    ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
-                              QQAA(5,IR,IDXAER)  !550nm in new .dat
+                   QSCALING = QQAA(KMIE2,IR,IDXAER,DRG)/ &
+                              QQAA(5,IR,IDXAER,DRG)  !550nm in new .dat
                 ENDIF
                 LOCALOD = QSCALING*AERX_COL(M,L)
-                LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                LOCALSSA = SSAA(KMIE2,IR,IDXAER,DRG)*LOCALOD
                 OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                 SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                 DO I=1,8
                    SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                    (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+                                    (PHAA(KMIE2,IR,IDXAER,I,DRG)*LOCALSSA)
                 ENDDO ! I (Phase function)
              ENDIF
           ENDDO ! M (Aerosol)
@@ -3721,20 +3748,20 @@ CONTAINS
                 IDXAER=10+(M-1)*NRH+IR
                 IF (AERX_COL(IDXAER,L).gt.0d0) THEN
                    IF (AOD999) THEN
-                      QSCALING = QQAA(KMIE2,IR,M)/ &
-                                 QQAA(10,IR,M) !1000nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M,DRG)/ &
+                                 QQAA(10,IR,M,DRG) !1000nm in new .dat
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,IR,M)/ &
-                                 QQAA(5,IR,M)  !550nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M,DRG)/ &
+                                 QQAA(5,IR,M,DRG)  !550nm in new .dat
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(IDXAER,L)
-                   LOCALSSA = SSAA(KMIE2,IR,M)*LOCALOD
+                   LOCALSSA = SSAA(KMIE2,IR,M,DRG)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                       (PHAA(KMIE2,IR,M,I)*LOCALSSA)
+                                       (PHAA(KMIE2,IR,M,I,DRG)*LOCALSSA)
                    ENDDO ! I (Phase function)
                 ENDIF
              ENDDO    ! IR (RH bins)
@@ -5323,10 +5350,10 @@ CONTAINS
     C_H2O   = State_Met%AVGW(I,J,L) * State_Met%AIRNUMDEN(I,J,L) ! molec/cm3
 
     ! For all mechanisms. Set the photolysis rate of NITs and NIT to a
-    ! scaled value of JHNO3. NOTE: this is set in geoschem_config.yml
+    ! scaled value of JHNO3. NOTE: this is set in input.geos
     IF ( Input_Opt%hvAerNIT ) THEN
 
-       ! Get the photolysis scalars read in from geoschem_config.yml
+       ! Get the photolysis scalars read in from input.geos
        JscaleNITs = Input_Opt%hvAerNIT_JNITs
        JscaleNIT  = Input_Opt%hvAerNIT_JNIT
        ! convert reaction channel % to a fraction
@@ -5340,7 +5367,7 @@ CONTAINS
        ! Set the photolysis rate of NIT
        ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
        ZPJ(L,RXN_JNITb,I,J) = ZPJ(L,RXN_JHNO3,I,J) * JscaleNIT
-       ! Adjust to scaling for channels set in geoschem_config.yml
+       ! Adjust to scaling for channels set in input.geos
        ! NOTE: channel scaling is 1 in FJX_j2j.dat, then updated here
        ZPJ(L,RXN_JNITSa,I,J) = ZPJ(L,RXN_JNITSa,I,J) * JNITChanA
        ZPJ(L,RXN_JNITa,I,J) = ZPJ(L,RXN_JNITa,I,J) * JNITChanA
