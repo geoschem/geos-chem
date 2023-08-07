@@ -46,6 +46,7 @@ MODULE AEROSOL_MOD
   ! HMS         : Hydroxymethane sulfonate aerosol   [kg/m3] ! (jmm, 06/29/18)
   ! NH4         : Ammonium aerosol                   [kg/m3]
   ! NIT         : Inorganic nitrate aerosol          [kg/m3]
+  ! SOILDUST    : Mineral dust aerosol from soils    [kg/m3]
   ! SLA         : Stratospheric liquid aerosol       [kg/m3]
   ! SPA         : Stratospheric particulate aerosol  [kg/m3]
   ! TSOA        : Terpene SOA                        [kg/m3]
@@ -58,6 +59,7 @@ MODULE AEROSOL_MOD
   ! SOAS        : Simple SOA                         [kg/m3]
   ! OCFPOA      : OM/OC for POA                      [unitless]
   ! OCFOPOA     : OM/OC for OPOA, OCPI, OCPO         [unitless]
+  ! PDER: Parameterized dry effective radius for SNA and OM [um] ! (hzhu, 07/24/2023)
   !========================================================================
   REAL(fp), ALLOCATABLE, PUBLIC :: BCPI(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: BCPO(:,:,:)
@@ -73,6 +75,7 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: NH4(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: NIT(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: FRAC_SNA(:,:,:,:)
+  REAL(fp), ALLOCATABLE, PUBLIC :: SOILDUST(:,:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SLA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: SPA(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: TSOA(:,:,:)
@@ -85,6 +88,9 @@ MODULE AEROSOL_MOD
   REAL(fp), ALLOCATABLE, PUBLIC :: SOAS(:,:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: OCFPOA(:,:)
   REAL(fp), ALLOCATABLE, PUBLIC :: OCFOPOA(:,:)
+  REAL(fp), ALLOCATABLE, PUBLIC :: PDER(:,:,:) ! (hzhu, 07/24/2023)
+  REAL(fp), ALLOCATABLE, PUBLIC :: SNAOM(:,:,:) ! (hzhu, 07/24/2023)
+  REAL(fp), ALLOCATABLE, PUBLIC :: R_OMSNA(:,:,:) ! (hzhu, 07/24/2023)
 
   ! Growth factors
   REAL(fp),              PUBLIC :: SIA_GROWTH
@@ -141,6 +147,9 @@ MODULE AEROSOL_MOD
   ! (ewl, 1/23/17)
   INTEGER  :: Map_NRHAER(5)
 
+  ! (hzhu Aug. 2023)
+  INTEGER  :: g 
+
   ! Diagnostic switches
   LOGICAL  :: Is_POA
   LOGICAL  :: Is_OPOA
@@ -173,7 +182,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,      ONLY : REAA
+    USE CMN_FJX_MOD,      ONLY : REAA, DRG
     USE ErrCode_Mod
     USE ERROR_MOD
 #if !defined( MODEL_CESM )
@@ -181,11 +190,11 @@ CONTAINS
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
     USE Input_Opt_Mod,     ONLY : OptInput
-    USE Species_Mod,       ONLY : SpcConc
     USE State_Chm_Mod,     ONLY : ChmState
     USE State_Diag_Mod,    ONLY : DgnState
     USE State_Grid_Mod,    ONLY : GrdState
     USE State_Met_Mod,     ONLY : MetState
+    USE UCX_MOD,           ONLY : KG_STRAT_AER
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
 #ifdef TOMAS
@@ -244,12 +253,10 @@ CONTAINS
     LOGICAL             :: Is_ComplexSOA
 
     ! Pointers
-    TYPE(SpcConc), POINTER   :: Spc(:)
-    REAL(fp),      POINTER   :: AIRVOL(:,:,:)
-    REAL(fp),      POINTER   :: PMID(:,:,:)
-    REAL(fp),      POINTER   :: T(:,:,:)
-    REAL(fp),      POINTER   :: SOILDUST(:,:,:,:)
-    REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
+    REAL(fp), POINTER   :: Spc(:,:,:,:)
+    REAL(fp), POINTER   :: AIRVOL(:,:,:)
+    REAL(fp), POINTER   :: PMID(:,:,:)
+    REAL(fp), POINTER   :: T(:,:,:)
 
     ! Other variables
     CHARACTER(LEN=63)   :: OrigUnit
@@ -315,12 +322,10 @@ CONTAINS
     ENDIF
 
     ! Initialize pointers
-    Spc      => State_Chm%Species
-    AIRVOL   => State_Met%AIRVOL
-    PMID     => State_Met%PMID
-    T        => State_Met%T
-    SOILDUST => State_Chm%SoilDust
-    KG_STRAT_AER => State_Chm%KG_AER
+    Spc    => State_Chm%Species
+    AIRVOL => State_Met%AIRVOL
+    PMID   => State_Met%PMID
+    T      => State_Met%T
 
     !=================================================================
     ! OM/OC ratio
@@ -385,10 +390,11 @@ CONTAINS
        ! Density of H2O [kg/m3]
        Rho_wet    = 1000e+0_fp
 
-       ! Growth factor for SO4 + NIT + NH4
-       Rad_dry    = REAA(1,k_SO4)
-       Rad_wet    = REAA(1,k_SO4) + 35e+0_fp * &
-                  ( REAA(2,k_SO4) - REAA(1,k_SO4) ) / 50e+0_fp
+       ! Growth factor for SO4 + NIT + NH4 
+       ! DRG = 6. BUT any number gives the same growth factor (hzhu)
+       Rad_dry    = REAA(1,k_SO4,DRG) 
+       Rad_wet    = REAA(1,k_SO4,DRG) + 35e+0_fp * &
+                  ( REAA(2,k_SO4,DRG) - REAA(1,k_SO4,DRG) ) / 50e+0_fp
        Rho_dry    = State_Chm%SpcData(id_SO4)%Info%Density
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
@@ -397,9 +403,9 @@ CONTAINS
        SIA_GROWTH = 1.1_fp
 
        ! Growth factor for OCPI + SOA
-       Rad_dry    = REAA(1,k_ORG)
-       Rad_wet    = REAA(1,k_ORG) + 35e+0_fp * &
-                  ( REAA(2,k_ORG) - REAA(1,k_ORG) ) / 50e+0_fp
+       Rad_dry    = REAA(1,k_ORG,DRG)
+       Rad_wet    = REAA(1,k_ORG,DRG) + 35e+0_fp * &
+                  ( REAA(2,k_ORG,DRG) - REAA(1,k_ORG,DRG) ) / 50e+0_fp
        IF ( IS_POA ) THEN
           Rho_dry    = State_Chm%SpcData(id_POA1)%Info%Density
        ELSE IF ( IS_OCPI ) THEN
@@ -409,9 +415,9 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Growth factor for SALA
-       Rad_dry    = REAA(1,k_SSA)
-       Rad_wet    = REAA(1,k_SSA) + 35e+0_fp * &
-                  ( REAA(2,k_SSA) - REAA(1,k_SSA) ) / 50e+0_fp
+       Rad_dry    = REAA(1,k_SSA,DRG)
+       Rad_wet    = REAA(1,k_SSA,DRG) + 35e+0_fp * &
+                  ( REAA(2,k_SSA,DRG) - REAA(1,k_SSA,DRG) ) / 50e+0_fp
        Rho_dry    = State_Chm%SpcData(id_SALA)%Info%Density
        SSA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
@@ -475,28 +481,28 @@ CONTAINS
              IF ( IS_HMS ) THEN
 
                 !%%%%% Fullchem simulations: add contribution from HMS
-                SO4_NH4_NIT(I,J,L) = ( Spc(id_SO4)%Conc(I,J,L)     &
-                                   +   Spc(id_HMS)%Conc(I,J,L)     &
-                                   +   Spc(id_NH4)%Conc(I,J,L)     &
-                                   +   Spc(id_NIT)%Conc(I,J,L) )   &
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_HMS)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
                                    / AIRVOL(I,J,L)
 
-                HMS(I,J,L) = Spc(id_HMS)%Conc(I,J,L) / AIRVOL(I,J,L)
+                HMS(I,J,L) = Spc(I,J,L,id_HMS) / AIRVOL(I,J,L)
 
              ELSE
 
                 !%%%%% Aerosol-only simulations: Skip contribution from HMS
-                SO4_NH4_NIT(I,J,L) = ( Spc(id_SO4)%Conc(I,J,L)   &
-                                   +   Spc(id_NH4)%Conc(I,J,L)   &
-                                   +   Spc(id_NIT)%Conc(I,J,L) ) &
+                SO4_NH4_NIT(I,J,L) = ( Spc(I,J,L,id_SO4)                     &
+                                   +   Spc(I,J,L,id_NH4)                     &
+                                   +   Spc(I,J,L,id_NIT) )                   &
                                    / AIRVOL(I,J,L)
 
                 HMS(I,J,L) = 0.0_fp
              ENDIF
 
-             SO4(I,J,L) = Spc(id_SO4)%Conc(I,J,L) / AIRVOL(I,J,L)
-             NH4(I,J,L) = Spc(id_NH4)%Conc(I,J,L) / AIRVOL(I,J,L)
-             NIT(I,J,L) = Spc(id_NIT)%Conc(I,J,L) / AIRVOL(I,J,L)
+             SO4(I,J,L) = Spc(I,J,L,id_SO4) / AIRVOL(I,J,L)
+             NH4(I,J,L) = Spc(I,J,L,id_NH4) / AIRVOL(I,J,L)
+             NIT(I,J,L) = Spc(I,J,L,id_NIT) / AIRVOL(I,J,L)
              SLA(I,J,L) = 0.0_fp
              SPA(I,J,L) = 0.0_fp
 
@@ -520,20 +526,20 @@ CONTAINS
              ! until later when these may be treated independently
              ! Only use HMS if it is defined (for fullchem sims)
              IF ( IS_HMS ) THEN
-                FRAC_SNA(I,J,L,1) = ( ( Spc(id_SO4)%Conc(I,J,L) +         &
-                                        Spc(id_HMS)%Conc(I,J,L) )         &
-                                  /   AIRVOL(I,J,L)              )        &
+                FRAC_SNA(I,J,L,1) = ( ( Spc(I,J,L,id_SO4 ) +                 &
+                                        Spc(I,J,L,id_HMS ) )                 &
+                                  /   AIRVOL(I,J,L)                      )   &
                                   / SO4_NH4_NIT(I,J,L)
              ELSE
-                FRAC_SNA(I,J,L,1) = ( Spc(id_SO4)%Conc(I,J,L) / AIRVOL(I,J,L) )&
+                FRAC_SNA(I,J,L,1) = ( Spc(I,J,L,id_SO4 ) / AIRVOL(I,J,L) )   &
                                     / SO4_NH4_NIT(I,J,L)
              ENDIF
 
 
-             FRAC_SNA(I,J,L,2) = ( Spc(id_NIT)%Conc(I,J,L) / AIRVOL(I,J,L) ) &
+             FRAC_SNA(I,J,L,2) = ( Spc(I,J,L,id_NIT) / AIRVOL(I,J,L) )       &
                                / SO4_NH4_NIT(I,J,L)
 
-             FRAC_SNA(I,J,L,3) = ( Spc(id_NH4)%Conc(I,J,L) / AIRVOL(I,J,L) ) &
+             FRAC_SNA(I,J,L,3) = ( Spc(I,J,L,id_NH4) / AIRVOL(I,J,L) )       &
                                / SO4_NH4_NIT(I,J,L)
 
           ELSE
@@ -558,26 +564,23 @@ CONTAINS
        IF ( LCARB ) THEN
 
           ! Hydrophilic BC [kg/m3]
-          BCPI(I,J,L) = Spc(id_BCPI)%Conc(I,J,L) / AIRVOL(I,J,L)
+          BCPI(I,J,L) = Spc(I,J,L,id_BCPI) / AIRVOL(I,J,L)
 
           ! Hydrophobic BC [kg/m3]
-          BCPO(I,J,L) = Spc(id_BCPO)%Conc(I,J,L) / AIRVOL(I,J,L)
+          BCPO(I,J,L) = Spc(I,J,L,id_BCPO) / AIRVOL(I,J,L)
 
           ! Hydrophobic OC [kg/m3]
           ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4)
           IF ( IS_POA ) THEN
-             OCPO(I,J,L) = ( Spc(id_POA1)%Conc(I,J,L)     &
-                             + Spc(id_POA2)%Conc(I,J,L) ) &
+             OCPO(I,J,L) = ( Spc(I,J,L,id_POA1) + Spc(I,J,L,id_POA2) ) &
                            * OCFPOA(I,J) / AIRVOL(I,J,L)
           ELSE IF ( IS_OCPO ) THEN
-             OCPO(I,J,L) = Spc(id_OCPO)%Conc(I,J,L) &
-                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OCPO(I,J,L) = Spc(I,J,L,id_OCPO) * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Hydrophilic OC [kg/m3]
           IF ( IS_OCPI ) THEN
-             OCPI(I,J,L) = Spc(id_OCPI)%Conc(I,J,L) &
-                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OCPI(I,J,L) = Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Now avoid division by zero (bmy, 4/20/04)
@@ -634,37 +637,37 @@ CONTAINS
              ! Bin #1
              IF ( REFF < 0.2e-6_fp ) THEN
                 SOILDUST(I,J,L,1) = SOILDUST(I,J,L,1) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #2
              ELSE IF ( REFF < 0.325e-6_fp ) THEN
                 SOILDUST(I,J,L,2) = SOILDUST(I,J,L,2) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #3
              ELSE IF ( REFF < 0.6e-6_fp ) THEN
                 SOILDUST(I,J,L,3) = SOILDUST(I,J,L,3) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #4
              ELSE IF ( REFF < 1.15e-6_fp ) THEN
                 SOILDUST(I,J,L,4) = SOILDUST(I,J,L,4) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #5
              ELSE IF ( REFF < 2.0e-6_fp ) THEN
                 SOILDUST(I,J,L,5) = SOILDUST(I,J,L,5) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #6
              ELSE IF ( REFF < 3.25e-6_fp ) THEN
                 SOILDUST(I,J,L,6) = SOILDUST(I,J,L,6) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ! Bin #7
              ELSE
                 SOILDUST(I,J,L,7) = SOILDUST(I,J,L,7) &
-                                    + Spc(N)%Conc(I,J,L) / AIRVOL(I,J,L)
+                                    + Spc(I,J,L,N) / AIRVOL(I,J,L)
 
              ENDIF
           ENDDO
@@ -680,19 +683,15 @@ CONTAINS
           ! Lump 1st dust tracer for het chem
           ! Now use dust size distribution scheme to improve PM2.5
           ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
-          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(I,J,L,id_DST1) / AIRVOL(I,J,L)
 
           ! Other hetchem bins
-          SOILDUST(I,J,L,5) = Spc(id_DST2)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,6) = Spc(id_DST3)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,7) = Spc(id_DST4)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,5) = Spc(I,J,L,id_DST2) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,6) = Spc(I,J,L,id_DST3) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,7) = Spc(I,J,L,id_DST4) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -706,14 +705,14 @@ CONTAINS
        IF ( LSSALT ) THEN
 
           ! Accumulation mode seasalt aerosol [kg/m3]
-          SALA(I,J,L) = Spc(id_SALA)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SALA(I,J,L) = Spc(I,J,L,id_SALA) / AIRVOL(I,J,L)
 
           ! Coarse mode seasalt aerosol [kg/m3]
-          SALC(I,J,L) = Spc(id_SALC)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SALC(I,J,L) = Spc(I,J,L,id_SALC) / AIRVOL(I,J,L)
 
           ! Fine mode Cl-/sulfate interal mixed [kg/m3]
-          ACL(I,J,L) = ( Spc(id_SALACL)%Conc(I,J,L) + &
-                         Spc(id_SALA)%Conc(I,J,L)*0.45e0_fp)/AIRVOL(I,J,L)
+          ACL(I,J,L) = ( Spc(I,J,L,id_SALACL) + &
+                         Spc(I,J,L,id_SALA)*0.45e0_fp)/AIRVOL(I,J,L)
 
           ! Avoid division by zero
           SALA(I,J,L) = MAX( SALA(I,J,L), 1e-35_fp )
@@ -734,7 +733,7 @@ CONTAINS
        IF ( Is_SimpleSOA ) THEN
 
           ! Simple SOA [kg/m3]
-          SOAS(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOAS(I,J,L) = Spc(I,J,L,id_SOAS) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -745,27 +744,22 @@ CONTAINS
 
           ! TSOA (terpene SOA) [kg/m3]
           IF ( IS_TSOA ) THEN
-             TSOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)    &
-                           + Spc(id_TSOA2)%Conc(I,J,L)    &
-                           + Spc(id_TSOA3)%Conc(I,J,L)    &
-                           + Spc(id_TSOA0)%Conc(I,J,L) )  &
-                           / AIRVOL(I,J,L)
+             TSOA(I,J,L) = ( Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOA2) + &
+                             Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOA0) ) &
+                             / AIRVOL(I,J,L)
           ENDIF
 
           ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) [kg/m3]
           IF ( IS_ASOA ) THEN
-             ASOA(I,J,L) = ( Spc(id_ASOAN)%Conc(I,J,L)   &
-                           + Spc(id_ASOA1)%Conc(I,J,L)   &
-                           + Spc(id_ASOA2)%Conc(I,J,L)   &
-                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
-                           / AIRVOL(I,J,L)
+             ASOA(I,J,L) = ( Spc(I,J,L,id_ASOAN) + Spc(I,J,L,id_ASOA1) + &
+                             Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOA3) ) &
+                             / AIRVOL(I,J,L)
           ENDIF
 
           ! OPOA [kg/m3]
           IF ( IS_OPOA ) THEN
-             OPOA(I,J,L) = ( Spc(id_OPOA1)%Conc(I,J,L)    &
-                           + Spc(id_OPOA2)%Conc(I,J,L) )  &
-                           * OCFOPOA(I,J) / AIRVOL(I,J,L)
+             OPOA(I,J,L) = ( Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOA2) ) &
+                            * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
        ENDIF
 
@@ -775,13 +769,12 @@ CONTAINS
 
        ! Glyoxal
        IF ( id_SOAGX > 0 ) THEN
-          ISOAAQ(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = Spc(I,J,L,id_SOAGX) / AIRVOL(I,J,L)
        ENDIF
 
        ! IEPOX
        IF ( id_SOAIE > 0 ) THEN
-          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) &
-                          + Spc(id_SOAIE)%Conc(I,J,L) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_SOAIE) / AIRVOL(I,J,L)
        ENDIF
 
        !-----------------------------------------------------------------------
@@ -792,14 +785,13 @@ CONTAINS
        !! SOA from alkyl nitrates (some contribution
        !! from non-isoprene sources)
        !IF ( id_INDIOL > 0 ) THEN
-       !   ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(id_INDIOL)%Conc(I,J,L) / AIRVOL(I,J,L)
+       !   ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_INDIOL) / AIRVOL(I,J,L)
        !ENDIF
        !-----------------------------------------------------------------------
 
        ! SOA from ISOPOOH oxidation product
        IF ( id_LVOCOA > 0 ) THEN
-          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) &
-                          + Spc(id_LVOCOA)%Conc(I,J,L) / AIRVOL(I,J,L)
+          ISOAAQ(I,J,L) = ISOAAQ(I,J,L) + Spc(I,J,L,id_LVOCOA) / AIRVOL(I,J,L)
        ENDIF
 
        !-------------------------------------------------------
@@ -827,30 +819,25 @@ CONTAINS
 
        ! Use simple SOA by default over complex SOA in calculations
        IF ( Is_SimpleSOA ) THEN
-          OCPISOA(I,J,L) = ( Spc(id_OCPI)%Conc(I,J,L) * OCFOPOA(I,J) + &
-                             Spc(id_SOAS)%Conc(I,J,L) ) / AIRVOL(I,J,L)
+          OCPISOA(I,J,L) = ( Spc(I,J,L,id_OCPI) * OCFOPOA(I,J) + &
+                             Spc(I,J,L,id_SOAS) ) / AIRVOL(I,J,L)
 
        ELSEIF ( Is_ComplexSOA ) THEN
 
-          OCPISOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)   &
-                           + Spc(id_TSOA2)%Conc(I,J,L)   &
-                           + Spc(id_TSOA3)%Conc(I,J,L)   &
-                           + Spc(id_TSOA0)%Conc(I,J,L)   &
-                           + Spc(id_ASOAN)%Conc(I,J,L)   &
-                           + Spc(id_ASOA1)%Conc(I,J,L)   &
-                           + Spc(id_ASOA2)%Conc(I,J,L)   &
-                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
+          OCPISOA(I,J,L) = ( Spc(I,J,L,id_TSOA1) + Spc(I,J,L,id_TSOA2) + &
+                             Spc(I,J,L,id_TSOA3) + Spc(I,J,L,id_TSOA0) + &
+                             Spc(I,J,L,id_ASOAN) + Spc(I,J,L,id_ASOA1) + &
+                             Spc(I,J,L,id_ASOA2) + Spc(I,J,L,id_ASOA3) ) &
                              / AIRVOL(I,J,L)
 
           IF ( IS_OPOA ) THEN ! hotp 7/28/10
-             OCPISOA(I,J,L) = OCPISOA(I,J,L) +              &
-                              ( Spc(id_OPOA1)%Conc(I,J,L)    &
-                              + Spc(id_OPOA2)%Conc(I,J,L) ) &
+             OCPISOA(I,J,L) = OCPISOA(I,J,L) + &
+                              ( Spc(I,J,L,id_OPOA1) + Spc(I,J,L,id_OPOA2) ) &
                               * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           IF ( IS_OCPI ) THEN  ! hotp 7/28/10
-             OCPISOA(I,J,L) = OCPISOA(I,J,L) + Spc(id_OCPI)%Conc(I,J,L) &
+             OCPISOA(I,J,L) = OCPISOA(I,J,L) + Spc(I,J,L,id_OCPI) &
                               * OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
@@ -869,9 +856,38 @@ CONTAINS
        ! SOAGX [kg/m3]
        !===========================================================
        IF ( IS_SOAGX ) THEN
-          SOAGX(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) * OCFG / AIRVOL(I,J,L)
+          SOAGX(I,J,L) = Spc(I,J,L,id_SOAGX) * OCFG / AIRVOL(I,J,L)
        ENDIF
 
+       !===========================================================
+       ! PDER [um] ! (hzhu, 07/24/2023)
+       ! Parameterized dry effective radius for SNA and OM
+       !===========================================================
+       IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
+         IF ( Is_SimpleSOA ) THEN
+            ! dry SNA and OM mass, in unit of ug/m3
+            SNAOM(I,J,L) = ( SO4_NH4_NIT(I,J,L) + OCPO(I,J,L) + OCPI(I,J,L) + SOAS(I,J,L) )*1.0e+9_fp
+            ! ratio between OM and SNA, unitless
+            R_OMSNA(I,J,L) = (OCPO(I,J,L) + OCPI(I,J,L) + SOAS(I,J,L)) / SO4_NH4_NIT(I,J,L)  
+
+         ELSE IF ( Is_ComplexSOA ) THEN
+            ! dry SNA and OM mass, in unit of ug/m3
+            SNAOM(I,J,L) = ( SO4_NH4_NIT(I,J,L) + OCPO(I,J,L) + OCPI(I,J,L) + TSOA(I,J,L) + ASOA(I,J,L) + ISOAAQ(I,J,L)  ) * 1.0e+9_fp
+            ! ratio between OM and SNA, unitless
+            R_OMSNA(I,J,L) = (OCPO(I,J,L) + OCPI(I,J,L) + TSOA(I,J,L) + ASOA(I,J,L) + ISOAAQ(I,J,L) )/ SO4_NH4_NIT(I,J,L) 
+                     
+         ENDIF
+         ! Parameterized dry effective radius, in unit of um
+         PDER(I,J,L) = (exp( 4.36_fp + 0.20_fp*log(SNAOM(I,J,L)) + 0.065_fp*log(R_OMSNA(I,J,L)) ) *0.001_fp )/0.9_fp ;  
+
+         IF (PDER(I,J,L) == 0.0_fp) PDER(I,J,L) = 0.005_fp ! give it a small value to avoid divided by 0
+
+       ELSE
+         SNAOM(I,J,L) = 0.0_fp;
+         R_OMSNA(I,J,L) = 0.0_fp;
+         PDER(I,J,L) = 0.005_fp;
+         
+       ENDIF
        !==============================================================
        ! P A R T I C U L A T E   M A T T E R
        !
@@ -1021,11 +1037,8 @@ CONTAINS
     ENDIF
 
     ! Free pointers
-    Spc      => NULL()
-    AIRVOL   => NULL()
-    PMID     => NULL()
-    T        => NULL()
-    SOILDUST => NULL()
+    Spc    => NULL()
+    AIRVOL => NULL()
 
   END SUBROUTINE AEROSOL_CONC
 !EOC
@@ -1063,6 +1076,7 @@ CONTAINS
     USE TIME_MOD,       ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,       ONLY : SYSTEM_TIMESTAMP
     USE UCX_MOD,        ONLY : GET_STRAT_OPT
+    USE UCX_MOD,        ONLY : NDENS_AER
     USE Species_Mod,    ONLY : Species
 
     IMPLICIT NONE
@@ -1465,7 +1479,7 @@ CONTAINS
           NWVS = NWVAA-NWVAA0+NWVREQUIRED
        ELSE
           !Loop over wavelengths needed for
-          !interpolation to those requested in geoschem_config.yml
+          !interpolation to those requested in input.geos
           !(determined in RD_AOD)
           NWVS = NWVREQUIRED
        ENDIF
@@ -1547,19 +1561,7 @@ CONTAINS
           ! if RRTMG is on then IWV will be 30 wavelengths + AOD wavs,
           ! otherwise IWV will be at user input specified wavelengths
 
-          ! Loop over relative humidity bins
-          DO R = 1, NRH
 
-             ! Wet radius in aerosol LUT files
-             RW(R) = REAA(R,N)
-
-             ! Extinction efficiency for Q for each RH bin
-             QW(R)   = QQAA(IWV,R,N)
-             AW(R)   = ALPHAA(IWV,R,N)
-             SSW(R)  = SSAA(IWV,R,N)
-             ASYW(R) = ASYMAA(IWV,R,N)
-
-          ENDDO
 
           ! Loop over grid boxes
           !$OMP PARALLEL DO                                                 &
@@ -1577,6 +1579,65 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
+
+
+            ! Loop over relative humidity bins
+            IF (N == 1 .or. N == 3) THEN ! (hzhu, 08/2023)
+            ! For SNA or Organics
+               g = 1 
+               DO WHILE (PDER(I,J,L) > REAA(1,N,g) .and. g < 41)
+                  ! REAA(1,N,g) is the upper limit of REFF
+                  g = g + 1
+               END DO
+
+               IF (g == 1) THEN
+                  DO R = 1, NRH
+                     ! Wet radius in aerosol LUT files
+                     RW(R) = REAA(R,N,g)
+
+                     ! Extinction efficiency for Q for each RH bin
+                     QW(R)   = QQAA(IWV,R,N,g)
+                     AW(R)   = ALPHAA(IWV,R,N,g)
+                     SSW(R)  = SSAA(IWV,R,N,g)
+                     ASYW(R) = ASYMAA(IWV,R,N,g)
+                  ENDDO
+
+               ELSE 
+               FRAC = (PDER(I,J,L) - REAA(1,N,g-1))/  &
+                        (REAA(1,N,g) - REAA(1,N,g-1))
+               IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
+                  DO R = 1, NRH
+                     RW(R)  = FRAC*REAA(R,N,g) + &
+                        (1.d0-FRAC)*REAA(R,N,g-1) 
+
+                     QW(R)  = FRAC*QQAA(IWV,R,N,g) + &
+                        (1.d0-FRAC)*QQAA(IWV,R,N,g-1) 
+
+                     AW(R)  = FRAC*ALPHAA(IWV,R,N,g)+ &
+                        (1.d0-FRAC)*ALPHAA(IWV,R,N,g-1) 
+
+                     SSW(R) = FRAC*SSAA(IWV,R,N,g) + &
+                        (1.d0-FRAC)*SSAA(IWV,R,N,g-1) 
+                        
+                     ASYW(R)= FRAC*ASYMAA(IWV,R,N,g)+ &
+                        (1.d0-FRAC)*ASYMAA(IWV,R,N,g-1) 
+                  END DO
+               END IF
+
+            ELSE 
+            ! For other species  
+               DO R = 1, NRH
+                  ! Wet radius in aerosol LUT files
+                  RW(R) = REAA(R,N,DRG)
+
+                  ! Extinction efficiency for Q for each RH bin
+                  QW(R)   = QQAA(IWV,R,N,DRG)
+                  AW(R)   = ALPHAA(IWV,R,N,DRG)
+                  SSW(R)  = SSAA(IWV,R,N,DRG)
+                  ASYW(R) = ASYMAA(IWV,R,N,DRG)
+               ENDDO
+
+            ENDIF
 
              ! Skip non-chemistry boxes
              IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -1667,35 +1728,35 @@ CONTAINS
                 !calculate optics for hyrdophillic aerosol here
                 !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
                 ODAER(I,J,L,IWV,N) = SCALEOD * BXHEIGHT(I,J,L) * 0.75d0 * &
-                                     WAERSL(I,J,L,N) * QQAA(IWV,1,N)    / &
-                                     ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                     WAERSL(I,J,L,N) * QW(1)   / &
+                                     ( MSDENS(N) * PDER(I,J,L) * 1.0D-6 )
 
                 !Include BC absorption enhancement (xnw, 8/24/15)
                 IF (N.eq.2) THEN
 
                    IF (LBCAE) THEN
-                      BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N)
+                      BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N,DRG)
                       ODAER(I,J,L,IWV,N) = ODAER(I,J,L,IWV,N) * &
-                                ( BCAE_1 + SCALESSA*SSAA(IWV,1,N) - &
-                                  SCALESSA*SSAA(IWV,1,N)*BCAE_1 )
+                                ( BCAE_1 + SCALESSA*SSAA(IWV,1,N,DRG) - &
+                                  SCALESSA*SSAA(IWV,1,N,DRG)*BCAE_1 )
 
                       !now combine with hydrophilic OD as before
-                      BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N) * &
+                      BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N,DRG) * &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,DRG) * 1.0D-6 )
                       ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
-                           (BCAE_2+SSAA(IWV,1,N) - SSAA(IWV,1,N)*BCAE_2) * &
+                           (BCAE_2+SSAA(IWV,1,N,DRG) - SSAA(IWV,1,N,DRG)*BCAE_2) * &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,DRG) * 1.0D-6 )
 
                    ELSE
-                      !now combine with hydrophilic OD as before
+                      !now combine with hydrophpbic OD as before
                       ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,DRG) * 1.0D-6 )
                    ENDIF
 
                 ENDIF
@@ -1704,15 +1765,15 @@ CONTAINS
                    !now combine with hydrophilic OD as before
                    ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
                                    0.75d0 * BXHEIGHT(I,J,L) * &
-                                   DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                   ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                   DAERSL(I,J,L,N-1) * QW(1)  / &
+                                   ( MSDENS(N) * PDER(I,J,L) * 1.0D-6 )
                 ENDIF
 
                 ! Get the AOD contribution from isoprene SOA only (eam, 2014)
                 IF ( N == 3 .and. Is_ComplexSOA ) THEN
                    ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 &
-                                   * ISOAAQ(I,J,L) * QQAA(IWV,1,N) / &
-                                   ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                   * ISOAAQ(I,J,L) * QW(1)  / &
+                                   ( MSDENS(N) * PDER(I,J,L) * 1.0D-6 )
                 ENDIF
 
              ELSE
@@ -1722,7 +1783,7 @@ CONTAINS
                 !--------------------------------------------------------
 
                 ! Get aerosol effective radius
-                CALL GET_STRAT_OPT(State_Chm, I, J, L, ISTRAT, RAER, REFF, &
+                CALL GET_STRAT_OPT(I, J, L, ISTRAT, RAER, REFF, &
                                    SADSTRAT, XSASTRAT)
 
                 ! SDE 2014-02-04
@@ -1735,7 +1796,7 @@ CONTAINS
                 ! radius and blowing up
 
                 ! Aerosol optical depth
-                ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT * QQAA(IWV,1,N)
+                ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT * QW(1) 
 
              ENDIF
 
@@ -1746,21 +1807,21 @@ CONTAINS
                 DO IR=1,3
                    RTODAER(I,J,L,IWV,N+IR-1)= ODAER(I,J,L,IWV,N)* &
                                               FRAC_SNA(I,J,L,IR)
-                   RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N)
-                   RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N)
+                   RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N,DRG)
+                   RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N,DRG)
                 ENDDO
              ELSE
                 !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1)
                 !This will automatically be added after the standard aerosol
                 !(NRHAER+1,2) but before dust
                 RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
-                RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+                RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N,DRG)
                 !for BC SSA with absorption enhancement (xnw 8/24/15)
                 IF ((N .EQ. 2) .AND. (LBCAE)) THEN
                    RTSSAER(I,J,L,IWV,NRT)  = BCSCAT_AE / &
                                              ODAER(I,J,L,IWV,N)
                 ENDIF
-                RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
+                RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N,DRG)
              ENDIF
 #endif
 
@@ -1950,7 +2011,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! Get aerosol effective radius
-          CALL GET_STRAT_OPT(State_Chm, I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
+          CALL GET_STRAT_OPT(I,J,L,ISTRAT,RAER,REFF,SADSTRAT,XSASTRAT)
 
           ! Moved this from a separate loop for clarity
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
@@ -1986,7 +2047,7 @@ CONTAINS
              IF ( IsSLA ) THEN
                 IF ( State_Diag%Archive_AerNumDenSLA ) THEN
                    State_Diag%AerNumDenSLA(I,J,L) = &
-                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODSLAWL1 ) THEN
                    State_Diag%AODSLAWL1(I,J,L) = &
@@ -2003,7 +2064,7 @@ CONTAINS
              ELSEIF ( IsPSC ) THEN
                 IF ( State_Diag%Archive_AerNumDenPSC ) THEN
                    State_Diag%AerNumDenPSC(I,J,L) = &
-                        State_Chm%NDENS_AER(I,J,L,ISTRAT)*1.d-6
+                        NDENS_AER(I,J,L,ISTRAT)*1.d-6
                 ENDIF
                 IF ( State_Diag%Archive_AODPSCWL1 ) THEN
                    State_Diag%AODPSCWL1(I,J,L) = &
@@ -2045,7 +2106,7 @@ CONTAINS
           ! Get ID following ordering of aerosol densities in RD_AOD
           N = Map_NRHAER(NA)
 
-          ! Loop over wavelengths set in geoschem_config.yml
+          ! Loop over wavelengths set in input.geos radiation menu
           DO W = 1, Input_Opt%NWVSELECT
 
              ! Set wavelength logical
@@ -2423,6 +2484,12 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     FRAC_SNA = 0.0_fp
 
+    ALLOCATE( SOILDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, NDUST ), &
+              STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SOILDUST', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    SOILDUST = 0.0_fp
+
     ALLOCATE( SLA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
     CALL GC_CheckVar( 'aerosol_mod.F90:SLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -2500,6 +2567,24 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     OCFOPOA = 0.0_fp
 
+    ! Parameterized dry effective radius !(hzhu, 07/24/2023)
+    ALLOCATE( PDER( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:PDER', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    PDER = 0.0_fp
+
+    ! Total mass for SNA and OM !(hzhu, 07/24/2023)
+    ALLOCATE( SNAOM( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:SNAOM', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    SNAOM = 0.0_fp
+
+    ! OM to SNA mass ratio !(hzhu, 07/24/2023)
+    ALLOCATE( R_OMSNA( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), STAT=RC )
+    CALL GC_CheckVar( 'aerosol_mod.F90:R_OMSNA', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    R_OMSNA = 0.0_fp
+
   END SUBROUTINE INIT_AEROSOL
 !EOC
 !------------------------------------------------------------------------------
@@ -2538,6 +2623,7 @@ CONTAINS
     IF ( ALLOCATED( NH4         ) ) DEALLOCATE( NH4         )
     IF ( ALLOCATED( NIT         ) ) DEALLOCATE( NIT         )
     IF ( ALLOCATED( FRAC_SNA    ) ) DEALLOCATE( FRAC_SNA    )
+    IF ( ALLOCATED( SOILDUST    ) ) DEALLOCATE( SOILDUST    )
     IF ( ALLOCATED( SLA         ) ) DEALLOCATE( SLA         )
     IF ( ALLOCATED( SPA         ) ) DEALLOCATE( SPA         )
     IF ( ALLOCATED( TSOA        ) ) DEALLOCATE( TSOA        )
@@ -2552,6 +2638,9 @@ CONTAINS
     IF ( ALLOCATED( SOAS        ) ) DEALLOCATE( SOAS        )
     IF ( ALLOCATED( OCFPOA      ) ) DEALLOCATE( OCFPOA      )
     IF ( ALLOCATED( OCFOPOA     ) ) DEALLOCATE( OCFOPOA     )
+    IF ( ALLOCATED( PDER        ) ) DEALLOCATE( PDER        )! (hzhu, 07/24/2023)
+    IF ( ALLOCATED( SNAOM       ) ) DEALLOCATE( SNAOM       )! (hzhu, 07/24/2023)
+    IF ( ALLOCATED( R_OMSNA     ) ) DEALLOCATE( R_OMSNA     )! (hzhu, 07/24/2023)
 
   END SUBROUTINE CLEANUP_AEROSOL
 !EOC
@@ -2575,7 +2664,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE Species_Mod,    ONLY : Species, SpcConc
+    USE Species_Mod,    ONLY : Species
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Chm_Mod,  ONLY : Ind_
     USE State_Diag_Mod, ONLY : DgnState
@@ -2624,7 +2713,7 @@ CONTAINS
 
     ! Pointers
     REAL(fp),      POINTER   :: AirDen(:,:,:  )
-    TYPE(SpcConc), POINTER   :: Spc   (:      )
+    REAL(fp),      POINTER   :: Spc   (:,:,:,:)
     TYPE(Species), POINTER   :: SpcInfo
 !
 ! !DEFINED PARAMETERS:
@@ -2749,14 +2838,9 @@ CONTAINS
     ! consistent with the legacy ND42 bpch diagnostics
     !=======================================================================
 
-    ! Point to fields of State_Chm and State_Met
+    ! Point to fielss of State_Chm and State_Met
     Spc    => State_Chm%Species
     AirDen => State_Met%AIRDEN
-
-    ! Zero out the totalOC diagnostic
-    IF ( State_Diag%Archive_TotalOC ) THEN
-       State_Diag%TotalOC = 0.0_fp
-    ENDIF
 
     !$OMP PARALLEL DO         &
     !$OMP DEFAULT( SHARED   ) &
@@ -2784,7 +2868,7 @@ CONTAINS
        ! AerMassINDIOL [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassINDIOL ) THEN
-          State_Diag%AerMassINDIOL(I,J,L) = Spc(id_INDIOL)%Conc(I,J,L) * &
+          State_Diag%AerMassINDIOL(I,J,L) = Spc(I,J,L,id_INDIOL) * &
                                             kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2792,7 +2876,7 @@ CONTAINS
        ! AerMassLVOCOA [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassLVOCOA ) THEN
-          State_Diag%AerMassLVOCOA(I,J,L) = Spc(id_LVOCOA)%Conc(I,J,L) * &
+          State_Diag%AerMassLVOCOA(I,J,L) = Spc(I,J,L,id_LVOCOA) * &
                                             kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2865,7 +2949,7 @@ CONTAINS
        ! AerMassSOAIE [ug/m3]
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassSOAIE ) THEN
-          State_Diag%AerMassSOAIE(I,J,L) = Spc(id_SOAIE)%Conc(I,J,L) * &
+          State_Diag%AerMassSOAIE(I,J,L) = Spc(I,J,L,id_SOAIE) * &
                                            kgm3_to_ugm3 * AirDen(I,J,L)
        ENDIF
 
@@ -2930,13 +3014,20 @@ CONTAINS
 
           IF ( Input_Opt%LSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
-                  ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
-                    ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &
-                    ( Spc(id_SOAGX )%Conc(I,J,L) * Fac_SOAGX  ) + &
-                    ( Spc(id_LVOCOA)%Conc(I,J,L) * Fac_LVOCOA ) ) &
+                  ( ( Spc(I,J,L,id_SOAIE)  * Fac_SOAIE  ) + &
+                    ( Spc(I,J,L,id_INDIOL) * Fac_INDIOL ) + &
+                    ( Spc(I,J,L,id_SOAGX)  * Fac_SOAGX  ) + &
+                    ( Spc(I,J,L,id_LVOCOA) * Fac_LVOCOA ) ) &
                     * AirDen(I,J,L) * kgm3_to_ugm3
           ENDIF
 
+       ENDIF
+
+       !--------------------------------------
+       ! PDER [um] ! (hzhu, 07/24/2023)
+       !--------------------------------------
+       IF ( State_Diag%Archive_PDER ) THEN
+          State_Diag%PDER(I,J,L) = PDER(I,J,L)
        ENDIF
 
     ENDDO
