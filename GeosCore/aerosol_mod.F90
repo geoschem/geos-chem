@@ -862,6 +862,11 @@ CONTAINS
        !===========================================================
        ! PDER [um] ! (hzhu, 07/24/2023)
        ! Parameterized dry effective radius for SNA and OM
+       ! Ref:
+       ! Zhu, H., Martin, R.V., et al, 2023. Parameterization of 
+       ! size of organic and secondary inorganic aerosol for efficient 
+       ! representation of global aerosol optical properties. 
+       !Atmospheric Chemistry and Physics, 23(9), pp.5023-5042
        !===========================================================
        IF ( SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
          IF ( Is_SimpleSOA ) THEN

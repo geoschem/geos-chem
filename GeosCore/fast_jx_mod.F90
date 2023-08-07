@@ -2614,7 +2614,7 @@ CONTAINS
 
        IF (k == 1 .OR. k == 3) THEN
        ! for SO4 and ORGANICS, dry aerosol size varies, therefore all 
-       ! opt properties vary. 
+       ! opt properties vary. [hzhu, Aug. 2023]
        DO g = 1, NRG
        DO i = 1, NRAA
        DO j = 1, NWVAA
@@ -2632,7 +2632,7 @@ CONTAINS
        ENDDO
 
        ELSE
-       ! For other species, keep g = default Rg (DRG) 
+       ! For other species, keep g = default Rg (DRG) [hzhu, Aug. 2023]
        g = DRG
        DO i = 1, NRAA
        DO j = 1, NWVAA
