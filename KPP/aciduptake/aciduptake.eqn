@@ -1236,7 +1236,7 @@ IDHNBOO + NO = 0.355MCRHNB + 0.546PROPNN +
  0.071HAC + HO2 + NO2 + 0.383CH2O :          GC_ALK(2.7d-12, 350.0d0, 1.851d0, 11.0d0, 1.0d0, 0.0d0);                          {2019/11/06; Bates2019; KHB}
 IDHNBOO + NO = IDN :                         GC_NIT(2.7d-12, 350.0d0, 1.851d0, 11.0d0, 1.0d0, 0.0d0);                          {2019/11/06; Bates2019; KHB}
 ISOP + NO3 = 0.465INO2B + 0.535INO2D +
- LISOPNO3 :                                  GCARR_ac(2.95d-12, 450.0d0);                                                      {2019/11/06; Bates2019; KHB}
+ LISOPNO3 :                                  GCARR_ac(2.95d-12, -450.0d0);                                                      {2019/11/06; Bates2019; KHB}
 INO2B + HO2 = 0.473INPB + 0.048MACR +
  0.479MVK + 0.527OH + 0.527CH2O + 0.527NO2 : GCARR_ac(2.47d-13, 1300.0d0);                                                     {2019/11/06; Bates2019; KHB}
 INO2D + HO2 = INPD :                         GCARR_ac(2.47d-13, 1300.0d0);                                                     {2019/11/06; Bates2019; KHB}
