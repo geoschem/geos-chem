@@ -253,9 +253,15 @@ MODULE CMN_FJX_MOD
   INTEGER, PARAMETER :: NWVAA   = 41     !number of wavelengths in LUT
   INTEGER, PARAMETER :: NWVAA0  = 11     !number of non-RRTMG wavelengths
   INTEGER, PARAMETER :: NWVAART = NWVAA-NWVAA0 !number of RRTMG wvs
-  INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes in LUT
+  INTEGER, PARAMETER :: NRAA    = 7      !number of aer sizes (RH bins) in LUT
   INTEGER, PARAMETER :: NALBD   = 2
   INTEGER, PARAMETER :: NEMISS  = 16
+  
+  ! number of dry radius, only for SNA and OM aerosols (hzhu, 08/2023)
+  INTEGER, PARAMETER :: NRG  = 40
+  ! the index of default dry radius (0.058 um for SNA and OM), using
+  ! DRG = 6 pointing to Rg = 0.06 um for approximation
+  INTEGER, PARAMETER :: DRG  = 6 
 
   ! Now set the following in Init_CMN_FJX below (mps, 1/3/18)
   INTEGER            :: NSPAA            !number of species in LUT
@@ -267,15 +273,15 @@ MODULE CMN_FJX_MOD
   REAL*8, ALLOCATABLE :: RHAA(:,:)
   REAL*8, ALLOCATABLE :: NRLAA(:,:,:)
   REAL*8, ALLOCATABLE :: NCMAA(:,:,:)
-  REAL*8, ALLOCATABLE :: RDAA(:,:)
-  REAL*8, ALLOCATABLE :: RWAA(:,:)
+  REAL*8, ALLOCATABLE :: RDAA(:,:,:)
+  REAL*8, ALLOCATABLE :: RWAA(:,:,:)
   REAL*8, ALLOCATABLE :: SGAA(:,:)
-  REAL*8, ALLOCATABLE :: QQAA(:,:,:)
-  REAL*8, ALLOCATABLE :: ALPHAA(:,:,:)
-  REAL*8, ALLOCATABLE :: REAA(:,:)
-  REAL*8, ALLOCATABLE :: SSAA(:,:,:)
-  REAL*8, ALLOCATABLE :: ASYMAA(:,:,:)
-  REAL*8, ALLOCATABLE :: PHAA(:,:,:,:)
+  REAL*8, ALLOCATABLE :: QQAA(:,:,:,:)
+  REAL*8, ALLOCATABLE :: ALPHAA(:,:,:,:)
+  REAL*8, ALLOCATABLE :: REAA(:,:,:)
+  REAL*8, ALLOCATABLE :: SSAA(:,:,:,:)
+  REAL*8, ALLOCATABLE :: ASYMAA(:,:,:,:)
+  REAL*8, ALLOCATABLE :: PHAA(:,:,:,:,:)
   INTEGER :: IWVSELECT(2,3) !index of requested wavelengths
   INTEGER :: IRTWVSELECT(2,3) !index of requested RT wavelengths
 
@@ -433,11 +439,11 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        NCMAA = 0d0
 
-       ALLOCATE( RDAA(NRAA,NSPAA), STAT=RC )
+       ALLOCATE( RDAA(NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        RDAA = 0d0
 
-       ALLOCATE( RWAA(NRAA,NSPAA), STAT=RC )
+       ALLOCATE( RWAA(NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        RWAA = 0d0
 
@@ -445,27 +451,27 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        SGAA = 0d0
 
-       ALLOCATE( QQAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       ALLOCATE( QQAA(NWVAA,NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        QQAA = 0d0
 
-       ALLOCATE( ALPHAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       ALLOCATE( ALPHAA(NWVAA,NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        ALPHAA = 0d0
 
-       ALLOCATE( REAA(NRAA,NSPAA), STAT=RC )
+       ALLOCATE( REAA(NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        REAA = 0d0
 
-       ALLOCATE( SSAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       ALLOCATE( SSAA(NWVAA,NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        SSAA = 0d0
 
-       ALLOCATE( ASYMAA(NWVAA,NRAA,NSPAA), STAT=RC )
+       ALLOCATE( ASYMAA(NWVAA,NRAA,NSPAA,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        ASYMAA = 0d0
 
-       ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8), STAT=RC )
+       ALLOCATE( PHAA(NWVAA,NRAA,NSPAA,8,NRG), STAT=RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        PHAA = 0d0
 
