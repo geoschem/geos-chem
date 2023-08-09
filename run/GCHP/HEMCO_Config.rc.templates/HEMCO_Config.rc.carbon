@@ -73,7 +73,6 @@ Mask fractions:              false
     --> EDGARv6                :       false    # 2000-2018
     --> EDGARv7                :       true     # 2010-2021
     --> QFED2                  :       false    # 2009-2015
-    --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
@@ -135,10 +134,10 @@ Mask fractions:              false
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
-    --> OLSON_LANDMAP          :       false    # 1985
-    --> YUAN_MODIS_LAI         :       false    # 2000-2020
-    --> GLOBAL_OH              :       true     # 2010-2019
-    --> GLOBAL_OH_GCv5         :       false    # 1985 (GCv5 OH, need for IMI)
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2000-2020
+    --> GLOBAL_OH_GC14         :       false    # 2010-2019
+    --> GLOBAL_OH_GCv5         :       true     # 1985 (recommended for CH4)
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
@@ -390,12 +389,6 @@ Mask fractions:              false
 (((QFED2
 0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
-
-# --- Updated GFED4 biomass burning ---
-# Emissions thru 2019 (cf Yuzhong Zhang)
-(((UPDATED_GFED4
-0 UPDATED_GFED4_CH4    $ROOT/CH4/v2020-09/GFED/GFED4_CH4_FIRE_$YYYY.nc emi_ch4 2009-2019/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 3
-)))UPDATED_GFED4
 
 #==============================================================================
 # --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
@@ -1194,27 +1187,16 @@ Mask fractions:              false
 
 #------------------------------------------------------------------------------
 # --- Global OH fields ---
-#
-# If GLOBAL_OH_GCv5 is turned on:
-#   - Use GEOS-Chem v5-07 OH if GLOBAL_OH_GCv5 is turned on.
-#   - This is the recommended setting for CH4 and the IMI.
-#
-# If GLOBAL_OH_GCv5 is turned off:
-#   - Use the OH archived from the last 10-yr benchmark simulation.
 #------------------------------------------------------------------------------
-(((GLOBAL_OH
-
-# --- OH from GEOS-Chem v5-07 [kg/m3] ---
+# --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
 * GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
-(((.not.GLOBAL_OH_GCv5
+(((GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
 ${RUNDIR_GLOBAL_OH}
-))).not.GLOBAL_OH_GCv5
-
-)))GLOBAL_OH
+)))GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
 
 #------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
