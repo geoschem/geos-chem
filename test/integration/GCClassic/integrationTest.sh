@@ -114,10 +114,12 @@ if [[ "x${itRoot}" == "xnone" ]]; then
 fi
 
 # Error check environment file
-if [[ "x${envFile}" == "xnone" ]]; then
-    echo "ERROR: The enviroment file (module loads) has not been specified!"
-    echo "${usage}"
-    exit 1
+if [[ "x${scheduler}" != "xLSF" ]]; then
+    if [[ "x${envFile}" == "xnone" ]]; then
+        echo "ERROR: The enviroment file (module loads) has not been specified!"
+        echo "${usage}"
+        exit 1
+    fi
 fi
 
 # Exit if no partition has been selected for SLURM

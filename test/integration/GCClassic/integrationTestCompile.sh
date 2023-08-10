@@ -86,7 +86,7 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-----------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 

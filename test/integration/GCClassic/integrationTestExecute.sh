@@ -185,6 +185,8 @@ for runDir in *; do
             # Copy the executable file here
             cp -f "${binDir}/${exeFile}" .
 
+            chmod 755 -R ${runAbsPath}
+
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
