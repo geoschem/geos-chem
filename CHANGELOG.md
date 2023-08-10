@@ -72,7 +72,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Use `CYS` in `HEMCO_Config.rc` so that missing species in `GC_BCs` will not stop simulations
   - Tests now run for 20 model minutes instead of an hour
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
-- Restore seasalt alkalinity to heterogeneous acid-catalyzed reactions of halogens on seasalt aerosols.
 - Fixed GCHP `HISTORY.rc` issue preventing running with over 3000 cores
 - Fixed GCHP `ExtData.rc` error in tagged ozone simulation
 - Fixed GCHP `HISTORY.rc` issue preventing diagnostic file overwrite
