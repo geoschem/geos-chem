@@ -43,7 +43,7 @@ Before you submit any GCHP integration tests, please take a moment to:
 
 ```console
 $ cd /path/to/GCHP     # Path to GCHP superproject directory
-$ cd test/integration
+$ cd test/integration/GCClassic
 $ ./integrationTest.sh -d /path/to/test/dir -e /path/to/env-file -s slurm -p partition
 ```
 
@@ -51,7 +51,7 @@ $ ./integrationTest.sh -d /path/to/test/dir -e /path/to/env-file -s slurm -p par
 
 ```console
 $ cd /path/to/GCHP     # Path to GCHP superproject directory
-$ cd test/integration
+$ cd test/integration/GCClassic
 $ ./integrationTest.sh -d /path/to/test/dir -e /path/to/env-file -s lsf -p partition
 ```
 
@@ -59,7 +59,7 @@ $ ./integrationTest.sh -d /path/to/test/dir -e /path/to/env-file -s lsf -p parti
 
 ```console
 $ cd /path/to/GCHP     # Path to GCHP superproject directory
-$ cd test/integration
+$ cd test/integration/GCClassic
 $ ./integrationTest.sh -d /path/to/test/dir -e /path/to/env-file
 ```
 

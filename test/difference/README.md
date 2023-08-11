@@ -12,6 +12,7 @@
 Run the `difftest.sh` script as follows:
 
 ```console
+$ cd test/difference
 $ ./diffTest.sh /path/to/<REF> /path/to/<DEV>
 ```
 where `<REF>` and `<DEV>` indicate the names of the integration tests that are being compared.
