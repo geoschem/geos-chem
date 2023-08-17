@@ -104,6 +104,7 @@ CONTAINS
     REAL(fp)               :: Local_Tally
     REAL(fp)               :: Total_Area
     REAL(fp)               :: Total_Spc
+    REAL(fp)               :: Flux
 
     ! SAVEd scalars
     LOGICAL,  SAVE         :: First = .TRUE.
@@ -113,11 +114,7 @@ CONTAINS
     CHARACTER(LEN=63)      :: OrigUnit
 
     ! Arrays
-    REAL(fp)               :: Flux(State_Grid%NX,State_Grid%NY)
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-
-    ! Pointers to fields in the HEMCO data structure
-    REAL(f4),      POINTER :: O3(:,:,:)   => NULL()
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -140,7 +137,6 @@ CONTAINS
     Local_Tally = 0.0_fp
     Total_Area  = 0.0_fp
     Total_Spc   = 0.0_fp
-    Mask        = 1.0_fp
     Flux        = 0.0_fp
 
 #if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
@@ -154,7 +150,7 @@ CONTAINS
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             'v/v dry', RC, OrigUnit=OrigUnit )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
+       ErrMsg = 'Unit conversion error (kg -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -172,6 +168,9 @@ CONTAINS
        ! Skip Rn-Pb-Be tracers for now
        IF ( SpcInfo%Is_RadioNuclide ) CYCLE
 
+       ! Initialize mask for each species
+       Mask = 1.0_fp
+
        ! Skip if this species does not have a source or if the 
        ! source is handled by HEMCO
        IF ( TRIM(SpcInfo%Src_Mode) == 'none'   .or. &
@@ -180,7 +179,7 @@ CONTAINS
        IF ( First ) THEN
  
           !------------------------------------------------------------------
-          ! Convert Src_Value to v/v or to seconds for aoa tracers
+          ! Convert Src_Value to v/v
           !------------------------------------------------------------------
           IF(TRIM(SpcInfo%Src_Units) ==   'ppmv'    ) THEN
 
@@ -194,6 +193,9 @@ CONTAINS
 
              SpcInfo%Src_Value = SpcInfo%Src_Value * 1.0E-12
 
+          !------------------------------------------------------------------
+          ! Convert timesteps (s) to expected units (e.g. days)
+          !------------------------------------------------------------------
           ELSE IF ( TRIM(SpcInfo%Src_Units) == 'timestep' ) THEN
 
              IF ( TRIM(SpcInfo%Units) == 'hours' ) THEN
@@ -216,33 +218,6 @@ CONTAINS
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
-
-          ENDIF
-
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Get model fields (if needed)
-       !---------------------------------------------------------------------
-       IF ( TRIM(SpcInfo%Src_Mode) == 'model_field' ) THEN
-
-          ! For stOX tracer get O3 [v/v] from HEMCO
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-             CALL HCO_GetPtr( HcoState, 'GLOBAL_O3', O3, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Cannot get pointer to GLOBAL_O3!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             ErrMsg = 'Src_Mode: model_field not currently supported for' // &
-                   TRIM( SpcInfo%Name ) // &
-                   'Please modify species_database.yml or add this '      // &
-                   'capability in tracer_mod.F90.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
 
           ENDIF
 
@@ -350,18 +325,16 @@ CONTAINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-             IF ( SpcInfo%Src_Add ) THEN
+             IF ( Mask(I,J,L) > 0 ) THEN
 
-                ! Add source
-                State_Chm%Species(N)%Conc(I,J,L) =      &
-                   State_Chm%Species(N)%Conc(I,J,L) +   &
-                   ( SpcInfo%Src_Value * Mask(I,J,L) )
-
-             ELSE
-
-                ! Replace value
-                State_Chm%Species(N)%Conc(I,J,L) =      &
-                   ( SpcInfo%Src_Value * Mask(I,J,L) )
+                IF ( SpcInfo%Src_Add ) THEN
+                   ! Add source
+                   State_Chm%Species(N)%Conc(I,J,L) =      &
+                      State_Chm%Species(N)%Conc(I,J,L) + SpcInfo%Src_Value
+                ELSE
+                   ! Replace value
+                   State_Chm%Species(N)%Conc(I,J,L) = SpcInfo%Src_Value
+                ENDIF
 
              ENDIF
 
@@ -370,37 +343,15 @@ CONTAINS
           ENDDO
           !$OMP END PARALLEL DO
 
-       ELSE IF ( TRIM(SpcInfo%Src_Mode) == 'model_field' ) THEN
-
-          ! Special handling for stOX tracer
-          IF ( TRIM(SpcInfo%Name) == 'stOX' ) THEN
-
-             !$OMP PARALLEL DO                                               &
-             !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L                                         )&
-             !$OMP COLLAPSE( 3                                              )
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-                ! Replace value
-                State_Chm%Species(N)%Conc(I,J,L) = O3(I,J,L) * Mask(I,J,L)
-             ENDDO
-             ENDDO
-             ENDDO
-             !$OMP END PARALLEL DO
-          ENDIF
-
        ELSE IF ( TRIM(SpcInfo%Src_Mode) == 'maintain_mixing_ratio' ) THEN
 
           ! To distrubute tracer uniformly on the surface, compute the
-          ! total area
+          ! total area [m2]
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-
-             ! Accumulate the total area [m2]
-             Local_Tally = Local_Tally + &
-                           ( State_Grid%Area_M2(I,J) * Mask(I,J,1) )
-
+             IF ( Mask(I,J,1) > 0 ) THEN
+                Local_Tally = Local_Tally + State_Grid%Area_M2(I,J)
+             ENDIF
           ENDDO
           ENDDO
 
@@ -418,10 +369,12 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             Local_Tally = Local_Tally &
+             IF ( Mask(I,J,L) > 0 ) THEN
+                Local_Tally = Local_Tally &
                    + ( SpcInfo%Src_Value - State_Chm%Species(N)%Conc(I,J,L) ) &
                    * ( State_Met%AIRNUMDEN(I,J,L) / AVO )                     &
                    *  State_Met%AIRVOL(I,J,L)
+             ENDIF
           ENDDO
           ENDDO
           ENDDO
@@ -434,13 +387,13 @@ CONTAINS
 #endif
 
           ! Compute flux [mol/m2]
-          Flux(:,:) =  ( Total_Spc / Total_Area ) * Mask(:,:,1)
+          Flux =  Total_Spc / Total_Area
 
           ! Update species concentrations at surface [mol/mol]
           State_Chm%Species(N)%Conc(:,:,1) = State_Chm%Species(N)%Conc(:,:,1) &
-               + ( Flux(:,:) * AVO            )                               &
+               + ( ( Flux * AVO            )                                  &
                / ( State_Met%BXHEIGHT(:,:,1)                                  &
-               *   State_Met%AIRNUMDEN(:,:,1) )
+               *   State_Met%AIRNUMDEN(:,:,1) ) ) * Mask(:,:,1)
 
        ELSE
           ErrMsg = TRIM( SpcInfo%Name ) // ': Src_Mode '                    // &
@@ -532,16 +485,12 @@ CONTAINS
     REAL(fp)               :: DT
     REAL(fp)               :: DecayConstant
     REAL(fp)               :: DecayRate
-    REAL(fp)               :: LO3_kg
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg,  ThisLoc
 
     ! Arrays
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
-
-    ! Pointers to fields in the HEMCO data structure
-    REAL(f4),    POINTER   :: LOSS_O3(:,:,:)   => NULL()
 
     ! Parameters
     REAL(fp),    PARAMETER :: ln2 = 0.693147181E+00_fp
@@ -560,7 +509,6 @@ CONTAINS
     ThisLoc  = &
        ' -> at Tracer_Sink_Phase (in module GeosCore/tracer_mod.F90)'
     DT       = GET_TS_CHEM()
-    Mask     = 1.0_fp
 
     !========================================================================
     ! Apply tracer sink
@@ -568,6 +516,9 @@ CONTAINS
 
     ! Loop over species
     DO N = 1, State_Chm%nAdvect
+
+       ! Initialize mask for each species
+       Mask = 1.0_fp
 
        ! Point to the Species Database entry for species N
        SpcInfo => State_Chm%SpcData(N)%Info
@@ -608,34 +559,6 @@ CONTAINS
 
        ENDIF
 
-       !--------------------------------------------------------------------
-       ! Get chemical loss (if needed)
-       !--------------------------------------------------------------------
-       IF ( TRIM(SpcInfo%Snk_Mode) == 'chemical_loss' ) THEN
-
-          ! For stOX tracer get O3 loss [molec/cm3/s] from HEMCO
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-
-             CALL HCO_GetPtr( HcoState, 'O3_LOSS', LOSS_O3,   RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Cannot get pointer to O3_LOSS!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
-
-          ELSE
-
-             ErrMsg = 'Snk_Mode: chemical_loss not currently supported '  // &
-                   'for ' // TRIM( SpcInfo%Name )  // &
-                   'Please modify species_database.yml or add this '      // &
-                   'capability in tracer_mod.F90.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-
-          ENDIF
-
-       ENDIF
-
        !---------------------------------------------------------------------
        ! Determine mask
        !---------------------------------------------------------------------
@@ -649,7 +572,7 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Set mask to zero outside of latitude zone
-             IF ( State_Grid%YMid(I,J) < SpcInfo%Snk_LatMin .and. &
+             IF ( State_Grid%YMid(I,J) < SpcInfo%Snk_LatMin .or. &
                   State_Grid%YMid(I,J) > SpcInfo%Snk_LatMax ) THEN
                 Mask(I,J,:) = 0.0_fp
              ENDIF
@@ -739,8 +662,10 @@ CONTAINS
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             State_Chm%Species(N)%Conc(I,J,L) =                &
-               State_Chm%Species(N)%Conc(I,J,L) * ( DecayRate * Mask(I,J,L) )
+             IF ( Mask(I,J,L) > 0 ) THEN
+                State_Chm%Species(N)%Conc(I,J,L) =                &
+                     State_Chm%Species(N)%Conc(I,J,L) * DecayRate
+             ENDIF
           ENDDO
           ENDDO
           ENDDO
@@ -748,38 +673,20 @@ CONTAINS
 
        ELSE IF ( TRIM(SpcInfo%Snk_Mode) == 'constant' ) THEN
 
-          WHERE( Mask > 0.0_fp )
-             State_Chm%Species(N)%Conc =  SpcInfo%Snk_Value
-          ENDWHERE
-
-       ELSE IF ( TRIM(SpcInfo%Snk_Mode) == 'chemical_loss' ) THEN
-
-          ! Special handling for stOX tracer
-          IF ( TRIM(SpcInfo%Name ) == 'stOX' ) THEN
-
-             !$OMP PARALLEL DO                                               &
-             !$OMP DEFAULT( SHARED                                          )&
-             !$OMP PRIVATE( I, J, L, LO3_kg                                 )&
-             !$OMP COLLAPSE( 3                                              )
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-
-                ! Convert L(O3) from [molec/cm3/s] to [kg]
-                LO3_kg = LOSS_O3(I,J,L)               & ! in molec/cm3/s
-                 *  (SpcInfo%MW_g * 1000.0_fp) / AVO  & ! molec/cm3/s -> kg/m3/s
-                 * State_Met%AIRVOL(I,J,L)            & ! kg/m3/s     -> kg/s
-                 * DT                                   ! kg/s        -> kg
-
-                State_Chm%Species(N)%Conc(I,J,L) = &
-                   State_Chm%Species(N)%Conc(I,J,L) - ( LO3_kg * MASK(I,J,L) )
-
-             ENDDO
-             ENDDO
-             ENDDO
-             !$OMP END PARALLEL DO
-
-          ENDIF
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             IF ( Mask(I,J,L) > 0 ) THEN
+                State_Chm%Species(N)%Conc(I,J,L) = SpcInfo%Snk_Value
+             ENDIF
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
 
        ENDIF
 

@@ -89,7 +89,6 @@ operations:
       -  PassiveTracer
       -  SF6
       -  st80_25
-      -  stOX
 
   wet_deposition:
     activate: true
