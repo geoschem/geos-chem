@@ -37,8 +37,7 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             2
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
 Mask fractions:              false
 
 ### END SECTION SETTINGS ###
@@ -1578,11 +1577,14 @@ ${RUNDIR_CO2_COPROD}
 2008 AFRICA_MASK $ROOT/MASKS/v2018-09/AF_LANDMASK.geos.05x0666.global.nc LANDMASK 1985/1/1/0 C xy 1 1 -20/-37/54/40
 )))DICE_Africa
 
+)))USE_CO_DATA.or.USE_CO2_DATA
+
+#==============================================================================
+# --- Masks used for CH4, CO and CO2 simulation emissions ---
+#==============================================================================
 (((CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
 2009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc          MASK     2000/1/1/0 C xy 1 1  70/10/150/60
 )))CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
-
-)))USE_CO_DATA.or.USE_CO2_DATA
 
 )))EMISSIONS
 
