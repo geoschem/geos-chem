@@ -64,7 +64,6 @@
   REAL(dp) :: PHOTOL(200)
   !$OMP THREADPRIVATE( PHOTOL )
 
-
   !=========================================================================
   ! Variables specific to the "fullchem" mechanism
   !==========================================================================
@@ -103,6 +102,12 @@
   REAL(dp) :: H_PLUS
   !$OMP THREADPRIVATE( H_PLUS )
 
+  ! Enhanced sulfate production from SO2 oxidation by HOBr, HOCl, 
+  ! and O3 in size-resolved cloud droplets [cm3/molec/s]
+  ! -- Becky Alexander (30 Jan 2023)
+  REAL(dp) :: SRHOBr, SRHOCl, SRO3	
+  !$OMP THREADPRIVATE( SRHOBr, SRHOCl, SRO3 )
+  
   TYPE, PUBLIC :: HetState
      REAL(dp) :: AVO            ! Avogadro's constant [molec/mol]
      LOGICAL  :: debugBox       ! Are we in a debugging box?

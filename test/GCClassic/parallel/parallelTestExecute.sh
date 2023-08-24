@@ -186,7 +186,8 @@ for runDir in *; do
 
 	    # Change time cycle flag in HEMCO_Config.rc from EFYO to CYS,
 	    # to allow missing species to be set a default value.
-	    sed_ie "s/EFYO/CYS/" HEMCO_Config.rc
+	    sed_ie "s/EFYO/CYS/"            HEMCO_Config.rc  # GC_RESTART
+	    sed_ie "s/EFY xyz 1/CYS xyz 1/" HEMCO_Config.rc  # GC_BCs
 
             #----------------------------------------------------------------
             # First test: Use all available threads

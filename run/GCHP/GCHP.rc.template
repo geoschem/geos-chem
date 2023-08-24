@@ -23,8 +23,25 @@ LM: 72
 
 GEOSChem_CTM: 1
 
+
+# Met-field vertical index is top down if using native fields from GMAO
+#--------------------------------------------------------------------------------
 METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN: ${RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN}
+
+# Toggle to import mass fluxes for use in advection or compute from winds
+#-----------------------------------------------------------------------
 IMPORT_MASS_FLUX_FROM_EXTDATA: ${RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA}
+
+# Toggle to use total pressure (1) or dry pressure (0) in advection
+#-----------------------------------------------------------------------
+USE_TOTAL_AIR_PRESSURE_IN_ADVECTION: ${RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTION}
+
+# Use native mass fluxes (0) or convert to dry air mass flux (1)
+# This switch is ignored if computing mass fluxes from winds.
+#-----------------------------------------------------------------------
+CORRECT_MASS_FLUX_FOR_HUMIDITY: 1
+
+
 
 AdvCore_Advection: 1
 	DYCORE: OFF
@@ -61,6 +78,10 @@ BKG_FREQUENCY: 0
 #-----------------------------------------------------------------
 MAPL_ENABLE_BOOTSTRAP: YES
 
+# Require all species in initial restart file (1 = yes; else no)
+#-----------------------------------------------------------------
+INITIAL_RESTART_SPECIES_REQUIRED: 0
+
 # Settings for production of restart files
 #---------------------------------------------------------------
 # Record frequency (HHMMSS, or monthly) : Frequency of restart file write
@@ -75,13 +96,13 @@ RECORD_REF_TIME: 000000
 # -------------------------------------
 GCHPchem_INTERNAL_RESTART_FILE:     gchp_restart.nc4
 GCHPchem_INTERNAL_RESTART_TYPE:     pnc4
-GCHPchem_INTERNAL_CHECKPOINT_FILE:  gcchem_internal_checkpoint
+GCHPchem_INTERNAL_CHECKPOINT_FILE:  Restarts/gcchem_internal_checkpoint
 GCHPchem_INTERNAL_CHECKPOINT_TYPE:  pnc4
 
 # GCHP dynamics (FV3) does not use a restart file because its internal state is empty
 #DYN_INTERNAL_RESTART_FILE:    fvcore_internal_rst
 #DYN_INTERNAL_RESTART_TYPE:    pbinary
-#DYN_INTERNAL_CHECKPOINT_FILE: fvcore_internal_checkpoint
+#DYN_INTERNAL_CHECKPOINT_FILE: Restarts/fvcore_internal_checkpoint
 #DYN_INTERNAL_CHECKPOINT_TYPE: pbinary
 #DYN_INTERNAL_HEADER:          1
 

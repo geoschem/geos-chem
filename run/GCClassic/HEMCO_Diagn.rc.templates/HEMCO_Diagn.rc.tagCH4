@@ -14,3 +14,4 @@ EMIS_CH4_SEEPS       CH4    0      11  -1   2   molec/cm2/s
 EMIS_CH4_LAKES       CH4    0      12  -1   2   molec/cm2/s
 EMIS_CH4_TERMITES    CH4    0      13  -1   2   molec/cm2/s
 EMIS_CH4_SOILABSORB  CH4    0      14  -1   2   molec/cm2/s
+EMIS_CH4_RESERVOIRS  CH4    0      15  -1   2   molec/cm2/s

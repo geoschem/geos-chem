@@ -12,7 +12,7 @@ CONTAINS
   !
   SUBROUTINE fullchem_SetStateHet( I,         J,         L,                  &
                                    Input_Opt, State_Chm, State_Met,          &
-                                   H,         RC                            )
+                                   H,         RC                 )
     !
     ! Stub routine to avoid compilation errors
     !

@@ -54,6 +54,7 @@ add_library(GeosCore
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
+  fjx_interface_mod.F90
   fullchem_mod.F90
   gamap_mod.F90
   gc_environment_mod.F90
@@ -80,19 +81,20 @@ add_library(GeosCore
   ocean_mercury_mod.F90
   olson_landmap_mod.F90
   pbl_mix_mod.F90
+  photolysis_mod.F90
   planeflight_mod.F90
   pops_mod.F90
   RnPbBe_mod.F90
   rpmares_mod.F90
   seasalt_mod.F90
   set_global_ch4_mod.F90
-  set_prof_o3.F90
   sfcvmr_mod.F90
   sulfate_mod.F90
   tagged_co_mod.F90
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90
+  tracer_mod.F90
   ucx_mod.F90
   uvalbedo_mod.F90
   vdiff_mod.F90

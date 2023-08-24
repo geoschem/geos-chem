@@ -848,14 +848,14 @@ fi
 
 # If benchmark simulation, put run script in directory
 if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-    scriptDir = ./runScriptSamples/operational_examples/harvard_cannon
+    scriptDir="./runScriptSamples/operational_examples/harvard_cannon"
     cp ${scriptDir}/geoschem.benchmark.run ${rundir}
     chmod 744 ${rundir}/geoschem.benchmark.run
 fi
 
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
-ln -s ${wrapperdir}/run/GCHP/runScriptSamples ${rundir}/runScriptSamples
+ln -s ${wrapperdir}/run/GCClassic/runScriptSamples ${rundir}/runScriptSamples
 
 #--------------------------------------------------------------------
 # Navigate to run directory and set up input files

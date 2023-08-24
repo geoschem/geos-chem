@@ -45,9 +45,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FullChem_SetStateHet( I,         J,         L,                  &
+  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
                                    Input_Opt, State_Chm, State_Met,          &
-                                   H,         RC                            )
+                                   H,         RC                 )
 !
 ! !USES:
 !
@@ -62,20 +62,21 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I
-    INTEGER,        INTENT(IN)    :: J
-    INTEGER,        INTENT(IN)    :: L
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt
-    TYPE(ChmState), INTENT(IN)    :: State_Chm
-    TYPE(MetState), INTENT(IN)    :: State_Met
+    INTEGER,        INTENT(IN)    :: I          ! Lon (or X-dim) gridbox index
+    INTEGER,        INTENT(IN)    :: J          ! Lat (or Y-dim) gridbox index
+    INTEGER,        INTENT(IN)    :: L          ! Vertical level index
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm  ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meterology State object
 !
 ! INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HetState), INTENT(INOUT) :: H
+    TYPE(HetState), INTENT(INOUT) :: H          ! Hetchem State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC
+    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC

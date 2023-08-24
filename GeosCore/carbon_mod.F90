@@ -499,8 +499,12 @@ CONTAINS
 
     ! Chemistry for hydrophobic BC
     IF ( id_BCPO > 0 ) THEN
-       CALL CHEM_BCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPO)%Conc(:,:,:),   RC          )
+       CALL CHEM_BCPO( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       spcId      = id_BCPO,                                 &
+                       RC         = RC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPO' )
        ENDIF
@@ -508,8 +512,12 @@ CONTAINS
 
     ! Chemistry for hydrophilic BC
     IF ( id_BCPI > 0 ) THEN
-       CALL CHEM_BCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_BCPI)%Conc(:,:,:),   RC )
+       CALL CHEM_BCPI( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       spcId      = id_BCPI,                                 &
+                       RC         = RC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_BCPI' )
        ENDIF
@@ -517,8 +525,12 @@ CONTAINS
 
     ! Chemistry for hydrophobic OC (traditional POA only)
     IF ( id_OCPO > 0 ) THEN
-       CALL CHEM_OCPO( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPO)%Conc(:,:,:),   RC          )
+       CALL CHEM_OCPO( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       spcId      = id_OCPO,                                 &
+                       RC         = RC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPO' )
        ENDIF
@@ -526,8 +538,12 @@ CONTAINS
 
     ! Chemistry for hydrophilic OC (traditional POA only)
     IF ( id_OCPI > 0 ) THEN
-       CALL CHEM_OCPI( Input_Opt, State_Diag, State_Grid, &
-                       Spc(id_OCPI)%Conc(:,:,:),   RC )
+       CALL CHEM_OCPI( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       spcId      = id_OCPI,                                 &
+                       RC         = RC                                      )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
@@ -904,29 +920,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHEM_BCPO( Input_Opt, State_Diag, State_Grid, TC, RC )
+ SUBROUTINE CHEM_BCPO( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, spcId,     RC                            )
 !
 ! !USES:
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
    USE State_Grid_Mod, ONLY : GrdState
    USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid            ! Grid State
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+   TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+   INTEGER,        INTENT(IN)    :: spcId        ! BCPO species Id
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! H-phobic BC [kg]
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !  Drydep is now applied in mixing_mod.F90.
@@ -943,6 +963,9 @@ CONTAINS
    ! Scalars
    INTEGER             :: I,      J,   L
    REAL(fp)            :: DTCHEM, KBC, FREQ, TC0, CNEW, RKT
+
+   ! Pointers
+   REAL(fp), POINTER   :: TC(:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -953,12 +976,13 @@ CONTAINS
    !=================================================================
 
    ! Assume success
-   RC        = GC_SUCCESS
+   RC        =  GC_SUCCESS
 
    ! Initialize
-   KBC       = 1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-   BCCONV    = 0e+0_fp
+   KBC       =  1.e+0_fp / ( 86400e+0_fp * BC_LIFE )
+   DTCHEM    =  GET_TS_CHEM()
+   BCCONV    =  0e+0_fp
+   TC        => State_Chm%Species(spcId)%Conc
 
    !=================================================================
    ! For species with dry deposition, the loss rate of dry dep is
@@ -1018,6 +1042,9 @@ CONTAINS
    ENDDO
    !$OMP END PARALLEL DO
 
+   ! Free pointer
+   TC => NULL()
+
  END SUBROUTINE CHEM_BCPO
 !EOC
 !------------------------------------------------------------------------------
@@ -1033,27 +1060,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHEM_BCPI( Input_Opt, State_Diag, State_Grid, TC, RC )
+ SUBROUTINE CHEM_BCPI( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, spcId,     RC                            )
 !
 ! !USES:
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
    USE State_Grid_Mod, ONLY : GrdState
+   USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid            ! Grid State
+!
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+   TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+   INTEGER,        INTENT(IN)    :: spcId        ! BCPI species Id
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! H-philic BC [kg]
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REMARKS:
 !  Drydep is now applied in mixing_mod.F90.
@@ -1071,12 +1104,16 @@ CONTAINS
    INTEGER  :: I,      J,      L
    REAL(fp) :: L_FRAC, TC0, CNEW, CCV
 
+   ! Pointers
+   REAL(fp), POINTER :: TC(:,:,:)
+
    !=================================================================
    ! CHEM_BCPI begins here!
    !=================================================================
 
    ! Assume success
-   RC = GC_SUCCESS
+   RC =  GC_SUCCESS
+   TC => State_Chm%Species(spcId)%Conc
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
@@ -1111,6 +1148,8 @@ CONTAINS
    !=================================================================
    BCCONV = 0e+0_fp
 
+   TC => NULL()
+
  END SUBROUTINE CHEM_BCPI
 !EOC
 !------------------------------------------------------------------------------
@@ -1126,31 +1165,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHEM_OCPO( Input_Opt, State_Diag, State_Grid, TC, RC )
+ SUBROUTINE CHEM_OCPO( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, spcId,     RC                            )
 !
 ! !USES:
 !
    USE ErrCode_Mod
    USE Input_Opt_Mod,  ONLY : OptInput
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Diag_Mod, ONLY : DgnState
    USE State_Grid_Mod, ONLY : GrdState
    USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid            ! Grid State
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+   TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+   INTEGER,        INTENT(IN)    :: spcId        ! OCPO species Id
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! H-phobic OC [kg]
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-!
-! !REMARKS:
+   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
@@ -1164,6 +1205,8 @@ CONTAINS
    ! Scalars
    INTEGER              :: I,      J,   L
    REAL(fp)             :: DTCHEM, KOC, TC0, CNEW, RKT, FREQ
+
+   REAL(fp),  POINTER   :: TC(:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1174,12 +1217,13 @@ CONTAINS
    !=================================================================
 
    ! Assume success
-   RC        = GC_SUCCESS
+   RC        =  GC_SUCCESS
 
    ! Initialize
-   KOC       = 1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
-   DTCHEM    = GET_TS_CHEM()
-   OCCONV    = 0e+0_fp
+   KOC       =  1.e+0_fp / ( 86400e+0_fp * OC_LIFE )
+   DTCHEM    =  GET_TS_CHEM()
+   OCCONV    =  0e+0_fp
+   TC        => State_Chm%Species(spcId)%Conc
 
    !=================================================================
    ! For species with dry deposition, the loss rate of dry dep is
@@ -1239,6 +1283,8 @@ CONTAINS
    ENDDO
    !$OMP END PARALLEL DO
 
+   TC => NULL()
+
  END SUBROUTINE CHEM_OCPO
 !EOC
 !------------------------------------------------------------------------------
@@ -1254,30 +1300,33 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE CHEM_OCPI( Input_Opt, State_Diag, State_Grid, TC, RC )
+ SUBROUTINE CHEM_OCPI( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, spcId,     RC )
 !
 ! !USES:
 !
    USE ErrCode_Mod
-   USE Input_Opt_Mod,   ONLY : OptInput
-   USE State_Diag_Mod,  ONLY : DgnState
-   USE State_Grid_Mod,  ONLY : GrdState
+   USE Input_Opt_Mod,  ONLY : OptInput
+   USE State_Chm_Mod,  ONLY : ChmState
+   USE State_Diag_Mod, ONLY : DgnState
+   USE State_Grid_Mod, ONLY : GrdState
+   USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-   TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
-   TYPE(GrdState), INTENT(IN)    :: State_Grid            ! Grid State
+   TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+   TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+   INTEGER,        INTENT(IN)    :: spcId        ! OCPO species Id
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-   TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! Diags State
-   REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! H-philic OC [kg]
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm    ! Chemistry state object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
-   INTEGER,        INTENT(OUT)   :: RC                    ! Success?
-!
-! !REMARKS:
+   INTEGER,        INTENT(OUT)   :: RC           ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  01 Apr 2004 - R. Park - Initial version
@@ -1291,13 +1340,17 @@ CONTAINS
    ! Scalars
    INTEGER  :: I,   J,     L
    REAL(fp) :: TC0, CNEW, CCV
+   
+   ! Pointers
+   REAL(fp), POINTER :: TC(:,:,:)
 
    !=================================================================
    ! CHEM_OCPI begins here!
    !=================================================================
 
    ! Assume success
-   RC = GC_SUCCESS
+   RC =  GC_SUCCESS
+   TC => State_Chm%Species(spcId)%Conc
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
@@ -1331,6 +1384,8 @@ CONTAINS
    ! Zero OCCONV array for next timestep
    !=================================================================
    OCCONV = 0e+0_fp
+
+   TC => NULL()
 
  END SUBROUTINE CHEM_OCPI
 !EOC

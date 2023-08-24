@@ -1,7 +1,7 @@
-
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
@@ -18,9 +18,9 @@ VERSION: 1
 # See the collections section later on in this file for instructions on
 # using an alternative grid for output.
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution

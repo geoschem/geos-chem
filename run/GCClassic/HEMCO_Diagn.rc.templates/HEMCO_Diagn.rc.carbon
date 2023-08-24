@@ -34,6 +34,7 @@ EmisCH4_Seeps         CH4      0   11   -1   2  kg/m2/s  CH4_emissions_from_geol
 EmisCH4_Lakes         CH4      0   12   -1   2  kg/m2/s  CH4_emissions_from_lakes
 EmisCH4_Termites      CH4      0   13   -1   2  kg/m2/s  CH4_emissions_from_termites
 EmisCH4_SoilAbsorb    CH4      0   14   -1   2  kg/m2/s  CH4_emissions_from_soil_absorption
+EmisCH4_Reservoirs    CH4      0   15   -1   2  kg/m2/s  CH4_emissions_from_hydroelectric_reservoirs
 
 ###############################################################################
 #####  CO sources                                                         #####

@@ -1193,7 +1193,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD
+    USE CMN_Size_MOD,       ONLY : NDUST
+#ifdef RRTMG
+    USE CMN_Size_MOD,       ONLY : NAER
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Chm_Mod,      ONLY : ChmState
@@ -1241,7 +1244,23 @@ CONTAINS
     REAL(fp)          :: tempOD(State_Grid%NX,State_Grid%NY,               &
                                 State_Grid%NZ,NDUST,         3)
 
-    ! Pointers
+    ! Pointers to State_Chm%Phot
+    INTEGER,  POINTER :: IWVREQUIRED(:)
+    INTEGER,  POINTER :: IWVSELECT  (:,:)
+    REAL*8,   POINTER :: ACOEF_WV (:)
+    REAL*8,   POINTER :: BCOEF_WV (:)
+    REAL*8,   POINTER :: RDAA     (:,:)
+    REAL*8,   POINTER :: QQAA     (:,:,:)
+    REAL*8,   POINTER :: SSAA     (:,:,:)
+    REAL*8,   POINTER :: ASYMAA   (:,:,:)
+    REAL(fp), POINTER :: ODMDUST  (:,:,:,:,:)
+#ifdef RRTMG
+    REAL*8,   POINTER :: RTODAER  (:,:,:,:,:)
+    REAL*8,   POINTER :: RTSSAER  (:,:,:,:,:)
+    REAL*8,   POINTER :: RTASYMAER(:,:,:,:,:)
+#endif
+
+    ! Other pointers
     REAL(fp), POINTER :: ERADIUS(:,:,:,:)
     REAL(fp), POINTER :: TAREA(:,:,:,:)
     REAL(fp), POINTER :: WERADIUS(:,:,:,:)
@@ -1256,6 +1275,23 @@ CONTAINS
     RC        =  GC_SUCCESS
 
     ! Initialize pointers
+
+    IWVREQUIRED => State_Chm%Phot%IWVREQUIRED ! WL indexes for interpolation
+    IWVSELECT   => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
+    ACOEF_WV    => State_Chm%Phot%ACOEF_WV    ! Coeffs for WL interpolation
+    BCOEF_WV    => State_Chm%Phot%BCOEF_WV    ! Coeffs for WL interpolation
+    RDAA        => State_Chm%Phot%RDAA
+    QQAA        => State_Chm%Phot%QQAA
+    SSAA        => State_Chm%Phot%SSAA
+    ASYMAA      => State_Chm%Phot%ASYMAA
+    ODMDUST     => State_Chm%Phot%ODMDUST
+#ifdef RRTMG
+    RTODAER     => State_Chm%Phot%RTODAER     ! Optical dust
+    RTSSAER     => State_Chm%Phot%RTSSAER
+    RTASYMAER   => State_Chm%Phot%RTASYMAER
+#endif
+
+
     ERADIUS   => State_Chm%AeroRadi     ! Aerosol Radius     [cm]
     TAREA     => State_Chm%AeroArea     ! Aerosol Area       [cm2/cm3]
     WERADIUS  => State_Chm%WetAeroRadi  ! Wet Aerosol Radius [cm]
@@ -1306,9 +1342,9 @@ CONTAINS
     ELSE
        IF ( Input_Opt%LRAD ) THEN !Loop over all RT wavelengths (30)
           ! plus any required for calculating the AOD
-          NWVS   = NWVAART+NWVREQUIRED
+          NWVS   = State_Chm%Phot%NWVAART + State_Chm%Phot%NWVREQUIRED
        ELSE                       !Loop over wavelengths needed (from RD_AOD)
-          NWVS   = NWVREQUIRED
+          NWVS   = State_Chm%Phot%NWVREQUIRED
        ENDIF
     ENDIF
 
@@ -1319,20 +1355,20 @@ CONTAINS
        IF (ODSWITCH .EQ. 0) THEN
           ! only doing for 1000nm i.e. IWV=10 in LUT
           ! N.B. NWVS is fixed to 1 above - only one wavelength
-          IWV=IWV1000
+          IWV=State_Chm%Phot%IWV1000
        ELSE
           IF ( Input_Opt%LRAD ) THEN
              ! RRTMG wavelengths begin after NWVAA0 standard wavelengths
              ! but add on any others required
-             IF (IIWV.LE.NWVAART) THEN
+             IF (IIWV.LE.State_Chm%Phot%NWVAART) THEN
                 !index of RRTMG wavelengths starts after the standard NWVAA0
-                !(currently NWVAA0=11, set in CMN_FJX_mod based on the .dat
-                !LUT)
-                IWV = IIWV+NWVAA0
+                !(currently NWVAA0=11, hard-coded in phot_container_mod based
+                !on the .dat LUT)
+                IWV = IIWV + State_Chm%Phot%NWVAA0
              ELSE
                 !now we calculate at wvs for the requested AOD
                 !offset index by NWVAART i.e. start from 1
-                IWV = IWVREQUIRED(IIWV-NWVAART)
+                IWV = IWVREQUIRED(IIWV-State_Chm%Phot%NWVAART)
              ENDIF
           ELSE
              ! IWVREQUIRED lists the index of requires standard wavelengths
@@ -1530,6 +1566,20 @@ CONTAINS
     ENDIF
 
     ! Free pointers
+    IWVREQUIRED => NULL()
+    IWVSELECT   => NULL()
+    ACOEF_WV    => NULL()
+    BCOEF_WV    => NULL()
+    RDAA        => NULL()
+    QQAA        => NULL()
+    SSAA        => NULL()
+    ASYMAA      => NULL()
+    ODMDUST     => NULL()
+#ifdef RRTMG
+    RTODAER     => NULL()
+    RTSSAER     => NULL()
+    RTASYMAER   => NULL()
+#endif
     ERADIUS  => NULL()
     TAREA    => NULL()
     WERADIUS => NULL()

@@ -67,6 +67,7 @@ PROGRAM GEOS_Chem
   USE LINEAR_CHEM_MOD       ! For linearized chemistry above chem grid
   USE MERCURY_MOD           ! For offline Hg simulation (driver)
   USE OCEAN_MERCURY_MOD     ! For offline Hg simulation (ocean model)
+  USE Photolysis_Mod,  ONLY : Init_Photolysis
   USE TOMS_MOD              ! For overhead O3 columns (for FAST-J)
   USE UCX_MOD               ! For unified trop-strat chemistry
   USE UVALBEDO_MOD          ! For reading UV albedoes (for FAST-J)
@@ -334,7 +335,7 @@ PROGRAM GEOS_Chem
      CALL Timer_Add( "     Integrate 2",             RC )
      CALL Timer_Add( "  -> Prod/loss diags",         RC )
      CALL Timer_Add( "  -> OH reactivity diag",      RC )
-     CALL Timer_Add( "=> FAST-JX photolysis",        RC )
+     CALL Timer_Add( "=> Photolysis",                RC )
      CALL Timer_Add( "=> Aerosol chem",              RC )
      CALL Timer_Add( "=> Linearized chem",           RC )
      CALL Timer_Add( "Transport",                    RC )
@@ -745,19 +746,13 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 
-  ! Initialize chemistry
-  ! Moved here because some of the variables are used for non-local
-  ! PBL mixing BEFORE the first call of the chemistry routines
-  ! (ckeller, 05/19/14).
-  IF ( Input_Opt%ITS_A_FULLCHEM_SIM      .or.                                &
-       Input_Opt%ITS_AN_AEROSOL_SIM      .or.                                &
-       Input_Opt%ITS_A_MERCURY_SIM       .or.                                &
-       Input_Opt%ITS_A_CARBON_SIM )      THEN
-     CALL Init_Chemistry( Input_Opt,  State_Chm, State_Diag, State_Grid, RC )
-
-     ! Trap potential errors
+  ! Initialize photolysis, including reading files for optical properties
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+       Input_Opt%ITS_AN_AEROSOL_SIM .or. &
+       Input_Opt%ITS_A_MERCURY_SIM  ) THEN
+     CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_Chemistry"!'
+        ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
      ENDIF
   ENDIF
@@ -1711,7 +1706,7 @@ PROGRAM GEOS_Chem
           WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
 
           ! Generate mask for species in RT
-          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
           ! Compute radiative transfer for the given output
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
@@ -1738,7 +1733,7 @@ PROGRAM GEOS_Chem
           ! Calculate for rest of outputs, if any
           DO N = 2, State_Diag%nRadOut
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-             CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+             CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
                                          iCld       = State_Chm%RRTMG_iCld,   &
