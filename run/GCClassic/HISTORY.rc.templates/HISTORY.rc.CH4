@@ -35,9 +35,9 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-	     #'SatDiagn',
-	     #'SatDiagnEdge',
-             #'StateMet',
+             #'SatDiagn',
+             #'SatDiagnEdge',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################

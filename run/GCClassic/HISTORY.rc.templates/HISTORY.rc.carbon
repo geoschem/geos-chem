@@ -37,7 +37,7 @@ COLLECTIONS: 'Restart',
              #'LevelEdgeDiags',
              #'SatDiagn',
              #'SatDiagnEdge',
-             #'StateMet',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################

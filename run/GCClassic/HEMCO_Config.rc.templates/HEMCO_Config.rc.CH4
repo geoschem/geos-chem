@@ -29,6 +29,7 @@
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 METDIR:                      ${RUNDIR_MET_DIR}
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
+GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
@@ -65,7 +66,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> EDGARv6                :       false    # 2000-2018
     --> EDGARv7                :       true     # 2010-2021
     --> QFED2                  :       false    # 2009-2015
-    --> UPDATED_GFED4          :       true     # 2009-2019
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
@@ -93,7 +93,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Emis_ScaleFactor       :       false
     --> OH_ScaleFactor         :       false
 # -----------------------------------------------------------------------------
-111     GFED                   : off   CH4
+111     GFED                   : on    CH4
     --> GFED4                  :       true
     --> GFED_daily             :       true
     --> GFED_3hourly           :       false
@@ -197,26 +197,26 @@ VerboseOnCores:              root       # Accepted values: root all
 # - Use Hier=100 to add to Canada and USA regional inventories
 #==============================================================================
 (((Scarpelli_Mexico
-0 MEX_OIL               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 100
-0 MEX_GAS               $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 100
-0 MEX_COAL              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 100
-0 MEX_LIVESTOCK_A       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 100
-0 MEX_LIVESTOCK_B       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 100
-0 MEX_LANDFILLS         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 100
-0 MEX_WASTEWATER        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 100
-0 MEX_RICE              $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 100
-0 MEX_OTHER             $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 100
+0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 100
+0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 100
+0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 100
+0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 100
+0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 100
+0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 100
+0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 100
+0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 100
+0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 100
 
 ### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
-0 MEX_OIL_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 5
-0 MEX_GAS_COAST         $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 5
-0 MEX_COAL_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 5
-0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
-0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
-0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
-0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
-0 MEX_RICE_COAST        $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-0 MEX_OTHER_COAST       $ROOT/CH4/v2020-09/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
+0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 5
+0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 5
+0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 5
+0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
+0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
+0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
+0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
+0 MEX_RICE_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
+0 MEX_OTHER_COAST       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================
@@ -351,23 +351,23 @@ VerboseOnCores:              root       # Accepted values: root all
 # CEDS (historical) or Shared Socioeconomic Pathways (future)
 #==============================================================================
 (((CMIP6_SFC_LAND_ANTHRO
-0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_agr           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         4 1
-0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_ene           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
-0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_ind           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_tra           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_rco           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         2 1
-0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_slv           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
-0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_wst           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         5 1
+0 CMIP6_CH4_AGR   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_agr 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 4 1
+0 CMIP6_CH4_ENE   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_ene 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
+0 CMIP6_CH4_IND   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_ind 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_TRA   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_tra 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_RCO   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_rco 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 2 1
+0 CMIP6_CH4_SLV   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_slv 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 CMIP6_CH4_WST   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_wst 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 5 1
 )))CMIP6_SFC_LAND_ANTHRO
 (((CMIP6_SHIP
-0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_shp           1970-2014/1-12/1/0 C xy        kg/m2/s    CH4     -         8 1
+0 CMIP6_CH4_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_shp 1970-2014/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 )))CMIP6_SHIP
 
 #==============================================================================
 # BB4MIPs historical / SSP future biomass burning inventories
 #==============================================================================
 (((BB4MIPS
-0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   CH4_bbn           1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s    CH4     75        9 1
+0 CMIP6_BB_CH4    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 CH4_bbn 1750-2015/1-12/1/0 C xyL=1:PBL kg/m2/s CH4 75 9 1
 )))BB4MIPS
 
 #==============================================================================
@@ -379,15 +379,6 @@ VerboseOnCores:              root       # Accepted values: root all
 (((QFED2
 0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
-
-#==============================================================================
-# --- Updated GFED4 biomass burning ---
-#
-# Emissions through 2019 obtained from Yuzhong Zhang
-#==============================================================================
-(((UPDATED_GFED4
-0 UPDATED_GFED4_CH4    $ROOT/CH4/v2020-09/GFED/GFED4_CH4_FIRE_$YYYY.nc emi_ch4 2009-2019/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 3
-)))UPDATED_GFED4
 
 #==============================================================================
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
@@ -429,7 +420,7 @@ VerboseOnCores:              root       # Accepted values: root all
 #   in mixing_mod.F
 #==============================================================================
 (((FUNG_TERMITES
-0 CH4_TERMITES     $ROOT/CH4/v2014-09/4x5/termites.geos.4x5.nc          CH4 1985/1/1/0         C xy kg/m2/s     CH4 - 13 1
+0 CH4_TERMITES     $ROOT/CH4/v2022-11/4x5/termites.geos.4x5.nc CH4 1985/1/1/0 C xy kg/m2/s CH4 - 13 1
 )))FUNG_TERMITES
 (((FUNG_SOIL_ABSORPTION
 0 CH4_SOILABSORB   $ROOT/CH4/v2019-10/Fung_SoilAbs/Soil_Absorption_4x5_$YYYY.nc CH4 2009-2015/1-12/1/0 C xy molec/cm2/s CH4 1 14 1
