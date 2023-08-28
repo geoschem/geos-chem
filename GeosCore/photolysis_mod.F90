@@ -150,15 +150,16 @@ CONTAINS
     ENDIF
 
     ! Compute the required wavelengths in the LUT to calculate requested AOD
-    IF ( .not. Input_Opt%DryRun ) THEN
+    IF ( notDryRun ) THEN
        IF (Input_Opt%amIRoot) WRITE(6,*) 'Wavelength optics read successfully'
        CALL CALC_AOD( Input_Opt, State_Chm, RC )
     ENDIF
 
     !--------------------------------------------------------------------
-    ! Exit if photolysis disabled (zero J-values)
+    ! Exit if photolysis disabled (zero J-values) or if dry-run
     !--------------------------------------------------------------------
     IF ( .NOT. Input_Opt%Do_Photolysis ) RETURN
+    IF ( Input_Opt%DryRun              ) RETURN
 
     !--------------------------------------------------------------------
     ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
