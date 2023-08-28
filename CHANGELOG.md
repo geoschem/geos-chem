@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 - Added new GCHP config file ESMF.rc for configuring ESMF logging
 - Added several new run directory files for use with GEOS-Chem in GEOS
+- GCClassic integration tests now display proper commit info in `results.compile.log`
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
