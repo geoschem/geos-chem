@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - NetCDF utilities in `NcdfUtil` folder now use the netCDF-F90 API
 - GEOS-only updates for running GEOS-Chem in GEOS
 - Boundary conditions for nested-grid simulations are now imposed at every time step instead of 3-hourly
+- Update `GeosCore/carbon_gases_mod.F90` for consistency with config file updates in PR #1916
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
