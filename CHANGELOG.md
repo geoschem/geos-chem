@@ -75,7 +75,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
 - Disabled SpeciesConcMND output for benchmark simulations
-- Exit `Init_Photolysis` before calling `Set_Aer` when doing dry-run simulations
+- Exit `Init_Photolysis` before calling `Calc_AOD` when doing dry-run simulations
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
