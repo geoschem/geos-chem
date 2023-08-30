@@ -18,7 +18,7 @@ VERSION: 1
 #
 # Beware that the online regridding is area-conserving. Only diagnostics
 # independent of grid cell area should be output on a custom grid. For more
-# information on this see the HISTORY.rc page at readthedocs.org/projects/gchp/.
+# information see the HISTORY.rc page at gchp.readthedocs.io/.
 #==============================================================================
 GRID_LABELS: #PE24x144-CF
              #PC360x181-DC
