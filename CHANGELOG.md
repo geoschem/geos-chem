@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new GCHP config file ESMF.rc for configuring ESMF logging
 - Added several new run directory files for use with GEOS-Chem in GEOS
 - Stopped OCEAN_CONC from needlessly being pushed through vertical regridding for Hg simulations
+- Added warning in GCHP HISTORY.rc about outputting area-dependent variables on custom grids
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
