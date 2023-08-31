@@ -156,12 +156,12 @@ CONTAINS
     H%f_Alk_SSA     = SafeDiv( State_Chm%Species(id_SALAAL)%Conc(I,J,L),     &
                                State_Chm%Species(id_SALA  )%Conc(I,J,L),     &
                                0.0_dp                                       )
-    H%f_Alk_SSA     = MIN( H%f_Alk_SSA, 1.0_dp )
+    H%f_Alk_SSA     = MAX( MIN( H%f_Alk_SSA, 1.0_dp ), 0.0_dp )
     H%f_Acid_SSA    = 1.0_dp - H%f_Alk_SSA
     H%f_Alk_SSC     = SafeDiv( State_Chm%Species(id_SALCAL)%Conc(I,J,L),     &
                                State_Chm%Species(id_SALC  )%Conc(I,J,L),     &
                                0.0_dp                                       )
-    H%f_Alk_SSC     = MIN( H%f_Alk_SSC, 1.0_dp )
+    H%f_Alk_SSC     = MAX( MIN( H%f_Alk_SSC, 1.0_dp ), 0.0_dp )
     H%f_Acid_SSC    = 1.0_dp - H%f_Alk_SSC
     H%SSA_is_Alk    = ( ABS( H%f_Alk_SSA ) > 0.01_dp )
     H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk          )
