@@ -370,6 +370,11 @@ MODULE Input_Opt_Mod
      INTEGER                     :: StateVectorElement
      LOGICAL                     :: UseEmisSF
      LOGICAL                     :: UseOHSF
+     LOGICAL                     :: PerturbCH4BoundaryConditions
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseNorth
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseSouth
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseEast
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseWest
 
      !----------------------------------------
      ! POPS MENU fields
@@ -898,14 +903,19 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------
-    Input_Opt%GOSAT_CH4_OBS          = .FALSE.
-    Input_Opt%AIRS_CH4_OBS           = .FALSE.
-    Input_Opt%TCCON_CH4_OBS          = .FALSE.
-    Input_Opt%AnalyticalInv          = .FALSE.
-    Input_Opt%PerturbEmis            = 1.0
-    Input_Opt%StateVectorElement     = 0
-    Input_Opt%UseEmisSF              = .FALSE.
-    Input_Opt%UseOHSF                = .FALSE.
+    Input_Opt%GOSAT_CH4_OBS                     = .FALSE.
+    Input_Opt%AIRS_CH4_OBS                      = .FALSE.
+    Input_Opt%TCCON_CH4_OBS                     = .FALSE.
+    Input_Opt%AnalyticalInv                     = .FALSE.
+    Input_Opt%PerturbEmis                       = 1.0
+    Input_Opt%StateVectorElement                = 0
+    Input_Opt%UseEmisSF                         = .FALSE.
+    Input_Opt%UseOHSF                           = .FALSE.
+    Input_Opt%PerturbCH4BoundaryConditions      = .FALSE.
+    Input_Opt%CH4BoundaryConditionIncreaseNorth = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseSouth = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseEast  = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseWest  = 0.0_fp
 
     !----------------------------------------
     ! POPS MENU fields

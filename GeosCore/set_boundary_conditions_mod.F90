@@ -64,6 +64,7 @@ CONTAINS
    USE State_Chm_Mod,    ONLY : ChmState
    USE State_Grid_Mod,   ONLY : GrdState
    USE Time_Mod,         ONLY : TIMESTAMP_STRING
+   USE PhysConstants,    ONLY : AIRMW
 !
 ! !INPUT PARAMETERS:
 !
@@ -94,6 +95,8 @@ CONTAINS
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=16)    :: STAMP
+   LOGICAL              :: Perturb_CH4_BC
+   REAL(fp)             :: MW_g_CH4           ! CH4 molecular weight
 
    !=================================================================
    ! SET_BOUNDARY_CONDITIONS begins here!
@@ -133,16 +136,33 @@ CONTAINS
       ! Get the species ID from the advected species ID
       N = State_Chm%Map_Advect(NA)
 
+      ! Optionally perturb the CH4 boundary conditions
+      ! Use ppb values specified in geoschem_config.yml 
+      ! Convert to [kg/kg dry] (nbalasus, 8/31/2023)
+      Perturb_CH4_BC = ( State_Chm%SpcData(N)%Info%Name == "CH4" .AND. &
+                         ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. &
+                         Input_Opt%PerturbCH4BoundaryConditions .AND. &
+                         ( .NOT. State_Chm%IsCH4BCPerturbed ) )
+      MW_g_CH4       =   State_Chm%SpcData(N)%Info%MW_g
+
       ! First loop over all latitudes of the nested domain
       DO J = 1, State_Grid%NY
 
          ! West BC
          DO I = 1, State_Grid%WestBuffer
+            IF ( Perturb_CH4_BC ) THEN
+               State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
+                                                 Input_Opt%CH4BoundaryConditionIncreaseWest * 1.0e-9_fp * MW_g_CH4 / AIRMW
+            ENDIF
             State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
 
          ! East BC
          DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
+            IF ( Perturb_CH4_BC ) THEN
+               State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
+                                                 Input_Opt%CH4BoundaryConditionIncreaseEast * 1.0e-9_fp * MW_g_CH4 / AIRMW
+            ENDIF
             State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
 
@@ -153,11 +173,19 @@ CONTAINS
 
          ! South BC
          DO J = 1, State_Grid%SouthBuffer
+            IF ( Perturb_CH4_BC ) THEN
+               State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
+                                                 Input_Opt%CH4BoundaryConditionIncreaseSouth * 1.0e-9_fp * MW_g_CH4 / AIRMW
+            ENDIF
             State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
 
          ! North BC
          DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
+            IF ( Perturb_CH4_BC ) THEN
+               State_Chm%BoundaryCond(I,J,L,N) = State_Chm%BoundaryCond(I,J,L,N) + &
+                                                 Input_Opt%CH4BoundaryConditionIncreaseNorth * 1.0e-9_fp * MW_g_CH4 / AIRMW
+            ENDIF
             State_Chm%Species(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
          ENDDO
       ENDDO
@@ -165,6 +193,11 @@ CONTAINS
    ENDDO
    ENDDO
    !OMP END PARALLEL DO
+
+   ! If the boundary conditions have already been perturbed, don't do it again
+   IF ( Perturb_CH4_BC ) THEN
+      State_Chm%IsCH4BCPerturbed = .TRUE.
+   ENDIF
 
    ! Echo output. This will be at every time step,
    ! so comment this out when unnecessary.
