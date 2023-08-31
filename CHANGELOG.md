@@ -58,13 +58,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed TransportTracer species for consistency with GMAO's TR_GridComp
 - See `KPP/fullchem/CHANGELOG_fullchem.md` for fullchem-mechanism changes
 
-### Removed
-- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
-- Removed the `NcdfUtil/perl` folder
-- Removed `X-HRS` output from log file
-- IONO2 recycling (fullchem, custom mechanisms)
-- Deleted unused file set_prof_o3.F90
-
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
@@ -82,6 +75,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
 - Disabled SpeciesConcMND output for benchmark simulations
+- Exit `Init_Photolysis` before calling `Calc_AOD` when doing dry-run simulations
+
+### Removed
+- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+- Removed the `NcdfUtil/perl` folder
+- Removed `X-HRS` output from log file
+- IONO2 recycling (fullchem, custom mechanisms)
+- Deleted unused file set_prof_o3.F90
 
 ## [14.1.1] - 2023-03-03
 ### Added
