@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed parallelization for Hg0 species in `GeosCore/drydep_mod.F90`
 - Fixed incorrect time-slice when reading nested-grid boundary conditions
 - Fixed initialization of advected species missing in GCHP restart file
+- Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
