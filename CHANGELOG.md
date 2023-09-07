@@ -61,7 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GCHP run-time option in GCHP.rc to choose dry or total pressure in GCHP advection
 - Added GCHP run-time option in GCHP.rc to correct native mass fluxes for humidity
 - Added new tracer_mod.F90 containing subroutines for applying sources and sinks for the TransportTracer simulation
-- Added new species to the TransportTracer simulation: aoa (replaces CLOCK), aoa_bl, aoa_nh, st80_25, stOX
+- Added new species to the TransportTracer simulation: aoa (replaces CLOCK), aoa_bl, aoa_nh, st80_25
 - Added GEOS-IT and GEOSIT as allowable meteorology source options in geoschem_config.yml
 
 ### Changed
@@ -93,13 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change RTOL value from 0.5e-3 back to 0.5e-2 to address model slowdown
 - Allow the use of OFFLINE_SEASALT for seasalt alkalinity, Cl, and Br in GEOS-Chem within CESM
 - Renamed TransportTracer species for consistency with GMAO's TR_GridComp
-
-### Removed
-- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
-- Removed the `NcdfUtil/perl` folder
-- Removed `X-HRS` output from log file
-- IONO2 recycling (fullchem, custom mechanisms)
-- Deleted unused file set_prof_o3.F90
+- See `KPP/fullchem/CHANGELOG_fullchem.md` for fullchem-mechanism changes
 
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
@@ -108,7 +102,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - Use `CYS` in `HEMCO_Config.rc` so that missing species in `GC_BCs` will not stop simulations
   - Tests now run for 20 model minutes instead of an hour
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
-- Restore seasalt alkalinity to heterogeneous acid-catalyzed reactions of halogens on seasalt aerosols.
 - Fixed GCHP `HISTORY.rc` issue preventing running with over 3000 cores
 - Fixed GCHP `ExtData.rc` error in tagged ozone simulation
 - Fixed GCHP `HISTORY.rc` issue preventing diagnostic file overwrite
@@ -118,6 +111,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed selection of troposphere-stratosphere boundary in `global_ch4_mod.F90`
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
+- Disabled SpeciesConcMND output for benchmark simulations
+- Exit `Init_Photolysis` before calling `Calc_AOD` when doing dry-run simulations
+- Make sure `State_Het%f_Alk_SSA` and `State_Het%f_Alk_SSC` are in the range 0..1
+
+### Removed
+- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+- Removed the `NcdfUtil/perl` folder
+- Removed `X-HRS` output from log file
+- IONO2 recycling (fullchem, custom mechanisms)
+- Deleted unused file set_prof_o3.F90
 
 ### Fixed
 - Fixed entries for CH4 emissions in `HEMCO_Config.rc.carbon`

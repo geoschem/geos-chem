@@ -30,7 +30,7 @@ EXPID:  ./OutputDir/GEOSChem
 COLLECTIONS: 'Restart',
              'RadioNuclide',
              'SpeciesConc',
-             'Budget',
+             #'Budget',
              'CloudConvFlux',
              'DryDep',
              'LevelEdgeDiags',
