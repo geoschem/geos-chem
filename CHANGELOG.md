@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed incorrect time-slice when reading nested-grid boundary conditions
 - Fixed initialization of advected species missing in GCHP restart file
 - Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
+- Fixed compilation issues for `KPP/custom`; updated equations in `custom.eqn`
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
