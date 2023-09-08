@@ -34,6 +34,5 @@ PH2O2 : H2O2;
 #ENDINLINE
 
 #INLINE F90_GLOBAL
-! Inline common variables into gckpp_Global.F90
 #include "commonIncludeVars.H"
 #ENDINLINE
