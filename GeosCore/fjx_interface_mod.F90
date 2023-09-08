@@ -18,10 +18,6 @@ MODULE FJX_INTERFACE_MOD
 !
   USE FJX_Mod
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-#if defined( MODEL_CESM ) && defined( SPMD )
-  USE MPISHORTHAND
-  USE SPMD_UTILS
-#endif
 
   IMPLICIT NONE
 
