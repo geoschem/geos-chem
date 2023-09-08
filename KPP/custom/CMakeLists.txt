@@ -10,15 +10,19 @@ add_library(KPP_FirstPass
   gckpp_Monitor.F90
 )
 
-# Define dependencies for libKPP_FirstPass.a
-target_link_libraries(KPP_FirstPass PUBLIC GEOSChemBuildProperties)
+# Dependencies
+target_link_libraries(KPP_FirstPass
+  PUBLIC
+  GEOSChemBuildProperties
+)
 
 #----------------------------------------------------------------------------
 # Add libKPP.a -- custom mechanism (edit as necessary)
 #----------------------------------------------------------------------------
-add_library(KPP 
+add_library(KPP
   STATIC EXCLUDE_FROM_ALL
   commonIncludeVars.H
+  fullchem_AutoReduceFuncs.F90
   fullchem_HetStateFuncs.F90
   fullchem_RateLawFuncs.F90
   fullchem_SulfurChemFuncs.F90
@@ -41,14 +45,18 @@ add_library(KPP
   # These are symbolic links to files in the ../stubs folder.
   #
   stub_aciduptake_DustChemFuncs.F90
+  stub_carbon_Funcs.F90
   stub_Hg_HetStateFuncs.F90
 )
 
-# Define dependencies for libKPP.a
-target_link_libraries(KPP PUBLIC GeosUtil)
+# Dependencies
+target_link_libraries(KPP
+  PUBLIC
+  GeosUtil
+)
 
-# When building libKPP.a, treat REAL as if it were REAL*8
-target_compile_options(KPP 
+# Treat REAL as if it were REAL*8
+target_compile_options(KPP
   PRIVATE ""
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","Intel">:-r8>
   $<$<STREQUAL:"${CMAKE_Fortran_COMPILER_ID}","GNU">:-fdefault-real-8 -fdefault-double-8>
