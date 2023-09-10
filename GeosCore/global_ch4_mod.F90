@@ -126,6 +126,9 @@ CONTAINS
     ! Arrays of state vector elements for applying emissions perturbations
     REAL(fp)           :: STATE_VECTOR(State_Grid%NX,State_Grid%NY)
 
+    ! Tolerance for state vector elements comparison
+    REAL(fp)           :: tolerance
+
     ! Array of scale factors for emissions (from HEMCO)
     REAL(fp)           :: EMIS_SF(State_Grid%NX,State_Grid%NY)
 
@@ -502,6 +505,9 @@ CONTAINS
        ! emissions array
        State_Chm%CH4_EMIS(:,:,1) = State_Chm%CH4_EMIS(:,:,1) + State_Chm%CH4_EMIS(:,:,15)
 
+       ! Add a tolerance for determining the correct state vector element
+       tolerance = 0.001d0
+
        ! Rescale emissions
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -525,7 +531,7 @@ CONTAINS
              ! Only apply emission perturbation to current state vector
              ! element number
              IF ( Input_Opt%StateVectorElement .GT. 0 ) THEN
-                IF ( STATE_VECTOR(I,J) == Input_Opt%StateVectorElement ) THEN
+                IF (ABS(STATE_VECTOR(I,J) - Input_Opt%StateVectorElement) < tolerance ) THEN
                    State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
                    !Print*, 'Analytical Inversion: Scaled state vector element ', &
                    !        Input_Opt%StateVectorElement, ' by ', &
