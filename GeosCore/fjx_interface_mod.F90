@@ -512,7 +512,8 @@ CONTAINS
 
        !-----------------------------------------------------------
        !### If you want to exclude aerosol OD, mineral dust OD,
-       !### or cloud OD, then uncomment the following lines:
+       !### or cloud OD, then uncomment the following lines.
+       !### This effectively runs Fast-JX as clear sky.
        !OPTAER  = 0d0
        !OPTDUST = 0d0
        !OPTD(:)    = 0d0
