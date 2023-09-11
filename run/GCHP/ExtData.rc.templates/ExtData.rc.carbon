@@ -137,51 +137,59 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 # %%%%% CH4 emissions %%%%%
 #==============================================================================
 
-# --- CH4: Gridded EPA (Maasakkers et al., Environ. Sci. Technol., 2016) ---
-GEPA_OIL               molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_GAS_PRODUCTION    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_GAS_PROCESSING    molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_GAS_TRANSMISSION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_GAS_DISTRIBUTION  molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAL_UNDERGROUND  molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAL_SURFACE      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAL_ABANDONED    molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_LIVESTOCK__4A     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_LIVESTOCK__4B     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_LANDFILLS_MUNI    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_LANDFILLS_INDU    molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_WASTEWATER_DOME   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_WASTEWATER_INDU   molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_RICE              molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_OTHER__1A_M       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_OTHER__1A_S       molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_OTHER__2B5        molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_OTHER__2C2        molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_OTHER__4F         molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Monthly.nc
-#GEPA_OTHER__5          molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                      ./HcoDir/CH4/v2022-11/GEPA/GEPA_Daily.nc
-GEPA_OTHER__6D         molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OIL         molec/cm2/s N    Y -                    none none  emissions_1B2a_Petroleum                      ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_PR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_PC      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_TR      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_GAS_DS      molec/cm2/s N    Y -                    none none  emissions_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_U      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Underground        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_S      molec/cm2/s N    Y -                    none none  emissions_1B1a_Coal_Mining_Surface            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_COAL_A      molec/cm2/s N    Y -                    none none  emissions_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_LVSTK_F     molec/cm2/s N    Y -                    none none  emissions_4A_Enteric_Fermentation             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_LVSTK_M     molec/cm2/s N    Y -                    none none  emissions_4B_Manure_Management                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_LDF_M       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Municipal              ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_LDF_I       molec/cm2/s N    Y -                    none none  emissions_6A_Landfills_Industrial             ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_WSTW_D      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_WSTW_I      molec/cm2/s N    Y -                    none none  emissions_6B_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_RICE        molec/cm2/s N    Y -                    none none  emissions_4C_Rice_Cultivation                 ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_1AM     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Mobile                ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_1AS     molec/cm2/s N    Y -                    none none  emissions_1A_Combustion_Stationary            ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_2B5     molec/cm2/s N    Y -                    none none  emissions_2B5_Petrochemical_Production        ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_2C2     molec/cm2/s N    Y -                    none none  emissions_2C2_Ferroalloy_Production           ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
-GEPA_COAST_OTH_4F      molec/cm2/s 2012 Y F%y4-%m2-01T00:00:00 none none  emissions_4F_Field_Burning                    ./HcoDir/CH4/v2022-11/GEPA/GEPA_Monthly.nc
-#GEPA_COAST_OTH_5       molec/cm2/s 2012 Y F%y4-%m2-%d2T00:00:00 none none emissions_5_Forest_Fires                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Daily.nc
-GEPA_COAST_OTH_6D      molec/cm2/s N    Y -                    none none  emissions_6D_Composting                       ./HcoDir/CH4/v2022-11/GEPA/GEPA_Annual.nc
+# --- CH4: Gridded GHGI Express Extension (Maasakkers et al., submitted to ES&T, 2023) ---
+GHGI_OIL_EXPLORATION         molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Exploration  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OIL_PRODUCTION          molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Production   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OIL_REFINING            molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Refining     ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OIL_TRANSPORT           molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Transport    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_GAS_DISTRIBUTION        molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_GAS_EXPLORATION         molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Exploration        ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_GAS_PROCESSING          molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_GAS_PRODUCTION          molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_GAS_TRANSMISSION        molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAL_UNDERGROUND        molec/cm2/s N    Y - none none  emi_ch4_1B1a_Underground_Coal               ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAL_SURFACE            molec/cm2/s N    Y - none none  emi_ch4_1B1a_Surface_Coal                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAL_ABANDONED          molec/cm2/s N    Y - none none  emi_ch4_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_LIVESTOCK_ENT           molec/cm2/s N    Y - none none  emi_ch4_3A_Enteric_Fermentation             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_LIVESTOCK_MAN           molec/cm2/s N    Y - none none  emi_ch4_3B_Manure_Management                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_LANDFILLS_IND           molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_Industrial            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_LANDFILLS_MSQ           molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_LANDFILLS_COMP          molec/cm2/s N    Y - none none  emi_ch4_5B1_Composting                      ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_WASTEWATER_DOM          molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_WASTEWATER_IND          molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_RICE                    molec/cm2/s N    Y - none none  emi_ch4_3C_Rice_Cultivation                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__MCOM             molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__SCOM             molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__PIND             molec/cm2/s N    Y - none none  emi_ch4_2B8_Industry_Petrochemical          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__FIND             molec/cm2/s N    Y - none none  emi_ch4_2C2_Industry_Ferroalloy             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__BURN             molec/cm2/s N    Y - none none  emi_ch4_3F_Field_Burning                    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_OTHER__ABOG             molec/cm2/s N    Y - none none  emi_ch4_1B2ab_Abandoned_Oil_Gas             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OIL_EXPLORATION   molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Exploration  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OIL_PRODUCTION    molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Production   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OIL_REFINING      molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Refining     ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OIL_TRANSPORT     molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Transport    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_GAS_DISTRIBUTION  molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Distribution       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_GAS_EXPLORATION   molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Exploration        ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_GAS_PROCESSING    molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Processing         ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_GAS_PRODUCTION    molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Production         ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_GAS_TRANSMISSION  molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Transmission       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_COAL_UNDERGROUND  molec/cm2/s N    Y - none none  emi_ch4_1B1a_Underground_Coal               ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_COAL_SURFACE      molec/cm2/s N    Y - none none  emi_ch4_1B1a_Surface_Coal                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_COAL_ABANDONED    molec/cm2/s N    Y - none none  emi_ch4_1B1a_Abandoned_Coal                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_LIVESTOCK_ENT     molec/cm2/s N    Y - none none  emi_ch4_3A_Enteric_Fermentation             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_LIVESTOCK_MAN     molec/cm2/s N    Y - none none  emi_ch4_3B_Manure_Management                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_LANDFILLS_IND     molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_Industrial            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_LANDFILLS_MSQ     molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_LANDFILLS_COMP    molec/cm2/s N    Y - none none  emi_ch4_5B1_Composting                      ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_WASTEWATER_DOM    molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_WASTEWATER_IND    molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_RICE              molec/cm2/s N    Y - none none  emi_ch4_3C_Rice_Cultivation                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__MCOM       molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__SCOM       molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__PIND       molec/cm2/s N    Y - none none  emi_ch4_2B8_Industry_Petrochemical          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__FIND       molec/cm2/s N    Y - none none  emi_ch4_2C2_Industry_Ferroalloy             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__BURN       molec/cm2/s N    Y - none none  emi_ch4_3F_Field_Burning                    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_COAST_OTHER__ABOG       molec/cm2/s N    Y - none none  emi_ch4_1B2ab_Abandoned_Oil_Gas             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 
 # --- Scarpelli Mexico ---
 MEX_OIL                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
@@ -436,15 +444,15 @@ OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir
 ###############################################################################
 
 # --- GFED4 (Extension 111)---
-GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
-GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2022-11/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
+GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 
 # --- GFED_daily scale factors ---
-GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2022-11/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2023-03/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 
 # --- GFED_3hourly (off by default in HEMCO_Config.rc) ---
 #GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
@@ -463,7 +471,7 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 
 # --- OH from GEOS-Chem v5-07-08 ---
 # --- NOTE: Use this for CH4/IMI ---
-#GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc
+GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc
 
 # --- Global Cl concentrations
 GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4

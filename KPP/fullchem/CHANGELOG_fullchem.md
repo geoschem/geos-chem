@@ -14,6 +14,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restored sink reactions for HOI, IONO, IONO2
 - Added S(IV)+HOBr and S(IV)+HOCl rxns (they had been inadvertently omitted)
 
+### Changed
+- Set `k(SALAAL+SO2)` and `k(SALCAL+SO2)` to zero if O3 < 1e10 molec/cm3
+
 ### Fixed
 - Fix bugs in HOBr uptake rate calculation in `fullchem_RateLawFuncs.F90`
 - Now cap `State_Het%f_Alk_SSA` and `State_Het%f_Alk_SSC` at 1.0

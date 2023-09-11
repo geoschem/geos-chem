@@ -13,10 +13,12 @@ VERSION: 1
 # in the collections section of this file.
 #
 # See the examples below for defining different types of grid at different
-# resolutions.
-#
-# See the collections section later on in this file for instructions on
+# resolutions. See the collections section later on in this file for instructions on
 # using an alternative grid for output.
+#
+# Beware that the online regridding is area-conserving. Only diagnostics
+# independent of grid cell area should be output on a custom grid. For more
+# information see the HISTORY.rc page at gchp.readthedocs.io/.
 #==============================================================================
 GRID_LABELS: #PE24x144-CF
              #PC360x181-DC
@@ -53,7 +55,7 @@ GRID_LABELS: #PE24x144-CF
 # You can disable collections by commenting out with #
 #==============================================================================
 COLLECTIONS: 'Emissions',
-             'Budget',
+             #'Budget',
              'CloudConvFlux',
              'DryDep',
              'LevelEdgeDiags',      
@@ -151,7 +153,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetChemistryFull_PassiveTracer      ', 'GCHPchem',
                     'BudgetChemistryFull_SF6                ', 'GCHPchem',
                     'BudgetChemistryFull_st80_25            ', 'GCHPchem',
-                    'BudgetChemistryFull_stOX               ', 'GCHPchem',
                     #		    				       
                     'BudgetChemistryTrop_Rn222              ', 'GCHPchem',
                     'BudgetChemistryTrop_Pb210              ', 'GCHPchem',
@@ -171,7 +172,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetChemistryTrop_PassiveTracer      ', 'GCHPchem',
                     'BudgetChemistryTrop_SF6                ', 'GCHPchem',
                     'BudgetChemistryTrop_st80_25            ', 'GCHPchem',
-                    'BudgetChemistryTrop_stOX               ', 'GCHPchem',
                     #
                     'BudgetChemistryPBL_Rn222               ', 'GCHPchem',
                     'BudgetChemistryPBL_Pb210               ', 'GCHPchem',
@@ -191,7 +191,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetChemistryPBL_PassiveTracer       ', 'GCHPchem',
                     'BudgetChemistryPBL_SF6                 ', 'GCHPchem',
                     'BudgetChemistryPBL_st80_25             ', 'GCHPchem',
-                    'BudgetChemistryPBL_stOX                ', 'GCHPchem',
                     #
                     'BudgetEmisDryDepFull_Rn222             ', 'GCHPchem',
                     'BudgetEmisDryDepFull_Pb210             ', 'GCHPchem',
@@ -211,7 +210,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetEmisDryDepFull_PassiveTracer     ', 'GCHPchem',
                     'BudgetEmisDryDepFull_SF6               ', 'GCHPchem',
                     'BudgetEmisDryDepFull_st80_25           ', 'GCHPchem',
-                    'BudgetEmisDryDepFull_stOX              ', 'GCHPchem',
                     #
                     'BudgetEmisDryDepTrop_Rn222             ', 'GCHPchem',
                     'BudgetEmisDryDepTrop_Pb210             ', 'GCHPchem',
@@ -231,7 +229,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetEmisDryDepTrop_PassiveTracer     ', 'GCHPchem',
                     'BudgetEmisDryDepTrop_SF6               ', 'GCHPchem',
                     'BudgetEmisDryDepTrop_st80_25           ', 'GCHPchem',
-                    'BudgetEmisDryDepTrop_stOX              ', 'GCHPchem',
 		    #
                     'BudgetEmisDryDepPBL_Rn222              ', 'GCHPchem',
                     'BudgetEmisDryDepPBL_Pb210              ', 'GCHPchem',
@@ -251,7 +248,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetEmisDryDepPBL_PassiveTracer      ', 'GCHPchem',
                     'BudgetEmisDryDepPBL_SF6                ', 'GCHPchem',
                     'BudgetEmisDryDepPBL_st80_25            ', 'GCHPchem',
-                    'BudgetEmisDryDepPBL_stOX               ', 'GCHPchem',
                     #
                     'BudgetMixingFull_Rn222                 ', 'GCHPchem',
                     'BudgetMixingFull_Pb210                 ', 'GCHPchem',
@@ -271,7 +267,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetMixingFull_PassiveTracer         ', 'GCHPchem',
                     'BudgetMixingFull_SF6                   ', 'GCHPchem',
                     'BudgetMixingFull_st80_25               ', 'GCHPchem',
-                    'BudgetMixingFull_stOX                  ', 'GCHPchem',
                     #
                     'BudgetMixingTrop_Rn222                 ', 'GCHPchem',
                     'BudgetMixingTrop_Pb210                 ', 'GCHPchem',
@@ -291,7 +286,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetMixingTrop_PassiveTracer         ', 'GCHPchem',
                     'BudgetMixingTrop_SF6                   ', 'GCHPchem',
                     'BudgetMixingTrop_st80_25               ', 'GCHPchem',
-                    'BudgetMixingTrop_stOX                  ', 'GCHPchem',
                     #
                     'BudgetMixingPBL_Rn222                  ', 'GCHPchem',
                     'BudgetMixingPBL_Pb210                  ', 'GCHPchem',
@@ -311,7 +305,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetMixingPBL_PassiveTracer          ', 'GCHPchem',
                     'BudgetMixingPBL_SF6                    ', 'GCHPchem',
                     'BudgetMixingPBL_st80_25                ', 'GCHPchem',
-                    'BudgetMixingPBL_stOX                   ', 'GCHPchem',
 		    #
                     'BudgetConvectionFull_Rn222             ', 'GCHPchem',
                     'BudgetConvectionFull_Pb210             ', 'GCHPchem',
@@ -331,7 +324,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetConvectionFull_PassiveTracer     ', 'GCHPchem',
                     'BudgetConvectionFull_SF6               ', 'GCHPchem',
                     'BudgetConvectionFull_st80_25           ', 'GCHPchem',
-                    'BudgetConvectionFull_stOX              ', 'GCHPchem',
 		    #
                     'BudgetConvectionTrop_Rn222             ', 'GCHPchem',
                     'BudgetConvectionTrop_Pb210             ', 'GCHPchem',
@@ -351,7 +343,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetConvectionTrop_PassiveTracer     ', 'GCHPchem',
                     'BudgetConvectionTrop_SF6               ', 'GCHPchem',
                     'BudgetConvectionTrop_st80_25           ', 'GCHPchem',
-                    'BudgetConvectionTrop_stOX              ', 'GCHPchem',
 		    #
                     'BudgetConvectionPBL_Rn222              ', 'GCHPchem',
                     'BudgetConvectionPBL_Pb210              ', 'GCHPchem',
@@ -371,7 +362,6 @@ COLLECTIONS: 'Emissions',
                     'BudgetConvectionPBL_PassiveTracer      ', 'GCHPchem',
                     'BudgetConvectionPBL_SF6                ', 'GCHPchem',
                     'BudgetConvectionPBL_st80_25            ', 'GCHPchem',
-                    'BudgetConvectionPBL_stOX               ', 'GCHPchem',
 		    #
                     'BudgetWetDepFull_Pb210                 ', 'GCHPchem',
                     'BudgetWetDepFull_Pb210s                ', 'GCHPchem',
@@ -423,7 +413,6 @@ COLLECTIONS: 'Emissions',
                            'CloudConvFlux_PassiveTracer ', 'GCHPchem',
                            'CloudConvFlux_SF6           ', 'GCHPchem',
                            'CloudConvFlux_st80_25       ', 'GCHPchem',
-                           'CloudConvFlux_stOX          ', 'GCHPchem',
 ::
 #==============================================================================
   DryDep.template:         '%y4%m2%d2_%h2%n2z.nc4',
@@ -509,7 +498,6 @@ COLLECTIONS: 'Emissions',
                               'SpeciesConcVV_PassiveTracer ', 'GCHPchem',
                               'SpeciesConcVV_SF6           ', 'GCHPchem',
                               'SpeciesConcVV_st80_25       ', 'GCHPchem',
-                              'SpeciesConcVV_stOX          ', 'GCHPchem',
 ::
 #==============================================================================
   StateMet.template:        '%y4%m2%d2_%h2%n2z.nc4',

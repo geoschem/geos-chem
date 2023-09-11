@@ -165,7 +165,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: SALAAL_gt_0_1
     LOGICAL            :: SALCAL_gt_0_1
-    LOGICAL            :: O3_gt_0
+    LOGICAL            :: O3_gt_1e10
     REAL(fp)           :: k_ex
 
     ! Strings
@@ -177,12 +177,24 @@ CONTAINS
     !======================================================================
 
     ! Initialize
-    RC            = GC_SUCCESS
-    k_ex          = 0.0_dp
-    K_MT          = 0.0_dp
-    SALAAL_gt_0_1 = ( C(ind_SALAAL) > 0.1_dp )
-    SALCAL_gt_0_1 = ( C(ind_SALCAL) > 0.1_dp )
-    O3_gt_0       = ( C(ind_O3) > 0.0_dp )
+    RC   = GC_SUCCESS
+    k_ex = 0.0_dp
+    K_MT = 0.0_dp
+
+    !----------------------------------------------------------------------
+    ! In order to prevent div-by-zero errors, we set thresholds 
+    ! to skip the SALAAL + SO2 and SALCAL + SO2 reactions if:
+    !
+    ! (1) SALAAL <= 0.1 molec/cm3
+    ! (2) SALCAL <= 0.1 molec/cm3
+    ! (3) O3 <= 1e10 molec/cm3
+    !
+    ! An ozone concentration of 1e10 molec/cm3 ~= 0.5 ppbv, which is
+    ! lower than ozone should ever get (according to D. Jacob).
+    !----------------------------------------------------------------------
+    SALAAL_gt_0_1 = ( C(ind_SALAAL) > 0.1_dp     )
+    SALCAL_gt_0_1 = ( C(ind_SALCAL) > 0.1_dp     )
+    O3_gt_1e10    = ( C(ind_O3)     > 1.0e+10_dp )
 
     !======================================================================
     ! Reaction rates [1/s] for fine sea salt alkalinity (aka SALAAL)
@@ -190,14 +202,12 @@ CONTAINS
     ! K_MT(1) : SALAAL + SO2 + O3 = SO4 - SALAAL
     ! K_MT(2) : SALAAL + HCl      = SALACL
     ! K_MT(3) : SALAAL + HNO3     = NIT
-    !
-    ! NOTE: SALAAL_gt_0_1 prevents div-by-zero errors
     !======================================================================
 
     !------------------------------------------------------------------------
     ! SALAAL + SO2 + O3 = SO4 - SALAAL
     !------------------------------------------------------------------------
-    IF ( SALAAL_gt_0_1 .AND. O3_gt_0 ) THEN
+    IF ( SALAAL_gt_0_1 .AND. O3_gt_1e10 ) THEN
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,11),             &
@@ -245,14 +255,12 @@ CONTAINS
     ! K_MT(4) : SALCAL + SO2 + O3 = SO4s - SALCAL
     ! K_MT(5) : SALCAL + HCl      = SALCCL
     ! K_MT(6) : SALCAL + HNO3     = NITs
-    !
-    ! NOTE: SALCAL_gt_0_1 prevents div-by-zero errors
     !========================================================================
 
     !------------------------------------------------------------------------
     ! SALCAL + SO2 + O3 = SO4s - SALCAL
     !------------------------------------------------------------------------
-    IF ( SALCAL_gt_0_1 .AND. O3_gt_0 ) THEN
+    IF ( SALCAL_gt_0_1 .AND. O3_gt_1e10 ) THEN
 
        ! 1st order uptake
        k_ex = Ars_L1K( area   = State_Chm%WetAeroArea(I,J,L,12),             &

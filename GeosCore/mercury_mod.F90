@@ -165,7 +165,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:)   => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -3293,7 +3293,7 @@ CONTAINS
     ENDIF
 
     ! Only doing Hg0 overall
-    Hg0aq = OCEAN_CONC(:,:,1)
+    Hg0aq = OCEAN_CONC(:,:)
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()

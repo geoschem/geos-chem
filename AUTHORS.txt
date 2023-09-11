@@ -1,5 +1,5 @@
-List of Developers for GEOS-Chem, GCHP, HEMCO, and Related Software
-(24 Apr 2023)
+List of Developers for GEOS-Chem, HEMCO, and Related Software
+(11 Jul 2023)
 ===============================================================================
 
 ADAMS, Peter
@@ -9,6 +9,7 @@ AMOS, Helen
 ANGOT, Helene
 AUSMEEL, Stina
 AUVRAY, Marion
+BALASUS, Nicholas
 BARAY, Sabour
 BARKLEY, Michael
 BARRET, Steven
@@ -38,7 +39,7 @@ CAO, Liangzhong
 CAO, Yi
 CAPPS, Shannon
 CAROUGE, Claire
-CARTER, Therese
+CARTER, Therese (Tess)
 CAZORLA, Maria
 CHALIYAKUNNEL, Sreelekha
 CHAN MILLER, Christopher
@@ -133,6 +134,7 @@ JUNG, Jaegun
 KASIBHATLA, Prasad
 HUDMAN KAY, Rynda
 KELLER, Christoph
+KELP, Makoto
 KIKUCHI, Tetsuro
 KIM, Hyeonmin
 KIM, Sungshik
@@ -205,7 +207,7 @@ MILLET, Dylan
 MING, Kai
 MOCH, Jonathan
 MOORE, Neil
-MOORING, Tood
+MOORING, Todd
 MORENA, Jessica
 MORIN, Gabriel
 MORRIS, Eleanor
@@ -247,6 +249,7 @@ REINHART, Wes
 RIDLEY, David
 RIZZA, Umberto
 ROTHENBERG, Daniel
+ROY, Eric
 SAFIEDDINE, Sarah
 SANDU, Adrian
 SANTILLANA, Mauricio
@@ -304,10 +307,11 @@ TURNER, Alexander
 TURQUETY, Solene
 TZOMPA-SOSA, Zitely
 UNGER, Nadine
-VAL-MARTIN, Maria
-VAN, Aaron Donkelaar
+VAL MARTIN, Maria
+VAN DONKELAAR, Aaron 
 VAROTSOS, Kostas
 VINKEN, Geert
+VITT, Francis
 WAGSTROM, Kristina
 WALKER, Thomas
 WANG, James
