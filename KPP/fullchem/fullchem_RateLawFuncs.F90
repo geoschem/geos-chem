@@ -2439,7 +2439,7 @@ CONTAINS
     !
     IF ( H%SSA_is_Alk ) THEN
        ssarea = H%f_Alk_SSA * H%xArea(SSA)
-       k = Ars_L1k( ssarea, H%xRadi(SSA), srMw, gamma )
+       k = Ars_L1k( ssarea, H%xRadi(SSA), gamma, srMw )
     ENDIF
   END FUNCTION IuptkbyAlkSALA1stOrd
 
@@ -2475,7 +2475,7 @@ CONTAINS
     !
     IF ( H%SSC_is_Alk ) THEN
        ssarea = H%f_Alk_SSC * H%xArea(SSC)
-       k = Ars_L1K( ssarea, H%xRadi(SSC), srMw, gamma )
+       k = Ars_L1K( ssarea, H%xRadi(SSC), gamma, srMw )
     ENDIF
   END FUNCTION IuptkByAlkSALC1stOrd
 
@@ -2495,7 +2495,7 @@ CONTAINS
     !
     IF ( H%SSA_is_Acid ) THEN
        ssarea = H%f_Acid_SSA * H%xArea(SSA)
-       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSA), srMw, gamma )
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSA), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALA
@@ -2516,7 +2516,7 @@ CONTAINS
     !
     IF ( H%SSC_is_Acid ) THEN
        ssarea = H%f_Acid_SSC * H%xArea(SSC)
-       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSC), srMw, gamma )
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSC), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALC
@@ -2537,7 +2537,7 @@ CONTAINS
     !
     IF ( H%SSA_is_Acid ) THEN
        ssarea = H%f_Acid_SSA * H%xArea(SSA)
-       k = 0.85_dp * Ars_L1K( ssarea, H%xRadi(SSA), srMw, gamma )
+       k = 0.85_dp * Ars_L1K( ssarea, H%xRadi(SSA), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALACl
@@ -2558,7 +2558,7 @@ CONTAINS
     !
     IF ( H%SSC_is_Acid ) THEN
        ssarea = H%f_Acid_SSC * H%xArea(SSC)
-       k = 0.85_dp * ARs_L1K( ssarea, H%xRAdi(SSC), srMw, gamma )
+       k = 0.85_dp * ARs_L1K( ssarea, H%xRAdi(SSC), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
