@@ -77,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disabled SpeciesConcMND output for benchmark simulations
 - Exit `Init_Photolysis` before calling `Calc_AOD` when doing dry-run simulations
 - Make sure `State_Het%f_Alk_SSA` and `State_Het%f_Alk_SSC` are in the range 0..1
+- Restore seasalt alkalinity to heterogeneous acid-catalyzed reactions of halogens on seasalt aerosols
 
 ### Removed
 - `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
