@@ -10,19 +10,16 @@
 MODULE m_netcdf_io_readattr
 !
 ! !USES:
-
-  USE m_do_err_out
-
+!
   IMPLICIT NONE
   PRIVATE
-
-  INCLUDE "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: NcGet_Var_Attributes
   INTERFACE NcGet_Var_Attributes
      MODULE PROCEDURE NcGet_Var_Attr_C
+     MODULE PROCEDURE NcGet_Var_Attr_C_nostop
      MODULE PROCEDURE NcGet_Var_Attr_I4
      MODULE PROCEDURE NcGet_Var_Attr_R4
      MODULE PROCEDURE NcGet_Var_Attr_R8
@@ -72,8 +69,7 @@ MODULE m_netcdf_io_readattr
 !  This file is based on code from NASA/GSFC, SIVO, Code 610.3
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -93,6 +89,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_C( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -110,8 +111,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -119,26 +119,26 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=512) :: errMsg
-    INTEGER            :: status, vId
+    INTEGER            :: status, vId, EC
 
     ! Zero return value
     attValue = ''
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_C: ' // TRIM( varName )        // &
-                 ', '                   // Nf_Strerror( status )
-       CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
+                 ', '                   // NF90_Strerror( status )
+       CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
     ENDIF
 
     !  Get the attribute
-    status = Nf_Get_Att_Text( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_C: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -160,6 +160,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_I4( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -177,8 +182,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -192,20 +196,20 @@ CONTAINS
     attValue = 0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_I4: ' // TRIM( varName )        // &
-                 ', '                   // Nf_Strerror( status )
+                 ', '                   // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Int( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_I4: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -227,6 +231,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_R4( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -244,8 +253,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -259,20 +267,20 @@ CONTAINS
     attValue = 0e0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R4: ' // TRIM( varName )        // &
-                 ', '                   // Nf_Strerror( status )
+                 ', '                   // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Real( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R4: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -294,6 +302,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_R8( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -311,8 +324,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -326,20 +338,20 @@ CONTAINS
     attValue = 0d0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R8: ' // TRIM( varName )        // &
-                 ', '                   // Nf_Strerror( status )
+                 ', '                   // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Double( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R8: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -361,6 +373,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_I4_arr( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -378,8 +395,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -393,20 +409,20 @@ CONTAINS
     attValue = 0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_I4_arr: ' // TRIM( varName )        // &
-                 ', '                        // Nf_Strerror( status )
+                 ', '                        // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Int( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_I4_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -428,6 +444,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_R4_arr( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -445,8 +466,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -460,20 +480,20 @@ CONTAINS
     attValue = 0e0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R4_arr: ' // TRIM( varName )        // &
-                 ', '                        // Nf_Strerror( status )
+                 ', '                        // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Real( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R4_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -495,6 +515,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Var_Attr_R8_arr( fid, varName, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -512,8 +537,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -527,20 +551,20 @@ CONTAINS
     attValue = 0d0
 
     ! Check if VARNAME is a valid variable
-    status = Nf_Inq_Varid ( fId, varName, vId )
+    status = NF90_Inq_VarId( fId, varName, vId )
 
     ! Exit w/ error message if VARNAME is not valid
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R8_arr: ' // TRIM( varName )        // &
-                 ', '                        // Nf_Strerror( status )
+                 ', '                        // NF90_Strerror( status )
        CALL Do_Err_Out ( errMsg, .TRUE., 1, fId, 0, 0, 0.0d0, 0.0d0)
     ENDIF
 
     ! Get the attribute
-    status = Nf_Get_Att_Double( fId, vId, attName, attValue )
+    status = NF90_Get_Att( fId, vId, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Var_Attr_R8_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -562,6 +586,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_C( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -578,8 +607,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -593,10 +621,10 @@ CONTAINS
     attValue = ''
 
     ! Get the attribute
-    status = Nf_Get_Att_Text( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_C: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -618,6 +646,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_I4( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -634,8 +667,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -649,10 +681,10 @@ CONTAINS
     attValue = 0
 
     ! Get the attribute
-    status = Nf_Get_Att_Int( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_I4: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -674,6 +706,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_R4( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -690,8 +727,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -705,10 +741,10 @@ CONTAINS
     attValue = 0e0
 
     ! Get the attribute
-    status = Nf_Get_Att_Real( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_R4: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -730,6 +766,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_R8( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
@@ -746,8 +787,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -761,10 +801,10 @@ CONTAINS
     attValue = 0d0
 
     ! Get the attribute
-    status = Nf_Get_Att_Double( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_R8: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -786,6 +826,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_I4_arr( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -802,8 +847,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -817,10 +861,10 @@ CONTAINS
     attValue = 0
 
     ! Get the attribute
-    status = Nf_Get_Att_Int( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_I4_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -842,6 +886,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_R4_arr( fid, attName, attValue )
 !
+! !USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -858,8 +907,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -873,10 +921,10 @@ CONTAINS
     attValue = 0e0
 
     ! Get the attribute
-    status = Nf_Get_Att_Real( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_R4_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
@@ -898,6 +946,11 @@ CONTAINS
 !
   SUBROUTINE NcGet_Glob_Attr_R8_arr( fid, attName, attValue )
 !
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
 ! !INPUT PARAMETERS:
 !
     INTEGER,          INTENT(IN)  :: fId          ! netCDF file ID
@@ -914,8 +967,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  25 Jan 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -929,15 +981,87 @@ CONTAINS
     attValue = 0d0
 
     ! Get the attribute
-    status = Nf_Get_Att_Double( fId, NF_GLOBAL, attName, attValue )
+    status = NF90_Get_Att( fId, NF90_GLOBAL, attName, attValue )
 
     ! Exit w/ error message if unsuccessful
-    IF ( status /= NF_NOERR ) THEN
+    IF ( status /= NF90_NOERR ) THEN
        errMsg = 'In NcGet_Glob_Attr_R8_arr: cannot read attribute : ' // &
                  TRIM( attName )
        CALL Do_Err_Out( errMsg, .TRUE., 0, 0, 0, 0, 0.0d0, 0.0d0 )
     endif
 
   END SUBROUTINE NcGet_Glob_Attr_R8_arr
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: NcGet_Var_Attr_C_nostop
+!
+! !DESCRIPTION: Returns a variable attribute of type CHARACTER.  Similar
+!  to NcGet_Var_Attr_C, but does not stop upon error,  Instead, a status
+!  flag is passed back to the calling routine.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE NcGet_Var_Attr_C_nostop( fId, varName, attName, attValue, RC )
+!
+! USES:
+!
+    USE netCDF
+    USE m_do_err_out
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,          INTENT(IN)  :: fId        ! netCDF file ID
+    CHARACTER(LEN=*), INTENT(IN)  :: varName    ! netCDF variable name
+    CHARACTER(LEN=*), INTENT(IN)  :: attName    ! Name of variable attribute
+!
+! !OUTPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(OUT) :: attValue   ! Attribute value
+    INTEGER,          INTENT(OUT) :: RC         ! Success or failure?
+!
+! !DESCRIPTION: Reads a variable attribute (CHARACTER type) from a netCDF file.
+!\\
+!\\
+! !AUTHOR:
+!  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    CHARACTER(LEN=512) :: errMsg
+    INTEGER            :: status, vId
+
+    ! Zero return value
+    attValue = ''
+
+    ! Check if VARNAME is a valid variable
+    status = NF90_Inq_VarId( fId, varName, vId )
+
+    ! Exit w/ error message if VARNAME is not valid
+    IF ( status /= NF90_NOERR ) THEN
+       RC = status
+       RETURN
+    ENDIF
+
+    !  Get the attribute
+    status = NF90_Get_Att( fId, vId, attName, attValue )
+
+    ! Exit w/ error message if unsuccessful
+    IF ( status /= NF90_NOERR ) THEN
+       RC = status
+       RETURN
+    ENDIF
+
+  END SUBROUTINE NcGet_Var_Attr_C_nostop
 !EOC
 END MODULE m_netcdf_io_readattr

@@ -535,30 +535,30 @@ DEAD_MF_SND          '1'        N    N -  		    none     none    MF_SND	       /
 DEAD_GOC_SRC         '1'        N    N -  		    none     none    GOC_SRC	       /discover/nobackup/cakelle2/data/GOCART_src_fn.esmf.2x25.nc
 DEAD_VAI             '1'        Y    N 1985-%m2-01T00:00:00   none     none    VAI	       /discover/nobackup/cakelle2/data/dst_tvbds.esmf.2x25.nc
 MULTISEAICE          '1'        N    Y F%y4-%m2-%d2T00:00:00 none    none    FRSEAICE          /discover/nobackup/ewlundgr/data/ExtData/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.%y4.nc
-MEGAN_AEF_ISOP  'kgC/m2/s'      N    Y -  		    none     none    AEF_ISOPRENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_MBOX  'kgC/m2/s'      N    Y -  		    none     none    AEF_MBO	       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_BPIN  'kgC/m2/s'      N    Y -  		    none     none    AEF_BETA_PINENE   /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_CARE  'kgC/m2/s'      N    Y -  		    none     none    AEF_CARENE        /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_LIMO  'kgC/m2/s'      N    Y -  		    none     none    AEF_LIMONENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_OCIM  'kgC/m2/s'      N    Y -  		    none     none    AEF_OCIMENE       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-MEGAN_AEF_SABI  'kgC/m2/s'      N    Y -  		    none     none    AEF_SABINENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
-CLM4_PFT_BARE      '1'          N    N -  		    none     none    PFT_BARE	       /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	 
-CLM4_PFT_NDLF_EVGN_TMPT_TREE '1' N    N - 		     none     none    PFT_NDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_NDLF_EVGN_BORL_TREE '1' N    N - 		     none     none    PFT_NDLF_EVGN_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_NDLF_DECD_BORL_TREE '1' N    N - 		     none     none    PFT_NDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_EVGN_TROP_TREE '1' N    N - 		     none     none    PFT_BDLF_EVGN_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_EVGN_TMPT_TREE '1' N    N - 		     none     none    PFT_BDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_DECD_TROP_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_DECD_TMPT_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_DECD_BORL_TREE '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_EVGN_SHRB      '1' N    N - 		     none     none    PFT_BDLF_EVGN_SHRB      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_DECD_TMPT_SHRB '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_BDLF_DECD_BORL_SHRB '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_C3_ARCT_GRSS        '1' N    N - 		     none     none    PFT_C3_ARCT_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_C3_NARC_GRSS        '1' N    N - 		     none     none    PFT_C3_NARC_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_C4_GRSS             '1' N    N - 		     none     none    PFT_C4_GRSS	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-CLM4_PFT_CROP                '1' N    N - 		     none     none    PFT_CROP  	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
-MEGAN_ORVC       'kgC/m2/s'      Y    Y 1999-%m2-01T00:00:00 none     none    OCPI                    /discover/nobackup/cakelle2/data/NVOC.geos.1x1.esmf.nc
+MEGAN_AEF_ISOP_GCC 'kgC/m2/s'      N    Y -  		    none     none    AEF_ISOPRENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_MBOX_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_MBO	       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_BPIN_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_BETA_PINENE   /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_CARE_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_CARENE        /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_LIMO_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_LIMONENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_OCIM_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_OCIMENE       /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+MEGAN_AEF_SABI_GCC  'kgC/m2/s'      N    Y -  		    none     none    AEF_SABINENE      /discover/nobackup/cakelle2/data/MEGAN_20180519/MEGAN2.1_EF.geos.025x03125.esmf.nc
+CLM4_PFT_BARE_GCC      '1'          N    N -  		    none     none    PFT_BARE	       /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	 
+CLM4_PFT_NDLF_EVGN_TMPT_TREE_GCC '1' N    N - 		     none     none    PFT_NDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_NDLF_EVGN_BORL_TREE_GCC '1' N    N - 		     none     none    PFT_NDLF_EVGN_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_NDLF_DECD_BORL_TREE_GCC '1' N    N - 		     none     none    PFT_NDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_TROP_TREE_GCC '1' N    N - 		     none     none    PFT_BDLF_EVGN_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_TMPT_TREE_GCC '1' N    N - 		     none     none    PFT_BDLF_EVGN_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TROP_TREE_GCC '1' N    N - 		     none     none    PFT_BDLF_DECD_TROP_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TMPT_TREE_GCC '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_BORL_TREE_GCC '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_TREE /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_EVGN_SHRB_GCC      '1' N    N - 		     none     none    PFT_BDLF_EVGN_SHRB      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_TMPT_SHRB_GCC '1' N    N - 		     none     none    PFT_BDLF_DECD_TMPT_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_BDLF_DECD_BORL_SHRB_GCC '1' N    N - 		     none     none    PFT_BDLF_DECD_BORL_SHRB /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C3_ARCT_GRSS_GCC        '1' N    N - 		     none     none    PFT_C3_ARCT_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C3_NARC_GRSS_GCC        '1' N    N - 		     none     none    PFT_C3_NARC_GRSS        /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_C4_GRSS_GCC             '1' N    N - 		     none     none    PFT_C4_GRSS	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+CLM4_PFT_CROP_GCC                '1' N    N - 		     none     none    PFT_CROP  	      /discover/nobackup/cakelle2/data/MEGAN_20180519/CLM4_PFT.geos.025x03125.esmf.nc	
+MEGAN_ORVC_GCC       'kgC/m2/s'      Y    Y 1999-%m2-01T00:00:00 none     none    OCPI                    /discover/nobackup/cakelle2/data/NVOC.geos.1x1.esmf.nc
 SOILNOX_FERT      'kg/m3'       N    Y 2000-%m2-%d2T00:00:00  none     none    FERT	       /discover/nobackup/cakelle2/data/soilNOx.fert_res.generic.05x05.nc
 SOILNOX_LANDK1     '1'          N    N -  		    none     none    LANDFRAC_K01      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
 SOILNOX_LANDK2     '1'          N    N -  		    none     none    LANDFRAC_K02      /discover/nobackup/cakelle2/data/soilNOx.landtype.generic.025x025.1L.nc
@@ -671,6 +671,10 @@ ANA_O3  'kg/kg' N N 0 none none O3 /discover/nobackup/projects/gmao/yotc/pub/fp/
 # QFED2 mask for extratropical forests (temperate vs. boreal)
 QFED2_TEMPERATE     '1'          N   N -                      none     none    qfed2_temperate /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
 QFED2_BOREAL        '1'          N   N -                      none     none    qfed2_boreal    /discover/nobackup/cakelle2/data/qfed2_forest_mask.nc4
+
+# GEOS_CH4
+GEOS_CH4        'mol/mol'    N   N -		           none     none    CH4_total_dry     /dev/null 
+#GEOS_CH4        'mol/mol'    N   N -		           none     none    CH4_total_dry     /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc 2001-01-01T00:00:00P0000-00-00T03:00:00
 
 # Masks
 DEAD_SFC_TYP  NA  N V - none none  SFC_TYP    /discover/nobackup/cakelle2/data/dst_tibds.esmf.2x25.nc

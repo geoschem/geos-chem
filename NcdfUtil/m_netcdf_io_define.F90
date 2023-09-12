@@ -12,6 +12,7 @@ MODULE m_netcdf_io_define
 ! !USES:
 !
   IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -68,7 +69,7 @@ MODULE m_netcdf_io_define
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -87,11 +88,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid  : netCDF file id
@@ -114,7 +112,7 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -128,14 +126,14 @@ CONTAINS
     len0 = len
     if (present(unlimited)) then
        if (unlimited) then
-          len0 = NF_UNLIMITED
+          len0 = NF90_UNLIMITED
        endif
     endif
 
-    ierr = Nf_Def_Dim (ncid, name, len0, id)
+    ierr = NF90_Def_Dim(ncid, name, len0, id)
 
-    IF (ierr.ne.NF_NOERR) then
-       err_msg = 'Nf_Def_Dim: can not define dimension : '// Trim (name)
+    IF (ierr.ne.NF90_NOERR) then
+       err_msg = 'NF90_Def_Dim: can not define dimension : '// Trim (name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
 
@@ -150,33 +148,31 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_variable(ncid,name,type,ndims,dims,var_id,compress)
+  SUBROUTINE NcDef_variable(ncid, name, xtype, ndims, dims, var_id, compress)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
 !!  ncid   : netCDF file id
 !!  name   : name of the variable
 !!  type   : type of the variable
-!!           (NF_FLOAT, NF_CHAR, NF_INT, NF_DOUBLE, NF_BYTE, NF_SHORT)
+!!           (NF90_FLOAT,  NF90_CHAR, NF90_INT,
+!!            NF90_DOUBLE, NF90_BYTE, NF90_SHORT)
 !!  ndims  : number of dimensions of the variable
 !!  dims   : netCDF dimension id of the variable
     CHARACTER (LEN=*), INTENT(IN)  :: name
     INTEGER,           INTENT(IN)  :: ncid, ndims
     INTEGER,           INTENT(IN)  :: dims(ndims)
-    INTEGER,           INTENT(IN)  :: type
+    INTEGER,           INTENT(IN)  :: xtype
     LOGICAL, OPTIONAL, INTENT(IN)  :: compress
 !
 ! !OUTPUT PARAMETERS:
 !
-!!  varid  : netCDF variable id returned by NF_DEF_VAR
+!!  varid  : netCDF variable id returned by NF90_DEF_VAR
     INTEGER,           INTENT(OUT) :: var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable.
@@ -186,65 +182,73 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=512) :: err_msg
-    integer ::  ierr
-    logical ::  doStop
-    ! Compression settings
-    ! choose deflate_level=1 for fast, minimal compression.
-    ! Informal testing suggests minimal benefit from higher compression level
-    integer, parameter :: shuffle=1, deflate=1, deflate_level=1
-!
-    ierr = Nf_Def_Var (ncid, name, type, ndims, dims, var_id)
+    character(len=512) :: err_msg
+    integer            :: ierr
+    logical            :: doStop
 
-    IF (ierr.ne.NF_NOERR) THEN
-       err_msg = 'Nf_Def_Var: can not define variable : '// Trim (name)
-       CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
-    END IF
-
-#if defined( NC_HAS_COMPRESSION )
+#ifdef NC_HAS_COMPRESSION
     !=====================================================================
-    ! If the optional "compress" variable is used and set to TRUE,
-    ! then enable variable compression (cdh, 0/17/17)
+    ! Create a compressed (deflated) netCDF variable
     !
     ! NOTE: We need to block this out with an #ifdef because some
-    ! netCDF installations might lack the nf_def_var_deflate function
+    ! netCDF installations might lack the deflation capability,
     ! which would cause a compile-time error. (bmy, 3/1/17)
-    !
-    ! ALSO NOTE: Newer versions of netCDF balk when you try to compress
-    ! a scalar variable.  This generates an annoying warning message.
-    ! To avoid this, only compress array variables. (bmy, 11/30/20)
-    !=====================================================================
-    if (present(Compress) .and. ndims > 0) then
+    !========================================================================
+    IF ( PRESENT( Compress ) ) then
 
-       if (Compress) then
+       !------------------------------------------------------------------
+       ! If COMPRESS is passed as an optional argument, and is TRUE,
+       ! then define the variable with deflate_level=1.  Higher values
+       ! of deflate_level yield minimal additiional benefit.
+       !
+       ! ALSO NOTE: Newer versions of netCDF balk when you try to compress
+       ! a scalar variable.  This generates an annoying warning message.
+       ! To avoid this, only compress array variables. (bmy, 11/30/20)
+       !-------------------------------------------------------------------
+       IF ( Compress .and. ndims > 0 ) THEN
 
-          ! Set compression
-          ierr = nf_def_var_deflate( ncid, var_id,  shuffle,       &
-                                           deflate, deflate_level )
+          ! Create deflated variable
+          ierr = NF90_Def_Var( ncid, name, xtype, dims, var_id,              &
+                               shuffle=.TRUE., deflate_level=1 )
 
           ! Check for errors.
           ! No message will be generated if the error is simply that the
-          ! file is not netCDF-4
-          ! (i.e. netCDF-3 don't support compression)
-          IF ( (ierr.ne.NF_NOERR) .and. (ierr.ne.NF_ENOTNC4)) THEN
+          ! file is not netCDF-4 (as netCDF-3 doesn't support compression)
+          IF ( (ierr.ne.NF90_NOERR) .and. (ierr.ne.NF90_ENOTNC4)) THEN
 
              ! Errors enabling compression will not halt the program
              doStop = .False.
 
              ! Print error
-             err_msg = 'Nf_Def_Var_Deflate: can not compress variable : '// Trim (name)
+             err_msg = 'NF90_Def_Var: can not create compressed variable : '//&
+                        Trim(name)
              CALL Do_Err_Out (err_msg, doStop, 0, 0, 0, 0, 0.0d0, 0.0d0)
           END IF
 
-       endif
-    endif
+          ! Return successfully
+          RETURN
+       ENDIF
+    ENDIF
 #endif
+
+    !========================================================================
+    ! Create an uncompressed netCDF variable if:
+    ! (1) COMPRESS is not passed as an optional argument
+    ! (2) COMPRESS is passed as an optional argument but is FALSE
+    ! (3) The variable is a scalar (ndims == 0)
+    !========================================================================
+    ierr = NF90_Def_Var( ncid, name, xtype, dims, var_id )
+    IF ( ierr /= NF90_NOERR ) THEN
+       err_msg = 'NF90_Def_Var_Deflate: can not create variable : '// &
+            Trim (name)
+       CALL Do_Err_Out (err_msg, doStop, 0, 0, 0, 0, 0.0d0, 0.0d0)
+    ENDIF
 
   END SUBROUTINE NcDef_variable
 !EOC
@@ -257,14 +261,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_c(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_c(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -272,7 +274,7 @@ CONTAINS
 !!  att_name: attribute name
 !!  att_val : attribute value
     CHARACTER (LEN=*), INTENT(IN) :: att_name, att_val
-    INTEGER,           INTENT(IN) :: ncid, var_id
+    INTEGER,           INTENT(IN) :: ncid,     var_id
 !
 ! !DESCRIPTION: Defines a netCDF variable attribute of type: CHARACTER.
 !\\
@@ -281,19 +283,18 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = LEN(att_val)
-    ierr = Nf_Put_Att_Text (ncid, var_id, att_name, mylen, att_val)
+    ierr = NF90_Put_Att(ncid, var_id, att_name, att_val)
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr /= NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_c: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -310,14 +311,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_i(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_i(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -335,7 +334,7 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -344,11 +343,9 @@ CONTAINS
     character (len=512) :: err_msg
     integer             :: mylen, ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
-                            NF_INT, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -365,14 +362,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_r4(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r4(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-
-    IMPLICIT NONE
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -390,20 +385,18 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                             NF_FLOAT, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -420,14 +413,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_r8(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r8(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -445,20 +436,18 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             ::  mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                               NF_DOUBLE, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r8: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -475,14 +464,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_i_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_i_arr(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -500,20 +487,19 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Int( ncid,   var_id, att_name, &
-                            NF_INT, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    iF (ierr.ne.NF_NOERR) THEN
+    iF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_i_arr: can not define attribute : ' &
             // TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -530,14 +516,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_r4_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r4_arr(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -555,20 +539,18 @@ CONTAINS
 !  Bob Yantosca (based on code by Jules Kouatchou and Maharaj Bhat)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Real( ncid,     var_id, att_name, &
-                             NF_FLOAT, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : ' &
                     // TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -585,14 +567,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_var_attributes_r8_arr(ncid,var_id,att_name,att_val)
+  SUBROUTINE NcDef_var_attributes_r8_arr(ncid, var_id, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
@@ -610,20 +590,18 @@ CONTAINS
 !  Jules Kouatchou and Maharaj Bhat
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             ::  mylen, ierr
+    integer             :: ierr
 !
-    mylen = size( att_val )
-    ierr  = Nf_Put_Att_Double( ncid,      var_id, att_name, &
-                               NF_DOUBLE, mylen,  att_val )
+    ierr  = NF90_Put_Att( ncid, var_id, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_var_attributes_r4_arr: can not define attribute : '&
                      // Trim (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -640,15 +618,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_c(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_c(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -666,19 +641,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             ::  mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = len(att_val)
-    ierr = Nf_Put_Att_Text (ncid, NF_GLOBAL, att_name, mylen, att_val)
+    ierr = NF90_Put_Att(ncid, NF90_GLOBAL, att_name, att_val)
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_c: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -695,15 +669,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_i(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_i(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
@@ -721,20 +692,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
-                            NF_INT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_i: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -751,15 +720,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_r4(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r4(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -777,20 +743,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             :: mylen, ierr
+    integer             :: ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
-                             NF_FLOAT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_r4: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -807,15 +771,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_r8(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r8(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
@@ -833,20 +794,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             :: mylen, ierr
+    integer             :: ierr
 !
-    mylen = 1
-    ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
-                               NF_FLOAT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_r8: can not define attribute : ' // &
             TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -863,15 +822,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_i_arr(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_i_arr(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!    ncid    : netCDF file id
@@ -889,20 +845,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             :: mylen, ierr
+    INTEGER             :: ierr
 !
-    mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Int( ncid,   NF_GLOBAL, att_name, &
-                            NF_INT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_i_arr: can not define attribute : ' &
             // Trim (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -923,11 +877,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -945,20 +896,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             :: mylen, ierr
+    integer             :: ierr
 !
-    mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Real( ncid,     NF_GLOBAL, att_name, &
-                             NF_FLOAT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_r4_arr: can not define attribute : ' &
               // TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -975,15 +924,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcDef_glob_attributes_r8_arr(ncid,att_name,att_val)
+  SUBROUTINE NcDef_glob_attributes_r8_arr(ncid, att_name, att_val)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  ncid    : netCDF file id
@@ -1001,20 +947,18 @@ CONTAINS
 !  Bob Yantosca( based on code by Jules Kouatchou)
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             :: mylen, ierr
+    integer             :: ierr
 !
-    mylen = SIZE( att_val )
-    ierr  = Nf_Put_Att_Double( ncid,     NF_GLOBAL, att_name, &
-                               NF_FLOAT, mylen,     att_val )
+    ierr  = NF90_Put_Att( ncid, NF90_GLOBAL, att_name, att_val )
 
-    IF (ierr.ne.NF_NOERR) THEN
+    IF (ierr.ne.NF90_NOERR) THEN
        err_msg = 'NcDef_glob_attributes_r8_arr: can not define attribute : ' &
             // TRIM (att_name)
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
@@ -1031,19 +975,17 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  SUBROUTINE NcSetFill(ncid,ifill,omode)
+  SUBROUTINE NcSetFill(ncid, ifill, omode)
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER, INTENT(in) :: ncid, ifill,omode
+    INTEGER, INTENT(IN   ) :: ncid, ifill
+    INTEGER, INTENT(INOUT) :: omode
 !
 ! !DESCRIPTION: Sets fill method.
 !\\
@@ -1052,19 +994,19 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
-    integer             ::  mylen, ierr
+    integer             :: ierr
 !
-    ierr = Nf_Set_Fill (ncid, NF_NOFILL, omode)
+    ierr = NF90_Set_Fill(ncid, ifill, omode)
 
-    IF (ierr.ne.NF_NOERR) THEN
-       err_msg = 'Nf_Set_FIll: Error in omode  '
+    IF (ierr.ne.NF90_NOERR) THEN
+       err_msg = 'NF90_Set_FIll: Error in omode  '
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
 
@@ -1083,11 +1025,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT NONE
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
@@ -1100,19 +1039,19 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
 !
 ! !LOCAL VARIABLES:
     CHARACTER (LEN=512) :: err_msg
-    INTEGER             ::  ierr
+    INTEGER             :: ierr
 !
-    ierr = Nf_Enddef (ncid)
+    ierr = NF90_Enddef(ncid)
 
-    IF (ierr.ne.NF_NOERR) THEN
-       err_msg = 'Nf_EndDef: Error in closing netCDF define mode!'
+    IF (ierr.ne.NF90_NOERR) THEN
+       err_msg = 'NF90_EndDef: Error in closing netCDF define mode!'
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
 
@@ -1131,11 +1070,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     USE m_do_err_out
-!
-    IMPLICIT none
-!
-    INCLUDE 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !
@@ -1149,7 +1085,7 @@ CONTAINS
 !  Jules Kouatchou
 !
 ! !REVISION HISTORY:
-!  See https://github.com/geoschem/ncdfutil for complete history
+!  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !-------------------------------------------------------------------------
 !BOC
@@ -1158,10 +1094,10 @@ CONTAINS
     character (len=512) :: err_msg
     integer             :: ierr
 !
-    ierr = Nf_Redef (ncid)
+    ierr = NF90_Redef (ncid)
 
-    IF (ierr.ne.NF_NOERR) THEN
-       err_msg = 'Nf_ReDef: Error in opening netCDF define mode!'
+    IF (ierr.ne.NF90_NOERR) THEN
+       err_msg = 'NF90_ReDef: Error in opening netCDF define mode!'
        CALL Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     END IF
 

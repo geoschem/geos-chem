@@ -4,7 +4,49 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.2.0]
+## [Unreleased 14.2.1] - TBD
+### Added
+- Script `test/difference/diffTest.sh`, checks 2 different integration tests for differences
+- Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster
+`SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
+- Added new GCHP config file ESMF.rc for configuring ESMF logging
+- Added several new run directory files for use with GEOS-Chem in GEOS
+- Stopped OCEAN_CONC from needlessly being pushed through vertical regridding for Hg simulations
+- Added warning in GCHP HISTORY.rc about outputting area-dependent variables on custom grids
+
+### Changed
+- Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
+- Rename restart files in GCHP integration tests (as we do in non-test runs)
+- Request 6 hours of execution time for GEOS-Chem Classic integration tests
+- Invert directory structure where integration and parallel test scripts are stored
+- Error check to stop run if any `MW_g` values are undefined
+- Explicitly define tagCH4 simulations in `Input_Opt` rather than basing off of number of advected species
+- The `fullchem` mechanism must now be built with KPP 3.0.0 or later
+- Changed the AEIC 2019 monthly climatology specification format in ExtData.rc to match standard convention for climatology
+- Changed default ESMF logging in GCHP to be ESMF_LOGKIND_NONE (no log)
+- NetCDF utilities in `NcdfUtil` folder now use the netCDF-F90 API
+- GEOS-only updates for running GEOS-Chem in GEOS
+- Boundary conditions for nested-grid simulations are now imposed at every time step instead of 3-hourly
+- Update `GeosCore/carbon_gases_mod.F90` for consistency with config file updates in PR #1916
+- Update MPI usage in CESM-only code to match new conventions in CAM
+- Updated GEPA inventory to GHGI v2 for CH4 and carbon simulations
+
+### Fixed
+- Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
+- Moved the `EDGAR REF_TRF CH4` emissions to the Oil emissions category so it is superseded by GFEIv2 for carbon simulations.
+- Prevent `State_Diag%SatDiagnCount` from not being allocated
+- For satellite diagnostics, do not test for `id_OH` if OH is not a species
+- Fixed parallelization in Luo wetdep simulations caused by uninitialized variable
+- Fixed parallelization for Hg0 species in `GeosCore/drydep_mod.F90`
+- Fixed incorrect time-slice when reading nested-grid boundary conditions
+- Fixed initialization of advected species missing in GCHP restart file
+- Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
+- Fixed compilation issues for `KPP/custom`; updated equations in `custom.eqn`
+
+### Removed
+- Remove references to the obsolete tagged Hg simulation
+
+## [Unreleased 14.2.0] - TBD
 ### Added
 - Added a printout of GEOS-Chem species and indices
 - Added `NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
@@ -60,13 +102,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   changes
 - Update template `HEMCO_Config.rc.carbon` files to allow running the carbon simulation with only a single species.
 
-### Removed
-- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
-- Removed the `NcdfUtil/perl` folder
-- Removed `X-HRS` output from log file
-- IONO2 recycling (fullchem, custom mechanisms)
-- Deleted unused file set_prof_o3.F90
-
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory
 - Fixed divide by zero bug in sulfur chemistry introduced in 14.1.0
@@ -84,28 +119,40 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed operator splitting in CH4 simulation that was biasing diagnostics
 - Fixed GCHP start and elapsed times in time_mod.F90 to use cap_restart value
 - Disabled SpeciesConcMND output for benchmark simulations
+- Exit `Init_Photolysis` before calling `Calc_AOD` when doing dry-run simulations
+- Make sure `State_Het%f_Alk_SSA` and `State_Het%f_Alk_SSC` are in the range 0..1
+
+### Removed
+- `Warnings: 1` is now removed from `HEMCO_Config.rc.*` template files
+- Removed the `NcdfUtil/perl` folder
+- Removed `X-HRS` output from log file
+- IONO2 recycling (fullchem, custom mechanisms)
+- Deleted unused file set_prof_o3.F90
+
+### Fixed
+- Fixed entries for CH4 emissions in `HEMCO_Config.rc.carbon`
 
 ## [14.1.1] - 2023-03-03
 >>>>>>> 4722f288e90291ba904222f4bbe4fc216d17c34a
 ### Added
-- New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
-- New parallelization test functions in `test/GCClassic/parallel`
-- Added `README.md` files for integration and parallelization tests in the `test` folder structure
-- Added GCHP integration test for the tagO3 simulation
-- Added GCHP and GCClassic integration tests for the carbon simulation
-- Integration and parallelization test folders have been separated into subdirectories to minimize clutter.
-- GEOS-only updates
-- Add `about` to GitHub issue templates (ensures they will be displayed)
-- Added `.github/ISSUE_TEMPLATE/config.yml` file w/ Github issue options
+  - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
+  - New parallelization test functions in `test/GCClassic/parallel`
+  - Added `README.md` files for integration and parallelization tests in the `test` folder structure
+  - Added GCHP integration test for the tagO3 simulation
+  - Added GCHP and GCClassic integration tests for the carbon simulation
+  - Integration and parallelization test folders have been separated into subdirectories to minimize clutter.
+  - GEOS-only updates
+  - Add `about` to GitHub issue templates (ensures they will be displayed)
+  - Added `.github/ISSUE_TEMPLATE/config.yml` file w/ Github issue options
 
 ### Changed
-- GCClassic integration tests now use a single set of scripts
-- GCHP integration tests now use a single set of scripts
-- Integration test run directories are created with the default names assigned by `createRunDir.sh`
-- Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
-- `./cleanRunDir.sh` functions now take an argument for non-interactive execution (facilitates integration & parallelization tests)
-- Moved several module variables from `GeosCore/ucx_mod.F90` to `Headers/state_chm_mod.F90`.  This facilitates using GEOS-Chem in CESM.
-- Time cycle flags EFYO are changed to CYS for all GCClassic integration/parallel tests, and for GCClassic fullchem_benchmarksimulations.
+  - GCClassic integration tests now use a single set of scripts
+  - GCHP integration tests now use a single set of scripts
+  - Integration test run directories are created with the default names assigned by `createRunDir.sh`
+  - Several bash functions in `test/shared/commonFunctionsForTests.sh` have been combined so that they will work for both GCClassic and GCHP integration tests
+  - `./cleanRunDir.sh` functions now take an argument for non-interactive execution (facilitates integration & parallelization tests)
+  - Moved several module variables from `GeosCore/ucx_mod.F90` to `Headers/state_chm_mod.F90`.  This facilitates using GEOS-Chem in CESM.
+  - Time cycle flags EFYO are changed to CYS for all GCClassic integration/parallel tests, and for GCClassic fullchem_benchmarksimulations.
 - Ask users for the name of their research institution at registration
 - Ask users for the name of their PI at registration
 - Do not compile GCHP for tagO3 integration tests; use the default build instead

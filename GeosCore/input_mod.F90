@@ -233,7 +233,8 @@ CONTAINS
     !========================================================================
 
     ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_TagCH4_Sim .or. &
+         Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -483,34 +484,39 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
-         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
-         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
-         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
-         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
-         TRIM(Sim) /= 'CARBON'                                       ) THEN
+    IF ( TRIM(Sim) /= 'AEROSOL'                                        .and. &
+         TRIM(Sim) /= 'CARBON'                                         .and. &
+         TRIM(Sim) /= 'CH4'                                            .and. &
+         TRIM(Sim) /= 'CO2'                                            .and. &
+         TRIM(Sim) /= 'FULLCHEM'                                       .and. &
+         TRIM(Sim) /= 'HG'                                             .and. &
+         TRIM(Sim) /= 'METALS'                                         .and. &
+         TRIM(Sim) /= 'POPS'                                           .and. &
+         TRIM(Sim) /= 'TAGCH4'                                         .and. &
+         TRIM(Sim) /= 'TAGCO'                                          .and. &
+         TRIM(Sim) /= 'TAGO3'                                          .and. &
+         TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
          
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, carbon, CH4, CO2, fullchem, Hg, POPs,'    // &
-                ' TransportTracers, TagCO, TagCH4, or TagO3.'
+                ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
+                ' TransportTracers, TagCH4, TagCO, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
-                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'                   )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCH4_SIM     = ( TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
-    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
-    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
 
     !------------------------------------------------------------------------
@@ -1336,7 +1342,9 @@ CONTAINS
 
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
-       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM )     THEN
+       IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
+            Input_Opt%ITS_A_TAGCH4_SIM  .or. &
+            Input_Opt%ITS_A_CO2_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
                 WRITE( 6,'(a)' ) ''
@@ -1578,13 +1586,15 @@ CONTAINS
     ! Call setup routines from other F90 modules
     !=================================================================
 
-    ! Split into tagged species (turn off for full-chemistry)
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
+    ! Split into tagged species
+    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
+    ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+       Input_Opt%LSPLIT = .TRUE.                      ! Always tag for this sim
     ELSE
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
+       Input_Opt%LSPLIT = .FALSE.  
     ENDIF
 
     ! Initialize arrays in Input_Opt that depend on N_ADVECT
@@ -3395,9 +3405,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
     ! Turn off wetdep for simulations that don't need it
-    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM  ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
     ! If CO2 effect on RS in turned on, calculate the scaling factor
     ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)

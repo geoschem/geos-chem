@@ -53,7 +53,8 @@ MODULE Carbon_Gases_Mod
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! Scalars
-  LOGICAL               :: useGlobOH,  useGlobOHv5
+  LOGICAL               :: useGlobOHbmk10yr
+  LOGICAL               :: useGlobOHv5
   INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
   INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
   INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
@@ -1106,7 +1107,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
     !------------------------------------------------------------------------
-    IF ( useGlobOH ) THEN
+    IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
 
        ! NOTE: Container name is GLOBAL_OH for both data sets!
        DgnName = 'GLOBAL_OH'
@@ -1117,21 +1118,18 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+    ENDIF
 
-       IF ( useGlobOHv5 ) THEN
+    ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
+    ! then convert OH [mol/mol dry air] to [molec/cm3].
+    IF ( useGlobOHbmk10yr ) THEN
+       Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
+    ENDIF
 
-          ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
-          ! methane simulations) then convert OH from [kg/m3] to [molec/cm3]
-          Global_OH = Global_OH * xnumol_OH / CM3perM3
-
-       ELSE
-
-          ! If we are using OH from a 10-year benchmark ("SpeciesConc")
-          ! then convert OH [mol/mol dry air] to [molec/cm3]
-          Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-
-       ENDIF
-
+    ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
+    ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
+    IF ( useGlobOHv5 ) THEN
+       Global_OH = Global_OH * xnumol_OH / CM3perM3
     ENDIF
 
     !------------------------------------------------------------------------
@@ -1717,7 +1715,8 @@ CONTAINS
      ' -> at InquireGlobalOHversion (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Test if any Global OH option is on
-    optVal   = HCO_GC_GetOption( "GLOBAL_OH", extNr=0 )
+    ! NOTE: Update the option name with each major version!!!
+    optVal   = HCO_GC_GetOption( "GLOBAL_OH_GC14", extNr=0 )
     isOHon   = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Test for GEOS-Chem v5 OH
@@ -1726,18 +1725,14 @@ CONTAINS
     isOHv5On = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Set a global variable to determine which OH to use
-    useGlobOH   = isOHon
-    useGlobOHv5 = isOHv5on
+    useGlobOHbmk10yr = isOHon
+    useGlobOHv5      = isOHv5on
 
     IF ( Input_Opt%amIRoot ) THEN
-       IF ( useGlobOH ) THEN
-          IF ( useGlobOHv5 ) THEN
-             WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
-          ELSE
-             WRITE( 6, 100 ) 'GLOBAL_OH'
-          ENDIF
- 100   FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
-
+       IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
+          IF ( useGlobOHbmk10yr ) WRITE( 6, 100 ) 'GLOBAL_OH_GC14'
+          IF ( useGlobOHv5      ) WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
+ 100      FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
        ELSE
           WRITE( 6, 110 )
  110      FORMAT( 'Carbon_Gases: Global OH is set to zero!' )

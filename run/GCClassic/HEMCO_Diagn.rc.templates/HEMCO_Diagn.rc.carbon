@@ -27,7 +27,7 @@ EmisCH4_Landfills     CH4      0    5   -1   2  kg/m2/s  CH4_emissions_from_land
 EmisCH4_Wastewater    CH4      0    6   -1   2  kg/m2/s  CH4_emissions_from_wastewater
 EmisCH4_Rice          CH4      0    7   -1   2  kg/m2/s  CH4_emissions_from_rice
 EmisCH4_OtherAnth     CH4      0    8   -1   2  kg/m2/s  CH4_emissions_from_other_anthropogenic_sources
-EmisCH4_BiomassBurn   CH4      0    9   -1   2  kg/m2/s  CH4_emissions_from_biomass_burning
+EmisCH4_BiomassBurn   CH4    111   -1   -1   2  kg/m2/s  CH4_emissions_from_biomass_burning
 EmisCH4_Wetlands      CH4      0   10   -1   2  kg/m2/s  CH4_emissions_from_wetlands
 EmisCH4_Seeps         CH4      0   11   -1   2  kg/m2/s  CH4_emissions_from_geological_seeps
 EmisCH4_Lakes         CH4      0   12   -1   2  kg/m2/s  CH4_emissions_from_lakes

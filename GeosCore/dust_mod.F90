@@ -1046,6 +1046,23 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero private loop variables
+       CONST = 0.0_fp
+       DELZ  = 0.0_fp
+       DELZ1 = 0.0_fp
+       DEN   = 0.0_fp
+       DP    = 0.0_fp
+       MASS  = 0.0_fp
+       OLD   = 0.0_fp
+       P     = 0.0_fp
+       PDP   = 0.0_fp
+       REFF  = 0.0_fp
+       SLIP  = 0.0_fp
+       TEMP  = 0.0_fp
+       TC0   = 0.0_fp
+       VISC  = 0.0_fp
+       VTS   = 0.0_fp
+
        DO L = 1, State_Grid%NZ
           DO N = APMIDS%id_DSTBIN1, IDTEMP
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
