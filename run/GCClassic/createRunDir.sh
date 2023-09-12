@@ -811,7 +811,7 @@ if [ -z "$1" ]; then
 	else
 	    rundir_name=gc_${grid_display}_${met}_${sim_name}_${sim_extra_option}
 	fi
-	printf "  -- Using default directory name ${rundir_name}\n"
+	printf "  -- Using default directory name ${rundir_name}"
     fi
 else
     rundir_name=$1
@@ -1025,15 +1025,13 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # Print run direcory setup info to screen
 #--------------------------------------------------------------------
 
-printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
-
-printf "\n  -- This run directory has been set up to start on $state_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n"
-printf "\n  -- Update start and end dates in geoschem_config.yml.\n"
-
-printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.nc4.\n"
-printf "\n  -- The default frequency and duration of diagnostics is set to monthly."
-printf "\n     You may modify these settings in HISTORY.rc and HEMCO_Config.rc.\n"
+printf "\n  -- See rundir_vars.txt for summary of default run directory settings"
+printf "\n  -- This run directory has been set up to start on ${startdate}"
+printf "\n  -- A restart file for this date has been copied to the Restarts subdirectory"
+printf "\n  -- You may add more restart files using format GEOSChem.Restart.YYYYMMDD_HHmmz.nc4"
+printf "\n  -- Change simulation start and end dates in configuration file geoschem_config.yml"
+printf "\n  -- Default frequency and duration of diagnostics are set to monthly"
+printf "\n  -- Modify diagnostic settings in HISTORY.rc and HEMCO_Config.rc\n"
 
 if [[ "x${nested_sim}" == "xT" ]]; then
     printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
