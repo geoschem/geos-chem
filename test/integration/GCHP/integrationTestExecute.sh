@@ -179,37 +179,45 @@ for runDir in *; do
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
 
-	    #----------------------------------------------------------------
-	    # If the executable file exists, we can do the test
+            #----------------------------------------------------------------
+            # If the executable file exists, we can do the test
             #----------------------------------------------------------------
 
-	    # Change to the run directory
-	    cd "${runAbsPath}"
+            # Change to the run directory
+            cd "${runAbsPath}"
 
-	    # Copy the executable file here
-	    cp "${binDir}/${exeFile}" .
+            # Copy the executable file here
+            cp "${binDir}/${exeFile}" .
 
-	    # Remove any leftover files in the run dir
-	    ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
+            # Update to make sure the run directory is executable
+            # on Compute1.  We will later replace this test with
+            # a test on the site name instead of on the scheduler.
+            # TODO: Test on name rather than scheduler
+            if [[ "x${scheduler}" == "xLSF" ]]; then
+		chmod 755 -R "${runAbsPath}"
+            fi
 
-	    # Link to the environment file
-	    ./setEnvironmentLink.sh "${envDir}/gchp.env"
+            # Remove any leftover files in the run dir
+            ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
-	    # Update config files, set links, load environment, sanity checks
-	    . setCommonRunSettings.sh >> "${log}" 2>&1
-	    . setRestartLink.sh       >> "${log}" 2>&1
-	    . gchp.env                >> "${log}" 2>&1
-	    . checkRunSettings.sh     >> "${log}" 2>&1
+            # Link to the environment file
+            ./setEnvironmentLink.sh "${envDir}/gchp.env"
 
-	    # For safety's sake, remove restarts that weren't renamed
-	    for rst in Restarts; do
+            # Update config files, set links, load environment, sanity checks
+            . setCommonRunSettings.sh >> "${log}" 2>&1
+            . setRestartLink.sh       >> "${log}" 2>&1
+            . gchp.env                >> "${log}" 2>&1
+            . checkRunSettings.sh     >> "${log}" 2>&1
+
+            # For safety's sake, remove restarts that weren't renamed
+            for rst in Restarts; do
 		if [[ "${rst}" =~ "gcchem_internal_checkpoint" ]]; then
 		    rm -f "${rst}"
 		fi
-	    done
+            done
 
-	    # Run GCHP and evenly distribute tasks across nodes
-	    if [[ "x${scheduler}" == "xSLURM" ]]; then
+            # Run GCHP and evenly distribute tasks across nodes
+            if [[ "x${scheduler}" == "xSLURM" ]]; then
 
 		#---------------------------------------------
 		# Executing GCHP on SLURM (Harvard Cannon)
@@ -228,25 +236,25 @@ for runDir in *; do
 
 		# Execute GCHP with srun
 		srun -n ${coreCt} -N ${SLURM_NNODES} -m plane=${planeCt} \
-		    --mpi=pmix ./${exeFile} >> "${log}" 2>&1
+		     --mpi=pmix ./${exeFile} >> "${log}" 2>&1
 
-	    elif [[ "x${scheduler}" == "xLSF" ]]; then
+            elif [[ "x${scheduler}" == "xLSF" ]]; then
 
 		#---------------------------------------------
 		# Executing GCHP on LSF (WashU Compute1)
 		#---------------------------------------------
 		mpiexec -n 24 ./${exeFile} > "${log}" 2>&1
 
-	    else
+            else
 
 		#---------------------------------------------
 		# Executing GCHP interactively
 		#---------------------------------------------
 		mpirun -n 24 ./${exeFile} >> "${log}" 2>&1
-	    fi
+            fi
 
-	    # Update pass/failed counts and write to results.log
-	    if [[ $? -eq 0 ]]; then
+            # Update pass/failed counts and write to results.log
+            if [[ $? -eq 0 ]]; then
 
 		# The run passed ...
                 let passed++
@@ -279,7 +287,7 @@ for runDir in *; do
         fi
 
         # Decrement the count of remaining tests
-	let remain--
+        let remain--
     fi
 done
 

@@ -60,19 +60,20 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Parse arguments and set variables accordingly
+# TODO: replace "scheduler" with "site" argument; set scheduler from site.
 eval set -- "${validArgs}"
 while [ : ]; do
     case "${1}" in
 
-	# -d or --directory specifies the root folder for tests
-	-d | --directory)
-	    itRoot="${2}"
+        # -d or --directory specifies the root folder for tests
+        -d | --directory)
+            itRoot="${2}"
             shift 2
             ;;
 
 	# -e or --env-file specifies the environment file
 	-e | --env-file)
-	    envFile="${2}"
+            envFile="${2}"
             shift 2
             ;;
 
@@ -84,19 +85,19 @@ while [ : ]; do
 
 	# -p or --partition replaces REQUESTED_PARTITION with the user's choice
 	-p | --partition)
-	    sedCmd="s/REQUESTED_PARTITION/${2}/"
-	    shift 2
-	    ;;
+            sedCmd="s/REQUESTED_PARTITION/${2}/"
+            shift 2
+            ;;
 
 	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
-	    quick="yes"
+            quick="yes"
             shift
-	    ;;
+            ;;
 
 	# -s or --scheduler selects the scheduler (case-insensitive)
 	-s | --scheduler)
-	    scheduler="${2^^}"
+            scheduler="${2^^}"
             shift 2
             ;;
 
@@ -114,10 +115,13 @@ if [[ "x${itRoot}" == "xnone" ]]; then
 fi
 
 # Error check environment file
-if [[ "x${envFile}" == "xnone" ]]; then
-    echo "ERROR: The enviroment file (module loads) has not been specified!"
-    echo "${usage}"
-    exit 1
+# TODO: Add a test on site name rather than scheduler
+if [[ "x${scheduler}" != "xLSF" ]]; then
+    if [[ "x${envFile}" == "xnone" ]]; then
+        echo "ERROR: The enviroment file (module loads) has not been specified!"
+        echo "${usage}"
+        exit 1
+    fi
 fi
 
 # Exit if no partition has been selected for SLURM
@@ -192,21 +196,21 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     sed_ie '/#BSUB -W 0:30/d'                "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
-	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-	"${scriptsDir}/integrationTestCompile.sh"
+      '/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
+      "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
-	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${scriptsDir}/integrationTestCompile.sh"
+      "/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
+      "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -W 6:00/d'                "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
-	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
-	"${scriptsDir}/integrationTestExecute.sh"
+      '/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
+      "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
-	"/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-	"${scriptsDir}/integrationTestExecute.sh"
+      "/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
+      "${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
     sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"

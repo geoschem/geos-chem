@@ -61,7 +61,7 @@ baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${codeDir}" log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
@@ -86,7 +86,7 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-----------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 

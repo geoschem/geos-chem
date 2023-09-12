@@ -145,6 +145,9 @@ cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
 
+# This is necessary on Compute1 to make all scripts executable
+chmod 755 -R ${scriptsDir}
+
 # Log file with echoback from rundir creation
 log="${logsDir}/createIntegrationTests.log"
 

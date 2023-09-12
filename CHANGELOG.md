@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates
 - Added new GCHP config file ESMF.rc for configuring ESMF logging
 - Added several new run directory files for use with GEOS-Chem in GEOS
+- GCClassic integration tests now display proper commit info in `results.compile.log`
 - Stopped OCEAN_CONC from needlessly being pushed through vertical regridding for Hg simulations
 - Added warning in GCHP HISTORY.rc about outputting area-dependent variables on custom grids
 
@@ -30,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update `GeosCore/carbon_gases_mod.F90` for consistency with config file updates in PR #1916
 - Update MPI usage in CESM-only code to match new conventions in CAM
 - Updated GEPA inventory to GHGI v2 for CH4 and carbon simulations
+- Updated integration tests scripts to run on the WashU Compute1 cluster
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`
