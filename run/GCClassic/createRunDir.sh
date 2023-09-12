@@ -494,6 +494,9 @@ if [[ "x${met}" == "xModelE2.1" || "x${met}" == "xModelE2.2" ]]; then
     printf "  3. 0.5  x 0.625 *\n"
     printf "  4. 0.25 x 0.3125 *${thinline}"
     printf "  \n* Will be interpolated online via FlexGrid from native 2.0 x 2.5 resolution\n"
+elif [[ ${met} = "geosit" ]]; then
+    printf "  1. 4.0  x 5.0\n"
+    printf "  2. 2.0  x 2.5\n"
 else
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
