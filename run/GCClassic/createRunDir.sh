@@ -453,7 +453,7 @@ else
 # Ask user to select horizontal resolution
 #-----------------------------------------------------------------
 printf "${thinline}Choose horizontal resolution:${thinline}"
-if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
+if [[ "x${met}" == "xModelE2.1" || "x${met}" == "xModelE2.2" ]]; then
     printf "  1. 4.0  x 5.0 *\n"
     printf "  2. 2.0  x 2.5\n"
     printf "  3. 0.5  x 0.625 *\n"
@@ -463,7 +463,7 @@ else
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
     printf "  3. 0.5  x 0.625\n"
-    if [[ ${met} = "geosfp" ]]; then
+    if [[ "x${met}" == "xgeosfp" ]]; then
 	printf "  4. 0.25 x 0.3125\n"
     fi
 fi
@@ -472,21 +472,29 @@ valid_res=0
 while [ "${valid_res}" -eq 0 ]; do
     read -p "${USER_PROMPT}" res_num
     valid_res=1
-    if [[ ${res_num} = "1" ]]; then
+    if [[ "x${res_num}" == "x1" ]]; then
 	grid_res='4x5'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/4x5.txt)\n"
-    elif [[ ${res_num} = "2" ]]; then
+    elif [[ "x${res_num}" == "x2" ]]; then
 	grid_res='2x25'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
-    elif [[ ${res_num} = "3" ]]; then
+    elif [[ "x${res_num}" == "x3" ]]; then
 	grid_res='05x0625'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
-    elif [[ ${res_num} = "4" ]]; then
+    elif [[ "x${res_num}" == "x4" ]]; then
+	# Error check: Don't allow a 0.25 x 0.3125 MERRA-2 rundir.
+	#  -- Melissa Sulprizio, Bob Yantosca (12 Sep 2023)
+	if [[ "x${met}" == "xmerra2" ]]; then
+	    valid_res=0
+	    printf "Cannot create a MERRA-2 rundir at 0.25 x 0.3125 "
+	    printf "resolution!\nPlease make another selection.\n"
+	fi
 	grid_res='025x03125'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
     else
 	valid_res=0
-	printf "Invalid horizontal resolution option. Try again.\n"
+	printf "Invalid horizontal resolution option.\n"
+	printf "Please make another selection.\n"
     fi
 done
 
@@ -978,7 +986,7 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 printf "\n  See ${rundir_config}/rundir_vars.txt for run directory settings.\n\n"
 
 printf "\n  -- This run directory has been set up to start on $state_date and"
-printf "\n     restart files for this date are in the Restarts subdirectory.\n" 
+printf "\n     restart files for this date are in the Restarts subdirectory.\n"
 printf "\n  -- Update start and end dates in geoschem_config.yml.\n"
 
 printf "\n  -- Add restart files to Restarts as GEOSChem.Restart.YYYYMMDD_HHmmz.nc4.\n"
