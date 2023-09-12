@@ -206,11 +206,11 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     sed_ie '/#BSUB -W 6:00/d'                "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
-      '/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
-      "${scriptsDir}/integrationTestCompile.sh"
+      '/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
+      "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
       "/#BSUB -a 'docker(registry\.gsc\.wustl\.edu\/sleong\/esm\:intel\-2021\.1\.2)'/d" \
-      "${scriptsDir}/integrationTestCompile.sh"
+      "${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
     sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
