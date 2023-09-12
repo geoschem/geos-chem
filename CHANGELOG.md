@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed initialization of advected species missing in GCHP restart file
 - Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
 - Fixed compilation issues for `KPP/custom`; updated equations in `custom.eqn`
+- Prevent users from creating GCClassic rundirs at 0.25 x 0.3125 resolution for MERRA-2 met
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
