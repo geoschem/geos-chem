@@ -60,6 +60,7 @@ if [[ $? -ne 0 ]]; then
 fi
 
 # Parse arguments and set variables accordingly
+# TODO: replace "scheduler" with "site" argument; set scheduler from site.
 eval set -- "${validArgs}"
 while [ : ]; do
     case "${1}" in
@@ -114,10 +115,13 @@ if [[ "x${itRoot}" == "xnone" ]]; then
 fi
 
 # Error check environment file
-if [[ "x${envFile}" == "xnone" ]]; then
-    echo "ERROR: The enviroment file (module loads) has not been specified!"
-    echo "${usage}"
-    exit 1
+# TODO: Add a test on site name rather than scheduler
+if [[ "x${scheduler}" != "xLSF" ]]; then
+    if [[ "x${envFile}" == "xnone" ]]; then
+        echo "ERROR: The enviroment file (module loads) has not been specified!"
+        echo "${usage}"
+        exit 1
+    fi
 fi
 
 # Exit if no partition has been selected for SLURM

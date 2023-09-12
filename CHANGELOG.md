@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update `GeosCore/carbon_gases_mod.F90` for consistency with config file updates in PR #1916
 - Update MPI usage in CESM-only code to match new conventions in CAM
 - Updated GEPA inventory to GHGI v2 for CH4 and carbon simulations
+- Updated integration tests scripts to run on the WashU Compute1 cluster
 
 ### Fixed
 - Add missing mol wt for HgBrO in `run/shared/species_database_hg.yml`

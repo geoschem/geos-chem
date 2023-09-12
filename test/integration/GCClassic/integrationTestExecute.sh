@@ -185,28 +185,34 @@ for runDir in *; do
             # Copy the executable file here
             cp -f "${binDir}/${exeFile}" .
 
-            chmod 755 -R ${runAbsPath}
+            # Update to make sure the run directory is executable
+            # on Compute1.  We will later replace this test with
+            # a test on the site name instead of on the scheduler.
+            # TODO: Test on name rather than scheduler.
+            if [[ "x${scheduler}" == "xLSF" ]]; then
+                chmod 755 -R "${runAbsPath}"
+            fi
 
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
-	    # Change time cycle flags in HEMCO_Config.rc from EFYO to CYS,
-	    # to allow missing species to be set a default value.
-	    sed_ie "s/EFYO/CYS/"            HEMCO_Config.rc  # GC_RESTART
-	    sed_ie "s/EFY xyz 1/CYS xyz 1/" HEMCO_Config.rc  # GC_BCs
+            # Change time cycle flags in HEMCO_Config.rc from EFYO to CYS,
+            # to allow missing species to be set a default value.
+            sed_ie "s/EFYO/CYS/"            HEMCO_Config.rc  # GC_RESTART
+            sed_ie "s/EFY xyz 1/CYS xyz 1/" HEMCO_Config.rc  # GC_BCs
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
             if [[ "x${scheduler}" == "xSLURM" ]]; then
                 srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
             else
-		./${exeFile} >> "${log}" 2>&1
+                ./${exeFile} >> "${log}" 2>&1
             fi
 
             # Determine if the job succeeded or failed
             if [[ $? -eq 0 ]]; then
                 let passed++
-	        print_to_log "${passMsg}" "${results}"
+                print_to_log "${passMsg}" "${results}"
             else
                 let failed++
                 print_to_log "${failMsg}" "${results}"
