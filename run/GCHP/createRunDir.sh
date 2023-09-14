@@ -360,30 +360,20 @@ while [ "${valid_met}" -eq 0 ]; do
 	# Set text files containing settings for met data. The logic has some redundancies but
 	# is written out fully for clarity on what settings are used in combination.
 	if [[ ${met_file_type} = "native" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp_native.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp.native_ll.txt)\n"
 
 	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_3hr_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.native_3hr_wind_ll.txt)\n"
 
 	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_derived_1hr_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.derived_1hr_wind_cs.txt)\n"
 
 	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_1hr_mass_flux_cs.txt)\n"
+		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.native_1hr_mass_flux_cs.txt)\n"
 	    fi
 
 	elif [[ ${met_file_type} = "processed" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp_processed.txt)\n"
-
-	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_processed_3hr_wind.txt)\n"
-
-	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_derived_1hr_wind.txt)\n"
-
-	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp_native_1hr_mass_flux_cs.txt)\n"
-	    fi
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp.preprocessed_ll.txt)\n"
 	fi
 	
     elif [[ ${met_num} = "3" ]]; then
@@ -392,10 +382,10 @@ while [ "${valid_met}" -eq 0 ]; do
 
 	# Set file type (met_file_type) by asking user to specify processed or native files
 	printf "${thinline}Choose meteorology files:${thinline}"
-	printf "  1. Native C180 hourly and 3-hourly files produced by GEOS (recommended)\n"
-	printf "  2. Native 0.5x0.625 hourly and 3-hourly files produced by GEOS\n"
-	printf "  3. Pre-processed C180 daily files (currently unavailable)\n"
-	printf "  4. Pre-procesed 0.5x0.625 daily files (5% faster run-time than using native files)\n"
+	printf "  1. Native C180 (recommended)\n"
+	printf "  2. Native 0.5x0.625 \n"
+	printf "  3. Pre-processed C180 (not yet available)\n"
+	printf "  4. Pre-processed 0.5x0.625 \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -417,7 +407,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	done
 
 	# If using native files, ask user if they are using discover
-	if [[ ${met_file_type} = "native_cs" or ${met_file_type} = "native_ll" ]]; then
+	if [[ ${met_file_type} = "native_cs" || ${met_file_type} = "native_ll" ]]; then
 	    printf "${thinline}Are you running on the NASA discover cluster? (y/n)${thinline}"
 	    valid_response=0
 	    while [ "$valid_response" -eq 0 ]; do
