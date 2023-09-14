@@ -218,8 +218,9 @@ elif [[ "x${sim_name}" == "xcarbon" ]]; then
     while [ "${valid}" -eq 0 ]; do
 	read -p "${USER_PROMPT}" prompt
 	valid=1
-	sim_extra_option=""
-	if [[ "x${prompt}" == "x2" ]]; then
+        if [[ "x${prompt}" == "x1" ]]; then
+	    sim_extra_option="none"
+	elif [[ "x${prompt}" == "x2" ]]; then
 	    sim_extra_option="CH4"
 	elif [[ "x${prompt}" == "x3" ]]; then
 	    sim_extra_option="CO2"
@@ -592,7 +593,7 @@ fi
 
 # If necessary, edit config files for a carbon single species simulation
 if [[ "x${sim_name}" == "xcarbon" ]]; then
-    if [[ "x${sim_extra_option}" != "x" ]]; then
+    if [[ "x${sim_extra_option}" != "xnone" ]]; then
 	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
     fi
 fi
