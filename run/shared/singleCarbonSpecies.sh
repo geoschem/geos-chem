@@ -24,16 +24,16 @@
 ALL_SPECIES=(CO2 CO CH4 OCS)
 
 
-function is_item_in_list() {
+function isItemInList() {
 
     #=========================================================================
     # Test if an item is in a list.
     #
     # Arguments:
     # ${1}: The item
-    # $(2}: Thie list
+    # ${2}: Thie list
     #
-    # Returns:
+    # Returns (via $?)
     # 0 if item is in the list
     # 1 if item is not in the list
     #
@@ -43,7 +43,7 @@ function is_item_in_list() {
 }
 
 
-function key_val_update() {
+function keyValueUpdate() {
 
     #=========================================================================
     # Runs an sed command to update a "key: value" pair in a file
@@ -51,21 +51,21 @@ function key_val_update() {
     # Arguments:
     # ${1} : Key
     # ${2} : Value
-    # $(3} : Replacement value
-    # $(4) : File in which the text is found
+    # ${3} : Replacement value
+    # ${4) : File in which the text is found
     #=========================================================================
     cmd="s/${1}: ${2}/${1}: ${3}/"
     sed -i -e "$cmd" "${4}"
 }
 
 
-function species_to_exclude() {
+function speciesToExclude() {
 
     #========================================================================
     # Returns the list of species to exclude
     #
     # Arguments:
-    # ${1} : Species to keep
+    # ${1} : Species to retain
     #
     # Returns:
     # List of species to exclude
@@ -73,7 +73,7 @@ function species_to_exclude() {
 
     # All species
     list=("${ALL_SPECIES[@]}")
-    
+
     # Keep all species except for the 1st argument
     for i in "${!list[@]}"; do
         if [[ "x${list[i]}" == "x${1}" ]]; then
@@ -90,17 +90,18 @@ function species_to_exclude() {
 }
 
 
-function update_geoschem_config() {
+function updateGeosChemConfig() {
 
     #========================================================================
     # Removes advected species from geoschem_config.yml
     #
     # Arguments:
     # ${1} : List of species to exclude
+    # ${2} : Path to the run directory
     #========================================================================
 
     # File to modify
-    file="geoschem_config.yml"
+    file="${2}/geoschem_config.yml"
 
     # Remove advected species (use \< and \> for exact match in order
     # to prevent inadvertently removing CO2 with when spc is CO.
@@ -108,23 +109,23 @@ function update_geoschem_config() {
 	cmd="/\s*\-\s*\<${spc}\>/d"
         sed -i -e "${cmd}" "${file}"
     done
-    
+
     # NOTE: CH4 options are already deactivated
     # in the out-of-the-box geoschem_config.yml
 
 #   # If CO is in the exclude list, turn off CO options
-#    is_item_in_list "CO2" "${1}"
-#    if [[ $? == 0 ]]; then	
+#    isItemInList "CO2" "${1}"
+#    if [[ $? == 0 ]]; then
 #        keys=("use_fullchem_PCO_from_CH4"   \
 #              "use_fullchem_PCO_from_NMVOC")
 #        for key in ${keys[@]}; do
-#            key_val_update "${key}" "true" "false" "${file}"
+#            keyValueUpdate "${key}" "true" "false" "${file}"
 #        done
 #    fi
 
 
     # If CO2 is in the exclude list, turn off CO2 options
-    is_item_in_list "CO2" "${1}"
+    isItemInList "CO2" "${1}"
     if [[ $? == 0 ]]; then
         keys=("fossil_fuel_emissions"          \
               "ocean_exchange"                 \
@@ -139,95 +140,98 @@ function update_geoschem_config() {
               "tag_global_ship_CO2"            \
               "tag_global_aircraft_CO2"       )
         for key in ${keys[@]}; do
-            key_val_update "${key}" "true" "false" "${file}"
+            keyValueUpdate "${key}" "true" "false" "${file}"
         done
     fi
 }
 
 
-function update_hemco_config() {
+function updateHemcoConfig() {
 
     #========================================================================
     # Removes advected species from geoschem_config.yml
     #
     # Arguments:
     # ${1} : List of species to exclude
+    # ${2} : Path to the run directory
     #========================================================================
 
     # File to be modified
-    file="HEMCO_Config.rc"
+    file="${2}/HEMCO_Config.rc"
 
     # True/False values in the HEMCO extension switches section
     true="      true"
     false="      false"
 
     # If CO2 is in the exclude list, turn off CO2 options
-    is_item_in_list "CO2" "${1}"
+    isItemInList "CO2" "${1}"
     if [[ $? == 0 ]]; then
 	key="--> USE_CO2_DATA           "
-	key_val_update "${key}" "${true}" "${false}" "${file}"
+	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
 
     # If CO is in the exclude list, turn off CO options
-    is_item_in_list "CO" "${1}"
+    isItemInList "CO" "${1}"
     if [[ $? == 0 ]]; then
         key="--> USE_CO_DATA            "
-	key_val_update "${key}" "${true}" "${false}" "${file}"
+	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
-    
+
     # If CH4 is in the exclude list, turn off CH4 options
-    is_item_in_list "CH4" "${1}"
+    isItemInList "CH4" "${1}"
     if [[ $? == 0 ]]; then
 	key="--> USE_CH4_DATA           "
-	key_val_update "${key}" "${true}" "${false}" "${file}"
-    fi 
+	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
+    fi
 
 
     # If OCS is in the exclude list, turn off OCS options
-    is_item_in_list "OCS" "${1}"
+    isItemInList "OCS" "${1}"
     if [[ $? == 0 ]]; then
         key="--> USE_OCS_DATA           "
-	key_val_update "${key}" "${true}" "${false}" "${file}"
+	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
 }
 
 
-function update_hemco_diagn() {
+function updateHemcoDiagn() {
 
     #========================================================================
     # Comments out lines for unused species in HEMCO_Diagn.rc
     #
-    # Arguments:q
+    # Arguments:
     # ${1} : List of species to exclude
+    # ${2} : Path to the run directory
     #========================================================================
 
     # File to modify
-    file="HEMCO_Diagn.rc"
+    file="${2}/HEMCO_Diagn.rc"
 
     # Remove entries for excluded species
     exclude=("${1}")
     for spc in ${exclude[@]}; do
 	sed -i "/Emis${spc}_/d" "${file}"
     done
-    sed -i "/#####/d" "${file}"    
+    sed -i "/#####/d" "${file}"
 }
 
 
-function update_history() {
+function updateHistory() {
 
     #========================================================================
     # Removes entries in HISTORY.rc for unused species
     #
     # Arguments:
     # ${1} : List of species to exclude
+    # ${2} : Path to the run directory
     #========================================================================
 
-    # File to be modiied
-    file="HISTORY.rc"
-    
+    # File to be modified
+    file="${2}/HISTORY.rc"
+
     # For GCHP: remove entries for species to be excluded
     for spc in ${ALL_SPECIES[@]}; do
-	is_item_in_list "${spc}" "${1}"
+	isItemInList "${spc}" "${1}"
 	if [[ $? == 0 ]]; then
 	    sed -i "/\_${spc}/d"   "${file}"
 	    sed -i "/Emis${spc}/d" "${file}"
@@ -236,13 +240,30 @@ function update_history() {
 }
 
 
-function single_carbon_species() {
+function updateExtData() {
+    
+    #========================================================================
+    # Removes entries in ExtData.rc for unused species (GCHP only)
+    #
+    # Arguments:
+    # ${1} : List of species to exclude
+    # ${2} : Path to the run directory
+    #========================================================================
+
+    # Skip if there is no ExtData.rc file
+    [[ ! -f "${2}/ExtData.rc" ]] && return 0
+    
+}
+
+
+function singleCarbonSpecies() {
 
     #========================================================================
     # Main function
     #
     # Arguments:
-    # ${1} : Species that you wish to retain    
+    # ${1} : Species that you wish to retain
+    # ${2} : Path to the run directory    
     #========================================================================
 
     # Error check arguments
@@ -251,12 +272,20 @@ function single_carbon_species() {
         exit 1
     fi
 
+    # Path to the run directory
+    if [[ "x${2}" == "x" ]]; then
+	rundir="."
+    else
+	rundir="${2}"
+    fi
+    
     # Get species to exclude
-    exclude=$(species_to_exclude "${1}")
+    exclude=$(speciesToExclude "${1}")
     
     # Update configuration files
-    update_geoschem_config "${exclude}"
-    update_hemco_config    "${exclude}"
-    update_hemco_diagn     "${exclude}"
-    update_history         "${exclude}"
+    updateGeosChemConfig "${exclude}" "${rundir}"
+    updateHemcoConfig    "${exclude}" "${rundir}"
+    updateHemcoDiagn     "${exclude}" "${rundir}"
+    updateHistory        "${exclude}" "${rundir}"
+    updateExtData        "${exclude}" "${rundir}"
 }

@@ -43,6 +43,7 @@ cd ${srcrundir}
 # Source common bash functions from scripts in the run/shared folder
 . ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
 . ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
+. ${gcdir}/run/shared/singleCarbonSpecies.sh   # Single carbon species setup
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -245,6 +246,33 @@ elif [[ ${sim_name} = "POPs" ]]; then
 	else
 	    valid_pops=0
 	    printf "Invalid POPs type. Try again.\n"
+	fi
+    done
+
+# Ask user to specify carbon simulation options
+elif [[ "x${sim_name}" == "xcarbon" ]]; then
+    printf "${thinline}Do you wish to use a single advected species?${thinline}"
+    printf "  1. Use all species\n"
+    printf "  2. Use CH4 only\n"
+    printf "  3. Use CO2 only\n"
+    printf "  4. Use CO only\n"
+    printf "  5. Use OCS only\n"
+    valid=0
+    while [ "${valid}" -eq 0 ]; do
+	read -p "${USER_PROMPT}" prompt
+	valid=1
+	sim_extra_option=""
+	if [[ "x${prompt}" == "x2" ]]; then
+	    sim_extra_option="CH4"
+	elif [[ "x${prompt}" == "x3" ]]; then
+	    sim_extra_option="CO2"
+	elif [[ "x${prompt}" == "x4" ]]; then
+	    sim_extra_option="CO"
+	elif [[ "x${prompt}" == "x5" ]]; then
+	    sim_extra_option="OCS"
+	else
+	    valid=0
+	    printf "Invalid selection. Try again.\n"
 	fi
     done
 fi
@@ -717,12 +745,11 @@ while [ "$valid_path" -eq 0 ]; do
 	exit 1
     fi
 
-    # Replace ~ with the user's home directory
-    # NOTE: This is a safe algorithm.
-    if [[ "${rundir_path}" =~ '~' ]]; then
-	rundir_path="${rundir_path/#\~/$HOME}"
-	echo "Expanding to: ${rundir_path}"
-    fi
+    # Expand $rundir_path to an absolute path.
+    # Also replace ~ with $HOME.
+    rundir_path="${rundir_path/#\~/$HOME}"
+    rundir_path=$(realpath "${rundir_path}")
+    echo "Expanding to ${rundir_path}"
 
     # If this is just a new directory within an existing one,
     # give the user the option to proceed
@@ -796,6 +823,7 @@ done
 
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
+ls ${rundir}/Restarts
 
 # Define a subdirectory for rundir configuration files
 rundir_config=${rundir}/CreateRunDirLogs
@@ -878,6 +906,7 @@ else
     startdate='20190701'
     enddate='20190801'
 fi
+
 if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
     if [[ "$scenario" == "HIST" ]]; then
 	startdate='20050701'
@@ -969,6 +998,7 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
 # Initialize run directory
+# NOTE: This also copies configuration files to the run directory!
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
@@ -1132,9 +1162,14 @@ fi
 # input_options.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings "${sim_extra_option}" "GCClassic"
-fi
+fi 
 
-#
+# If necessary, edit config files for a carbon single species simulation
+if [[ "x${sim_name}" == "xcarbon" ]]; then
+    if [[ "x${sim_extra_option}" != "x" ]]; then
+	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
+    fi
+fi
 
 #--------------------------------------------------------------------
 # Navigate back to source code directory
