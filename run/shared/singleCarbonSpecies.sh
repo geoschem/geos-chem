@@ -5,16 +5,16 @@
 #------------------------------------------------------------------------------
 #BOP
 #
-# !IROUTINE: single_carbon_species.sh
+# !IROUTINE: singleCarbonSpecies.sh
 #
 # !DESCRIPTION: Updates carbon simulation configuration files so that
 #  a simulation with a single species can be performed.
 #
 # !CALLING SEQUENCE:
-#  ./single_carbon
+#  ./singleCarbonSpecies.sh <species-to-retain> <path-to-rundir>
 #
 # !REVISION HISTORY:
-#  06 Jan 2015 - R. Yantosca - Initial version
+#  14 Sep 2023 - R. Yantosca - Initial version
 #  See the subsequent Git history with the gitk browser!
 #EOP
 #------------------------------------------------------------------------------
@@ -106,7 +106,7 @@ function updateGeosChemConfig() {
     # Remove advected species (use \< and \> for exact match in order
     # to prevent inadvertently removing CO2 with when spc is CO.
     for spc in ${1}; do
-	cmd="/\s*\-\s*\<${spc}\>/d"
+    cmd="/\s*\-\s*\<${spc}\>/d"
         sed -i -e "${cmd}" "${file}"
     done
 
@@ -164,32 +164,32 @@ function updateHemcoConfig() {
     false="      false"
 
     # If CO2 is in the exclude list, turn off CO2 options
+    # NOTE: This must precede CO to avoid unintended deletions
     isItemInList "CO2" "${1}"
     if [[ $? == 0 ]]; then
-	key="--> USE_CO2_DATA           "
-	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
+        key="--> USE_CO2_DATA           "
+        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
 
     # If CO is in the exclude list, turn off CO options
     isItemInList "CO" "${1}"
     if [[ $? == 0 ]]; then
         key="--> USE_CO_DATA            "
-	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
+        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
 
     # If CH4 is in the exclude list, turn off CH4 options
     isItemInList "CH4" "${1}"
     if [[ $? == 0 ]]; then
-	key="--> USE_CH4_DATA           "
-	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
+        key="--> USE_CH4_DATA           "
+        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
-
 
     # If OCS is in the exclude list, turn off OCS options
     isItemInList "OCS" "${1}"
     if [[ $? == 0 ]]; then
         key="--> USE_OCS_DATA           "
-	keyValueUpdate "${key}" "${true}" "${false}" "${file}"
+        keyValueUpdate "${key}" "${true}" "${false}" "${file}"
     fi
 }
 
@@ -210,7 +210,7 @@ function updateHemcoDiagn() {
     # Remove entries for excluded species
     exclude=("${1}")
     for spc in ${exclude[@]}; do
-	sed -i "/Emis${spc}_/d" "${file}"
+        sed -i "/Emis${spc}_/d" "${file}"
     done
     sed -i "/#####/d" "${file}"
 }
@@ -231,17 +231,17 @@ function updateHistory() {
 
     # For GCHP: remove entries for species to be excluded
     for spc in ${ALL_SPECIES[@]}; do
-	isItemInList "${spc}" "${1}"
-	if [[ $? == 0 ]]; then
-	    sed -i "/\_${spc}/d"   "${file}"
-	    sed -i "/Emis${spc}/d" "${file}"
-	fi
+        isItemInList "${spc}" "${1}"
+        if [[ $? == 0 ]]; then
+            sed -i "/\_${spc}/d"   "${file}"
+            sed -i "/Emis${spc}/d" "${file}"
+        fi
     done
 }
 
 
 function updateExtData() {
-    
+
     #========================================================================
     # Removes entries in ExtData.rc for unused species (GCHP only)
     #
@@ -250,9 +250,72 @@ function updateExtData() {
     # ${2} : Path to the run directory
     #========================================================================
 
-    # Skip if there is no ExtData.rc file
-    [[ ! -f "${2}/ExtData.rc" ]] && return 0
-    
+    # File to be modified
+    file="${2}/ExtData.rc"
+
+    # Skip if there is no ExtData.rc file (e.g. for GCClassic)
+    [[ ! -f "${file}" ]] && return 0
+
+    # If CH4 is in the exclude list, remove CH4 entries.
+    isItemInList "CH4" "${1}"
+    if [[ $? == 0 ]]; then
+        sed -i "/^GHGI_/d"              "${file}"
+        sed -i "/^MEX_/d"               "${file}"
+        sed -i "/^CAN_/d"               "${file}"
+        sed -i "/^GFEI_/d"              "${file}"
+        sed -i "/^EDGAR7_CH4_/d"        "${file}"
+        sed -i "/^CAN_/d"               "${file}"
+        sed -i "/^UPDATED_GFED4_CH4/d"  "${file}"
+        sed -i "/^JPLW_CH4/d"           "${file}"
+        sed -i "/^CH4_/d"               "${file}"
+        sed -i "/^\#CH4_/d"             "${file}"
+        sed -i "/CMIP6_CH4_/d"          "${file}"
+        sed -i "/CMIP6_BB_CH4/d"        "${file}"
+        sed -i "/RCP3PD_CH4/d"          "${file}"
+        sed -i "/RCP45_CH4/d"           "${file}"
+        sed -i "/RCP60_CH4/d"           "${file}"
+        sed -i "/RCP85_CH4/d"           "${file}"
+    fi
+
+    # If CO2 is in the exclude list, remove CO2 entries.
+    # NOTE: CO2 deletions must prececde CO deletions.
+    isItemInList "CO2" "${1}"
+    if [[ $? == 0 ]]; then
+        sed -i "/AEIC19_DAILY_CO2 /d"   "${file}"  # trailing space required
+        sed -i "/AEIC19_MONMEAN_CO2 /d" "${file}"  # trailing space required
+        sed -i "/BBIOCO2_/d"            "${file}"
+        sed -i "/^CEDS_CO2_/d"          "${file}"
+        sed -i "/^CO2_/d"               "${file}"
+        sed -i "/COPROD/d"              "${file}"
+        sed -i "/FOSSILCO2_/d"          "${file}"
+        sed -i "/ICOADS_CO2_/d"         "${file}"
+        sed -i "/OCEANCO2_/d"           "${file}"
+        sed -i "/SIB_BBIO_CO2/d"        "${file}"
+    fi
+
+    # If CO is in the exclude list, remove CO entries
+    isItemInList "CO" "${1}"
+    if [[ $? == 0 ]]; then
+        sed -i "/AEIC19_DAILY_CO /d"    "${file}"  # trailing space required
+        sed -i "/AEIC19_MONMEAN_CO /d"  "${file}"  # trailing space required
+        sed -i "/APEI_CO/d"             "${file}"
+        sed -i "/^CEDS_CO/d"            "${file}"
+        sed -i "/CMIP6_CO/d"            "${file}"
+        sed -i "/\#DICE_/d"             "${file}"
+        sed -i "/EDGAR_CO/d"            "${file}"
+        sed -i "/EPA16_CO_/d"           "${file}"
+        sed -i "/HTAP_CO_/d"            "${file}"
+        sed -i "/RCP3PD_CO/d"           "${file}"
+        sed -i "/RCP45_CO/d"            "${file}"
+        sed -i "/RCP60_CO/d"            "${file}"
+        sed -i "/RCP85_CO/d"            "${file}"
+    fi
+
+    # If OSC is in the exclude list, remove OCS entries
+    isItemInList "OCS" "${1}"
+    if [[ $? == 0 ]]; then
+        sed -i "/^OCS_/d"              "${file}"
+    fi
 }
 
 
@@ -263,7 +326,7 @@ function singleCarbonSpecies() {
     #
     # Arguments:
     # ${1} : Species that you wish to retain
-    # ${2} : Path to the run directory    
+    # ${2} : Path to the run directory
     #========================================================================
 
     # Error check arguments
@@ -274,14 +337,14 @@ function singleCarbonSpecies() {
 
     # Path to the run directory
     if [[ "x${2}" == "x" ]]; then
-	rundir="."
+        rundir="."
     else
-	rundir="${2}"
+        rundir="${2}"
     fi
-    
+
     # Get species to exclude
     exclude=$(speciesToExclude "${1}")
-    
+
     # Update configuration files
     updateGeosChemConfig "${exclude}" "${rundir}"
     updateHemcoConfig    "${exclude}" "${rundir}"
