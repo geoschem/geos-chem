@@ -166,7 +166,11 @@ create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # 4x5 merra2 carbon
-create_rundir "12\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+# 4x5 merra2 carbon CH4 only
+dir="gc_4x5_merra2_carbon_CH4only"
+create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
 
 # 4x5 merra2 fullchem
 create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
