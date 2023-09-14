@@ -690,7 +690,7 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
-RUNDIR_VARS+="$(cat ${settingsDir}/gmao_hemco.txt)\n"
+RUNDIR_VARS+="$(cat ${metSettingsDir}/gmao_hemco.txt)\n"
 if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xaciduptake"       ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
