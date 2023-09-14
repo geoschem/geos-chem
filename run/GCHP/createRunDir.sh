@@ -25,16 +25,16 @@
 #BOC
 
 # Directory w/ GCHP rundir scripts (i.e. this directory)
-srcrundir=$(pwd)
+srcrundir=$(pwd -P)
 cd ${srcrundir}
 
 # GEOS-Chem "science codebase" directory
 cd ../..
-gcdir=$(pwd)
+gcdir=$(pwd -P)
 
 # GCHP "wrapper" directory
 cd ../../../..
-wrapperdir=$(pwd)
+wrapperdir=$(pwd -P)
 
 # Return to 
 cd ${srcrundir}
