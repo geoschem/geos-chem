@@ -302,7 +302,6 @@ printf "  2. GEOS-FP\n"
 printf "  3. GEOS-IT\n"
 
 metSettingsDir=${gcdir}/run/shared/settings
-metAdvDir=${metSettingsDir}/gchp_adv_winds_and_fluxes
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
@@ -318,7 +317,7 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	met="geosfp"
 
- 	# Set file type (met_file_type) by asking user to specify processed or native files
+ 	# Ask user to specify processed or native files
 	printf "${thinline}Choose meteorology file type:${thinline}"
 	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
 	printf "  2. 0.25x0.3125 hourly and 3-hourly native files produced by GEOS\n"
@@ -327,85 +326,111 @@ while [ "${valid_met}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
-		met_file_type="processed"
+		met_file_type="processed_ll"
 	    elif [[ ${response} = "2" ]]; then
-		met_file_type="native"
+		met_file_type="native_ll"
+		met_desc="native"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
 	    fi
 	done
 
-       	# Ask user to specify meteoerology for advection
-	printf "${thinline}Choose meteorology for advection:${thinline}"
-	printf "  1. 0.25x0.3125 3-hourly winds\n"
-	printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
-	printf "  3. C720 1-hourly mass fluxes\n"
-	valid_response=0
-	while [ "${valid_response}" -eq 0 ]; do
-	    valid_response=1
-	    read -p "${USER_PROMPT}" response
-	    if [[ ${response} = "1" ]]; then
-		adv_flux_src=wind
-	    elif [[ ${response} = "2" ]]; then
-		adv_flux_src=derived_wind
-	    elif [[ ${response} = "3" ]]; then
-		adv_flux_src=mass_flux
-	    else
-		valid_response=0
-		printf "Invalid option. Try again.\n"
-	    fi
-	done
-
-	# Set text files containing settings for met data. The logic has some redundancies but
-	# is written out fully for clarity on what settings are used in combination.
-	if [[ ${met_file_type} = "native" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp.native_ll.txt)\n"
-
+       	# If using native files ask user to specify meteoerology for advection.
+	if [[ ${met_file_type} = "native_ll" ]]; then
+	    printf "${thinline}Choose meteorology for advection:${thinline}"
+	    printf "  1. 0.25x0.3125 3-hourly winds\n"
+	    printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
+	    printf "  3. C720 1-hourly mass fluxes\n"
+	    valid_response=0
+	    while [ "${valid_response}" -eq 0 ]; do
+		valid_response=1
+		read -p "${USER_PROMPT}" response
+		if [[ ${response} = "1" ]]; then
+		    adv_flux_src="wind"
+		elif [[ ${response} = "2" ]]; then
+		    adv_flux_src="derived_wind"
+		elif [[ ${response} = "3" ]]; then
+		    adv_flux_src="mass_flux"
+		else
+		    valid_response=0
+		    printf "Invalid option. Try again.\n"
+		fi
+	    done
+	fi
+	    
+	# Set ExtData.rc settings for met data. Different settings based options chosen above.
+	if [[ ${met_file_type} = "native_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_ll.txt)\n"
+	    
 	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.native_3hr_wind_ll.txt)\n"
-
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.native_3hr_wind_ll.txt)\n"
+		
 	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.derived_1hr_wind_cs.txt)\n"
-
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.derived_1hr_wind_cs.txt)\n"
+		
 	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metAdvDir}/GEOS-FP/geosfp.native_1hr_mass_flux_cs.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.native_1hr_mass_flux_cs.txt)\n"
 	    fi
-
-	elif [[ ${met_file_type} = "processed" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp.preprocessed_ll.txt)\n"
+	    
+	elif [[ ${met_file_type} = "processed_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
 	fi
 	
     elif [[ ${met_num} = "3" ]]; then
-
+	
 	met="geosit"
-
-	# Set file type (met_file_type) by asking user to specify processed or native files
+	
+ 	# Ask user to specify processed or native files
 	printf "${thinline}Choose meteorology files:${thinline}"
 	printf "  1. Native C180 (recommended)\n"
 	printf "  2. Native 0.5x0.625 \n"
 	printf "  3. Pre-processed C180 (not yet available)\n"
-	printf "  4. Pre-processed 0.5x0.625 \n"
+	printf "  4. Pre-processed 0.5x0.625 (not yet available) \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
 		met_file_type="native_cs"
+		met_desc="native_cs"
 	    elif [[ ${response} = "2" ]]; then
 		met_file_type="native_ll"
+		met_desc="native_ll"
 	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_cs"
 		valid_response=0
 		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
 	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
+		valid_response=0
+		printf "Pre-processed lat-lon GEOS-IT data is not yet available. Try again.\n"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
 	    fi
 	done
-
+	
+       	# If using native files ask user to specify meteoerology for advection.
+	if [[ ${met_file_type} = "native_cs" || ${met_file_type} = "native_ll" ]]; then
+	    printf "${thinline}Choose meteorology for advection:${thinline}"
+	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
+	    printf "  2. C180 3-hourly winds\n"
+	    valid_response=0
+	    while [ "${valid_response}" -eq 0 ]; do
+	        valid_response=1
+	        read -p "${USER_PROMPT}" response
+	        if [[ ${response} = "1" ]]; then
+	    	    adv_flux_src="mass_flux"
+	        elif [[ ${response} = "2" ]]; then
+	    	    adv_flux_src="wind"
+	        else
+	    	    valid_response=0
+	    	    printf "Invalid option. Try again.\n"
+	        fi
+	    done
+	fi
+	
 	# If using native files, ask user if they are using discover
 	if [[ ${met_file_type} = "native_cs" || ${met_file_type} = "native_ll" ]]; then
 	    printf "${thinline}Are you running on the NASA discover cluster? (y/n)${thinline}"
@@ -424,29 +449,46 @@ while [ "${valid_met}" -eq 0 ]; do
 	    use_discover=n
 	fi
 	
-	# Set text files containing settings for met data. Winds will always be
-	# used for advection by default. Using mass fluxes instead can be set
-	# at run-time in the run directory.
+	# Set text files containing settings for met data. Different settings based options aboves.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.preprocessed_ll.txt)\n"
 	    
-	elif [[ ${met_file_type} = "native_cs" ]]; then
-	    
+	else
 	    if [[ ${use_discover} = "y" ]]; then
-	    	RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_cs.discover.txt)\n"
-	    else
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_cs.txt)\n"
+		
+		# Settings for advection vars in ExtData.rc, running on discover
+	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_mass_flux.discover.txt)\n"
+	        elif [[ ${adv_flux_src} = "wind" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_wind_cs.discover.txt)\n"  
+		fi
+		
+		# Settings for all other met vars in ExtData.rc, running on discover
+		if [[ ${met_file_type} = "native_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_cs.discover.txt)\n"
+		elif [[ ${met_file_type} = "native_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_ll.discover.txt)\n"
+		fi
+		
+	    elif [[ ${use_discover} = "n" ]]; then
+		
+		# Settings for advection vars in ExtData.rc, NOT running on discover
+	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_mass_flux.txt)\n"  
+	        elif [[ ${adv_flux_src} = "wind" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_wind_cs.txt)\n"
+		fi
+	        
+		# Settings for all other met vars in ExtData.rc, NOT running on discover
+		if [[ ${met_file_type} = "native_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_cs.txt)\n"
+		elif [[ ${met_file_type} = "native_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_ll.txt)\n"
+		fi
+		
 	    fi
-	    
-	elif [[ ${met_file_type} = "native_ll" ]]; then
-
-	    if [[ ${use_discover} = "y" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_ll.discover.txt)\n"
-	    else
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.native_ll.txt)\n"
-	    fi
-	fi
-	    
+	fi  # end GEOS-IT
+	
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -505,10 +547,15 @@ if [ -z "$1" ]; then
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gchp_${met}_${sim_name}
-	else
-	    rundir_name=gchp_${met}_${sim_name}_${sim_extra_option}
+	rundir_name=gchp_${sim_name}_${met}
+	if [[ "${sim_extra_option}" != "none" ]]; then
+	    rundir_name=${rundir_name}_${sim_extra_option}
+	fi
+	if [[ "x${met_desc}" != "x" ]]; then
+	    rundir_name=${rundir_name}_${met_desc}
+	fi
+	if [[ "x${adv_flux_src}" != "x" ]]; then
+	    rundir_name=${rundir_name}_using_${adv_flux_src}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -766,7 +813,10 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
-	git add *.rc *.sh *.yml *.py input.nml
+	git add *.rc *.sh *.yml input.nml
+	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+	    git add *.py
+	fi
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
