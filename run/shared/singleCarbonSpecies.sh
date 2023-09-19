@@ -113,17 +113,6 @@ function updateGeosChemConfig() {
     # NOTE: CH4 options are already deactivated
     # in the out-of-the-box geoschem_config.yml
 
-#   # If CO is in the exclude list, turn off CO options
-#    isItemInList "CO2" "${1}"
-#    if [[ $? == 0 ]]; then
-#        keys=("use_fullchem_PCO_from_CH4"   \
-#              "use_fullchem_PCO_from_NMVOC")
-#        for key in ${keys[@]}; do
-#            keyValueUpdate "${key}" "true" "false" "${file}"
-#        done
-#    fi
-
-
     # If CO2 is in the exclude list, turn off CO2 options
     isItemInList "CO2" "${1}"
     if [[ $? == 0 ]]; then

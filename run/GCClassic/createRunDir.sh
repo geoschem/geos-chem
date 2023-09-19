@@ -824,7 +824,6 @@ done
 
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
-ls ${rundir}/Restarts
 
 # Define a subdirectory for rundir configuration files
 rundir_config=${rundir}/CreateRunDirLogs
