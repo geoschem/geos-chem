@@ -134,7 +134,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed entries for CH4 emissions in `HEMCO_Config.rc.carbon`
 
 ## [14.1.1] - 2023-03-03
->>>>>>> 4722f288e90291ba904222f4bbe4fc216d17c34a
 ### Added
   - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`
   - New parallelization test functions in `test/GCClassic/parallel`
