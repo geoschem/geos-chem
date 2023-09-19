@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - GCClassic integration tests now display proper commit info in `results.compile.log`
 - Stopped OCEAN_CONC from needlessly being pushed through vertical regridding for Hg simulations
 - Added warning in GCHP HISTORY.rc about outputting area-dependent variables on custom grids
+- Added option to use a single advected species in the carbon simulation
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output
@@ -101,7 +102,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change RTOL value from 0.5e-3 back to 0.5e-2 to address model slowdown
 - Allow the use of OFFLINE_SEASALT for seasalt alkalinity, Cl, and Br in GEOS-Chem within CESM
 - Renamed TransportTracer species for consistency with GMAO's TR_GridComp
-- See `KPP/fullchem/CHANGELOG_fullchem.md` for fullchem-mechanism changes
+- See `KPP/fullchem/CHANGELOG_fullchem.md` for fullchem-mechanism
+  changes
+- Update template `HEMCO_Config.rc.carbon` files to allow running the carbon simulation with only a single species.
 
 ### Fixed
 - Fixed typo in `GCClassic/createRunDir.sh` preventing benchmark run script from being copied to the run directory

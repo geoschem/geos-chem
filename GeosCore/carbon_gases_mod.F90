@@ -369,7 +369,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Chem_Carbon_Gases( Input_Opt,  State_Met,  State_Chm,            &
-                               State_Grid, State_Diag, RC                   )
+                                State_Grid, State_Diag, RC                   )
 !
 ! !USES:
 !
@@ -684,7 +684,16 @@ CONTAINS
        ! Update reaction rates
        !===================================================================
 
-       ! Start timer
+       ! Stop KPP timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End(                                                    &
+               timerName = "  -> KPP",                                       &
+               inLoop    = .TRUE.,                                           &
+               threadNum = ThreadNum,                                        &
+               RC        = RC                                               )
+       ENDIF
+
+       ! Start RCONST timer
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start(                                                  &
                timerName = "     RCONST",                                    &
@@ -755,6 +764,15 @@ CONTAINS
 
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
+
+       ! Start KPP timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End(                                                    &
+               timerName = "  -> KPP",                                       &
+               inLoop    = .TRUE.,                                           &
+               threadNum = ThreadNum,                                        &
+               RC        = RC                                               )
+       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
