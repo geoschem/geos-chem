@@ -33,8 +33,8 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS /dev/null
-CONV_DEPTH 1 N Y F0;013000 none none CTH   /dev/null
+FLASH_DENS 1 N N - none none LDENS /dev/null
+CONV_DEPTH 1 N N - none none CTH   /dev/null
 #
 ###############################################################################
 ###
