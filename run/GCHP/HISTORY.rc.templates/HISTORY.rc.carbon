@@ -130,7 +130,7 @@ COLLECTIONS: 'Emissions',
                               'EmisCO_Total         ', 'GCHPchem',
                               'EmisCO_Aircraft      ', 'GCHPchem',
                               'EmisCO_Anthro        ', 'GCHPchem',
-                              'EmisCO_BioBurn       ', 'GCHPchem',
+                              'EmisCO_BiomassBurn   ', 'GCHPchem',
                               'EmisCO_Ship          ', 'GCHPchem',
                               'EmisCO2_Total        ', 'GCHPchem',
                               'EmisCO2_FossilFuel   ', 'GCHPchem',
@@ -140,7 +140,7 @@ COLLECTIONS: 'Emissions',
                               'EmisCO2_Ship         ', 'GCHPchem',
                               'EmisCO2_Aviation     ', 'GCHPchem',
                               'EmisCO2_CO2SurfCorr  ', 'GCHPchem',
-                             #'EmisCO2_Biomass_GFED ', 'GCHPchem',
+                              'EmisCO2_BiomassBurn  ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)

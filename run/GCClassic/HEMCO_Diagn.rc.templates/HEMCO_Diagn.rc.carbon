@@ -41,7 +41,7 @@ EmisCH4_Reservoirs    CH4      0   15   -1   2  kg/m2/s  CH4_emissions_from_hydr
 EmisCO_Total          CO      -1   -1   -1   3  kg/m2/s  CO_emission_flux_from_all_sectors
 EmisCO_Aircraft       CO       0   20   -1   3  kg/m2/s  CO_emission_flux_from_aircraft
 EmisCO_Anthro         CO       0    1   -1   3  kg/m2/s  CO_emission_flux_from_anthropogenic
-EmisCO_BioBurn        CO       0    5   -1   2  kg/m2/s  CO_emission_flux_from_biomass_burning
+EmisCO_BiomassBurn    CO     111   -1   -1   2  kg/m2/s  CO_emission_flux_from_biomass_burning
 EmisCO_Ship           CO       0   10   -1   2  kg/m2/s  CO_emission_flux_from_ships
 
 ###############################################################################
@@ -55,8 +55,7 @@ EmisCO2_NetTerrExch   CO2      0    5   -1   2  kg/m2/s  CO2_net_terrestrial_exc
 EmisCO2_Ship          CO2      0    6   -1   2  kg/m2/s  CO2_ship_emissions
 EmisCO2_Aviation      CO2      0    7   -1   3  kg/m2/s  CO2_aviation_emissions
 EmisCO2_CO2SurfCorr   CO2      0    8   -1   2  kg/m2/s  CO2_surface_correction_for_CO_oxidation
-EmisCO2_Biomass_GFED  CO2    111    1    1   2  kg/m2/s  CO2_biomass_burning_emissions_from_GFED4
-#EmisCO2_Biomass_FINN  CO2    114    1    1   2  kg/m2/s  CO2_biomass_burning_emissions_from_FINN
+EmisCO2_BiomassBurn   CO2    111   -1   -1   2  kg/m2/s  CO2_biomass_burning_emissions_from_GFED4
 
 ###############################################################################
 #####  OCS sources                                                        #####
