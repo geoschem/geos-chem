@@ -331,6 +331,7 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
      REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
                                                         ! third dim is cat, total 15
+     LOGICAL                    :: IsCH4BCPerturbed     ! Is CH4 BC perturbed?
 
 #ifdef APM
      !-----------------------------------------------------------------------
@@ -602,6 +603,9 @@ CONTAINS
     ! FALSE = use KPP computations
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
+
+   ! Flag if CH4 BC has been perturbed or not
+    State_Chm%IsCH4BCPerturbed  = .FALSE.
 
 #if defined( MODEL_GEOS )
     State_Chm%COmesosphere      = .FALSE.

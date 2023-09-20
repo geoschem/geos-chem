@@ -4837,6 +4837,9 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
+    ! String arrays
+    CHARACTER(LEN=QFYAML_NamLen) :: a_str(4)
+
     !========================================================================
     ! Config_CH4 begins here!
     !========================================================================
@@ -4952,6 +4955,35 @@ CONTAINS
     ENDIF
     Input_Opt%UseOHSF = v_bool
 
+    !------------------------------------------------------------------------
+    ! Perturb CH4 boundary conditions?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%PerturbCH4BoundaryConditions = v_bool
+
+    !------------------------------------------------------------------------
+    ! How much to perturb CH4 boundary conditions by?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%CH4_boundary_condition_ppb_increase_NSEW"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CH4BoundaryConditionIncreaseNorth = Cast_and_RoundOff( a_str(1), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseSouth = Cast_and_RoundOff( a_str(2), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseEast  = Cast_and_RoundOff( a_str(3), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseWest  = Cast_and_RoundOff( a_str(4), places=4 )
+
     !========================================================================
     ! Print to screen
     !========================================================================
@@ -4966,6 +4998,11 @@ CONTAINS
        WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
        WRITE(6,100) 'Use emis scale factors   : ', Input_Opt%UseEmisSF
        WRITE(6,100) 'Use OH scale factors     : ', Input_Opt%UseOHSF
+       WRITE(6,100) 'Perturb CH4 BCs          : ', Input_Opt%PerturbCH4BoundaryConditions
+       WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseSouth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseEast,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseWest
     ENDIF
 
     ! FORMAT statements
@@ -4974,6 +5011,7 @@ CONTAINS
 100 FORMAT( A, L5   )
 110 FORMAT( A, f6.2 )
 120 FORMAT( A, I5   )
+130 FORMAT( A, F10.4, 1X, F10.4, 1X, F10.4, 1X, F10.4)
 
   END SUBROUTINE Config_CH4
 !EOC

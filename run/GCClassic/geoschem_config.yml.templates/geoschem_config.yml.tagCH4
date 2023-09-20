@@ -85,7 +85,7 @@ operations:
 #============================================================================
 # Settings specific to the CH4 simulation / Integrated Methane Inversion
 #============================================================================
-ch4_simulation_options:
+CH4_simulation_options:
 
   use_observational_operators:
     AIRS: false
@@ -98,6 +98,8 @@ ch4_simulation_options:
     state_vector_element_number: 0
     use_emission_scale_factor: false
     use_OH_scale_factors: false
+    perturb_CH4_boundary_conditions: false
+    CH4_boundary_condition_ppb_increase_NSEW: [0.0, 0.0, 0.0, 0.0]
       
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
