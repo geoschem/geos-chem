@@ -541,6 +541,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	valid_domain=1
 	if [[ ${domain_num} = "1" ]]; then
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
+	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
 	else
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
 	    if [[ ${domain_num} = "2" ]]; then

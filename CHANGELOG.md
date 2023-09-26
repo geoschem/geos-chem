@@ -47,6 +47,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
 - Fixed compilation issues for `KPP/custom`; updated equations in `custom.eqn`
 - Prevent users from creating GCClassic rundirs at 0.25 x 0.3125 resolution for MERRA-2 met
+- Added fix to set `RUNDIR_GRID_HALF_POLAR` option for global grids at 0.25x0.3125 or 0.5x0.625 resolutions
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
