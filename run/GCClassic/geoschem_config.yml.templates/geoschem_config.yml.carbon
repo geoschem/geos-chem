@@ -79,12 +79,13 @@ CH4_simulation_options:
 
   analytical_inversion:
     activate: false
-    emission_perturbation: 1.0
     state_vector_element_number: 0
-    use_emission_scale_factor: false
-    use_OH_scale_factors: false
+    emission_perturbation_factor: 1.0
+    OH_perturbation_factor: 1.0
     perturb_CH4_boundary_conditions: false
     CH4_boundary_condition_ppb_increase_NSEW: [0.0, 0.0, 0.0, 0.0]
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
 
 #============================================================================
 # Options for CO
@@ -115,3 +116,23 @@ CO2_simulation_options:
     tag_land_fossil_fuel_CO2: 
     tag_global_ship_CO2: false
     tag_global_aircraft_CO2: false
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - CH4
+      - CO
+      - CO2
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD

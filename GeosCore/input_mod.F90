@@ -4899,20 +4899,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AnalyticalInv = v_bool
-
-    !------------------------------------------------------------------------
-    ! Emission perturbation
-    !------------------------------------------------------------------------
-    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%PerturbEmis = Cast_and_RoundOff( v_str, places=4 )
+    Input_Opt%DoAnalyticalInv = v_bool
 
     !------------------------------------------------------------------------
     ! Current state vector element number
@@ -4929,31 +4916,30 @@ CONTAINS
     Input_Opt%StateVectorElement = v_int
 
     !------------------------------------------------------------------------
-    ! Use emission scale factor?
+    ! Emission perturbation factor
     !------------------------------------------------------------------------
-    key = &
-     "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%UseEmisSF = v_bool
+    Input_Opt%EmisPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
 
     !------------------------------------------------------------------------
-    ! Use OH scale factors?
+    ! OH perturbation factor
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    key   = "CH4_simulation_options%analytical_inversion%OH_perturbation_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error parsing ' // TRIM( key ) // '!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%UseOHSF = v_bool
+    Input_Opt%OHPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
 
     !------------------------------------------------------------------------
     ! Perturb CH4 boundary conditions?
@@ -4966,7 +4952,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%PerturbCH4BoundaryConditions = v_bool
+    Input_Opt%DoPerturbCH4BoundaryConditions = v_bool
 
     !------------------------------------------------------------------------
     ! How much to perturb CH4 boundary conditions by?
@@ -4984,25 +4970,53 @@ CONTAINS
     Input_Opt%CH4BoundaryConditionIncreaseEast  = Cast_and_RoundOff( a_str(3), places=4 )
     Input_Opt%CH4BoundaryConditionIncreaseWest  = Cast_and_RoundOff( a_str(4), places=4 )
 
+    !------------------------------------------------------------------------
+    ! Use emission scale factors from a previous inversion?
+    !------------------------------------------------------------------------
+    key = &
+     "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%UseEmisSF = v_bool
+
+    !------------------------------------------------------------------------
+    ! Use OH scale factors from a previous inversion?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%UseOHSF = v_bool
+
     !========================================================================
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
-       WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
-       WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
-       WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis
+       WRITE(6,100) 'Use AIRS obs operator?   : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator?  : ', Input_Opt%GOSAT_CH4_OBS
+       WRITE(6,100) 'Use TCCON obs operator?  : ', Input_Opt%TCCON_CH4_OBS
+       WRITE(6,100) 'Do analytical inversion? : ', Input_Opt%DoAnalyticalInv
        WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
-       WRITE(6,100) 'Use emis scale factors   : ', Input_Opt%UseEmisSF
-       WRITE(6,100) 'Use OH scale factors     : ', Input_Opt%UseOHSF
-       WRITE(6,100) 'Perturb CH4 BCs          : ', Input_Opt%PerturbCH4BoundaryConditions
+       WRITE(6,110) 'Emiss perturbation factor: ', Input_Opt%EmisPerturbFactor
+       WRITE(6,110) 'OH    perturbation factor: ', Input_Opt%OHPerturbFactor
+       WRITE(6,100) 'Perturb CH4 BCs?         : ', Input_Opt%DoPerturbCH4BoundaryConditions
        WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseSouth,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseEast,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseWest
+       WRITE(6,100) 'Use emis scale factors?  : ', Input_Opt%UseEmisSF
+       WRITE(6,100) 'Use OH scale factors?    : ', Input_Opt%UseOHSF
     ENDIF
 
     ! FORMAT statements

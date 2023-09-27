@@ -1,9 +1,6 @@
 ---
 ### geoschem_config.yml: GEOS-Chem Runtime configuration options.
 ### Customized for simulations using the tagged CH4 mechanism.
-###
-### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
-### parsers will confuse this with a negative "no" value.
 
 #============================================================================
 # Simulation settings
@@ -83,7 +80,7 @@ operations:
       - CH4_RES
 
 #============================================================================
-# Settings specific to the CH4 simulation / Integrated Methane Inversion
+# Options for CH4
 #============================================================================
 CH4_simulation_options:
 
@@ -94,13 +91,14 @@ CH4_simulation_options:
 
   analytical_inversion:
     activate: false
-    emission_perturbation: 1.0
     state_vector_element_number: 0
-    use_emission_scale_factor: false
-    use_OH_scale_factors: false
+    emission_perturbation_factor: 1.0
+    OH_perturbation_factor: 1.0
     perturb_CH4_boundary_conditions: false
     CH4_boundary_condition_ppb_increase_NSEW: [0.0, 0.0, 0.0, 0.0]
-      
+    use_emission_scale_factor: false
+    use_OH_scale_factors: false
+
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
 #============================================================================

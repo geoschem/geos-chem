@@ -149,7 +149,7 @@ CONTAINS
     ! =================================================================
     ! Get fields for CH4 analytical inversions if needed
     ! =================================================================
-    IF ( Input_Opt%AnalyticalInv ) THEN
+    IF ( Input_Opt%DoAnalyticalInv ) THEN
 
        ! Evaluate the state vector field from HEMCO
        CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_STATE_VECTOR', &
@@ -506,7 +506,7 @@ CONTAINS
     ! =================================================================
     ! Do scaling for analytical inversion
     ! =================================================================
-    IF ( Input_Opt%AnalyticalInv  .or. &
+    IF ( Input_Opt%DoAnalyticalInv  .or. &
          Input_Opt%UseEmisSF      .or. &
          Input_Opt%UseOHSF        ) THEN
 
@@ -514,7 +514,6 @@ CONTAINS
        ! emissions array
        State_Chm%CH4_EMIS(:,:,1) = State_Chm%CH4_EMIS(:,:,1) + State_Chm%CH4_EMIS(:,:,15)
 
-       ! Rescale emissions
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J)	 
@@ -522,7 +521,7 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           !------------------------------------------------------------
-          ! For applying scale factors from analytical inversion
+          ! Apply emission scale factors from a previous inversion
           !------------------------------------------------------------
           IF ( Input_Opt%UseEmisSF ) THEN
              ! Scale total emissions
@@ -532,16 +531,20 @@ CONTAINS
           !------------------------------------------------------------
           ! Perturb emissions for analytical inversion
           !------------------------------------------------------------
-          IF ( Input_Opt%AnalyticalInv ) THEN
+          IF ( Input_Opt%DoAnalyticalInv ) THEN
 
              ! Only apply emission perturbation to current state vector
              ! element number
              IF ( Input_Opt%StateVectorElement .GT. 0 ) THEN
                 IF ( STATE_VECTOR(I,J) == Input_Opt%StateVectorElement ) THEN
-                   State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
-                   !Print*, 'Analytical Inversion: Scaled state vector element ', &
-                   !        Input_Opt%StateVectorElement, ' by ', &
-                   !        Input_Opt%PerturbEmis
+                   State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * &
+                                               Input_Opt%EmisPerturbFactor
+                   IF ( Input_Opt%Verbose ) THEN
+                      Print*, 'Analytical Inversion: ',              &
+                              'Scaled state vector element ',       &
+                              Input_Opt%StateVectorElement, ' by ', &
+                              Input_Opt%EmisPerturbFactor
+                   ENDIF
                 ENDIF
              ENDIF
           ENDIF
@@ -930,10 +933,18 @@ CONTAINS
           ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
           C_OH = State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
-          ! Apply scale factors from analytical inversion
+          ! Apply OH perturbation factor for inversions
+          IF ( Input_Opt%OHPerturbFactor /= 1.0 ) THEN
+             C_OH = C_OH * Input_Opt%OHPerturbFactor
+          ENDIF
+
+          ! Apply OH scale factors from a previous inversion
           IF ( Input_Opt%UseOHSF ) THEN
              C_OH = C_OH * OH_SF(I,J)
-             !Print*, 'Applying scale factor to OH: ', OH_SF(I,J)
+             IF ( Input_Opt%Verbose ) THEN
+                !This will print over every grid box; comment out for now
+                !Print*, 'Applying scale factor to OH: ', OH_SF(I,J)
+             ENDIF
           ENDIF
 
           ! Cl in [molec/cm3]
@@ -973,9 +984,11 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    !print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
-    !print*,'Trop decay should be over 1Tg per day globally'
-    !print*,'    ~ 500Tg/365d ~ 1.37/d'
+    IF ( Input_Opt%Verbose ) THEN
+       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
+       print*,'Trop decay should be over 1Tg per day globally'
+       print*,'    ~ 500Tg/365d ~ 1.37/d'
+    ENDIF
 
     ! Free pointers
     Spc => NULL()
