@@ -48,6 +48,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed compilation issues for `KPP/custom`; updated equations in `custom.eqn`
 - Prevent users from creating GCClassic rundirs at 0.25 x 0.3125 resolution for MERRA-2 met
 - Added fix to set `RUNDIR_GRID_HALF_POLAR` option for global grids at 0.25x0.3125 or 0.5x0.625 resolutions
+- Moved `OCEAN_MASK` out of `ExtData.rc.TransportTracers` and into the
+  meteorology template files
+- Update `ExtData.rc.CO2` to get meteorology entries from template files
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
