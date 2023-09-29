@@ -194,6 +194,11 @@
      LOGICAL  :: cloudBox       ! Are we in a box with cloud?
      REAL(dp) :: fracOrgAer     ! Fraction of organic aerosol [1]
      REAL(dp) :: fracInorgAer   ! Fraction of organic aerosol [1]
+     !
+     ! Additional fields for GEOS runs
+     !    
+     LOGICAL  :: TurnOffHetRates ! Turn off heterogeneous reactions in stratosphere?
+
   END TYPE HetState
   TYPE(HetState), TARGET, PUBLIC :: State_Het
   !$OMP THREADPRIVATE( State_Het )
