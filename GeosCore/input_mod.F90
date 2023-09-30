@@ -1710,6 +1710,19 @@ CONTAINS
     Input_Opt%LDSTUP = v_bool
 
     !------------------------------------------------------------------------
+    ! Use HETP instead of ISORROPIA II for ATE?
+    !------------------------------------------------------------------------
+    key    = "aerosols%inorganic%use_hetp"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%LHETP = v_bool
+
+    !------------------------------------------------------------------------
     ! Use online sea-salt aerosols?
     !------------------------------------------------------------------------
     key    = "aerosols%sea_salt%activate"
@@ -1895,6 +1908,7 @@ CONTAINS
     ! Turn off switches for simulations that don't use aerosols
     IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )  .and. &
          ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
+       Input_Opt%LHETP        = .FALSE.
        Input_Opt%LSULF        = .FALSE.
        Input_Opt%LMETALCATSO2 = .FALSE.
        Input_Opt%LCARB        = .FALSE.
@@ -1916,6 +1930,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 90  ) 'AEROSOL SETTINGS'
        WRITE( 6, 95  ) '----------------'
+       WRITE( 6, 100 ) 'Use HETP for equilibrium?   : ', Input_Opt%LHETP
        WRITE( 6, 100 ) 'Online SULFATE AEROSOLS?    : ', Input_Opt%LSULF
        WRITE( 6, 100 ) 'Metal catalyzed SO2 ox.?    : ', Input_Opt%LMETALCATSO2
        WRITE( 6, 100 ) 'Online CARBON AEROSOLS?     : ', Input_Opt%LCARB

@@ -3,19 +3,19 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: isorropiaii_mod.F90
+! !MODULE: aerosol_thermodynamics_mod.F90
 !
-! !DESCRIPTION: Module ISORROPIAII\_MOD contains the routines that provide
-!  the interface between ISORROPIA II and GEOS-Chem.
+! !DESCRIPTION: Module AEROSOL\_THERMODYNAMICS\_MOD contains the routines that provide
+!  the interface between ISORROPIA II/HETP and GEOS-Chem.
 !\\
 !\\
-!  The actual ISORROPIA II code which performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg)
-!  aerosol thermodynamic equilibrium is in \texttt{isorropiaIIcode.f}.
+!  The actual ISORROPIA II/HETP code which performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg)
+!  aerosol thermodynamic equilibrium is in \texttt{isorropiaIIcode.f} and \textt{hetp_mod.F90}.
 !\\
 !\\
 ! !INTERFACE:
 !
-MODULE ISORROPIAII_MOD
+MODULE AEROSOL_THERMODYNAMICS_MOD
 !
 ! !USES:
 !
@@ -26,16 +26,16 @@ MODULE ISORROPIAII_MOD
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC  :: CLEANUP_ISORROPIAII
-  PUBLIC  :: DO_ISORROPIAII
+  PUBLIC  :: CLEANUP_ATE
+  PUBLIC  :: DO_ATE
   PUBLIC  :: GET_GNO3
 #if defined( MODEL_CESM )
-  PUBLIC  :: INIT_ISORROPIAII
+  PUBLIC  :: INIT_ATE
 #else
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: INIT_ISORROPIAII
+  PRIVATE :: INIT_ATE
 #endif
   PRIVATE :: SAFELOG10
   PRIVATE :: SET_HNO3
@@ -106,17 +106,17 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_isorropiaii
+! !IROUTINE: do_ate
 !
-! !DESCRIPTION: Subroutine DO\_ISORROPIAII is the interface between the
-!  GEOS-Chem model and the aerosol thermodynamical equilibrium routine
-!  ISORROPIA II.
+! !DESCRIPTION: Subroutine DO\_ATE is the interface between the
+!  GEOS-Chem model and the aerosol thermodynamical equilibrium routines
+!  ISORROPIA II or HETP.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_ISORROPIAII( Input_Opt,  State_Chm, State_Diag, &
-                             State_Grid, State_Met, RC )
+  SUBROUTINE DO_ATE( Input_Opt,  State_Chm, State_Diag, &
+                     State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -139,6 +139,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
     USE IsorropiaII_Main_Mod, ONLY : Isorropia
+    USE HETP_Mod,             ONLY : mach_hetp_main_15cases
 !
 ! !INPUT PARAMETERS:
 !
@@ -211,6 +212,13 @@ CONTAINS
     REAL(f8)                 :: Dcs !SALC diameter, m
     REAL(f8)                 :: n_air !air density, molec/cm3
     REAL(f8)                 :: n_ssc !SALC number concentration, molec/m3
+    REAL(f8)                 :: HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4  
+    REAL(f8)                 :: HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl
+    REAL(f8)                 :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
+    REAL(f8)                 :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
+    REAL(f8)                 :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
+    REAL(f8)                 :: HETP_frSO4
+    REAL(f4)                 :: HETP_num
 
     ! Strings
     CHARACTER(LEN=15)        :: SCASI
@@ -251,7 +259,7 @@ CONTAINS
     REAL(fp) :: OFFLINE_HCl (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
 
     !=================================================================
-    ! DO_ISORROPIAII begins here!
+    ! DO_ATE begins here!
     !=================================================================
 
     ! Initialize
@@ -371,7 +379,7 @@ CONTAINS
 
 #if !defined( MODEL_CESM )
        ! Initialize arrays
-       CALL INIT_ISORROPIAII( State_Grid )
+       CALL INIT_ATE( State_Grid )
 #endif
 
        ! Check to see if we need to get HNO3 from HEMCO
@@ -485,6 +493,12 @@ CONTAINS
     !$OMP PRIVATE( Qk,       n_air,     n_ssc,       Hplus,     Dcs        ) &
     !$OMP PRIVATE( DEN_SAV,  HNO3_DEN,  OutOfBounds, F_HCL,     F_HNO3     ) &
     !$OMP PRIVATE( SULFTEMP, BISULTEMP, NITRTEMP,    HNO3_UGM3, CLTEMP     ) &
+    !$OMP PRIVATE( HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4             ) &
+    !$OMP PRIVATE( HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl              ) &
+    !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
+    !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
+    !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
+    !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
     !$OMP SCHEDULE( DYNAMIC, 1                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
@@ -733,18 +747,20 @@ CONTAINS
 
           ENDIF
 
-          !---------------------------------
-          ! Call ISORROPIA
-          !---------------------------------
+          If (.not. Input_Opt%LHETP) Then
+              !---------------------------------
+              ! Call ISORROPIA
+              !---------------------------------
 
-          ! set type of ISORROPIA call
-          ! Forward problem, do not change this value
-          ! 0e+0_fp represents forward problem
-          CNTRL(1) = 0.0_fp
+              ! set type of ISORROPIA call
+              ! Forward problem, do not change this value
+              ! 0e+0_fp represents forward problem
+              CNTRL(1) = 0.0_fp
 
-          ! Metastable for now
-          ! 1e+0_fp represents metastable problem
-          CNTRL(2) = 1.0_fp
+              ! Metastable for now
+              ! 1e+0_fp represents metastable problem
+              CNTRL(2) = 1.0_fp
+          End If
 
           ! Insert concentrations [mole/m3] into WI & prevent underflow
           WI(1)    = MAX( TNA,  CONMIN )
@@ -811,11 +827,38 @@ CONTAINS
           ELSE
 
              ! %%% Perform aerosol thermodynamic equilibrium %%%
-             ! ISORROPIA can be found in ISORROPIAIICODE.F
-             ! inputs are WI, RHI, TEMPI, CNTRL
-             CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, &
-                             WT,    GAS,  AERLIQ, AERSLD, &
-                             SCASI, OTHER                 )
+             If (Input_Opt%LHETP) Then
+                 ! For safety
+                 GAS = 0.0d0
+                 AERLIQ = 0.0d0
+                 Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
+                                              WI(6), WI(7), WI(8), TEMPI, RHI,              & 
+                                              HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
+                                              HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
+                                              HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
+                                              HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
+                                              HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
+                                              HETP_frSO4, HETP_num                          )
+                 ! Spoof ISORROPIA outputs which are still used
+                 GAS(1) = HETP_NH3
+                 GAS(2) = HETP_HNO3
+                 GAS(3) = HETP_HCl
+                 ! Only used for diagnostics
+                 AERLIQ( 1) = HETP_H
+                 AERLIQ( 2) = HETP_Na
+                 AERLIQ( 3) = HETP_NH4
+                 AERLIQ( 4) = HETP_Cl
+                 AERLIQ( 5) = HETP_SO4
+                 AERLIQ( 6) = HETP_HSO4
+                 AERLIQ( 7) = HETP_NO3
+                 AERLIQ( 8) = HETP_LWC
+             Else
+                 ! ISORROPIA can be found in ISORROPIAIICODE.F
+                 ! inputs are WI, RHI, TEMPI, CNTRL
+                 CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, &
+                                 WT,    GAS,  AERLIQ, AERSLD, &
+                                 SCASI, OTHER                 )
+             End If
 
              ! Consider mass transfer and acid limitation for coarse
              ! mode calculation
@@ -998,7 +1041,7 @@ CONTAINS
        CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
     ENDIF
 
-  END SUBROUTINE DO_ISORROPIAII
+  END SUBROUTINE DO_ATE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1253,7 +1296,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_ISORROPIAII( State_Grid )
+  SUBROUTINE INIT_ATE( State_Grid )
 !
 ! !USES:
 !
@@ -1276,7 +1319,7 @@ CONTAINS
     INTEGER :: AS
 
     !=================================================================
-    ! INIT_ISORROPIAII begins here!
+    ! INIT_ATE begins here!
     !=================================================================
 
     ALLOCATE( HNO3_sav( State_Grid%NX, State_Grid%NY, State_Grid%NZ ), &
@@ -1289,21 +1332,21 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'GAS_HNO3' )
     GAS_HNO3 = 0e+0_fp
 
-  END SUBROUTINE INIT_ISORROPIAII
+  END SUBROUTINE INIT_ATE
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_isorropiaII
+! !IROUTINE: cleanup_ate
 !
-! !DESCRIPTION: Subroutine CLEANUP\_ISORROPIAII deallocates all module arrays.
+! !DESCRIPTION: Subroutine CLEANUP\_ATE deallocates all module arrays.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CLEANUP_ISORROPIAII
+  SUBROUTINE CLEANUP_ATE
 !
 ! !REVISION HISTORY:
 !  06 Jul 2007 - H. O. T. Pye - Initial version
@@ -1315,6 +1358,6 @@ CONTAINS
     IF ( ALLOCATED( HNO3_sav    ) ) DEALLOCATE( HNO3_sav )
     IF ( ALLOCATED( GAS_HNO3    ) ) DEALLOCATE( GAS_HNO3 )
 
-  END SUBROUTINE CLEANUP_ISORROPIAII
+  END SUBROUTINE CLEANUP_ATE
 !EOC
-END MODULE ISORROPIAII_MOD
+END MODULE AEROSOL_THERMODYNAMICS_MOD

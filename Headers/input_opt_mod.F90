@@ -108,6 +108,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LDEAD
      LOGICAL                     :: LSSALT
      LOGICAL                     :: LDSTUP
+     LOGICAL                     :: LHETP
      REAL(fp),           POINTER :: SALA_REDGE_um(:)
      REAL(fp),           POINTER :: SALC_REDGE_um(:)
      LOGICAL                     :: LGRAVSTRAT
@@ -611,6 +612,7 @@ CONTAINS
     Input_Opt%LDUST                  = .FALSE.
     Input_Opt%LDEAD                  = .FALSE.
     Input_Opt%LDSTUP                 = .FALSE.
+    Input_Opt%LHETP                  = .FALSE.
     Input_Opt%LSSALT                 = .FALSE.
     Input_Opt%SALA_REDGE_um          = 0.0_fp
     Input_Opt%SALC_REDGE_um          = 0.0_fp

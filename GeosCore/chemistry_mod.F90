@@ -66,7 +66,7 @@ CONTAINS
     USE FullChem_Mod,     ONLY : Do_FullChem
     USE GLOBAL_CH4_MOD,   ONLY : CHEMCH4
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE ISORROPIAII_MOD,  ONLY : DO_ISORROPIAII
+    USE AEROSOL_THERMODYNAMICS_MOD,  ONLY : DO_ATE
     USE LINEAR_CHEM_MOD,  ONLY : DO_LINEAR_CHEM
     USE MERCURY_MOD,      ONLY : CHEMMERCURY
     USE POPS_MOD,         ONLY : CHEMPOPS
@@ -350,17 +350,17 @@ CONTAINS
              IF ( Input_Opt%LSSALT ) THEN
 
 #ifndef APM
-                ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( Input_Opt  = Input_Opt,                 &
-                                     State_Chm  = State_Chm,                 &
-                                     State_Diag = State_Diag,                &
-                                     State_Grid = State_Grid,                &
-                                     State_Met  = State_Met,                 &
-                                     RC         = RC                        )
+                ! ISORROPIA/HETP take Na+, Cl- into account
+                CALL Do_ATE( Input_Opt  = Input_Opt,                 &
+                             State_Chm  = State_Chm,                 &
+                             State_Diag = State_Diag,                &
+                             State_Grid = State_Grid,                &
+                             State_Met  = State_Met,                 &
+                             RC         = RC                        )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_ISORROPIAII"!'
+                   ErrMsg = 'Error encountered in "Do_ATE"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
@@ -719,18 +719,18 @@ CONTAINS
              IF ( Input_Opt%LSSALT ) THEN
 
 #ifndef APM
-                ! ISORROPIA takes Na+, Cl- into account
-                CALL Do_IsorropiaII( Input_Opt  = Input_Opt,                 &
-                                     State_Chm  = State_Chm,                 &
-                                     State_Diag = State_Diag,                &
-                                     State_Grid = State_Grid,                &
-                                     State_Met  = State_Met,                 &
-                                     RC         = RC                        )
+                ! ISORROPIA/HETP take Na+, Cl- into account
+                CALL Do_ATE( Input_Opt  = Input_Opt,                 &
+                             State_Chm  = State_Chm,                 &
+                             State_Diag = State_Diag,                &
+                             State_Grid = State_Grid,                &
+                             State_Met  = State_Met,                 &
+                             RC         = RC                        )
 #endif
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Do_IsorropiaII"!'
+                   ErrMsg = 'Error encountered in "Do_ATE"!'
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
