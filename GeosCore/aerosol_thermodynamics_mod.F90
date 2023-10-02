@@ -265,7 +265,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at DO_ISORROPIAII (in module GeosCore/isorropiaII_mod.F90)'
+    ThisLoc = ' -> at DO_ATE (in module GeosCore/aerosol_thermodynamics_mod.F90)'
 
     ! Copy fields from INPUT_OPT to local variables for use below
     IT_IS_AN_AEROSOL_SIM = Input_Opt%ITS_AN_AEROSOL_SIM
@@ -440,7 +440,7 @@ CONTAINS
        ENDIF
 
 100    FORMAT( a                                            )
-110    FORMAT( 'Successfully initialized ISORROPIA code II' )
+110    FORMAT( 'Successfully initialized aerosol thermo.  ' )
 
        ! Reset first-time flag
        FIRST = .FALSE.
@@ -1038,7 +1038,7 @@ CONTAINS
 
     !### Debug
     IF ( Input_Opt%Verbose ) THEN
-       CALL DEBUG_MSG( '### ISORROPIAII: a DO_ISORROPIAII' )
+       CALL DEBUG_MSG( '### AEROSOL_THERMODYNAMICS: a DO_ATE' )
     ENDIF
 
   END SUBROUTINE DO_ATE
