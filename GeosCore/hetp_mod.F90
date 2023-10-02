@@ -596,7 +596,7 @@ module hetp_mod
              end if 
              y1 = y2
     !
-             if (earlyexit .EQV. .true.) then
+             if (earlyexit) then
                 dx = 0.0d0
              else
                 dx = (omehi - tiny)/float(ndiv) 
@@ -624,7 +624,7 @@ module hetp_mod
           frst   = .true.
           calain = .true.
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              h     = omehi
              so4_t = max(so4 - (so4/((k3/gama(7)*(gama(8)/gama(7))**2.0)/omehi + 1.0d0)), tiny) 
              nh4_t = max(nh4/(1.0d0/(k4*(gama(8)/gama(9))**2.0)/omehi + 1.0d0), 2.0d0*so4_t)
@@ -640,7 +640,7 @@ module hetp_mod
              k = k + 1
     
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(4)  = gama(4)
                 gamou(7)  = gama(7)
                 gamou(8)  = gama(8)
@@ -649,7 +649,7 @@ module hetp_mod
              end if 
     
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(4)  = gama(4)
                 gamin(7)  = gama(7)
                 gamin(8)  = gama(8)
@@ -660,7 +660,7 @@ module hetp_mod
              call mach_hetp_calcact1b(h, nh4_t, so4_t, hso4, lwn, gama, t, soln,   &
                                       frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 errouloc = max(errouloc, abs(gamou(7)  - gama(7))  / gamou(7))
                 errouloc = max(errouloc, abs(gamou(8)  - gama(8))  / gamou(8))
@@ -689,7 +689,7 @@ module hetp_mod
              errin = max(errin, abs((gamin(13)- gama(13)) / gamin(13)))
     !
     !  ## Solve system of equations, using new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 h     = omehi
                 so4_t = max(so4 - (so4/((k3/gama(7)*(gama(8)/gama(7))**2.0)/omehi + 1.0d0)), tiny)  
                 nh4_t = max(nh4/(1.0d0/(k4*(gama(8)/gama(9))**2.0)/omehi + 1.0d0), 2.0d0*so4_t)
@@ -707,16 +707,16 @@ module hetp_mod
     !  ## AFTER iterating through ALL ndiv subdivided intervals
           if (rooteval == ndiv + 1) then
     !  ## (1) No solution; reset x-value to 'tiny' and use to solve system
-             if (loccondition > 0.0d0 .and. abs(y2) > eps .and. earlyexit .EQV. .false.) then
+             if (loccondition > 0.0d0 .and. abs(y2) > eps .and. ( .not. earlyexit)) then
                 noroot = .true.
     !           write(*,*), 'Warning in CALCA2: no solution found; no interval with sign change'
                 omehi = tiny   ! Reset to tiny 
                 omebe = omehi
-             else if (loccondition > 0.0d0 .and. abs(y2) <= eps .and. earlyexit .EQV. .false.) then
+             else if (loccondition > 0.0d0 .and. abs(y2) <= eps .and. ( .not. earlyexit)) then
     !  ## (2) Solution is assumed and ITP is not required
                 noroot = .true.
                 soln   = .true.
-             else if (earlyexit .EQV. .true.) then
+             else if (earlyexit) then
     !  ## (3) Solution is assumed and ITP is not required
                 noroot = .true.
                 omehi = tiny    ! Reset to tiny 
@@ -726,7 +726,7 @@ module hetp_mod
     !
     !  ## Test for criteria to exit root tracking 
           condition = .false.
-          if (loccondition > 0.0d0 .and. noroot .EQV. .false.) then
+          if (loccondition > 0.0d0 .and. ( .not. noroot)) then
              condition = .true.
           else
              soln = .true.
@@ -735,7 +735,7 @@ module hetp_mod
     !
     !  ## The root tracking did not iterate until ndiv
     !  ## Check if an x-value of tiny was a solution, if so reset x-value to tiny
-       if (rooteval < ndiv + 1 .and. earlyexit .EQV. .true.) then
+       if (rooteval < ndiv + 1 .and. earlyexit) then
     !  Solution has been assumed 
           noroot = .true.
           omehi  = tiny    ! Reset to tiny 
@@ -743,14 +743,14 @@ module hetp_mod
           soln   = .true.
        end if 
     !
-       if (earlyexit .EQV. .false. .and. noroot .EQV. .false.) then
+       if (( .not. earlyexit) .and. ( .not. noroot)) then
           soln = .false.
        end if
     !
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           yb = y1
           ya = y2
     !
@@ -779,7 +779,7 @@ module hetp_mod
        condition = .true.
        do while (j < maxit .and. condition)
     !  ## Set dynamic ITP variables 
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if (( .not. noroot) .and. ( .not. soln)) then
              gx   = xb - xa
              xh   = 0.5d0*(xa + xb)
              rr   = max(gx2*eps*2.d0**(real(nmax - j)) - 0.5d0*gx, 0.0d0)
@@ -802,7 +802,7 @@ module hetp_mod
     !
           j = j + 1
     !      
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(7))
              gmax = max(gmax, gama(8))
@@ -812,7 +812,7 @@ module hetp_mod
           end if 
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama(7)  = 0.1d0
              gama(8)  = 0.1d0
              gama(9)  = 0.1d0
@@ -830,7 +830,7 @@ module hetp_mod
     !  ## Solve system of equations
           frst    = .true.
           calain  = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              h     = x3
              so4_t = max(so4 - (so4/((k3/gama(7)*(gama(8)/gama(7))**2.0)/x3 + 1.0d0)), tiny) 
              nh4_t = max(nh4/(1.0d0/(k4*(gama(8)/gama(9))**2.0)/x3 + 1.0d0), 2.0d0*so4_t)
@@ -846,7 +846,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(4)  = gama(4)
                 gamou(7)  = gama(7)
                 gamou(8)  = gama(8)
@@ -855,7 +855,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(4)  = gama(4)
                 gamin(7)  = gama(7)
                 gamin(8)  = gama(8)
@@ -866,7 +866,7 @@ module hetp_mod
              call mach_hetp_calcact1b(h, nh4_t, so4_t, hso4, lwn, gama, t, soln,   &
                                       frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 errouloc = max(errouloc, abs(gamou(7)  - gama(7))  / gamou(7))
                 errouloc = max(errouloc, abs(gamou(8)  - gama(8))  / gamou(8))
@@ -895,7 +895,7 @@ module hetp_mod
              errin = max(errin, abs((gamin(13)- gama(13)) / gamin(13)))
     !
     !  ## Solve system of equations, with new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 h     = x3
                 so4_t = max(so4 - (so4/((k3/gama(7)*(gama(8)/gama(7))**2.0)/x3 + 1.0d0)), tiny) 
                 nh4_t = max(nh4/(1.0d0/(k4*(gama(8)/gama(9))**2.0)/x3 + 1.0d0), 2.0d0*so4_t)
@@ -908,23 +908,23 @@ module hetp_mod
           y3 = (nh4_t/(2.0d0*so4_t + hso4) - 1.0d0) + h/(2.0d0*so4_t + hso4) 
     !     
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP:
-          if (abs(xb - xa) > abs(xa*eps) .and. noroot .EQV. .false.) then
+          if (abs(xb - xa) > abs(xa*eps) .and. ( .not. noroot)) then
              condition = .true.
              soln   = .false.
           else
@@ -1567,7 +1567,7 @@ module hetp_mod
     !  ## Begin search on subinterval 
           if (rooteval == 2) then
              soln = .false.
-             if (count_rt == 1 .or. redo .EQV. .true.) then
+             if (count_rt == 1 .or. redo) then
                 ylo = y2
              end if 
     !
@@ -1581,7 +1581,7 @@ module hetp_mod
              gmax = max(gmax, gama(13))
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-             if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+             if (gmax > 100.0d0 .and. ( .not. soln)) then
                 gama  = 0.1d0
                 gamin = 1.0d10
                 gamou = 1.0d10
@@ -1589,15 +1589,15 @@ module hetp_mod
                 frst  = .true.
              end if
     !
-             if (abs(y2) <= eps .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+             if (abs(y2) <= eps .and. (count_rt == 1 .or. redo)) then
                 earlyexit = .true.
              end if 
     !
              y1 = y2
     !
-             if (earlyexit .EQV. .true. .or. (count_rt > 1 .and. redo .EQV. .false.)) then
+             if (earlyexit .or. (count_rt > 1 .and. ( .not. redo))) then
                 dx = 0.0d0
-             else if (count_rt > 1 .and. redo .EQV. .true.) then
+             else if (count_rt > 1 .and. redo) then
                 dx = (max(pshi-omehi, tiny))/float(ndiv)
                 omebe = omehi               ! Lower bound of subinterval (xa)
              elseif (count_rt == 1) then
@@ -1612,7 +1612,7 @@ module hetp_mod
     !
     !  ## Continue search 
           if (rooteval > 2) then
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gmax = 0.1d0
                 gmax = max(gmax, gama( 4))
                 gmax = max(gmax, gama( 5))
@@ -1624,7 +1624,7 @@ module hetp_mod
              end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-             if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+             if (gmax > 100.0d0 .and. ( .not. soln)) then
                 gama  = 0.1d0
                 gamin = 1.0d10
                 gamou = 1.0d10
@@ -1632,12 +1632,12 @@ module hetp_mod
                 frst  = .true.
              end if
     
-             if (sign(1.0d0,y1)*sign(1.0d0,y2) < 0.0d0 .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+             if (sign(1.0d0,y1)*sign(1.0d0,y2) < 0.0d0 .and. (count_rt == 1 .or. redo)) then
     !  ## 1. Root has been found on the subinterval; save x values for ITP search
                 y1    = y1
                 omebe = omebe
                 omehi = omehi
-             elseif (count_rt == 1 .or. redo .EQV. .true.) then
+             elseif (count_rt == 1 .or. redo) then
     !  ## 2. No root has been found, continue searching in the next subinterval
                 y1    = y2
                 omebe = omehi
@@ -1648,7 +1648,7 @@ module hetp_mod
     !  ## Solve the system of equations 
           frst   = .true.
           calain = .true.
-          if (soln .EQV. .false. .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+          if (( .not. soln) .and. (count_rt == 1 .or. redo)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
              a3       = k1*lwnsq/gama10sq 
@@ -1691,7 +1691,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true. .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+             if (( .not. soln) .and. frst .and. (count_rt == 1 .or. redo)) then
                 gamou( 4)  = gama( 4)
                 gamou( 5)  = gama( 5)
                 gamou( 7)  = gama( 7)
@@ -1702,7 +1702,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false. .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+             if (( .not. soln) .and. (count_rt == 1 .or. redo)) then
                 gamin( 4)  = gama( 4)
                 gamin( 5)  = gama( 5)
                 gamin( 7)  = gama( 7)
@@ -1715,7 +1715,7 @@ module hetp_mod
              call mach_hetp_calcact2b(h, nh4_t, so4_t, hso4, no3_t, lwn, gama, t, soln,   &
                                       frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 errouloc = max(errouloc, abs(gamou(4 ) - gama(4 )) / gamou(4 ))
                 errouloc = max(errouloc, abs(gamou(5 ) - gama(5 )) / gamou(5 ))
@@ -1745,7 +1745,7 @@ module hetp_mod
              end do            
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false. .and. (count_rt == 1 .or. redo .EQV. .true.)) then
+             if (( .not. soln) .and. (count_rt == 1 .or. redo)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
                 a3       = k1*lwnsq/gama10sq
@@ -1785,7 +1785,7 @@ module hetp_mod
     !
     !  ## Check for criteria to exit root tracking 
           condition = .false.
-          if (sign(1.0d0,y1)*sign(1.0d0,y2) > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps) then
+          if (sign(1.0d0,y1)*sign(1.0d0,y2) > 0.0d0 .and. ( .not. noroot) .and. abs(y2) > eps) then
              condition = .true.         
           elseif (sign(1.0d0,y1)*sign(1.0d0,y2) < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -1800,7 +1800,7 @@ module hetp_mod
           if (rooteval == ndiv+1) then
              count_rt = count_rt + 1
     !
-             if (redo .EQV. .true. .or. count_rt == 2) then
+             if (redo .or. count_rt == 2) then
                 yhi  = y2
                 redo = .false.
              end if
@@ -1856,7 +1856,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -1887,7 +1887,7 @@ module hetp_mod
        j = 0
        condition = .true.
     !
-       if (earlye .EQV. .true.) then
+       if (earlye) then
           soln = .true.
        else
           soln = .false.
@@ -1916,7 +1916,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if (( .not. noroot) .and. ( .not. soln)) then
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
                 write(*,*), 'Zero divide in ITP reset: CALCD3'
@@ -1950,7 +1950,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama( 4))
              gmax = max(gmax, gama( 5))
@@ -1962,7 +1962,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama  = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -1973,7 +1973,7 @@ module hetp_mod
     !  ## Solve system of equations
           frst    = .true.
           calain  = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
              a3       = k1*lwnsq/gama10sq 
@@ -2015,7 +2015,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou( 4)  = gama( 4)
                 gamou( 5)  = gama( 5)
                 gamou( 7)  = gama( 7)
@@ -2025,7 +2025,7 @@ module hetp_mod
                 gamou(13)  = gama(13)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin( 4)  = gama( 4)
                 gamin( 5)  = gama( 5)
                 gamin( 7)  = gama( 7)
@@ -2038,7 +2038,7 @@ module hetp_mod
              call mach_hetp_calcact2b(h, nh4_t, so4_t, hso4, no3_t, lwn, gama, t, soln,    &
                                       frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0.0d0
                 errouloc = max(errouloc, abs(gamou(4 ) - gama(4 )) / gamou(4 ))
                 errouloc = max(errouloc, abs(gamou(5 ) - gama(5 )) / gamou(5 ))
@@ -2068,7 +2068,7 @@ module hetp_mod
              end do        
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
                 a3       = k1*lwnsq/gama10sq 
@@ -2107,11 +2107,11 @@ module hetp_mod
           y3 = nh4_t/h/max(gnh3, tiny)/a4 - 1.0d0
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval, then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              if (ya < 0.0d0) then
                 yb = y3
                 xb = x3
@@ -2119,7 +2119,7 @@ module hetp_mod
                 ya = y3
                 xa = x3
              end if 
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              if (ya < 0.0d0) then
                 ya = y3
                 xa = x3
@@ -2127,13 +2127,13 @@ module hetp_mod
                 yb = y3
                 xb = x3
              end if 
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP:
-          if (xb - xa > abs(xa*eps) .and. noroot .EQV. .false.) then
+          if (xb - xa > abs(xa*eps) .and. ( .not. noroot)) then
              condition = .true.
              soln   = .false.
           else
@@ -2141,7 +2141,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if (abs(y3) <= eps .and. ( .not. noroot)) then
              soln = .true.
              condition = .false.
           end if
@@ -2150,7 +2150,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if (( .not. condition) .and. ( .not. noroot) .and. abs(y3) > 0.1d0) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then
     !            write(*,*), 'Warning: oscillatory behavior; possibility of no valid solution!'
                 x3 = x3_min
@@ -2872,7 +2872,7 @@ module hetp_mod
     !  ## Solve the system of equations 
           frst = .true.
           calain = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -2976,7 +2976,7 @@ module hetp_mod
              k = k + 1
     !        
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)  = gama(1)
                 gamou(2)  = gama(2)
                 gamou(3)  = gama(3)
@@ -2993,7 +2993,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)  = gama(1)
                 gamin(2)  = gama(2)
                 gamin(3)  = gama(3)
@@ -3012,7 +3012,7 @@ module hetp_mod
              call mach_hetp_calcact3b(h, nh4_t, so4_t, hso4, no3_t, cl_t, na_t,     &
                                      lwn, gama, t, soln, frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 13
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -3034,7 +3034,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, using new activity coefficients 
-            if (soln .EQV. .false.) then
+            if (( .not. soln)) then
                 lwnsq = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -3137,7 +3137,7 @@ module hetp_mod
     !  ## Check for criteria to exit root tracking before ndiv iterations of root tracking
           condition = .false.
           loccon = sign(1.0d0,y1)*sign(1.0d0,y2)
-          if (loccon > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps) then
+          if (loccon > 0.0d0 .and. ( .not. noroot) .and. abs(y2) > eps) then
              condition = .true.         
           elseif (loccon < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -3184,7 +3184,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -3216,7 +3216,7 @@ module hetp_mod
        j = 0
        condition = .true.
     !
-       if (earlyexit .EQV. .false.) then
+       if (( .not. earlyexit)) then
           soln = .false.
        end if 
     !
@@ -3243,7 +3243,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if (( .not. noroot) .and. ( .not. soln)) then
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
                 write(*,*), 'Zero divide in ITP reset: CALCG5'
@@ -3279,7 +3279,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(1))
              gmax = max(gmax, gama(2))
@@ -3297,7 +3297,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama  = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -3308,7 +3308,7 @@ module hetp_mod
     !  ## Solve system of equations 
           frst    = .true.
           calain  = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -3412,7 +3412,7 @@ module hetp_mod
           do while ( k < nsweep-1 .and.  errin >= epsact)         
              k = k + 1
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)  = gama(1)
                 gamou(2)  = gama(2)
                 gamou(3)  = gama(3)
@@ -3428,7 +3428,7 @@ module hetp_mod
                 gamou(13) = gama(13)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)  = gama(1)
                 gamin(2)  = gama(2)
                 gamin(3)  = gama(3)
@@ -3447,7 +3447,7 @@ module hetp_mod
              call mach_hetp_calcact3b(h, nh4_t, so4_t, hso4, no3_t, cl_t, na_t,     &
                                       lwn, gama, t, soln, frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 13
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -3469,7 +3469,7 @@ module hetp_mod
              end do        
     !
     !  ## Solve system of equations, with new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -3570,23 +3570,23 @@ module hetp_mod
           y3 = h*cl_t/ghcl/a6 - 1.0d0
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP:
-          if (xb - xa > abs(xa*eps) .and. noroot .EQV. .false.) then
+          if (xb - xa > abs(xa*eps) .and. ( .not. noroot)) then
              condition = .true.
              soln      = .false.
           else
@@ -3594,7 +3594,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if (abs(y3) <= eps .and. ( .not. noroot)) then
              soln = .true.
              condition = .false.
           end if
@@ -3603,7 +3603,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if (( .not. condition) .and. ( .not. noroot) .and. abs(y3) > 0.1d0) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then 
                 x3    = x3_min
                 cl_t  = cl_min
@@ -3839,7 +3839,7 @@ module hetp_mod
              end if
              y1 = y2
     !
-             if (earlyexit .EQV. .true.) then
+             if (earlyexit) then
                 dx = 0.0d0
              else
                 dx = (c6-tiny-tiny)/float(ndiv)
@@ -3866,7 +3866,7 @@ module hetp_mod
     !  ## Solve the system of equations 
           frst   = .true.
           calain = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -3969,7 +3969,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)  = gama(1)
                 gamou(2)  = gama(2)
                 gamou(3)  = gama(3)
@@ -3986,7 +3986,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)  = gama(1)
                 gamin(2)  = gama(2)
                 gamin(3)  = gama(3)
@@ -4005,7 +4005,7 @@ module hetp_mod
              call mach_hetp_calcact3b(h, nh4_t, so4_t, hso4, no3_t, cl_t, na_t,     &
                                      lwn, gama, t, soln, frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 13
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -4027,7 +4027,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, using new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn 
                 gama10sq = gama(10)*gama(10)
     !
@@ -4130,7 +4130,7 @@ module hetp_mod
     !  ## Check for criteria to exit root tracking 
           condition = .false.
           loccon = sign(1.0d0,y1)*sign(1.0d0,y2)
-          if (loccon > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps .and. c6 > tiny) then
+          if (loccon > 0.0d0 .and. ( .not. noroot) .and. abs(y2) > eps .and. c6 > tiny) then
              condition = .true.
           elseif (loccon < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -4152,13 +4152,13 @@ module hetp_mod
     !
     !  ### AFTER iterating through ALL ndiv subdivided intervals
           if (rooteval == ndiv + 1) then
-             if (loccon > 0.0d0 .and. abs(y2) > eps .and. c6 > tiny .and. earlyexit .EQV. .false.) then
+             if (loccon > 0.0d0 .and. abs(y2) > eps .and. c6 > tiny .and. ( .not. earlyexit)) then
     !  ## (1) No solution
                 noroot = .true.
                 omehi = tiny    ! Reset to tiny
                 omebe = omehi
     !            write(*,*), 'Warning in CALCH6: no solution found'
-             else if (loccon > 0.0d0 .and. abs(y2) <= eps .and. c6 > tiny .and. earlyexit .EQV. .false.) then
+             else if (loccon > 0.0d0 .and. abs(y2) <= eps .and. c6 > tiny .and. ( .not. earlyexit)) then
     !  ## (2) Solution is assumed and ITP is not required
                 noroot = .true.
                 !soln = .true.
@@ -4170,7 +4170,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -4225,7 +4225,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if ((.not. noroot) .and. (.not. soln)) then
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
                 write(*,*), 'Zero divide in ITP reset: CALCH6'
@@ -4261,7 +4261,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(1))
              gmax = max(gmax, gama(2))
@@ -4279,7 +4279,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if ((gmax > 100.0d0) .and. (( .not. soln))) then
              gama  = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -4290,7 +4290,7 @@ module hetp_mod
     !  ## Solve system of equations
           frst    = .true.
           calain  = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -4393,7 +4393,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if ((( .not. soln)) .and. (frst)) then
                 gamou(1)  = gama(1)
                 gamou(2)  = gama(2)
                 gamou(3)  = gama(3)
@@ -4409,7 +4409,7 @@ module hetp_mod
                 gamou(13) = gama(13)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)  = gama(1)
                 gamin(2)  = gama(2)
                 gamin(3)  = gama(3)
@@ -4428,7 +4428,7 @@ module hetp_mod
              call mach_hetp_calcact3b(h, nh4_t, so4_t, hso4, no3_t, cl_t, na_t,     &
                                      lwn, gama, t, soln, frst, calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 13
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -4450,7 +4450,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, with new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     ! 
@@ -4549,23 +4549,23 @@ module hetp_mod
           y3 = nh4_t*cl_t/ghcl/gnh3/a6/a4 - 1.0d0    !Function value
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if ((y3 > 0.0d0) .and. (( .not. soln))) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if ((y3 < 0.0d0) .and. (( .not. soln))) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP:
-          if (xb - xa > abs(xa*eps) .and. noroot .EQV. .false.) then
+          if ((xb - xa > abs(xa*eps)) .and. (( .not. noroot))) then
              condition = .true.
              soln      = .false.
           else
@@ -4573,7 +4573,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if ((abs(y3) <= eps) .and. (( .not. noroot))) then
              soln = .true.
              condition = .false.
           end if
@@ -4582,7 +4582,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if ((( .not. condition)) .and. (( .not. noroot)) .and. (abs(y3) > 0.1d0)) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then
                 x3    = x3_min
                 cl_t  = cl_min
@@ -5676,7 +5676,7 @@ module hetp_mod
           frst   = .true.
           calain = .true.
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -5784,7 +5784,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if ((.not. soln) .and. (frst)) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -5811,7 +5811,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -5841,7 +5841,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln, frst,   &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -5863,7 +5863,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, using new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -5968,7 +5968,7 @@ module hetp_mod
     !  ## Check for criteria to exit root tracking 
           condition = .false.
           loccon = sign(1.0d0,y1)*sign(1.0d0,y2)
-          if (loccon > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps .and. cl > tiny) then
+          if ((loccon > 0.0d0) .and. (( .not. noroot)) .and. (abs(y2) > eps) .and. (cl > tiny)) then
              condition = .true.         
           elseif (loccon < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -6013,7 +6013,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -6044,7 +6044,7 @@ module hetp_mod
        j = 0
        condition = .true.
     !
-       if (earlye .EQV. .true.) then
+       if (earlye) then
           soln = .true.
        else
           soln = .false.
@@ -6072,7 +6072,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if ((.not. noroot) .and. (.not. soln)) then
     !  ## Set dynamic ITP variables 
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
@@ -6112,7 +6112,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(1))
              gmax = max(gmax, gama(2))
@@ -6140,7 +6140,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama  = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -6150,7 +6150,7 @@ module hetp_mod
     !
           frst   = .true.
           calain = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -6255,7 +6255,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -6281,7 +6281,7 @@ module hetp_mod
                 gamou(23)  = gama(23)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -6311,7 +6311,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln, frst,   &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -6333,7 +6333,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -6435,23 +6435,23 @@ module hetp_mod
           y3 = h*cl_t/ghcl/a6 - 1.0d0    !Function value
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Test for convergence criteria to exit ITP:
-          if (xb - xa > abs(xa*eps) .and. cl > tiny .and. noroot .EQV. .false.) then
+          if (xb - xa > abs(xa*eps) .and. cl > tiny .and. ( .not. noroot)) then
              condition = .true.
              soln   = .false.
           else
@@ -6459,7 +6459,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if (abs(y3) <= eps .and. ( .not. noroot)) then
              soln = .true.
              condition = .false.
           end if
@@ -6468,7 +6468,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if (( .not. condition) .and. ( .not. noroot) .and. abs(y3) > 0.1d0) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then
                 x3    = x3_min
                 cl_t  = cl_min
@@ -6786,7 +6786,7 @@ module hetp_mod
     !  ## Solve the system of equations 
           frst   = .true.
           calain = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -6876,7 +6876,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -6903,7 +6903,7 @@ module hetp_mod
              end if
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -6933,7 +6933,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln, frst,   &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -6955,7 +6955,7 @@ module hetp_mod
              end do       
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -7044,7 +7044,7 @@ module hetp_mod
           condition = .false.
     !
          loccon = sign(1.0d0,y1)*sign(1.0d0,y2)
-         if (loccon > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps .and. chi6 > tiny) then
+         if (loccon > 0.0d0 .and. ( .not. noroot) .and. abs(y2) > eps .and. chi6 > tiny) then
              condition = .true.         
           elseif (loccon < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -7057,7 +7057,7 @@ module hetp_mod
           end if 
     !
     !  ## Too little frcl, or 'tiny' is a root; reset x-value to tiny and exit root tracking 
-          if (chi6 <= tiny .or. earlyexit .EQV. .true.) then
+          if (chi6 <= tiny .or. earlyexit) then
              condition = .false.
              rooteval  = 2       ! Increment rooteval by 1 to force exit from root tracking
              noroot    = .true.
@@ -7085,7 +7085,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables 
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -7117,7 +7117,7 @@ module hetp_mod
        j = 0
        condition = .true.
     !
-       if (earlye .EQV. .true.) then
+       if (earlye) then
           soln = .true.
        else
           soln = .false.
@@ -7145,7 +7145,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if (( .not. noroot) .and. ( .not. soln)) then
     !  ## Set dynamic ITP variables 
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
@@ -7185,7 +7185,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(1))
              gmax = max(gmax, gama(2))
@@ -7213,7 +7213,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -7224,7 +7224,7 @@ module hetp_mod
     !  ## Solve system of equations
           frst    = .true.
           calain  = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq = lwn*lwn
              gama10sq = gama(10)*gama(10)
     !
@@ -7313,7 +7313,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -7339,7 +7339,7 @@ module hetp_mod
                 gamou(23)  = gama(23)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -7369,7 +7369,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln,  frst,  &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -7391,7 +7391,7 @@ module hetp_mod
              end do    
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10)
     !
@@ -7478,23 +7478,23 @@ module hetp_mod
           y3 = h*cl_t/ghcl/a6 - 1.0d0  !Function value    
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP
-          if (xb - xa > abs(xa*eps) .and. chi6 > tiny .and. noroot .EQV. .false.) then
+          if (xb - xa > abs(xa*eps) .and. chi6 > tiny .and. ( .not. noroot)) then
              condition = .true.
              soln   = .false.
           else
@@ -7502,7 +7502,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if (abs(y3) <= eps .and. ( .not. noroot)) then
              soln = .true.
              condition = .false.
           end if
@@ -7511,7 +7511,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if (( .not. condition) .and. ( .not. noroot) .and. abs(y3) > 0.1d0) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then
                 x3    = x3_min
                 cl_t  = cl_min
@@ -7805,7 +7805,7 @@ module hetp_mod
     !
              y1    = y2
     !
-             if (earlyexit .EQV. .true.) then
+             if (earlyexit) then
                 dx = 0.0d0
              else
                 dx = (chi6-tiny-tiny)/float(ndiv)
@@ -7833,7 +7833,7 @@ module hetp_mod
     !  ## Solve the system of equations 
           frst   = .true.
           calain = .true.
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              lwnsq    = lwn*lwn
              gama10sq = gama(10)*gama(10) 
     !
@@ -7937,7 +7937,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -7964,7 +7964,7 @@ module hetp_mod
              end if 
     !
     !  ## Reset gamin
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -7994,7 +7994,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln, frst,   &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -8016,7 +8016,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, using new activity coefficients 
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn 
                 gama10sq = gama(10)*gama(10)
     !
@@ -8119,7 +8119,7 @@ module hetp_mod
     !  ## Check for criteria to exit root tracking 
           condition = .false.
           loccon = sign(1.0d0,y1)*sign(1.0d0,y2)
-          if (loccon > 0.0d0 .and. noroot .EQV. .false. .and. abs(y2) > eps .and. chi6 > tiny) then
+          if (loccon > 0.0d0 .and. ( .not. noroot) .and. abs(y2) > eps .and. chi6 > tiny) then
              condition = .true.         
           elseif (loccon < 0.0d0 .and. abs(y2) > eps) then
     !  ## Interval had been found where sign change occurs; exit root tracking and proceed to ITP
@@ -8132,7 +8132,7 @@ module hetp_mod
           end if 
     !
     !  ## Too little frcl, or 'tiny' is a root; reset x-value to tiny and exit root tracking 
-          if (chi6 <= tiny .or. earlyexit .EQV. .true.) then
+          if (chi6 <= tiny .or. earlyexit) then
              condition = .false.
              rooteval  = 2       ! Increment rooteval by 1 to force exit from root tracking
              noroot    = .true.
@@ -8160,7 +8160,7 @@ module hetp_mod
     !
     !  ### STAGE 2: modified bisection search (using ITP algorithm) ###
     !  ## Initialize static ITP variables   
-       if (noroot .EQV. .false.) then
+       if (( .not. noroot)) then
           ya = y1
           yb = y2
           xa = omebe
@@ -8191,7 +8191,7 @@ module hetp_mod
        j = 0
        condition = .true.
     !
-       if (earlye .EQV. .true.) then
+       if (earlye) then
           soln = .true.
        else
           soln = .false.
@@ -8220,7 +8220,7 @@ module hetp_mod
              gama_min  = gama
           end if
     !
-          if (noroot .EQV. .false. .and. soln .EQV. .false.) then
+          if (( .not. noroot) .and. ( .not. soln)) then
              if (yb - ya == 0.0d0) then
                 write(*,*), '######        ABORT       ######'
                 write(*,*), 'Zero divide in ITP reset: CALCP13'
@@ -8256,7 +8256,7 @@ module hetp_mod
     !
           j = j + 1
     !
-          if (soln .EQV. .false.) then
+          if (( .not. soln)) then
              gmax = 0.1d0
              gmax = max(gmax, gama(1))
              gmax = max(gmax, gama(2))
@@ -8284,7 +8284,7 @@ module hetp_mod
           end if
     !
     !  ## Reinitialize activity coefficients if gmax > 100.0d0
-          if (gmax > 100.0d0 .and. soln .EQV. .false.) then
+          if (gmax > 100.0d0 .and. ( .not. soln)) then
              gama  = 0.1d0
              gamin = 1.0d10
              gamou = 1.0d10
@@ -8295,7 +8295,7 @@ module hetp_mod
     !  ## Solve system of equations
           frst    = .true.
           calain  = .true.
-            if (soln .EQV. .false.) then
+            if (( .not. soln)) then
              lwnsq    = lwn*lwn 
              gama10sq = gama(10)*gama(10)
     !
@@ -8399,7 +8399,7 @@ module hetp_mod
              k = k + 1
     !
     !  ## Reset gamin and gamou
-             if (soln .EQV. .false. .and. frst .EQV. .true.) then
+             if (( .not. soln) .and. frst) then
                 gamou(1)   = gama(1)
                 gamou(2)   = gama(2)
                 gamou(3)   = gama(3)
@@ -8425,7 +8425,7 @@ module hetp_mod
                 gamou(23)  = gama(23)
              end if 
     !
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 gamin(1)   = gama(1)
                 gamin(2)   = gama(2)
                 gamin(3)   = gama(3)
@@ -8455,7 +8455,7 @@ module hetp_mod
                                       ca_t, pk_t, mg_t, lwn, gama, t, soln, frst,  &
                                       calain, calou)
     !
-             if (frst .EQV. .true.) then
+             if (frst) then
                 errouloc = 0
                 do ii = 1, 23
                    errouloc = max(errouloc, abs(gamou(ii) - gama(ii)) / gamou(ii))
@@ -8477,7 +8477,7 @@ module hetp_mod
              end do
     !
     !  ## Solve system of equations, with new activity coefficients
-             if (soln .EQV. .false.) then
+             if (( .not. soln)) then
                 lwnsq    = lwn*lwn
                 gama10sq = gama(10)*gama(10) 
     !
@@ -8578,23 +8578,23 @@ module hetp_mod
           y3 = h*cl_t/ghcl/a6 - 1.0d0  !Function value
     !
           condition = .false.
-          if (noroot .EQV. .true.) then
+          if (noroot) then
     !  ## If no root on interval then do not perform ITP
              xa = x3
              xb = x3
-          else if (y3 > 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 > 0.0d0 .and. ( .not. soln)) then
              xb = x3
              yb = y3
-          else if (y3 < 0.0d0 .and. soln .EQV. .false.) then
+          else if (y3 < 0.0d0 .and. ( .not. soln)) then
              xa = x3
              ya = y3
-          else if (soln .EQV. .false.) then
+          else if (( .not. soln)) then
              xa = x3
              xb = x3
           end if
     !
     !  ## Check for convergence criteria to exit ITP:
-          if (xb - xa > abs(xa*eps) .and. chi6 > tiny .and. noroot .EQV. .false.) then
+          if (xb - xa > abs(xa*eps) .and. chi6 > tiny .and. ( .not. noroot)) then
              condition = .true.
              soln   = .false.
           else
@@ -8602,7 +8602,7 @@ module hetp_mod
           end if
     !
     ! ## Exit ITP if the function being bisected evaluates to a value <= eps; solution is assumed
-          if (abs(y3) <= eps .and. noroot .EQV. .false.) then
+          if (abs(y3) <= eps .and. ( .not. noroot)) then
              soln = .true.
              condition = .false.
           end if
@@ -8611,7 +8611,7 @@ module hetp_mod
     ! ## If the calculated y-value (y3) after ITP is further from zero than an earlier iteration 
     ! ## then reset to the x-value/concentrations/activity coefficients that were found to minimize
     ! ## the objective function (i.e., y3); in this case, this is chosen as the solution
-          if (condition .EQV. .false. .and. noroot .EQV. .false. .and. abs(y3) > 0.1d0) then     
+          if (( .not. condition) .and. ( .not. noroot) .and. abs(y3) > 0.1d0) then     
              if (abs(0.0d0 - y3_min) < abs(0.0d0 - y3) .and. abs(y3_min - y3) > 1.0d-1) then
                 x3    = x3_min
                 cl_t  = cl_min
@@ -9780,9 +9780,9 @@ module hetp_mod
        real(kind=8)    :: h2, k1, k2, f11, f12
        real(kind=8)    :: g04, g06, g07, g08, g09, g11
     !
-      if ((soln .EQV. .false.).and.  &
-         ((frst .EQV. .true.  .and. calou  .EQV. .true.)  .or.   &
-          (frst .EQV. .false. .and. calain .EQV. .true.))) then
+      if ((( .not. soln)).and.  &
+         ((frst  .and. calou)  .or.   &
+          (( .not. frst) .and. calain))) then
     !  ## Calculate ionic strength of solution
        ionic = h + nh4_t + 4.0d0*so4_t + hso4
        ionic = max(min(0.5d0*ionic/lwn, 100.d0), tiny)
@@ -10101,9 +10101,9 @@ module hetp_mod
        real(kind=8)    :: h2, k1, k2, k3, f11, f12, f13
        real(kind=8)    :: g04, g05, g06, g07, g08, g09, g10, g11
     !
-       if ((soln .EQV. .false.) .and.  &
-          ((frst .EQV. .true.  .and. calou .EQV. .true.) .or.    &
-           (frst .EQV. .false. .and. calain .EQV. .true.)) ) then
+       if ((( .not. soln)) .and.  &
+          ((frst  .and. calou) .or.    &
+           (( .not. frst) .and. calain)) ) then
     !  ## Calculate ionic strength of solution
        ionic = h + nh4_t + 4.0d0*so4_t + hso4 + no3
        ionic = max(min(0.5d0*ionic/lwn, 100.d0), tiny)
@@ -10511,9 +10511,9 @@ module hetp_mod
        logical(kind=4) :: tc
     !
     !
-       if ((soln .EQV. .false.) .and.                          &
-          ((frst .EQV. .true.  .and. calou  .EQV. .true.) .or.    &
-           (frst .EQV. .false. .and. calain .EQV. .true.)) ) then
+       if ((( .not. soln)) .and.                          &
+          ((frst  .and. calou) .or.    &
+           (( .not. frst) .and. calain)) ) then
     !  ## Calculate ionic strength of solution
        ionic = h + na + nh4_t + cl + 4.0d0*so4_t + hso4 + no3
        ionic = max(min(0.5d0*ionic/lwn, 100.d0), tiny)
@@ -11104,9 +11104,9 @@ module hetp_mod
        real(kind=8)    :: g21, g22, g23
     !
     !
-       if ((soln .EQV. .false.) .and.                          &
-          ((frst .EQV. .true.  .and. calou  .EQV. .true.) .or.    &
-           (frst .EQV. .false. .and. calain .EQV. .true.)) ) then
+       if ((( .not. soln)) .and.                          &
+          ((frst  .and. calou ) .or.    &
+           (( .not. frst) .and. calain)) ) then
     !
     !  ## Calculate ionic strength of solution
        ionic = h + na + nh4_t + cl + 4.0d0*so4_t + hso4  &
@@ -11658,7 +11658,7 @@ module hetp_mod
           condition= .false.
     !
     ! ## Subdivision search for a root
-          do while (rooteval < 5 .and. condition .EQV. .false.)
+          do while (rooteval < 5 .and. ( .not. condition))
              x2 = x1 + dx 
              y2 = x2*x2*x2 + a1*x2*x2 + a2*x2 + a3
     !
