@@ -852,6 +852,8 @@ CONTAINS
                  AERLIQ( 6) = HETP_HSO4
                  AERLIQ( 7) = HETP_NO3
                  AERLIQ( 8) = HETP_LWC
+                 ! WT is used below but is identical to WI for a forward case
+                 WT(:) = WI(:)
              Else
                  ! ISORROPIA can be found in ISORROPIAIICODE.F
                  ! inputs are WI, RHI, TEMPI, CNTRL
