@@ -378,15 +378,11 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-       State_Diag%UVFluxDiffuse = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_UVFluxDirect ) THEN
-       State_Diag%UVFluxDirect = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_UVFluxNet ) THEN
-       State_Diag%UVFluxNet = 0.0_f4
-    ENDIF
+    IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse = 0.0_f4
+    IF ( State_Diag%Archive_UVFluxDirect  ) State_Diag%UVFluxDirect  = 0.0_f4
+    IF ( State_Diag%Archive_UVFluxNet     ) State_Diag%UVFluxNet     = 0.0_f4
+    IF ( State_Diag%Archive_OD600         ) State_Diag%OD600         = 0.0_f4
+    IF ( State_Diag%Archive_TCOD600       ) State_Diag%TCOD600       = 0.0_f4
 
     !-----------------------------------------------------------------
     ! Special handling for first-time setup

@@ -288,6 +288,12 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_UvFluxNet
      LOGICAL                     :: Archive_UVFluxNet
 
+     REAL(f4),           POINTER :: OD600(:,:,:)
+     LOGICAL                     :: Archive_OD600
+
+     REAL(f4),           POINTER :: TCOD600(:,:)
+     LOGICAL                     :: Archive_TCOD600
+
      !%%%%% Chemistry %%%%%
 
      REAL(f4),           POINTER :: RxnRate(:,:,:,:)
@@ -1540,6 +1546,12 @@ CONTAINS
     State_Diag%UVFluxNet                           => NULL()
     State_Diag%Map_UvFluxNet                       => NULL()
     State_Diag%Archive_UVFluxNet                   = .FALSE.
+
+    State_Diag%OD600                               => NULL()
+    State_Diag%Archive_OD600                       = .FALSE.
+
+    State_Diag%TCOD600                            => NULL()
+    State_Diag%Archive_TCOD600                    = .FALSE.
 
     State_Diag%OHconcAfterChem                     => NULL()
     State_Diag%Archive_OHconcAfterChem             = .FALSE.
@@ -5438,6 +5450,50 @@ CONTAINS
             mapData        = State_Diag%Map_UvFluxNet,                       &
             diagId         = diagId,                                         &
             diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Optical depth (3D) used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'OD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OD600,                               &
+            archiveData    = State_Diag%Archive_OD600,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Total column optical depth used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'TCOD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TCOD600,                             &
+            archiveData    = State_Diag%Archive_TCOD600,                     &
+            diagId         = diagId,                                         &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -10851,6 +10907,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'OD600',                                       &
+                   Ptr2Data = State_Diag%OD600,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TCOD600',                                     &
+                   Ptr2Data = State_Diag%TCOD600,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'AdvFluxZonal',                                &
                    Ptr2Data = State_Diag%AdvFluxZonal,                       &
                    mapData  = State_Diag%Map_AdvFluxZonal,                   &
@@ -12599,6 +12665,16 @@ CONTAINS
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'UVFLX'
+
+    ELSEIF ( TRIM( Name_AllCaps ) == 'OD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM( Name_AllCaps ) == 'TCOD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Total column optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXZONAL' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'

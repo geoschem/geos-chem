@@ -424,6 +424,10 @@ CONTAINS
     ! Calculate photolysis rates
     call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,maxChemLev,NJX)
 
+    ! Set diagnostics for 600 nm optical depth
+    IF ( State_Diag%Archive_OD600 ) State_Diag%OD600(ILON,ILAT,:) = OD600(:)
+    IF ( State_Diag%Archive_TCOD600 ) State_Diag%TCOD600(ILON,ILAT) = SUM(OD600(:))
+        
     ! Free pointers
     QQAA  => NULL()
     SSAA  => NULL()

@@ -322,7 +322,8 @@ CONTAINS
     IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse = 0.0_f4
     IF ( State_Diag%Archive_UVFluxDirect  ) State_Diag%UVFluxDirect  = 0.0_f4
     IF ( State_Diag%Archive_UVFluxNet     ) State_Diag%UVFluxNet     = 0.0_f4
-
+    IF ( State_Diag%Archive_OD600         ) State_Diag%OD600         = 0.0_f4
+    IF ( State_Diag%Archive_TCOD600       ) State_Diag%TCOD600       = 0.0_f4
 #if defined( MODEL_GEOS )
     ! ewl: should these diags be set later? They are not.
     IF ( State_Diag%Archive_EXTRALNLEVS ) State_Diag%EXTRALNLEVS = 0.0
@@ -685,6 +686,16 @@ CONTAINS
           ENDDO
        ENDIF
 
+
+       !-----------------------------------------------------------------
+       ! Diagnostics for 600 nm optical depth computed in Cloud-J
+       !-----------------------------------------------------------------
+       IF ( State_Diag%Archive_OD600 ) THEN
+          State_Diag%OD600(I,J,1:State_Grid%NZ) = OD18(1:State_Grid%NZ)
+       ENDIF
+       IF ( State_Diag%Archive_TCOD600 ) THEN
+          State_Diag%TCOD600(I,J) = SUM(OD18(:))
+       ENDIF
        !-----------------------------------------------------------------
        ! UV radiative flux diagnostics (direct, diffuse, net) [W/m2]
        ! Convention: negative is downwards
