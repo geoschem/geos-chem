@@ -212,8 +212,7 @@ CONTAINS
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     INTEGER            :: A, I, J, L, K, N, S, MaxLev
-    REAL(8)            :: MW_kg, BoxHt, Delta_P, PMID, F1, ICWC, WLC, WIC
-    REAL(8)            :: CLDLIQ_MMR, CLDICE_MMR
+    REAL(8)            :: MW_kg, BoxHt, Delta_P, IWC, LWC
     LOGICAL, SAVE      :: FIRST = .true.
 
     !------------------------------------------------------------------------
@@ -373,8 +372,7 @@ CONTAINS
     !$OMP PRIVATE( A, I, J, L, K, N, S, MW_kg, BoxHt                       ) &
     !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                    ) &
     !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                       ) &
-    !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL                     ) &
-    !$OMP PRIVATE( CLDLIQ_MMR, CLDICE_MMR, DELTA_P,  PMID, F1, ICWC        ) & 
+    !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P  ) &
     !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC          ) &
     !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX ) &
     !$OMP PRIVATE( FJBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST ) &
@@ -445,13 +443,12 @@ CONTAINS
        ! Clouds and humidity
        !-----------------------------------------------------------------
 
-       CLDIW(:) = 0     ! Cloud type flag: 0=none, 1=water, 2=ice, 3=both
+       CLDIW(:) = 0     ! Cloud type flag [0=none, 1=water, 2=ice, 3=both]
        CLDF(:)  = 0.d0  ! Cloud fraction [unitless]
        IWP(:)   = 0.d0  ! Ice cloud mass   [g/m2]
        LWP(:)   = 0.d0  ! Water cloud mass [g/m2]
-       REFFI(:) = 0.d0  ! Ice cloud effective radius   [units?]
-       REFFL(:) = 0.d0  ! Water cloud effective radius [units?]
-
+       REFFI(:) = 0.d0  ! Ice cloud effective radius   [microns]
+       REFFL(:) = 0.d0  ! Water cloud effective radius [microns]
        ! Set cloud fraction from input meteorology field
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
@@ -459,58 +456,43 @@ CONTAINS
        ! Loop over # layers in cloud-j (layers with clouds)
        DO L=1,LWEPAR
 
-          ! Initialize local variables
-          CLDLIQ_MMR = 0.d0
-          CLDICE_MMR = 0.d0
-          WLC = 0.d0
-          WIC = 0.d0
-
+          ! Get in-cloud liquid and ice water content from met-fields [kg/kg]
+          LWC = State_Met%QL(I,J,L)
+          IWC = State_Met%QI(I,J,L)
           ! Compute cloud type flag and reset cloud fraction if below threshold
           IF ( CLDF(L) .GT. 0.005d0 ) THEN
-
-             ! Use mass fraction of cloud liquid and ice water from met-fields
-             CLDLIQ_MMR = State_Met%QL(I,J,L) ! kg/kg, in-cloud? cell-averaged?
-             CLDICE_MMR = State_Met%QI(I,J,L) ! kg/kg, in-cloud? cell-averaged?
-
-             ! ewl debug: If QL and QI are cell-averaged...
-!             WLC = CLDLIQ_MMR / CLDF(L)       ! kg/kg, in-cloud
-!             WIC = CLDICE_MMR / CLDF(L)       ! kg/kg, in-cloud
-
-             ! ewl debug: If QL and QI are in-cloud...
-             WLC = CLDLIQ_MMR       ! kg/kg, in-cloud
-             WIC = CLDICE_MMR       ! kg/kg, in-cloud
-
-             IF ( WLC .GT. 1.d-11 ) CLDIW(L) = 1
-             IF ( WIC .GT. 1.d-11 ) CLDIW(L) = CLDIW(L) + 2
+             IF ( LWC .GT. 1.d-11 ) CLDIW(L) = 1
+             IF ( IWC .GT. 1.d-11 ) CLDIW(L) = CLDIW(L) + 2
           ELSE
              CLDF(L) = 0.d0
           ENDIF
 
-          ! Pressure difference across levels
+          ! Compute liquid and ice water path [g/m2] and effective radius [microns]
           DELTA_P = P_CTM(L) - P_CTM(L+1)
-
-          ! Compute water cloud mass and effective radius
-          !ewl debug: do we need both these ifs?
-          IF ( WLC .gt. 1.d-12 ) THEN
-             IF ( CLDLIQ_MMR .GT. 1.d-12 ) THEN
-                LWP(L) = 1000.d0 * CLDLIQ_MMR * DELTA_P * g0_100 ! g/m2
+          IF ( LWC .GT. 1.d-12 ) THEN
+             LWP(L) = 1000.d0 * LWC * DELTA_P * g0_100
+             IF ( State_Met%TAUCLW(I,J,L) > 0.0d0 ) THEN
+                REFFL(L) = LWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLW(I,J,L) * 1.d0 )
              ENDIF
-             PMID = 0.5d0 * ( P_CTM(L) + P_CTM(L+1) )
-             F1   = 0.005d0 * ( PMID - 610.d0 )
-             F1   = MIN( 1.d0, MAX( 0.d0, F1 ) )
-             REFFL(L) = 9.6d0 * F1 + 12.68d0 * ( 1.d0 - F1 ) ! microns
+          ENDIF
+          IF ( IWC .GT. 1.d-12 ) THEN
+             IWP(L) = 1000.d0 * IWC * DELTA_P * g0_100
+             IF ( State_Met%TAUCLI(I,J,L) > 0.0d0 ) THEN
+                REFFI(L) = IWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLI(I,J,L) * 0.917d0 )
+             ENDIF
           ENDIF
 
-          ! Compute ice cloud mass and effective radius
-          IF ( WIC .gt. 1.d-12 ) THEN
-             IF ( CLDICE_MMR .GT. 1.d-12 ) THEN
-                IWP(L) = 1000.d0 * CLDICE_MMR * DELTA_P * g0_100 ! g/m2
-             ENDIF
-             ICWC = IWP(L) / ( ( Z_CLIM(L+1) - Z_CLIM(L) ) * 0.01d0 )
-             REFFI(L) = 164.d0 * ( ICWC**0.23d0 ) ! microns
-          ENDIF
-
-          ! Relative humidity [unitless] as fraction, e.g. 0.8
+          ! NOTES ON EFFECTIVE RADIUS:
+          ! Compute effective radius [microns] of liquid water cloud and liquid ice cloud
+          ! based on met-fields for in-cloud water content and in-cloud optical depth.
+          !
+          ! Note: The approach used here is consistent with the cloud optical depth
+          ! calculation within Cloud-J but makes an assumption of extinction efficiency
+          ! Q = 2.06. This works because all cloud Reffs are much bigger
+          ! (2*pi*Reff >> 500 nm)
+          ! so that Q (extinction efficiency = optical cross section / pi*r*r) is nearly
+          ! constant at 2.06 (see the cloud scattering tables in Cloud-J). 
+          ! Convert relative humidity [unitless] from percent to fraction
           RRR(L) = State_Met%RH(I,J,L) / 100.d0
 
        ENDDO
