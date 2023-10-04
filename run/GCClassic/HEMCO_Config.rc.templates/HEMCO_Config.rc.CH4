@@ -656,7 +656,7 @@ ${RUNDIR_CH4_LOSS}
 
 # --- Global OH from GEOS-Chem v5-07 [kg/m3] ---
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 )))GLOBAL_OH
 
 # --- Global Cl [mol/mol dry air] ---
@@ -883,6 +883,14 @@ ${RUNDIR_GLOBAL_Cl}
 # Multiply soil absorption by -1 to get a "negative" flux.
 #==============================================================================
 1 NEGATIVE       -1.0 - - - xy 1 1
+
+#==============================================================================
+# --- Perturbation factors ---
+#
+# Add factors to perturb OH, emissions, and other fields here for
+# analytical inversions.
+#==============================================================================
+2 OH_pert_factor  1.0 - - - xy 1 1
 
 #==============================================================================
 # --- Seasonal scaling factors ----

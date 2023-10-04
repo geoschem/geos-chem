@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added warning in GCHP HISTORY.rc about outputting area-dependent variables on custom grids
 - Added option to use a single advected species in the carbon simulation
 - Added option to perturb CH4 boundary conditions in CH4 simulation
-- Added option to perturb OH in CH4 simulation
+- Added option to perturb OH in CH4 simulation using scale factor in HEMCO_Config.rc
 
 ### Changed
 - Update `DiagnFreq` in GCClassic integration tests to ensure HEMCO diagnostic output

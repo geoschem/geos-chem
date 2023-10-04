@@ -4929,19 +4929,6 @@ CONTAINS
     Input_Opt%EmisPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
 
     !------------------------------------------------------------------------
-    ! OH perturbation factor
-    !------------------------------------------------------------------------
-    key   = "CH4_simulation_options%analytical_inversion%OH_perturbation_factor"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%OHPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
-
-    !------------------------------------------------------------------------
     ! Perturb CH4 boundary conditions?
     !------------------------------------------------------------------------
     key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
@@ -5009,7 +4996,6 @@ CONTAINS
        WRITE(6,100) 'Do analytical inversion? : ', Input_Opt%DoAnalyticalInv
        WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
        WRITE(6,110) 'Emiss perturbation factor: ', Input_Opt%EmisPerturbFactor
-       WRITE(6,110) 'OH    perturbation factor: ', Input_Opt%OHPerturbFactor
        WRITE(6,100) 'Perturb CH4 BCs?         : ', Input_Opt%DoPerturbCH4BoundaryConditions
        WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseSouth,&

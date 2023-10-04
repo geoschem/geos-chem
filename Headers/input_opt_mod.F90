@@ -368,7 +368,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: DoAnalyticalInv
      INTEGER                     :: StateVectorElement
      REAL(fp)                    :: EmisPerturbFactor
-     REAL(fp)                    :: OHPerturbFactor
      LOGICAL                     :: DoPerturbCH4BoundaryConditions
      REAL(fp)                    :: CH4BoundaryConditionIncreaseNorth
      REAL(fp)                    :: CH4BoundaryConditionIncreaseSouth
@@ -910,7 +909,6 @@ CONTAINS
     Input_Opt%DoAnalyticalInv                   = .FALSE.
     Input_Opt%StateVectorElement                = 0
     Input_Opt%EmisPerturbFactor                 = 1.0
-    Input_Opt%OHPerturbFactor                   = 1.0
     Input_Opt%DoPerturbCH4BoundaryConditions    = .FALSE.
     Input_Opt%CH4BoundaryConditionIncreaseNorth = 0.0_fp
     Input_Opt%CH4BoundaryConditionIncreaseSouth = 0.0_fp

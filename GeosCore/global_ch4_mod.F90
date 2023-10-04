@@ -933,11 +933,6 @@ CONTAINS
           ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
           C_OH = State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
-          ! Apply OH perturbation factor for inversions
-          IF ( Input_Opt%OHPerturbFactor /= 1.0 ) THEN
-             C_OH = C_OH * Input_Opt%OHPerturbFactor
-          ENDIF
-
           ! Apply OH scale factors from a previous inversion
           IF ( Input_Opt%UseOHSF ) THEN
              C_OH = C_OH * OH_SF(I,J)
