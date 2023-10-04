@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed incorrect time-slice when reading nested-grid boundary conditions
 - Fixed initialization of advected species missing in GCHP restart file
 - Fixed comments in `GeosUtil/unitconv_mod.F90` to reflect code implementation
+- Added fix for CH4 analytical inversions to convert the state vector value read from file to the nearest integer before comparing to the `Input_Opt%StateVectorElement` read from geoschem_config.yml
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation

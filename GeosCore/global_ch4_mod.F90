@@ -537,7 +537,9 @@ CONTAINS
              ! Only apply emission perturbation to current state vector
              ! element number
              IF ( Input_Opt%StateVectorElement .GT. 0 ) THEN
-                IF ( STATE_VECTOR(I,J) == Input_Opt%StateVectorElement ) THEN
+
+                ! Convert STATE_VECTOR value to nearest integer for comparison
+                IF ( NINT(STATE_VECTOR(I,J)) == Input_Opt%StateVectorElement) THEN
                    State_Chm%CH4_EMIS(I,J,1) = State_Chm%CH4_EMIS(I,J,1) * Input_Opt%PerturbEmis
                    !Print*, 'Analytical Inversion: Scaled state vector element ', &
                    !        Input_Opt%StateVectorElement, ' by ', &
