@@ -51,6 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved `OCEAN_MASK` out of `ExtData.rc.TransportTracers` and into the
   meteorology template files
 - Update `ExtData.rc.CO2` to get meteorology entries from template files
+- Added fix for CH4 analytical inversions to convert the state vector value read from file to the nearest integer before comparing to the `Input_Opt%StateVectorElement` read from geoschem_config.yml
 
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
