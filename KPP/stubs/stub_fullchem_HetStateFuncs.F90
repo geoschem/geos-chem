@@ -26,7 +26,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I
     INTEGER,        INTENT(IN)    :: J
     INTEGER,        INTENT(IN)    :: L
-    INTEGER ,       INTENT(IN)    :: id_SALA
+    INTEGER,        INTENT(IN)    :: id_SALA
     INTEGER,        INTENT(IN)    :: id_SALAAL
     INTEGER,        INTENT(IN)    :: id_SALC
     INTEGER,        INTENT(IN)    :: id_SALCAL
