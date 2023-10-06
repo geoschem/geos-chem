@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased 14.2.1] - TBD
 ### Added
+- Added option to run GEOS-Chem at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
+
+## [Unreleased 14.2.1] - TBD
+### Added
 - Script `test/difference/diffTest.sh`, checks 2 different integration tests for differences
 - Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster
 `SatDiagnEdge` collection to all GEOS-Chem Classic `HISTORY.rc` templates

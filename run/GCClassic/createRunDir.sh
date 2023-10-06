@@ -494,6 +494,7 @@ else
     printf "  3. 0.5  x 0.625\n"
     if [[ "x${met}" == "xgeosfp" ]]; then
 	printf "  4. 0.25 x 0.3125\n"
+	printf "  5. 0.125 x 0.15625\n"
     fi
 fi
 
@@ -511,8 +512,6 @@ while [ "${valid_res}" -eq 0 ]; do
 	grid_res='05x0625'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
     elif [[ "x${res_num}" == "x4" ]]; then
-	# Error check: Don't allow a 0.25 x 0.3125 MERRA-2 rundir.
-	#  -- Melissa Sulprizio, Bob Yantosca (12 Sep 2023)
 	if [[ "x${met}" == "xmerra2" ]]; then
 	    valid_res=0
 	    printf "Cannot create a MERRA-2 rundir at 0.25 x 0.3125 "
@@ -520,6 +519,15 @@ while [ "${valid_res}" -eq 0 ]; do
 	fi
 	grid_res='025x03125'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
+    elif [[ "x${res_num}" == "x5" ]]; then
+	if [[ "x${met}" == "xmerra2" ]]; then
+	    valid_res=0
+	    printf "Cannot create a MERRA-2 rundir at 0.125 x 0.15625 "
+	    printf "resolution!\nPlease make another selection.\n"
+	fi
+	grid_res='0125x015625'
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/0125x015625.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields_0125'\n"
     else
 	valid_res=0
 	printf "Invalid horizontal resolution option.\n"
@@ -527,7 +535,7 @@ while [ "${valid_res}" -eq 0 ]; do
     fi
 done
 
-if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
+if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
     printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"
@@ -550,7 +558,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 60.0, 150.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-11.0,  55.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 70.0, 140.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 15.0,  55.0]'\n"
 		fi
@@ -560,7 +568,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-30.0, 50.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 30.0, 70.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-15.0,  40.0 ]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 32.75, 61.25]'\n"
 		fi
@@ -570,7 +578,7 @@ if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-140.0, -40.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[  10.0,  70.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-130.0,  -60.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[   9.75,  60.0]'\n"
 		fi
