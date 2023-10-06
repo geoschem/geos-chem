@@ -718,7 +718,7 @@ ${RUNDIR_CH4_LOSS}
 
 # --- Global OH from GEOS-Chem v5-07 [kg/m3] ---
 (((GLOBAL_OH
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * 3 1 1
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 )))GLOBAL_OH
 
 # --- Global Cl [mol/mol dry air] ---
