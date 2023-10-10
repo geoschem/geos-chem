@@ -2069,7 +2069,7 @@ GMI_PROD_VRP  v/v/s Y Y F2000-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-
 #==============================================================================
 # --- NOAA GMD monthly mean surface CH4 (GMD_SFC_CH4) ---
 #==============================================================================
-NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1979-2022.1x1.nc
+NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1975-2022.1x1.nc
 #
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---

@@ -157,7 +157,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> GMI_OH                 :       true     # 2005
     --> GMI_PROD_LOSS          :       true     # 2005
     --> OMOC_RATIO             :       false    # 2010
-    --> GMD_SFC_CH4            :       ${RUNDIR_USE_GMDCH4}    # 1979-2022
+    --> GMD_SFC_CH4            :       ${RUNDIR_USE_GMDCH4}    # 1975-2022
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
     --> OLSON_LANDMAP          :       true     # 1985
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
@@ -3747,7 +3747,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- NOAA GMD monthly mean surface CH4 ---
 #==============================================================================
 (((GMD_SFC_CH4
-* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1979-2022.1x1.nc SFC_CH4 1979-2022/1-12/1/0 RY xy ppbv * - 1 1
+* NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1975-2022.1x1.nc SFC_CH4 1975-2022/1-12/1/0 RY xy ppbv * - 1 1
 )))GMD_SFC_CH4
 
 #==============================================================================
