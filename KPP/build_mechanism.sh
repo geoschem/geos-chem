@@ -96,7 +96,7 @@ rm -f *.o *.mod *.a
 # Build the mechanism!
 #============================================================================
 if [[ -f gckpp.kpp ]]; then
-    kpp gckpp.kpp
+    /discover/nobackup/mslong1/KPP/KPP/bin/kpp gckpp.kpp
 else
     echo "Could not find the 'gckpp.kpp' file... Aborting!"
     exit 1
