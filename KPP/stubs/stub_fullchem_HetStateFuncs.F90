@@ -10,7 +10,7 @@ MODULE fullchem_HetStateFuncs
   !
 CONTAINS
   !
-  SUBROUTINE fullchem_SetStateHet( I,         J,         L,                  &
+  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
                                    id_SALA,   id_SALAAL, id_SALC,            &
                                    id_SALCAL, Input_Opt, State_Chm,          &
                                    State_Met, H,         RC                 )

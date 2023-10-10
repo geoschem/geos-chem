@@ -222,7 +222,7 @@ FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./HcoDir/EDGARv43/v2016-11/EDGAR_v
 #==============================================================================
 # Country/region masks
 #==============================================================================
-OCEAN_MASK   1 N Y - none none FROCEAN    ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+# See meteorology section for OCEAN_MASK
 #
 %%
 

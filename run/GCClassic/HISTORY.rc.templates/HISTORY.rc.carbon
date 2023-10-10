@@ -35,7 +35,9 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-             #'StateMet',
+             #'SatDiagn',
+             #'SatDiagnEdge',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -143,9 +145,9 @@ COLLECTIONS: 'Restart',
   Carbon.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   Carbon.mode:           'time-averaged'
   Carbon.fields:         'OHconcAfterChem               ',
-                         'ProdCOfromCH4                 ', 
-                         'ProdCOfromNMVOC               ', 
-                         'ProdCO2fromCO                 ',  
+                         'ProdCOfromCH4                 ',
+                         'ProdCOfromNMVOC               ',
+                         'ProdCO2fromCO                 ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -192,6 +194,59 @@ COLLECTIONS: 'Restart',
                               'Met_PFILSAN                   ',
                               'Met_PFLCU                     ',
                               'Met_PFLLSAN                   ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_CH4               ',
+                              'SatDiagnConc_CO                ',
+                              'SatDiagnConc_CO2               ',
+                              'SatDiagnConc_OCS               ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnColEmis_CH4            ',
+                              'SatDiagnSurfFlux_CH4           ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%

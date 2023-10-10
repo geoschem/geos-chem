@@ -234,6 +234,7 @@ CONTAINS
 
     ! Exit if the CH4 simulation is not selected
     IF ( ( .not. Input_Opt%ITS_A_CH4_SIM      ) .and. &
+         ( .not. Input_Opt%ITS_A_TAGCH4_SIM   ) .and. &
          ( .not. Input_Opt%ITS_A_CARBON_SIM ) ) RETURN
 
     ! Get default HEMCO species ID for CH4

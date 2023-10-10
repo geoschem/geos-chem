@@ -1078,7 +1078,6 @@ CONTAINS
     CHARACTER(LEN=40)       :: NAME5, NAME6
     REAL(fp),      SAVE     :: POP_XMW
     REAL(fp)                :: DUM
-    INTEGER                 :: N_Hg_CATS
     INTEGER                 :: SPC_INDEX
 
     ! Objects
@@ -2027,7 +2026,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                :: AS, NYMDb, NHMSb
-    INTEGER                :: MAXTRACER_HG, N
+    INTEGER                :: N
 
     !=================================================================
     ! INIT_GAMAP begins here!
@@ -2073,61 +2072,29 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
     NTRAC = 0
 
-    IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT) THEN
+    ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
+    INDEX = 0
 
-       MAXTRACER_HG = 480
+    ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
+    MWT = 0.0
 
-       ALLOCATE( INDEX( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
-       INDEX = 0
+    ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
+    SCALE = 0.0
 
-       ALLOCATE( MWT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
-       MWT = 0.0
+    ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
+    NAME = ''
 
-       ALLOCATE( SCALE( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
-       SCALE = 0.0
+    ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
+    FNAME = ''
 
-       ALLOCATE( NAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
-       NAME = ''
-
-       ALLOCATE( FNAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
-       FNAME = ''
-
-       ALLOCATE( UNIT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
-       UNIT = ''
-
-    ELSE
-
-       ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
-       INDEX = 0
-
-       ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
-       MWT = 0.0
-
-       ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
-       SCALE = 0.0
-
-       ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
-       NAME = ''
-
-       ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
-       FNAME = ''
-
-       ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
-       UNIT = ''
-
-    ENDIF
+    ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
+    UNIT = ''
 
     !=================================================================
     ! Initialize arrays for "diaginfo.dat" & "tracerinfo.dat" files

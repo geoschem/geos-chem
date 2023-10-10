@@ -845,6 +845,13 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Make sure the molecular weight is not a missing value
+       IF ( ThisSpc%MW_g == MISSING_REAL ) THEN
+          errMsg = 'MW_g for species ' // TRIM( spc ) // ' is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        ! If the species is a gas, set all aerosol fields to missing values
        IF ( ThisSpc%Is_Gas ) THEN
 
@@ -878,6 +885,7 @@ CONTAINS
           ThisSpc%WD_RetFactor  = MISSING
           ThisSpc%WD_LiqAndGas  = MISSING_BOOL
        ENDIF
+
 
 #ifdef LUO_WETDEP
        !--------------------------------------------------------------------

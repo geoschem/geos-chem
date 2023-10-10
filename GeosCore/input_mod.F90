@@ -233,7 +233,8 @@ CONTAINS
     !========================================================================
 
     ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_TagCH4_Sim .or. &
+         Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -483,34 +484,39 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
-         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
-         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
-         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
-         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
-         TRIM(Sim) /= 'CARBON'                                       ) THEN
+    IF ( TRIM(Sim) /= 'AEROSOL'                                        .and. &
+         TRIM(Sim) /= 'CARBON'                                         .and. &
+         TRIM(Sim) /= 'CH4'                                            .and. &
+         TRIM(Sim) /= 'CO2'                                            .and. &
+         TRIM(Sim) /= 'FULLCHEM'                                       .and. &
+         TRIM(Sim) /= 'HG'                                             .and. &
+         TRIM(Sim) /= 'METALS'                                         .and. &
+         TRIM(Sim) /= 'POPS'                                           .and. &
+         TRIM(Sim) /= 'TAGCH4'                                         .and. &
+         TRIM(Sim) /= 'TAGCO'                                          .and. &
+         TRIM(Sim) /= 'TAGO3'                                          .and. &
+         TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
          
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, carbon, CH4, CO2, fullchem, Hg, POPs,'    // &
-                ' TransportTracers, TagCO, TagCH4, or TagO3.'
+                ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
+                ' TransportTracers, TagCH4, TagCO, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
-                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'                   )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCH4_SIM     = ( TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
-    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
-    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
 
     !------------------------------------------------------------------------
@@ -1336,7 +1342,9 @@ CONTAINS
 
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
-       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM )     THEN
+       IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
+            Input_Opt%ITS_A_TAGCH4_SIM  .or. &
+            Input_Opt%ITS_A_CO2_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
                 WRITE( 6,'(a)' ) ''
@@ -1578,13 +1586,15 @@ CONTAINS
     ! Call setup routines from other F90 modules
     !=================================================================
 
-    ! Split into tagged species (turn off for full-chemistry)
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
+    ! Split into tagged species
+    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
+    ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+       Input_Opt%LSPLIT = .TRUE.                      ! Always tag for this sim
     ELSE
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
+       Input_Opt%LSPLIT = .FALSE.  
     ENDIF
 
     ! Initialize arrays in Input_Opt that depend on N_ADVECT
@@ -3395,9 +3405,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
     ! Turn off wetdep for simulations that don't need it
-    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM  ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
     ! If CO2 effect on RS in turned on, calculate the scaling factor
     ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
@@ -4826,6 +4837,9 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
+    ! String arrays
+    CHARACTER(LEN=QFYAML_NamLen) :: a_str(4)
+
     !========================================================================
     ! Config_CH4 begins here!
     !========================================================================
@@ -4885,20 +4899,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AnalyticalInv = v_bool
-
-    !------------------------------------------------------------------------
-    ! Emission perturbation
-    !------------------------------------------------------------------------
-    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%PerturbEmis = Cast_and_RoundOff( v_str, places=4 )
+    Input_Opt%DoAnalyticalInv = v_bool
 
     !------------------------------------------------------------------------
     ! Current state vector element number
@@ -4915,7 +4916,49 @@ CONTAINS
     Input_Opt%StateVectorElement = v_int
 
     !------------------------------------------------------------------------
-    ! Use emission scale factor?
+    ! Emission perturbation factor
+    !------------------------------------------------------------------------
+    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%EmisPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Perturb CH4 boundary conditions?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%DoPerturbCH4BoundaryConditions = v_bool
+
+    !------------------------------------------------------------------------
+    ! How much to perturb CH4 boundary conditions by?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%CH4_boundary_condition_ppb_increase_NSEW"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CH4BoundaryConditionIncreaseNorth = Cast_and_RoundOff( a_str(1), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseSouth = Cast_and_RoundOff( a_str(2), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseEast  = Cast_and_RoundOff( a_str(3), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseWest  = Cast_and_RoundOff( a_str(4), places=4 )
+
+    !------------------------------------------------------------------------
+    ! Use emission scale factors from a previous inversion?
     !------------------------------------------------------------------------
     key = &
      "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
@@ -4929,7 +4972,7 @@ CONTAINS
     Input_Opt%UseEmisSF = v_bool
 
     !------------------------------------------------------------------------
-    ! Use OH scale factors?
+    ! Use OH scale factors from a previous inversion?
     !------------------------------------------------------------------------
     key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
@@ -4947,14 +4990,19 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
-       WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
-       WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
-       WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis
+       WRITE(6,100) 'Use AIRS obs operator?   : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator?  : ', Input_Opt%GOSAT_CH4_OBS
+       WRITE(6,100) 'Use TCCON obs operator?  : ', Input_Opt%TCCON_CH4_OBS
+       WRITE(6,100) 'Do analytical inversion? : ', Input_Opt%DoAnalyticalInv
        WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
-       WRITE(6,100) 'Use emis scale factors   : ', Input_Opt%UseEmisSF
-       WRITE(6,100) 'Use OH scale factors     : ', Input_Opt%UseOHSF
+       WRITE(6,110) 'Emiss perturbation factor: ', Input_Opt%EmisPerturbFactor
+       WRITE(6,100) 'Perturb CH4 BCs?         : ', Input_Opt%DoPerturbCH4BoundaryConditions
+       WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseSouth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseEast,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseWest
+       WRITE(6,100) 'Use emis scale factors?  : ', Input_Opt%UseEmisSF
+       WRITE(6,100) 'Use OH scale factors?    : ', Input_Opt%UseOHSF
     ENDIF
 
     ! FORMAT statements
@@ -4963,6 +5011,7 @@ CONTAINS
 100 FORMAT( A, L5   )
 110 FORMAT( A, f6.2 )
 120 FORMAT( A, I5   )
+130 FORMAT( A, F10.4, 1X, F10.4, 1X, F10.4, 1X, F10.4)
 
   END SUBROUTINE Config_CH4
 !EOC

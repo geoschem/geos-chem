@@ -966,7 +966,7 @@ CONTAINS
        !=====================================================================
        ! CH4
        !=====================================================================
-       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+       ELSE IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
           ! Do CH4 chemistry
           CALL ChemCh4( Input_Opt  = Input_Opt,                              &
@@ -988,6 +988,11 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
 
+          ! Start "FlexChem" timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> FlexChem", RC )
+          ENDIF
+
           ! Do carbon chemistry
           CALL Chem_Carbon_Gases( Input_Opt  = Input_Opt,                    &
                                   State_Met  = State_Met,                    &
@@ -1003,10 +1008,20 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! Stop "FlexChem" timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> FlexChem", RC )
+          ENDIF
+
        !====================================================================
        ! Mercury (configure with -DMECH=Hg)
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
+          ! Start "FlexChem" timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> FlexChem", RC )
+          ENDIF
 
           ! Do Hg chemistry
           CALL ChemMercury( Input_Opt  = Input_Opt,                          &
@@ -1021,6 +1036,11 @@ CONTAINS
              ErrMsg = 'Error encountered in "ChemMercury"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
+          ENDIF
+
+          ! Stop "FlexChem" timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> FlexChem", RC )
           ENDIF
 
        !=====================================================================
