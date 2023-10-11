@@ -1225,6 +1225,10 @@ CONTAINS
     ! Small number
     REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
 
+    ! VTS
+    REAL(f8)  :: VTSoutput
+    REAL(f8)  :: VTSoutput_ (NUMDEP,NTYPE)
+
     !=================================================================
     ! DEPVEL begins here!
     !=================================================================
@@ -1338,6 +1342,7 @@ CONTAINS
     !$OMP PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       ) &
     !$OMP PRIVATE( C1X,     VK,      I,       J,      IW                ) &
     !$OMP PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP ) &
+    !$OMP PRIVATE( VTSoutput,    VTSoutput_                             ) &
     !$OMP PRIVATE( N_SPC,   alpha,   DEPVw                              ) &
 #ifdef TOMAS
     !$OMP PRIVATE( BIN                                                  ) &
@@ -1665,7 +1670,11 @@ CONTAINS
                                               USTAR(I,J),          &
                                               RHB(I,J),            &
                                               W10(I,J),            &
-                                              Input_Opt )
+                                              VTSoutput,           &
+                                              Input_Opt,           & 
+                                              State_Chm )
+
+                VTSoutput_(K,LDT) = VTSoutput  
 
              ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
 
@@ -1709,6 +1718,34 @@ CONTAINS
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
 
+                IF ((SpcInfo%Name .EQ. 'DST1') .OR.      &
+                    (SpcInfo%Name .EQ. 'DSTAL1') .OR.    &
+                    (SpcInfo%Name .EQ. 'NITD1') .OR.     &
+                    (SpcInfo%Name .EQ. 'SO4D1')) THEN
+                    DIAM = 0.66895E-6
+                ENDIF
+
+                IF ((SpcInfo%Name .EQ. 'DST2') .OR.      &
+                    (SpcInfo%Name .EQ. 'DSTAL2') .OR.    &
+                    (SpcInfo%Name .EQ. 'NITD2') .OR.     &
+                    (SpcInfo%Name .EQ. 'SO4D2')) THEN
+                    DIAM = 2.4907E-6
+                ENDIF
+
+                IF ((SpcInfo%Name .EQ. 'DST3') .OR.      &
+                    (SpcInfo%Name .EQ. 'DSTAL3') .OR.    &
+                    (SpcInfo%Name .EQ. 'NITD3') .OR.     &
+                    (SpcInfo%Name .EQ. 'SO4D3')) THEN
+                    DIAM = 4.164E-6
+                ENDIF
+
+                IF ((SpcInfo%Name .EQ. 'DST4') .OR.      &
+                    (SpcInfo%Name .EQ. 'DSTAL4') .OR.    &
+                    (SpcInfo%Name .EQ. 'NITD4') .OR.     &
+                    (SpcInfo%Name .EQ. 'SO4D4')) THEN
+                    DIAM = 6.677E-6
+                ENDIF
+
                 ! Particle density [kg/m3]
                 DEN   = A_DEN(K)
 #endif
@@ -1749,7 +1786,10 @@ CONTAINS
                                               TEMPK,               &
                                               USTAR(I,J),          &
                                               DIAM,                &
-                                              DEN )
+                                              DEN,                 &
+                                              VTSoutput )
+
+                VTSoutput_(K,LDT) = VTSoutput
 
              ELSE
 
@@ -1772,7 +1812,11 @@ CONTAINS
                 !   (-CZH)**0.6667D0
 
                 RSURFC(K, LDT) = ADUST_SFCRSII(K, II, PRESSU(I,J)*1e-3_f8, &
-                                            TEMPK, USTAR(I,J))
+                                            TEMPK, USTAR(I,J), &
+                                            VTSoutput, RHB(I,J), &
+                                            State_Chm)
+
+                VTSoutput_(K,LDT) = VTSoutput
 
                 !*
                 !*    Set VDS to be less than VDSMAX (entry in input file
@@ -2127,6 +2171,24 @@ CONTAINS
              IF (.NOT.LDEP(K)) GOTO 400
              VK(K) = VD(K)
              VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+
+             IF (AIROSOL (K)) THEN
+                 SpcId   =  NTRAIND(K)
+                 SpcInfo => State_Chm%SpcData(SpcId)%Info
+
+                 IF ( SpcInfo%DD_AeroDryDep ) THEN
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ELSE
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ENDIF
+             ELSE
+                 VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+             ENDIF
 400       CONTINUE
 500    CONTINUE
 
@@ -3074,12 +3136,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, W10, Input_Opt ) &
+  FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, W10, VTSout, Input_Opt, State_Chm ) &
        RESULT(RS)
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3091,6 +3155,13 @@ CONTAINS
     REAL(f8),       INTENT(IN) :: RHB   ! Relative humidity (fraction)
     REAL(f8),       INTENT(IN) :: W10   ! 10 m windspeed [m/s]
     TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
+    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8),       INTENT(OUT) :: VTSout    ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -3173,6 +3244,11 @@ CONTAINS
     REAL(f8)      :: DEDGE
     REAL(f8)      :: DEN1, WTP
     INTEGER       :: ID,NR
+
+    ! For the species database
+    INTEGER                :: SpcId
+    TYPE(Species), POINTER :: SpcInfo
+    REAL(f8)               :: drydepRadius
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -3347,11 +3423,29 @@ CONTAINS
     NR = INT((( Input_Opt%SALC_REDGE_um(2) - Input_Opt%SALA_REDGE_um(1) ) &
          / DR ) + 0.5e+0_f8 )
 
+    ! drydepRadius
+    SpcId = NTRAIND(K)
+    SpcInfo => State_Chm%SpcData(SpcId)%Info
+
+    drydepRadius = A_RADI(K)
+
+    ! Coarse seasalt
+    IF ((SpcInfo%Name .EQ. 'NITS') .OR. (SpcInfo%Name .EQ. 'SALC') & 
+  .OR. (SpcInfo%Name .EQ. 'SO4S') .OR. (SpcInfo%Name .EQ. 'BRSALC') &
+  .OR. (SpcInfo%Name .EQ. 'ISALC')) THEN
+           drydepRadius = 0.74025E-6
+    ENDIF
+
+    IF ((SpcInfo%Name .EQ. 'SALA') .OR. (SpcInfo%Name .EQ. 'BRSALA') &
+        .OR. (SpcInfo%Name .EQ. 'ISALA')) THEN
+           drydepRadius = 0.114945E-6
+    ENDIF
+
     ! Particle radius [cm]
     ! Bug fix: The Gerber [1985] growth should use the dry radius
     ! in micromenters and not cm. Replace RCM with RUM (jaegle 5/11/11)
     !RCM  = A_RADI(K) * 1.d2
-    RUM  = A_RADI(K) * 1.e+6_f8
+    RUM  = drydepRadius * 1.e+6_f8
 
     ! Exponential factors used for hygroscopic growth
     ! Replace RCM with RUM (jaegle 5/11/11)
@@ -3377,7 +3471,7 @@ CONTAINS
 
     ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth [m]
     ! (jaegle 5/11/11)
-    RWET = A_RADI(K) * (4.e+0_f8 / 3.7e+0_f8) * &
+    RWET = drydepRadius * (4.e+0_f8 / 3.7e+0_f8) * &
           ( (2.e+0_f8 - RHBL)/(1.e+0_f8 - RHBL) )**(1.e+0_f8/3.e+0_f8)
 
     ! Ratio dry over wet radii at the cubic power
@@ -3395,7 +3489,7 @@ CONTAINS
     ! wet aerosol (kg/m3)
     ! (bec, 6/17/10, jaegle 5/11/11)
     ! Redefine RATIO_R
-    RATIO_R = A_RADI(K) / RWET
+    RATIO_R = drydepRadius / RWET
 
     ! Assume an initial density of 1000 kg/m3
     DEN  = 1000.e+0_f8
@@ -3475,19 +3569,20 @@ CONTAINS
        ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
        ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * DEN /Rw
        IF (DMID(ID) .ge. D0 .and. DMID(ID) .le. D1 ) THEN
-          DMIDW = DMID(ID) * RWET/A_RADI(K)   ! wet radius [um]
-          SALT_MASS   = SALT_V(ID) * RWET/A_RADI(K) * DEN / &
+          DMIDW = DMID(ID) * RWET/drydepRadius   ! wet radius [um]
+          SALT_MASS   = SALT_V(ID) * RWET/drydepRadius * DEN / &
                         (DMIDW*0.5e+0_f8)
           VTS_WEIGHT  = VTS_WEIGHT + &
                         SALT_MASS * VTS * (DMIDW/(RWET*1d6*2e+0_f8) )** &
-                        2e+0_f8 * (2e+0_f8 * DR *  RWET/A_RADI(K))
+                        2e+0_f8 * (2e+0_f8 * DR *  RWET/drydepRadius)
           SALT_MASS_TOTAL = SALT_MASS_TOTAL+SALT_MASS * &
-                            (2e+0_f8 * DR *  RWET/A_RADI(K))
+                            (2e+0_f8 * DR *  RWET/drydepRadius)
        ENDIF
     ENDDO
 
     ! Final mass weighted setting velocity:
     VTS = VTS_WEIGHT/SALT_MASS_TOTAL
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * PI * VISC * DIAM)
@@ -3837,7 +3932,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+  FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR, &
+                          VTSout, RHB, State_Chm ) RESULT( RS )
+!
+! !USES: 
+!
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -3846,6 +3948,14 @@ CONTAINS
     REAL(f8), INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
     REAL(f8), INTENT(IN) :: TEMP  ! Temperature [K]
     REAL(f8), INTENT(IN) :: USTAR ! Friction velocity [m/s]
+    REAL(f8), INTENT(IN) :: RHB   ! Relative humidity (fraction)
+    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -3888,6 +3998,12 @@ CONTAINS
     REAL(f8)  :: DIAM, DEN
 
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
+
+    REAL(f8)  :: RHBL        ! Relative humidity local
+
+    ! For the species database
+    INTEGER                :: SpcId
+    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -4024,7 +4140,52 @@ CONTAINS
     !=================================================================
 
     ! Particle diameter [m] hotp 10/26/07
-    DIAM  = 0.5e-6_f8
+    DIAM  = 0.17378e-6_f8
+
+    ! Hygroscopic growth following Latimer and Martin (2019) ACP (yanshun)
+    ! Added safety check for LOG (phs, 6/11/08)
+    RHBL    = MAX( TINY(RHB), RHB )
+
+    ! Over oceans the RH in the viscous sublayer is set to 98%,
+    ! following
+    ! Lewis and Schwartz (2004), see discussion above (jaegle 5/11/11)
+    IF (LUC == 14) THEN
+        RHBL = 0.98
+    ENDIF
+
+    SpcId = NTRAIND(K)
+    SpcInfo => State_Chm%SpcData(SpcId)%Info
+
+    ! SIA
+    IF ((SpcInfo%Name .EQ. 'NIT') .OR. (SpcInfo%Name .EQ. 'NH4') &
+        .OR. (SpcInfo%Name .EQ. 'SO4')) THEN
+        ! Efflorescence transtions
+        IF (RHBL .LT. 0.35) THEN
+            DIAM = DIAM * 1.0
+        ! Linear hygroscopic growth    
+        ELSE IF ((RHBL .GE. 0.35) .AND. (RHBL .LE. 0.40)) THEN
+            DIAM = DIAM + (DIAM * ((1.0 + 0.61 * 0.40 / &
+                   (1.0 - 0.40)) ** (1.0 / 3.0)) - DIAM) / &
+                   (0.40 - 0.35) * (RHBL - 0.35)
+        ! Kohler hygroscopic growth
+        ELSE
+            DIAM = DIAM * ((1.0 + 0.61 * RHBL / (1.0 - RHBL)) &
+                   ** (1.0 / 3.0))
+        ENDIF
+
+    !BC
+    ELSE IF ((SpcInfo%Name .EQ. 'BCPI') .OR. &
+       (SpcInfo%Name .EQ. 'BCPO')) THEN
+        DIAM = DIAM * 1.0
+    
+    !OA
+    ELSE
+        DIAM = DIAM * ((1.0 + 0.1 * RHBL / (1.0 - RHBL)) &
+      ** (1.0 / 3.0))
+    ENDIF
+
+    ! Free pointer
+    SpcInfo => NULL()
 
     ! Particle density [kg/m3] hotp 10/26/07
     DEN   = 1500
@@ -4068,6 +4229,7 @@ CONTAINS
 
     ! Settling velocity [m/s]
     VTS  = CONST * SLIP / VISC
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * Pi * VISC * DIAM)
@@ -4126,8 +4288,8 @@ CONTAINS
 ! !INTERFACE:
 !
 
-  FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR, DIAM, DEN ) &
-       RESULT( RS )
+  FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR, DIAM, &
+                         DEN, VTSout) RESULT( RS )
 !
 ! !INPUT PARAMETERS:
 !
@@ -4138,6 +4300,12 @@ CONTAINS
     REAL(f8), INTENT(IN) :: USTAR   ! Friction velocity [m/s]
     REAL(f8), INTENT(IN) :: DIAM    ! Particle diameter [m]
     REAL(f8), INTENT(IN) :: DEN     ! Particle density [kg/m3]
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -4353,6 +4521,7 @@ CONTAINS
 
     ! Settling velocity [m/s]
     VTS  = CONST * SLIP / VISC
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * Pi * VISC * DIAM)
