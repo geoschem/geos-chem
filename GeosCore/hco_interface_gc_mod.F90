@@ -1035,6 +1035,11 @@ CONTAINS
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    ! This only retrieves boundary conditions from HEMCO and puts them into
+    ! State_Chm%BoundaryCond. It no longer applies the boundary conditions
+    ! to the species array, which is handled by Set_Boundary_Conditions().
+    ! This is so that boundary conditions can be updated at a higher frequency
+    ! than the emissions timestep. (hplin, 7/28/23)
     !=======================================================================
 
     ! Assume BCs are 3-hourly and only get from HEMCO when needed
@@ -3598,18 +3603,18 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
-         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
-         Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_Opt%ITS_A_CH4_SIM          .or.                               &
-         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
-         Input_Opt%ITS_A_POPS_SIM         .or.                               &
-         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
-         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
-         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_CO2_SIM                                        .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
+         Input_Opt%ITS_A_POPS_SIM                                       .or. &
+         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
+         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
+         Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
+         Input_Opt%ITS_A_TRACER_SIM                                     .or. &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
-
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -4164,9 +4169,9 @@ CONTAINS
     ! If we have turned on CH4 options in geoschem_config.yml, then we
     ! also need to toggle switches so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
-       IF ( Input_Opt%AnalyticalInv ) THEN
+       IF ( Input_Opt%DoAnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
                           OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
 
@@ -4778,15 +4783,14 @@ CONTAINS
         !------------------------------------------------------------------
         IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
+
+        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+
            ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-           ! and/or all other source types, we could use the HEMCO internal
-           ! values set above and would not need the code below.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           ! in a multi-tracer CH4 simulation.
            eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?

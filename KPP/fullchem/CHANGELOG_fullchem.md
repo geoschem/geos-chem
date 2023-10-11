@@ -4,11 +4,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
+## [Unreleased]
+### Changed
+- The `fullchem` mechanism must now be built with KPP 3.0.0 or later
+
 ## [Unreleased 14.2.0]
 ### Added
 - Added lumped furan chemistry following Carter2020
 - Restored sink reactions for HOI, IONO, IONO2
 - Added S(IV)+HOBr and S(IV)+HOCl rxns (they had been inadvertently omitted)
+
+### Changed
+- Set `k(SALAAL+SO2)` and `k(SALCAL+SO2)` to zero if O3 < 1e10 molec/cm3
 
 ### Fixed
 - Fix bugs in HOBr uptake rate calculation in `fullchem_RateLawFuncs.F90`

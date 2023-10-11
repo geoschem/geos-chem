@@ -2021,7 +2021,7 @@ CONTAINS
     !
     !  Species(I,J,L,N) [kg]
     !
-    !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) * AVO / MW_KG / 1e6
+    !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) / AVO * MW_KG * 1e6
     !
     ! NOTES:
     !  (1) Use exact reverse of the species mass -> # density conversion to

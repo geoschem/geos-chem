@@ -94,6 +94,7 @@ add_library(GeosCore
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90
+  tracer_mod.F90
   ucx_mod.F90
   uvalbedo_mod.F90
   vdiff_mod.F90
@@ -101,7 +102,7 @@ add_library(GeosCore
   YuIMN_Code.F90
 
   # Files only included for special cases
-  $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90>
+  $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90 set_boundary_conditions_mod.F90>
   $<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F90>
   $<$<BOOL:${TOMAS}>:tomas_mod.F90>
   $<$<BOOL:${APM}>:apm_driv_mod.F90>

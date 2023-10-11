@@ -1,0 +1,7 @@
+logKindFlag: ESMF_LOGKIND_NONE
+
+# ESMF_LOGKIND options for ESMF logging. Options include:
+#    ESMF_LOGKIND_NONE           - no ESMF logging
+#    ESMF_LOGKIND_SINGLE         - one log file (ESMF_LogFile)
+#    ESMF_LOGKIND_MULTI          - one log file per core (PET#.ESMF_LogFile)
+#    ESMF_LOGKIND_MULTI_ON_ERROR - one log file per core if error (PET#.ESMF_LogFile))

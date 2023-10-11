@@ -1334,11 +1334,14 @@ CONTAINS
 
     ! Get the species ID for OH if this is the first call
     IF ( first ) THEN
-       id_OH  = Ind_('OH')
-       IF ( id_OH < 0 ) THEN
-          errMsg = 'OH is not a defined species in this simulation!!!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
+       IF ( Input_Opt%ITS_A_CARBON_SIM     .or.                              &
+            Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+          id_OH  = Ind_('OH')
+          IF ( id_OH < 0 ) THEN
+             errMsg = 'OH is not a defined species in this simulation!!!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
        first= .FALSE.
     ENDIF

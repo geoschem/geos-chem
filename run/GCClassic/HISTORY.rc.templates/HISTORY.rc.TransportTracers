@@ -30,11 +30,12 @@ EXPID:  ./OutputDir/GEOSChem
 COLLECTIONS: 'Restart',
              'RadioNuclide',
              'SpeciesConc',
-             'Budget',
+             #'Budget',
              'CloudConvFlux',
              'DryDep',
              'LevelEdgeDiags',
 	     #'SatDiagn',
+	     #'SatDiagnEdge',
              'StateMet',
              'WetLossConv',
              'WetLossLS',
@@ -171,14 +172,14 @@ COLLECTIONS: 'Restart',
   RadioNuclide.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
   RadioNuclide.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
   RadioNuclide.mode:          'time-averaged'
-  RadioNuclide.fields:        'PbFromRnDecay                 ',
-                              'RadDecay_Rn222                ',
-                              'RadDecay_Pb210                ',
-                              'RadDecay_Pb210Strat           ',
-                              'RadDecay_Be7                  ',
-                              'RadDecay_Be7Strat             ',
-                              'RadDecay_Be10                 ',
-                              'RadDecay_Be10Strat            ',
+  RadioNuclide.fields:        'PbFromRnDecay                 ',  
+                              'RadDecay_Rn222                ',  
+                              'RadDecay_Pb210                ',  
+                              'RadDecay_Pb210s               ',  
+                              'RadDecay_Be7                  ',  
+                              'RadDecay_Be7s                 ',  
+                              'RadDecay_Be10                 ',  
+                              'RadDecay_Be10s                ', 
 ::
 #==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%
@@ -229,6 +230,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnSurfFlux_Pb210         ',
                               'SatDiagnColEmis_Be7            ',
                               'SatDiagnSurfFlux_Be7           ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges)  during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%

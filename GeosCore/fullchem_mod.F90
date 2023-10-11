@@ -37,7 +37,8 @@ MODULE FullChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_NH3
+  INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
+  INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -50,7 +51,6 @@ MODULE FullChem_Mod
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC, id_SALA
   LOGICAL               :: ok_OH,     ok_HO2,    ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
 
@@ -259,6 +259,7 @@ CONTAINS
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
     IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
@@ -447,9 +448,7 @@ CONTAINS
     ATOL      = 1e-2_dp
 
     ! Relative tolerance
-    ! Changed to 0.5e-3 to avoid integrate errors by halogen chemistry
-    !  -- Becky Alexander & Bob Yantosca (24 Jan 2023)
-    RTOL      = 0.5e-3_dp
+    RTOL      = 0.5e-2_dp
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -967,7 +966,7 @@ CONTAINS
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
-       ! Archive KPP reaction rates [s-1]
+       ! Archive KPP reaction rates [molec cm-3 s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !
        ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
@@ -999,6 +998,18 @@ CONTAINS
                 State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
              ENDDO
           ENDIF
+       ENDIF
+
+       ! Archive KPP reaction rate constants (RCONST). The units vary.
+       ! They are already updated in Update_RCONST, and do not require
+       ! a call of Fun(). (hplin, 3/28/23)
+       IF ( State_Diag%Archive_RxnConst ) THEN
+
+          DO S = 1, State_Diag%Map_RxnConst%nSlots
+             N = State_Diag%Map_RxnConst%slot2Id(S)
+             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+          ENDDO
+
        ENDIF
 
        !=====================================================================
@@ -2622,11 +2633,11 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
+    id_SO4      = Ind_( 'SO4'          )
     id_SALA     = Ind_( 'SALA'         )
     id_SALAAL   = Ind_( 'SALAAL'       )
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
-    id_SO4      = Ind_( 'SO4'          )
 
 #ifdef MODEL_GEOS
     ! ckeller

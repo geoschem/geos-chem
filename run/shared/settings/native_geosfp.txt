@@ -106,6 +106,9 @@ FRLAND   1 N Y - none none FRLAND     ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000
 FRLANDIC 1 N Y - none none FRLANDICE  ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
 FROCEAN  1 N Y - none none FROCEAN    ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
 PHIS m2_s-2 N Y - none none PHIS      ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+
+# Also include FROCEAN with name OCEAN_MASK to match HEMCO container name for ocean mask
+OCEAN_MASK 1 N Y - none none FROCEAN ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
 """
 
 RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""

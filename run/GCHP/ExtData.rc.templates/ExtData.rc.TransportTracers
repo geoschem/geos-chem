@@ -142,40 +142,28 @@ EDGAR_SF6 1 N Y F%y4-01-01T00:00:00 none none emi_sf6 ./HcoDir/SF6/v2019-01/EDGA
 # --- EDGAR v4.3 (EDGARv4.3) ---
 # EDGARv4.3 is turned off by default in HEMCO_Config.rc
 #==============================================================================
-EDGAR_CO25d_POW  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
-EDGAR_CO25d_ENG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
-EDGAR_CO25d_IND  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
-EDGAR_CO25d_TRO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
-EDGAR_CO25d_TNG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
-EDGAR_CO25d_RCO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
-EDGAR_CO25d_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
-#EDGAR_CO25d_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
-EDGAR_CO25d_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
-EDGAR_CO25d_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
-#
-#==============================================================================
-# --- HTAP v2 (HTAP) ---
-# HTAP is off by default in HEMCO_Config.rc
-#==============================================================================
-HTAP_CO25d_IND    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_INDUSTRY.generic.01x01.nc
-HTAP_CO25d_POW    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_ENERGY.generic.01x01.nc
-HTAP_CO25d_RES    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_RESIDENTIAL.generic.01x01.nc
-HTAP_CO25d_TRA    kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_TRANSPORT.generic.01x01.nc
-#HTAP_CO25d_AIR1  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_LTO.generic.01x01.nc
-#HTAP_CO25d_AIR2  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CDS.generic.01x01.nc
-#HTAP_CO25d_AIR3  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/HTAP/v2015-03/CO/EDGAR_HTAP_CO_AIR_CRS.generic.01x01.nc
+EDGAR_CO_25_POW  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
+EDGAR_CO_25_ENG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
+EDGAR_CO_25_IND  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+EDGAR_CO_25_TRO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
+EDGAR_CO_25_TNG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
+EDGAR_CO_25_RCO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
+EDGAR_CO_25_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
+#EDGAR_CO_25_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
+EDGAR_CO_25_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
+EDGAR_CO_25_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
 #
 #==============================================================================
 # --- CEDS (CEDSv2) ---
 #==============================================================================
-CEDS_CO25d_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO25d_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 #
 ###############################################################################
 ###
@@ -234,7 +222,7 @@ FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF ./HcoDir/EDGARv43/v2016-11/EDGAR_v
 #==============================================================================
 # Country/region masks
 #==============================================================================
-OCEAN_MASK   1 N Y - none none FROCEAN    ./MetDir/${RUNDIR_MET_CN_YR}/01/${RUNDIR_MET}.${RUNDIR_MET_CN_YR}0101.CN.${RUNDIR_MET_RES}.${RUNDIR_MET_EXT}
+# See meteorology section for OCEAN_MASK
 #
 %%
 

@@ -165,7 +165,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:)   => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -689,9 +689,9 @@ CONTAINS
     INTEGER                :: P,         MONTH,     YEAR,      IRH
     INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
     INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
-    INTEGER                :: Day,       S,         origUnit,  errorCount
-    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
-    REAL(fp)               :: itim,      TOUT,      T,         TIN
+    INTEGER                :: Day,       S,         errorCount
+    REAL(fp)               :: REL_HUM,   rtim,      itim,      TOUT
+    REAL(fp)               :: T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -845,6 +845,7 @@ CONTAINS
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
     IF (State_Diag%Archive_HgBrAfterChem  ) State_Diag%HgBrAfterChem  = 0.0_f4
     IF (State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
     IF (State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
@@ -978,10 +979,10 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
-    !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
+    !$OMP PRIVATE( I,        J,        L,        N                          )&
+    !$OMP PRIVATE( IERR,     RCNTRL,   ISTATUS,  RSTATE                     )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,        P                          )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,       C_before_integrate         )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
     !$OMP REDUCTION( +:errorCount                                           )
@@ -1118,6 +1119,18 @@ CONTAINS
           DO S = 1, State_Diag%Map_RxnRate%nSlots
              N = State_Diag%Map_RxnRate%slot2Id(S)
              State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+
+       ENDIF
+
+       ! Archive KPP reaction rate constants (RCONST). The units vary.
+       ! They are already updated in Update_RCONST, and do not require
+       ! a call of Fun(). (hplin, 3/28/23)
+       IF ( State_Diag%Archive_RxnConst ) THEN
+
+          DO S = 1, State_Diag%Map_RxnConst%nSlots
+             N = State_Diag%Map_RxnConst%slot2Id(S)
+             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
           ENDDO
 
        ENDIF
@@ -3301,8 +3314,8 @@ CONTAINS
 
     ENDIF
 
-    ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
-    Hg0aq = OCEAN_CONC(:,:,1)
+    ! Only doing Hg0 overall
+    Hg0aq = OCEAN_CONC(:,:)
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()

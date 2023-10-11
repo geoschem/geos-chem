@@ -44,11 +44,8 @@ CONTAINS
 !
 ! !USES:
 !
+    use netCDF
     use m_do_err_out
-!
-    implicit none
-!
-    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !   ierr : netCDF error number
@@ -69,7 +66,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
     character (len=512) :: err_msg
 !
-    err_msg = 'In Nchandle_Err:  ' // Nf_Strerror (ierr)
+    err_msg = 'In Nchandle_Err:  ' // NF90_Strerror (ierr)
 
     call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
 

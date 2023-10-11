@@ -26,23 +26,12 @@ MODULE Emissions_Mod
   PUBLIC :: Emissions_Run
   PUBLIC :: Emissions_Final
 !
-! !PRIVATE MEMBER FUNCTIONS:
-!
-  PRIVATE :: MMR_Compute_Flux
-!
 ! !REVISION HISTORY:
 !  27 Aug 2014 - C. Keller   - Initial version.
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !PRIVATE TYPES:
-!
-  ! Species ID flags
-  INTEGER :: id_CH4
-  LOGICAL :: doMaintainMixRatio
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -103,15 +92,6 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at Emissions_Init (in module GeosCore/emissions_mod.F90)'
 
-    ! Define species ID flags for use in routines below
-    id_CH4   = Ind_('CH4'  )
-
-    ! Are we including a species for which the global mixing ratio should
-    ! remain constant?
-    doMaintainMixRatio = ( Ind_('GlobEmis90dayTracer') > 0 .OR. &
-                           Ind_('GlobNH90dayTracer'  ) > 0 .OR. &
-                           Ind_('GlobSH90dayTracer'  ) > 0 )
-
     ! Initialize the HEMCO environment for this GEOS-Chem run.
     CALL HCOI_GC_Init( Input_Opt, State_Chm, State_Grid, State_Met, &
                        RC,        HcoConfig=HcoConfig )
@@ -157,6 +137,7 @@ CONTAINS
     USE State_Grid_Mod,        ONLY : GrdState
     USE State_Met_Mod,         ONLY : MetState
     USE Time_Mod,              ONLY : Get_Ts_Emis
+    USE Tracer_Mod,            ONLY : Tracer_Source_Phase
     Use SfcVmr_Mod,            ONLY : FixSfcVmr_Run
 #ifdef TOMAS
     USE CARBON_MOD,            ONLY : EmissCarbonTomas
@@ -277,12 +258,25 @@ CONTAINS
     ! To enable CH4 emissions in a full-chemistry simulation, add entries
     ! in HEMCO_Config.rc as is done for other species. 
     ! (mps, 2/12/21)
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
        CALL EmissCh4( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "EmissCH4"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! For transport tracer simulation
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
+       CALL Tracer_Source_Phase( Input_Opt, State_Chm, State_Grid, &
+                                 State_Met, RC )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Tracer_Source_Phase"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -330,14 +324,7 @@ CONTAINS
              RETURN
           ENDIF
 
-       endif
-
-    ENDIF
-
-    IF ( doMaintainMixRatio ) THEN
-
-       ! Compute the surface flux needed to restore the total burden
-       CALL MMR_Compute_Flux( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       ENDIF
 
     ENDIF
 

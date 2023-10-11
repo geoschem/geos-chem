@@ -48,7 +48,7 @@
 #SBATCH -n 60
 #SBATCH -N 2
 #SBATCH -t 2:00:00
-#SBATCH -p seas_compute
+#SBATCH -p huce_intel,seas_compute,shared
 #SBATCH --mem=110G
 #SBATCH --mail-type=ALL
 #
@@ -144,17 +144,6 @@ source checkRunSettings.sh
 #
 # POST-RUN COMMANDS
 #
-# If new start time in cap_restart is okay, rename restart file
-# and update restart symlink
-new_start_str=$(sed 's/ /_/g' cap_restart)
-if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
-   exit 1
-else
-    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
-    source setRestartLink.sh
-fi
 
 # Rename mid-run checkpoint files, if any. Discard file if time corresponds
 # to run start time since duplicate with initial restart file.
@@ -171,3 +160,16 @@ do
        fi
     fi
 done
+
+# If new start time in cap_restart is okay, rename restart file
+# and update restart symlink
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+    echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+    rm -f Restarts/gcchem_internal_checkpoint
+    exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
+fi

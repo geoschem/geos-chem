@@ -1036,49 +1036,51 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED )                                                 &
-    !$OMP PRIVATE( I, J, L, N )                                             &
-    !$OMP PRIVATE( SIZENUM, PRESS, TK, RHIN )                               &
-    !$OMP PRIVATE( CACID,PACID )                                            &
-    !$OMP PRIVATE( MSO4,MSO4BULK,MNIT,MNH4,SOAT)                            &
-    !$OMP PRIVATE( MBCS, MOCS, MSULFT,MDSTS,MSALTS)                         &
-    !$OMP PRIVATE( MBC, MOC, MMSA)                                          &
-    !$OMP PRIVATE( XMDST)                                                   &
-    !$OMP PRIVATE( MASS1, MASS2)                                            &
-    !$OMP PRIVATE( CSO2,CNH3,XN0,CAMINE,CAMINEEMIT,YAMINEEMIT)              &
-    !$OMP PRIVATE( CCO,CNO,CNO2,CNO3,CHNO3,CISOP,CMTPA)                     &
-    !$OMP PRIVATE( NH3EMIT)                                                 &
-    !$OMP PRIVATE( CSOG)                                                    &
-    !$OMP PRIVATE( CSOA)                                                    &
-    !$OMP PRIVATE( VOL)                                                     &
-    !$OMP PRIVATE( CLVSOG,MSULFLV,MBCLV,MOCLV,MDSTLV,MSALTLV)               &
-    !$OMP PRIVATE( XM1D,XN1D,XNOLD,TEMPOUT1,ATOM4N,AEROCOMOUT1D)            &
-    !$OMP PRIVATE( XQ,PLVSOG01,PLVSOG1,GFTOT1,GFTOT2,DENWET1,DENWET2)       &
-    !$OMP PRIVATE( IACT10,IACT20,IACT30,FCLOUD1,AERAREA1,AERDRYR1,GAMMAPM1) &
-    !$OMP PRIVATE( RACT1,RACT2,RACT3)                                       &
-    !$OMP PRIVATE( NCOAG1,NCOAG2)                                           &
-    !$OMP PRIVATE( YSPGF,XBCLIFE,XOCLIFE,XCSNH3)                            &!Yu+
-    !$OMP PRIVATE( XOH, XSINK,XAREA,XX0,XX1,DXX,ACS,XLAT, XLON,XAMINE)      &
-    !$OMP PRIVATE( KYEAR,KMON,KDAY,KHOUR,KMIN,ISITE,JSITE,NSITE)            &
-    !$OMP PRIVATE( XU,XV,TOP, TOPP)                                         &
-    !$OMP PRIVATE( KKOUT)                                                   &
-    !$OMP PRIVATE( ZBEXT,ZW,ZG)                                             &!OPT+
-    !$OMP PRIVATE( ZBABS)                                                   &!OPT+
-    !$OMP PRIVATE( YBEXT,XBEXT1k,YW,YG)                                     &!OPT+
-    !$OMP PRIVATE( IWL)                                                     &!OPT+
-    !$OMP PRIVATE( ITYP)                                                    &!mxy+
-    !$OMP PRIVATE( YCCN,YCDN,YCDNSP,YCLDF,YCLDLIQ,YCLDICE,YRCLDL,VZ)        &!Yu+ 7/2012
-    !$OMP PRIVATE( XCDN,XCDNSP )                                            &
-    !$OMP PRIVATE( YF,YC,SCOS,LOCALTIME )                                   &
-    !$OMP PRIVATE( PRESS0, YSIGMA )                                         &
-    !$OMP PRIVATE( wbar,relhum,yqc,yna,YB,YREI,YK)                          &
-    !$OMP PRIVATE( dumc, dumnc, pgam, lamc)                                 &
-    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )                                     &
-    !$OMP PRIVATE( REL,REI)                                                 &
-    !$OMP PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )   &
-    !!$OMP PRIVATE( nuci, onihf, oniimm, onidep, onimey)                    &
-    !$OMP SCHEDULE( DYNAMIC )
+! Disable this parallel loop, which causes differences in output
+! for the time being. -- Bob Yantosca (24 May 2023)
+!    !$OMP PARALLEL DO                                                       &
+!    !$OMP DEFAULT( SHARED )                                                 &
+!    !$OMP PRIVATE( I, J, L, N )                                             &
+!    !$OMP PRIVATE( SIZENUM, PRESS, TK, RHIN )                               &
+!    !$OMP PRIVATE( CACID,PACID )                                            &
+!    !$OMP PRIVATE( MSO4,MSO4BULK,MNIT,MNH4,SOAT)                            &
+!    !$OMP PRIVATE( MBCS, MOCS, MSULFT,MDSTS,MSALTS)                         &
+!    !$OMP PRIVATE( MBC, MOC, MMSA)                                          &
+!    !$OMP PRIVATE( XMDST)                                                   &
+!    !$OMP PRIVATE( MASS1, MASS2)                                            &
+!    !$OMP PRIVATE( CSO2,CNH3,XN0,CAMINE,CAMINEEMIT,YAMINEEMIT)              &
+!    !$OMP PRIVATE( CCO,CNO,CNO2,CNO3,CHNO3,CISOP,CMTPA)                     &
+!    !$OMP PRIVATE( NH3EMIT)                                                 &
+!    !$OMP PRIVATE( CSOG)                                                    &
+!    !$OMP PRIVATE( CSOA)                                                    &
+!    !$OMP PRIVATE( VOL)                                                     &
+!    !$OMP PRIVATE( CLVSOG,MSULFLV,MBCLV,MOCLV,MDSTLV,MSALTLV)               &
+!    !$OMP PRIVATE( XM1D,XN1D,XNOLD,TEMPOUT1,ATOM4N,AEROCOMOUT1D)            &
+!    !$OMP PRIVATE( XQ,PLVSOG01,PLVSOG1,GFTOT1,GFTOT2,DENWET1,DENWET2)       &
+!    !$OMP PRIVATE( IACT10,IACT20,IACT30,FCLOUD1,AERAREA1,AERDRYR1,GAMMAPM1) &
+!    !$OMP PRIVATE( RACT1,RACT2,RACT3)                                       &
+!    !$OMP PRIVATE( NCOAG1,NCOAG2)                                           &
+!    !$OMP PRIVATE( YSPGF,XBCLIFE,XOCLIFE,XCSNH3)                            &!Yu+
+!    !$OMP PRIVATE( XOH, XSINK,XAREA,XX0,XX1,DXX,ACS,XLAT, XLON,XAMINE)      &
+!    !$OMP PRIVATE( KYEAR,KMON,KDAY,KHOUR,KMIN,ISITE,JSITE,NSITE)            &
+!    !$OMP PRIVATE( XU,XV,TOP, TOPP)                                         &
+!    !$OMP PRIVATE( KKOUT)                                                   &
+!    !$OMP PRIVATE( ZBEXT,ZW,ZG)                                             &!OPT+
+!    !$OMP PRIVATE( ZBABS)                                                   &!OPT+
+!    !$OMP PRIVATE( YBEXT,XBEXT1k,YW,YG)                                     &!OPT+
+!    !$OMP PRIVATE( IWL)                                                     &!OPT+
+!    !$OMP PRIVATE( ITYP)                                                    &!mxy+
+!    !$OMP PRIVATE( YCCN,YCDN,YCDNSP,YCLDF,YCLDLIQ,YCLDICE,YRCLDL,VZ)        &!Yu+ 7/2012
+!    !$OMP PRIVATE( XCDN,XCDNSP )                                            &
+!    !$OMP PRIVATE( YF,YC,SCOS,LOCALTIME )                                   &
+!    !$OMP PRIVATE( PRESS0, YSIGMA )                                         &
+!    !$OMP PRIVATE( wbar,relhum,yqc,yna,YB,YREI,YK)                          &
+!    !$OMP PRIVATE( dumc, dumnc, pgam, lamc)                                 &
+!    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )                                     &
+!    !$OMP PRIVATE( REL,REI)                                                 &
+!    !$OMP PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )   &
+!    !!$OMP PRIVATE( nuci, onihf, oniimm, onidep, onimey)                    &
+!    !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2139,7 +2141,9 @@ CONTAINS
 
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
+! Disable this parallel loop, which causes differences in output.
+!  -- Bob Yantosca (24 May 2023)
+!    !$OMP END PARALLEL DO
 
     write(*,*)'LuoSSA',sum(TCOD3D(:,:,:,1))/size(TCOD3D(:,:,:,1)), &
                        sum(TCOD3D(:,:,:,5))/size(TCOD3D(:,:,:,5))

@@ -18,10 +18,6 @@ MODULE FJX_INTERFACE_MOD
 !
   USE FJX_Mod
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-#if defined( MODEL_CESM ) && defined( SPMD )
-  USE MPISHORTHAND
-  USE SPMD_UTILS
-#endif
 
   IMPLICIT NONE
 
@@ -527,10 +523,10 @@ CONTAINS
 #if defined( MODEL_GEOS )
        ! Initialize diagnostics arrays
        IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
-          State_Diag%EXTRALNLEVS(ILON,ILAT) = 0.0
+          State_Diag%EXTRALNLEVS(NLON,NLAT) = 0.0
        ENDIF
        IF ( State_Diag%Archive_EXTRALNITER ) THEN
-          State_Diag%EXTRALNITER(ILON,ILAT) = 0.0
+          State_Diag%EXTRALNITER(NLON,NLAT) = 0.0
        ENDIF
 #endif
 

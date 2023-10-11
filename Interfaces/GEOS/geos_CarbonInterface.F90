@@ -40,7 +40,7 @@ MODULE GEOS_CarbonInterface
   PUBLIC   :: GEOS_CarbonSetServices
   PUBLIC   :: GEOS_CarbonInit
   PUBLIC   :: GEOS_CarbonRunPhoto
-  PUBLIC   :: GEOS_CarbonGetConc 
+  PUBLIC   :: GEOS_CarbonSetConc 
 
 ! !REVISION HISTORY:
 !  12 Jan 2023 - C. Keller - initial version (from StratChem/Carbon_GridComp)
@@ -93,6 +93,19 @@ CONTAINS
     INTEGER                      :: DoIt
     INTEGER                      :: STATUS
 
+    ! Methane field from GEOS.
+    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       call MAPL_AddImportSpec(GC,                               &
+               SHORT_NAME         = 'GEOS_CH4',                  &
+               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
+               UNITS              = 'v/v',                       &
+               DIMS               = MAPL_DimsHorzVert,           &
+               VLOCATION          = MAPL_VLocationCenter,        &
+               RC=STATUS  )
+       _VERIFY(STATUS)
+    ENDIF
+
     ! If enabled, create import field 
     CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Import_CO2_from_GOCART:", Default=0, __RC__ )
     IF ( DoIt == 1 ) THEN
@@ -100,13 +113,26 @@ CONTAINS
        call MAPL_AddImportSpec(GC,                      &
             SHORT_NAME         = TRIM(ImpCO2name),      &
             LONG_NAME          = 'CO2_mixing_ratio',    &
-            UNITS              = 'v/v_total_air',       &   ! correct?!
+            UNITS              = 'v/v_total_air',       &
             DIMS               = MAPL_DimsHorzVert,     &
             VLOCATION          = MAPL_VLocationCenter,  &
             RC=STATUS  )
        _VERIFY(STATUS)
     ENDIF
 
+    ! Set CO upper boundary condition?
+    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Set_CO_Mesosphere:", Default=0, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       CALL ESMF_ConfigGetAttribute( CF, ImpCO2name, Label="CO_Mesosphere_FieldName:", Default="CO_CMAM", __RC__ )
+       call MAPL_AddImportSpec(GC,                      &
+            SHORT_NAME         = TRIM(ImpCO2name),      &
+            LONG_NAME          = 'CO',                  &
+            UNITS              = 'volume_mixing_ratio', &
+            DIMS               = MAPL_DimsHorzOnly,     &
+            RC=STATUS  )
+       _VERIFY(STATUS)
+    ENDIF
+    
     _RETURN(ESMF_SUCCESS)
 
   END SUBROUTINE GEOS_CarbonSetServices
@@ -155,11 +181,21 @@ CONTAINS
     INTEGER                      :: DoIt, km
     INTEGER                      :: STATUS
     CHARACTER(LEN=ESMF_MAXSTR)   :: fnphoto
-    CHARACTER(LEN=ESMF_MAXSTR)   :: ImpCO2name
+    CHARACTER(LEN=ESMF_MAXSTR)   :: ImpCO2name, ImpCOmeso
 
     !=======================================================================
     ! GEOS_CarbonInit starts here
     !=======================================================================
+
+    ! Set CO upper boundary 
+    ! ----------------------
+    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Set_CO_Mesosphere:", Default=0, __RC__ )
+    State_Chm%COmesosphere = ( DoIt == 1 )
+    IF ( State_Chm%COmesosphere ) THEN
+       CALL ESMF_ConfigGetAttribute( CF, ImpCOmeso, Label="CO_Mesosphere_FieldName:", Default="CO_CMAM", __RC__ )
+       State_Chm%ImpCOmeso = TRIM(ImpCOmeso)
+       IF ( MAPL_am_I_Root() ) WRITE(*,*) 'Will get CO mesospheric upper boundary from import field '//TRIM(ImpCOmeso)
+    ENDIF
 
     ! Import CO2 from GOCART 
     ! ----------------------
@@ -429,14 +465,15 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: GEOS_CarbonGetConc
+! !IROUTINE: GEOS_CarbonSetConc
 !
-! !DESCRIPTION: Gets the concentrations from the import state 
+! !DESCRIPTION: Sets the concentrations of CO2 and/or top-level CO based on 
+!  values obtained via the import state
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GEOS_CarbonGetConc( Import,    Input_Opt,  State_Chm,  &
+  SUBROUTINE GEOS_CarbonSetConc( Import,    Input_Opt,  State_Chm,  &
                                  State_Met, State_Diag, State_Grid, RC )
 !
 ! !USES:
@@ -464,18 +501,20 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonGetConc'
+    CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
     CHARACTER(LEN=63)            :: OrigUnit
-    INTEGER                      :: I, LM, indCO2, STATUS
-    REAL, POINTER                :: CO2(:,:,:) => null()
+    INTEGER                      :: I, LM, indCO2, indCO, STATUS
+    REAL, POINTER                :: CO2(:,:,:)  => null()
+    REAL, POINTER                :: COmeso(:,:) => null()
     REAL, PARAMETER              :: MWCO2 = 44.01 ! everybody knows this
+    REAL, PARAMETER              :: MWCO  = 28.01 ! CO2 - 16 
 
     !=======================================================================
-    ! GEOS_CarbonGetConc starts here
+    ! GEOS_CarbonSetConc starts here
     !=======================================================================
 
-    IF ( State_Chm%CO2fromGOCART ) THEN
+    IF ( State_Chm%CO2fromGOCART .OR. State_Chm%COmesosphere ) THEN
 
        ! Make sure concentrations are in kg/kg total
        ! (this should already be the case) 
@@ -491,23 +530,39 @@ CONTAINS
 
        ! Get index
        indCO2  = -1
+       indCO   = -1
        DO I = 1, State_Chm%nSpecies
           IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == "CO2"  ) THEN
              indCO2 = I 
-             EXIT
+          ENDIF
+          IF ( TRIM(State_Chm%SpcData(I)%Info%Name) == "CO"  ) THEN
+             indCO = I 
           ENDIF
        ENDDO
-       ASSERT_(indCO2 > 0  )
 
-       ! Get CO2 field via import. This is expected in v/v total!! 
-       CALL MAPL_GetPointer ( Import, CO2, TRIM(State_Chm%ImpCO2name), __RC__ )
-
-       ! Pass to GEOS-Chem, flip in vertical and convert v/v to kg/kg
+       ! # of vertical levels
        LM = State_Grid%NZ
-       State_Chm%Species(indCO2)%Conc(:,:,:) = CO2(:,:,LM:1:-1) * ( MWCO2 / MAPL_AIRMW )
 
-       ! testing only
-       !!!IF ( MAPL_am_I_Root() ) WRITE(*,*) 'Got CO2 from GOCART: ',SUM(CO2)
+       ! Set CO2 concentrations
+       IF ( State_Chm%CO2fromGOCART ) THEN
+          ASSERT_(indCO2 > 0  )
+
+          ! Get CO2 field via import. This is expected in v/v total!! 
+          CALL MAPL_GetPointer ( Import, CO2, TRIM(State_Chm%ImpCO2name), __RC__ )
+
+          ! Pass to GEOS-Chem. Flip in vertical and convert v/v to kg/kg
+          State_Chm%Species(indCO2)%Conc(:,:,:) = CO2(:,:,LM:1:-1) * ( MWCO2 / MAPL_AIRMW )
+       ENDIF
+
+       IF ( State_Chm%COmesosphere  ) THEN
+          ASSERT_(indCO  > 0  )
+
+          ! Get CO field via import. This is expected in v/v total
+          CALL MAPL_GetPointer ( Import, COmeso, TRIM(State_Chm%ImpCOmeso), __RC__ )
+
+          ! Pass to GEOS-Chem. Convert v/v to kg/kg
+          State_Chm%Species(indCO)%Conc(:,:,LM) = COmeso(:,:) * ( MWCO / MAPL_AIRMW )
+       ENDIF
 
        ! Convert species back to original units
        CALL Convert_Spc_Units(                                               &
@@ -522,7 +577,7 @@ CONTAINS
     ENDIF
 
     _RETURN(ESMF_SUCCESS)
-    END SUBROUTINE GEOS_CarbonGetConc
+    END SUBROUTINE GEOS_CarbonSetConc
 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
