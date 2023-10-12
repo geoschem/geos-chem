@@ -710,8 +710,8 @@ CONTAINS
     TYPE(ESMF_VM)                  :: VM            ! ESMF VM object
     TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
-    CHARACTER(LEN=ESMF_MAXSTR)     :: Iam, OrigUnit
-    INTEGER                        :: STATUS, HCO_PHASE, RST
+    CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
+    INTEGER                        :: STATUS, HCO_PHASE, RST, origUnit
 #if defined( MODEL_GEOS )
     INTEGER                        :: I, J, L
 #endif
