@@ -683,14 +683,14 @@ CONTAINS
 
     ! Scalars
     LOGICAL                :: doSuppress
-    INTEGER                :: I,         J,         L,         K
-    INTEGER                :: N,         NN,        CN,        Hg_Cat
-    INTEGER                :: NA,        F,         SpcID,     KppID
-    INTEGER                :: P,         MONTH,     YEAR,      IRH
-    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
-    INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
-    INTEGER                :: Day,       S,         errorCount
-    REAL(fp)               :: REL_HUM,   rtim,      itim,      TOUT
+    INTEGER                :: I,         J,         L,          K
+    INTEGER                :: N,         NN,        CN,         Hg_Cat
+    INTEGER                :: NA,        F,         SpcID,      KppID
+    INTEGER                :: P,         MONTH,     YEAR,       IRH
+    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,   TotAccep
+    INTEGER                :: TotRejec,  TotNumLU,  HCRC,       IERR
+    INTEGER                :: Day,       S,         errorCount, origUnit
+    REAL(fp)               :: REL_HUM,   rtim,      itim,       TOUT
     REAL(fp)               :: T,         TIN
 
     ! Strings
