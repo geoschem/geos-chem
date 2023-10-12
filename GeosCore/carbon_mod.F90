@@ -4793,9 +4793,6 @@ CONTAINS
    ! Assume success
    RC = GC_SUCCESS
 
-   ! Initialize
-   POAEMISS =  0e+0_fp
-
    ! Check if using complex SOA scheme
    IF ( Input_Opt%LSOA ) THEN
 
@@ -4834,6 +4831,9 @@ CONTAINS
 
    ! Nothing to do if none of the species are defined
    IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
+
+   ! Initialize
+   POAEMISS =  0.0_fp
 
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
