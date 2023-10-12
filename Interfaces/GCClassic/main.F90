@@ -117,6 +117,7 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   USE Calc_Met_Mod          ! Met field calculations
   USE FLEXGRID_READ_MOD     ! For reading FLEXGRID data
+  USE Set_Boundary_Conditions_Mod ! For setting nested-grid boundary conditions
 #ifdef EXCHANGE
   USE EXCHANGE_MOD          ! For two-way coupled simulations
 #endif
@@ -1343,6 +1344,32 @@ PROGRAM GEOS_Chem
        ! Update clock tracer (skip if running in dry-run mode)
        IF ( notDryRun .and. id_CLOCK > 0 ) THEN
           CALL Set_Clock_Tracer( State_Chm, State_Grid )
+       ENDIF
+
+       !=====================================================================
+       !         *****  B O U N D A R Y  C O N D I T I O N S  *****
+       !=====================================================================
+       ! Applied in nested-grid simulations only.
+       !
+       ! Even if boundary conditions are only READ via HEMCO at every 3-hours,
+       ! it has to be imposed on the simulation grid at every time step start
+       ! to prevent transport in the buffer region from distorting the boundary
+       ! conditions.
+       !
+       ! Has to be after all HEMCO operations as State_Chm%BoundaryCond needs
+       ! to be populated.
+       !
+       ! Whether or not this is done after transport is the
+       ! same since other operations do not change the species concentrations
+       ! in the buffer zone, but putting it after transport allows for outputs
+       ! to better reflect the buffer zone's underlying BCs. (hplin, 7/28/23)
+       IF ( State_Grid%NestedGrid .and. notDryRun ) THEN
+          CALL Set_Boundary_Conditions( Input_Opt, State_Chm, State_Grid, RC )
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in call to "Set_Boundary_Conditions"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
        ENDIF
 
        !=====================================================================

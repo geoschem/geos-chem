@@ -44,6 +44,7 @@ variables=$(echo $variables | sort | uniq)
 envsubst_list="$(printf '${%s} ' $variables)"
 
 COPY_LIST="""
+ESMF.rc
 input.nml
 logging.yml
 HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.${RUNDIR_SIM_NAME}

@@ -140,7 +140,7 @@ aoa_PROP: &aoaproperties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
   Snk_Mode: constant
   Snk_Value: 0
   Src_Add: true
@@ -935,7 +935,7 @@ CLOCK:
   FullName: Clock tracer for diagnosing age of air
   Is_Advected: true
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
 CO2_PROP: &CO2properties
   Formula: CO2
   Is_Gas: true
@@ -1155,7 +1155,7 @@ DSTAL4:
 Dummy:
   FullName: Dummy species (carbon mechanism)
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
 DummyCH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -1169,7 +1169,7 @@ e90_PROP: &e90properties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
   Snk_Horiz: all
   Snk_Mode: efolding
   Snk_Period: 90
@@ -1811,14 +1811,14 @@ Hg_OTHER_PROP: &HgChemProperties
   Is_Photolysis: true
   Is_WetDep: true
   WD_RetFactor: 1.0
-HgBr: 
+HgBr:
   Fullname: HgBr
   Formula: HgBr
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 280.49
-HgBrNO2: 
+HgBrNO2:
   Fullname: syn-HgBrONO
   Formula: BrHgONO
   Is_Advected: true
@@ -1826,7 +1826,7 @@ HgBrNO2:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 326.50
-HgBrHO2: 
+HgBrHO2:
   << : *HgChemProperties
   Fullname: HgBrHO2
   Formula:  BrHgOOH
@@ -1836,7 +1836,7 @@ HgBrBrO:
   Fullname: HgBrBrO
   Formula: BrHgOBr
   MW_g:  376.40
-HgBrClO: 
+HgBrClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: BrHgOCl
@@ -1846,12 +1846,12 @@ HgBrOH:
   Fullname: HgBrOH
   Formula: BrHgOH
   MW_g: 297.50
-HgBr2: 
+HgBr2:
   << : *HgChemProperties
   Fullname: HgBr2
   Formula: HgBr2
   MW_g:  360.40
-HgCl: 
+HgCl:
   Fullname: HgCl
   Formula: HgCl
   Is_Advected: true
@@ -1871,64 +1871,64 @@ HgClHO2:
   Formula: ClHgOOH
   MW_g: 269.00
   WD_RetFactor: 1.0
-HgClClO: 
+HgClClO:
   << : *HgChemProperties
   Fullname: HgClClO
   Formula: ClHgOCl
   MW_g: 287.50
-HgClBrO: 
+HgClBrO:
   << : *HgChemProperties
   Fullname: HgClBrO
   Formula: ClHgOBr
   MW_g: 332.00
-HgClBr: 
+HgClBr:
   << : *HgChemProperties
   Fullname: HgClBr
   Formula: HgBrCl
   MW_g: 316.00
-HgClOH: 
+HgClOH:
   << : *HgChemProperties
   Fullname: HgClOH
   Formula: ClHgOH
   MW_g: 253.00
-HgOH: 
+HgOH:
   Fullname: HgOH
   Formula: HgOH
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 201.00
-HgOHNO2: 
+HgOHNO2:
   << : *HgChemProperties
   Fullname: syn-HgOHONO
   Formula: HOHgONO
   MW_g:  263.60
-HgOHHO2: 
+HgOHHO2:
   << : *HgChemProperties
   Fullname: HgOHHO2
   Formula: HOHgOOH
   MW_g:  250.60
-HgOHClO: 
+HgOHClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: HOHgOCl
   MW_g:  269.0000
-HgOHBrO: 
+HgOHBrO:
   << : *HgChemProperties
   Fullname: HgOHBrO
   Formula: HOHgOBr
   MW_g: 313.5000
-HgOHOH: 
+HgOHOH:
   << : *HgChemProperties
   Fullname: HgOH2
   Formula: HOHgOH
   MW_g:  234.60
-HgCl2: 
+HgCl2:
   << : *HgChemProperties
   Fullname: HgCl2
   Formula: HgCl2
   MW_g:  271.5000
-Hg2ClP: 
+Hg2ClP:
   Fullname: Hg(II) chloride salts on sea-salt aerosols
   Formula: HgCln
   Is_Aerosol: true
@@ -1939,7 +1939,7 @@ Hg2ClP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-Hg2ORGP: 
+Hg2ORGP:
   Fullname: Hg(II) organic complex in aerosols
   Formula: R-Hg
   Is_Advected: true
@@ -1951,7 +1951,7 @@ Hg2ORGP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-Hg2STRP: 
+Hg2STRP:
   Fullname: Hg(II) in stratospheric aerosols
   Formula: Hg2+
   Is_Advected: true
@@ -3377,7 +3377,7 @@ nh_PROP: &nhproperties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
   Snk_Horiz: all
   Snk_Mode: efolding
   Snk_Vert: all
@@ -3767,7 +3767,7 @@ PassiveTracer:
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
   Snk_Mode: none
   Src_Mode: none
 Pb210_PROP: &Pbproperties
@@ -4597,7 +4597,7 @@ st80_25:
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
   Snk_Horiz: all
   Snk_Mode: efolding
   Snk_Period: 25
@@ -4609,6 +4609,20 @@ st80_25:
   Src_Units: ppbv
   Src_Value: 200
   Src_Vert: pressures
+stOX:
+  FullName: Tracer with O3 values in stratosphere and O3 loss applied in troposphere
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Loss_Species: O3
+  Snk_Horiz: all
+  Snk_Mode: chemical_loss
+  Snk_Vert: troposphere
+  Src_Add: false
+  Src_Horiz: all
+  Src_Mode: model_field
+  Src_Vert: stratosphere
 TiF1:
   << : *DST1properties
   Formula: Ti

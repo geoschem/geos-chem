@@ -69,15 +69,16 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: SimulationName
      CHARACTER(LEN=255)          :: SpcDatabaseFile
      CHARACTER(LEN=255)          :: SpcMetaDataOutFile
+     LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_CARBON_SIM
      LOGICAL                     :: ITS_A_CH4_SIM
      LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_TAGO3_SIM
+     LOGICAL                     :: ITS_A_TAGCH4_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
-     LOGICAL                     :: ITS_AN_AEROSOL_SIM
+     LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
      LOGICAL                     :: ITS_A_TRACER_SIM
      LOGICAL                     :: VerboseRequested
@@ -364,9 +365,14 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: AIRS_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
-     LOGICAL                     :: AnalyticalInv
-     REAL(fp)                    :: PerturbEmis
+     LOGICAL                     :: DoAnalyticalInv
      INTEGER                     :: StateVectorElement
+     REAL(fp)                    :: EmisPerturbFactor
+     LOGICAL                     :: DoPerturbCH4BoundaryConditions
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseNorth
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseSouth
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseEast
+     REAL(fp)                    :: CH4BoundaryConditionIncreaseWest
      LOGICAL                     :: UseEmisSF
      LOGICAL                     :: UseOHSF
 
@@ -563,15 +569,16 @@ CONTAINS
     Input_Opt%SimulationName         = ''
     Input_Opt%SpcDatabaseFile        = ''
     Input_Opt%SpcMetaDataOutFile     = ''
+    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
     Input_Opt%ITS_A_CH4_SIM          = .FALSE.
     Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
+    Input_Opt%ITS_A_TAGCH4_SIM       = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
-    Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
+    Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
     Input_Opt%ITS_A_TRACER_SIM       = .FALSE.
     Input_Opt%VerboseRequested       = .FALSE.
@@ -896,14 +903,19 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------
-    Input_Opt%GOSAT_CH4_OBS          = .FALSE.
-    Input_Opt%AIRS_CH4_OBS           = .FALSE.
-    Input_Opt%TCCON_CH4_OBS          = .FALSE.
-    Input_Opt%AnalyticalInv          = .FALSE.
-    Input_Opt%PerturbEmis            = 1.0
-    Input_Opt%StateVectorElement     = 0
-    Input_Opt%UseEmisSF              = .FALSE.
-    Input_Opt%UseOHSF                = .FALSE.
+    Input_Opt%GOSAT_CH4_OBS                     = .FALSE.
+    Input_Opt%AIRS_CH4_OBS                      = .FALSE.
+    Input_Opt%TCCON_CH4_OBS                     = .FALSE.
+    Input_Opt%DoAnalyticalInv                   = .FALSE.
+    Input_Opt%StateVectorElement                = 0
+    Input_Opt%EmisPerturbFactor                 = 1.0
+    Input_Opt%DoPerturbCH4BoundaryConditions    = .FALSE.
+    Input_Opt%CH4BoundaryConditionIncreaseNorth = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseSouth = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseEast  = 0.0_fp
+    Input_Opt%CH4BoundaryConditionIncreaseWest  = 0.0_fp
+    Input_Opt%UseEmisSF                         = .FALSE.
+    Input_Opt%UseOHSF                           = .FALSE.
 
     !----------------------------------------
     ! POPS MENU fields

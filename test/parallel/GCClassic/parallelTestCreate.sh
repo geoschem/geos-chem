@@ -69,7 +69,8 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Source the script containing utility functions and variables
-. "${geosChemDir}/test/shared/commonFunctionsForTests.sh"
+commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
+. "${commonFuncs}"
 
 # Echo header
 printf "${SEP_MAJOR}\n"
@@ -135,11 +136,11 @@ ln -s "${superProjectDir}" ${ptRoot}/CodeDir
 #=============================================================================
 
 printf "\nCopying run scripts to: ${ptRoot}\n"
-cp -f ${envFile}                            ${envDir}/gcclassic.env
-cp -f ${thisDir}/parallelTest*.sh           ${scriptsDir}
-cp -f ${thisDir}/commonFunctionsForTests.sh ${scriptsDir}
-cp -f ${thisDir}/README.md                  ${scriptsDir}
-cp -f ${thisDir}/README.testroot.md         ${ptRoot}/README.md
+cp -f ${envFile}                     ${envDir}/gcclassic.env
+cp -f ${thisDir}/parallelTest*.sh    ${scriptsDir}
+cp -f ${commonFuncs}                 ${scriptsDir}
+cp -f ${thisDir}/README.md           ${scriptsDir}
+cp -f ${thisDir}/README.testroot.md  ${ptRoot}/README.md
 
 # Log file with echoback from rundir creation
 log="${logsDir}/createParallelTests.log"
@@ -247,6 +248,7 @@ cd "${thisDir}"
 # Free local variables
 unset binDir
 unset buildDir
+unset commonFuncs
 unset dir
 unset envDir
 unset geosChemDir

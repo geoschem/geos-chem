@@ -2491,16 +2491,12 @@ CONTAINS
          State_Chm%SpeciesAdj = State_Chm%SpeciesAdj( :, :, State_Grid%NZ:1:-1, : )
       ENDIF
 #endif
-       !=======================================================================
-       ! On first call, also need to initialize the species from restart file.
-       ! Only need to do this for species that are not advected, i.e. species
-       ! that are not tracers (all other species arrays will be filled with
-       ! tracer values anyways!).
-       ! We only need to do this on the first call because afterwards, species
-       ! array already contains values from previous chemistry time step
-       ! (advected species will be updated with tracers)
-       ! ckeller, 10/27/2014
-       !=======================================================================
+
+      !=======================================================================
+      ! On first call, populate State_Chm%Species(N)%Conc with background
+      ! values if the species is missing from the restart file and missing
+      ! species are allowed.
+      !=======================================================================
 #ifdef ADJOINT
        IF ( FIRST .or. Input_Opt%IS_ADJOINT) THEN
 #else
@@ -2516,22 +2512,9 @@ CONTAINS
           ! Loop over all species and get info from spc db
           DO N = 1, State_Chm%nSpecies
              ThisSpc => State_Chm%SpcData(N)%Info
-             IF (ThisSpc%Is_Advected) CYCLE
              IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
              IND = IND_( TRIM(ThisSpc%Name ) )
              IF ( IND < 0 ) CYCLE
-
-             ! Get data from internal state and copy to species array
-             CALL MAPL_GetPointer( INTERNAL, Ptr3D_R8, TRIM(SPFX) //          &
-                                   TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
-                                   __RC__ )
-             IF ( .NOT. ASSOCIATED(Ptr3D_R8) ) THEN
-                IF ( MAPL_am_I_Root()) WRITE(*,*)                             &
-                   'Could not find species in INTERNAL state - will be ' //   &
-                   'initialized to zero: ', TRIM(SPFX), TRIM(ThisSpc%Name)
-                State_Chm%Species(IND)%Conc(:,:,:) = 1d-26
-                CYCLE
-             ENDIF
 
              ! Determine if species in restart file
              CALL ESMF_StateGet( INTERNAL, TRIM(SPFX) // TRIM(ThisSpc%Name),  &
@@ -2558,7 +2541,8 @@ CONTAINS
                 ENDDO
                 IF ( MAPL_am_I_Root()) THEN
                    WRITE(*,*)  &
-                   '   WARNING: using background values from species database'
+                        '   WARNING: using background values from species database'&
+                        //' for species '//trim(ThisSpc%Name) 
                 ENDIF
              ENDIF
              ThisSpc => NULL()

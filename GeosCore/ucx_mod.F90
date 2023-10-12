@@ -3895,9 +3895,8 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
-#if defined( SPMD )
-    USE MPISHORTHAND
-#endif
+    USE CAM_ABORTUTILS,     ONLY : endrun
+    USE SPMD_UTILS,         ONLY : mpirun, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -3923,8 +3922,9 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
-#if defined( MODEL_CESM ) && defined( SPMD )
+#if defined( MODEL_CESM )
     INTEGER            :: nSize ! Number of elements in State_Chm%NOXCOEFF
+    INTEGER            :: ierr
 #endif
 
     ! Strings
@@ -3934,6 +3934,9 @@ CONTAINS
     CHARACTER(LEN=255) :: FileMsg
     CHARACTER(LEN=255) :: GridSpec
     CHARACTER(LEN=255) :: NOON_FILE_ROOT
+#if defined( MODEL_CESM )
+    CHARACTER(LEN=*), PARAMETER :: subname = 'NOXCOEFF_INIT'
+#endif
 
     !=================================================================
     ! NOXCOEFF_INIT begins here!
@@ -4127,9 +4130,9 @@ CONTAINS
     ENDDO !IMON
 #if defined( MODEL_CESM )
     ENDIF
-#if defined( SPMD )
-    CALL MPIBCAST( State_Chm%NOXCOEFF, nSize, MPIR8, 0, MPICOM )
-#endif
+
+    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 
   END SUBROUTINE NOXCOEFF_INIT

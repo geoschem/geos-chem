@@ -165,7 +165,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:)   => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -679,8 +679,8 @@ CONTAINS
     INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
     INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
     INTEGER                :: Day,       S,         errorCount
-    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
-    REAL(fp)               :: itim,      TOUT,      T,         TIN
+    REAL(fp)               :: REL_HUM,   rtim,      itim,      TOUT
+    REAL(fp)               :: T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -962,10 +962,10 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
-    !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
+    !$OMP PRIVATE( I,        J,        L,        N                          )&
+    !$OMP PRIVATE( IERR,     RCNTRL,   ISTATUS,  RSTATE                     )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,        P                          )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,       C_before_integrate         )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
     !$OMP REDUCTION( +:errorCount                                           )
@@ -3292,8 +3292,8 @@ CONTAINS
 
     ENDIF
 
-    ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
-    Hg0aq = OCEAN_CONC(:,:,1)
+    ! Only doing Hg0 overall
+    Hg0aq = OCEAN_CONC(:,:)
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()

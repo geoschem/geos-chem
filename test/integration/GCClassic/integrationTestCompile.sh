@@ -2,13 +2,13 @@
 
 #SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -t 0-00:30
+#SBATCH -t 0-0:30
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=8000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 8
-#BSUB -W 00:30
+#BSUB -W 0:30
 #BSUB -R "rusage[mem=8GB] span[ptile=1] select[mem < 1TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
@@ -61,7 +61,7 @@ baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${codeDir}" log --oneline --no-decorate -1)
+          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
@@ -86,7 +86,7 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     #-----------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 

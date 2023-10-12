@@ -35,7 +35,7 @@ Before you submit any GEOS-Chem Classic parallelization tests, please take a mom
 
 ```console
 $ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel
+$ cd test/parallel/GCClassic
 $ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s slurm -p partition
 ```
 
@@ -43,7 +43,7 @@ $ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s slurm -p partit
 
 ```console
 $ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel
+$ cd test/parallel/GCClassic
 $ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s lsf -p partition
 ```
 
@@ -51,7 +51,7 @@ $ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s lsf -p partitio
 
 ```console
 $ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel
+$ cd test/parallel/GCClassic
 $ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file
 ```
 
