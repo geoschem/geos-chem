@@ -2576,7 +2576,7 @@ CONTAINS
       ! Each time the boundary conditions are read, they have no longer been perturbed
       ! This value is sometimes set to True in set_boundary_conditions_mod.F90
       IF ( ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. & 
-           Input_Opt%PerturbCH4BoundaryConditions ) THEN
+           Input_Opt%DoPerturbCH4BoundaryConditions ) THEN
         State_Chm%IsCH4BCPerturbed = .FALSE.
       ENDIF
 

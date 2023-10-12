@@ -4171,7 +4171,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
-       IF ( Input_Opt%AnalyticalInv ) THEN
+       IF ( Input_Opt%DoAnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
                           OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
 

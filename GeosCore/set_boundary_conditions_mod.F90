@@ -141,7 +141,7 @@ CONTAINS
       ! Convert to [kg/kg dry] (nbalasus, 8/31/2023)
       Perturb_CH4_BC = ( State_Chm%SpcData(N)%Info%Name == "CH4" .AND. &
                          ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. &
-                         Input_Opt%PerturbCH4BoundaryConditions .AND. &
+                         Input_Opt%DoPerturbCH4BoundaryConditions .AND. &
                          ( .NOT. State_Chm%IsCH4BCPerturbed ) )
       MW_g_CH4       =   State_Chm%SpcData(N)%Info%MW_g
 

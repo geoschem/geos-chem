@@ -1296,7 +1296,7 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
@@ -1375,6 +1375,14 @@ ${RUNDIR_CO2_COPROD}
 # --- Multiply by -1 to get a "negative" flux.
 #==============================================================================
 1 NEGATIVE -1.0 - - - xy 1 1
+
+#==============================================================================
+# --- Perturbation factors ---
+#
+# Add factors to perturb OH, emissions, and other fields here for
+# analytical inversions.
+#==============================================================================
+2 OH_pert_factor  1.0 - - - xy 1 1
 
 #==============================================================================
 # --- Seasonal scaling factors ----
