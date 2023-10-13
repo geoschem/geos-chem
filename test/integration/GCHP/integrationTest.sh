@@ -169,6 +169,11 @@ fi
 # Convert integration test root folder to an absolute path
 itRoot=$(absolute_path "${itRoot}")
 
+# Prevent running integration tests in the source code directory tree
+if [[ "$(absolute_path ${thisDir})" =~ "${itRoot}" ]]; then
+    echo "ERROR: You cannot run integration tests in the source code directory!"
+    exit 1
+fi
 # Create GEOS-Chem run directories in the integration test root folder
 ./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
 if [[ $? -ne 0 ]]; then
