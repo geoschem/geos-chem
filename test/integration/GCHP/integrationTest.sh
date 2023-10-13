@@ -19,18 +19,20 @@
 #    -d root-dir  : Specify the root folder for integration tests
 #    -e env-file  : Specify the environment file (w/ module loads)
 #    -h           : Display a help message
+#    -n           : Do not bootstrap missing restart file variables
 #    -p partition : Select partition for SLURM or LSF schedulers
 #    -q           : Run a quick set of integration tests (for testing)
 #    -s scheduler : Specify the scheduler (SLURM or LSF)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-dir  (instead of -d root-directory)
-#    --env-file  env-file  (instead of -e env-file      )
-#    --help                (instead of -h               )
-#    --partition partition (instead of -p partition     )
-#    --quick               (instead of -q               )
-#    --scheduler scheduler (instead of -s scheduler     )
+#    --directory root-dir  (instead of -d root-dir )
+#    --env-file  env-file  (instead of -e env-file )
+#    --help   #    --help                (instead of -h          )
+#    --no-bootstrap        (instead of -n          )
+#    --partition partition (instead of -p partition)
+#    --quick               (instead of -q          )
+#    --scheduler scheduler (instead of -s scheduler)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -43,7 +45,8 @@ usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s sched
 itRoot="none"
 envFile="none"
 scheduler="none"
-sedCmd="none"
+sedPartitionCmd="none"
+sedBootStrapCmd="none"
 quick="no"
 
 #=============================================================================
@@ -53,8 +56,8 @@ quick="no"
 
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
-validArgs=$(getopt --options d:e:hp:qs: \
-  --long directory:,env-file:,help,partition:,quick,scheduler: -- "$@")
+validArgs=$(getopt --options d:e:hnp:qs: \
+  --long directory:,env-file:,help,no-bootstrap,partition:,quick,scheduler: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -65,15 +68,15 @@ eval set -- "${validArgs}"
 while [ : ]; do
     case "${1}" in
 
-	# -d or --directory specifies the root folder for tests
-	-d | --directory)
-	    itRoot="${2}"
+        # -d or --directory specifies the root folder for tests
+        -d | --directory)
+            itRoot="${2}"
             shift 2
             ;;
 
 	# -e or --env-file specifies the environment file
 	-e | --env-file)
-	    envFile="${2}"
+            envFile="${2}"
             shift 2
             ;;
 
@@ -83,15 +86,22 @@ while [ : ]; do
             exit 1
             ;;
 
+	# -n or --no-bootstrap prevents bootstrapping missing variables in
+        # restart files (i.e. do not change EFYO -> CYS in HEMCO_Config.rc)
+	-n | --no-bootstrap)
+            sedBootStrapCmd='/\/EFY/d'
+	    shift
+            ;;
+
 	# -p or --partition replaces REQUESTED_PARTITION with the user's choice
 	-p | --partition)
-	    sedCmd="s/REQUESTED_PARTITION/${2}/"
-	    shift 2
-	    ;;
+            sedPartitionCmd="s/REQUESTED_PARTITION/${2}/"
+            shift 2
+            ;;
 
 	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
-	    quick="yes"
+            quick="yes"
             shift
 	    ;;
 
@@ -125,14 +135,14 @@ if [[ "x${scheduler}" != "xLSF" ]]; then
 fi
 
 # Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xSLURM" && "x${sedCmd}" == "xnone" ]]; then
+if [[ "x${scheduler}" == "xSLURM" && "x${sedPartitionCmd}" == "xnone" ]]; then
     echo "ERROR: You must specify a partition for SLURM."
     echo "${usage}"
     exit 1
 fi
 
 # Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xLSF" && "x${sedCmd}" == "xnone" ]]; then
+if [[ "x${scheduler}" == "xLSF" && "x${sedPartitionCmd}" == "xnone" ]]; then
     echo "ERROR: You must specify a partition for LSF."
     echo "${usage}"
     exit 1
@@ -178,6 +188,14 @@ fi
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
+# If --no-bootstrap is selected, also remove the lines in
+# integrationTestExecute that reset EFYO -> CYS and EFY -> CYS
+if [[ "x${sedBootStrapCmd}" != "xnone" ]]; then
+    sed_ie "/time cycle flags/d" "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie "/missing species/d"  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie "${sedBootStrapCmd}"  "${scriptsDir}/integrationTestExecute.sh"
+fi
+
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
 
@@ -213,8 +231,8 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 	"${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
     output=$(sbatch ${scriptsDir}/integrationTestCompile.sh)
@@ -252,8 +270,8 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
     output=$(bsub ${scriptsDir}/integrationTestCompile.sh)

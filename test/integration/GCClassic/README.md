@@ -77,9 +77,16 @@ The integration test scripts accept the following command-line arguments
 
 `-s` specifies that the SLURM scheduler will be used to run the integration test scripts.
 
+`-n` specifies that missing species in restart files will not be bootstrapped to a missing value.  This can be used to test if "out-of-the-box" simulations will fail before a version release.
+
+`-h` displays a help screeen.
+
+
 You can also use long names for the option switches:
 - `--directory` instead of `-d`
 - `--env-file` instead of `-e`
+- `--help` instead of `h`
+- `--no-bootstrap` instead of `n`
 - `--partition partition` instead of `-p`
 - `--scheduler scheduler` instead of `-s`
 
