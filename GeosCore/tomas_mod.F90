@@ -501,9 +501,6 @@ CONTAINS
     double precision soil_ions(9) ! ion pairs cm-3 s-1 from radioactive elements in soil
     data             soil_ions / 5.,3.3,1.8,0.7,0.,0.,0.,0.,0./
 
-    ! For fields from Input_Opt
-    LOGICAL :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -526,9 +523,6 @@ CONTAINS
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
-
-    ! Get logical values from Input_Opt
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize debugging and error-signal switches
     printneg    = .FALSE.
@@ -1083,9 +1077,15 @@ CONTAINS
     !WRITE(777,*) '---------------------------'
 77  FORMAT(3I4, '  Spc(id_NH3)%Conc(I,J,L),'E13.5,'  Used', E13.5 )
 
-    IF ( COND .and. prtDebug ) PRINT *,'### AEROPHYS: SO4 CONDENSATION'
-    IF ( COAG .and. prtDebug ) PRINT *,'### AEROPHYS: COAGULATION'
-    IF ( NUCL .and. prtDebug ) PRINT *,'### AEROPHYS: NUCLEATION'
+    IF ( COND .and. Input_Opt%Verbose ) THEN
+       PRINT *,'### AEROPHYS: SO4 CONDENSATION'
+    ENDIF
+    IF ( COAG .and. Input_Opt%Verbose ) THEN
+       PRINT *,'### AEROPHYS: COAGULATION'
+    ENDIF
+    IF ( NUCL .and. Input_Opt%Verbose ) THEN
+       PRINT *,'### AEROPHYS: NUCLEATION'
+    ENDIF
 
     ! Free pointer memory
     Spc => NULL()
@@ -7386,9 +7386,6 @@ CONTAINS
     REAL*4              :: BOXVOL
     REAL(fp)            :: XFER(IBINS)
 
-    ! For values from Input_Opt
-    LOGICAL             :: prtDebug
-
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -7398,9 +7395,6 @@ CONTAINS
 
     ! Assume success
     RC        =  GC_SUCCESS
-
-    ! Copy values from Input_Opt
-    prtDebug  = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Point to chemical species array [kg]
     Spc       => State_Chm%Species
@@ -7511,7 +7505,9 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
+    IF ( Input_Opt%Verbose ) THEN
+       WRITE(6,*)' #### CHECKMN: finish at ',LOCATION
+    ENDIF
 
     ! Free pointer
     Spc => NULL()

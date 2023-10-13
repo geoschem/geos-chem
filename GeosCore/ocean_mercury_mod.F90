@@ -467,9 +467,10 @@ CONTAINS
     ! convert REAL*4 to REAL(fpp)
     DST_CONC(:,:,1:State_Grid%MaxChemLev) = ARRAYdst1(:,:,1:State_Grid%MaxChemLev)
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L                                                  )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -912,7 +913,6 @@ CONTAINS
     REAL(fpp), PARAMETER :: CHLMINNUM   = 1e-1_fpp
 
     ! For values from Input_Opt
-    LOGICAL              :: LSPLIT
     LOGICAL              :: LArcticRiv,  LKRedUV
 
     ! Pointers
@@ -945,7 +945,6 @@ CONTAINS
     TOMS_LT => NULL()
 
     ! Copy values from Input_Opt
-    LSPLIT       = Input_Opt%LSPLIT
     LArcticRiv   = Input_Opt%LArcticRiv
     LKRedUV      = Input_Opt%LKRedUV
 
@@ -1077,62 +1076,72 @@ CONTAINS
     ENDIF
 
     ! Loop over surface boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,   vi,   A_M2,    Hg2_RED                         ) &
-    !$OMP PRIVATE( J,   k_ox, OC_tot,  Hg2_CONV                        ) &
-    !$OMP PRIVATE( N,   TK,   CHg0,    k_red_bio                       ) &
-    !$OMP PRIVATE( C,   TC,   RADz,    Hg0_OX,  k_red_rad              ) &
-    !$OMP PRIVATE( D,   EC,   k_red,   OLDMLD,  TOTDEPall              ) &
-    !$OMP PRIVATE( Y,   Ze,   ScCO2,   FRAC_O,  Frac_Hg2,  Hg2aq_tot   ) &
-    !$OMP PRIVATE( H,   Kw,   MLDCM,   TOTDEP,  OC_tot_kg              ) &
-    !$OMP PRIVATE( X,   SPM,  CHg0aq,  Hg2_GONE                        ) &
-    !$OMP PRIVATE( Sc,  Usq,  C_tot,   JorgC_kg                        ) &
-    !$OMP PRIVATE( IS_OCEAN_BOX                                        ) &
-    !$OMP PRIVATE( FRAC_OPEN_OCEAN,    FRAC_OCEAN_OR_ICE,  Snow_Hg2aq  ) &
-    !$OMP PRIVATE( FRAC_REDUCIBLE,     UVI_RATIO                       ) &
-    !$OMP PRIVATE( Kd_part                                             ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )& 
+    !$OMP PRIVATE( I,                J,               A_M2                  )&
+    !$OMP PRIVATE( C,                CHg0,            CHg0aq                )&
+    !$OMP PRIVATE( C_tot,            D,               EC                    )&
+    !$OMP PRIVATE( Frac_Hg2,         Frac_O,          FRAC_OCEAN_OR_ICE     )&
+    !$OMP PRIVATE( FRAC_OPEN_OCEAN,  FRAC_REDUCIBLE,  H                     )&
+    !$OMP PRIVATE( Hg0_OX,           Hg2aq_tot,       Hg2_Conv              )&
+    !$OMP PRIVATE( Hg2_GONE,         Hg2_RED,         IS_OCEAN_BOX          )&
+    !$OMP PRIVATE( JorgC_kg,         k_ox,            k_red                 )&
+    !$OMP PRIVATE( k_red_bio,        k_red_rad,       kd_part               )&
+    !$OMP PRIVATE( Kw,               MLDcm,           N                     )&
+    !$OMP PRIVATE( OLDMLD,           OC_tot,          OC_tot_kg             )&
+    !$OMP PRIVATE( RADz,             Sc,              ScCO2                 )&
+    !$OMP PRIVATE( SNOW_Hg2aq,       SPM,             TC                    )&
+    !$OMP PRIVATE( TK,               TOTDEP,          TOTDEPall             )&
+    !$OMP PRIVATE( Usq,              UVI_RATIO,       vi                    )&
+    !$OMP PRIVATE( Ze                                                       )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Grid box surface area [m2]
-       A_M2       = State_Grid%Area_M2(I,J)
-
-       ! Grid-box latitude [degrees]
-       Y          = State_Grid%YMid(I,J)
-
-       ! Initialize values
-       Kw         = 0e+0_fpp
-       Hg2_CONV   = 0e+0_fpp
-       TK         = 0e+0_fpp
-       TC         = 0e+0_fpp
-       JorgC_kg   = 0e+0_fpp
-       EC         = 0e+0_fpp
-       RADz       = 0e+0_fpp
-       k_red      = 0e+0_fpp
-       k_red_rad  = 0e+0_fpp
-       k_red_bio  = 0e+0_fpp
-       SPM        = 0e+0_fpp
-       Frac_Hg2   = 0e+0_fpp
-       Hg2aq_tot  = 0e+0_fpp
-       Hg2_RED    = 0e+0_fpp
-       C_tot      = 0e+0_fpp
-       Ze         = 0e+0_fpp
-       OC_tot     = 0e+0_fpp
-       OC_tot_kg  = 0e+0_fpp
-       Hg0_OX     = 0e+0_fpp
-       D          = 0e+0_fpp
-       TOTDEP     = 0e+0_fpp
-       TOTDEPall  = 0e+0_fpp
-       k_ox       = 0e+0_fpp
-       SNOW_Hg2aq = 0e+0_fpp
-       UVI_RATIO  = 0e+0_fpp
-       FRAC_REDUCIBLE = 0e+0_fpp
-
-       OLDMLD     = MLDav(I,J)
-       MLDav(I,J) = MLDav(I,J) + dMLD(I,J) * DTSRCE
-       MLDcm      = MLDav(I,J)
+       ! Initialize variables (now alphabetized)
+       A_M2           = State_Grid%Area_M2(I,J)   ! Grid box area [m2]
+       CHg0           = 0.0_fpp
+       CHg0aq         = 0.0_fpp
+       C_tot          = 0.0_fpp
+       D              = 0.0_fpp
+       EC             = 0.0_fpp
+       Frac_Hg2       = 0.0_fpp
+       Frac_O         = 0.0_fpp
+       FRAC_REDUCIBLE = 0.0_fpp
+       H              = 0.0_fpp
+       Hg0_OX         = 0.0_fpp
+       Hg2aq_tot      = 0.0_fpp
+       Hg2_CONV       = 0.0_fpp
+       Hg2_GONE       = 0.0_fpp
+       Hg2_RED        = 0.0_fpp
+       JorgC_kg       = 0.0_fpp
+       k_ox           = 0.0_fpp
+       k_red          = 0.0_fpp
+       k_red_bio      = 0.0_fpp
+       k_red_rad      = 0.0_fpp
+       kd_part        = 0.0_fpp
+       Kw             = 0.0_fpp
+       OLDMLD         = MLDav(I,J)
+       MLDav(I,J)     = MLDav(I,J) + dMLD(I,J) * DTSRCE
+       MLDcm          = MLDav(I,J)
+       OC_tot         = 0.0_fpp
+       OC_tot_kg      = 0.0_fpp
+       RADz           = 0.0_fpp
+       Sc             = 0.0_fpp
+       ScCO2          = 0.0_fpp
+       SNOW_Hg2aq     = 0.0_fpp
+       SPM            = 0.0_fpp
+       TC             = 0.0_fpp
+       TK             = 0.0_fpp
+       TOTDEP         = 0.0_fpp
+       TOTDEPall      = 0.0_fpp
+       Usq            = 0.0_fpp
+       UVI_RATIO      = 0.0_fpp
+       vi             = 0.0_fpp
+       X              = State_Grid%XMid(I,J)      ! Longitude [deg]
+       Y              = State_Grid%YMid(I,J)      ! Laittude [deg]
+       Ze             = 0.0_fpp
 
        ! Add error trap to prevent new MLD from being negative
        ! (jaf, 7/6/11)
@@ -1385,9 +1394,6 @@ CONTAINS
              !%%% Removed loop over Hg categories here
              !%%% and also removed NN as the 3rd array index
              !%%%  -- Bob Yantosca (23 Jun 2022)
-
-                ! Grid box longitude [degrees]
-                X = State_Grid%XMid(I,J)
 
                 !--------------------------------------------------------
                 ! Atlantic
@@ -2124,9 +2130,11 @@ CONTAINS
     ! Overwrite fields with Arctic specific parameters
     !-----------------------------------------------------------------
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, X, Y )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, X, Y                                               )& 
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2262,9 +2270,6 @@ CONTAINS
     REAL(fpp)             :: A_M2, DELTAH, FRAC_O,  MHg
     REAL(fpp)             :: X, Y                   !(added anls 01/05/09)
 
-    ! For fields from Input_Opt
-    LOGICAL               :: LSPLIT
-
     ! Pointers
     REAL(fpp), POINTER   :: Hg0aq(:,:)
     REAL(fpp), POINTER   :: Hg2aq(:,:)
@@ -2273,9 +2278,6 @@ CONTAINS
     !=================================================================
     ! MLD_ADJUSTMENT begins here!
     !=================================================================
-
-    ! Copy values from Input_Opt
-    LSPLIT       = Input_Opt%LSPLIT
 
     ! Point to fields in State_Chm
     Hg0aq       => State_Chm%OceanHg0

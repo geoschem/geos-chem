@@ -10,9 +10,10 @@ MODULE fullchem_HetStateFuncs
   !
 CONTAINS
   !
-  SUBROUTINE fullchem_SetStateHet( I,         J,         L,                  &
-                                   Input_Opt, State_Chm, State_Met,          &
-                                   H,         RC                            )
+  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
+                                   id_SALA,   id_SALAAL, id_SALC,            &
+                                   id_SALCAL, Input_Opt, State_Chm,          &
+                                   State_Met, H,         RC                 )
     !
     ! Stub routine to avoid compilation errors
     !
@@ -25,6 +26,10 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I
     INTEGER,        INTENT(IN)    :: J
     INTEGER,        INTENT(IN)    :: L
+    INTEGER,        INTENT(IN)    :: id_SALA
+    INTEGER,        INTENT(IN)    :: id_SALAAL
+    INTEGER,        INTENT(IN)    :: id_SALC
+    INTEGER,        INTENT(IN)    :: id_SALCAL
     TYPE(OptInput), INTENT(IN)    :: Input_Opt
     TYPE(ChmState), INTENT(IN)    :: State_Chm
     TYPE(MetState), INTENT(IN)    :: State_Met

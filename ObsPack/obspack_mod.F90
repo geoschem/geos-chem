@@ -115,7 +115,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: N
 
     ! Strings
@@ -127,14 +126,13 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90'
 
     ! Assume that there are ObsPack data for today
     State_Diag%Do_ObsPack = .TRUE.
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### OBSPACK_INIT: starting' )
     ENDIF
 
@@ -1318,7 +1316,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  prtDebug, doSample
+    LOGICAL             :: prtLog,  doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
     REAL(f8)            :: TsStart, TsEnd
@@ -1335,7 +1333,6 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
     prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
-    prtDebug = (Input_Opt%amIRoot .and. Input_Opt%LPRT                    )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).

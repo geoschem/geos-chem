@@ -161,7 +161,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                 :: prtDebug
     INTEGER                 :: TS_Dyn
     REAL(f8)                :: DT_Dyn
 
@@ -184,9 +183,6 @@ CONTAINS
     LDYNOCEAN         = Input_Opt%LDYNOCEAN
     ITS_A_MERCURY_SIM = Input_Opt%ITS_A_MERCURY_SIM
     ITS_A_POPS_SIM    = Input_Opt%ITS_A_POPS_SIM
-
-    ! Only print output on the root CPU
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !------------------------------------------------------------------------
     ! WetDep budget diagnostics - Part 1 of 2
@@ -260,7 +256,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: before LS wetdep' )
+    ENDIF
 
     !-----------------------------------------
     ! Do wet deposition
@@ -282,7 +280,9 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF ( prtDebug ) CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### DO_WETDEP: after LS wetdep' )
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Wet deposition budget diagnostics - Part 2 of 2
@@ -417,9 +417,10 @@ CONTAINS
     ! Initialize
     RC = GC_SUCCESS
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L )
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED  ) &
+    !$OMP PRIVATE( I, J, L ) &
+    !$OMP COLLAPSE( 3      )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1353,6 +1354,9 @@ CONTAINS
        ENDIF
 
     ENDIF
+    
+    ! Free pointer
+    p_pHCloud => NULL()
 #else
     !=================================================================
     ! %%% SPECIAL CASE %%%
@@ -1738,6 +1742,15 @@ CONTAINS
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
 #ifdef LUO_WETDEP
+
+    ! Initialize
+    Hplus  = 0.0_f8
+    HCSO2  = 0.0_f8
+    HCNH3  = 0.0_f8
+    Ks1    = 0.0_f8
+    Ks2    = 0.0_f8
+    T_Term = 0.0_f8
+
     IF ( SpcInfo%WD_Is_HNO3 ) THEN
 
        ! Washout is a kinetic process
@@ -1869,7 +1882,8 @@ CONTAINS
     ELSE IF ( SpcInfo%MP_SizeResAer .or. SpcInfo%MP_SizeResNum ) THEN
 #ifdef APM
        ! Washout is a kinetic process
-       KIN      = .TRUE.
+       KIN = .TRUE.
+       RIN = 0.0_fp
 
        IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
           RIN = RDRY(N-APMIDS%id_SO4BIN1+1) * GFTOT3D(I,J,L,1)
@@ -3268,7 +3282,8 @@ CONTAINS
     !$OMP PRIVATE( QDOWN,       IS_RAINOUT, IS_WASHOUT,  N          ) &
     !$OMP PRIVATE( DEP_HG,      SpcInfo,    Hg_Cat,      EC         ) &
     !$OMP PRIVATE( COND_WATER_CONTENT                               ) &
-    !$OMP SCHEDULE( DYNAMIC                                         )
+    !$OMP COLLAPSE( 2                                               ) &
+    !$OMP SCHEDULE( DYNAMIC, 24                                     )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -4552,8 +4567,8 @@ CONTAINS
                                  + GAINED * 96e+0_fp / 64e+0_fp
 
 #ifdef APM
-             State_Met%PSO4_SO2APM2(I,J,L) = State_Met%PSO4_SO2APM2(I,J,L) &
-                                   + GAINED * 96e+0_fp / 64e+0_fp
+             State_Chm%PSO4_SO2APM2(I,J,L) =                                 &
+             State_Chm%PSO4_SO2APM2(I,J,L) + GAINED * 96e+0_fp / 64e+0_fp
 #endif
 
              Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) * ( 1e+0_fp - WASHFRAC )
@@ -4891,8 +4906,8 @@ CONTAINS
                               ( WETLOSS * 96e+0_fp / 64e+0_fp )
 
 #ifdef APM
-          State_Met%PSO4_SO2APM2(I,J,L) = State_Met%PSO4_SO2APM2(I,J,L) - &
-                                ( WETLOSS * 96e+0_fp / 64e+0_fp )
+          State_Chm%PSO4_SO2APM2(I,J,L) =                                    &
+          State_Chm%PSO4_SO2APM2(I,J,L) - ( WETLOSS * 96e+0_fp / 64e+0_fp )
 #endif
 
 #ifdef TOMAS
@@ -5688,7 +5703,8 @@ CONTAINS
     !=================================================================
     ! Print information about wet-depositing species
     !=================================================================
-    IF ( Input_Opt%amIRoot .and. State_Chm%nWetDep > 0 ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose                              &
+                           .and. State_Chm%nWetDep > 0 ) THEN
 
        ! Title
        LINE = 'INIT_WETSCAV: List of soluble species: '
@@ -5825,10 +5841,11 @@ CONTAINS
     ! Only do computation if wetdep or convection is turned on
     IF ( Input_Opt%LWETD .or. Input_Opt%LCONV ) THEN
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, TK, PL ) &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PARALLEL DO               &
+       !$OMP DEFAULT( SHARED          )&
+       !$OMP PRIVATE( I, J, L, TK, PL )&
+       !$OMP COLLAPSE( 3              )&
+       !$OMP SCHEDULE( DYNAMIC, 24    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX

@@ -200,7 +200,7 @@ CONTAINS
     IF ( PRESENT(OrigUnit) ) OrigUnit = State_Chm%Spc_Units
 
     ! Debugging print
-    IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,'(a)') '     ### Species Unit Conversion: ' // &
                       TRIM(InUnit) // ' -> ' // TRIM(OutUnit) // ' ###'
     ENDIF
@@ -1964,7 +1964,7 @@ ENDIF
     !
     !  Species(I,J,L,N) [kg]
     !
-    !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) * AVO / MW_KG / 1e6
+    !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) / AVO * MW_KG * 1e6
     !
     ! NOTES:
     !  (1) Use exact reverse of the species mass -> # density conversion to

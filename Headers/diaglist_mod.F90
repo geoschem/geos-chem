@@ -181,6 +181,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL                      :: doPrintCollList
     LOGICAL                      :: EOF, found, isWildcard, isTagged
     LOGICAL                      :: InDefSection, InFieldsSection
     INTEGER                      :: QMatch, CMatch
@@ -232,6 +233,7 @@ CONTAINS
     IsCarbon        = .FALSE.
     InDefSection    = .FALSE.
     InFieldsSection = .FALSE.
+    doPrintCollList = .FALSE.
     Name            =  ''
     LastCollName    =  ''
 
@@ -303,6 +305,17 @@ CONTAINS
        WRITE ( RadWL(I), "(a5)" ) a_str(N)
        RadWL(I) = ADJUSTL( RadWL(I) )
     ENDDO
+
+    ! Read the simulation name
+    key  = "simulation%debug_printout"
+    CALL QFYAML_Add_Get( Config, key, doPrintCollList, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       CALL QFYAML_CleanUp( Config          )
+       CALL QFYAML_CleanUp( ConfigAnchored  )
+       RETURN
+    ENDIF
 
     ! Clean up YAML config objects
     CALL QFYAML_CleanUp( Config          )
@@ -385,7 +398,9 @@ CONTAINS
              collname = CleanText( Line )
 
           ENDDO
-          CALL Print_ColList( am_I_Root, CollList, RC )
+          IF ( doPrintCollList ) THEN
+             CALL Print_ColList( am_I_Root, CollList, RC )
+          ENDIF
           CYCLE
        ENDIF
 
@@ -698,19 +713,7 @@ CONTAINS
              CALL StrSplit( name, '?', SubStrs, N )
              wildcard = SubStrs(N-1)
           ENDIF
-          ! Get tag, if any
-          isTagged  = .FALSE.
-          tag = ''
-          IF ( .NOT. isWildcard ) THEN
-             CALL StrSplit( name, '_', SubStrs, N )
-             IF ( TRIM(state) == 'DIAG' .AND. N == 2 ) THEN
-                isTagged = .TRUE.
-                tag = SubStrs(2)
-             ELSE IF ( TRIM(state) == 'CHEM' .AND. N == 3 ) THEN
-                isTagged = .TRUE.
-                tag = SubStrs(3)
-             ENDIF
-          ENDIF
+
           ! Get registryID - start with the full name in HISTORY.rc
           registryID = TRIM(nameAllCaps)
           ! Then strip off the state prefix, if any
@@ -731,13 +734,16 @@ CONTAINS
              registryID = registryID(1:LineInd-1)
           ENDIF
 
-          ! Get metadataID - start with the registry ID
-          metadataID = registryID
-
-          ! Then strip off the tag suffix, if any
-          IF ( isTagged ) THEN
-             LineInd = INDEX( TRIM(metadataID), '_' )
-             metadataID = metadataID(1:LineInd-1)
+          ! Get metadataID and strip off the tag suffix, if any
+          isTagged  = .FALSE.
+          tag = ''
+          LineInd= INDEX( TRIM(registryID), '_' )
+          IF ( LineInd > 0 ) THEN
+             isTagged = .TRUE.
+             tag = TRIM(registryID(LineInd+1:))
+             metadataID = registryID(1:LineInd-1)
+          ELSE
+             metadataID = registryID
           ENDIF
 
           ! For registryID and metdataID, handle special case of AOD wavelength

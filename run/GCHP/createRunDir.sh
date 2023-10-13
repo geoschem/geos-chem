@@ -1,50 +1,48 @@
 #!/bin/bash
 
-# createRunDir.sh: Create GCHP run directory
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
 #
-# Optional argument: run directory name
+# !MODULE: createRunDir.sh
 #
-# If optional run directory name argument is not passed then the user
-# will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{met}_{sim_name}.
+# !DESCRIPTION: Creates a GCHP run directory.
+#\\
+#\\
+# !CALLING SEQUENCE:
+#  ./createRunDir.sh [rundirname]
 #
-# Usage: ./createRunDir.sh [rundirname]
+# !REMARKS:
+#  If optional run directory name argument is not passed then the user
+#  will be prompted to enter a name interactively, or choose to use the
+#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
 #
-# Initial version: E. Lundgren,10/5/2018
+# !REVISION HISTORY:
+#  Initial version: E. Lundgren,10/5/2018
+#  See the subsequent Git history with the gitk browser!
+#------------------------------------------------------------------------------
+#BOC
 
-# post registration details to api
-function post_registration() {
-    email="$1"
-    name="$2"
-    affiliation="$3"
-    site="$4"
-    git_username="$5"
-    research_interest="$6"
-    env_type="$7"
-    curl --location --request POST "https://gc-dashboard.org/registration" \
-        --header "Content-Type: text/plain" \
-        -d "{
-            \"email\": \"${email}\",
-            \"name\": \"${name}\",
-            \"affiliation\": \"${affiliation}\",
-            \"site\": \"${site}\",
-            \"git_username\": \"${git_username}\",
-            \"research_interest\": \"${research_interest}\",
-            \"model_type\": \"gchp\",
-            \"env_type\": \"${env_type}\"
-        }"
-}
-
+# Directory w/ GCHP rundir scripts (i.e. this directory)
 srcrundir=$(pwd -P)
 cd ${srcrundir}
+
+# GEOS-Chem "science codebase" directory
 cd ../..
 gcdir=$(pwd -P)
+
+# GCHP "wrapper" directory
 cd ../../../..
 wrapperdir=$(pwd -P)
+
+# Return to 
 cd ${srcrundir}
 
-# Load file with utility functions to setup configuration files
-. ${gcdir}/run/shared/setupConfigFiles.sh
+# Source common bash functions from scripts in the run/shared folder
+. ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
+. ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
+. ${gcdir}/run/shared/singleCarbonSpecies.sh   # Single carbon species setup
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -78,7 +76,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
-	read -e extdata
+	read -e -p "${USER_PROMPT}" extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -97,29 +95,7 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # --------------------------------------------------------------
 # registration for first time users
 # --------------------------------------------------------------
-if [[ -z "${GC_USER_REGISTERED}" ]]; then
-    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
-    printf "${thinline}What is your email address?${thinline}"
-    read email
-    
-    if [[ ${email} != "" ]]; then
-    printf "${thinline}What is your name?${thinline}"
-    IFS='\n' read -r name
-    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
-    IFS='\n' read -r affiliation
-    printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
-    IFS='\n' read -r site
-    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
-    IFS='\n' read -r git_username
-    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
-    IFS='\n' read -r env_type
-    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
-    IFS='\n' read -r research_interest
-    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
-    fi
-    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
-    source ${HOME}/.geoschem/config
-fi
+[[ -z "${GC_USER_REGISTERED}" ]] && registerNewUser "gchp"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -133,7 +109,7 @@ printf "   5. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
-    read sim_num
+    read -p "${USER_PROMPT}" sim_num
     valid_sim=1
     if [[ ${sim_num} = "1" ]]; then
 	sim_name=fullchem
@@ -172,7 +148,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
-	read sim_option
+	read -p "${USER_PROMPT}" sim_option
 	valid_sim_option=1
 	if [[ ${sim_option} = "1" ]]; then
 	    sim_extra_option=none
@@ -184,7 +160,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. Complex SOA with semivolatile POA\n"
 	    valid_soa=0
 	    while [ "${valid_soa}" -eq 0 ]; do
-		read soa_option
+		read -p "${USER_PROMPT}" soa_option
 		valid_soa=1
 		if [[ ${soa_option} = "1" ]]; then
 		    sim_extra_option="complexSOA"
@@ -205,7 +181,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
-		read tomas_option
+		read -p "${USER_PROMPT}" tomas_option
 		valid_tomas=1
 		if [[ ${tomas_option} = "1" ]]; then
 		    sim_extra_option="TOMAS15"
@@ -220,7 +196,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -230,6 +205,34 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
+
+# Ask user to specify carbon simulation options
+elif [[ "x${sim_name}" == "xcarbon" ]]; then
+    printf "${thinline}Do you wish to use a single advected species?${thinline}"
+    printf "  1. Use all species\n"
+    printf "  2. Use CH4 only\n"
+    printf "  3. Use CO2 only\n"
+    printf "  4. Use CO only\n"
+    printf "  5. Use OCS only\n"
+    valid=0
+    while [ "${valid}" -eq 0 ]; do
+	read -p "${USER_PROMPT}" prompt
+	valid=1
+        if [[ "x${prompt}" == "x1" ]]; then
+	    sim_extra_option="none"
+	elif [[ "x${prompt}" == "x2" ]]; then
+	    sim_extra_option="CH4"
+	elif [[ "x${prompt}" == "x3" ]]; then
+	    sim_extra_option="CO2"
+	elif [[ "x${prompt}" == "x4" ]]; then
+	    sim_extra_option="CO"
+	elif [[ "x${prompt}" == "x5" ]]; then
+	    sim_extra_option="OCS"
+	else
+	    valid=0
+	    printf "Invalid selection. Try again.\n"
+	fi
+    done
 fi
 
 RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
@@ -300,7 +303,7 @@ printf "  3. GEOS-FP native data\n"
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
-    read met_num
+    read -p "${USER_PROMPT}" met_num
     valid_met=1
     if [[ ${met_num} = "1" ]]; then
 	met="merra2"
@@ -337,7 +340,7 @@ done
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read -e rundir_path
+    read -e -p "${USER_PROMPT}" rundir_path
 
     # Test for quitting
     if [[ "x${rundir_path}" == "xq" ]]; then
@@ -357,7 +360,7 @@ while [ "$valid_path" -eq 0 ]; do
     if [[ ! -d ${rundir_path} ]]; then
         if [[ -d $(dirname ${rundir_path} ) ]]; then
             printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
-            read mk_rundir
+            read -p "${USER_PROMPT}" mk_rundir
             if [[ "x${mk_rundir}" == "xy" ]]; then
                 mkdir $rundir_path
 	    elif [[ "x${mk_rundir}" == "xq" ]]; then
@@ -381,7 +384,7 @@ done
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:\n\n"
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
-    read -e rundir_name
+    read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
 	if [[ "${sim_extra_option}" = "none" ]]; then
 	    rundir_name=gchp_${met}_${sim_name}
@@ -403,7 +406,7 @@ while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read -e new_rundir
+	read -e -p "${USER_PROMPT}" new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -466,10 +469,6 @@ fi
 # Create symbolic link to code directory
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
-
-# Create build directory
-mkdir ${rundir}/build
-printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
 
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
@@ -560,6 +559,19 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
 RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+if [[ "x${sim_extra_option}" == "xbenchmark"        ||
+      "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xTransportTracers" ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
+else
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='1'\n"
+fi
 
 #--------------------------------------------------------------------
 # Replace settings in config files with RUNDIR variables
@@ -576,7 +588,14 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCHP"
+fi
+
+# If necessary, edit config files for a carbon single species simulation
+if [[ "x${sim_name}" == "xcarbon" ]]; then
+    if [[ "x${sim_extra_option}" != "xnone" ]]; then
+	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
+    fi
 fi
 
 # Call setCommonRunSettings.sh so that all config files are consistent with its
@@ -617,7 +636,7 @@ printf "\n  Hash: ${commit_hash}"      >> ${version_log}
 printf "${thinline}Do you want to track run directory changes with git? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
-    read enable_git
+    read -p "${USER_PROMPT}" enable_git
     if [[ ${enable_git} = "y" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
@@ -651,5 +670,39 @@ printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
 
 exit 0

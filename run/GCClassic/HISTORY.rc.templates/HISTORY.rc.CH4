@@ -35,8 +35,9 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-	     #'SatDiagn',
-             #'StateMet',
+             #'SatDiagn',
+             #'SatDiagnEdge',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -230,6 +231,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnMODISLAI               ',
                               'SatDiagnColEmis_CH4            ',
                               'SatDiagnSurfFlux_CH4           ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%

@@ -53,7 +53,8 @@ MODULE Carbon_Gases_Mod
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! Scalars
-  LOGICAL               :: useGlobOH,  useGlobOHv5
+  LOGICAL               :: useGlobOHbmk10yr
+  LOGICAL               :: useGlobOHv5
   INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
   INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
   INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
@@ -64,7 +65,7 @@ MODULE Carbon_Gases_Mod
 !
 ! !DEFINED PARAMETERS:
 !
-  INTEGER,  PARAMETER   :: N_CH4_DIAGS = 15
+  INTEGER,  PARAMETER   :: N_CH4_DIAGS = 16
   REAL(fp), PARAMETER   :: CM2perM2    = 1.0e+4_fp
   REAL(fp), PARAMETER   :: CM3perM3    = 1.0e+6_fp
   REAL(fp), PARAMETER   :: toMolecCm3  = ( AVO / AIRMW ) * 1.0e-3_fp
@@ -163,7 +164,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     Ptr2D    => NULL()
     Spc      => NULL()
     errMsg   =  ''
@@ -216,6 +216,7 @@ CONTAINS
        CH4diag(13)  = 'CH4_LAKES'
        CH4diag(14)  = 'CH4_TERMITES'
        CH4diag(15)  = 'CH4_SOILABSORB'    ! CH4 soilabsorb values are negative!
+       CH4diag(16)  = 'CH4_RESERVOIRS'
        CH4scale(15) = -1.0_hp             ! Need to convert to positive
 
        ! Loop over manual CH4 diagnostics
@@ -253,7 +254,7 @@ CONTAINS
        CH4_EMIS_J(:,:,1) = SUM( CH4_EMIS_J, 3 )                              &
                          - ( 2.0_fp * CH4_EMIS_J(:,:,15) )
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
           WRITE(*,*) 'Total        : ', SUM( CH4_EMIS_J(:,:,1 ) )
           WRITE(*,*) 'Oil          : ', SUM( CH4_EMIS_J(:,:,2 ) )
@@ -270,6 +271,7 @@ CONTAINS
           WRITE(*,*) 'Lakes        : ', SUM( CH4_EMIS_J(:,:,13) )
           WRITE(*,*) 'Termites     : ', SUM( CH4_EMIS_J(:,:,14) )
           WRITE(*,*) 'Soil absorb  : ', SUM( CH4_EMIS_J(:,:,15) )
+          WRITE(*,*) 'Reservoirs   : ', SUM( CH4_EMIS_J(:,:,16) )
        ENDIF
 
     ENDIF
@@ -367,7 +369,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Chem_Carbon_Gases( Input_Opt,  State_Met,  State_Chm,            &
-                               State_Grid, State_Diag, RC                   )
+                                State_Grid, State_Diag, RC                   )
 !
 ! !USES:
 !
@@ -682,7 +684,16 @@ CONTAINS
        ! Update reaction rates
        !===================================================================
 
-       ! Start timer
+       ! Stop KPP timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End(                                                    &
+               timerName = "  -> KPP",                                       &
+               inLoop    = .TRUE.,                                           &
+               threadNum = ThreadNum,                                        &
+               RC        = RC                                               )
+       ENDIF
+
+       ! Start RCONST timer
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start(                                                  &
                timerName = "     RCONST",                                    &
@@ -753,6 +764,15 @@ CONTAINS
 
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
+
+       ! Start KPP timer
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End(                                                    &
+               timerName = "  -> KPP",                                       &
+               inLoop    = .TRUE.,                                           &
+               threadNum = ThreadNum,                                        &
+               RC        = RC                                               )
+       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -1087,7 +1107,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
     !------------------------------------------------------------------------
-    IF ( useGlobOH ) THEN
+    IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
 
        ! NOTE: Container name is GLOBAL_OH for both data sets!
        DgnName = 'GLOBAL_OH'
@@ -1098,21 +1118,18 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+    ENDIF
 
-       IF ( useGlobOHv5 ) THEN
+    ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
+    ! then convert OH [mol/mol dry air] to [molec/cm3].
+    IF ( useGlobOHbmk10yr ) THEN
+       Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
+    ENDIF
 
-          ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
-          ! methane simulations) then convert OH from [kg/m3] to [molec/cm3]
-          Global_OH = Global_OH * xnumol_OH / CM3perM3
-
-       ELSE
-
-          ! If we are using OH from a 10-year benchmark ("SpeciesConc")
-          ! then convert OH [mol/mol dry air] to [molec/cm3]
-          Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-
-       ENDIF
-
+    ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
+    ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
+    IF ( useGlobOHv5 ) THEN
+       Global_OH = Global_OH * xnumol_OH / CM3perM3
     ENDIF
 
     !------------------------------------------------------------------------
@@ -1698,7 +1715,8 @@ CONTAINS
      ' -> at InquireGlobalOHversion (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Test if any Global OH option is on
-    optVal   = HCO_GC_GetOption( "GLOBAL_OH", extNr=0 )
+    ! NOTE: Update the option name with each major version!!!
+    optVal   = HCO_GC_GetOption( "GLOBAL_OH_GC14", extNr=0 )
     isOHon   = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Test for GEOS-Chem v5 OH
@@ -1707,18 +1725,14 @@ CONTAINS
     isOHv5On = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Set a global variable to determine which OH to use
-    useGlobOH   = isOHon
-    useGlobOHv5 = isOHv5on
+    useGlobOHbmk10yr = isOHon
+    useGlobOHv5      = isOHv5on
 
     IF ( Input_Opt%amIRoot ) THEN
-       IF ( useGlobOH ) THEN
-          IF ( useGlobOHv5 ) THEN
-             WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
-          ELSE
-             WRITE( 6, 100 ) 'GLOBAL_OH'
-          ENDIF
- 100   FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
-
+       IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
+          IF ( useGlobOHbmk10yr ) WRITE( 6, 100 ) 'GLOBAL_OH_GC14'
+          IF ( useGlobOHv5      ) WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
+ 100      FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
        ELSE
           WRITE( 6, 110 )
  110      FORMAT( 'Carbon_Gases: Global OH is set to zero!' )

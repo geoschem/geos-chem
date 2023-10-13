@@ -199,9 +199,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    LOGICAL            :: prtDebug
-
     ! Strings
     CHARACTER(LEN=255) :: thisLoc
     CHARACTER(LEN=512) :: errMsg
@@ -216,7 +213,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !========================================================================
     ! Accumulation mode (SALA) wet settling
@@ -228,7 +224,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALA)%Conc,                    &
+            spcId      = id_SALA,                                            &
             N          = 1,                                                  &
             RC         = RC                                                 )
 
@@ -238,7 +234,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
        ENDIF
     ENDIF
@@ -253,7 +249,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALC)%Conc,                    &
+            spcId      = id_SALC,                                            &
             N          = 2,                                                  &
             RC         = RC                                                 )
 
@@ -263,7 +259,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
        ENDIF
     ENDIF
@@ -278,7 +274,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALACL)%Conc,                  &
+            spcId      = id_SALACL,                                          &
             N          = 3,                                                  &
             RC         = RC                                                 )
 
@@ -288,7 +284,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
        ENDIF
     ENDIF
@@ -303,7 +299,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALCCL)%Conc,                  &
+            spcId      = id_SALCCL,                                          &
             N          = 4,                                                  &
             RC         = RC                                                 )
 
@@ -313,7 +309,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
        ENDIF
     ENDIF
@@ -328,7 +324,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALAAL)%Conc,                  &
+            spcId      = id_SALAAL,                                          &
             N          = 5,                                                  &
             RC         = RC                                                 )
 
@@ -338,7 +334,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
        ENDIF
     ENDIF
@@ -353,7 +349,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALCAL)%Conc,                  &
+            spcId      = id_SALCAL,                                          &
             N          = 6,                                                  &
             RC         = RC                                                 )
 
@@ -363,7 +359,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
@@ -388,7 +384,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
           ENDIF
        ENDIF
@@ -408,7 +404,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
           ENDIF
        ENDIF
@@ -425,7 +421,9 @@ CONTAINS
     ENDDO
     CALL SRCSALTBIN( Seasalt_Ids, State_Grid, State_Met, State_Chm )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    ENDIF
 
     !----------------------------------------
     ! APM microphysics
@@ -454,7 +452,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Wet_Settling( Input_Opt, State_Chm, State_Diag, State_Grid,     &
-                           State_Met, TC,        N,          RC             )
+                           State_Met, spcId,     N,          RC             )
 !
 ! !USES:
 !
@@ -462,6 +460,7 @@ CONTAINS
     USE Error_Mod,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -474,14 +473,12 @@ CONTAINS
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    INTEGER,        INTENT(IN)    :: spcId       ! Sea salt species Id
     INTEGER,        INTENT(IN)    :: N           ! odd=accum; even=coarse
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX, &! Sea salt [kg]
-                                        State_Grid%NY, &
-                                        State_Grid%NZ)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -500,7 +497,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: PrtDebug
     INTEGER            :: I,           J,          L
     INTEGER            :: S,           ID
     REAL(fp)           :: DELZ,        DELZ1,      REFF
@@ -519,6 +515,9 @@ CONTAINS
     REAL(fp)           :: VTS(State_Grid%NZ)
     REAL(fp)           :: TC0(State_Grid%NZ)
 
+    ! Pointers
+    REAL(fp), POINTER  :: TC(:,:,:)
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
@@ -534,7 +533,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     DTCHEM   = GET_TS_CHEM()    ! Chemistry timestep [s]
     DEN      = SS_DEN( N )      ! Sea salt density [kg/m3]
     ErrMsg   = ''
@@ -558,8 +556,13 @@ CONTAINS
        REFF = REFF_accum                  ! Eff radius of accum mode  [m]
     ENDIF
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    ENDIF
 
+    ! Point to the species concentration array in State_Chm%Species
+    TC => State_Chm%Species(spcId)%Conc
+    
 !%%% Comment out unused code (not sure who disabled this)
 !%%%    ! Sea salt radius [cm]
 !%%%    !RCM  = REFF * 100e+0_fp
@@ -823,7 +826,12 @@ CONTAINS
     ENDDO ! J
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    ! Free pointer
+    TC => NULL()
+
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    ENDIF
 
   END SUBROUTINE Wet_Settling
 !EOC
@@ -1796,7 +1804,23 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       MASS = 0.d0
+       ! Zero private loop variables
+       CONST = 0.0_fp
+       DELZ  = 0.0_fp
+       DELZ1 = 0.0_fp
+       DEN   = 0.0_fp
+       DP    = 0.0_fp
+       MASS  = 0.0_fp
+       OLD   = 0.0_fp
+       P     = 0.0_fp
+       PDP   = 0.0_fp
+       REFF  = 0.0_fp
+       SLIP  = 0.0_fp
+       TEMP  = 0.0_fp
+       TC0   = 0.0_fp
+       VISC  = 0.0_fp
+       VTS   = 0.0_fp
+
        DO L = 1, State_Grid%NZ
           DO N = IDTEMP1, IDTEMP2
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)

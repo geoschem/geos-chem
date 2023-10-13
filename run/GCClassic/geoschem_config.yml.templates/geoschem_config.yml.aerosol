@@ -16,7 +16,9 @@ simulation:
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
   species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
-  debug_printout: false
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
 #============================================================================
@@ -62,7 +64,9 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   photolysis:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
+    activate: true
+    input_directories:
+      fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2021-10/
     overhead_O3:
       use_online_O3_from_model: false
       use_column_O3_from_met: true

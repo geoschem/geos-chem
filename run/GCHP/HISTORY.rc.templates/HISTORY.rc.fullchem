@@ -1,7 +1,7 @@
-
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
@@ -13,14 +13,16 @@ VERSION: 1
 # in the collections section of this file.
 #
 # See the examples below for defining different types of grid at different
-# resolutions.
+# resolutions. See the collections section later on in this file for
+# instructions on using an alternative grid for output.
 #
-# See the collections section later on in this file for instructions on
-# using an alternative grid for output.
+# Beware that the online regridding is area-conserving. Only diagnostics
+# independent of grid cell area should be output on a custom grid. For more
+# information see the HISTORY.rc page at gchp.readthedocs.io/.
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution
@@ -73,10 +75,12 @@ COLLECTIONS: @#'DefaultCollection',
              @#'ProdLoss',
              @##'RRTMG',
              @##'RxnRates',
+             @##'RxnConst',
              #'SpeciesConc',
              @#'StateChm',
              #'StateMet',
              @#'StratBM',
+             @#'UVFlux',
              @#'WetLossConv',
              @#'WetLossLS',
 ::
@@ -176,6 +180,8 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisACET_BioBurn     ', 'GCHPchem',
                           'EmisACET_Biogenic    ', 'GCHPchem',
                           'EmisACET_Ocean       ', 'GCHPchem',
+                          'EmisACTA_Total       ', 'GCHPchem',
+                          'EmisACTA_BioBurn     ', 'GCHPchem',
                           'EmisALD2_Total       ', 'GCHPchem',
                           'EmisALD2_Anthro      ', 'GCHPchem',
                           'EmisALD2_BioBurn     ', 'GCHPchem',
@@ -258,6 +264,10 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisEOH_PlantDecay   ', 'GCHPchem',
                           'EmisEOH_Ship         ', 'GCHPchem',
                           'EmisETNO3_Ocean      ', 'GCHPchem',
+                          'EmisFURA_Total       ', 'GCHPchem',
+                          'EmisFURA_BioBurn     ', 'GCHPchem',
+                          'EmisGLYX_Total       ', 'GCHPchem',
+                          'EmisGLYX_BioBurn     ', 'GCHPchem',
                           'EmisH2O_Aircraft     ', 'GCHPchem',
                           'EmisHCOOH_Total      ', 'GCHPchem',
                           'EmisHCOOH_Anthro     ', 'GCHPchem',
@@ -265,6 +275,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisHNO3_Ship        ', 'GCHPchem',
                           'EmisHONO_Aircraft    ', 'GCHPchem',
                           'EmisISOP_Total       ', 'GCHPchem',
+                          'EmisISOP_BioBurn     ', 'GCHPchem',
                           'EmisISOP_Biogenic    ', 'GCHPchem',
                           'EmisLIMO_Biogenic    ', 'GCHPchem',
                           'EmisMACR_Total       ', 'GCHPchem',
@@ -274,8 +285,8 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisMEK_BioBurn      ', 'GCHPchem',
                           'EmisMEK_Ship         ', 'GCHPchem',
                           'EmisMENO3_Ocean      ', 'GCHPchem',
-                          ##'EmisMGLY_Total       ', 'GCHPchem',
-                          ##'EmisMGLY_Anthro      ', 'GCHPchem',
+                          'EmisMGLY_Total       ', 'GCHPchem',
+                          'EmisMGLY_BioBurn     ', 'GCHPchem',
                           'EmisMOH_Total        ', 'GCHPchem',
                           'EmisMOH_Anthro       ', 'GCHPchem',
                           'EmisMOH_BioBurn      ', 'GCHPchem',
@@ -285,7 +296,10 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisMTPA_Total       ', 'GCHPchem',
                           'EmisMTPA_BioBurn     ', 'GCHPchem',
                           'EmisMTPA_Biogenic    ', 'GCHPchem',
+                          'EmisMTPO_Total       ', 'GCHPchem',
                           'EmisMTPO_Biogenic    ', 'GCHPchem',
+                          'EmisMVK_Total        ', 'GCHPchem',
+                          'EmisMVK_BioBurn      ', 'GCHPchem',
                           'EmisNAP_Total        ', 'GCHPchem',
                           'EmisNAP_Anthro       ', 'GCHPchem',
                           'EmisNAP_BioBurn      ', 'GCHPchem',
@@ -318,6 +332,8 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmispFe_Total        ', 'GCHPchem',
                           'EmispFe_Anthro       ', 'GCHPchem',
                           'EmispFe_Ship         ', 'GCHPchem',
+                          'EmisPHEN_Total       ', 'GCHPchem',
+                          'EmisPHEN_BioBurn     ', 'GCHPchem',
                           'EmisPOG1_Total       ', 'GCHPchem',
                           'EmisPOG1_Anthro      ', 'GCHPchem',
                           'EmisPOG1_BioBurn     ', 'GCHPchem',
@@ -332,13 +348,14 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisPRPE_Ship        ', 'GCHPchem',
                           'EmisRCHO_Total       ', 'GCHPchem',
                           'EmisRCHO_Aircraft    ', 'GCHPchem',
+                          'EmisRCHO_BioBurn     ', 'GCHPchem',
                           ##'EmisSESQ_Biogenic    ', 'GCHPchem',
                           'EmisSALA_Natural     ', 'GCHPchem',
-                          ##'EmisBrSALA_Natural   ', 'GCHPchem',
+                          'EmisBrSALA_Natural   ', 'GCHPchem',
                           'EmisSALAAL_Natural   ', 'GCHPchem',
                           'EmisSALACL_Natural   ', 'GCHPchem',
                           'EmisSALC_Natural     ', 'GCHPchem',
-                          ##'EmisBrSALC_Natural   ', 'GCHPchem',
+                          'EmisBrSALC_Natural   ', 'GCHPchem',
                           'EmisSALCAL_Natural   ', 'GCHPchem',
                           'EmisSALCCL_Natural   ', 'GCHPchem',
                           'EmisSO2_Total        ', 'GCHPchem',
@@ -510,6 +527,7 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvMEGAN_FAXX        ', 'GCHPchem',
                           #'InvMEGAN_AAXX        ', 'GCHPchem',
                           #'InvGFED_ACET         ', 'GCHPchem',
+                          #'InvGFED_ACTA         ', 'GCHPchem',
                           #'InvGFED_ALD2         ', 'GCHPchem',
                           #'InvGFED_ALK4         ', 'GCHPchem',
                           #'InvGFED_BCPI         ', 'GCHPchem',
@@ -520,17 +538,24 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvGFED_CH2O         ', 'GCHPchem',
                           #'InvGFED_CO           ', 'GCHPchem',
                           #'InvGFED_EOH          ', 'GCHPchem',
+                          #'InvGFED_FURA         ', 'GCHPchem',
+                          #'InvGFED_GLYX         ', 'GCHPchem',
+                          #'InvGFED_ISOP         ', 'GCHPchem',
                           #'InvGFED_MEK          ', 'GCHPchem',
+                          #'InvGFED_MGLY         ', 'GCHPchem',
                           #'InvGFED_MOH          ', 'GCHPchem',
                           #'InvGFED_MTPA         ', 'GCHPchem',
+                          #'InvGFED_MVK          ', 'GCHPchem',
                           #'InvGFED_NAP          ', 'GCHPchem',
                           #'InvGFED_NH3          ', 'GCHPchem',
                           #'InvGFED_NO           ', 'GCHPchem',
                           #'InvGFED_OCPI         ', 'GCHPchem',
                           #'InvGFED_OCPO         ', 'GCHPchem',
+                          #'InvGFED_PHEN         ', 'GCHPchem',
                           #'InvGFED_POG1         ', 'GCHPchem',
                           #'InvGFED_POG2         ', 'GCHPchem',
                           #'InvGFED_PRPE         ', 'GCHPchem',
+                          #'InvGFED_RCHO         ', 'GCHPchem',
                           #'InvGFED_SO2          ', 'GCHPchem',
                           #'InvGFED_SOAP         ', 'GCHPchem',
                           #'InvGFED_TOLU         ', 'GCHPchem',
@@ -4439,9 +4464,9 @@ COLLECTIONS: @#'DefaultCollection',
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
 #
-# Photolysis rates (from the FAST-JX photolysis module)
+# Photolysis rates (from the photolysis module)
 #
-# Available for all full-chemistry simulations
+# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:       '%y4%m2%d2_%h2%n2z.nc4',
   JValues.format:         'CFIO',
@@ -4593,60 +4618,75 @@ COLLECTIONS: @#'DefaultCollection',
                           'Jval_ATOOH             ', 'GCHPchem',
                           'Jval_ALD2              ', 'GCHPchem',
                           'Jval_ACET              ', 'GCHPchem',
-                          'UVFluxNet_574nm        ', 'GCHPchem',
-                          'UVFluxNet_380nm        ', 'GCHPchem',
-                          'UVFluxNet_333nm        ', 'GCHPchem',
-                          'UVFluxNet_316nm        ', 'GCHPchem',
-                          'UVFluxNet_310nm        ', 'GCHPchem',
-                          'UVFluxNet_303nm        ', 'GCHPchem',
-                          'UVFluxNet_295nm        ', 'GCHPchem',
-                          'UVFluxNet_277nm        ', 'GCHPchem',
-                          'UVFluxNet_267nm        ', 'GCHPchem',
-                          'UVFluxNet_261nm        ', 'GCHPchem',
-                          'UVFluxNet_214nm        ', 'GCHPchem',
-                          'UVFluxNet_211nm        ', 'GCHPchem',
-                          'UVFluxNet_208nm        ', 'GCHPchem',
-                          'UVFluxNet_202nm        ', 'GCHPchem',
-                          'UVFluxNet_196nm        ', 'GCHPchem',
-                          'UVFluxNet_193nm        ', 'GCHPchem',
-                          'UVFluxNet_191nm        ', 'GCHPchem',
-                          'UVFluxNet_187nm        ', 'GCHPchem',
-                          'UVFluxDirect_574nm     ', 'GCHPchem',
-                          'UVFluxDirect_380nm     ', 'GCHPchem',
-                          'UVFluxDirect_333nm     ', 'GCHPchem',
-                          'UVFluxDirect_316nm     ', 'GCHPchem',
-                          'UVFluxDirect_310nm     ', 'GCHPchem',
-                          'UVFluxDirect_303nm     ', 'GCHPchem',
-                          'UVFluxDirect_295nm     ', 'GCHPchem',
-                          'UVFluxDirect_277nm     ', 'GCHPchem',
-                          'UVFluxDirect_267nm     ', 'GCHPchem',
-                          'UVFluxDirect_261nm     ', 'GCHPchem',
-                          'UVFluxDirect_214nm     ', 'GCHPchem',
-                          'UVFluxDirect_211nm     ', 'GCHPchem',
-                          'UVFluxDirect_208nm     ', 'GCHPchem',
-                          'UVFluxDirect_202nm     ', 'GCHPchem',
-                          'UVFluxDirect_196nm     ', 'GCHPchem',
-                          'UVFluxDirect_193nm     ', 'GCHPchem',
-                          'UVFluxDirect_191nm     ', 'GCHPchem',
-                          'UVFluxDirect_187nm     ', 'GCHPchem',
-                          'UVFluxDiffuse_574nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_380nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_333nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_316nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_310nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_303nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_295nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_277nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_267nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_261nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_214nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_211nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_208nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_202nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_196nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_193nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_191nm    ', 'GCHPchem',
-                          'UVFluxDiffuse_187nm    ', 'GCHPchem',
+::
+#==============================================================================
+# %%%%% THE UVFlux COLLECTION %%%%%
+#
+# UV fluxes (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  UVFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  UVFlux.format:         'CFIO',
+  UVFlux.timestampStart: .true.
+  UVFlux.monthly:        1
+  UVFlux.frequency:      010000
+  UVFlux.duration:       010000
+  UVFlux.mode:           'time-averaged'
+  UVFlux.fields:         'UVFluxNet_574nm        ', 'GCHPchem',
+                         'UVFluxNet_380nm        ', 'GCHPchem',
+                         'UVFluxNet_333nm        ', 'GCHPchem',
+                         'UVFluxNet_316nm        ', 'GCHPchem',
+                         'UVFluxNet_310nm        ', 'GCHPchem',
+                         'UVFluxNet_303nm        ', 'GCHPchem',
+                         'UVFluxNet_295nm        ', 'GCHPchem',
+                         'UVFluxNet_277nm        ', 'GCHPchem',
+                         'UVFluxNet_267nm        ', 'GCHPchem',
+                         'UVFluxNet_261nm        ', 'GCHPchem',
+                         'UVFluxNet_214nm        ', 'GCHPchem',
+                         'UVFluxNet_211nm        ', 'GCHPchem',
+                         'UVFluxNet_208nm        ', 'GCHPchem',
+                         'UVFluxNet_202nm        ', 'GCHPchem',
+                         'UVFluxNet_196nm        ', 'GCHPchem',
+                         'UVFluxNet_193nm        ', 'GCHPchem',
+                         'UVFluxNet_191nm        ', 'GCHPchem',
+                         'UVFluxNet_187nm        ', 'GCHPchem',
+                         'UVFluxDirect_574nm     ', 'GCHPchem',
+                         'UVFluxDirect_380nm     ', 'GCHPchem',
+                         'UVFluxDirect_333nm     ', 'GCHPchem',
+                         'UVFluxDirect_316nm     ', 'GCHPchem',
+                         'UVFluxDirect_310nm     ', 'GCHPchem',
+                         'UVFluxDirect_303nm     ', 'GCHPchem',
+                         'UVFluxDirect_295nm     ', 'GCHPchem',
+                         'UVFluxDirect_277nm     ', 'GCHPchem',
+                         'UVFluxDirect_267nm     ', 'GCHPchem',
+                         'UVFluxDirect_261nm     ', 'GCHPchem',
+                         'UVFluxDirect_214nm     ', 'GCHPchem',
+                         'UVFluxDirect_211nm     ', 'GCHPchem',
+                         'UVFluxDirect_208nm     ', 'GCHPchem',
+                         'UVFluxDirect_202nm     ', 'GCHPchem',
+                         'UVFluxDirect_196nm     ', 'GCHPchem',
+                         'UVFluxDirect_193nm     ', 'GCHPchem',
+                         'UVFluxDirect_191nm     ', 'GCHPchem',
+                         'UVFluxDirect_187nm     ', 'GCHPchem',
+                         'UVFluxDiffuse_574nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_380nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_333nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_316nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_310nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_303nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_295nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_277nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_267nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_261nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_214nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_211nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_208nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_202nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_196nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_193nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_191nm    ', 'GCHPchem',
+                         'UVFluxDiffuse_187nm    ', 'GCHPchem',
 ::
 #=============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%
@@ -4931,6 +4971,29 @@ COLLECTIONS: @#'DefaultCollection',
                            'RxnRate_EQ002     ', 'GCHPchem',
 ::
 #==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of reactants
+# in the reaction.
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnConst.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.format:         'CFIO',
+  RxnConst.timestampStart: .true.
+  RxnConst.monthly:        1
+  RxnConst.frequency:      010000
+  RxnConst.duration:       010000
+  RxnConst.mode:           'time-averaged'
+  RxnConst.fields:         'RxnConst_EQ001    ', 'GCHPchem',
+                           'RxnConst_EQ002    ', 'GCHPchem',
+::
+#==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
 # GEOS-Chem species concentrations
@@ -5179,6 +5242,7 @@ COLLECTIONS: @#'DefaultCollection',
                             'SpeciesConcVV_H1211          ', 'GCHPchem',
                             'SpeciesConcVV_GLYX           ', 'GCHPchem',
                             'SpeciesConcVV_GLYC           ', 'GCHPchem',
+                            'SpeciesConcVV_FURA           ', 'GCHPchem',
                             'SpeciesConcVV_ETP            ', 'GCHPchem',
                             'SpeciesConcVV_ETNO3          ', 'GCHPchem',
                             'SpeciesConcVV_ETHP           ', 'GCHPchem',
@@ -5223,6 +5287,7 @@ COLLECTIONS: @#'DefaultCollection',
                             'SpeciesConcVV_C2H4           ', 'GCHPchem',
                             'SpeciesConcVV_C2H2           ', 'GCHPchem',
                             'SpeciesConcVV_BZPAN          ', 'GCHPchem',
+                            'SpeciesConcVV_BUTDI          ', 'GCHPchem',
                             'SpeciesConcVV_BrSALC         ', 'GCHPchem',
                             'SpeciesConcVV_BrSALA         ', 'GCHPchem',
                             'SpeciesConcVV_BrO            ', 'GCHPchem',

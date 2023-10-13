@@ -1225,7 +1225,7 @@ CONTAINS
     ! Rxn rate of ClNO3 + H2O on fine sea salt in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
     area      = H%ClearFr * H%aClArea
-    branchLiq = ( 1.0_dp - branchBr ) * ( 1.0 - H%frac_SALACL )
+    branchLiq = ( 1.0_dp - branchBr ) * ( 1.0_dp - H%frac_SALACL )
     k         = k + Ars_L1K( area, H%aClRadi, gamma, srMw ) * branchLiq
     !
     ! Rate of ClNO3 + H2O on stratospheric liquid aerosol
@@ -1403,11 +1403,13 @@ CONTAINS
     !
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    k    = 0.0_dp
-    srMw = SR_MW(ind_ClNO3)
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSA, gamma, branchBr )
+    srMw   = SR_MW(ind_ClNO3)
     area   = H%ClearFr * H%aClArea
     branch = ( 1.0_dp - branchBr ) * H%frac_SALACL
     k      = k + Ars_L1K( area, H%aClRadi, gamma, srMw )* branch
@@ -1425,14 +1427,16 @@ CONTAINS
     !
     REAL(dp) :: area, branch, branchBr, gamma, srMw
     !
-    k    = 0.0_dp
-    srMw = SR_MW(ind_ClNO3)
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! Compute uptake rate of ClNO3 + BrSALA in clear sky
     CALL Gam_ClNO3_Aer( H, H%Br_conc_SSC, gamma, branchBr )
+    srMw   = SR_MW(ind_ClNO3)
     area   = H%ClearFr * H%xArea(SSC)
-    branch = 1.0 - branchBr
-    k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )* branch
+    branch = 1.0_dp - branchBr
+    k      = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw ) * branch
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALCCL), k )
@@ -1450,6 +1454,10 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     REAL(dp)                   :: area, gamma    ! local vars
     !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     area  = H%ClearFr * H%aClArea
     gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
     k     = Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_HBr) )
@@ -1462,6 +1470,10 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     REAL(dp)                   :: area, gamma    ! local vars
+    !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     area  = H%ClearFr * H%xArea(SSC)
     gamma = 1.3e-8_dp * EXP( 4290.0_dp / TEMP )
@@ -1822,7 +1834,7 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * H%f_Acid_SSA
        k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
     ENDIF
 
@@ -1882,7 +1894,7 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * H%f_Acid_SSC
        k    = k + Ars_L1K( area, H%xRadi(SSC), gammaAer, srMw ) * branch
     ENDIF
 
@@ -1942,7 +1954,7 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * H%f_Acid_SSA
        k    = k + Ars_L1K( area, H%aClRadi, gammaAer, srMw ) * branch
     ENDIF
 
@@ -2002,7 +2014,7 @@ CONTAINS
        ENDIF
        !
        ! Uptake rate [1/s]
-       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * H%f_Acid_SSC
        k    = k + Ars_L1K( area, H%xRadi(SSC), gammaAer, srMw ) * branch
     ENDIF
 
@@ -2042,8 +2054,7 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    ! Convert SO2 to HSO3- with the HSO3-/SO2 ratio
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%HSO3m
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k )
   END FUNCTION HOBrUptkByHSO3m
 
   FUNCTION HOBrUptkBySO3mm( H ) RESULT( k )
@@ -2076,8 +2087,7 @@ CONTAINS
     ENDIF
 
     ! Assume HOBr is limiting, so update the removal rate accordingly
-    ! Convert SO2 to SO3-- with the SO3--/SO2 ratio
-    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k ) * H%SO3mm
+    k = kIIR1Ltd( C(ind_HOBr), C(ind_SO2), k )
 
   END FUNCTION HOBrUptkBySO3mm
 
@@ -2195,19 +2205,23 @@ CONTAINS
        gamma = 0.2_dp                          ! Rxn prob, ice
        IF ( H%natSurface ) gamma = 0.1_dp      ! Rxn prob, NAT
        k = k + Ars_L1K( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
-    ELSE
+
+       ! Assume HOCl is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), k )
        !
-       ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop liquid cloud
-       CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
-       branch = branchCl * H%frac_Cl_CldG
-       !
-       ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop ice cloud
-       gammaIce = 0.22_dp * H%HCl_theta
-       brIce    = 1.0_dp
-       !
-       ! Compute overall HOCl + HCl uptake rate accounting for cloud fraction
-       k = k + CloudHet( H, srMw, gamma, gammaIce, branch, brIce )
+       RETURN
     ENDIF
+    !
+    ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop liquid cloud
+    CALL Gam_HOCl_Cld( H, gamma, branchCl, dummy )
+    branch = branchCl * H%frac_Cl_CldG
+    !
+    ! HOCl + HCl uptake coeff [1] & branch ratio [1] in trop ice cloud
+    gammaIce = 0.22_dp * H%HCl_theta
+    brIce    = 1.0_dp
+    !
+    ! Compute overall HOCl + HCl uptake rate accounting for cloud fraction
+    k = k + CloudHet( H, srMw, gamma, gammaIce, branch, brIce )
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HCl), k )
@@ -2270,7 +2284,7 @@ CONTAINS
     ! Compute HOCl + SALACL uptake rate [1/s] on acidic aerosols in clear-sky
     IF ( H%SSA_is_Acid ) THEN
        CALL Gam_HOCl_Aer( H, H%aClRadi, H%H_conc_SSA, H%Cl_conc_SSA, gamma )
-       area = H%ClearFr * H%aClArea
+       area = H%ClearFr * H%aClArea * H%f_Acid_SSA
        k    = k + Ars_L1k( area, H%aClRadi, gamma, srMw )
     ENDIF
     !
@@ -2305,7 +2319,7 @@ CONTAINS
     ! Compute HOCl + SALCCL uptake rate [1/s] on acidic aerosols in clear-sky
     IF ( H%SSC_is_Acid ) THEN
        CALL Gam_HOCl_Aer( H, H%xRadi(SSC), H%H_conc_SSC, H%Cl_conc_SSC, gamma )
-       area = H%ClearFr * H%xArea(SSC)
+       area = H%ClearFr * H%xArea(SSC) * H%f_Acid_SSC
        k    = k + Ars_L1k( area, H%xRadi(SSC), gamma, srMw )
     ENDIF
     !
@@ -2387,7 +2401,7 @@ CONTAINS
     !
     ! Uptake rate of iodine by tropospheric sulfate
     k = Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gamma, srMw )
-
+    !
     ! For UCX-based mechanisms also allow reaction on stratospheric
     ! sulfate liq aerosol if tropospheric sulfate is requested
     k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
@@ -2398,9 +2412,13 @@ CONTAINS
     ! Computes the reaction rate [1/s] for uptake of iodine species
     ! by accumulation-mode (aka fine) sea-salt aerosol.
     !
-    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
+    REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob area
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
+    !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     k = Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
   END FUNCTION IuptkbySALA1stOrd
@@ -2413,10 +2431,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ) rxn prob
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: ssarea         ! alkaline sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSA_is_Alk ) THEN
-       k = IuptkBySALA1stOrd( srMw, gamma, H )
+       ssarea = H%f_Alk_SSA * H%xArea(SSA)
+       k = Ars_L1k( ssarea, H%xRadi(SSA), gamma, srMw )
     ENDIF
   END FUNCTION IuptkbyAlkSALA1stOrd
 
@@ -2429,6 +2452,10 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
     !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     k = Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
   END FUNCTION IuptkBySALC1stOrd
 
@@ -2440,10 +2467,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, gamma    ! sqrt( mol wt ), rxn prob
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: k              ! rxn rate [1/s]
+    REAL(dp)                   :: ssarea         ! alkaline sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSC_is_Alk ) THEN
-       k = IuptkBySALC1stOrd( srMw, gamma, H )
+       ssarea = H%f_Alk_SSC * H%xArea(SSC)
+       k = Ars_L1K( ssarea, H%xRadi(SSC), gamma, srMw )
     ENDIF
   END FUNCTION IuptkByAlkSALC1stOrd
 
@@ -2455,10 +2487,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
+    REAL(dp)                   :: ssarea         ! acidic sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSA_is_Acid ) THEN
-       k = 0.15_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       ssarea = H%f_Acid_SSA * H%xArea(SSA)
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSA), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_BrSALA), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALA
@@ -2471,10 +2508,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
+    REAL(dp)                   :: ssarea         ! acidic sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSC_is_Acid ) THEN
-       k = 0.15_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       ssarea = H%f_Acid_SSC * H%xArea(SSC)
+       k = 0.15_dp * Ars_L1K( ssarea, H%xRadi(SSC), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_BrSALC), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidBrSALC
@@ -2487,10 +2529,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
+    REAL(dp)                   :: ssarea         ! acidic sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSA_is_Acid ) THEN
-       k = 0.85_dp * IuptkBySALA1stOrd( srMw, gamma, H )
+       ssarea = H%f_Acid_SSA * H%xArea(SSA)
+       k = 0.85_dp * Ars_L1K( ssarea, H%xRadi(SSA), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_SALACl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALACl
@@ -2503,10 +2550,15 @@ CONTAINS
     REAL(dp),       INTENT(IN) :: srMw, conc, gamma
     TYPE(HetState), INTENT(IN) :: H
     REAL(dp)                   :: k
+    REAL(dp)                   :: ssarea         ! acidic sea salt area
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     IF ( H%SSC_is_Acid ) THEN
-       k = 0.85_dp * IuptkBySALC1stOrd( srMw, gamma, H )
+       ssarea = H%f_Acid_SSC * H%xArea(SSC)
+       k = 0.85_dp * ARs_L1K( ssarea, H%xRAdi(SSC), gamma, srMw )
        k = kIIR1Ltd( conc, C(ind_SALCCl), k ) ! conc is limiting, so update k
     ENDIF
   END FUNCTION IbrkdnbyAcidSALCCl
@@ -2527,20 +2579,6 @@ CONTAINS
     area  = H%ClearFr * H%xArea(SUL)
     gamma = MAX( ( 0.0021_dp * TEMP - 0.561_dp ), 0.0_dp )
     k     = k + Ars_L1K( area, H%xRadi(SUL), gamma, srMw )
-    !
-    ! Alkaline fine sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSA_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSA)
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSA), gamma, srMw )
-    ENDIF
-    !
-    ! Alkaline coarse sea salt (use gamma from Sherwen et al 2016)
-    IF ( H%SSC_is_Alk ) THEN
-       area  = H%ClearFr * H%xArea(SSC)
-       gamma = 0.01_dp
-       k = k + Ars_L1K( area, H%xRadi(SSC), gamma, srMw )
-    ENDIF
     !
     ! Stratospheric liquid aerosol
     k = k + H%xArea(SLA) * H%KHETI_SLA(BrNO3_plus_H2O)
@@ -2633,21 +2671,22 @@ CONTAINS
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
     !
-    ! Initialize
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
     CALL N2O5_InorgOrg(                                                      &
          H,           H%AClVol,  H%xVol(ORC), H%xH2O(SUL),                   &
          H%xH2O(ORC), H%aClRadi, C(ind_NIT),  C(ind_SALACL),                 &
          gamma,       Y_ClNO2,   Rp,          SA                            )
-
+    !
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol.
     ! Reduce ClNO2 production yield on fine inorganic+organic
     ! aerosol by 75% (cf. McDuffie et al, JGR, 2018).
     k = Ars_L1K( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5)                 )
     k = k * Y_ClNO2 * 0.25_dp
-
+    !
     ! Assume N2O5 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_N2O5), C(ind_SALACL), k )
   END FUNCTION N2O5uptkBySALACl
@@ -2661,19 +2700,20 @@ CONTAINS
     REAL(dp)                   :: k              ! Rxn rate [1/s]
     REAL(dp) :: gamma, Y_ClNO2, Rp, SA           ! local vars
     !
-    ! Initialize
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! Properties of inorganic (SNA) sea salt coated with organics
     CALL N2O5_InorgOrg(                                                      &
          H,      H%xVol(SSC),  0.0_dp,      H%xH2O(SSC),                     &
          0.0_dp, H%xRadi(SSC), C(ind_NITs), C(ind_SALCCL),                   &
          gamma,  Y_ClNO2,      Rp,          SA                              )
-
+    !
     ! Total loss rate of N2O5 (kN2O5) on SNA+ORG+SSA aerosol
     k = Ars_L1k( H%ClearFr * SA, Rp, gamma, SR_MW(ind_N2O5) )
     k = k * Y_ClNO2
-
+    !
     ! Assume N2O5 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_N2O5), C(ind_SALCCL), k )
   END FUNCTION N2O5uptkBySALCCl
@@ -3098,7 +3138,7 @@ CONTAINS
     k = 0.0_dp
     !
     ! Exit if we are not in the troposphere
-    IF ( H%StratBox ) RETURN
+    IF ( H%stratBox ) RETURN
     !
     ! Compute uptake of O3 by Br- in cloud
     gamma  = Gamma_O3_Br( H, H%rLiq, H%Br_conc_Cld )
@@ -3128,14 +3168,16 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     REAL(dp)                   :: area, gamma    ! local vars
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! O3 + Br- uptake by acidic fine sea salt, in trop cloud
     k = k + O3uptkByBrInTropCloud( H, H%frac_Br_CldA )
     !
     ! O3 + Br- uptake on acidic fine sea-salt, clear sky
     IF ( H%SSA_is_Acid ) THEN
-       area  = H%ClearFr * H%aClArea
+       area  = H%ClearFr * H%aClArea * H%f_Acid_SSA
        gamma = Gamma_O3_Br( H, H%aClRadi, H%Br_conc_SSA )
        k     = k + Ars_L1K( area, H%aClRadi, gamma, SR_MW(ind_O3) )
     ENDIF
@@ -3153,14 +3195,16 @@ CONTAINS
     REAL(dp)                   :: k              ! rxn rate [1/s]
     REAL(dp)                   :: area, gamma    ! local vars
     !
+    ! Exit if in the stratosphere
     k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! O3 + Br- uptake by acidic coarse sea salt, in trop cloud
     k = k + O3uptkByBrInTropCloud( H, H%frac_Br_CldC )
     !
     ! O3 + Br- uptake on acidic coarse sea salt, clear sky
     IF ( H%SSC_is_Acid ) THEN
-       area  = H%ClearFr * H%xArea(SSC)
+       area  = H%ClearFr * H%xArea(SSC) * H%f_Acid_SSC
        gamma = Gamma_O3_Br( H, H%xRadi(SSC), H%Br_conc_SSC )
        k     = k + Ars_L1K( area, H%xRadi(SSC), gamma, SR_MW(ind_O3) )
     ENDIF
@@ -3226,6 +3270,10 @@ CONTAINS
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
     !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
+    !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
     gamma = 0.04_dp * H%Cl_conc_SSA
     k = Ars_L1k( H%aClArea, H%aClRadi, gamma, SR_MW(ind_OH) )
@@ -3240,6 +3288,10 @@ CONTAINS
     !
     TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
     REAL(dp)                   :: gamma, k       ! rxn prob [1], rxn rate [1/s]
+    !
+    ! Exit if in the stratosphere
+    k = 0.0_dp
+    IF ( H%stratBox ) RETURN
     !
     ! Compute uptake; gamma is from cf Knipping & Dabdub, 2002
     gamma = 0.04_dp * H%Cl_conc_SSC

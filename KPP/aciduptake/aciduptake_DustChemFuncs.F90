@@ -85,7 +85,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: N
     REAL(dp)           :: K0, Ki, F, M, KK, F1
 

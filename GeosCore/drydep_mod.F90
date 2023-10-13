@@ -342,7 +342,7 @@ CONTAINS
 #endif
 
     !### Debug
-    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
     ENDIF
 
@@ -903,14 +903,15 @@ CONTAINS
     REAL(f8) :: SP
     REAL(f8) :: SFCWINDSQR
 
-    !=================================================================
+    !========================================================================
     ! METERO begins here!
-    !=================================================================
+    !========================================================================
 
     ! Loop over surface grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, THIK, SP, SFCWINDSQR )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, THIK, SP, SFCWINDSQR                               )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -928,7 +929,7 @@ CONTAINS
        PRESSU(I,J) = SP * 1.e+2_f8
 
        !==============================================================
-       ! Return meterological quantities as 1-D arrays for DEPVEL
+       ! Return meterological quantities for DEPVEL
        !==============================================================
 
        ! Roughness height [m]
@@ -957,7 +958,7 @@ CONTAINS
        !  changed to 98% due to vapor pressure lowering above sea water
        !  (Lewis & Schwartz, 2004)
        !  jaegle (5/11/11)
-       RHB(I,J)    = MIN( 0.98e+0_f8, State_Met%RH(I,J,1) * 1.e-2_f8 )
+       RHB(I,J)    = MIN( 0.98_f8, State_Met%RH(I,J,1) * 1.0e-2_f8 )
 
        ! 10m windspeed [m/s] (jaegle 5/11/11)
        SFCWINDSQR  = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
@@ -1163,7 +1164,7 @@ CONTAINS
     REAL(f8) :: RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
     REAL(f8) :: CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
     REAL(f8) :: RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
-    REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC
+    REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC,F0_K
     INTEGER  :: IOLSON,II,IW
     INTEGER  :: K,LDT
     REAL(f8) :: RCLX,RIXX    !,BIOFIT
@@ -1325,47 +1326,89 @@ CONTAINS
     ENDIF
 #endif
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( CZ,      TEMPK,   TEMPC,   K,      VD                ) &
-    !$OMP PRIVATE( LDT,     RSURFC,  C1,      XNU,    RT,      IOLSON   ) &
-    !$OMP PRIVATE( II,      RI,      RLU,     RAC,    RGSS,    RGSO     ) &
-    !$OMP PRIVATE( RCLS,    RCLO,    RAD0,    RIX,    GFACT,   GFACI    ) &
-    !$OMP PRIVATE( RDC,     XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX     ) &
-    !$OMP PRIVATE( DTMP1,   DTMP2,   DTMP3,   DTMP4,  VDS,     CZH      ) &
-    !$OMP PRIVATE( CKUSTR,  REYNO,   CORR1,   CORR2,  Z0OBK,   RA       ) &
-    !$OMP PRIVATE( Z0OBK_Alt, RA_Alt,DUMMY2_Alt,      DUMMY4_Alt        ) &
-    !$OMP PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       ) &
-    !$OMP PRIVATE( C1X,     VK,      I,       J,      IW                ) &
-    !$OMP PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP ) &
-    !$OMP PRIVATE( N_SPC,   alpha,   DEPVw                              ) &
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( CZ,        TEMPK,   TEMPC,   K,      VD                  )&
+    !$OMP PRIVATE( LDT,       RSURFC,  C1,      XNU,    RT,      IOLSON     )&
+    !$OMP PRIVATE( II,        RI,      RLU,     RAC,    RGSS,    RGSO       )&
+    !$OMP PRIVATE( RCLS,      RCLO,    RAD0,    RIX,    GFACT,   GFACI      )&
+    !$OMP PRIVATE( RDC,       XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX       )&
+    !$OMP PRIVATE( DTMP1,     DTMP2,   DTMP3,   DTMP4,  VDS,     CZH        )&
+    !$OMP PRIVATE( CKUSTR,    REYNO,   CORR1,   CORR2,  Z0OBK,   RA         )&
+    !$OMP PRIVATE( Z0OBK_Alt, RA_Alt,  DUMMY2_Alt,      DUMMY4_Alt          )&
+    !$OMP PRIVATE( DUMMY1,    DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB         )&
+    !$OMP PRIVATE( C1X,       VK,      I,       J,      IW                  )&
+    !$OMP PRIVATE( DIAM,      DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP   )&
+    !$OMP PRIVATE( N_SPC,     alpha,   DEPVw                                )&
 #ifdef TOMAS
-    !$OMP PRIVATE( BIN                                                  ) &
+    !$OMP PRIVATE( BIN                                                      )&
 #endif
-    !$OMP PRIVATE( SpcId,  SpcInfo                                      )
+    !$OMP PRIVATE( SpcId,  SpcInfo,    F0_K                                 )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Initialize
+       ! Zero variables that aren't zeroed below
+       VD         = 0.0_f8
+       RSURFC     = 0.0_f8
+       II         = 0.0
+       RI         = 0.0_f8
+       RLU        = 0.0_f8
+       RAC        = 0.0_f8
+       RGSS       = 0.0_f8
+       RGSO       = 0.0_f8
+       RCLS       = 0.0_f8
+       RCLO       = 0.0_f8
+       RAD0       = 0.0_f8
+       RIX        = 0.0_f8
+       GFACT      = 0.0_f8
+       GFACI      = 0.0_f8
+       RDC        = 0.0_f8
+       XMWH2O     = 0.0_f8
+       RIXX       = 0.0_f8
+       RLUXX      = 0.0_f8
+       RGSX       = 0.0_f8
+       RCLX       = 0.0_f8
+       DTMP1      = 0.0_f8
+       DTMP2      = 0.0_f8
+       DTMP3      = 0.0_f8
+       DTMP4      = 0.0_f8
+       VDS        = 0.0_f8
+       CZH        = 0.0_f8
+       CKUSTR     = 0.0_f8
+       REYNO      = 0.0_f8
+       CORR1      = 0.0_f8
+       CORR2      = 0.0_f8
+       Z0OBK      = 0.0_f8
+       RA         = 0.0_f8
        Z0OBK_Alt  = 0.0_f8
+       RA_Alt     = 0.0_f8
        DUMMY2_Alt = 0.0_f8
        DUMMY4_Alt = 0.0_f8
-       RA_Alt     = 0.0_f8
+       DUMMY1     = 0.0_f8
+       DUMMY2     = 0.0_f8
+       DUMMY3     = 0.0_f8
+       DUMMY4     = 0.0_f8
+       DAIR       = 0.0_f8
+       RB         = 0.0_f8
+       C1X        = 0.0_f8
+       VK         = 0.0_f8
+       DIAM       = 0.0_f8
+       DEN        = 0.0_f8
+       XLAI_FP    = 0.0_f8
+       SUNCOS_FP  = 0.0_f8
+       CFRAC_FP   = 0.0_f8
+       N_SPC      = 0
+       alpha      = 0.0_f8
+       DEPVw      = 0.0_f8
+       F0_K       = 0.0_f8
 
        !** CZ is Altitude (m) at which deposition velocity is computed
-       CZ = CZ1(I,J)
+       CZ    = CZ1(I,J)
 
        !** TEMPK and TEMPC are surface air temperatures in K and in C
        TEMPK = TEMP(I,J)
        TEMPC = TEMP(I,J)-273.15e+0_f8
-
-       !* Initialize variables
-       DO K = 1,NUMDEP
-          VD(K) = 0.0e+0_f8
-          DO LDT = 1,NTYPE
-             RSURFC(K,LDT) = 0.e+0_f8
-          END DO
-       END DO
 
        !** Calculate the kinematic viscosity XNU (m2 s-1) of air
        !** as a function of temperature.
@@ -1375,7 +1418,7 @@ CONTAINS
        !** The expression for the temperature dependence of XNU
        !** is from the FORTRAN code in Appendix II of Wesely [1988];
        !** I wasn't able to find an original reference but it seems benign enough.
-       C1 = TEMPK/273.15e+0_f8
+       C1  = TEMPK/273.15e+0_f8
        XNU = 0.151e+0_f8*(C1**1.77e+0_f8)*1.0e-04_f8
 
        !* Compute bulk surface resistance for gases.
@@ -1534,6 +1577,10 @@ CONTAINS
           !*
           DO 160  K = 1,NUMDEP
 
+             ! Save F0(K) in a private variable to avoid diffs due
+             ! to parallelization -- Bob Yantosca (17 May 2023)
+             F0_K = F0(K)
+
              !** exit for non-depositing species or aerosols.
              IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
@@ -1568,18 +1615,27 @@ CONTAINS
              ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
-                ! Check latitude and longitude, alter F0 only for Amazon rainforest for Hg0
-                ! (see reference: Feinberg et al., ESPI, 2022: Evaluating atmospheric mercury (Hg) uptake by vegetation in a
-                ! chemistry-transport model)
-                IF (N_SPC .EQ. ID_Hg0) THEN ! Check for Hg0
-                   IF ( II .EQ. 6 .AND. & ! if rainforest land type
-                        State_Grid%XMid(I,J) > -82 .AND. & ! bounding box of Amazon
-                        State_Grid%XMid(I,J) < -33  .AND. &
-                        State_Grid%YMid(I,J) >  -34  .AND. &
-                        State_Grid%YMid(I,J) <  14 ) THEN
-                      F0(K) = 2.0e-01_f8 ! increase reactivity, as inferred from observations
-                   ELSE
-                      F0(K) = 3.0e-05_f8 ! elsewhere, lower reactivity 
+                ! Check latitude and longitude, alter F0 only for Amazon
+                ! rainforest for Hg0 (see reference: Feinberg et al., ESPI,
+                ! 2022: Evaluating atmospheric mercury (Hg) uptake by
+                ! vegetation in a chemistry-transport model)
+                !
+                ! Remove IF/ELSE block using never-nesting technique.
+                !   - Bob Yantosca (17 May 2023)
+                IF ( N_SPC == ID_Hg0 ) THEN
+
+                   ! Assume lower reactivity 
+                   F0_K = 3.0e-05_f8 
+                   
+                   ! But if this is the rainforest land type and we fall
+                   ! within the bounding box of the Amazon rainforest,
+                   ! then increase reactivity as inferred from observations.
+                   IF ( II                   ==  6         .AND.             &
+                        State_Grid%XMid(I,J) >  -82.0_f8   .AND.             &
+                        State_Grid%XMid(I,J) <  -33.0_f8   .AND.             &
+                        State_Grid%YMid(I,J) >  -34.0_f8   .AND.             &
+                        State_Grid%YMid(I,J) <   14.0_f8 ) THEN
+                      F0_K = 2.0e-01_f8
                    ENDIF
                 ENDIF
 
@@ -1588,25 +1644,25 @@ CONTAINS
 #ifdef LUO_WETDEP
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0(K))
+                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #else
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                     + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+                     + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #endif
                 RLUXX = 1.e+12_f8
                 IF (RLU(LDT).LT.9999.e+0_f8) &
 #ifdef LUO_WETDEP
-                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0_K)
 #else
-                     RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0_K)
 #endif
 
                 ! If POPs simulation, scale cuticular resistances with octanol-
                 ! air partition coefficient (Koa) instead of HSTAR
                 ! (clf, 1/3/2011)
                 IF (IS_POPS) &
-                     RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0_K)
 
                 !*
                 !* To prevent virtually zero resistance to species with huge
@@ -1620,14 +1676,14 @@ CONTAINS
                 !*
 #ifdef LUO_WETDEP
                 RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
-                       F0(K)/RGSO(LDT))
+                       F0_K/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
-                       F0(K)/RCLO(LDT))
+                       F0_K/RCLO(LDT))
 #else
                 RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) + &
-                       F0(K)/RGSO(LDT))
+                       F0_K/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) + &
-                       F0(K)/RCLO(LDT))
+                       F0_K/RCLO(LDT))
 #endif
                 !*
                 !** Get the bulk surface resistance of the canopy, RSURFC, from
@@ -2651,7 +2707,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
 130    FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
     ENDIF
@@ -2683,7 +2739,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2711,7 +2767,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2753,7 +2809,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2781,7 +2837,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2809,7 +2865,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2841,7 +2897,7 @@ CONTAINS
     IRI(3) = 200
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2869,7 +2925,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2897,7 +2953,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2925,7 +2981,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2953,7 +3009,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2981,7 +3037,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3009,7 +3065,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3037,7 +3093,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3053,7 +3109,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
     ENDIF
 
@@ -4778,7 +4834,7 @@ CONTAINS
     !=================================================================
     ! Echo information to stdout
     !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Line 1
        MSG = 'INIT_DRYDEP: List of dry deposition species:'

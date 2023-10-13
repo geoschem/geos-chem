@@ -136,6 +136,36 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
+aoa_PROP: &aoaproperties
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Snk_Mode: constant
+  Snk_Value: 0
+  Src_Add: true
+  Src_Horiz: all
+  Src_Mode: constant
+  Src_Units: timestep
+  Src_Value: 1
+  Src_Vert: all
+  Units: days
+aoa:
+  << : *aoaproperties
+  FullName: Age of air uniform source tracer
+  Snk_Horiz: all
+  Snk_Vert: surface
+aoa_bl:
+  << : *aoaproperties
+  FullName: Age of air uniform source tracer with sink restricted to the boundary layer
+  Snk_Horiz: all
+  Snk_Vert: boundary_layer
+aoa_nh:
+  << : *aoaproperties
+  FullName: Age of air uniform source tracer with surface sink restricted to a zone in the northern hemisphere
+  Snk_Horiz: lat_zone
+  Snk_Lats: [30.0, 50.0]
+  Snk_Vert: surface
 AONITA:
   DD_F0: 1.0
   DD_Hstar: 2.9e+3
@@ -314,7 +344,14 @@ Be_PROP: &Beproperties
   Is_Aerosol: true
   Is_DryDep: true
   Is_RadioNuclide: true
+  Is_Tracer: true
   Is_WetDep: true
+# Comment out tracer-specific code for now and use RnPbBe_mod.F90
+#  Snk_Horiz: all
+#  Snk_Mode: halflife
+#  Snk_Vert: all
+#  Src_Add: true
+#  Src_Mode: HEMCO
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -324,21 +361,29 @@ Be10:
   Formula: Be10
   FullName: Beryllium-10 isotope
   MW_g: 10.0
-Be10Strat:
+#  Snk_Period: 5.84e8
+#  Src_Vert: all
+Be10s:
   << : *Beproperties
   Formula: Be10
-  FullName: Beryllium-10 isotope in stratosphere
+  FullName: Beryllium-10 isotope stratospheric-source tracer
   MW_g: 10.0
+#  Snk_Period: 5.84e8
+#  Src_Vert: stratosphere
 Be7:
   << : *Beproperties
   Formula: Be7
   FullName: Beryllium-7 isotope
   MW_g: 7.0
-Be7Strat:
+#  Snk_Period: 53.3
+#  Src_Vert: all
+Be7s:
   << : *Beproperties
   Formula: Be7
-  FullName: Beryllium-7 isotope in stratosphere
+  FullName: Beryllium-7 isotope stratospheric-source tracer
   MW_g: 7.0
+#  Snk_Period: 53.3
+#  Src_Vert: stratosphere
 BENZ:
   Formula: C6H6
   FullName: Benzene
@@ -453,6 +498,12 @@ BrSALA:
   FullName: Fine sea salt bromine
   Is_HygroGrowth: false
   MW_g: 79.90
+BUTDI:
+  Formula: C4H4O2
+  FullName: Butenedial
+  Is_Advected: true
+  Is_Gas: true
+  MW_g: 84.07
 BZCO3:
   Formula: C7H5O3
   FullName: Acyl peroxy radical from benzaldehyde
@@ -708,6 +759,7 @@ CH3Cl:
   Is_Photolysis: true
   MW_g: 50.45
 CH3I:
+  Background_VV: 1.0e-20
   Formula: CH3I
   FullName: Methyl iodide
   Henry_CR: 3.6e+3
@@ -715,11 +767,13 @@ CH3I:
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 141.94
-CH3ITracer:
-  FullName: Methyl_iodide
-  Is_Advected: true
-  Is_Gas: true
+  Is_Tracer: true
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Period: 5
+  Snk_Vert: all
+  Src_Add: true
+  Src_Mode: HEMCO
   MW_g: 141.94
 CH4_PROP: &CH4properties
   Formula: CH4
@@ -762,6 +816,10 @@ CH4_OTA:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from other anthropogenic emissions
+CH4_RES:
+  << : *CH4properties
+  Background_VV: 1.0e-20
+  FullName: Methane from hydroelectric reservoir emissions
 CH4_RIC:
   << : *CH4properties
   Background_VV: 1.0e-20
@@ -877,7 +935,7 @@ CLOCK:
   FullName: Clock tracer for diagnosing age of air
   Is_Advected: true
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
 CO2_PROP: &CO2properties
   Formula: CO2
   Is_Gas: true
@@ -943,14 +1001,28 @@ COacet:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from acetone oxidation
-COAnthroEmis25dayTracer:
+CO_25:
   << : *COproperties
   Background_VV: 1.0e-20
-  FullName: Anthropogenic_CO_with_25day_lifetime
-COAnthroEmis50dayTracer:
+  FullName: Anthropogenic CO 25 day tracer
+  Is_Tracer: true
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Period: 25
+  Snk_Vert: all
+  Src_Add: true
+  Src_Mode: HEMCO
+CO_50:
   << : *COproperties
   Background_VV: 1.0e-20
-  FullName: Anthropogenic_CO_with_50day_lifetime
+  FullName: Anthropogenic CO 50 day tracer
+  Is_Tracer: true
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Period: 50
+  Snk_Vert: all
+  Src_Add: true
+  Src_Mode: HEMCO
 COasia:
   << : *COproperties
   Background_VV: 1.0e-20
@@ -1083,7 +1155,7 @@ DSTAL4:
 Dummy:
   FullName: Dummy species (carbon mechanism)
   Is_Gas: true
-  MW_g: 1.0
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
 DummyCH4:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -1092,6 +1164,35 @@ DummyNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: CO produced from NMVOC oxidation (external input for carbon mechanism)
+e90_PROP: &e90properties
+  Background_VV: 1.0e-20
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Period: 90
+  Snk_Vert: all
+  Src_Add: true
+  Src_Mode: maintain_mixing_ratio
+  Src_Units: ppbv
+  Src_Value: 100
+  Src_Vert: surface
+e90:
+  << : *e90properties
+  FullName: Constant burden 90 day tracer
+  Src_Horiz: all
+e90_n:
+  << : *e90properties
+  FullName: Constant burden Northern Hemisphere 90 day tracer
+  Src_Horiz: lat_zone
+  Src_Lats: [ 40.0, 91.0]
+e90_s:
+  << : *e90properties
+  FullName: Constant burden Southern Hemisphere 90 day tracer
+  Src_Horiz: lat_zone
+  Src_Lats: [ -91.0, -40.0 ]
 EOH:
   DD_F0: 0.0
   DD_Hstar: 1.9e+2
@@ -1210,11 +1311,20 @@ FixedOH:
   FullName: Hydroxyl radical (external input for carbon mechanism)
   Is_Gas: true
   MW_g: 17.01
-GlobEmis90dayTracer:
-  FullName: Globally_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mixing_ratio
+FURA:
+  DD_F0: 1.0
+  DD_Hstar: 1.80e-1
+  Formula: C4H4O
+  FullName: Furan
+  Henry_CR: 6100.0
+  Henry_K0: 1.80e-1
   Is_Advected: true
+  Is_DryDep: true
   Is_Gas: true
-  MW_g: 1.0
+  Is_Photolysis: false
+  Is_WetDep: true
+  MW_g: 68.07
+  WD_RetFactor: 2.0e-2
 GLYC:
   DD_F0: 1.0
   DD_Hstar: 4.1e+4
@@ -1701,14 +1811,14 @@ Hg_OTHER_PROP: &HgChemProperties
   Is_Photolysis: true
   Is_WetDep: true
   WD_RetFactor: 1.0
-HgBr: 
+HgBr:
   Fullname: HgBr
   Formula: HgBr
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 280.49
-HgBrNO2: 
+HgBrNO2:
   Fullname: syn-HgBrONO
   Formula: BrHgONO
   Is_Advected: true
@@ -1716,7 +1826,7 @@ HgBrNO2:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 326.50
-HgBrHO2: 
+HgBrHO2:
   << : *HgChemProperties
   Fullname: HgBrHO2
   Formula:  BrHgOOH
@@ -1726,7 +1836,7 @@ HgBrBrO:
   Fullname: HgBrBrO
   Formula: BrHgOBr
   MW_g:  376.40
-HgBrClO: 
+HgBrClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: BrHgOCl
@@ -1736,12 +1846,12 @@ HgBrOH:
   Fullname: HgBrOH
   Formula: BrHgOH
   MW_g: 297.50
-HgBr2: 
+HgBr2:
   << : *HgChemProperties
   Fullname: HgBr2
   Formula: HgBr2
   MW_g:  360.40
-HgCl: 
+HgCl:
   Fullname: HgCl
   Formula: HgCl
   Is_Advected: true
@@ -1761,64 +1871,64 @@ HgClHO2:
   Formula: ClHgOOH
   MW_g: 269.00
   WD_RetFactor: 1.0
-HgClClO: 
+HgClClO:
   << : *HgChemProperties
   Fullname: HgClClO
   Formula: ClHgOCl
   MW_g: 287.50
-HgClBrO: 
+HgClBrO:
   << : *HgChemProperties
   Fullname: HgClBrO
   Formula: ClHgOBr
   MW_g: 332.00
-HgClBr: 
+HgClBr:
   << : *HgChemProperties
   Fullname: HgClBr
   Formula: HgBrCl
   MW_g: 316.00
-HgClOH: 
+HgClOH:
   << : *HgChemProperties
   Fullname: HgClOH
   Formula: ClHgOH
   MW_g: 253.00
-HgOH: 
+HgOH:
   Fullname: HgOH
   Formula: HgOH
   Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 201.00
-HgOHNO2: 
+HgOHNO2:
   << : *HgChemProperties
   Fullname: syn-HgOHONO
   Formula: HOHgONO
   MW_g:  263.60
-HgOHHO2: 
+HgOHHO2:
   << : *HgChemProperties
   Fullname: HgOHHO2
   Formula: HOHgOOH
   MW_g:  250.60
-HgOHClO: 
+HgOHClO:
   << : *HgChemProperties
   Fullname: HgBrClO
   Formula: HOHgOCl
   MW_g:  269.0000
-HgOHBrO: 
+HgOHBrO:
   << : *HgChemProperties
   Fullname: HgOHBrO
   Formula: HOHgOBr
   MW_g: 313.5000
-HgOHOH: 
+HgOHOH:
   << : *HgChemProperties
   Fullname: HgOH2
   Formula: HOHgOH
   MW_g:  234.60
-HgCl2: 
+HgCl2:
   << : *HgChemProperties
   Fullname: HgCl2
   Formula: HgCl2
   MW_g:  271.5000
-Hg2ClP: 
+Hg2ClP:
   Fullname: Hg(II) chloride salts on sea-salt aerosols
   Formula: HgCln
   Is_Aerosol: true
@@ -1829,7 +1939,7 @@ Hg2ClP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-Hg2ORGP: 
+Hg2ORGP:
   Fullname: Hg(II) organic complex in aerosols
   Formula: R-Hg
   Is_Advected: true
@@ -1841,7 +1951,7 @@ Hg2ORGP:
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 1.0, 1.0]
-Hg2STRP: 
+Hg2STRP:
   Fullname: Hg(II) in stratospheric aerosols
   Formula: Hg2+
   Is_Advected: true
@@ -3263,6 +3373,29 @@ NAP:
   Is_Advected: true
   Is_Gas: true
   MW_g: 128.18
+nh_PROP: &nhproperties
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Vert: all
+  Src_Add: false
+  Src_Mode: constant
+  Src_Horiz: lat_zone
+  Src_Lats: [30.0, 50.0]
+  Src_Units: ppbv
+  Src_Value: 100
+  Src_Vert: all
+nh_5:
+  << : *nhproperties
+  FullName: Northern Hemisphere 5 day tracer
+  Snk_Period: 5
+nh_50:
+  << : *nhproperties
+  FullName: Northern Hemisphere 50 day tracer
+  Snk_Period: 50
 NH3:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.2, 0.3]
@@ -3299,11 +3432,6 @@ NH4:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-NHEmis90dayTracer:
-  FullName: Northern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 1.0
 NiF1:
   << : *DST1properties
   Formula: Ni
@@ -3634,10 +3762,14 @@ PAN:
   MW_g: 121.06
   WD_RetFactor: 2.0e-2
 PassiveTracer:
+  Background_VV: 1.0e-7
   FullName: Passive tracer for mass conservation evaluation
   Is_Advected: true
   Is_Gas: true
-  MW_g: 1.0
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Snk_Mode: none
+  Src_Mode: none
 Pb210_PROP: &Pbproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -3647,8 +3779,18 @@ Pb210_PROP: &Pbproperties
   Is_Aerosol: true
   Is_DryDep: true
   Is_RadioNuclide: true
+  Is_Tracer: true
   Is_WetDep: true
   MW_g: 210.0
+# Comment out tracer-specific code for now and use RnPbBe_mod.F90
+#  Snk_Horiz: all
+#  Snk_Mode: efolding
+#  Snk_Period: 11742.8
+#  Snk_Vert: all
+#  Src_Add: true
+#  Src_Mode: HEMCO
+#  Src_Mode: decay_of_another_species
+#  Src_Species: Rn222
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
@@ -3656,9 +3798,11 @@ Pb210_PROP: &Pbproperties
 Pb210:
   << : *Pbproperties
   FullName: Lead-210 isotope
-Pb210Strat:
+# Src_Vert: all
+Pb210s:
   << : *Pbproperties
-  FullName: Lead-210 isotope in stratosphere
+  FullName: Lead-210 isotope stratospheric-source tracer
+# Src_Vert: stratosphere
 PbF1:
   << : *DST1properties
   Formula: Pb
@@ -4224,7 +4368,17 @@ Rn222:
   Is_Advected: true
   Is_Aerosol: true
   Is_RadioNuclide: true
+  Is_Tracer: true
   MW_g: 222.0
+# Comment out tracer-specific code for now and use RnPbBe_mod.F90
+#  Snk_Horiz: all
+#  Snk_Mode: efolding
+#  Snk_Period: 5.5
+#  Snk_Vert: all
+#  Src_Add: true
+#  Src_Mode: HEMCO
+#  Src_Mode: decay_of_another_species
+#  Src_Species: Rn222
 ROH:
   Formula: C3H7OH
   FullName: '> C2 alcohols'
@@ -4281,17 +4435,17 @@ SALCCL:
   Is_HygroGrowth: false
   MW_g: 35.45
   WD_CoarseAer: true
-SF6Tracer:
+SF6:
+  Background_VV: 1.0e-20
   Formula: SF6
-  FullName: Sulfur_hexafluoride
+  FullName: Sulfur hexafluoride
   Is_Advected: true
   Is_Gas: true
+  Is_Tracer: true
   MW_g: 146.06
-SHEmis90dayTracer:
-  FullName: Southern_hemisphere_emitted_tracer_with_90day_lifetime_and_100ppbv_maintained_mi
-  Is_Advected: true
-  Is_Gas: true
-  MW_g: 1.0
+  Snk_Mode: none
+  Src_Add: true
+  Src_Mode: HEMCO
 SiF1:
   << : *DST1properties
   Fullname: Silicon on dust, Reff = 0.7 microns
@@ -4438,6 +4592,37 @@ SOAS:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
   WD_RainoutEff_Luo: [0.4, 0.0, 0.8]
+st80_25:
+  FullName: Stratosphere source 25 day tracer
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Snk_Horiz: all
+  Snk_Mode: efolding
+  Snk_Period: 25
+  Snk_Vert: troposphere
+  Src_Add: false
+  Src_Horiz: all
+  Src_Mode: constant
+  Src_Pressures: [0, 80]
+  Src_Units: ppbv
+  Src_Value: 200
+  Src_Vert: pressures
+stOX:
+  FullName: Tracer with O3 values in stratosphere and O3 loss applied in troposphere
+  Is_Advected: true
+  Is_Gas: true
+  Is_Tracer: true
+  MW_g: 1.0   # Use value of 1.0 to get past checks for missing MW_g
+  Loss_Species: O3
+  Snk_Horiz: all
+  Snk_Mode: chemical_loss
+  Snk_Vert: troposphere
+  Src_Add: false
+  Src_Horiz: all
+  Src_Mode: model_field
+  Src_Vert: stratosphere
 TiF1:
   << : *DST1properties
   Formula: Ti

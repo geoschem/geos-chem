@@ -238,7 +238,10 @@ CONTAINS
                            Emis=TMP_Value )
       ENDIF
 
-      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValEmis/ImGrid: Loading", TrcID, PRESENT( AltBuffer )
+      IF ( Input_Opt%Verbose ) THEN
+         WRITE(6,*) "# LoadHcoValEmis/ImGrid: Loading", &
+              TrcID, PRESENT( AltBuffer )
+      ENDIF
 
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
@@ -302,7 +305,9 @@ CONTAINS
       !$OMP END CRITICAL
       ! End of LIMGRID OMP Critical section
 
-      IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# LoadHcoValDep/ImGrid: Loading", TrcID
+      IF ( Input_Opt%Verbose ) THEN
+         WRITE(6,*) "# LoadHcoValDep/ImGrid: Loading", TrcID
+      ENDIF
     ENDIF
 #endif
   END SUBROUTINE LoadHcoValDep
@@ -400,7 +405,11 @@ CONTAINS
         ! Do not use GetHcoVal: load the entire chunk into memory
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
 
-        IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, LAST_TMP_REGRID_H2Mb
+        IF ( Input_Opt%Verbose ) THEN
+           WRITE(6,*) "# GetHcoValEmis/ImGrid: Attempting to load", &
+                TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2M, &
+                LAST_TMP_REGRID_H2Mb
+        ENDIF
 
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Emis%Val) ) THEN  ! Present! Read in the data
@@ -416,7 +425,9 @@ CONTAINS
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1:ZBND) = HcoState%Spc(TrcID)%Emis%Val(:,:,1:ZBND)
 
-            ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Read from HEMCO"
+            ! IF ( Input_Opt%Verbose ) THEN
+            !    WRITE(6,*) "# GetHcoValEmis/ImGrid: Read from HEMCO"
+            ! ENDIF
 
             ! Now perform the on-demand regrid
             CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL_target, ZBND )
@@ -432,7 +443,10 @@ CONTAINS
               LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
             ENDIF
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", TMP_TrcIDFldName, PRESENT( AltBuffer )
+            IF ( Input_Opt%Verbose ) THEN
+               WRITE(6,*) "# GetHcoValEmis/ImGrid: Regrid OK return", &
+                    TMP_TrcIDFldName, PRESENT( AltBuffer )
+            ENDIF
           ENDIF ! Associated
         ENDIF ! TrcID > 0
       ELSE ! Already in buffer! Just read the pointer data
@@ -531,7 +545,7 @@ CONTAINS
       IF( TMP_TrcIDFldName /= LAST_TMP_REGRID_H2Mb ) THEN   ! Not already in buffer
         ! Do not use GetHcoVal: load the entire chunk into memory
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# GetHcoValDep/ImGrid: Attempting to load", TMP_TrcIDFldName, "was", LAST_TMP_REGRID_H2Mb
         ! Note: TrcID matches HcoID here. If not, remap the tracer ID to HEMCO ID below.
         IF ( TrcID > 0 ) THEN
           IF ( ASSOCIATED(HcoState%Spc(TrcID)%Depv%Val) ) THEN  ! Present! Read in the data
@@ -543,7 +557,7 @@ CONTAINS
             TMP_HCO = 0.0_fp ! Clear the output first
             TMP_HCO(:,:,1) = HcoState%Spc(TrcID)%Depv%Val(:,:)
 
-            ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Read from HEMCO"
+            ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# GetHcoValDep/ImGrid: Read from HEMCO"
 
             ! Now perform the on-demand regrid
             ! Note deposition is surface layer, so L is always 1. Read ZBND = 1
@@ -555,7 +569,10 @@ CONTAINS
             Dep = TMP_MDLb(I,J,1)
             LAST_TMP_REGRID_H2Mb = TMP_TrcIDFldName
 
-            IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# GetHcoValDep/ImGrid: Regrid OK return", TMP_TrcIDFldName
+            IF ( Input_Opt%Verbose ) THEN
+               WRITE(6,*) "# GetHcoValDep/ImGrid: Regrid OK return", &
+                    TMP_TrcIDFldName
+            ENDIF
           ENDIF
         ENDIF
       ELSE ! Already in buffer! Just read the pointer data
@@ -659,7 +676,7 @@ CONTAINS
       ! Check if cName is existing in the regrid buffer.
       !If not, regrid on-the-fly
       IF ( cName /= LAST_TMP_REGRID_H2M ) THEN
-        !IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
+        !IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid not equal, looking up field ", cName
 
         ! Now retrieve data into the HEMCO temporary!
         ! The bdy is a slice to ensure safety
@@ -669,7 +686,7 @@ CONTAINS
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Lookup complete", cName, FND
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Lookup complete", cName, FND
 
         IF ( FND ) THEN
 
@@ -682,7 +699,10 @@ CONTAINS
           ! ( Input_Opt, State_Grid, State_Grid_HCO, PtrIn, PtrOut, ZBND )
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, Arr3D, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Regrid complete, ", cName, " z-boundary", ZBND
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_EvalFld_3D: Regrid complete, ", &
+                  cName, " z-boundary", ZBND
+          ENDIF
 
           ! The output should be in Arr3D and ready to go.
           LAST_TMP_REGRID_H2M = cName
@@ -694,7 +714,7 @@ CONTAINS
         Arr3D(:,:,1:ZBND) = TMP_MDL(:,:,1:ZBND)
         FND = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid equal, reading from buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_3D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
       !=====================================================================
@@ -791,7 +811,7 @@ CONTAINS
 
       ! Check if cName is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( cName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid not equal, looking up field ", cName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid not equal, looking up field ", cName
 
         ! Now retrieve data into the HEMCO temporary!
         ! The bdy is a slice to ensure safety
@@ -801,7 +821,7 @@ CONTAINS
         ! be able to propagate the error above.
         IF ( RC /= GC_SUCCESS ) RETURN
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Lookup complete", cName, FND
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Lookup complete", cName, FND
 
         ! If not found, return
         IF ( FND ) THEN
@@ -814,7 +834,9 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Regrid", cName, " complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_EvalFld_2D: Regrid", cName, " complete"
+          ENDIF
 
           ! Note that we cannot pass Arr2D to call above directly because it accepts a
           ! 3-D argument. So we regrid to the target dummy and copy
@@ -829,7 +851,7 @@ CONTAINS
         Arr2D(:,:) = TMP_MDL(:,:,1)
         FND = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid equal, reading from buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_EvalFld_2D: Last regrid equal, reading from buffer"
       ENDIF
     ELSE
       !=====================================================================
@@ -945,7 +967,7 @@ CONTAINS
 
       ! Check if is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( TMP_GetPtrFldName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
         LAST_TMP_REGRID_H2M = "_HCO_Ptr2D_TBD"
@@ -960,9 +982,9 @@ CONTAINS
         ! If not found, return
         IF ( iFOUND .and. iFILLED ) THEN
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Lookup complete", TMP_GetPtrFldName, iFOUND
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Dim Debug", SIZE(TMP_HCO, 1), SIZE(TMP_HCO, 2), SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Dim Debug", SIZE(TMP_HCO, 1), SIZE(TMP_HCO, 2), SIZE(TMP_Ptr2D, 1), SIZE(TMP_Ptr2D, 2)
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
@@ -972,7 +994,10 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid", TMP_GetPtrFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetPtr_2D: Regrid", TMP_GetPtrFldName, &
+                  "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr2D => NULL()
@@ -994,7 +1019,7 @@ CONTAINS
         iFOUND = .true.
         iFILLED = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
       ENDIF
     ELSE
       ! Not within the intermediate grid code path
@@ -1110,7 +1135,7 @@ CONTAINS
 
       ! Check if is existing in the regrid buffer. If not, regrid on-the-fly
       IF ( TMP_GetPtrFldName /= LAST_TMP_REGRID_H2M ) THEN
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Last regrid not equal, looking up field ", TMP_GetPtrFldName
 
         ! For safety, overwrite the temporary
         LAST_TMP_REGRID_H2M = "_HCO_Ptr3D_TBD"
@@ -1128,7 +1153,7 @@ CONTAINS
           ! Get z-boundary
           ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Lookup complete", TMP_GetPtrFldName, iFOUND, ZBND
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
@@ -1138,7 +1163,10 @@ CONTAINS
           ! Z-boundary is 1 because 2-D field.
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_3D: Regrid", TMP_GetPtrFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetPtr_3D: Regrid", &
+                  TMP_GetPtrFldName, "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr3D => NULL()
@@ -1161,7 +1189,7 @@ CONTAINS
         iFOUND = .true.
         iFILLED = .true.
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetPtr_2D: Last regrid equal, pointing to buffer"
       ENDIF
     ELSE
       ! Not within the intermediate grid code path
@@ -1291,7 +1319,7 @@ CONTAINS
       IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
                   (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 
         ! Now retrieve data into the HEMCO temporary!
         ! Note that the data is in sp and has to be promoted for regridding,
@@ -1308,14 +1336,17 @@ CONTAINS
           ! Get z-boundary
           ZBND = MAX(1, SIZE(TMP_Ptr3D, 3))
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Lookup complete", TMP_DiagnFldName, ZBND
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Lookup complete", TMP_DiagnFldName, ZBND
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1:ZBND) = TMP_Ptr3D(:,:,1:ZBND)
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, ZBND )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", TMP_DiagnFldName, "complete", PRESENT(AltBuffer)
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetDiagn_3D: Regrid", &
+                  TMP_DiagnFldName, "complete", PRESENT(AltBuffer)
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr3D => NULL()
@@ -1456,7 +1487,7 @@ CONTAINS
       IF( .not. ( (.not. PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2M) .or. &
                   (      PRESENT( AltBuffer ) .and. TMP_DiagnFldName == LAST_TMP_REGRID_H2Mb) ) ) THEN   ! Not already in buffer
 
-        ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
+        ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Last regrid not equal, looking up field ", TMP_DiagnFldName
 
         ! Now retrieve data into the HEMCO temporary!
         ! Note that the data is in sp and has to be promoted for regridding,
@@ -1470,14 +1501,17 @@ CONTAINS
           ! For safety, overwrite the temporary
           LAST_TMP_REGRID_H2M = "_HCO_Dgn2D_TBD"
 
-          ! IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Lookup complete", TMP_DiagnFldName
+          ! IF ( Input_Opt%Verbose ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Lookup complete", TMP_DiagnFldName
 
           ! Copy data to the temporary
           TMP_HCO(:,:,1) = TMP_Ptr2D(:,:)
 
           CALL Regrid_HCO2MDL( Input_Opt, State_Grid, State_Grid_HCO, TMP_HCO, TMP_MDL, 1 )
 
-          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) WRITE(6,*) "# HCO_GC_GetDiagn_2D: Regrid", TMP_DiagnFldName, "complete"
+          IF ( Input_Opt%Verbose ) THEN
+             WRITE(6,*) "# HCO_GC_GetDiagn_2D: Regrid", &
+                  TMP_DiagnFldName, "complete"
+          ENDIF
 
           ! Free the pointer
           TMP_Ptr2D => NULL()
@@ -1596,10 +1630,7 @@ CONTAINS
    REAL*4,  POINTER          :: Ptr3D(:,:,:)
 
    ! For Hg simulation
-   INTEGER                   :: Num_Hg_Categories
-   INTEGER                   :: Total_Hg_Id
    CHARACTER(LEN=60)         :: HgSpc
-   CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
    ! Default background concentration
    REAL(fp)                  :: Background_VV
@@ -1619,7 +1650,6 @@ CONTAINS
    Ptr2D       => NULL()
    Ptr3D       => NULL()
    SpcInfo     => NULL()
-   Hg_Cat_Name => NULL()
 
    ! Name of this routine
    LOC = ' -> at Get_GC_Restart (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -1874,7 +1904,7 @@ CONTAINS
    State_Chm%Spc_Units = 'kg/kg dry'
 
    ! If in debug mode, print out species min and max in [molec/cm3]
-   IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%Verbose ) THEN
 
       ! Convert units
       PRINT *, " "
@@ -2349,17 +2379,6 @@ CONTAINS
 230   FORMAT( a24, ' not found in restart file, set to zero')
 240   FORMAT( a24, ':   ', es15.9, 1x, a4)
 
-      ! Print note that variables are initialized to zero if not
-      ! found (currently only happens in tagged Hg simulation)
-      IF ( Input_Opt%LSPLIT ) THEN
-         WRITE( 6, 250 )
-250      FORMAT( /, 'NOTE: all variables not found in restart ', &
-                    'are initialized to zero')
-      ENDIF
-
-      ! Free pointers for Hg indexing
-      Hg_Cat_Name => NULL()
-
    ENDIF
 
    !=================================================================
@@ -2370,7 +2389,7 @@ CONTAINS
    Spc => NULL()
 
    ! Mark end of section in log
-   IF ( Input_Opt%LPRT .AND. Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%Verbose .AND. Input_Opt%amIRoot ) THEN
       CALL DEBUG_MSG('### DONE GET_GC_RESTART')
    ENDIF
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -2399,7 +2418,7 @@ CONTAINS
    USE HCO_State_GC_Mod, ONLY : HcoState
    USE Input_Opt_Mod,    ONLY : OptInput
    USE PhysConstants,    ONLY : AIRMW
-   USE Species_Mod,      ONLY : Species, SpcConc
+   USE Species_Mod,      ONLY : Species
    USE State_Chm_Mod,    ONLY : ChmState
    USE State_Grid_Mod,   ONLY : GrdState
    USE State_Met_Mod,    ONLY : MetState
@@ -2443,7 +2462,6 @@ CONTAINS
    ! Temporary arrays and pointers
    REAL*4,  TARGET        :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
    REAL*4,  POINTER       :: Ptr3D(:,:,:)
-   TYPE(SpcConc), POINTER :: Spc(:)
 
    ! Objects
    TYPE(Species), POINTER :: SpcInfo
@@ -2462,9 +2480,6 @@ CONTAINS
    ! Initialize pointers
    Ptr3D     => NULL()
    SpcInfo   => NULL()
-
-   ! Point to species array [kg/kg]
-   Spc       => State_Chm%Species
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -2486,7 +2501,7 @@ CONTAINS
    !=================================================================
 
    ! Print header for min/max concentration to log
-   IF ( Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%amIRoot .AND. (FIRST .or. Input_Opt%Verbose) ) THEN
       WRITE( 6, 110 )
 110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
    ENDIF
@@ -2521,7 +2536,7 @@ CONTAINS
          ! Print the min & max of each species as it is read from
          ! the BC file in mol/mol if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
-            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+            IF ( FIRST .or. Input_Opt%Verbose ) THEN
                WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
                                MINVAL( Ptr3D ), MAXVAL( Ptr3D )
 120            FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
@@ -2543,7 +2558,7 @@ CONTAINS
 
          ! Print to log if debug is turned on in geoschem_config.yml
          IF ( Input_Opt%amIRoot ) THEN
-            IF ( FIRST .or. Input_Opt%LPRT ) THEN
+            IF ( FIRST .or. Input_Opt%Verbose ) THEN
                WRITE( 6, 130 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
 130            FORMAT('Species ', i3, ', ', a9, ': Use background = ', es15.9)
             ENDIF
@@ -2555,52 +2570,17 @@ CONTAINS
 
       ENDIF
 
-
-      ! Loop over grid boxes and apply BCs to the specified buffer zone
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L )
-      DO L = 1, State_Grid%NZ
-
-         ! First loop over all latitudes of the nested domain
-         DO J = 1, State_Grid%NY
-
-            ! West BC
-            DO I = 1, State_Grid%WestBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! East BC
-            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-         ENDDO
-
-         ! Then loop over the longitudes of the nested domain
-         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-            ! South BC
-            DO J = 1, State_Grid%SouthBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! North BC
-            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-         ENDDO
-
-      ENDDO
-      !OMP END PARALLEL DO
-
       ! Free pointer
       SpcInfo => NULL()
 
-   ENDDO
+      ! Each time the boundary conditions are read, they have no longer been perturbed
+      ! This value is sometimes set to True in set_boundary_conditions_mod.F90
+      IF ( ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. & 
+           Input_Opt%DoPerturbCH4BoundaryConditions ) THEN
+        State_Chm%IsCH4BCPerturbed = .FALSE.
+      ENDIF
 
-   ! Free pointer
-   Spc => NULL()
+   ENDDO
 
    ! Reset FIRST flag
    FIRST = .FALSE.
@@ -2608,8 +2588,7 @@ CONTAINS
    ! Echo output
    IF ( Input_Opt%amIRoot ) THEN
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 140 ) STAMP
-140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done reading BCs at ', STAMP, ' using ', HHMMSS, t_index
    ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions

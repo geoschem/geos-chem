@@ -346,7 +346,6 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: LFILL
-    LOGICAL            :: prtDebug
     INTEGER            :: IORD, JORD, KORD
     INTEGER            :: I, J, L, L2, N, N_DYN, NA, nAdvect
     REAL(fp)           :: D_DYN
@@ -373,7 +372,6 @@ CONTAINS
 
     ! Initialize
     LFILL       =  Input_Opt%LFILL
-    prtDebug    =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     IORD        =  Input_Opt%TPCORE_IORD
     JORD        =  Input_Opt%TPCORE_JORD
     KORD        =  Input_Opt%TPCORE_KORD
@@ -396,7 +394,7 @@ CONTAINS
     !=================================================================
 
     !!### DEBUG: Print a few global species sums
-    !IF ( prtDebug ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -478,7 +476,7 @@ CONTAINS
                  RC, update_mixing_ratio=.FALSE. )
 
     !!### DEBUG: Print a few global species sums
-    !IF ( prtDebug ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'O3',       &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -562,7 +560,6 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: LFILL
-    LOGICAL            :: prtDebug
     INTEGER            :: IORD,  JORD,  KORD
     INTEGER            :: IA, IB, JA, JB
     INTEGER            :: NA,    nAdvect, N_DYN
@@ -601,7 +598,6 @@ CONTAINS
     JORD        =  Input_Opt%TPCORE_JORD
     KORD        =  Input_Opt%TPCORE_KORD
     nAdvect     =  State_Chm%nAdvect
-    prtDebug    =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Initialize pointers
     p_A_M2      => NULL()
@@ -641,7 +637,7 @@ CONTAINS
     ! and Ap(L), Bp(L) define the vertical grid (see pressure_mod.f)
     !=================================================================
 
-    !IF ( prtDebug ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
     !                                 Input_Opt,  State_Chm, &
     !                                 State_Grid, State_Met, &
@@ -678,7 +674,9 @@ CONTAINS
                              State_Met%U, State_Met%V, &
                              XMASS,       YMASS )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### FVDAS_WINDOW: a PJC_PFIX_WINDOW')
+    ENDIF
 
     ! Flip array indices in the vertical using pointer storage
     ! Exclude the buffer zone (lzh, 4/1/2015)
@@ -733,7 +731,7 @@ CONTAINS
                  Update_Mixing_Ratio=.FALSE. )
 
     !!### Debug
-    !IF ( prtDebug ) THEN
+    !IF ( Input_Opt%Verbose ) THEN
     !   CALL Print_Global_Species_Kg( 20, 20, 1, 'SPC_O3',   &
     !                                 Input_Opt, State_Chm,  &
     !                                 State_Grid, State_Met, &
@@ -799,9 +797,9 @@ CONTAINS
     !=================================================================
     ! Initialize
     !=================================================================
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Init_Transport (in module GeosCore/transport_mod.F90)'
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at Init_Transport (in module GeosCore/transport_mod.F90)'
 
     !=================================================================
     ! Allocate arrays for TPCORE vertical coordinates
@@ -862,9 +860,11 @@ CONTAINS
     REAL_N_DYN = N_DYN
 
     ! Call INIT routine from "tpcore_fvdas_mod.f"
-    CALL INIT_TPCORE( State_Grid%NX, State_Grid%NY,  State_Grid%NZ, &
-                      JFIRST, JLAST, NG, MG,         REAL_N_DYN,    &
-                      Re,    YMID_R, RC                            )
+    CALL INIT_TPCORE(                                                        &
+         State_Grid%NX, State_Grid%NY,            State_Grid%NZ,             &
+         JFIRST,        JLAST,                    NG,                        &
+         MG,            REAL_N_DYN,               Re,                        &
+         YMID_R,        Input_Opt%Verbose, RC                        )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

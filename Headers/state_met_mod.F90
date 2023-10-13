@@ -268,7 +268,6 @@ MODULE State_Met_Mod
                                                 ! [cm3 H2O/cm2 area/s]
      REAL(fp), POINTER :: QQ            (:,:,:) ! Rate of new precip formation [cm3 H2O/cm3 air/s]
      REAL(fp), POINTER :: REEVAP        (:,:,:) ! Rate of precip reevaporation
-     REAL(fp), POINTER :: PSO4_SO2APM2  (:,:,:)
 
      !----------------------------------------------------------------------
      ! Fields for boundary layer mixing
@@ -498,7 +497,6 @@ CONTAINS
     State_Met%IMIX           => NULL()
     State_Met%FPBL           => NULL()
     State_Met%REEVAP         => NULL()
-    State_Met%PSO4_SO2APM2   => NULL()
     State_Met%PBL_MAX_L      = 0
 
   END SUBROUTINE Zero_State_Met
@@ -3035,26 +3033,7 @@ CONTAINS
           RETURN
        ENDIF
 
-#ifdef APM
-       !---------------------------------------------------------------------
-       ! PSO4_SO2APM2
-       !---------------------------------------------------------------------
-       metId = 'PSO4SO2APM2'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Met  = State_Met,                                          &
-            State_Grid = State_Grid,                                         &
-            metId      = metId,                                              &
-            Ptr2Data   = State_Met%PSO4_SO2APM2,                             &
-            noRegister = .TRUE.,                                             &
-            RC         = RC                                                 )
 
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-#endif
 
     ENDIF
 
@@ -3215,22 +3194,25 @@ CONTAINS
 
     !========================================================================
     ! Print information about the registered fields (short format)
+    ! Only written if debug printout is requested
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 10 )
 10     FORMAT(/, 'Registered variables contained within the State_Met object:')
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-    ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Met%Registry,                   &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
-    ! Trap error
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Met%Registry,                &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
    END SUBROUTINE Init_State_Met
@@ -4445,18 +4427,9 @@ CONTAINS
       State_Met%REEVAP => NULL()
     ENDIF
 
-#ifdef APM
-    IF ( ASSOCIATED( State_Met%PSO4_SO2APM2 ) ) THEN
-      DEALLOCATE( State_Met%PSO4_SO2APM2, STAT=RC )
-      CALL GC_CheckVar( 'State_Met%PSO4_SO2APM2', 2, RC )
-      IF ( RC /= GC_SUCCESS ) RETURN
-      State_Met%PSO4_SO2APM2 => NULL()
-    ENDIF
-#endif
-
-   !-------------------------------------------------------------------------
+    !-------------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
-   !-------------------------------------------------------------------------
+    !-------------------------------------------------------------------------
     !IF ( ASSOCIATED( State_Met%xxx ) ) THEN
     !   DEALLOCATE( State_Met%xxx, STAT=RC )
     !   CALL GC_CheckVar( 'State_Met%xxx', 2, RC )

@@ -12,8 +12,8 @@
 ! to run HEMCO within GEOS-Chem.
 !\\
 !\\
-! The HEMCO driver is now present in this file as HEMCO is restructured to provide
-! a unified point-of-entry for coupling with other models.
+! The HEMCO driver is now present in this file as HEMCO is restructured to
+! provide a unified point-of-entry for coupling with other models.
 !\\
 !\\
 ! Notes:
@@ -1035,6 +1035,11 @@ CONTAINS
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    ! This only retrieves boundary conditions from HEMCO and puts them into
+    ! State_Chm%BoundaryCond. It no longer applies the boundary conditions
+    ! to the species array, which is handled by Set_Boundary_Conditions().
+    ! This is so that boundary conditions can be updated at a higher frequency
+    ! than the emissions timestep. (hplin, 7/28/23)
     !=======================================================================
 
     ! Assume BCs are 3-hourly and only get from HEMCO when needed
@@ -2836,9 +2841,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -3600,18 +3603,18 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
-         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
-         Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_Opt%ITS_A_CH4_SIM          .or.                               &
-         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
-         Input_Opt%ITS_A_POPS_SIM         .or.                               &
-         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
-         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
-         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_CO2_SIM                                        .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
+         Input_Opt%ITS_A_POPS_SIM                                       .or. &
+         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
+         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
+         Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
+         Input_Opt%ITS_A_TRACER_SIM                                     .or. &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
-
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -3635,8 +3638,8 @@ CONTAINS
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
 
-          ! Verbose
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Verbose (only written if debug printout is requested)
+          IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3665,8 +3668,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, N )
+             ! Logfile output (only written if debug printout is requested)
+             IF ( Input_Opt%Verbose ) THEN
+                CALL HCO_SPEC2LOG( HcoState, N )
+             ENDIF
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -3686,8 +3691,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG(  HcoState, N )
+             ! Logfile output (only written if debug output is requested)
+             IF ( Input_Opt%Verbose ) THEN 
+                CALL HCO_SPEC2LOG(  HcoState, N )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -3726,13 +3733,17 @@ CONTAINS
                 HcoState%Spc(M)%HenryCR    = 0.0_hp
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
-                ! Write to log file
-                IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, M )
+                ! Logfile output (only written if debug printout is requested)
+                IF ( Input_Opt%Verbose ) THEN
+                   CALL HCO_SPEC2LOG( HcoState, M )
+                ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( Input_Opt%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%Verbose ) THEN
+             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          ENDIF
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
@@ -4158,9 +4169,9 @@ CONTAINS
     ! If we have turned on CH4 options in geoschem_config.yml, then we
     ! also need to toggle switches so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
-       IF ( Input_Opt%AnalyticalInv ) THEN
+       IF ( Input_Opt%DoAnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
                           OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
 
@@ -4263,8 +4274,8 @@ CONTAINS
 
     ENDIF
 
-    ! Print value of shadow fields
-    IF ( Input_Opt%amIRoot ) THEN
+    ! Print value of shadow fields (only if debug output is requested)
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'
@@ -4767,15 +4778,14 @@ CONTAINS
         !------------------------------------------------------------------
         IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
+
+        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+
            ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-           ! and/or all other source types, we could use the HEMCO internal
-           ! values set above and would not need the code below.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           ! in a multi-tracer CH4 simulation.
            eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
