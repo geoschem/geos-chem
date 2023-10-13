@@ -46,8 +46,8 @@ itRoot="none"
 envFile="none"
 scheduler="none"
 sedPartitionCmd="none"
-sedBootStrapCmd="none"
 quick="no"
+bootStrap="yes"
 
 #=============================================================================
 # Parse command-line arguments
@@ -89,7 +89,7 @@ while [ : ]; do
 	# -n or --no-bootstrap prevents bootstrapping missing variables in
         # restart files (i.e. do not change EFYO -> CYS in HEMCO_Config.rc)
 	-n | --no-bootstrap)
-            sedBootStrapCmd='/\/EFY/d'
+            bootStrap="no"
 	    shift
             ;;
 
@@ -190,10 +190,11 @@ scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
 # If --no-bootstrap is selected, also remove the lines in
 # integrationTestExecute that reset EFYO -> CYS and EFY -> CYS
-if [[ "x${sedBootStrapCmd}" != "xnone" ]]; then
-    sed_ie "/time cycle flags/d" "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie "/missing species/d"  "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie "${sedBootStrapCmd}"  "${scriptsDir}/integrationTestExecute.sh"
+if [[ "x${bootStrap}" == "xno" ]]; then
+    sed_ie '/HEMCO_Config.rc  \# GC_RESTART$/d' \
+	   "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/HEMCO_Config.rc  \# GC_BCs$/d' \
+	   "${scriptsDir}/integrationTestExecute.sh"
 fi
 
 # Navigate to the logs directory (so all output will be placed there)
@@ -288,6 +289,10 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     exeId=${exeId/<}
     exeId=${exeId/>}
 
+    echo ""
+    echo "Compilation tests submitted as LSF job ${cmpId}"
+    echo "Execution   tests submitted as LSF job ${exeId}"
+
 else
 
     #-------------------------------------------------------------------------
@@ -303,7 +308,6 @@ fi
 
 # Change back to this directory
 cd "${thisDir}"
-
 
 #=============================================================================
 # Cleanup and quit
