@@ -1016,7 +1016,6 @@ Mask fractions:              false
 # --- GFED biomass burning emissions (Extension 111)
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
-(((USE_CH4_DATA.or.USE_CO2_DATA
 
 (((GFED4
 111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
@@ -1034,8 +1033,6 @@ Mask fractions:              false
 111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
-
-)))USE_CH4_DATA.or.USE_CO2_DATA
 
 )))EMISSIONS
 
