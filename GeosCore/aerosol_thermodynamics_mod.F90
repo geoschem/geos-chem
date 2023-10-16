@@ -843,7 +843,7 @@ CONTAINS
                  GAS(1) = HETP_NH3
                  GAS(2) = HETP_HNO3
                  GAS(3) = HETP_HCl
-                 ! Only used for diagnostics
+                 ! Mostly used for diagnostics
                  AERLIQ( 1) = HETP_H
                  AERLIQ( 2) = HETP_Na
                  AERLIQ( 3) = HETP_NH4
