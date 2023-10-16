@@ -49,9 +49,9 @@ MODULE Carbon_Gases_Mod
   ! Scalars
   LOGICAL               :: useGlobOHbmk10yr
   LOGICAL               :: useGlobOHv5
-  INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
-  INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
-  INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
+  INTEGER               :: id_CH4,     id_CH4_adv, id_CO,      id_CO_adv
+  INTEGER               :: id_CO2,     id_CO2_adv, id_OCS,     id_OCS_adv
+  INTEGER               :: id_OH
   REAL(fp)              :: xnumol_CH4, xnumol_CO,  xnumol_CO2, xnumol_OH
 
   ! Arrays
@@ -190,7 +190,7 @@ CONTAINS
     ! defined.
     !                                              (ckeller, 9/12/2013)
     !========================================================================
-    IF ( id_CH4 > 0 ) THEN
+    IF ( id_CH4_adv > 0 ) THEN
 
        ! Initialize
        CH4_EMIS_J   = 0.0_fp
@@ -273,7 +273,7 @@ CONTAINS
     !========================================================================
     ! CO2 production from CO oxidation
     !========================================================================
-    IF ( Input_Opt%LCHEMCO2 .and. id_CO2 > 0 ) THEN
+    IF ( Input_Opt%LCHEMCO2 .and. id_CO2_adv > 0 ) THEN
 
        ! Point to chemical species array [kg/kg dry air]
        Spc => State_Chm%Species
@@ -792,8 +792,6 @@ CONTAINS
             L            = L,                                                &
             id_CH4       = id_CH4,                                           &
             id_CO        = id_CO,                                            &
-            id_COch4     = id_COch4,                                         &
-            id_COnmvoc   = id_COnmvoc,                                       &
             id_CO2       = id_CO2,                                           &
             xnumol_CO    = xnumol_CO,                                        &
             xnumol_CH4   = xnumol_CH4,                                       &
@@ -1148,21 +1146,16 @@ CONTAINS
 
     !========================================================================
     ! Define GEOS-Chem species indices
-    ! NOTE: Some of these are for tagged species, which are deactivated
-    ! by default.  Interested users can add tagged species if they wish.
     !========================================================================
-    id_CH4     = Ind_( 'CH4'     )
-    id_CO      = Ind_( 'CO'      )
-    id_COacet  = Ind_( 'COacet'  )
-    id_COch3oh = Ind_( 'COch3oh' )
-    id_COch4   = Ind_( 'COch4'   )
-    id_COisop  = Ind_( 'COisop'  )
-    id_COmono  = Ind_( 'COmono'  )
-    id_COnmvoc = Ind_( 'COnmvoc' )
-    id_CO2     = Ind_( 'CO2'     )
-    id_CO2ch   = Ind_( 'CO2ch'   )
-    id_OCS     = Ind_( 'OCS'     )
-    id_OH      = Ind_( 'FixedOH' )
+    id_CH4        = Ind_( 'CH4'        )
+    id_CH4_adv    = Ind_( 'CH4',   'A' )
+    id_CO         = Ind_( 'CO'         )
+    id_CO_adv     = Ind_( 'CO',    'A' )
+    id_CO2        = Ind_( 'CO2'        )
+    id_CO2_adv    = Ind_( 'CO2',   'A' )
+    id_OCS        = Ind_( 'OCS'        )
+    id_OCS_adv    = Ind_( 'OCS',   'A' )
+    id_OH         = Ind_( 'FixedOH'    )
 
     !========================================================================
     ! Save physical parameters from the species_database.yml file into KPP
