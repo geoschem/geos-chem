@@ -168,6 +168,14 @@ CONTAINS
     integer  :: L2EDGE, I,J,K,L,M,KMIE,IDXAER,IM,LU
     INTEGER  :: KMIE2, IR
     real(fp) :: XQO3,XQO2,WAVE, TTTX
+
+    ! Debugging logicals
+    LOGICAL :: run_liqcld
+    LOGICAL :: run_icecld
+    LOGICAL :: run_strataer
+    LOGICAL :: run_aerosols
+    LOGICAL :: run_dust
+
     ! --------------------------------------------------------------------
     ! For compatibility with GEOS-Chem (SDE 03/30/13)
     REAL(fp) :: QSCALING,LOCALOD,LOCALSSA
@@ -189,6 +197,13 @@ CONTAINS
     ! Initialize
     L2EDGE = L_ + L_ + 2
     FFF(:,:) = 0.e+0_fp
+
+    ! Debugging logicals
+    run_liqcld   = .true.
+    run_icecld   = .true.
+    run_strataer = .true.
+    run_aerosols = .true.
+    run_dust     = .true.
 
     ! Set pointers
     QQAA  => State_Chm%Phot%QQAA
@@ -249,7 +264,10 @@ CONTAINS
           ! Clouds and non-species aerosols
           DO M=1,3
              IF (AERX_COL(M,L).gt.0e+0_fp) THEN
+                IF ( (M.eq.2) .and. (.not. run_liqcld) ) CYCLE
+                IF ( (M.eq.3) .and. (.not. run_icecld) ) CYCLE
                 IDXAER=State_Chm%Phot%MIEDX(M)
+
                 ! Cloud (600 nm scaling)
                 QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                 LOCALOD = QSCALING*AERX_COL(M,L)
@@ -270,7 +288,7 @@ CONTAINS
           IM=10+(NRHAER*NRH)+1
           DO M=IM,IM+1
              IDXAER=M-IM+6 !6-STS, 7-NAT
-
+             IF (.not. run_strataer) CYCLE
              IF (AERX_COL(M,L).gt.0d0) THEN
                 IF (AOD999) THEN
                    ! Aerosol/dust (999 nm scaling)
@@ -294,6 +312,7 @@ CONTAINS
 
           ! Mineral dust (from new optics LUT)
           DO M=4,10
+             IF (.not. run_dust) CYCLE
              IF (AERX_COL(M,L).gt.0d0) THEN
                 IDXAER=State_Chm%Phot%NSPAA !dust is last in LUT
                 IR=M-3
@@ -318,6 +337,7 @@ CONTAINS
 
           ! Other aerosol (from new optics LUT)
           DO M=1,5
+             IF (.not. run_aerosols) CYCLE
              DO IR=1,5
                 IDXAER=10+(M-1)*NRH+IR
                 IF (AERX_COL(IDXAER,L).gt.0d0) THEN
