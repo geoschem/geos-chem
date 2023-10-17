@@ -203,13 +203,13 @@ if [[ "x${bootStrap}" == "xno" ]]; then
     line="\# to prevent missing species from being set to a default value."
     sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
-    line="sed_ie 's\/CYS xyz 1\/EFY xyz 1\/'  HEMCO_Config.rc  \# GC_BCs"
+    line="sed_ie 's\/CYS.*xyz 1\/EFY xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
     sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
     line="sed_ie 's\/CYS\/EFYO\/'             HEMCO_Config.rc  \# GC_RESTART"
     sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
-    line="sed_ie 's\/EY  xyz 1\/EFYO xyz 1\/' HEMCO_Config.rc  \# GC_RESTART"
+    line="sed_ie 's\/EY.*xyz 1\/EFYO xyz 1\/' HEMCO_Config.rc  \# GC_RESTART"
     sed_ie "s/REPLACE5/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 else
     line="\# Change time cycle flags in HEMCO_Config.rc from EFYO to CYS,"
@@ -218,10 +218,10 @@ else
     line="\# to allow missing species to be set a default value."
     sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
-    line="sed_ie 's\/EFYO\/CYS\/'            HEMCO_Config.rc  \# GC_RESTART"
+    line="sed_ie 's\/EFYO\/CYS\/'             HEMCO_Config.rc  \# GC_RESTART"
     sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
-    line="sed_ie 's\/EFY xyz 1\/CYS xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
+    line="sed_ie 's\/EFY.*xyz 1\/CYS xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
     sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 
     sed_ie "/REPLACE5$/d"        "${scriptsDir}/integrationTestExecute.sh"
