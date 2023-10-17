@@ -194,13 +194,32 @@ fi
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
-# If --no-bootstrap is selected, also remove the lines in
-# integrationTestExecute that reset EFYO -> CYS and EFY -> CYS
+# If --no-bootstrap is selected, make sure HEMCO_Config.rc entries for
+# boundary conditions and restart files do not allow missing values.
 if [[ "x${bootStrap}" == "xno" ]]; then
-    sed_ie '/HEMCO_Config.rc  \# GC_RESTART$/d' \
-	   "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie '/HEMCO_Config.rc  \# GC_BCs$/d' \
-	   "${scriptsDir}/integrationTestExecute.sh"
+    line="\# Change time cycle flags in HEMCO_Config.rc from CYS to EFY(O),"
+    sed_ie "s/REPLACE1/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+    
+    line="\# to prevent missing species from being set to a default value."
+    sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+
+    line="sed_ie 's\/CYS xyz 1\/EFY xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
+    sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+
+    line="sed_ie 's\/CYS\/EFYO\/'            HEMCO_Config.rc  \# GC_RESTART"
+    sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"    
+else    
+    line="\# Change time cycle flags in HEMCO_Config.rc from EFYO to CYS,"
+    sed_ie "s/REPLACE1/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+    
+    line="\# to allow missing species to be set a default value."
+    sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+
+    line="sed_ie 's\/EFYO\/CYS\/'            HEMCO_Config.rc  \# GC_RESTART"
+    sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+    
+    line="sed_ie 's\/EFY xyz 1\/CYS xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
+    sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"
 fi
 
 # Navigate to the logs directory (so all output will be placed there)
