@@ -3901,9 +3901,6 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
-#if defined( SPMD )
-    USE MPISHORTHAND
-#endif
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -3929,9 +3926,6 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
-#if defined( MODEL_CESM ) && defined( SPMD )
-    INTEGER            :: nSize ! Number of elements in State_Chm%NOXCOEFF
-#endif
 
     ! Strings
     CHARACTER(LEN=255) :: NOX_FILE
@@ -4055,7 +4049,6 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
-    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
@@ -4136,9 +4129,6 @@ CONTAINS
     ENDDO !IMON
 #if defined( MODEL_CESM )
     ENDIF
-#if defined( SPMD )
-    CALL MPIBCAST( State_Chm%NOXCOEFF, nSize, MPIR8, 0, MPICOM )
-#endif
 #endif
 
   END SUBROUTINE NOXCOEFF_INIT
