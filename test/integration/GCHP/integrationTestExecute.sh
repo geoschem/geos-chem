@@ -203,6 +203,9 @@ for runDir in *; do
             # Link to the environment file
             ./setEnvironmentLink.sh "${envDir}/gchp.env"
 
+	    REPLACE1
+	    REPLACE2
+
             # Update config files, set links, load environment, sanity checks
             . setCommonRunSettings.sh >> "${log}" 2>&1
             . setRestartLink.sh       >> "${log}" 2>&1

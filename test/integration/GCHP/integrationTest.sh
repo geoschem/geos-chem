@@ -193,11 +193,17 @@ fi
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 
-# If --no-bootstrap is selected, also remove the lines in
-# commonFunctionsForTests.sh that allows missing species in restart files
+# If --no-bootstrap is selected, then add a line to integrateTestExecute.sh
+# that will tell GCHP to require all species in the restart file.
 if [[ "x${bootStrap}" == "xno" ]]; then
-    sed_ie '/Require_Species_in_Restart$/d' \
-	   "${scriptsDir}/commonFunctionsForTests.sh"
+    line="\# Edit setCommonRunSettings.sh to disable bootstrapping"
+    sed_ie "s/REPLACE1/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+
+    line="sed_ie 's\/Require_Species_in_Restart\=0\/Require_Species_in_Restart\=1\/' setCommonRunSettings.sh"
+    sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
+else
+    sed_ie '/REPLACE1$/d' "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/REPLACE2$/d' "${scriptsDir}/integrationTestExecute.sh"
 fi
 
 # Navigate to the logs directory (so all output will be placed there)
