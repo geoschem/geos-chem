@@ -506,6 +506,11 @@ CONTAINS
        ! Cloud OD profile [unitless] at (NLON,NLAT)
        OPTD = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
 
+       ! Optional: The below makes Fast-JX and Cloud-J match much better for clouds
+       !DO L = 1, State_Grid%NZ
+       !   OPTD(L) = State_Met%TAUCLW(NLON,NLAT,L) + State_Met%TAUCLI(NLON,NLAT,L)
+       !ENDDO
+
        !-----------------------------------------------------------
        !### If you want to exclude aerosol OD, mineral dust OD,
        !### or cloud OD, then uncomment the following lines.

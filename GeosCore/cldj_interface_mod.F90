@@ -211,7 +211,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: A, I, J, L, K, N, S, MaxLev
+    INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_bin
     REAL(8)            :: MW_kg, BoxHt, Delta_P, IWC, LWC
     LOGICAL, SAVE      :: FIRST = .true.
 
@@ -298,6 +298,8 @@ CONTAINS
     ! Species ids
     INTEGER, SAVE :: id_O3
     INTEGER, SAVE :: id_SO4
+    INTEGER, SAVE :: id_NH4
+    INTEGER, SAVE :: id_NIT
     INTEGER, SAVE :: id_BCPI
     INTEGER, SAVE :: id_BCPO
     INTEGER, SAVE :: id_OCPI
@@ -333,6 +335,8 @@ CONTAINS
     IF ( FIRST ) THEN
        id_O3   = Ind_('O3')
        id_SO4  = Ind_('SO4')
+       id_NH4  = Ind_('NH4')
+       id_NIT  = Ind_('NIT')
        id_BCPI = Ind_('BCPI')
        id_BCPO = Ind_('BCPO')
        id_OCPI = Ind_('OCPI')
@@ -369,7 +373,7 @@ CONTAINS
     !=================================================================
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_kg, BoxHt                       ) &
+    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_kg, BoxHt, RH_bin               ) &
     !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                    ) &
     !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                       ) &
     !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P  ) &
@@ -467,31 +471,30 @@ CONTAINS
              CLDF(L) = 0.d0
           ENDIF
 
-          ! Compute liquid and ice water path [g/m2] and effective radius [microns]
-          DELTA_P = P_CTM(L) - P_CTM(L+1)
-          IF ( LWC .GT. 1.d-12 ) THEN
-             LWP(L) = 1000.d0 * LWC * DELTA_P * g0_100
-             IF ( State_Met%TAUCLW(I,J,L) > 0.0d0 ) THEN
-                REFFL(L) = LWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLW(I,J,L) * 1.d0 )
-             ENDIF
-          ENDIF
-          IF ( IWC .GT. 1.d-12 ) THEN
-             IWP(L) = 1000.d0 * IWC * DELTA_P * g0_100
-             IF ( State_Met%TAUCLI(I,J,L) > 0.0d0 ) THEN
-                REFFI(L) = IWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLI(I,J,L) * 0.917d0 )
-             ENDIF
-          ENDIF
-
-          ! NOTES ON EFFECTIVE RADIUS:
+          ! NOTES ON EFFECTIVE RADIUS FROM M. PRATHER:
           ! Compute effective radius [microns] of liquid water cloud and liquid ice cloud
           ! based on met-fields for in-cloud water content and in-cloud optical depth.
           !
           ! Note: The approach used here is consistent with the cloud optical depth
           ! calculation within Cloud-J but makes an assumption of extinction efficiency
           ! Q = 2.06. This works because all cloud Reffs are much bigger
-          ! (2*pi*Reff >> 500 nm)
-          ! so that Q (extinction efficiency = optical cross section / pi*r*r) is nearly
-          ! constant at 2.06 (see the cloud scattering tables in Cloud-J). 
+          ! (2*pi*Reff >> 500 nm) so that Q (extinction efficiency = optical cross
+          ! section / pi*r*r) is nearly constant at 2.06 (see the cloud scattering
+          ! tables in Cloud-J).
+
+          ! Compute liquid water path [g/m2] and effective radius [microns]
+          DELTA_P = P_CTM(L) - P_CTM(L+1)
+          IF ( State_Met%TAUCLW(I,J,L) .GT. 0.d0 ) THEN
+             LWP(L) = 1000.d0 * LWC * DELTA_P * g0_100
+             REFFL(L) = LWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLW(I,J,L) * 1.d0 )
+          ENDIF
+
+          ! Compute ice water path [g/m2] and effective radius [microns]
+          IF ( State_Met%TAUCLI(I,J,L) .GT. 0.d0 ) THEN
+             IWP(L) = 1000.d0 * IWC * DELTA_P * g0_100
+             REFFI(L) = IWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLI(I,J,L) * 0.917d0 )
+          ENDIF
+
           ! Convert relative humidity [unitless] from percent to fraction
           RRR(L) = State_Met%RH(I,J,L) / 100.d0
 
@@ -518,7 +521,19 @@ CONTAINS
 
           ! Layer height [m]
           BoxHt = State_Met%BXHEIGHT(I,J,L)   
-          
+
+          ! Humidity bin for aerosols (1:<=50, 2:<=70, 3:<=80; 4:<=90, else 5
+          IF ( State_Met%RH(I,J,L) <= 50 ) THEN
+             RH_bin = 1
+          ELSE IF ( State_Met%RH(I,J,L) <= 70 ) THEN
+             RH_bin = 2
+          ELSE IF ( State_Met%RH(I,J,L) <= 80 ) THEN
+             RH_bin = 3
+          ELSE IF ( State_Met%RH(I,J,L) <= 90 ) THEN
+             RH_bin = 4
+          ELSE
+             RH_bin = 5
+          ENDIF
           ! Leave AERSP(L,1:3) as zero since non-aerosols (black carbon
           ! absorber, water cloud, and irregular ice cloud)
 
@@ -573,10 +588,6 @@ CONTAINS
        ! Set TOA equal to concentration in top level. Not sure if this is
        ! right. We set TOA optical depth to zero when passing to photo_jx
        ! in old fast-jx. 
-       AERSP(State_Grid%NZ+1,:) = AERSP(State_Grid%NZ,:)
-
-       ! Will need to convert units!!! What are units above?
-       ! Loop over levels
        AERSP(State_Grid%NZ+1,:) = AERSP(State_Grid%NZ,:)
 
        !-----------------------------------------------------------------
