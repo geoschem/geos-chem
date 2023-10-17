@@ -1057,13 +1057,14 @@ if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
 	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
 	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
 	else
-	    sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
+	    # Use restart file from the latest 1-year benchmark
+	    sample_rst=${rst_root}/GC_14.2.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
 	fi
 
     elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
 
-	# For TransportTracers, use restart from latest benchmark
-	sample_rst=${rst_root}/GC_14.0.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+	# Use restart file from the latest 1-year TransportTracers benchmark
+	sample_rst=${rst_root}/GC_14.2.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
 
     elif [[ "x${sim_name}" == "xHg" ]]; then
 
