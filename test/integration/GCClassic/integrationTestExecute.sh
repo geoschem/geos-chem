@@ -200,6 +200,7 @@ for runDir in *; do
 	    REPLACE2
 	    REPLACE3
 	    REPLACE4
+	    REPLACE5
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
