@@ -422,7 +422,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: TurnOffHetRates
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #endif
 
