@@ -2983,7 +2983,7 @@ CONTAINS
     ! Scalar for JHNO3 for photoylsing NITs aerosol
     !------------------------------------------------------------------------
     key    = &
-     "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale_JHNO3"
+     "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2997,7 +2997,7 @@ CONTAINS
     ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
     !------------------------------------------------------------------------
     key    = &
-     "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale_JHNO2"
+     "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
