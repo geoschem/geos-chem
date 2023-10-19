@@ -50,6 +50,13 @@ MODULE FullChem_Mod
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
+#ifdef MODEL_CESM
+  INTEGER               :: id_TSOA0, id_TSOA1, id_TSOA2, id_TSOA3
+  INTEGER               :: id_ASOA1, id_ASOA2, id_ASOA3, id_ASOAN
+  INTEGER               :: id_TSOG0, id_TSOG1, id_TSOG2, id_TSOG3
+  INTEGER               :: id_ASOG1, id_ASOG2, id_ASOG3
+  INTEGER               :: id_NIT, id_SO4s, id_NITs, id_HNO3
+#endif
   INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC ! MSL
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
@@ -213,8 +220,13 @@ CONTAINS
     REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
     REAL(dp)               :: localC(NSPEC)
 #endif
-#ifdef MODEL_WRF
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
     REAL(dp)               :: localC(NSPEC)
+#endif
+
+#if defined( MODEL_CESM )
+    ! Sink rate for artificial UT/LS sink
+    REAL(dp)               :: ScaleCESMLossRate
 #endif
 
     ! Grid box integration time diagnostic
@@ -281,7 +293,7 @@ CONTAINS
                                       State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
     ENDIF
-    
+
     ! Also zero satellite diagnostic archival arrays
     IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
     IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
@@ -397,7 +409,7 @@ CONTAINS
        CALL Timer_Start( "=> FlexChem",           RC ) ! ended in Do_Chemistry
     ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -513,7 +525,7 @@ CONTAINS
     !$OMP PRIVATE( NOxTau,     NOxConc, localC                              )&
     !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
 #endif
-#ifdef MODEL_WRF
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
     !$OMP PRIVATE( localC                                                   )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
@@ -726,6 +738,52 @@ CONTAINS
                              RC        = RC                                 )
           ENDIF
        ENDIF
+
+#if defined( MODEL_CESM )
+       !=====================================================================
+       ! Unphysical fix: Photolyze soluble aerosol tracers
+       ! This removes unphysical values of soluble tracers in the UT/LS due
+       ! to decoupling of convection and wet scavenging in CESM dynamics.
+       !
+       ! This process has to be done before InChemGrid as it is supposed to
+       ! be active everywhere, especially the stratosphere.
+       ! (hplin, 5/30/23)
+       !=====================================================================
+
+       IF ( Input_Opt%correctConvUTLS .and. L .ge. State_Met%PBL_TOP_L(I,J) ) THEN
+
+           ! We operate directly on [molec/cm3] species concentrations in State_Chm,
+           ! because they have not been copied to C() in KPP yet. But, we can use
+           ! PHOTOL(11) which is J-NO2, and scale to create the artificial sink.
+           ! This is a consistent handling based off the MOZART-TS1 mechanism
+           ! in Emmons et al., 2020 JAMES.
+           ScaleCESMLossRate = MAX(0.0_dp, 1 - PHOTOL(11) * .0004_dp * DT)
+
+           State_Chm%Species(id_TSOA0)%Conc(I,J,L) = State_Chm%Species(id_TSOA0)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA1)%Conc(I,J,L) = State_Chm%Species(id_TSOA1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA2)%Conc(I,J,L) = State_Chm%Species(id_TSOA2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA3)%Conc(I,J,L) = State_Chm%Species(id_TSOA3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA1)%Conc(I,J,L) = State_Chm%Species(id_ASOA1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA2)%Conc(I,J,L) = State_Chm%Species(id_ASOA2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA3)%Conc(I,J,L) = State_Chm%Species(id_ASOA3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOAN)%Conc(I,J,L) = State_Chm%Species(id_ASOAN)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG0)%Conc(I,J,L) = State_Chm%Species(id_TSOG0)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG1)%Conc(I,J,L) = State_Chm%Species(id_TSOG1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG2)%Conc(I,J,L) = State_Chm%Species(id_TSOG2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG3)%Conc(I,J,L) = State_Chm%Species(id_TSOG3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG1)%Conc(I,J,L) = State_Chm%Species(id_ASOG1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG2)%Conc(I,J,L) = State_Chm%Species(id_ASOG2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG3)%Conc(I,J,L) = State_Chm%Species(id_ASOG3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_NIT  )%Conc(I,J,L) = State_Chm%Species(id_NIT  )%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_NITs )%Conc(I,J,L) = State_Chm%Species(id_NITs )%Conc(I,J,L) * ScaleCESMLossRate
+
+           ! Don't apply this to sulfate as it is not applied in CAM-chem either and will affect the SO4 budget.
+           !State_Chm%Species(id_SO4  )%Conc(I,J,L) = State_Chm%Species(id_SO4  )%Conc(I,J,L) * ScaleCESMLossRate
+           !State_Chm%Species(id_SO4s )%Conc(I,J,L) = State_Chm%Species(id_SO4s )%Conc(I,J,L) * ScaleCESMLossRate
+
+        ENDIF
+
+#endif
 
        !=====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -1049,7 +1107,7 @@ CONTAINS
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
        ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
           WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
@@ -1116,7 +1174,7 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
           ! Save a copy of the C vector (GEOS and WRF only)
           localC    = C
 #endif
@@ -1215,7 +1273,7 @@ CONTAINS
           IF ( IERR < 0 ) THEN
              WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ! Revert to start values
@@ -2646,6 +2704,29 @@ CONTAINS
     id_IHPNDOO  = Ind_( 'IHPNDOO'      )
     id_ICNOO    = Ind_( 'ICNOO'        )
     id_IDNOO    = Ind_( 'IDNOO'        )
+#endif
+
+#ifdef MODEL_CESM
+    ! hplin
+    id_TSOA0    = Ind_('TSOA0')
+    id_TSOA1    = Ind_('TSOA1')
+    id_TSOA2    = Ind_('TSOA2')
+    id_TSOA3    = Ind_('TSOA3')
+    id_ASOA1    = Ind_('ASOA1')
+    id_ASOA2    = Ind_('ASOA2')
+    id_ASOA3    = Ind_('ASOA3')
+    id_ASOAN    = Ind_('ASOAN')
+    id_TSOG0    = Ind_('TSOG0')
+    id_TSOG1    = Ind_('TSOG1')
+    id_TSOG2    = Ind_('TSOG2')
+    id_TSOG3    = Ind_('TSOG3')
+    id_ASOG1    = Ind_('ASOG1')
+    id_ASOG2    = Ind_('ASOG2')
+    id_ASOG3    = Ind_('ASOG3')
+    id_NIT      = Ind_('NIT')
+    id_SO4s     = Ind_('SO4s')
+    id_NITs     = Ind_('NITs')
+    id_HNO3     = Ind_('HNO3')
 #endif
 
     ! Set flags to denote if each species is defined
