@@ -80,10 +80,12 @@ MODULE State_Diag_Mod
      REAL(f8),  POINTER :: BudgetEmisDryDepPBL      (:,:,:)
      REAL(f8),  POINTER :: BudgetTransportFull      (:,:,:)
      REAL(f8),  POINTER :: BudgetTransportTrop      (:,:,:)
+     REAL(f8),  POINTER :: BudgetTransportTropHeight(:,:,:)
      REAL(f8),  POINTER :: BudgetTransportPBL       (:,:,:)
      REAL(f8),  POINTER :: BudgetMixingFull         (:,:,:)
      REAL(f8),  POINTER :: BudgetMixingTrop         (:,:,:)
      REAL(f8),  POINTER :: BudgetMixingPBL          (:,:,:)
+     REAL(f8),  POINTER :: BudgetMixingPBLHeight    (:,:,:)
      REAL(f8),  POINTER :: BudgetConvectionFull     (:,:,:)
      REAL(f8),  POINTER :: BudgetConvectionTrop     (:,:,:)
      REAL(f8),  POINTER :: BudgetConvectionPBL      (:,:,:)
@@ -774,10 +776,12 @@ CONTAINS
     State_Diag%BudgetEmisDryDepPBL                 => NULL()
     State_Diag%BudgetTransportFull                 => NULL()
     State_Diag%BudgetTransportTrop                 => NULL()
+    State_Diag%BudgetTransportTropHeight           => NULL()
     State_Diag%BudgetTransportPBL                  => NULL()
     State_Diag%BudgetMixingFull                    => NULL()
     State_Diag%BudgetMixingTrop                    => NULL()
     State_Diag%BudgetMixingPBL                     => NULL()
+    State_Diag%BudgetMixingPBLHeight               => NULL()
     State_Diag%BudgetConvectionFull                => NULL()
     State_Diag%BudgetConvectionTrop                => NULL()
     State_Diag%BudgetConvectionPBL                 => NULL()
@@ -1475,6 +1479,20 @@ CONTAINS
                                 State_Diag%BudgetTransportTrop,              &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+       arrayID = 'State_Diag%BudgetTransportTropHeight'
+       diagID  = 'BudgetTransportTropHeight'   
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetTransportTropHeight( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetTransportTropHeight = 0.0_f8
+       State_Diag%Archive_BudgetTransportTrop = .TRUE.
+       CALL Register_DiagField( Input_Opt, diagID,                           &
+                                State_Diag%BudgetTransportTropHeight,        &
+                                State_Chm, State_Diag, RC                   )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       
     ENDIF
 
     ! PBL-only transport
@@ -1535,6 +1553,20 @@ CONTAINS
                                 State_Diag%BudgetMixingTrop,                 &
                                 State_Chm, State_Diag, RC                   )
        IF ( RC /= GC_SUCCESS ) RETURN
+
+      ! Second array needed for diagnosing changes in PBL height
+       arrayID = 'State_Diag%BudgetMixingPBLHeight'
+       diagID  = 'BudgetMixingPBLHeight'
+       IF ( am_I_Root ) WRITE(6,20) ADJUSTL( arrayID ), TRIM( diagID )
+       ALLOCATE( State_Diag%BudgetMixingPBLHeight( IM, JM, nAdvect ), STAT=RC )
+       CALL GC_CheckVar( arrayID, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%BudgetMixingPBLHeight = 0.0_f8
+       CALL Register_DiagField( Input_Opt, diagID,                           &
+                                State_Diag%BudgetMixingPBLHeight,            &
+                                State_Chm, State_Diag, RC                    )
+       IF ( RC /= GC_SUCCESS ) RETURN
+
     ENDIF
 
     ! PBL-only mixing
@@ -6430,6 +6462,13 @@ CONTAINS
        State_Diag%BudgetTransportTrop => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Diag%BudgetTransportTropHeight ) ) THEN
+      DEALLOCATE( State_Diag%BudgetTransportTropHeight, STAT=RC )
+      CALL GC_CheckVar( 'State_Diag%BudgetTransportTropHeight', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Diag%BudgetTransportTropHeight => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%BudgetTransportPBL ) ) THEN
        DEALLOCATE( State_Diag%BudgetTransportPBL, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetTransportPBL', 2, RC )
@@ -6456,6 +6495,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Diag%BudgetMixingPBL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%BudgetMixingPBL => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Diag%BudgetMixingPBLHeight ) ) THEN
+      DEALLOCATE( State_Diag%BudgetMixingPBLHeight, STAT=RC )
+      CALL GC_CheckVar( 'State_Diag%BudgetMixingPBLHeight', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Diag%BudgetMixingPBLHeight => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Diag%BudgetConvectionFull ) ) THEN
@@ -8063,6 +8109,13 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROPHEIGHT' ) THEN
+         IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
+                                  'change in tropopause height'
+         IF ( isUnits   ) Units = 'kg s-1'
+         IF ( isRank    ) Rank  = 2
+         IF ( isTagged  ) TagId = 'ADV'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
        IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                 ' in column for transport'
@@ -8112,6 +8165,13 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ADV'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBLHEIGHT' ) THEN
+       IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                ' in column for PBL height change'
+       IF ( isUnits   ) Units = 'kg s-1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ADV'
+  
     ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
        IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                 'for convection'

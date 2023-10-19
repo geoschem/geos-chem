@@ -1170,6 +1170,25 @@ PROGRAM GEOS_Chem
        ! Do not compute any data in dry-run mode
        IF ( notDryRun ) THEN
 
+          !------------------------------------------------------
+          ! Tropopause height budget diagnostics - Part 1 of 2
+          !------------------------------------------------------
+          IF ( State_Diag%Archive_BudgetTransport ) THEN
+             ! Get initial column masses
+             CALL Compute_Column_Mass( Input_Opt,                           &
+                                     State_Chm, State_Grid, State_Met,    &
+                                     State_Chm%Map_Advect,                &
+                                     .False., &
+                                     State_Diag%Archive_BudgetTransportTrop, &
+                                     .False.,  &
+                                     State_Diag%BudgetMass1,              &
+                                     RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Tropopause height budget diagnostics error 1'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+             ENDIF
+          ENDIF
+
           ! Interpolate I-3 fields to current dynamic timestep,
           ! based on their values at NSEC and NSEC+N_DYN
           CALL Interp( NSECb,     ELAPSED_TODAY, N_DYN, &
@@ -1232,6 +1251,40 @@ PROGRAM GEOS_Chem
              ErrMsg = 'Error encountered in "Get_Cosine_SZA"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
+
+         !------------------------------------------------------
+         ! Tropopause height budget diagnostics - Part 2 of 2
+         !------------------------------------------------------
+         IF ( State_Diag%Archive_BudgetTransport ) THEN
+
+            ! Get final column masses and compute diagnostics
+            CALL Compute_Column_Mass( Input_Opt,                              &
+                                    State_Chm, State_Grid, State_Met,       &
+                                    State_Chm%Map_Advect,                   &
+                                    .False.,    &
+                                    State_Diag%Archive_BudgetTransportTrop, &
+                                    .False.,     &
+                                    State_Diag%BudgetMass2,                 &
+                                    RC )
+
+            CALL Compute_Budget_Diagnostics( State_Grid,                      &
+                                       State_Chm%Map_Advect,                &
+                                       real(Get_Ts_Dyn(), f8),              &
+                                       .False., &
+                                       State_Diag%Archive_BudgetTransportTrop, &
+                                       .False.,  &
+                                       State_Diag%BudgetTransportFull,      & ! This array shouldn't be changed, but can we avoid passing it?
+                                       State_Diag%BudgetTransportTropHeight,& 
+                                       State_Diag%BudgetTransportPBL,       & ! This array shouldn't be changed, but can we avoid passing it?
+                                       State_Diag%BudgetMass1,              &
+                                       State_Diag%BudgetMass2,              &
+                                       RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Tropopause height budget diagnostics error 2'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+            ENDIF
+         ENDIF
+
        ENDIF
 
        IF ( prtDebug ) CALL Debug_Msg( '### MAIN: a INTERP, etc' )
@@ -1408,6 +1461,25 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
 
+          !------------------------------------------------------
+          ! PBL height budget diagnostics - Part 1 of 2
+          !------------------------------------------------------
+          IF ( State_Diag%Archive_BudgetMixing ) THEN
+            ! Get initial column masses
+            CALL Compute_Column_Mass( Input_Opt,                           &
+                                      State_Chm, State_Grid, State_Met,    &
+                                      State_Chm%Map_Advect,                &
+                                      .False., &
+                                      .False., &
+                                      State_Diag%Archive_BudgetMixingPBL,  &
+                                      State_Diag%BudgetMass1,              &
+                                      RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Mixing budget diagnostics error 1 (Compute_PBL_Height)'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+            ENDIF
+          ENDIF
+
           ! Move this call from the PBL mixing routines because the PBL
           ! height is used by drydep and some of the emissions routines.
           ! (ckeller, 3/5/15)
@@ -1418,6 +1490,39 @@ PROGRAM GEOS_Chem
              ErrMsg = 'Error encountered in "Compute_PBL_Height"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
+
+          !------------------------------------------------------
+          ! PBL height budget diagnostics - Part 2 of 2
+          !------------------------------------------------------
+          IF ( State_Diag%Archive_BudgetMixing ) THEN
+
+            ! Get final column masses and compute diagnostics
+            CALL Compute_Column_Mass( Input_Opt,                              &
+                                      State_Chm, State_Grid, State_Met,       &
+                                      State_Chm%Map_Advect,                   &
+                                      .False.,    &
+                                      .False.,    &
+                                      State_Diag%Archive_BudgetMixingPBL,     &
+                                      State_Diag%BudgetMass2,                 &
+                                      RC )
+            CALL Compute_Budget_Diagnostics( State_Grid,                      &
+                                         State_Chm%Map_Advect,                &
+                                         real(Get_Ts_Dyn(), f8),                              &
+                                         .False., &
+                                         .False., &
+                                         State_Diag%Archive_BudgetMixingPBL,  &
+                                         State_Diag%BudgetMixingFull,         & ! Can we avoid passing this array?
+                                         State_Diag%BudgetMixingTrop,         & ! Can we avoid passing this array?
+                                         State_Diag%BudgetMixingPBLHeight,    &
+                                         State_Diag%BudgetMass1,              &
+                                         State_Diag%BudgetMass2,              &
+                                         RC )
+            IF ( RC /= GC_SUCCESS ) THEN
+               ErrMsg = 'Mixing budget diagnostics error 2 (non-local mixing)'
+               CALL GC_Error( ErrMsg, RC, ThisLoc )
+            ENDIF
+          ENDIF
+
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "Boundary layer mixing", RC )
@@ -1808,6 +1913,18 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "All diagnostics",           RC )
              CALL Timer_Start( "Output",                    RC )
              CALL Timer_Start( "=> History (netCDF diags)", RC )
+          ENDIF
+
+          ! Sum the two transport budget diagnostics
+          IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
+            State_Diag%BudgetTransportTrop = State_Diag%BudgetTransportTrop + &
+                                         State_Diag%BudgetTransportTropHeight
+          ENDIF
+
+          ! Sum the two PBL mixing budget diagnostics
+          IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+            State_Diag%BudgetMixingPBL = State_Diag%BudgetMixingPBL + &
+                                         State_Diag%BudgetMixingPBLHeight
           ENDIF
 
           ! Set State_Diag arrays that rely on state at end of timestep
