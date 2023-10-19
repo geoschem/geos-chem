@@ -193,39 +193,11 @@ fi
 # Define local convenience variables
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
-# If --no-bootstrap is selected, make sure HEMCO_Config.rc entries for
-# boundary conditions and restart files do not allow missing values.
-if [[ "x${bootStrap}" == "xno" ]]; then
-    line="\# Change time cycle flags in HEMCO_Config.rc from CYS to EFY(O),"
-    sed_ie "s/REPLACE1/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="\# to prevent missing species from being set to a default value."
-    sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="sed_ie 's\/CYS.*xyz 1\/EFY xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
-    sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="sed_ie 's\/CYS\/EFYO\/'             HEMCO_Config.rc  \# GC_RESTART"
-    sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="sed_ie 's\/EY.*xyz 1\/EFYO xyz 1\/' HEMCO_Config.rc  \# GC_RESTART"
-    sed_ie "s/REPLACE5/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-else
-    line="\# Change time cycle flags in HEMCO_Config.rc from EFYO to CYS,"
-    sed_ie "s/REPLACE1/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="\# to allow missing species to be set a default value."
-    sed_ie "s/REPLACE2/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="sed_ie 's\/EFYO\/CYS\/'             HEMCO_Config.rc  \# GC_RESTART"
-    sed_ie "s/REPLACE3/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    line="sed_ie 's\/EFY.*xyz 1\/CYS xyz 1\/' HEMCO_Config.rc  \# GC_BCs"
-    sed_ie "s/REPLACE4/${line}/" "${scriptsDir}/integrationTestExecute.sh"
-
-    sed_ie "/REPLACE5$/d"        "${scriptsDir}/integrationTestExecute.sh"
-fi
+# Edit HEMCO_Config.rc files to enable or disable bootstrapping
+# (i.e. to allow missing species in restart files or not)
+gcc_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
 
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
