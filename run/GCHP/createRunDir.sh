@@ -564,6 +564,7 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xcarbon"           ||
       "x${sim_name}"         == "xPOPs"             ||
       "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xTransportTracers" ||
