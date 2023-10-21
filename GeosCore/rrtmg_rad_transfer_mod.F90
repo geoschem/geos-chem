@@ -1838,7 +1838,7 @@ CONTAINS
           ! Clear-sky SW flux @ tropopause [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWTrop ) THEN
              State_Diag%RadClrSkySWTrop(I,J,iNcDiag) = &
-                  SW_DLUXC(I,J,iTrop)-SW_UFLUXC(I,J,iTrop)
+                  SW_DFLUXC(I,J,iTrop)-SW_UFLUXC(I,J,iTrop)
           ENDIF
 
           ! Clear-sky SW flux @ surface [W/m2]
@@ -2125,7 +2125,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N0,N,I,II,NXTRA
+    INTEGER :: N0,N,I,II,NXTRA,NASPECRAD
 
     ! Pointers
     INTEGER, POINTER :: SPECMASK(:)
@@ -2146,6 +2146,7 @@ CONTAINS
     !E.G. FOR UCX NSPECRAD=18 AND STS AND NAT ARE INCLUDED
     !IN RTODAER INDEX 8 AND 9, BEFORE DUST
     NXTRA = State_Chm%Phot%NSPECRAD - 16
+    NASPECRAD = State_Chm%Phot%NASPECRAD
 
     ! Set pointer
     SPECMASK => State_Chm%Phot%SpecMask

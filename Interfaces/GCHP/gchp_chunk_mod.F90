@@ -1525,7 +1525,7 @@ CONTAINS
              Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
              Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
           End If
-          CALL Set_SpecMask( State_Diag%RadOutInd(N) )
+          CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
           ! This call will NOT update DT_3D, so we can just reuse the array
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &

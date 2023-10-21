@@ -3093,7 +3093,7 @@ CONTAINS
                              notFoundOK=.TRUE., __RC__ )
        IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY)) THEN
           Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
-                    State_Met%TStrat_Adj(:,:,1:State_Grid%NZ)
+                    State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ)
        ENDIF
        Ptr3d_R8 => NULL()
 

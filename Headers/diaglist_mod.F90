@@ -783,7 +783,7 @@ CONTAINS
           strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
           strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
           strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
-          IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
+          IF ( strIndMax == 1 .AND. nRadOut < 16 ) THEN
 
              ! If RRTMG diagnostics present, always calculate BASE, and store
              ! first, since used to calculate other outputs.
