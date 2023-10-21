@@ -432,7 +432,7 @@ SO2 {+O2}           = SO4                : K_CLD(3);        {Mn & Fe catalysis +
 // HMS
 CH2O + SO2          = HMS                : K_CLD(4);        {Sep 2021; Moch2020; MSL}
 HMS                 = SO2 + CH2O         : K_CLD(5);        {Sep 2021; Moch2020; MSL}
-HMS + OH            = 2SO4 + CH2O - SO2  : K_CLD(6);        {Sep 2021; Moch2020; MSL}
+HMS + OH + SO2      = 2SO4 + CH2O        : K_CLD(6);        {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
