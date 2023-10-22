@@ -2681,6 +2681,7 @@ CONTAINS
     CHARACTER(LEN=512)           :: errMsg
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_NamLen) :: a_str(3)
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
     ! Config_RRTMG begins here!
@@ -2780,6 +2781,19 @@ CONTAINS
     Input_Opt%LSKYRAD(2) = v_bool
 
     !------------------------------------------------------------------------
+    ! Value to use (in ppmv) for CO2?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%co2_ppmv"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_CO2_ppmv = Cast_and_Roundoff( v_str, places=2 )
+
+    !------------------------------------------------------------------------
     ! Use the fixed dynamical heating assumption?
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%fixed_dyn_heating"
@@ -2877,6 +2891,7 @@ CONTAINS
        WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
+       WRITE( 6, 100 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
        WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
        WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
        WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating

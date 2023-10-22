@@ -1118,7 +1118,8 @@ CONTAINS
 
     ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
     IF (SPECMASK(State_Chm%Phot%NASPECRAD+4).EQ.1) THEN
-       CO2VMR(:,:,:) = 3.90E-4
+       ! Was 3.90e-4 (i.e. 390 ppmv), but now set from Input_Opt
+       CO2VMR(:,:,:) = Input_Opt%RRTMG_CO2_ppmv * 1.0d-6
     END IF
     O2VMR(:,:,:)  = 0.209
 

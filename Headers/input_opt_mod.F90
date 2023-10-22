@@ -217,6 +217,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=5),   POINTER :: STRWVSELECT(:)
      INTEGER                     :: NSPECRADMENU
      INTEGER,            POINTER :: LSPECRADMENU(:)
+     REAL(8)                     :: RRTMG_CO2_ppmv
      LOGICAL                     :: RRTMG_FDH
      LOGICAL                     :: RRTMG_SEFDH
      LOGICAL                     :: Read_Dyn_Heating
@@ -755,6 +756,7 @@ CONTAINS
     Input_Opt%NWVSELECT              = 0
     Input_Opt%WVSELECT               = 0.0_fp
     Input_Opt%STRWVSELECT            = ''
+    Input_Opt%RRTMG_CO2_ppmv         = 3.90e-4_fp
     Input_Opt%RRTMG_FDH              = .FALSE.
     Input_Opt%RRTMG_SEFDH            = .FALSE.
     Input_Opt%Read_Dyn_Heating       = .FALSE.

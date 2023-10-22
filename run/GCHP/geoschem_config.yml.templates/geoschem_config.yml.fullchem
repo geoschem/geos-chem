@@ -92,6 +92,10 @@ operations:
     shortwave_fluxes: ${RUNDIR_RRTMG_OPTS}
     clear_sky_flux: ${RUNDIR_RRTMG_OPTS}
     all_sky_flux: ${RUNDIR_RRTMG_OPTS}
+    fixed_dyn_heating: false
+    seasonal_fdh: false
+    read_dyn_heating: false
+    co2_ppmv: 390.0
 
   transport:
     activate: true
