@@ -754,6 +754,9 @@ CONTAINS
        DO L = 1, State_Grid%NZ
           PCENTER(I,J,L) = GET_PCENTER( I, J, L )
           PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
+          ! H2O will be overwritten later except above the
+          ! chemistry grid
+          H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
           TLAY   (I,J,L) = State_Met%T(I,J,L)
           SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
        ENDDO
@@ -871,7 +874,9 @@ CONTAINS
           IF (SPECMASK(State_Chm%Phot%NASPECRAD+3).EQ.1) THEN
              H2OVMR(I,J,L) = Spc(id_H2O)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_H2O)%Info%MW_g
-
+          ELSE
+             ! Set to zero to override the default (AVGW)
+             H2OVMR(I,J,L) = 0.0
           ENDIF
 
           IF (SPECMASK(State_Chm%Phot%NASPECRAD+6).EQ.1) THEN
