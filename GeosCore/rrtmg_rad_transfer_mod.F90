@@ -519,6 +519,9 @@ CONTAINS
     ! For RF at tropopause
     Integer                    :: iTrop
 
+    ! To simplify ozone RF calculation
+    Logical                    :: in_Trop
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
@@ -787,7 +790,7 @@ CONTAINS
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,       J,      L                         ) &
+    !$OMP PRIVATE( I,       J,      L,      IN_TROP           ) &
     !$OMP PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    ) &
     !$OMP PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM ) &
     !$OMP SCHEDULE( DYNAMIC )
@@ -859,19 +862,21 @@ CONTAINS
           !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
           !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 
-          IF (SPECMASK(State_Chm%Phot%NASPECRAD+1).EQ.1) THEN
+          ! Treat tropospheric and stratospheric ozone seprately
+          In_Trop = State_Met%InTroposphere(I,J,L)
+          IF ( ((.not. In_Trop) .and. (SPECMASK(State_Chm%Phot%NASPECRAD+1).EQ.1) ) .or. &
+               (    In_Trop     .and. (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) ) ) Then
              O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_O3)%Info%MW_g
-
           ENDIF
 
-          IF (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) THEN
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+3).EQ.1) THEN
              CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
                              State_Chm%SpcData(id_CH4)%Info%MW_g
 
           ENDIF
 
-          IF (SPECMASK(State_Chm%Phot%NASPECRAD+3).EQ.1) THEN
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+4).EQ.1) THEN
              H2OVMR(I,J,L) = Spc(id_H2O)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_H2O)%Info%MW_g
           ELSE
@@ -879,12 +884,12 @@ CONTAINS
              H2OVMR(I,J,L) = 0.0
           ENDIF
 
-          IF (SPECMASK(State_Chm%Phot%NASPECRAD+6).EQ.1) THEN
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+7).EQ.1) THEN
               N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
                               State_Chm%SpcData(id_N2O)%Info%MW_g
           ENDIF
 
-          IF (SPECMASK(State_Chm%Phot%NASPECRAD+5).EQ.1) THEN
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+6).EQ.1) THEN
               CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
                                State_Chm%SpcData(id_CFC11)%Info%MW_g
 
@@ -1117,7 +1122,7 @@ CONTAINS
     END DO
 
     ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
-    IF (SPECMASK(State_Chm%Phot%NASPECRAD+4).EQ.1) THEN
+    IF (SPECMASK(State_Chm%Phot%NASPECRAD+5).EQ.1) THEN
        ! Was 3.90e-4 (i.e. 390 ppmv), but now set from Input_Opt
        CO2VMR(:,:,:) = Input_Opt%RRTMG_CO2_ppmv * 1.0d-6
     END IF
@@ -2168,75 +2173,80 @@ CONTAINS
 
        ! O3 = Ozone
        CASE( 1 )
-          SPECMASK(NASPECRAD+1)=0
+          SPECMASK(NASPECRAD+1)=0 ! Stratospheric
+          SPECMASK(NASPECRAD+2)=0 ! Tropospheric
+
+       ! O3T = Tropospheric ozone only
+       CASE( 2 )
+          SPECMASK(NASPECRAD+2)=0 ! Tropospheric
 
        ! ME = Methane
-       CASE( 2 )
-          SPECMASK(NASPECRAD+2)=0
-
-       ! H2O = Water vapor
        CASE( 3 )
           SPECMASK(NASPECRAD+3)=0
 
-       ! CO2 = Carbon dioxide
+       ! H2O = Water vapor
        CASE( 4 )
           SPECMASK(NASPECRAD+4)=0
 
-       ! CFC = Chlorofluorocarbons
+       ! CO2 = Carbon dioxide
        CASE( 5 )
           SPECMASK(NASPECRAD+5)=0
 
-       ! N2O = Nitrous oxide
+       ! CFC = Chlorofluorocarbons
        CASE( 6 )
           SPECMASK(NASPECRAD+6)=0
 
-       ! SU = Sulfate
+       ! N2O = Nitrous oxide
        CASE( 7 )
-          SPECMASK(1)=7
+          SPECMASK(NASPECRAD+7)=0
+
+       ! SU = Sulfate
+       CASE( 8 )
+          SPECMASK(1)=8
 
        ! NI = Nitrate
-       CASE( 8 )
-          SPECMASK(2)=8
+       CASE( 9 )
+          SPECMASK(2)=9
 
        ! AM = Ammonium
-       CASE( 9 )
-          SPECMASK(3)=9
+       CASE( 10 )
+          SPECMASK(3)=10
 
        ! BC = Black carbon (Hydrophilic+phobic)
-       CASE( 10 )
-          SPECMASK(4)=10
+       CASE( 11 )
+          SPECMASK(4)=11
 
        ! OA = Organic aerosol (!Hydrophilic+phobic)
-       CASE( 11 )
-          SPECMASK(5)=11
+       CASE( 12 )
+          SPECMASK(5)=12
 
        ! SS = Sea salt
-       CASE( 12 )
-          SPECMASK(6)=12
-          SPECMASK(7)=12
+       CASE( 13 )
+          SPECMASK(6)=13
+          SPECMASK(7)=13
 
        ! DU = Mineral dust
-       CASE( 13 )
+       CASE( 14 )
           ! 7 dust bins for RT
           Do II=10,16
-             SPECMASK(II)=13
+             SPECMASK(II)=14
           End Do
 
        ! PM = All particulate matter
        ! add all aerosols but not gases here
-       CASE( 14 )
+       CASE( 15 )
           DO II = 1, State_Chm%Phot%NASPECRAD
-             SPECMASK(II)=14
+             SPECMASK(II)=15
           ENDDO
 
        ! ST = STRAT AEROSOL
-       CASE( 15 )
+       CASE( 16 )
 
           !LSA
-          SPECMASK(8) = 15
+          SPECMASK(8) = 16
 
           !NAT
-          SPECMASK(9) = 15
+          SPECMASK(9) = 16
 
        END SELECT
     ENDIF
@@ -2319,9 +2329,11 @@ CONTAINS
     ! which is type 0).
     !
     ! Optional outputs (requested via HISTORY.rc)
-    !   1=O3  2=ME  3=H2O  4=CO2  5=CFC  6=N2O
-    !   7=SU  8=NI  9=AM  10=BC  11=OA  12=SS
-    !  13=DU  14=PM  15=ST
+    !   1=O3  2=O3T  3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI  10=AM 11=BC  12=OA  13=SS  14=DU  
+    !  15=PM  16=ST
+    !
+    ! NB: "O3" is all ozone; "O3T" is tropospheric ozone only.
     !
     ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
     ! the bpch code is removed from GEOS-Chem.  This array is still
@@ -2335,34 +2347,36 @@ CONTAINS
        SELECT CASE( State_Diag%RadOutName(N) )
        CASE( 'O3' )
           Input_Opt%LSpecRadMenu(1)  = 1
-       CASE( 'ME' )
+       CASE( 'O3T' )
           Input_Opt%LSpecRadMenu(2)  = 1
+       CASE( 'ME' )
+          Input_Opt%LSpecRadMenu(3)  = 1
        CASE( 'H2O' )
-          Input_Opt%LSpecRadMenu(3) = 1
-       CASE( 'CO2' )
           Input_Opt%LSpecRadMenu(4) = 1
-       CASE( 'CFC' )
+       CASE( 'CO2' )
           Input_Opt%LSpecRadMenu(5) = 1
-       CASE( 'N2O' )
+       CASE( 'CFC' )
           Input_Opt%LSpecRadMenu(6) = 1
+       CASE( 'N2O' )
+          Input_Opt%LSpecRadMenu(7) = 1
        CASE( 'SU' )
-          Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'AM' )
+       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(9)  = 1
+       CASE( 'AM' )
+          Input_Opt%LSpecRadMenu(10) = 1
        CASE( 'BC' )
-          Input_Opt%LSpecRadMenu(10)  = 1
+          Input_Opt%LSpecRadMenu(11) = 1
        CASE( 'OA' )
-          Input_Opt%LSpecRadMenu(11)  = 1
+          Input_Opt%LSpecRadMenu(12) = 1
        CASE( 'SS' )
-          Input_Opt%LSpecRadMenu(12)  = 1
+          Input_Opt%LSpecRadMenu(13) = 1
        CASE( 'DU' )
-          Input_Opt%LSpecRadMenu(13)  = 1
-       CASE( 'PM' )
           Input_Opt%LSpecRadMenu(14) = 1
-       CASE( 'ST' )
+       CASE( 'PM' )
           Input_Opt%LSpecRadMenu(15) = 1
+       CASE( 'ST' )
+          Input_Opt%LSpecRadMenu(16) = 1
        CASE DEFAULT
           ! Nothing
        END SELECT

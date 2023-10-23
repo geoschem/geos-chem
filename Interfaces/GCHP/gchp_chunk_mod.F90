@@ -1468,9 +1468,9 @@ CONTAINS
        !
        ! RRTMG outputs (scheduled in HISTORY.rc):
        !   0=BASE and then...
-       !   1=O3  2=ME  3=H2O  4=CO2  5=CFC  6=N2O
-       !   7=SU  8=NI  9=AM  10=BC  11=OA  12=SS
-       !  13=DU  14=PM  15=ST
+       !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+       !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS 14=DU
+       !  15=PM  16=ST
        !
        ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
        ! to how it is populated from HISTORY.rc diaglist_mod.F90.
