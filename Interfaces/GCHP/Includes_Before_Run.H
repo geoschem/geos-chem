@@ -187,8 +187,9 @@
 
 #ifdef RRTMG
   If (Input_Opt%Read_Dyn_Heating.and.Associated(DynHeating)) Then
-     ! Need to flip the data
-     State_Met%DynHeating(:,:,1:State_Grid%NZ) = DynHeating(:,:,State_Grid%NZ:1:-1) ! K/day
+     ! No longer need to flip the data
+     !State_Met%DynHeating(:,:,1:State_Grid%NZ) = DynHeating(:,:,State_Grid%NZ:1:-1) ! K/day
+     State_Met%DynHeating = DynHeating ! K/day
   End If
 #endif
 
