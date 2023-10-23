@@ -792,9 +792,33 @@ CONTAINS
     ! Local variables for quantities from Input_Opt
     LOGICAL :: USE_ONLINE_O3
 
+    ! Debugging logicals to turn optical depth sources on/off
+    LOGICAL :: use_liqcld
+    LOGICAL :: use_icecld
+    LOGICAL :: use_dust
+    LOGICAL :: use_so4
+    LOGICAL :: use_bc
+    LOGICAL :: use_oc
+    LOGICAL :: use_sala
+    LOGICAL :: use_salc
+    LOGICAL :: use_stratso4
+    LOGICAL :: use_psc
+
     !=================================================================
     ! SET_PROF begins here!
     !=================================================================
+
+    ! Set logicals for debugging to turn optical depth sources on/off
+    use_liqcld   = .true.
+    use_icecld   = .true.
+    use_dust     = .true.
+    use_so4      = .true.
+    use_bc       = .true.
+    use_oc       = .true.
+    use_sala     = .true.
+    use_salc     = .true.
+    use_stratso4 = .true.
+    use_psc      = .true.
 
     ! Copy fields from INPUT_OPT
     USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
@@ -890,16 +914,16 @@ CONTAINS
        AERCOL(1,I) = 0e+0_fp
 
        IF ( T_CTM(I) .GT. 233.e+0_fp ) THEN
-          AERCOL(2,I) = CLDOD(I)
+          if ( use_liqcld ) AERCOL(2,I) = CLDOD(I)
           AERCOL(3,I) = 0.e+0_fp
        ELSE
           AERCOL(2,I) = 0.e+0_fp
-          AERCOL(3,I) = CLDOD(I)
+          if ( use_icecld ) AERCOL(3,I) = CLDOD(I)
        ENDIF
 
        ! Mineral dust optical depth columns
        DO N = 1, NDUST
-          AERCOL(3+N,I) = DSTOD(I,N)
+          if ( use_dust ) AERCOL(3+N,I) = DSTOD(I,N)
        ENDDO
 
        ! Aerosol optical depth columns for aerosols undergroing
