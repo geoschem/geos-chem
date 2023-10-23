@@ -65,12 +65,8 @@ CONTAINS
 ! ewl: Use, inputs/outputs, and local vars could be slimmed down
     ! ewl: if these are in cloud-j, why do I need to pass them???
     USE Cldj_Cmn_Mod,   ONLY : JVN_, NRatJ, W_
-!ewl    USE Cldj_Cmn_Mod,   ONLY : JVN_, NJX, NRATJ, W_, WL
-!ewl    USE Cldj_Cmn_Mod,   ONLY : TITLEJX, JLABEL, JFACTA, RNAMES
-!ewl    USE Cldj_Cmn_Mod,   ONLY : JIND, BRANCH     ! ewl debugging
     USE Cldj_Init_Mod,  ONLY : Init_CldJ
     USE ErrCode_Mod
-!ewl    USE ERROR_MOD,      ONLY : ERROR_STOP
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
@@ -166,12 +162,14 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Aerosol_Mod,    ONLY : SO4_NH4_NIT, BCPI, BCPO, OCPO, OCPISOA
+    USE Aerosol_Mod,    ONLY : SALA, SALC, SLA, SPA
     ! ewl: if these are in cloud-j, why do we need them here??
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, JXL_, JXL1_, AN_, NQD_, W_r
-    USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL 
+    USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA
     USE Cld_Sub_Mod,    ONLY : Cloud_JX
-    USE Cmn_Size_Mod,   ONLY : NRHAER
+    USE Cmn_Size_Mod,   ONLY : NRHAER, NRH, NDUST
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : AVO, H2OMW, AIRMW, G0_100, PI, PI_180
@@ -211,8 +209,13 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_bin
-    REAL(8)            :: MW_kg, BoxHt, Delta_P, IWC, LWC
+    INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_ind
+    INTEGER            :: SO4_ind, BC_ind, OC_ind, SALA_ind, SALC_ind
+    INTEGER            :: S_rh0, S_rhx, K_rh0, K_rhx
+    REAL(8)            :: MW_g, BoxHt, Delta_P, IWC, LWC
+    REAL(8)            :: FRAC, RAA_eff, QAA_eff
+    REAL(8)            :: dry_to_wet_factor
+    REAL(fp)           :: RH_lut(NRH)
     LOGICAL, SAVE      :: FIRST = .true.
 
     !------------------------------------------------------------------------
@@ -298,17 +301,21 @@ CONTAINS
     ! Species ids
     INTEGER, SAVE :: id_O3
     INTEGER, SAVE :: id_SO4
-    INTEGER, SAVE :: id_NH4
-    INTEGER, SAVE :: id_NIT
-    INTEGER, SAVE :: id_BCPI
-    INTEGER, SAVE :: id_BCPO
-    INTEGER, SAVE :: id_OCPI
-    INTEGER, SAVE :: id_OCPO
-    INTEGER, SAVE :: id_SALA
-    INTEGER, SAVE :: id_SALC
 
     ! Index for Cloud-J prints if GEOS-Chem verbose is on
     INTEGER :: I_PRT, J_PRT
+
+    ! Debugging logicals to turn optical depth sources on/off
+    LOGICAL :: use_liqcld
+    LOGICAL :: use_icecld
+    LOGICAL :: use_dust
+    LOGICAL :: use_so4
+    LOGICAL :: use_bc
+    LOGICAL :: use_oc
+    LOGICAL :: use_sala
+    LOGICAL :: use_salc
+    LOGICAL :: use_stratso4
+    LOGICAL :: use_psc
 
     !=================================================================
     ! Run_CloudJ begins here!
@@ -319,6 +326,31 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Run_CloudJ (in module GeosCore/cldj_interface_mod.F90)'
 
+    ! Set debugging logicals to turn optical depth sources on/off
+    use_liqcld   = .true.
+    use_icecld   = .true.
+    use_dust     = .true.
+    use_so4      = .true.
+    use_bc       = .true.
+    use_oc       = .true.
+    use_sala     = .true.
+    use_salc     = .true.
+    use_stratso4 = .true.
+    use_psc      = .true.
+
+    ! Aerosol indexes (must match mapping set in RD_AOD)
+    SO4_ind  = 1
+    BC_ind   = 2
+    OC_ind   = 3
+    SALA_ind = 4
+    SALC_ind = 5
+
+    ! Relative humidities in FJX_spec-aer.dat
+    RH_lut(1) = 0.d0
+    RH_lut(2) = 50.d0
+    RH_lut(3) = 70.d0
+    RH_lut(4) = 80.d0
+    RH_lut(5) = 90.d0
     ! Diagnostic initialization
     IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse = 0.0_f4
     IF ( State_Diag%Archive_UVFluxDirect  ) State_Diag%UVFluxDirect  = 0.0_f4
@@ -335,14 +367,6 @@ CONTAINS
     IF ( FIRST ) THEN
        id_O3   = Ind_('O3')
        id_SO4  = Ind_('SO4')
-       id_NH4  = Ind_('NH4')
-       id_NIT  = Ind_('NIT')
-       id_BCPI = Ind_('BCPI')
-       id_BCPO = Ind_('BCPO')
-       id_OCPI = Ind_('OCPI')
-       id_OCPO = Ind_('OCPO')
-       id_SALA = Ind_('SALA')
-       id_SALC = Ind_('SALC')
        IF ( id_O3 < 0 ) THEN
           ErrMsg = 'O3 is not a defined species!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -373,7 +397,9 @@ CONTAINS
     !=================================================================
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_kg, BoxHt, RH_bin               ) &
+    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_g, BoxHt, RH_ind                ) &
+    !$OMP PRIVATE( S_rh0, S_rhx, K_rh0, K_rhx, FRAC, RAA_eff, QAA_eff      ) &
+    !$OMP PRIVATE( dry_to_wet_factor                                       ) &
     !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                    ) &
     !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                       ) &
     !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P  ) &
@@ -463,6 +489,7 @@ CONTAINS
           ! Get in-cloud liquid and ice water content from met-fields [kg/kg]
           LWC = State_Met%QL(I,J,L)
           IWC = State_Met%QI(I,J,L)
+
           ! Compute cloud type flag and reset cloud fraction if below threshold
           IF ( CLDF(L) .GT. 0.005d0 ) THEN
              IF ( LWC .GT. 1.d-11 ) CLDIW(L) = 1
@@ -498,6 +525,10 @@ CONTAINS
           ! Convert relative humidity [unitless] from percent to fraction
           RRR(L) = State_Met%RH(I,J,L) / 100.d0
 
+          ! Option to set clouds to zero
+          if ( .not. use_liqcld ) LWP(L) = 0.d0
+          if ( .not. use_icecld ) IWP(L) = 0.d0
+
        ENDDO
 
        ! Set top of atmosphere relative humidity to 10% of layer below
@@ -510,8 +541,7 @@ CONTAINS
        ! compute this for each lat/lon in this loop. Could be a separate
        ! subroutine, or in set_prof. Best put in set_prof.
        ! AN_ is # of separate aerosols per layer, = 37.
-       ! L1_ is # of layer of edges, so 73. Make the top one the same as 72?
-       ! Just do that for now, but need to check if okay.
+       ! L1_ is # of layer of edges, so 73. Make the top one the same as level 72.
 
        ! Initialize to zero
        AERSP(:,:) = 0.d0
@@ -522,66 +552,212 @@ CONTAINS
           ! Layer height [m]
           BoxHt = State_Met%BXHEIGHT(I,J,L)   
 
-          ! Humidity bin for aerosols (1:<=50, 2:<=70, 3:<=80; 4:<=90, else 5
-          IF ( State_Met%RH(I,J,L) <= 50 ) THEN
-             RH_bin = 1
-          ELSE IF ( State_Met%RH(I,J,L) <= 70 ) THEN
-             RH_bin = 2
-          ELSE IF ( State_Met%RH(I,J,L) <= 80 ) THEN
-             RH_bin = 3
-          ELSE IF ( State_Met%RH(I,J,L) <= 90 ) THEN
-             RH_bin = 4
-          ELSE
-             RH_bin = 5
-          ENDIF
           ! Leave AERSP(L,1:3) as zero since non-aerosols (black carbon
           ! absorber, water cloud, and irregular ice cloud)
 
           ! Mineral dust [kg/m3] -> [g/m2]
           DO K = 4, 10
-             AERSP(L,K)  = State_Chm%SOILDUST(I,J,L,K-3)*BoxHt*1.d3 
+             IF ( use_dust ) AERSP(L,K)  = State_Chm%SOILDUST(I,J,L,K-3)*BoxHt*1.d3
           ENDDO
 
-          ! Sulfate [molec/cm3] -> [g/m2]
-          MW_kg = State_Chm%SpcData(id_SO4)%Info%MW_g * 1.e-3_fp
-          AERSP(L,11:15) =                                            &
-              ( State_Chm%Species(id_SO4)%Conc(I,J,L)                 &
-              * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
-              * BoxHt
+          !---------------------------------------
+          ! Aerosols undergoing hydroscopic growth
+          !--------------------------------------
 
-          ! Black carbon [molec/cm3] -> [g/m2]
-          MW_kg = State_Chm%SpcData(id_BCPI)%Info%MW_g * 1.e-3_fp
-          AERSP(L,16:20) =                                            &
-              ( ( State_Chm%Species(id_BCPI)%Conc(I,J,L) +            &
-                State_Chm%Species(id_BCPO)%Conc(I,J,L) )              &
-              * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
-              * BoxHt
+          IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-          ! Organic carbon [molec/cm3] -> [g/m2]
-          MW_kg = State_Chm%SpcData(id_OCPI)%Info%MW_g * 1.e-3_fp
-          AERSP(L,21:25) =                                            &
-              ( ( State_Chm%Species(id_OCPI)%Conc(I,J,L) +            &
-                State_Chm%Species(id_OCPO)%Conc(I,J,L) )              &
-              * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
-              * BoxHt
+             ! For aerosols undergoing hygroscopic growth we need to pass the
+             ! concentration that will be used in Cloud-J with humidity-dependent
+             ! parameters. This means we need to convert from dry to wet concentration
+             ! depending on this grid cell's humidity. We do this by computing an
+             ! effective radius by linearly interpolating between LUT radius values
+             ! for each aerosol given the current relative humidity and then applying
+             ! a wet to dry conversion factor of ( Reff / Rdry )^^3 to the dry
+             ! concentration. This is only done for the hydrophilic concentrations.
+             ! Hydrophobic black and organic carbon are not converted to wet.
+             !
+             ! We also separate the concentration array into 5 different arrays,
+             ! one for each relative humidity entry in FJX_spec-aer.dat. Values are
+             ! in each array except where current relative humidity falls within the
+             ! pre-defined relative humidity range for each entry. For example,
+             ! AERSP(L,11-15) are 5 values of sulfate for the same grid box. If RH is
+             ! between 0 and 50 then only AERSP(L,11) is non-zero.
 
-          ! Seasalt (accum) [molec/cm3] -> [g/m2]
-          MW_kg = State_Chm%SpcData(id_SALA)%Info%MW_g * 1.e-3_fp
-          AERSP(L,26:30) =                                            &
-              ( State_Chm%Species(id_SALA)%Conc(I,J,L)                &
-              * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
-              * BoxHt
+             ! Humidity bin for aerosols (1:<=50, 2:<=70, 3:<=80; 4:<=90, else 5)
+             IF ( State_Met%RH(I,J,L) <= 50 ) THEN
+                RH_ind = 1
+             ELSE IF ( State_Met%RH(I,J,L) <= 70 ) THEN
+                RH_ind = 2
+             ELSE IF ( State_Met%RH(I,J,L) <= 80 ) THEN
+                RH_ind = 3
+             ELSE IF ( State_Met%RH(I,J,L) <= 90 ) THEN
+                RH_ind = 4
+             ELSE
+                RH_ind = 5
+             ENDIF
 
-          ! Seasalt (coarse) [molec/cm3] -> [g/m2]
-          MW_kg = State_Chm%SpcData(id_SALC)%Info%MW_g * 1.e-3_fp
-          AERSP(L,31:35) =                                            &
-              ( State_Chm%Species(id_SALC)%Conc(I,J,L)                &
-              * 1e+6_fp / ( AVO / MW_kg ) / State_Met%AIRDEN(I,J,L) ) &
-              * BoxHt
+             !----------------------------------------------------
+             ! Sulfate [dry molec/cm3] -> [wet g/m2] (troposphere only)
+             !----------------------------------------------------
+
+             ! Get indexes to optical property LUT
+             S_rh0 = 3 + NDUST + NRHAER*(SO4_ind-1) + 1  ! SO4 index for RH=0 in NDXAER
+             S_rhx = S_rh0 + RH_ind - 1  ! Sulfate index for this RH
+             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+             ! Get interpolated effective radius and extinction for RH in this grid box
+             IF ( RH_ind == NRH ) THEN
+                RAA_eff = RAA(K_rhx)
+                QAA_eff = QAA(5,K_rhx)
+             ELSE
+                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
+             ENDIF
+             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+
+             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+             if ( use_so4 ) THEN
+                AERSP(L,S_rhx) = SO4_NH4_NIT(I,J,L) &
+                     * State_Met%BXHEIGHT(I,J,L) * 1.d3 * dry_to_wet_factor
+             ENDIF
+
+             !----------------------------------------------------
+             ! Black carbon
+             !----------------------------------------------------
+
+             ! Get indexes to optical property LUT
+             S_rh0 = 3 + NDUST + NRHAER*(BC_ind-1) + 1  ! BC index for RH=0 in NDXAER
+             S_rhx = s_rh0 + RH_ind - 1  ! BC index for this RH
+             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+             ! Get interpolated effective radius and extinction for RH in this grid box
+             IF ( RH_ind == NRH ) THEN
+                RAA_eff = RAA(K_rhx)
+                QAA_eff = QAA(5,K_rhx)
+             ELSE
+                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
+             ENDIF
+             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+
+             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+             if ( use_bc ) THEN
+                AERSP(L,S_rhx) = ( ( BCPI(I,J,L) * dry_to_wet_factor ) + BCPO(I,J,L) ) &
+                     * 1.d3 * State_Met%BXHEIGHT(I,J,L)
+             ENDIF
+
+             !----------------------------------------------------
+             ! Organic carbon [ dry molec/cm3] -> [ wet g/m2]
+             !----------------------------------------------------
+
+             ! Get indexes to optical property LUT
+             S_rh0 = 3 + NDUST + NRHAER*(OC_ind-1) + 1  ! OC index for RH=0 in NDXAER
+             S_rhx = s_rh0 + RH_ind - 1  ! OC index for this RH
+             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+             ! Get interpolated effective radius and extinction for RH in this grid box
+             IF ( RH_ind == NRH ) THEN
+                RAA_eff = RAA(K_rhx)
+                QAA_eff = QAA(5,K_rhx)
+             ELSE
+                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
+             ENDIF
+             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+
+             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+             IF ( use_oc ) THEN
+                AERSP(L,S_rhx) = ( (OCPISOA(I,J,L) * dry_to_wet_factor) + OCPO(I,J,L) ) &
+                     * 1.d3 * State_Met%BXHEIGHT(I,J,L)
+             ENDIF
+
+             !----------------------------------------------------
+             ! Seasalt (accum) [dry molec/cm3] -> [wet g/m2]
+             !----------------------------------------------------
+
+             ! Get indexes to optical property LUT
+             S_rh0 = 3 + NDUST + NRHAER*(SALA_ind-1) + 1  ! SALA index for RH=0 in NDXAER
+             S_rhx = s_rh0 + RH_ind - 1  ! SALA index for this RH
+             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+             ! Get interpolated effective radius and extinction for RH in this grid box
+             IF ( RH_ind == NRH ) THEN
+                RAA_eff = RAA(K_rhx)
+                QAA_eff = QAA(5,K_rhx)
+             ELSE
+                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
+             ENDIF
+             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+
+             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+             IF ( use_sala ) THEN
+                AERSP(L,S_rhx) = SALA(I,J,L)   &
+                     * State_Met%BXHEIGHT(I,J,L) * 1.d3 * dry_to_wet_factor
+             ENDIF
+
+             !----------------------------------------------------
+             ! Seasalt (coarse) [dry molec/cm3] -> [wet g/m2]
+             !----------------------------------------------------
+
+             ! Get indexes to optical property LUT
+             S_rh0 = 3 + NDUST + NRHAER*(SALC_ind-1) + 1  ! SALC index for RH=0 in NDXAER
+             S_rhx = s_rh0 + RH_ind - 1  ! SALC index for this RH
+             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+             ! Get interpolated effective radius and extinction for RH in this grid box
+             IF ( RH_ind == NRH ) THEN
+                RAA_eff = RAA(K_rhx)
+                QAA_eff = QAA(5,K_rhx)
+             ELSE
+                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
+             ENDIF
+             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+
+             ! Set concentration, converting [dry molec/cm3] -> [wet g/m2]
+             IF ( use_salc ) THEN
+                AERSP(L,S_rhx) = SALC(I,J,L)    &
+                     * State_Met%BXHEIGHT(I,J,L)  * 1.d3 * dry_to_wet_factor
+             ENDIF
+
+          ENDIF
           
-          ! Use sulfate concentration for sulfate stratospheric aerosols
-          AERSP(L,36) = AERSP(L,11)
-          AERSP(L,37) = AERSP(L,11)
+          !------------------------
+          ! Stratospheric aerosols
+          !------------------------
+
+          ! Use sulfate concentration for stratospheric aerosols. Only set if the optical
+          ! depth computed in GEOS-Chem is non-zero.
+
+          !  SSA/LBS/STS
+          IF ( State_Chm%Phot%ODAER(I,J,L,State_Chm%Phot%IWV1000,6) > 0._fp ) THEN
+             if ( use_stratso4 ) AERSP(L,36) =          &
+                  State_Chm%Species(id_SO4)%Conc(I,J,L) &
+                  * MW_g / AVO * State_Met%BXHEIGHT(I,J,L) * 1e+6_fp
+          ENDIF
+
+          !  NAT/ice PSCs
+          IF ( State_Chm%Phot%ODAER(I,J,L,State_Chm%Phot%IWV1000,7) > 0._fp ) THEN
+             if ( use_psc ) AERSP(L,37) =               &
+                  State_Chm%Species(id_SO4)%Conc(I,J,L) &
+                  * MW_g / AVO * State_Met%BXHEIGHT(I,J,L) * 1e+6_fp
+          ENDIF
 
        ENDDO ! levels
 
