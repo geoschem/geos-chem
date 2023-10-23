@@ -16322,9 +16322,9 @@ CONTAINS
     ! index corresponding to each flux output type is:
     !
     !   0=BASE and then...
-    !   1=O3  2=ME  3=H2O  4=CO2  5=CFC  6=N2O
-    !   7=SU  8=NI  9=AM  10=BC  11=OA  12=SS
-    !  13=DU 14=PM  15=ST
+    !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS  14=DU
+    !  15=PM  16=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -16347,34 +16347,36 @@ CONTAINS
              State_Diag%RadOutInd(N) = 0
           CASE( 'O3' )
              State_Diag%RadOutInd(N) = 1
-          CASE( 'ME' )
+          CASE( 'O3T' )
              State_Diag%RadOutInd(N) = 2
-          CASE( 'H2O' )
+          CASE( 'ME' )
              State_Diag%RadOutInd(N) = 3
-          CASE( 'CO2' )
+          CASE( 'H2O' )
              State_Diag%RadOutInd(N) = 4
-          CASE( 'CFC' )
+          CASE( 'CO2' )
              State_Diag%RadOutInd(N) = 5
-          CASE( 'N2O' )
+          CASE( 'CFC' )
              State_Diag%RadOutInd(N) = 6
-          CASE( 'SU' )
+          CASE( 'N2O' )
              State_Diag%RadOutInd(N) = 7
-          CASE( 'NI' )
+          CASE( 'SU' )
              State_Diag%RadOutInd(N) = 8
-          CASE( 'AM' )
+          CASE( 'NI' )
              State_Diag%RadOutInd(N) = 9
-          CASE( 'BC' )
+          CASE( 'AM' )
              State_Diag%RadOutInd(N) = 10
-          CASE( 'OA' )
+          CASE( 'BC' )
              State_Diag%RadOutInd(N) = 11
-          CASE( 'SS' )
+          CASE( 'OA' )
              State_Diag%RadOutInd(N) = 12
-          CASE( 'DU' )
+          CASE( 'SS' )
              State_Diag%RadOutInd(N) = 13
-          CASE( 'PM' )
+          CASE( 'DU' )
              State_Diag%RadOutInd(N) = 14
-          CASE( 'ST' )
+          CASE( 'PM' )
              State_Diag%RadOutInd(N) = 15
+          CASE( 'ST' )
+             State_Diag%RadOutInd(N) = 16
           CASE DEFAULT
              ! Nothing
        END SELECT
