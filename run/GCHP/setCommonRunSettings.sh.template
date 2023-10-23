@@ -46,7 +46,7 @@ Do_Chemistry=true
 Do_Advection=true
 Do_Cloud_Conv=true
 Do_PBL_Mixing=true
-Do_Non_Local_Mixing=true
+Do_Non_Local_Mixing=${RUNDIR_USE_NLPBL}
 Do_DryDep=true
 Do_WetDep=true
 
@@ -89,6 +89,7 @@ Diag_Collections=(SpeciesConc    \
                   StateChm	 \
                   StateMet       \
                   StratBM        \
+                  Tomas          \
                   Transport	 \
                   WetLossConv    \
                   WetLossLS      \
@@ -172,7 +173,37 @@ if [[ ${dustEntry} != "missing" ]]; then
         fi
     fi
 fi
-
+#------------------------------------------------------------------
+#    ONLINE DUST MASS TUNING FACTOR
+#------------------------------------------------------------------
+# Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
+# benchmarking and is resolution-dependent. We recommend using offline dust
+# instead of the online extension for GCHP science runs.
+dustEntry=$(grep "131.*DustDead" HEMCO_Config.rc || echo "missing")
+if [[ ${dustEntry} != "missing" ]]; then
+    dustSetting=(${dustEntry// / })
+    if [[ ${dustSetting[3]} = "on" ]]; then
+        if [[ ${STRETCH_GRID} == 'ON' ]]; then
+            echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
+        fi
+        if [[ $CS_RES -eq 24 ]]; then
+            Dust_SF=6.0e-4
+        elif [[ $CS_RES -eq 48 ]]; then
+            Dust_SF=5.0416e-4
+        elif [[ $CS_RES -eq 90 ]]; then
+            Dust_SF=4.0e-4
+        elif [[ $CS_RES -eq 180 ]]; then
+            Dust_SF=3.23e-4
+        elif [[ $CS_RES -eq 360 ]]; then
+            Dust_SF=2.35e-4
+        elif [[ $CS_RES -eq 720 ]]; then
+            Dust_SF=2.3e-4
+        else
+            echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
+            exit 1
+        fi
+    fi
+fi
 #------------------------------------------------
 #   DOMAIN DECOMPOSITION
 #------------------------------------------------

@@ -536,6 +536,8 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_extra_option}" == "xTOMAS15"          ||
+      "x${sim_extra_option}" == "xTOMAS40"          ||
       "x${sim_name}"         == "xPOPs"             ||
       "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xtagO3"        ]]; then
