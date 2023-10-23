@@ -492,7 +492,12 @@ CONTAINS
     LOGICAL                    :: Store_DHR             ! Are we estimating the dynamical heating rate?
     REAL(KIND=RB), PARAMETER   :: HRMax        = 1.0d-3 ! Maximum residual heating rate (K/day)
     REAL(KIND=RB), PARAMETER   :: TSadj_max    = 0.5d0  ! Outer time step used in strat adjustment (days)
+    REAL(KIND=RB), PARAMETER   :: TSadj_min    = 0.5d-1 ! Minimum time step that we can adjust to (days)
     REAL(KIND=RB)              :: TSadj                 ! 
+    REAL(KIND=RB)              :: TSadj_adapt           ! 
+    REAL(KIND=RB)              :: last_max, curr_max    ! Track the current maximum heating rate imbalance
+    REAL(KIND=RB)              :: last_max_stored       ! For debug only
+    Integer                    :: i_max                 !
     REAL(KIND=RB), PARAMETER   :: dtadj_max    = 150d0  ! Time allowable to reach equilbrium (days)
     REAL(KIND=RB)              :: dtadj                 ! Total time to reach equilibrium (days)
     Integer                    :: i_iter                ! Iteration number
@@ -1321,8 +1326,9 @@ CONTAINS
     !$OMP PRIVATE( RHOA,         RHOB,         RHOSUM,       StratImbal   ) &
     !$OMP PRIVATE( HR_P,         p_TLAY_P,     I_PC,         p_TLAY_0     ) &
     !$OMP PRIVATE( UFLXC_P,      DFLXC_P,      UFLX_P,       DFLX_P       ) &
-    !$OMP PRIVATE(               TSadj,        i_Iter,       L            ) &
+    !$OMP PRIVATE( TSadj_adapt,  TSadj,        i_Iter,       L            ) &
     !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW                                ) &
+    !$OMP PRIVATE( last_max,     curr_max,     i_max,    last_max_stored  ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J=1, State_Grid%NY
     DO I=1, State_Grid%NX
@@ -1538,7 +1544,9 @@ CONTAINS
              ! Iteration counter
              i_iter = 0
              ! Initial time step (days)
-             tsadj = tsadj_max
+             tsadj_adapt = tsadj_max
+             last_max = 0.0d0
+             last_max_stored = 0.0d0 ! Debug
              Do While (StratImbal)
                 i_iter = i_iter + 1
                 ! Reset net stratospheric heating rate
@@ -1638,10 +1646,10 @@ CONTAINS
                    ! Choose how far to project forward for the NEXT RK4 step
                    If ((I_PC == 1).or.(I_PC == 2)) Then
                       ! 2nd and 3rd evaluation to take place at t = T + dt/2
-                      tsadj = tsadj_max / 2.0
+                      tsadj = tsadj_adapt / 2.0
                    Else
                       ! 4th evaluation to take place at t = T + dt
-                      tsadj = tsadj_max
+                      tsadj = tsadj_adapt
                    End If
 
                    ! If this is the last calculation, use the RK4 estimate of the heating rate
@@ -1662,19 +1670,28 @@ CONTAINS
                          ! Update layer temperature by projecting forward
                          ! from the temperature at the start of the calculation
                          ! loop (p_TLAY_0)
-                         p_TLAY(L) = (TSadj * HRstrat(L)) + p_TLAY_0(L)
+                         p_TLAY(L) = (TSadj_adapt * HRstrat(L)) + p_TLAY_0(L)
                       End If
                    End Do ! L = 1, State-Grid%NZ
                 End Do ! I_PC = 1, N_PC
   
                 ! RK4 calculations now complete - move forward one timestep
-                dtadj = dtadj + tsadj
+                dtadj = dtadj + tsadj_adapt
  
                 ! Check how close we are to equilibrium
-                StratImbal = (MaxVal(Abs(HRstrat)) > HRmax)
+                i_max = MaxLoc(Abs(HRstrat),1)
+                curr_max = HRstrat(i_max)
+                StratImbal = (Abs(curr_max) > HRmax)
 
                 ! Is the net heating rate ~0?
                 If (.not.StratImbal) Exit
+                ! Are we oscillating? If so - reduce time step
+                If ((i_iter.gt.1) .and. (((curr_max.gt.0) .and. (last_max.lt.0)) .or. &
+                                        (((curr_max.lt.0) .and. (last_max.gt.0))))) Then
+                    tsadj_adapt = max(tsadj_adapt/2.0,tsadj_min)
+                End If
+                last_max_stored = last_max
+                last_max = curr_max
                 ! Are we taking too long to reach equilibrium?
                 If (dtadj > dtadj_max) Exit
              End Do ! While StratImbal
@@ -1707,8 +1724,8 @@ CONTAINS
        ! Warn the user if there were failed columns
        If (N_Failed > 0) Then
           N_Column = State_Grid%NX*State_Grid%NY
-          Write(ErrMsg,'(a,I6,a,I6,a)') 'RRTMG FDH routine failed to converge for ',N_Failed, &
-                                        ' of ',N_Column,' columns'
+          Write(ErrMsg,'(a,I6,a,I6,a,I6)') 'RRTMG FDH routine failed to converge for ',N_Failed, &
+                                        ' of ',N_Column,' columns on CPU ', Input_Opt%thisCPU
           If (N_Failed .gt. (N_Column/10)) Then
               Call Log_Msg(Trim(ErrMsg),'WARNING','Do_RRTMG_Rad_Transfer')
           Else
