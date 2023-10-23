@@ -2116,6 +2116,9 @@ TES_CLIM_CFC22 ppbv N Y - none none CFC22 ./HcoDir/RRTMG/v2018-11/species_clim_p
 TES_CLIM_CH4   ppbv N Y - none none CH4   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_N2O   ppbv N Y - none none N2O   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 #
+# Dynamical heating rates from a previous reference (baseline) simulation
+DynHeating Kday-1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./Heating_Baseline/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
+#
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---
 #==============================================================================
