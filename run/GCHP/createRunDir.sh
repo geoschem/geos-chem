@@ -661,8 +661,15 @@ elif [[ ${sim_name} = "carbon" ]]; then
     restart_dir='v2023-01'
     restart_name="${sim_name}"
 fi
-for N in 24 30 48 90 180 360
+for N in 24 30 48 90 180
 do
+    # Do not include c24 and c48 if using GEOS-IT mass fluxes. MAPL cannot regrid
+    # C180 mass fluxes to those grid resolutions.
+    if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
+	if [[ "$N" == "24" || "$N" == "48" ]]; then
+	    continue
+	fi
+    fi
     old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
