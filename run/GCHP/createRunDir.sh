@@ -361,17 +361,20 @@ while [ "${valid_met}" -eq 0 ]; do
 	    
 	# Set ExtData.rc settings for met data. Different settings based options chosen above.
 	if [[ ${met_file_type} = "native_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_ll.txt)\n"
-	    
+
+	    # config file with advection meteorology
 	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.native_3hr_wind_ll.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_3hr_wind_ll.txt)\n"
 		
 	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.derived_1hr_wind_cs.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
 		
 	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection/geosfp.native_1hr_mass_flux_cs.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_1hr_mass_flux_cs.txt)\n"
 	    fi
+
+	    # config file with everything else
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_ll.txt)\n"
 	    
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
