@@ -170,16 +170,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Passive Species settigns (if any)
-    CALL Config_PassiveSpecies( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_PassiveSpecies"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
     ! Convection and PBL mixing settings
     CALL Config_Convection_Mixing( Config, Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -243,7 +233,8 @@ CONTAINS
     !========================================================================
 
     ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_TagCH4_Sim .or. &
+         Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -493,35 +484,40 @@ CONTAINS
 
     ! Error check simulation name
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
-         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
-         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
-         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
-         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'             .and. &
-         TRIM(Sim) /= 'CARBON'                                       ) THEN
+    IF ( TRIM(Sim) /= 'AEROSOL'                                        .and. &
+         TRIM(Sim) /= 'CARBON'                                         .and. &
+         TRIM(Sim) /= 'CH4'                                            .and. &
+         TRIM(Sim) /= 'CO2'                                            .and. &
+         TRIM(Sim) /= 'FULLCHEM'                                       .and. &
+         TRIM(Sim) /= 'HG'                                             .and. &
+         TRIM(Sim) /= 'METALS'                                         .and. &
+         TRIM(Sim) /= 'POPS'                                           .and. &
+         TRIM(Sim) /= 'TAGCH4'                                         .and. &
+         TRIM(Sim) /= 'TAGCO'                                          .and. &
+         TRIM(Sim) /= 'TAGO3'                                          .and. &
+         TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
          
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, carbon, CH4, CO2, fullchem, Hg, POPs,'    // &
-                ' TransportTracers, TagCO, TagCH4, or TagO3.'
+                ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
+                ' TransportTracers, TagCH4, TagCO, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
     ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
-                                       TRIM(Sim) == 'TAGCH4'                )
+    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
+    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
+    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'                   )
     Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
+    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
-    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TAGCH4_SIM     = ( TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
-    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
-    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
+    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
+    Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
 
     !------------------------------------------------------------------------
     ! Species database file
@@ -802,6 +798,8 @@ CONTAINS
           Input_Opt%MetField = 'GEOSFP'
        CASE( 'MERRA-2', 'MERRA2' )
           Input_Opt%MetField = 'MERRA2'
+       CASE( 'GEOS-IT', 'GEOSIT' )
+          Input_Opt%MetField = 'GEOSIT'
        CASE( 'MODELE2.1' )
           Input_Opt%MetField = 'MODELE2.1'
        CASE( 'MODELE2.2' )
@@ -828,38 +826,6 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%UseTimers = v_bool
-
-    ! Error check simulation name
-    Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
-    IF ( TRIM(Sim) /= 'AEROSOL' .and. TRIM(Sim) /= 'CH4'               .and. &
-         TRIM(Sim) /= 'CO2'     .and. TRIM(Sim) /= 'FULLCHEM'          .and. &
-         TRIM(Sim) /= 'HG'      .and. TRIM(Sim) /= 'METALS'            .and. &
-         TRIM(Sim) /= 'POPS'    .and. TRIM(Sim) /= 'TRANSPORTTRACERS'  .and. &
-         TRIM(Sim) /= 'TAGCO'   .and. TRIM(Sim) /= 'TAGCH4'            .and. &
-         TRIM(Sim) /= 'CARBON'                                         .and. &
-         TRIM(Sim) /= 'TAGHG'   .and. TRIM(Sim) /= 'TAGO3'           ) THEN
-       ErrMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
-                ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, CH4, CO2, fullchem, Hg, POPs,'                 // &
-                ' TransportTracers, TagCO, TagCH4, TagHg, or TagO3.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Set simulation type flags in Input_Opt
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'              .or.  &
-                                       TRIM(Sim) == 'TAGCH4'                )
-    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
-    Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
-    Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'               .or.  &
-                                       TRIM(Sim) == 'TAGHG'                 )
-    Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_RnPbBe_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
-    Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
-    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
-    Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
-    Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(SIM) == 'METALS'                )
-    Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(SIM) == 'CARBON'                )
 
     !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
@@ -1376,7 +1342,9 @@ CONTAINS
 
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
-       IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CO2_SIM )     THEN
+       IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
+            Input_Opt%ITS_A_TAGCH4_SIM  .or. &
+            Input_Opt%ITS_A_CO2_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
                 WRITE( 6,'(a)' ) ''
@@ -1618,13 +1586,15 @@ CONTAINS
     ! Call setup routines from other F90 modules
     !=================================================================
 
-    ! Split into tagged species (turn off for full-chemistry)
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       Input_Opt%LSPLIT = .FALSE.                     ! No tagged species
+    ! Split into tagged species
+    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
+    ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+       Input_Opt%LSPLIT = .TRUE.                      ! Always tag for this sim
     ELSE
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
+       Input_Opt%LSPLIT = .FALSE.  
     ENDIF
 
     ! Initialize arrays in Input_Opt that depend on N_ADVECT
@@ -2930,9 +2900,24 @@ CONTAINS
     thisLoc = ' -> at Config_Photolysis (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Directory with photolysis input files
+    ! Turn on photolysis
     !------------------------------------------------------------------------
-    key   = "operations%photolysis%input_dir"
+
+    key    = "operations%photolysis%activate"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Directories with photolysis input files
+    !------------------------------------------------------------------------
+
+    key   = "operations%photolysis%input_directories%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3124,6 +3109,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
+       WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
@@ -3419,9 +3405,10 @@ CONTAINS
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
 
     ! Turn off wetdep for simulations that don't need it
-    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM  ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
+    IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
     ! If CO2 effect on RS in turned on, calculate the scaling factor
     ! on Rs based on Franks et al. (2013) (ayhwong, 6/25/2019)
@@ -4850,6 +4837,9 @@ CONTAINS
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
+    ! String arrays
+    CHARACTER(LEN=QFYAML_NamLen) :: a_str(4)
+
     !========================================================================
     ! Config_CH4 begins here!
     !========================================================================
@@ -4909,20 +4899,7 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    Input_Opt%AnalyticalInv = v_bool
-
-    !------------------------------------------------------------------------
-    ! Emission perturbation
-    !------------------------------------------------------------------------
-    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%PerturbEmis = Cast_and_RoundOff( v_str, places=4 )
+    Input_Opt%DoAnalyticalInv = v_bool
 
     !------------------------------------------------------------------------
     ! Current state vector element number
@@ -4939,7 +4916,49 @@ CONTAINS
     Input_Opt%StateVectorElement = v_int
 
     !------------------------------------------------------------------------
-    ! Use emission scale factor?
+    ! Emission perturbation factor
+    !------------------------------------------------------------------------
+    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%EmisPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Perturb CH4 boundary conditions?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%DoPerturbCH4BoundaryConditions = v_bool
+
+    !------------------------------------------------------------------------
+    ! How much to perturb CH4 boundary conditions by?
+    !------------------------------------------------------------------------
+    key    = "CH4_simulation_options%analytical_inversion%CH4_boundary_condition_ppb_increase_NSEW"
+    a_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM ( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CH4BoundaryConditionIncreaseNorth = Cast_and_RoundOff( a_str(1), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseSouth = Cast_and_RoundOff( a_str(2), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseEast  = Cast_and_RoundOff( a_str(3), places=4 )
+    Input_Opt%CH4BoundaryConditionIncreaseWest  = Cast_and_RoundOff( a_str(4), places=4 )
+
+    !------------------------------------------------------------------------
+    ! Use emission scale factors from a previous inversion?
     !------------------------------------------------------------------------
     key = &
      "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
@@ -4953,7 +4972,7 @@ CONTAINS
     Input_Opt%UseEmisSF = v_bool
 
     !------------------------------------------------------------------------
-    ! Use OH scale factors?
+    ! Use OH scale factors from a previous inversion?
     !------------------------------------------------------------------------
     key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
     v_bool = MISSING_BOOL
@@ -4971,14 +4990,19 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
        WRITE(6,95 ) '-----------------------'
-       WRITE(6,100) 'Use AIRS obs operator    : ', Input_Opt%AIRS_CH4_OBS
-       WRITE(6,100) 'Use GOSAT obs operator   : ', Input_Opt%GOSAT_CH4_OBS
-       WRITE(6,100) 'Use TCCON obs operator   : ', Input_Opt%TCCON_CH4_OBS
-       WRITE(6,100) 'Do analytical inversion  : ', Input_Opt%AnalyticalInv
-       WRITE(6,110) 'Emission perturbation    : ', Input_Opt%PerturbEmis
+       WRITE(6,100) 'Use AIRS obs operator?   : ', Input_Opt%AIRS_CH4_OBS
+       WRITE(6,100) 'Use GOSAT obs operator?  : ', Input_Opt%GOSAT_CH4_OBS
+       WRITE(6,100) 'Use TCCON obs operator?  : ', Input_Opt%TCCON_CH4_OBS
+       WRITE(6,100) 'Do analytical inversion? : ', Input_Opt%DoAnalyticalInv
        WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
-       WRITE(6,100) 'Use emis scale factors   : ', Input_Opt%UseEmisSF
-       WRITE(6,100) 'Use OH scale factors     : ', Input_Opt%UseOHSF
+       WRITE(6,110) 'Emiss perturbation factor: ', Input_Opt%EmisPerturbFactor
+       WRITE(6,100) 'Perturb CH4 BCs?         : ', Input_Opt%DoPerturbCH4BoundaryConditions
+       WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseSouth,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseEast,&
+                                                   Input_Opt%CH4BoundaryConditionIncreaseWest
+       WRITE(6,100) 'Use emis scale factors?  : ', Input_Opt%UseEmisSF
+       WRITE(6,100) 'Use OH scale factors?    : ', Input_Opt%UseOHSF
     ENDIF
 
     ! FORMAT statements
@@ -4987,6 +5011,7 @@ CONTAINS
 100 FORMAT( A, L5   )
 110 FORMAT( A, f6.2 )
 120 FORMAT( A, I5   )
+130 FORMAT( A, F10.4, 1X, F10.4, 1X, F10.4, 1X, F10.4)
 
   END SUBROUTINE Config_CH4
 !EOC
@@ -5218,200 +5243,6 @@ CONTAINS
     RC = GC_SUCCESS
 
   END SUBROUTINE Config_POPs
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_passivespecies
-!
-! !DESCRIPTION: Copies passive species information from the Config
-!  object to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_PassiveSpecies( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REVISION HISTORY:
-!  04 Sep 2015 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                      :: C
-    INTEGER                      :: P
-    REAL(yp)                     :: v_real
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! String arrays
-    CHARACTER(LEN=QFYAML_NamLen) :: passSpcName(Input_Opt%Max_PassiveSpc)
-
-    !========================================================================
-    ! Config_PassiveSpecies
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at Config_PassiveSpecies (in module GeosCore/input_mod.F90)'
-
-    !========================================================================
-    ! Check for passive species
-    !========================================================================
-    key = "operations%transport%passive_species%"
-    CALL QFYAML_FindNextHigher( Config,             TRIM( key ),             &
-                                Input_Opt%nPassive, passSpcName             )
-
-    ! Return if there are no passive species
-    IF ( Input_Opt%nPassive == 0 ) RETURN
-
-    ! Throw an error if there are more than the max # of passive species
-    IF ( Input_Opt%nPassive > Input_Opt%Max_PassiveSpc ) THEN
-       errMsg = 'Number of passive species exceeds maximum. ' // &
-            'This value can be modified in input_opt_mod.F90.'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !========================================================================
-    ! Copy the passive species names & metadata into Input_Opt
-    !========================================================================
-
-    ! Write header
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'PASSIVE SPECIES SETTINGS'
-       WRITE( 6, '(  a)' ) '------------------------'
-    ENDIF
-
-    ! Loop over passive species
-    DO P = 1, Input_Opt%nPassive
-
-       !---------------------------------------------------------------------
-       ! Passive species index and name
-       !---------------------------------------------------------------------
-
-       ! Index
-       Input_Opt%Passive_Id(P)   = P
-
-       ! NOTE: passSpcName is the full YAML variable name
-       ! (e.g. operations%trasnport%passive_species%...",
-       ! but we'll extract the last part of that for saving into
-       ! Input_Opt%Passive_Name.
-       C = INDEX( passSpcName(P), '%', back=.TRUE. )
-       Input_Opt%Passive_Name(P) = TRIM( passSpcName(P)(C+1:) )
-
-       !---------------------------------------------------------------------
-       ! Passive species long name (if found)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%long_name'
-       v_str = MISSING_STR
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_LongName(P) = TRIM( v_str )
-
-       !---------------------------------------------------------------------
-       ! Passive species molecular weight (g)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%mol_wt_in_g'
-       v_str = MISSING_STR
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_MW(P) = Cast_and_RoundOff( v_str, places=2 )
-
-       !---------------------------------------------------------------------
-       ! Passive species lifetime (s); -1 means it never decays
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%lifetime_in_s'
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_Tau(P) = Cast_and_RoundOff( v_str, places=-1 )
-
-       ! Determine if the passive species decays (i.e. if it has
-       ! an atmospheric lifetime that is not -1).  This will allow
-       ! us to skip those passive species that do not decay in
-       ! routine CHEM_PASSIVE_SPECIES, to speed up execution.
-       IF ( Input_Opt%Passive_Tau(P) > 0.0_fp ) THEN
-          Input_Opt%nPassive_Decay = Input_Opt%nPassive_Decay + 1
-          Input_Opt%Passive_DecayId(Input_Opt%nPassive_Decay) = P
-       ENDIF
-
-       !---------------------------------------------------------------------
-       ! Default background concentration (v/v)
-       !---------------------------------------------------------------------
-       key = TRIM( passSpcName(P) ) // '%default_bkg_conc_in_vv'
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       Input_Opt%Passive_Initconc(P) = Cast_and_RoundOff( v_str, places=-1 )
-
-       !---------------------------------------------------------------------
-       ! Logfile output
-       !---------------------------------------------------------------------
-       IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 95  ) 'Added passive species: '
-          WRITE( 6, 110 ) ' - Species name                : ',               &
-                           TRIM( Input_Opt%Passive_Name(P) )
-          WRITE( 6, 120 ) ' - Molec. weight [g/mol]       : ',               &
-                          Input_Opt%Passive_MW(P)
-          WRITE( 6, 130 ) ' - Lifetime [s]                : ',               &
-                          Input_Opt%Passive_TAU(P)
-          WRITE( 6, 130 ) ' - Initial concentration [v/v] : ',               &
-                          Input_Opt%Passive_InitConc(P)
-          WRITE( 6, 110 ) ' - Species long name           : ',               &
-                          TRIM( Input_Opt%Passive_LongName(P) )
-       ENDIF
-    ENDDO
-
-    ! Format statememnts
-90  FORMAT( /, A      )
-95  FORMAT( A         )
-110 FORMAT( A, A      )
-120 FORMAT( A, F10.2  )
-130 FORMAT( A, ES10.2 )
-
-  END SUBROUTINE Config_PassiveSpecies
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

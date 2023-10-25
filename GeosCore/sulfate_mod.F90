@@ -120,9 +120,6 @@ MODULE SULFATE_MOD
   ! LVOLC      : Number of volcanic levels (20)   [unitless]
   !========================================================================
 
-  ! Time variable
-  INTEGER                :: ELAPSED_SEC
-
   ! Allocatable arrays
   REAL(fp),  ALLOCATABLE :: DMSo(:,:)
   REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
@@ -235,7 +232,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
     USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -340,9 +336,6 @@ CONTAINS
 
     ENDIF
 
-    ! Store NTIME in a shadow variable
-    ELAPSED_SEC = GET_ELAPSED_SEC()
-
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM = GET_TS_CHEM()
 
@@ -365,10 +358,9 @@ CONTAINS
 
 #ifdef APM
     IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
-    !$OMP PARALLEL DO              &
-    !$OMP DEFAULT( SHARED )        &
-    !$OMP PRIVATE( L, J, I, A_M2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( L, J, I, A_M2                                            )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -385,10 +377,9 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     IDSO2 = HCO_GetHcoID( 'SO2', HcoState )
-    !$OMP PARALLEL DO              &
-    !$OMP DEFAULT( SHARED )        &
-    !$OMP PRIVATE( L, J, I, A_M2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( L, J, I, A_M2                                            )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1445,7 +1436,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
 #ifdef BPCH_DIAG
@@ -2655,16 +2645,18 @@ CONTAINS
     !$OMP PRIVATE( HCHO0,    HMSc,          HMS0,      OH0,      KaqHCHO    )&
     !$OMP PRIVATE( KaqHMS,   KaqHMS2,       L7,        L7S,      L7_b       )&
     !$OMP PRIVATE( L7S_b,    L8,            L8S,       LSTOT_HMS            )&
-    !$OMP SCHEDULE( DYNAMIC, 1                                              )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
        ! Initialize for safety's sake
-       Ld       = 0.0_fp
-       LSTOT0   = 0.0_fp
-       LSTOT    = 0.0_fp
-       LSTOT_HMS = 0.0_fp
+       Ld          = 0.0_fp
+       LSTOT0      = 0.0_fp
+       LSTOT       = 0.0_fp
+       LSTOT_HMS   = 0.0_fp
+       one_m_KRATE = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -4318,7 +4310,6 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -4790,8 +4781,8 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -7521,8 +7512,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                       State_Met, RC )
+  SUBROUTINE CHEM_SO4( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, State_Met, RC                            )
 !
 ! !USES:
 !
@@ -7587,13 +7578,9 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-#ifdef APM
-    REAL(fp), POINTER :: PSO4_SO2APM2(:,:,:)
-#endif
 
 #ifdef APM
-    REAL*8            :: MASS0, MASS, PMASS
-    REAL*8            :: RKTs, E_RKTs, DTCHEM
+    REAL(fp), PARAMETER :: AIRMW_96 = AIRMW / 96.0d0
 #endif
 
     !=================================================================
@@ -7613,37 +7600,31 @@ CONTAINS
     !------------------------------------------
     ! Call APM size-resolved drydep algorithm
     !------------------------------------------
-    CALL WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, RC )
-
-    ! Point to PSO4_SO2APM2 now moved to State_Met
-    PSO4_SO2APM2 => State_Met%PSO4_SO2APM2
+    CALL WET_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
 #endif
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
     ! Loop over chemistry grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s ) &
-    !$OMP PRIVATE( SO4d, SO40d, SO40_dust          ) &
-    !$OMP PRIVATE( IBIN, PSO4d, IDTRC              ) &
-#ifdef APM
-    !$OMP PRIVATE( N, MASS0, MASS, PMASS, RKTs, E_RKTs ) &
-#endif
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,     J,    L,     N,         SO4,  SO4s,  SO40         )&
+    !$OMP PRIVATE( SO40s, SO4d, SO40d, SO40_dust, IBIN, PSO4d, IDTRC        )&
+    !$OMP SCHEDULE( DYNAMIC                                                 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero loop variables
+       SO4   = 0.0_fp
+       SO4s  = 0.0_fp
+       SO40  = 0.0_fp
+       SO40s = 0.0_fp
+
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
-
-       ! Initialize for safety's sake
-       SO4  = 0e+0_fp
-       SO4s = 0e+0_fp
-       SO4d = 0e+0_fp  ! tdf 04/07/08
 
        !==============================================================
        ! Initial concentrations before chemistry
@@ -7677,13 +7658,10 @@ CONTAINS
        ! SO4 production from SO2 [v/v/timestep]
        SO4s = SO40s + PSO4_ss(I,J,L)
 
-       !tdf
+       !==============================================================
+       ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
+       !==============================================================
        IF ( LDSTUP ) THEN
-
-          !==============================================================
-          ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
-          !==============================================================
-
           IDTRC(1) = id_SO4d1
           IDTRC(2) = id_SO4d2
           IDTRC(3) = id_SO4d3
@@ -7718,55 +7696,57 @@ CONTAINS
 
 !APM_GanLuo+
 #ifdef APM
-       IF(NSO4>=1)THEN
-          DO N=1,NSO4
+       IF ( NSO4 >= 1 ) THEN
+          DO N = 1, NSO4
              ! Updated SO4 (gas phase) [v/v]
-             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)          =               &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)          +               &
+                  ( PSO4_SO2APM(I,J,L) +                                     &
+                    State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96 /               &
+                  ( g0_100 * State_Met%DELP_DRY(I,J,L)   ) ) *               &
                   FCLOUD(I,J,L,N)
           ENDDO
        ENDIF
 
-       IF(NCTBC>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+N))
-          ENDDO
+       IF ( NCTBC >=1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTBC)%Conc(I,J,L)                    =               &
+          Spc(APMIDS%id_CTBC)%Conc(I,J,L)                    +               &
+             ( PSO4_SO2APM(I,J,L) +                                          &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96      /               &
+               ( g0_100 * State_Met%DELP_DRY(I,J,L)      ) ) *               &
+               FCLOUD(I,J,L,(NSO4+N))
        ENDIF
 
-       IF(NCTOC>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+N))
-          ENDDO
+       IF ( NCTOC >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTOC)%Conc(I,J,L)                     =             &
+          Spc(APMIDS%id_CTOC)%Conc(I,J,L)                     +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 *State_Met%DELP_DRY(I,J,L) ) )          *             &
+             FCLOUD(I,J,L,(NSO4+N))
        ENDIF
 
-       IF(NCTDST>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+3))
-          ENDDO
+       IF ( NCTDST >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTDST)%Conc(I,J,L)                    =             &
+          Spc(APMIDS%id_CTDST)%Conc(I,J,L)                    +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 * State_Met%DELP_DRY(I,J,L)         ) ) *             &
+             FCLOUD(I,J,L,(NSO4+3))
        ENDIF
 
-       IF(NCTSEA>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+4)) + PSO4_SO2SEA(I,J,L)
-          ENDDO
+       IF ( NCTSEA >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTSEA)%Conc(I,J,L)                    =             &
+          Spc(APMIDS%id_CTSEA)%Conc(I,J,L)                    +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 * State_Met%DELP_DRY(I,J,L)         ) ) *             &
+             FCLOUD(I,J,L,(NSO4+4))                           +             &
+             PSO4_SO2SEA(I,J,L)
        ENDIF
 #endif
 
@@ -7785,7 +7765,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
 #ifdef APM
-    PSO4_SO2APM2 = 0.D0
+    ! Reset the PSO4_SO2APM2 which tracks SO4 from wetdep
+    State_Chm%PSO4_SO2APM2 = 0.0d0
 #endif
 
     ! Free pointers
@@ -7872,14 +7853,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, KMIN, SO4OXID, BINACT1, BINACT2                 ) 
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Zero private loop variables
+       BINACT1 = 0.0_fp
+       BINACT2 = 0.0_fp
+       KMIN    = 0.0_fp
+       SO4OXID = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -7890,13 +7875,13 @@ CONTAINS
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
 #if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK5, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK5,  .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK5, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK5,  .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK8, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK8,  .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK8, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK8,  .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS30 )
           CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
 
@@ -9246,7 +9231,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: wet_settlingbin
 !
 ! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
@@ -9254,8 +9239,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                              State_Met, RC  )
+  SUBROUTINE WET_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag,             &
+                              State_Grid, State_Met, RC                     )
 !
 ! !USES:
 !
@@ -9348,17 +9333,34 @@ CONTAINS
     IDTEMP1 = APMIDS%id_SO4BIN1
     IDTEMP2 = APMIDS%id_SO4BIN1+NSO4-1
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,     J,     L,    N,    K,    DEN,  REFF               )&
+    !$OMP PRIVATE( DP,    CONST, VTS,  TEMP, P,    PDP,  SLIP               )&
+    !$OMP PRIVATE( MASS,  OLD,   VISC, TC0,  DELZ, DELZ1                    )&
+    !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero private loop variables
+       CONST = 0.0_fp
+       DELZ  = 0.0_fp
+       DELZ1 = 0.0_fp
+       DEN   = 0.0_fp
+       DP    = 0.0_fp
+       MASS  = 0.0_fp
+       OLD   = 0.0_fp
+       P     = 0.0_fp
+       PDP   = 0.0_fp
+       REFF  = 0.0_fp
+       SLIP  = 0.0_fp
+       TEMP  = 0.0_fp
+       TC0   = 0.0_fp
+       VISC  = 0.0_fp
+       VTS   = 0.0_fp
+       
        DO L = 1, State_Grid%NZ
-          MASS(L) = 0.d8
+          !MASS(L) = 0.0d0
           DO N = IDTEMP1, IDTEMP2
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
           ENDDO

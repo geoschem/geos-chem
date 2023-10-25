@@ -165,7 +165,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:)   => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -616,8 +616,6 @@ CONTAINS
 !
     USE Depo_Mercury_Mod,   ONLY : ADD_Hg2_DD
     USE Depo_Mercury_Mod,   ONLY : ADD_HgP_DD
-    USE FAST_JX_MOD,        ONLY : FAST_JX
-    USE CMN_FJX_MOD
     USE GcKpp_Monitor,      ONLY : SPC_NAMES, FAM_NAMES
     USE GcKpp_Parameters
     USE GcKpp_Integrator,   ONLY : Integrate
@@ -626,6 +624,7 @@ CONTAINS
     USE Gckpp_Global
     USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
     USE Timers_Mod
+    USE Photolysis_Mod,     ONLY : Do_Photolysis
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
     USE PRESSURE_MOD
@@ -680,8 +679,8 @@ CONTAINS
     INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
     INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
     INTEGER                :: Day,       S,         errorCount
-    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
-    REAL(fp)               :: itim,      TOUT,      T,         TIN
+    REAL(fp)               :: REL_HUM,   rtim,      itim,      TOUT
+    REAL(fp)               :: T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -699,17 +698,17 @@ CONTAINS
     REAL(dp)               :: C_before_integrate(NSPEC)
 
     ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
-    REAL(fp),      POINTER :: TK(:,:,:   )
-
-    ! Objects
     TYPE(Species), POINTER :: SpcInfo
+    TYPE(SpcConc), POINTER :: Spc    (:)
+    INTEGER,       POINTER :: IRHARR (:,:,:)
+    REAL(fp),      POINTER :: TK     (:,:,:)
+    REAL(fp),      POINTER :: ODAER  (:,:,:,:,:)
+    REAL(fp),      POINTER :: ODMDUST(:,:,:,:,:)
 !
 ! !DEFINED PARAMETERS:
 !
-    ! Toggle hetchem or photolysis on/off for testing (default=on)
+    ! Toggle hetchem for testing (default=on)
     LOGICAL,  PARAMETER :: DO_HETCHEM  = .TRUE.
-    LOGICAL,  PARAMETER :: DO_PHOTCHEM = .TRUE.
     
     ! Suppress KPP integrator output after this many errors occur
     INTEGER,  PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
@@ -737,11 +736,16 @@ CONTAINS
     Day        =  Get_Day()         ! Current day
     Month      =  Get_Month()       ! Current month
     Year       =  Get_Year()        ! Current year
-    Spc        => State_Chm%Species ! Chemical species array [kg]
-    TK         => State_Met%T       ! Temperature [K]
-    SpcInfo    => NULL()            ! Pointer to GEOS-Chem species database
     Failed2x   = .FALSE.            ! Flag for graceful exit of simulation
     doSuppress = .FALSE.            ! Suppress further KPP integration errmsgs?
+
+    ! Initialize pointers
+    SpcInfo  => NULL()                 ! Pointer to GEOS-Chem species database
+    Spc      => State_Chm%Species      ! Chemical species array [kg]
+    TK       => State_Met%T            ! Temperature [K]
+    IRHARR   => State_Chm%Phot%IRHARR  ! Relative humidity indexes
+    ODAER    => State_Chm%Phot%ODAER   ! Aerosol optical depth
+    ODMDUST  => State_Chm%Phot%ODMDUST ! Dust optical depth
 
     !========================================================================
     ! Set chemistry options and pointers to chemical inputs from HEMCO
@@ -753,7 +757,7 @@ CONTAINS
                              ' is turned off for testing purposes.'
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
        ENDIF
-       IF ( .not. DO_PHOTCHEM ) THEN
+       IF ( .not. Input_Opt%Do_Photolysis ) THEN
           WRITE( 6, '(a)' ) REPEAT( '#', 32 )
           WRITE( 6, '(a)' )  ' # Do_FlexChem: Photolysis chemistry'       // &
                              ' is turned off for testing purposes.'
@@ -831,6 +835,7 @@ CONTAINS
     IF (State_Diag%Archive_JNoon          ) State_Diag%JNoon          = 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
     IF (State_Diag%Archive_HgBrAfterChem  ) State_Diag%HgBrAfterChem  = 0.0_f4
     IF (State_Diag%Archive_HgClAfterChem  ) State_Diag%HgClAfterChem  = 0.0_f4
     IF (State_Diag%Archive_HgOHAfterChem  ) State_Diag%HgOHAfterChem  = 0.0_f4
@@ -862,15 +867,13 @@ CONTAINS
     !========================================================================
     ! Call photolysis routine to compute J-Values
     !========================================================================
-    IF ( DO_PHOTCHEM ) THEN
+    IF ( Input_Opt%Do_Photolysis ) THEN
 
         !Compute J values
-        CALL Fast_JX( 0,          Input_Opt,  State_Chm,                     &
-                      State_Diag, State_Grid, State_Met, RC                 )
-
-        ! Trap potential errors
+        CALL Do_Photolysis( Input_Opt, State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
         IF ( RC /= GC_SUCCESS ) THEN
-           errMsg = 'Error encountered in "FAST_JX"!'
+           errMsg = 'Error encountered in "Do_Photolysis"!'
            CALL GC_Error( errMsg, RC, thisLoc )
            RETURN
         ENDIF
@@ -959,16 +962,19 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
-    !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
+    !$OMP PRIVATE( I,        J,        L,        N                          )&
+    !$OMP PRIVATE( IERR,     RCNTRL,   ISTATUS,  RSTATE                     )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,        P                          )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,       C_before_integrate         )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
     !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Skip to the end of the loop if we have failed integration twice
+       IF ( Failed2x ) CYCLE
 
        !====================================================================
        ! For safety sake, initialize certain variables for each grid
@@ -1007,11 +1013,11 @@ CONTAINS
        IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
 
           ! Loop over the FAST-JX photolysis species
-          DO N = 1, nRatJ
+          DO N = 1, State_Chm%Phot%nPhotRxns
 
              ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
-             IF ( DO_PHOTCHEM ) THEN
-                PHOTOL(N) = ZPJ(L,N,I,J)
+             IF ( Input_Opt%Do_Photolysis ) THEN
+                PHOTOL(N) = State_Chm%Phot%ZPJ(L,N,I,J)
              ENDIF
 
              !---------------------------------------------------------------
@@ -1023,7 +1029,7 @@ CONTAINS
              IF ( State_Diag%Archive_JVal ) THEN
 
                 ! GC photolysis species index
-                P = GC_Photo_Id(N)
+                P = State_Chm%Phot%GC_Photo_Id(N)
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
@@ -1035,7 +1041,7 @@ CONTAINS
              IF ( State_Diag%Archive_SatDiagnJVal ) THEN
 
                 ! GC photolysis species index
-                P = GC_Photo_Id(N)
+                P = State_Chm%Phot%GC_Photo_Id(N)
 
                 ! Archive the instantaneous photolysis rate
                 ! (summing over all reaction branches)
@@ -1100,6 +1106,18 @@ CONTAINS
 
        ENDIF
 
+       ! Archive KPP reaction rate constants (RCONST). The units vary.
+       ! They are already updated in Update_RCONST, and do not require
+       ! a call of Fun(). (hplin, 3/28/23)
+       IF ( State_Diag%Archive_RxnConst ) THEN
+
+          DO S = 1, State_Diag%Map_RxnConst%nSlots
+             N = State_Diag%Map_RxnConst%slot2Id(S)
+             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+          ENDDO
+
+       ENDIF
+
        !=====================================================================
        ! Set options for the KPP Integrator (M. J. Evans)
        !=====================================================================
@@ -1158,8 +1176,11 @@ CONTAINS
           ! Exit upon the second failure
           !------------------------------------------------------------------
           IF ( IERR < 0 ) THEN
+
+             ! Print error message
              WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
+
 #ifdef MODEL_GEOS
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
@@ -1171,29 +1192,37 @@ CONTAINS
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             ! Make sure only one thread at a time executes this block
+             !$OMP CRITICAL
+
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
-             !$OMP CRITICAL
              Failed2x = .TRUE.
 
              ! Print concentrations at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Species concentrations at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NSPEC
-                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
+                PRINT*, C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
              ENDDO
-
+             
              ! Print rate constants at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Reaction rates at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NREACT
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
+             !
              !$OMP END CRITICAL
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             ! Start skipping to end of loop upon 2 failures in a row
+             CYCLE
 #endif
           ENDIF
        ENDIF
@@ -1362,9 +1391,13 @@ CONTAINS
     !    WRITE(*,*) 'Total Hg2 mass [Mg]: ', Hg2Sum
     !ENDIF
 
-    ! Free pointer memory
-    TK      => NULL()
+    ! Free pointers
     SpcInfo => NULL()
+    Spc     => NULL()
+    IRHARR  => NULL()
+    TK      => NULL()
+    ODAER   => NULL()
+    ODMDUST => NULL()
 
   END SUBROUTINE ChemMercury
 !EOC
@@ -1787,7 +1820,6 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE Time_Mod,       ONLY : Get_Month
-    USE Cmn_FJX_Mod,    ONLY : ZPJ
 !
 ! !INPUT PARAMETERS:
 !
@@ -1906,7 +1938,7 @@ CONTAINS
               Br_CONC  = State_Chm%Species(id_Br )%Conc(I,J,L)
 
               ! Get JBrO
-              JBrO     = ZPJ(L,id_phot_BrO,I,J)
+              JBrO     = State_Chm%Phot%ZPJ(L,id_phot_BrO,I,J)
 
               ! [BrO] is a linear function of temperature derived based on
               ! results from Pohler et al. (2010), Prados-Roman et al. (2011)
@@ -1979,7 +2011,6 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-    USE Cmn_FJX_Mod,    ONLY : ZPJ
 !
 ! !INPUT PARAMETERS:
 !
@@ -2091,8 +2122,8 @@ CONTAINS
           k_Cl_O3    = A_Cl_O3  * EXP( -EdivR_Cl_O3  / State_Met%T(I,J,L) )
 
           ! Instantaneous J-values [1/s]
-          J_BrO      = ZPJ(L,id_phot_BrO,I,J)
-          J_ClO      = ZPJ(L,id_phot_ClO,I,J)
+          J_BrO      = State_Chm%Phot%ZPJ(L,id_phot_BrO,I,J)
+          J_ClO      = State_Chm%Phot%ZPJ(L,id_phot_ClO,I,J)
 
           ! Fraction of [X]/[XO]
           F_Br_BrO   = Safe_Div( J_BrO+(k_BrO_NO*C_NO), k_Br_O3*C_O3, 0.0_fp )
@@ -2143,7 +2174,6 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
-    USE Cmn_Fjx_Mod,    ONLY : ZPJ
 !
 ! !INPUT PARAMETERS:
 !
@@ -2223,7 +2253,7 @@ CONTAINS
           k3    = A * EXP( -EdivR / State_Met%T(I,J,L) )
 
           ! Instantaneous JNO2
-          J_NO2 = ZPJ(L,id_phot_NO2,I,J)
+          J_NO2 = State_Chm%Phot%ZPJ(L,id_phot_NO2,I,J)
 
           ! Fraction of NO2/NOx
           F_NO2 = SAFE_DIV( k3*C_O3, J_NO2+k3*C_O3, 0.0_fp )
@@ -3262,8 +3292,8 @@ CONTAINS
 
     ENDIF
 
-    ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
-    Hg0aq = OCEAN_CONC(:,:,1)
+    ! Only doing Hg0 overall
+    Hg0aq = OCEAN_CONC(:,:)
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()
@@ -3453,31 +3483,30 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+  SUBROUTINE Init_Mercury( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
-    USE Cmn_FJX_Mod
-    USE Cmn_Size_Mod,     ONLY : nAer, nDust
+    USE Cmn_Size_Mod,       ONLY : nAer, nDust
     USE ErrCode_Mod
-    USE Fast_JX_Mod,      ONLY : Init_FJX
-    USE GcKpp_Monitor,    ONLY : Eqn_Names, Fam_Names
-    USE GcKpp_Parameters, ONLY : nFam, nReact
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE Species_Mod,      ONLY : Species
-    USE State_Chm_Mod,    ONLY : Ind_
-    USE State_Chm_Mod,    ONLY : ChmState
-    USE State_Diag_Mod,   ONLY : DgnState
-    USE State_Grid_Mod,   ONLY : GrdState
+    USE GcKpp_Monitor,      ONLY : Eqn_Names, Fam_Names
+    USE GcKpp_Parameters,   ONLY : nFam, nReact
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Photolysis_Mod,     ONLY : Init_Photolysis
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : Ind_
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
-    TYPE(ChmState), INTENT(IN)    :: State_Chm     ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm     ! Chemistry State object
     TYPE(DgnState), INTENT(INOUT) :: State_Diag    ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
@@ -3499,6 +3528,7 @@ CONTAINS
     ! Scalars
     INTEGER                :: I,     KppId, N,         P
     INTEGER                :: p_BrO, p_ClO, p_Hg2ORGP, p_NO2
+    INTEGER                :: nPhotRxns
 
     ! Strings
     CHARACTER(LEN=255)     :: thisLoc
@@ -3840,13 +3870,11 @@ CONTAINS
     LnoUSAemis = .FALSE.
 
     !========================================================================
-    ! Initialize FAST-JX photolysis
+    ! Initialize photolysis
     !========================================================================
-    CALL Init_FJX( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-
-    ! Trap potential errors
+    CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in "Init_FJX"!'
+       errMsg = 'Error encountered in "Init_Photolysis"!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -3861,17 +3889,18 @@ CONTAINS
     p_Hg2ORGP      = Ind_( 'Hg2ORGP', 'P' )
     p_NO2          = Ind_( 'NO2',     'P' )
 
-    ! Initialize variables for slots of ZPJ
+    ! Initialize variables for # reactions and slots of ZPJ
+    nPhotRxns      = State_Chm%Phot%nPhotRxns
     id_phot_BrO    = 0
     id_phot_ClO    = 0
     id_phot_Hg2Org = 0
     id_phot_NO2    = 0
 
     ! Loop over all photolysis reactions
-    DO N = 1, nRatJ
+    DO N = 1, nPhotRxns
 
        ! GC photolysis species index (skip if not present)
-       P = GC_Photo_Id(N)
+       P = State_Chm%Phot%GC_Photo_Id(N)
        IF ( P <= 0 ) CYCLE
 
        ! Define the slots in the ZPJ array for several species.
@@ -3883,22 +3912,22 @@ CONTAINS
     ENDDO
 
     ! Error checks
-    IF ( id_phot_BrO <= 0 .or. id_phot_BrO > nRatJ ) THEN
+    IF ( id_phot_BrO <= 0 .or. id_phot_BrO > nPhotRxns ) THEN
        errMsg = 'Invalid photolysis index for BrO!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    IF ( id_phot_ClO <= 0 .or. id_phot_ClO > nRatJ ) THEN
+    IF ( id_phot_ClO <= 0 .or. id_phot_ClO > nPhotRxns ) THEN
        errMsg = 'Invalid photolysis index for ClO!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    IF ( id_phot_Hg2Org <= 0 .or. id_phot_Hg2Org > nRatJ ) THEN
+    IF ( id_phot_Hg2Org <= 0 .or. id_phot_Hg2Org > nPhotRxns ) THEN
        errMsg = 'Invalid photolysis index for HG2ORGP!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    IF ( id_phot_NO2 <= 0 .or. id_phot_NO2 > nRatJ ) THEN
+    IF ( id_phot_NO2 <= 0 .or. id_phot_NO2 > nPhotRxns ) THEN
        errMsg = 'Invalid photolysis index for NO2!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN

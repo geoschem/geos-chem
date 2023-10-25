@@ -280,13 +280,12 @@ CONTAINS
     REAL(fp),      POINTER  :: DepFreq(:,:,:  )  ! IM, JM, nDryDep
 
     ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
-    LOGICAL                 :: ITS_A_CH4_SIM
     REAL(fp)                :: total_ch4_pre_soil_absorp(State_Grid%NX, &
                                                          State_Grid%NY, &
                                                          State_Grid%NZ)
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg, ErrorMsg, ThisLoc
+    CHARACTER(LEN=255)      :: ErrMsg, ErrorMsg, ThisLoc
 
 #ifdef ADJOINT
     LOGICAL                 :: IS_ADJ
@@ -310,7 +309,6 @@ CONTAINS
     LEMIS             = Input_Opt%DoEmissions
     LDRYD             = Input_Opt%LDRYD
     PBL_DRYDEP        = Input_Opt%PBL_DRYDEP
-    ITS_A_CH4_SIM     = Input_Opt%ITS_A_CH4_SIM
     nAdvect           = State_Chm%nAdvect
 
     ! Initialize pointer
@@ -457,7 +455,7 @@ CONTAINS
     ! For tagged CH4 simulations
     ! Save the total CH4 concentration before apply soil absorption
     !-----------------------------------------------------------------------
-    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
        total_ch4_pre_soil_absorp = State_Chm%Species(1)%Conc(:,:,:)
     ENDIF
 
@@ -791,7 +789,7 @@ CONTAINS
              ! Tagged CH4 species are split off into a separate loop to
              ! ensure we remove soil absorption from NA=1 (total CH4) first
              !--------------------------------------------------------------
-             IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+             IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
                 ! If we are in the chemistry grid
                 IF ( L <= EMIS_TOP ) THEN
@@ -867,7 +865,7 @@ CONTAINS
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
     !--------------------------------------------------------------
-    IF ( ITS_A_CH4_SIM .and. Input_Opt%LSPLIT ) THEN
+    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
 
        !$OMP PARALLEL DO                         &
        !$OMP DEFAULT( SHARED                   ) &

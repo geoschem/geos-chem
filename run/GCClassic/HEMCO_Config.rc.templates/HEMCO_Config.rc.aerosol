@@ -125,6 +125,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
+    --> GFED4_CLIMATOLOGY      :       false    # If true, turn off GFED ext below
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
@@ -1681,6 +1682,20 @@ VerboseOnCores:              root       # Accepted values: root all
 )))BB4MIPS
 
 #==============================================================================
+# --- GFED4 biomass burning emissions climatology
+# NOTE: These emissions were generated for 2010-2019 using the GFED extension
+# in a 0.5x0.625 HEMCO 3.6.1 standalone simulation.
+#==============================================================================
+(((GFED4_CLIMATOLOGY
+0 GFED4_CLIM_BCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPI 2019/1-12/1/0 C xy kg/m2/s BCPI - 5 1
+0 GFED4_CLIM_BCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPO 2019/1-12/1/0 C xy kg/m2/s BCPO - 5 1
+0 GFED4_CLIM_OCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPI 2019/1-12/1/0 C xy kg/m2/s OCPI - 5 1
+0 GFED4_CLIM_OCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPO 2019/1-12/1/0 C xy kg/m2/s OCPO - 5 1
+0 GFED4_CLIM_SO2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SO2  2019/1-12/1/0 C xy kg/m2/s SO2  - 5 1
+0 GFED4_CLIM_SOAP  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SOAP 2019/1-12/1/0 C xy kg/m2/s SOAP - 5 1
+)))GFED4_CLIMATOLOGY
+
+#==============================================================================
 # --- Anthropogenic Fugitive, Combustion and Industrial Dust ---
 # (Philip et al., 2017, ERL)
 #==============================================================================
@@ -1817,11 +1832,11 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((MEGAN
 (((HEMCO_RESTART
-108  T_DAVG                       ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  T_PREVDAY                    ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  LAI_PREVDAY                  ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
-108  PARDR_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
-108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  T_DAVG                       ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  T_PREVDAY                    ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  LAI_PREVDAY                  ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
+108  PARDR_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  PARDF_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
 108  MEGAN_AEF_ISOP               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_ISOPRENE            1985/1/1/0        C xy kgC/m2/s * 61 1 1
 108  MEGAN_AEF_MBOX               $ROOT/MEGAN/v2018-05/MEGAN2.1_EF.geos.025x03125.nc      AEF_MBO                 1985/1/1/0        C xy kgC/m2/s * 64 1 1
@@ -1852,7 +1867,9 @@ VerboseOnCores:              root       # Accepted values: root all
 
 #==============================================================================
 # --- GFED biomass burning emissions (Extension 111)
-# NOTE: These are the base emissions in kgDM/m2/s.
+# NOTES:
+# - These are the base emissions in kgDM/m2/s
+# - If a year is not available, you may use the GFED4_CLIMATOLOGY option instead
 #==============================================================================
 (((GFED4
 111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1

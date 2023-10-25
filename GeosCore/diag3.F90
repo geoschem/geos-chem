@@ -18,7 +18,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 !
   USE BPCH2_MOD                          ! For binary punch I/O routines
   USE CMN_DIAG_MOD                       ! Diagnostic switches & arrays
-  USE CMN_FJX_MOD                        ! Fast-JX flux diagnostics
   USE CMN_O3_MOD                         ! FMOL
   USE CMN_SIZE_MOD,   ONLY : NDSTBIN
   USE DEPO_MERCURY_MOD                   ! For offline Hg simulation
@@ -147,10 +146,6 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   ! Now define local tracer flags so that we can remove these from
   ! tracerid_mod.F to facilitate FlexChem implementation (bmy, 5/2/16)
   LOGICAL, SAVE            :: FIRST = .TRUE.
-  INTEGER, SAVE            :: id_Rn222
-  INTEGER, SAVE            :: id_Pb210,    id_Pb210Strat
-  INTEGER, SAVE            :: id_Be7,      id_Be7Strat
-  INTEGER, SAVE            :: id_Be10,     id_Be10Strat
   INTEGER, SAVE            :: id_POPG
   INTEGER, SAVE            :: id_POPPOCPO, id_POPPOCPI
   INTEGER, SAVE            :: id_POPPBCPO, id_POPPBCPI
@@ -349,15 +344,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      ! Loop over drydep species
      DO N = 1, M
 
-        IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
-
-           ! NOTE: ND44 is now archived in molec/cm2/s for all
-           ! simulations, including Rn-Pb-Be. (bmy, 6/16/15)
-           UNIT = 'molec/cm2/s'
-           NN   = State_Chm%Map_DryDep(N)
-
-        ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM .or. &
-                  Input_Opt%ITS_A_MERCURY_SIM ) THEN
+        IF ( Input_Opt%ITS_A_TAGO3_SIM .or. &
+             Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
            ! Tagged O3 or Tagged Hg
            UNIT = 'molec/cm2/s'

@@ -1,3 +1,9 @@
 Contact:
 GEOS-Chem Support Team at Washington University in St. Louis
 geos-chem-support@g.harvard.edu
+
+Steps to load environment:
+module --force purge
+module use -a /nobackup/gmao_SIteam/modulefiles
+module use -a /path/to/your/module/files/directory # should contain gchp.pleiades.env
+module load gchp.pleiades.env

@@ -21,7 +21,6 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
-  USE CMN_FJX_MOD,        ONLY : W_
   USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
   USE Dictionary_M,       ONLY : dictionary_t
@@ -298,6 +297,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: SatDiagnRxnRate(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnRxnRate
      LOGICAL                     :: Archive_SatDiagnRxnRate     
+
+     REAL(f4),           POINTER :: RxnConst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnConst
+     LOGICAL                     :: Archive_RxnConst
 
      REAL(f4),           POINTER :: OHreactivity(:,:,:)
      LOGICAL                     :: Archive_OHreactivity
@@ -1668,6 +1671,10 @@ CONTAINS
     State_Diag%SatDiagnRxnRate                     => NULL()
     State_Diag%Map_SatDiagnRxnRate                 => NULL()
     State_Diag%Archive_SatDiagnRxnRate             = .FALSE.
+
+    State_Diag%RxnConst                            => NULL()
+    State_Diag%Map_RxnConst                        => NULL()
+    State_Diag%Archive_RxnConst                    = .FALSE.
 
     State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
@@ -4210,9 +4217,9 @@ CONTAINS
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
-    ! THE Rn-Pb-Be-Passive SPECIALTY SIMULATION
+    ! THE TransportTracers SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay
@@ -4264,7 +4271,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! the Rn-Pb-Be-Passive simulation.
+       ! the TransportTracers simulation.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -4284,7 +4291,7 @@ CONTAINS
           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC  )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for Rn-Pb-Be-Passive '// &
+                      'but this is only appropriate for TransportTracers '// &
                       'simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -4788,37 +4795,42 @@ CONTAINS
 
     !------------------------------------------------------------------------
     ! Set a single logical for SatDiagn output
+    ! For ease of comparison, place fields in alphabetical order
     !------------------------------------------------------------------------
     State_Diag%Archive_SatDiagn = (                                          &
-         State_Diag%Archive_SatDiagnColEmis                             .or. &
-         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
-         State_Diag%Archive_SatDiagnOH                                  .or. &
-         State_Diag%Archive_SatDiagnRH                                  .or. &
          State_Diag%Archive_SatDiagnAirDen                              .or. &
          State_Diag%Archive_SatDiagnBoxHeight                           .or. &
-         State_Diag%Archive_SatDiagnPEdge                               .or. &
-         State_Diag%Archive_SatDiagnTROPP                               .or. &
-         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
-         State_Diag%Archive_SatDiagnPBLTop                              .or. &
-         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnColEmis                             .or. &
+         State_Diag%Archive_SatDiagnConc                                .or. &
+         State_Diag%Archive_SatDiagnDryDep                              .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
-         State_Diag%Archive_SatDiagnPARDR                               .or. &
-         State_Diag%Archive_SatDiagnPARDF                               .or. &
-         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
-         State_Diag%Archive_SatDiagnSLP                                 .or. &
-         State_Diag%Archive_SatDiagnSPHU                                .or. &
-         State_Diag%Archive_SatDiagnTS                                  .or. &
-         State_Diag%Archive_SatDiagnPBLTOPL                             .or. &
-         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
-         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
-         State_Diag%Archive_SatDiagnWetLossConv                         .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
          State_Diag%Archive_SatDiagnJvalO3O1D                           .or. &
          State_Diag%Archive_SatDiagnJvalO3O3P                           .or. &
-         State_Diag%Archive_SatDiagnDryDep                              .or. &
-         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
-         State_Diag%Archive_SatDiagnOHreactivity                            )
+         State_Diag%Archive_SatDiagnLoss                                .or. &
+         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
+         State_Diag%Archive_SatDiagnOH                                  .or. &
+         State_Diag%Archive_SatDiagnOHreactivity                        .or. &
+         State_Diag%Archive_SatDiagnPARDF                               .or. &
+         State_Diag%Archive_SatDiagnPARDR                               .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnPBLTopL                             .or. &
+         State_Diag%Archive_SatDiagnPEdge                               .or. &
+         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
+         State_Diag%Archive_SatDiagnProd                                .or. &
+         State_Diag%Archive_SatDiagnRH                                  .or. &
+         State_Diag%Archive_SatDiagnRxnRate                             .or. &
+         State_Diag%Archive_SatDiagnSLP                                 .or. &
+         State_Diag%Archive_SatDiagnSPHU                                .or. &
+         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTS                                  .or. &
+         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
+         State_Diag%Archive_SatDiagnWetLossConv                             )
 
     !------------------------------------------------------------------------
     ! Satellite diagnostic: Counter
@@ -5362,6 +5374,30 @@ CONTAINS
             Ptr2Data       = State_Diag%SatDiagnRxnRate,                     &
             archiveData    = State_Diag%Archive_SatDiagnRxnRate,             &
             mapData        = State_Diag%Map_SatDiagnRxnRate,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! KPP Reaction Rate Constants
+       !--------------------------------------------------------------------
+       diagID  = 'RxnConst'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnConst,                            &
+            archiveData    = State_Diag%Archive_RxnConst,                    &
+            mapData        = State_Diag%Map_RxnConst,                        &
             diagId         = diagId,                                         &
             diagFlag       = 'R',                                            &
             RC             = RC                                             )
@@ -6387,7 +6423,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 34
+       DO N = 1, 35
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6466,6 +6502,8 @@ CONTAINS
                 diagID = 'KppcNONZERO'
              CASE( 38 )
                 diagID = 'KppAutoReduceThres'
+             CASE( 39 )
+                diagID = 'RxnConst'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6608,8 +6646,9 @@ CONTAINS
     ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
          Input_Opt%ITS_A_CH4_SIM                                        .or. &
-         Input_Opt%ITS_A_CARBON_SIM                                   ) THEN
+         Input_Opt%ITS_A_TAGCH4_SIM                                     ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -10041,7 +10080,9 @@ CONTAINS
     !
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CARBON_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
+         Input_Opt%ITS_A_TAGCH4_SIM   .or. &
+         Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -12021,6 +12062,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'RxnConst',                                    &
+                   Ptr2Data = State_Diag%RxnConst,                           &
+                   mapData  = State_Diag%Map_RxnConst,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'OHreactivity',                                &
                    Ptr2Data = State_Diag%OHreactivity,                       &
                    RC       = RC                                            )
@@ -13985,7 +14032,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'RXN'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNCONST' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rate constants'
+       IF ( isUnits   ) Units = '(cm3 molec-1)**(nreactants - 1) s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
@@ -15877,7 +15930,7 @@ CONTAINS
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
-          numTags = W_
+          numTags = State_Chm%Phot%nWLbins
        CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )

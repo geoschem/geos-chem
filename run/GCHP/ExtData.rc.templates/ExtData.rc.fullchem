@@ -1408,14 +1408,14 @@ AEIC19_DAILY_BCPI   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none BC       ./Hc
 AEIC19_DAILY_OCPI   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 AEIC19_DAILY_ACET   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 # Monthly data
-AEIC19_MONMEAN_NO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none NO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_NO2  kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none NO2      ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_HONO kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HONO     ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_CO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_SO2  kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_BCPI kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none BC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_OCPI kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_ACET kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_NO   kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none NO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_NO2  kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none NO2      ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_HONO kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none HONO     ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_CO   kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none CO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_SO2  kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_BCPI kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none BC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_OCPI kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_ACET kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 #
 #==============================================================================
 # --- Emissions from decaying plants (DECAYING_PLANTS) ---
@@ -1575,7 +1575,12 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #GFAS_BENZ  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c6h6fire      ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_XYLE  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none c8h10fire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_EMITL m       N Y F%y4-%m2-%d2T00:00:00 none none mami          ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
-
+#
+#==============================================================================
+# --- GFED4 climatology ---
+# GFED4_CLIMATOLOGY is off by default in HEMCO_Config.rc; fill in this section if turning on
+#==============================================================================
+#
 #==============================================================================
 # --- Anthropogenic dust emissions (AFCID)---
 #==============================================================================

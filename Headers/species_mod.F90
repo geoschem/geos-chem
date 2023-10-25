@@ -47,6 +47,7 @@ MODULE Species_Mod
      INTEGER :: nPhotol  ! # of photolysis species
      INTEGER :: nOmitted ! # of omitted species
      INTEGER :: nRadNucl ! # of radionuclide species
+     INTEGER :: nTracer  ! # of transport tracers
      INTEGER :: nRealSpc ! # of total species (w/ omitted species removed)
      INTEGER :: nWetDep  ! # of wet-deposited species
      INTEGER :: nHg0     ! # of Hg0 tracers
@@ -92,6 +93,7 @@ MODULE Species_Mod
      INTEGER            :: OmittedId        ! Omitted species index
      INTEGER            :: PhotolId         ! Photolysis index
      INTEGER            :: RadNuclId        ! Radionuclide index
+     INTEGER            :: TracerId         ! Transport tracer index
      INTEGER            :: WetDepId         ! Wet deposition index
 
      ! Names
@@ -113,6 +115,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_Omitted       ! Is it omitted from the database?
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
      LOGICAL            :: Is_RadioNuclide  ! Is it a radionuclide species?
+     LOGICAL            :: Is_Tracer        ! Is it a transport tracer?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
 
@@ -121,6 +124,9 @@ MODULE Species_Mod
 
      ! Default background concentration
      REAL(fp)           :: BackgroundVV     ! Background conc [v/v]
+
+     ! Species units
+     CHARACTER(LEN=80)  :: Units            ! Species units (e.g. v/v, days)
 
      ! Density and radius
      REAL(fp)           :: Density          ! Density [kg/m3]
@@ -157,6 +163,25 @@ MODULE Species_Mod
                                             !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
+
+     ! TransportTracers parameters
+     CHARACTER(LEN=80)  :: Snk_Horiz        ! Where to apply sink horizontally?
+     REAL(fp)           :: Snk_LatMin       ! Minimum latitude for applying sink
+     REAL(fp)           :: Snk_LatMax       ! Maximum latitude for applying sink
+     CHARACTER(LEN=80)  :: Snk_Mode         ! Sink mode of tracer
+     REAL(fp)           :: Snk_Period       ! Sink period in days
+     REAL(fp)           :: Snk_Value        ! Sink value
+     CHARACTER(LEN=80)  :: Snk_Vert         ! Where to apply sink vertically?
+     LOGICAL            :: Src_Add          ! T- add values; F- replace values
+     CHARACTER(LEN=80)  :: Src_Horiz        ! Where to apply source horizontally
+     REAL(fp)           :: Src_LatMin       ! Minimum latitude for applying src
+     REAL(fp)           :: Src_LatMax       ! Maximum latitude for applying src
+     CHARACTER(LEN=80)  :: Src_Mode         ! Source mode of tracer
+     REAL(fp)           :: Src_PresMin      ! Minimum pressure for applying src
+     REAL(fp)           :: Src_PresMax      ! Maximum pressure for applying src
+     CHARACTER(LEN=80)  :: Src_Units        ! Source units
+     REAL(fp)           :: Src_Value        ! Source value in Src_Units
+     CHARACTER(LEN=80)  :: Src_Vert         ! Where to apply source vertically?
 
      ! Microphysics parameters
      LOGICAL            :: MP_SizeResAer    ! T=size-resolved aerosol (TOMAS)
@@ -370,7 +395,9 @@ CONTAINS
     Spc%Is_Omitted      = MISSING_BOOL
     Spc%Is_Photolysis   = MISSING_BOOL
     Spc%Is_RadioNuclide = MISSING_BOOL
+    Spc%Is_Tracer       = MISSING_BOOL
     Spc%Is_WetDep       = MISSING_BOOL
+    Spc%Src_Add         = MISSING_BOOL
     Spc%MP_SizeResAer   = MISSING_BOOL
     Spc%MP_SizeResNum   = MISSING_BOOL
     Spc%WD_CoarseAer    = MISSING_BOOL
@@ -393,6 +420,7 @@ CONTAINS
     Spc%OmittedId       = MISSING_INT
     Spc%PhotolId        = MISSING_INT
     Spc%RadNuclId       = MISSING_INT
+    Spc%TracerId        = MISSING_INT
     Spc%WetDepId        = MISSING_INT
 
     ! Reals (floating precision)
@@ -405,6 +433,15 @@ CONTAINS
     Spc%Density         = MISSING
     Spc%MW_g            = MISSING
     Spc%Radius          = MISSING
+    Spc%Snk_LatMin      = MISSING
+    Spc%Snk_LatMax      = MISSING
+    Spc%Snk_Period      = MISSING
+    Spc%Snk_Value       = MISSING
+    Spc%Src_LatMin      = MISSING
+    Spc%Src_LatMax      = MISSING
+    Spc%Src_PresMin     = MISSING
+    Spc%Src_PresMax     = MISSING
+    Spc%Src_Value       = MISSING
     Spc%WD_AerScavEff   = MISSING
     Spc%WD_ConvFacI2G   = MISSING
     Spc%WD_KcScaleFac   = MISSING
@@ -420,6 +457,14 @@ CONTAINS
     Spc%Formula         = MISSING_STR
     Spc%FullName        = MISSING_STR
     Spc%Name            = MISSING_STR
+    Spc%Units           = MISSING_STR
+    Spc%Snk_Horiz       = MISSING_STR
+    Spc%Snk_Mode        = MISSING_STR
+    Spc%Snk_Vert        = MISSING_STR
+    Spc%Src_Horiz       = MISSING_STR
+    Spc%Src_Mode        = MISSING_STR
+    Spc%Src_Units       = MISSING_STR
+    Spc%Src_Vert        = MISSING_STR
 
    END SUBROUTINE Spc_Zero
 !BOC
@@ -482,6 +527,9 @@ CONTAINS
        ENDIF
        IF ( ThisSpc%Is_RadioNuclide ) THEN
           WRITE( 6, "(a)" )  "Radionuclide?   : YES"
+       ENDIF
+       IF ( ThisSpc%Is_Tracer ) THEN
+          WRITE( 6, "(a)" )  "Transport tracer: YES"
        ENDIF
 
        !--------------------------------------------------------------------
@@ -640,6 +688,37 @@ CONTAINS
           IF ( ThisSpc%WD_Is_SO2 ) THEN
              WRITE( 6, 130 ) "WD_Is_SO2      ",  ThisSpc%WD_Is_SO2
           ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Is the species a TransportTracer species?
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_Tracer ) THEN
+
+          WRITE( 6, 130 )    "Src_Add        ",  ThisSpc%Src_Add
+          WRITE( 6, 110 )    "Src_Horiz      ",  TRIM(ThisSpc%Src_Horiz)
+          IF ( TRIM(ThisSpc%Src_Horiz) == 'lat_zone' ) THEN
+             WRITE( 6, 121 ) "Src_LatMin     ",  ThisSpc%Src_LatMin
+             WRITE( 6, 121 ) "Src_LatMax     ",  ThisSpc%Src_LatMax
+          ENDIF
+          WRITE( 6, 110 )    "Src_Mode       ",  TRIM(ThisSpc%Src_Mode)
+          WRITE( 6, 110 )    "Src_Vert       ",  TRIM(ThisSpc%Src_Vert)
+          IF ( TRIM(ThisSpc%Src_Vert) == 'pressures' ) THEN
+             WRITE( 6, 121 ) "Src_PresMin    ",  ThisSpc%Src_PresMin
+             WRITE( 6, 121 ) "Src_PresMax    ",  ThisSpc%Src_PresMax
+          ENDIF
+          WRITE( 6, 110 )    "Src_Units      ",  TRIM(ThisSpc%Src_Units)
+          WRITE( 6, 121 )    "Src_Value      ",  ThisSpc%Src_Value
+          WRITE( 6, 110 )    "Snk_Horiz      ",  TRIM(ThisSpc%Snk_Horiz)
+          IF ( TRIM(ThisSpc%Snk_Horiz) == 'lat_zone' ) THEN
+             WRITE( 6, 121 ) "Snk_LatMin     ",  ThisSpc%Snk_LatMin
+             WRITE( 6, 121 ) "Snk_LatMax     ",  ThisSpc%Snk_LatMax
+          ENDIF
+          WRITE( 6, 110 )    "Snk_Mode       ",  TRIM(ThisSpc%Snk_Mode)
+          WRITE( 6, 121 )    "Snk_Period     ",  ThisSpc%Snk_Period
+          WRITE( 6, 121 )    "Snk_Value      ",  ThisSpc%Snk_Value
+          WRITE( 6, 110 )    "Snk_Vert       ",  TRIM(ThisSpc%Snk_Vert)
+
        ENDIF
 
        !--------------------------------------------------------------------

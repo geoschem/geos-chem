@@ -91,6 +91,7 @@ Diag_Collections=(SpeciesConc    \
                   StratBM        \
                   Tomas          \
                   Transport	 \
+                  UVFlux         \
                   WetLossConv    \
                   WetLossLS      \
 )
@@ -257,8 +258,10 @@ fi
 if [[ ${AutoUpdate_NXNY} == 'ON' ]]; then
    Z=$(( ${NUM_NODES}*${NUM_CORES_PER_NODE}/6 ))
    # Use "bash calculator" if available; Python if not; fail otherwise
-   which bc &> /dev/null; bc_ok=$?
-   which python &> /dev/null; py_ok=$?
+   bc_ok=0
+   py_ok=0
+   which bc &> /dev/null || bc_ok=$?
+   which python &> /dev/null || py_ok=$?
    if [[ $bc_ok -eq 0 ]]; then
       # Use bash calculator
       SQRT=$(echo "sqrt (${Z})" | bc -l)

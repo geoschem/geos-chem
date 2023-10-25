@@ -881,10 +881,10 @@ MODULE gckpp_Monitor
      '             I2O4 --> 2 ISALA + 4 LOx                                                               ' /) ! index up to 720
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_24 = (/ &
      '             I2O4 --> 2 ISALC + 4 LOx                                                               ', & ! index 721
-     '             IONO --> ISALA + LOx                                                                   ', & ! index 722
-     '             IONO --> ISALC + LOx                                                                   ', & ! index 723
-     '            IONO2 --> ISALA + 2 LOx                                                                 ', & ! index 724
-     '            IONO2 --> ISALC + 2 LOx                                                                 ', & ! index 725
+     '             IONO --> ISALA + LOx + HNO2                                                            ', & ! index 722
+     '             IONO --> ISALC + LOx + HNO2                                                            ', & ! index 723
+     '            IONO2 --> ISALA + LOx + HNO3                                                            ', & ! index 724
+     '            IONO2 --> ISALC + LOx + HNO3                                                            ', & ! index 725
      '      IONO2 + H2O --> HOI + HNO3                                                                    ', & ! index 726
      '    IONO + BrSALA --> LOx + IBr + HNO2                                                              ', & ! index 727
      '    IONO + BrSALC --> LOx + IBr + HNO2                                                              ', & ! index 728
