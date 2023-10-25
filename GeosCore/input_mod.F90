@@ -2884,6 +2884,13 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifndef MODEL_GCHPCTM
+    If (Input_Opt%RRTMG_FDH) Then
+       errMsg = 'Fixed dynamical heating in RRTMG is currently only available in GCHP'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+#endif
+
     If (Input_Opt%RRTMG_SEFDH.and.(.not.Input_Opt%RRTMG_FDH)) Then
        errMsg = 'Cannot have seasonally evolving FDH without enabling FDH!'
        CALL GC_Error( errMsg, RC, thisLoc )

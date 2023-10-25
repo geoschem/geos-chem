@@ -94,6 +94,7 @@ operations:
     all_sky_flux: ${RUNDIR_RRTMG_OPTS}
     fixed_dyn_heating: false
     seasonal_fdh: false
+    fdh_to_toa: false
     read_dyn_heating: false
     co2_ppmv: 390.0
 
