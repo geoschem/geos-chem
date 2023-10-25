@@ -2820,6 +2820,19 @@ CONTAINS
     Input_Opt%RRTMG_SEFDH = v_bool
 
     !------------------------------------------------------------------------
+    ! Extend dynamical heating adjustment to TOA?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fdh_to_toa"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SA_TOA = v_bool
+
+    !------------------------------------------------------------------------
     ! Read in dynamical heating data?
     !------------------------------------------------------------------------
     key    = "operations%rrtmg_rad_transfer_model%read_dyn_heating"
@@ -2894,6 +2907,7 @@ CONTAINS
        WRITE( 6, 100 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
        WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
        WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
+       WRITE( 6, 100 ) ' --> Extend to TOA?         : ', Input_Opt%RRTMG_SA_TOA
        WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating
     ENDIF
 

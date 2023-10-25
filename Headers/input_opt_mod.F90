@@ -220,6 +220,7 @@ MODULE Input_Opt_Mod
      REAL(8)                     :: RRTMG_CO2_ppmv
      LOGICAL                     :: RRTMG_FDH
      LOGICAL                     :: RRTMG_SEFDH
+     LOGICAL                     :: RRTMG_SA_TOA
      LOGICAL                     :: Read_Dyn_Heating
 
      !----------------------------------------
@@ -759,6 +760,7 @@ CONTAINS
     Input_Opt%RRTMG_CO2_ppmv         = 3.90e-4_fp
     Input_Opt%RRTMG_FDH              = .FALSE.
     Input_Opt%RRTMG_SEFDH            = .FALSE.
+    Input_Opt%RRTMG_SA_TOA           = .FALSE.
     Input_Opt%Read_Dyn_Heating       = .FALSE.
 
     !----------------------------------------

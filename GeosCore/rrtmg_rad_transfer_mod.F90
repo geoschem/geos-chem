@@ -487,6 +487,7 @@ CONTAINS
     REAL(KIND=RB)              :: DT_Col(State_Grid%NZ) ! Temperature difference, column (K)
     REAL(KIND=RB)              :: HRStrat(State_Grid%NZ)! Strat. dyn. heating rate, column (K/day)
     REAL(KIND=RB)              :: HRDyn(State_Grid%NZ)  ! Dynamical heating rate, column (K/day)
+    LOGICAL                    :: Do_Adjust(State_Grid%NZ)! Do we perform adjustment here?
     LOGICAL                    :: StratImbal            ! Is the net heating rate >> 0?
     LOGICAL                    :: Calc_DeltaT           ! Are we calculating the T difference?
     LOGICAL                    :: Store_DHR             ! Are we estimating the dynamical heating rate?
@@ -1327,7 +1328,7 @@ CONTAINS
     !$OMP PRIVATE( HR_P,         p_TLAY_P,     I_PC,         p_TLAY_0     ) &
     !$OMP PRIVATE( UFLXC_P,      DFLXC_P,      UFLX_P,       DFLX_P       ) &
     !$OMP PRIVATE( TSadj_adapt,  TSadj,        i_Iter,       L            ) &
-    !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW                                ) &
+    !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW,    Do_Adjust                  ) &
     !$OMP PRIVATE( last_max,     curr_max,     i_max,    last_max_stored  ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J=1, State_Grid%NY
@@ -1547,6 +1548,13 @@ CONTAINS
              tsadj_adapt = tsadj_max
              last_max = 0.0d0
              last_max_stored = 0.0d0 ! Debug
+             ! Define which region we perform adjustment in
+             Do_Adjust(:) = State_Met%InStratosphere(I,J,:)
+             If (Input_Opt%RRTMG_SA_TOA) Then
+                 Do L = 1, State_Grid%NZ
+                     Do_Adjust(L) = (.not. State_Met%InTroposphere(I,J,L))
+                 End Do
+             End If
              Do While (StratImbal)
                 i_iter = i_iter + 1
                 ! Reset net stratospheric heating rate
@@ -1664,7 +1672,7 @@ CONTAINS
                    ! Reset
                    HRstrat(:) = 0.0e+0_RB
                    Do L=1,State_Grid%NZ
-                      If (State_Met%InStratosphere(I,J,L)) Then
+                      If (Do_Adjust(L)) Then
                          ! This should be approaching zero over time
                          HRstrat(L) = HR(1,L) + SWHR(1,L) + HRdyn(L)
                          ! Update layer temperature by projecting forward
