@@ -532,6 +532,8 @@ if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
 else
     if [[ "${sim_extra_option}" == "marinePOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
