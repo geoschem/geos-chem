@@ -12,13 +12,12 @@
 !\\
 ! !INTERFACE:
 !
-SUBROUTINE OASAVE( State_Grid )
+SUBROUTINE OASAVE( State_Grid, State_Chm )
 !
 ! !USES:
 !
+  USE State_Chm_Mod,      ONLY : ChmState
   USE State_Grid_Mod,     ONLY : GrdState
-  USE AEROSOL_MOD,        ONLY : OCPI, OCPO
-  USE AEROSOL_MOD,        ONLY : TSOA, ASOA, OPOA, ISOAAQ
   USE PRECISION_MOD            ! For GEOS-Chem Precision (fp)
   USE CMN_O3_MOD,         ONLY : SAVEOA
 
@@ -26,6 +25,7 @@ SUBROUTINE OASAVE( State_Grid )
 !
 ! !INPUT PARAMETERS:
 !
+  TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
   TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !REVISION HISTORY:
@@ -57,9 +57,12 @@ SUBROUTINE OASAVE( State_Grid )
   DO I = 1, State_Grid%NX
 
      ! Sum of all organic aerosol [ug/m3]
-     SAVEOA(I,J,L) = SAVEOA(I,J,L) + ( TSOA(I,J,L) + ASOA(I,J,L) + &
-                                       OCPO(I,J,L) + OCPI(I,J,L) + &
-                                       OPOA(I,J,L) + ISOAAQ(I,J,L) ) * FACTOR
+     SAVEOA(I,J,L) = SAVEOA(I,J,L) + ( State_Chm%AerMass%TSOA(I,J,L) + &
+                                       State_Chm%AerMass%ASOA(I,J,L) + &
+                                       State_Chm%AerMass%OCPO(I,J,L) + &
+                                       State_Chm%AerMass%OCPI(I,J,L) + &
+                                       State_Chm%AerMass%OPOA(I,J,L) + &
+                                       State_Chm%AerMass%ISOAAQ(I,J,L) ) * FACTOR
 
   ENDDO
   ENDDO
