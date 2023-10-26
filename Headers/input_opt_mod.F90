@@ -412,6 +412,7 @@ MODULE Input_Opt_Mod
      ! Toggle for het rates. If true, turns off three Cl producing het reactions
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
      LOGICAL                     :: TurnOffHetRates = .FALSE.
+     LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates

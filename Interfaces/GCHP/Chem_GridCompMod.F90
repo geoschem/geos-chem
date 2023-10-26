@@ -1776,6 +1776,18 @@ CONTAINS
           IF ( am_I_Root ) WRITE(*,*) 'GCC: Bry and Cly family transport disabled'
     END SELECT
 
+    ! Apply H2O tendency to Q?
+    ! Options: -1=never do it; 0=only if GCC is RATS provider; 1=always do it
+    Input_Opt%applyQtend = .FALSE.
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label="ApplyQtend:", Default=0, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       Input_Opt%applyQtend = .TRUE. 
+    ELSEIF ( DoIt == 0 ) THEN
+       CALL ESMF_ConfigGetAttribute( MaplCF, FieldName, Label="RATS_PROVIDER:", Default="PCHEM", __RC__ ) 
+       IF ( TRIM(FieldName) == "GEOSCHEMCHEM" ) Input_Opt%applyQtend = .TRUE.
+    ENDIF
+    IF ( am_I_Root ) WRITE(*,*) '- Apply H2O tendency to Q (SPHU): ', Input_Opt%applyQtend
+
     ! Add Henry law constants and scavenging coefficients to internal state.
     ! These are needed by MOIST for wet scavenging (if this is enabled).
     CALL GEOS_AddSpecInfoForMoist ( am_I_Root, GC, GeosCF, Input_Opt, State_Chm, __RC__ )
@@ -2621,8 +2633,7 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
        ! Set H2O from Q (=SPHU)
-       CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, __RC__ ) 
-   
+       CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, 1, __RC__ ) 
 
        ! Set appropriate met fields for lightning
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
@@ -2896,6 +2907,11 @@ CONTAINS
        IF ( PHASE == RATSPHASE ) THEN
           CALL GEOS_RATSandOxDiags( GC, INTSTATE, Export, Input_Opt, State_Met, &
                                     State_Chm, State_Grid, Q, 2, tsChem, __RC__ ) 
+       ENDIF
+
+       ! Set H2O from Q (=SPHU)
+       IF ( Input_Opt%applyQtend ) THEN
+          CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, -1, __RC__ ) 
        ENDIF
 
        ! Update internal state fields 
