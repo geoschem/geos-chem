@@ -41,7 +41,7 @@ operations:
       append_in_internal_timestep: false
 
   convection:
-    activate: true
+    activate: false
 
   dry_deposition:
     activate: true
@@ -56,7 +56,7 @@ operations:
      use_non_local_pbl: false
 
   photolysis:
-    input_dir: /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2021-10/
+    input_dir: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/FAST_JX/v2023-10/
     overhead_O3:
       use_online_O3_from_model: true
       use_column_O3_from_met: true

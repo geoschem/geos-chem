@@ -267,6 +267,8 @@ CONTAINS
        IF (State_Diag%Archive_KppSmDecomps) State_Diag%KppSmDecomps   = 0.0_f4
        IF (State_Diag%Archive_KppAutoReducerNVAR) State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
     ENDIF
 
     ! Keep track of the boxes where it is local noon in the JNoonFrac
@@ -1096,6 +1098,14 @@ CONTAINS
        ! Integrate the box forwards
        !=====================================================================
 
+#if defined( MODEL_GEOS )
+       ! Before integration, copy the initial conditions so that we can 
+       ! reuse them for a second attempt. The old code would set all concentrations
+       ! to zero on the second attempt, which looks like a bug to me.
+       ! cakelle2, 2023/10/26
+       localC = C
+#endif
+
        ! Start timer
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( TimerName = "     Integrate 1",                  &
@@ -1128,6 +1138,30 @@ CONTAINS
           IF ( ASSOCIATED(State_Diag%KppError) ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
           ENDIF
+       ENDIF
+#endif
+
+#if defined( MODEL_GEOS )
+       ! Check for negative concentrations after first integration and 
+       ! eventually mark integration as errorenous so that it will be
+       ! repeated below. cakelle2, 2023/10/26.
+       IF ( Input_Opt%KppCheckNegatives >= 0 ) THEN
+          IF ( ( Input_Opt%KppCheckNegatives==0 .AND. State_Met%InStratMeso(I,J,L) ) .OR. &
+               ( L > (State_Grid%NZ-Input_Opt%KppCheckNegatives) ) ) THEN
+             IF ( ANY(C < 0.0_dp) ) THEN
+                IERR = -999
+                IF ( State_Diag%Archive_KppError ) THEN
+                   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0 
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDIF
+       IF ( State_Diag%Archive_KppNegatives0 ) THEN
+          S = 0
+          DO N=1,NSPEC
+             IF ( C(S) < 0.0_dp ) S=S+1
+          ENDDO 
+          State_Diag%KppNegatives0(I,J,L) = REAL(S,KIND=f4)
        ENDIF
 #endif
 
@@ -1197,7 +1231,7 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_WRF )
           ! Save a copy of the C vector (GEOS and WRF only)
           localC    = C
 #endif
@@ -1206,6 +1240,16 @@ CONTAINS
           ! Retry the integration with non-optimized settings
           RCNTRL(3) = 0.0_dp
           C         = 0.0_dp
+
+          ! In GEOS, restore C to initial concentrations. Just setting it to zeros
+          ! will lead to all zeros, I don't see how this is useful.
+          ! Also inflate the error tolerances. 
+          ! cakelle2, 2023/10/26.
+#if defined( MODEL_GEOS )
+          C    = localC
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%USE_AUTOREDUCE) THEN
@@ -1372,6 +1416,13 @@ CONTAINS
 
           ! Skip if this is not a GEOS-Chem species
           IF ( SpcID <= 0 ) CYCLE
+
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(S) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_dp 
+             ENDIF
+          ENDIF
 
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )
