@@ -451,13 +451,13 @@ CONTAINS
 !
 ! !IROUTINE: GEOS_SetH2O
 !
-! !DESCRIPTION: GEOS_SetH2O sets the GEOS-Chem H2O species to Q. 
+! !DESCRIPTION: GEOS_SetH2O sets the GEOS-Chem H2O species to Q or vice versa.
 !\\
 !\\
 ! !INTERFACE:
 !
   SUBROUTINE GEOS_SetH2O( GC, Input_Opt, State_Met, &
-                          State_Chm, State_Grid, Q, RC ) 
+                          State_Chm, State_Grid, Q, Direction, RC ) 
 !
 ! !USES:
 !
@@ -470,7 +470,8 @@ CONTAINS
     TYPE(MetState)                             :: State_Met
     TYPE(ChmState)                             :: State_Chm
     TYPE(GrdState)                             :: State_Grid
-    REAL,                INTENT(IN)            :: Q(:,:,:)
+    REAL,                INTENT(INOUT)         :: Q(:,:,:)
+    INTEGER,             INTENT(IN)            :: Direction ! 1:Q-->H2O; -1:H2O-->Q 
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -500,10 +501,17 @@ CONTAINS
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
                                 'kg/kg total', RC, OrigUnit=OrigUnit )
   
-       ! Pass Q to H2O concentration array. Q is in kg/kg total, so is H2O. 
+       ! Sync Q and H2O concentration array. Q is in kg/kg total, so is H2O. 
        LM = State_Grid%NZ
-       State_Chm%Species(IndH2O)%Conc(:,:,LM:1:-1) = Q(:,:,1:LM)
-   
+       ! Set GEOS-Chem H2O from Q
+       IF ( Direction == 1 ) THEN
+          State_Chm%Species(IndH2O)%Conc(:,:,LM:1:-1) = Q(:,:,1:LM)
+       ! Set Q to GEOS-Chem H2O. This is possible because Q is friendly to
+       ! CHEMISTRY
+       ELSEIF ( Direction == -1 ) THEN
+          Q(:,:,1:LM) = State_Chm%Species(IndH2O)%Conc(:,:,LM:1:-1)
+       ENDIF   
+
        ! Convert back to original unit
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
                                 OrigUnit, RC )
