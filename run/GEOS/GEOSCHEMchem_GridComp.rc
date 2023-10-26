@@ -76,8 +76,16 @@ RUN_PHASES:        2
 #
 # %%% Stop if KPP integration fails (default: 1) %%% 
 #
-KPP_STOP_IF_FAIL:  0
+KPP_STOP_IF_FAIL:   0
 
+# Checks to prevent negative concentrations after KPP integration. These can create
+# problems with mass balance. KppCheckNegatives checks for negatives in the N top 
+# layers. I.e., if set to 5 it will check for negatives in the top 5 model levels.
+# If set to 0, it will perform the check in the entire stratosphere and mesosphere.
+# If negatives are found, a second integration attempt will be made using HSTART=0 
+# and by relaxing the KPP tolerances using the scale factor provided in KppTolScale.
+KppCheckNegatives: -1
+KppTolScale:        1.0
 
 #
 # %%% HEMCO configuration file %%%
