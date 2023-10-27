@@ -59,7 +59,6 @@ add_library(GeosCore
   mixing_mod.F90
   modis_lai_mod.F90
   ndxx_setup.F90
-  oasave.F90
   ocean_mercury_mod.F90
   olson_landmap_mod.F90
   pbl_mix_mod.F90

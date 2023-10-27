@@ -897,11 +897,6 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
-#ifdef BPCH_DIAG
-      ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
-      ! Get total organic aerosol:
-      CALL OASAVE( SAVEOA, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#endif
    ENDIF
 
  END SUBROUTINE CHEMCARBON
