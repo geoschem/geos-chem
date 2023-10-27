@@ -1159,7 +1159,7 @@ CONTAINS
        IF ( State_Diag%Archive_KppNegatives0 ) THEN
           S = 0
           DO N=1,NSPEC
-             IF ( C(S) < 0.0_dp ) S=S+1
+             IF ( C(N) < 0.0_dp ) S=S+1
           ENDDO 
           State_Diag%KppNegatives0(I,J,L) = REAL(S,KIND=f4)
        ENDIF
@@ -1419,7 +1419,7 @@ CONTAINS
 
           ! Scan for negatives
           IF ( State_Diag%Archive_KppNegatives ) THEN
-             IF ( C(S) < 0.0_dp ) THEN 
+             IF ( C(N) < 0.0_dp ) THEN 
                 State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_dp 
              ENDIF
           ENDIF
