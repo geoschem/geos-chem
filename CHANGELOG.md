@@ -150,6 +150,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed entries for CH4 emissions in `HEMCO_Config.rc.carbon`
 
+## [14.1.2] - 2023-10-20
+### Added
+- CESM-only update: Added option for correctConvUTLS for correcting buildup of soluble tracers in the UT/LS to match CAM-chem behavior
+
+### Changed
+- CESM-only update: extend existing KppError, KppStop to CESM for model stability
+- CESM-only update: Removed mpi_bcast in ucx_mod NOXCOEFF_INIT to be handled at coupler level to support spectral-element dynamical core
+
 ## [14.1.1] - 2023-03-03
 ### Added
   - New integration test functions in `test/GCClassic/integration` and `test/GCHP/integration`

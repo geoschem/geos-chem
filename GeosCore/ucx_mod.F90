@@ -4049,7 +4049,6 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
-    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
