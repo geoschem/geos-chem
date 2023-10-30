@@ -58,7 +58,6 @@ MODULE FullChem_Mod
   INTEGER               :: id_ASOG1, id_ASOG2, id_ASOG3
   INTEGER               :: id_NIT, id_SO4s, id_NITs, id_HNO3
 #endif
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC ! MSL
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
 
