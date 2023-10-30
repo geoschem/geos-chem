@@ -96,11 +96,11 @@ MODULE WETSCAV_MOD
   LOGICAL             :: ITS_A_POPS_SIM
 
   ! Species ID flags
-  INTEGER             :: id_DUST1
+  INTEGER             :: id_DUST01
   INTEGER             :: id_H2O2
-  INTEGER             :: id_NK1
+  INTEGER             :: id_NK01
   INTEGER             :: id_NH3
-  INTEGER             :: id_SF1
+  INTEGER             :: id_SF01
   INTEGER             :: id_SO2
   INTEGER             :: id_SO4
 
@@ -2580,14 +2580,14 @@ CONTAINS
        !!  It could be possible to calculated the lookup table and save
        !!  in an I,J,L,BIN array but for now we will calculate redundantly.
        !! For aerosol number, get Dp and calculate scavr
-       !IF ( N < id_NK1 + IBINS ) THEN
+       !IF ( N < id_NK01 + IBINS ) THEN
        !   DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
        !   ! External function stratscav returns the scavenging rate (mm^-1)
        !   ! Let scavr has a unit of cm^-1
        !   SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
-       !   SCAVRSAVE(N-id_NK1+1) = scavr
+       !   SCAVRSAVE(N-id_NK01+1) = scavr
        !ELSE
-       !   BIN = MOD( N - id_NK1 + 1, IBINS )
+       !   BIN = MOD( N - id_NK01 + 1, IBINS )
        !   IF( BIN == 0 ) BIN = IBINS
        !   SCAVR = SCAVRSAVE(BIN)
        !ENDIF
@@ -4118,16 +4118,16 @@ CONTAINS
        ENDIF
 
 #ifdef TOMAS
-       IF ( id_NK1 > 0 ) THEN
-          IF ( N >= id_NK1 .and. N < id_NK1 + IBINS ) THEN
+       IF ( id_NK01 > 0 ) THEN
+          IF ( N >= id_NK01 .and. N < id_NK01 + IBINS ) THEN
 
              CALL GETFRACTION( I, J, L, N, LS, &
                                State_Chm, State_Grid, State_Met, &
                                XFRAC, SOLFRAC )
 
              RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
-          ELSE IF ( N >= id_SF1             .and. &
-                    N <  id_DUST1 + IBINS ) THEN
+          ELSE IF ( N >= id_SF01             .and. &
+                    N <  id_DUST01 + IBINS ) THEN
 
              CALL GETFRACTION( I, J, L, N, LS, &
                                State_Chm, State_Grid, State_Met, &
@@ -5693,13 +5693,13 @@ CONTAINS
     SpcInfo  => NULL()
 
     ! Define species ID flags
-    id_NK1   = Ind_('NK1'  )
-    id_NH3   = Ind_('NH3'  )
-    id_SF1   = Ind_('SF1'  )
-    id_DUST1 = Ind_('DUST1')
-    id_SO2   = Ind_('SO2'  )
-    id_SO4   = Ind_('SO4'  )
-    id_H2O2  = Ind_('H2O2' )
+    id_NK01   = Ind_('NK01'  )
+    id_NH3    = Ind_('NH3'  )
+    id_SF01   = Ind_('SF01'  )
+    id_DUST01 = Ind_('DUST01')
+    id_SO2    = Ind_('SO2'  )
+    id_SO4    = Ind_('SO4'  )
+    id_H2O2   = Ind_('H2O2' )
 
     !=================================================================
     ! Print information about wet-depositing species

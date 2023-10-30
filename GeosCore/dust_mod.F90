@@ -49,9 +49,9 @@ MODULE DUST_MOD
 ! !PRIVATE TYPES:
 !
   ! Species ID flags
-  INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4
-  INTEGER               :: id_DAL1,  id_DAL2,  id_DAL3,   id_DAL4
-  INTEGER               :: id_DUST1, id_NK1
+  INTEGER               :: id_DST1,   id_DST2,  id_DST3,   id_DST4
+  INTEGER               :: id_DAL1,   id_DAL2,  id_DAL3,   id_DAL4
+  INTEGER               :: id_DUST01, id_NK01
 
   ! Arrays
   REAL(fp), ALLOCATABLE :: FRAC_S(:)
@@ -349,7 +349,7 @@ CONTAINS
     USE PhysConstants,      ONLY : AVO
     USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Diag_Mod,     ONLY : DgnState
+   USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -427,7 +427,7 @@ CONTAINS
     DO BIN = 1, IBINS
 
        ! Species ID
-       N = id_DUST1 - 1 + BIN
+       N = id_DUST01 - 1 + BIN
 
        DO L   = 1, State_Grid%NZ
        DO J   = 1, State_Grid%NY
@@ -439,15 +439,15 @@ CONTAINS
     ENDDO
 
     ! Dust settling
-    CALL DRY_SETTLING( Input_Opt, State_Chm,  State_Diag, State_Grid, &
-                       State_Met, id_DUST1,   id_DUST1-1+IBINS, RC )
+    CALL DRY_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                       State_Met, id_DUST01, id_DUST01-1+IBINS, RC )
 
     ! Calculate change in number to correspond with dust redistribution
     ! by gravitational settling
     DO BIN = 1, IBINS
 
        ! Species ID
-       N       =  id_DUST1 - 1 + BIN
+       N       =  id_DUST01 - 1 + BIN
 
        ! Look up this species in the species database
        ThisSpc => State_Chm%SpcData(N)%Info
@@ -466,9 +466,9 @@ CONTAINS
           FLUXN = 0e+0_fp
 
           DO L = 1, State_Grid%NZ
-             DIF = DU0(I,J,L,BIN) - Spc(id_DUST1-1+BIN)%Conc(I,J,L)
+             DIF = DU0(I,J,L,BIN) - Spc(id_DUST01-1+BIN)%Conc(I,J,L)
 
-             Spc(id_NK1-1+BIN)%Conc(I,J,L) = Spc(id_NK1-1+BIN)%Conc(I,J,L) - &
+             Spc(id_NK01-1+BIN)%Conc(I,J,L) = Spc(id_NK01-1+BIN)%Conc(I,J,L) - &
                                        DIF/(SQRT( Xk(BIN)*Xk(BIN+1)))
 
              ! Convert flux from [kg/s] to [molec/cm2/s]
@@ -606,7 +606,7 @@ CONTAINS
     IF ( FIRST ) THEN
 
        ! Return if dust ID flags are not defined
-       IF ( id_DUST1 == 0 ) THEN
+       IF ( id_DUST01 == 0 ) THEN
           IF ( LDUST ) THEN
              ErrMsg = 'LDUST=T but dust species are undefined!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -624,10 +624,10 @@ CONTAINS
     !=================================================================
     ! For TOMAS microphysics
     !=================================================================
-    IF ( id_NK1 > 0 .and. id_DUST1 > 0 ) THEN
+    IF ( id_NK01 > 0 .and. id_DUST01 > 0 ) THEN
 
        DO N = 1, IBINS
-          MINIT(:,:,1,N) = Spc(id_DUST1+N-1)%Conc(:,:,1)
+          MINIT(:,:,1,N) = Spc(id_DUST01+N-1)%Conc(:,:,1)
        ENDDO
 
        IF ( LDEAD ) THEN
@@ -648,11 +648,11 @@ CONTAINS
           DO K = 1, IBINS
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-             MEMIS = Spc(id_DUST1-1+K)%Conc(I,J,1) - MINIT(I,J,1,K)
+             MEMIS = Spc(id_DUST01-1+K)%Conc(I,J,1) - MINIT(I,J,1,K)
              IF ( MEMIS == 0.e+0_fp ) GOTO 10
 
              AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-             Spc(id_NK1-1+K)%Conc(I,J,1) = Spc(id_NK1-1+K)%Conc(I,J,1) + &
+             Spc(id_NK01-1+K)%Conc(I,J,1) = Spc(id_NK01-1+K)%Conc(I,J,1) + &
                                      MEMIS / (sqrt(Xk(K)*Xk(K+1)))
 
              AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + &
@@ -2169,8 +2169,8 @@ CONTAINS
     !=================================================================
 
     ! TOMAS species ID flags
-    id_DUST1 = Ind_('DUST1')
-    id_NK1   = Ind_('NK1'  )
+    id_DUST01 = Ind_('DUST01')
+    id_NK01   = Ind_('NK01'  )
 
     !----------------------------------
     ! Set up FRAC_S (only for Ginoux)
@@ -2190,7 +2190,7 @@ CONTAINS
 
        DO BIN = 1, IBINS
           DO N   = 1, State_Chm%nDryDep
-             IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
+             IF ( State_Chm%Map_DryDep(N) == ( id_NK01-1+BIN ) )THEN
                 TOMAS_IDDEP(BIN) = N
                 GOTO 100
              ENDIF

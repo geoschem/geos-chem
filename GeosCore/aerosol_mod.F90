@@ -131,7 +131,7 @@ MODULE AEROSOL_MOD
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
   INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
   INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-  INTEGER :: id_DUST1, id_SOAS,  id_SALACL, id_HMS   ! (jmm, 06/29/18)
+  INTEGER :: id_DUST01, id_SOAS,  id_SALACL, id_HMS   ! (jmm, 06/29/18)
   INTEGER :: id_SOAGX, id_SOAIE
   INTEGER :: id_INDIOL,id_LVOCOA
 
@@ -625,7 +625,7 @@ CONTAINS
           DO K = 1, IBINS
 
              ! Get the overall species index for species K
-             N    = id_DUST1 + K - 1
+             N    = id_DUST01 + K - 1
 
              ! Effective aerosol radius [m]
              REFF = State_Chm%SpcData(N)%Info%Radius
@@ -2379,7 +2379,7 @@ CONTAINS
     id_DST2   = Ind_( 'DST2'   )
     id_DST3   = Ind_( 'DST3'   )
     id_DST4   = Ind_( 'DST4'   )
-    id_DUST1  = Ind_( 'DUST1'  )
+    id_DUST01 = Ind_( 'DUST01' )
     id_NH4    = Ind_( 'NH4'    )
     id_NIT    = Ind_( 'NIT'    )
     id_OCPO   = Ind_( 'OCPO'   )

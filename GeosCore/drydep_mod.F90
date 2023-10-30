@@ -160,7 +160,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
   INTEGER                        :: id_ACET,  id_ALD2,  id_O3
   INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
-  INTEGER                        :: id_NK1,   id_Hg0
+  INTEGER                        :: id_NK01,  id_Hg0
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
 
@@ -1315,7 +1315,7 @@ CONTAINS
     ! depending on the internally-mixed composition (win, 7/15/09)
     !=================================================================
 
-    IF ( id_NK1 > 0 ) THEN
+    IF ( id_NK01 > 0 ) THEN
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
                          State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1752,7 +1752,7 @@ CONTAINS
                    ! evolves with time.  We have to save these in the
                    ! DIAM and DEN variables so that we can hold these
                    ! PRIVATE for the parallel loop.
-                   BIN  = NTRAIND(K) - id_NK1 + 1
+                   BIN  = NTRAIND(K) - id_NK01 + 1
                    DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                    DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 
@@ -4815,7 +4815,7 @@ CONTAINS
     ENDDO
 
     ! For TOMAS
-    id_NK1   = Ind_('NK1'  )
+    id_NK01   = Ind_('NK01'  )
 
     !=================================================================
     ! Allocate arrays

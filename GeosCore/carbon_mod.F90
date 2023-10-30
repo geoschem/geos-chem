@@ -261,11 +261,11 @@ MODULE CARBON_MOD
 
   ! Species ID flags
   INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
-  INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO
-  INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_HO2
+  INTEGER :: id_ASOA3,   id_ASOAN,  id_AW01,   id_BCPI,   id_BCPO
+  INTEGER :: id_BENZ,    id_ECIL01, id_ECOB01, id_HO2
   INTEGER :: id_ISOP,    id_LIMO,   id_MTPA
-  INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO
-  INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH
+  INTEGER :: id_MTPO,    id_NAP,    id_NK01,   id_NH4,    id_NO
+  INTEGER :: id_NO3,     id_OCIL01, id_OCOB01, id_O3,     id_OH
   INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
   INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2
   INTEGER :: id_TOLU,    id_TSOA0,  id_TSOA1
@@ -802,14 +802,14 @@ CONTAINS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
-   IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
-      CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
+   IF ( id_ECIL01 > 0 .and. id_ECOB01 > 0 ) THEN
+      CALL AGING_CARB( id_ECIL01, id_ECOB01, State_Grid, State_Chm )
       IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
       ENDIF
    ENDIF
-   IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
-      CALL AGING_CARB( id_OCIL1, id_OCOB1, State_Grid, State_Chm )
+   IF ( id_OCIL01 > 0 .and. id_OCOB01 > 0 ) THEN
+      CALL AGING_CARB( id_OCIL01, id_OCOB01, State_Grid, State_Chm )
       IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
@@ -4428,13 +4428,13 @@ CONTAINS
       print *,'===== Entering EMITSGC ===== at',ii,jj,ll
       print *,'Nk'
       do N = 1, ibins
-         print *,Spc(id_NK1+N-1)%conc(ii,jj,ll)
+         print *,Spc(id_NK01+N-1)%conc(ii,jj,ll)
       enddo
       print *,'Mk'
       do k=1,icomp-idiag
          print *,'comp',k
          do N = 1, IBINS
-            print *,Spc(id_NK1+k*IBINS+N-1)%Conc(ii,jj,ll)
+            print *,Spc(id_NK01+k*IBINS+N-1)%Conc(ii,jj,ll)
          enddo
       enddo
       print *,'EMISSION'
@@ -4452,15 +4452,15 @@ CONTAINS
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K)
-            NDIST(K) = Spc(id_NK1+K-1)%Conc(I,J,L)
+            NDIST(K) = Spc(id_NK01+K-1)%Conc(I,J,L)
             DO C = 1, ICOMP-IDIAG
-               MDIST(K,C) = Spc(id_NK1+IBINS*C+K-1)%Conc(I,J,L)
+               MDIST(K,C) = Spc(id_NK01+IBINS*C+K-1)%Conc(I,J,L)
                IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                   PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
                   PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
                ENDIF
             ENDDO
-            MDIST(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
+            MDIST(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
             NDISTFINAL(K) = 0e+0_fp
             MADDFINAL(K) = 0e+0_fp
          ENDDO
@@ -4499,12 +4499,12 @@ CONTAINS
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
             do k=N,ibins
-               PRINT *,'Nk',Spc(id_NK1+N-1)%Conc(I,J,L)
+               PRINT *,'Nk',Spc(id_NK01+N-1)%Conc(I,J,L)
             enddo
             do k=1,8
                print *,'Mk comp',k
                do N=1,IBINS
-                  print *,Spc(id_NK1+N-1)%Conc(I,J,L)
+                  print *,Spc(id_NK01+N-1)%Conc(I,J,L)
                enddo
             enddo
          ENDIF
@@ -4559,11 +4559,11 @@ CONTAINS
                                    'after SUBGRIDCOAG at ',I,J,L
 
          DO K = 1, IBINS
-            Spc(id_NK1-1+K)%Conc(I,J,L) = NDIST2(K)
+            Spc(id_NK01-1+K)%Conc(I,J,L) = NDIST2(K)
             DO C = 1, ICOMP-IDIAG
-               Spc(id_NK1+K-1+C*IBINS)%Conc(I,J,L) = MDIST2(K,C)
+               Spc(id_NK01+K-1+C*IBINS)%Conc(I,J,L) = MDIST2(K,C)
             ENDDO
-            Spc(id_AW1-1+K)%Conc(I,J,L)  = MDIST2(K,SRTH2O)
+            Spc(id_AW01-1+K)%Conc(I,J,L)  = MDIST2(K,SRTH2O)
          ENDDO
 
          ! Save final info for diagnostic
@@ -5020,9 +5020,9 @@ CONTAINS
       CALL ERROR_STOP ( 'HcoState not defined!', LOC )
    ENDIF
 
-   IF ( .NOT. (id_NK1 > 0   .AND. id_ECIL1 > 0 .AND. &
-               id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND. &
-               id_OCOB1 > 1 ) ) THEN
+   IF ( .NOT. (id_NK01 > 0   .AND. id_ECIL01 > 0 .AND. &
+               id_ECOB01 > 0 .AND. id_OCIL01 > 0 .AND. &
+               id_OCOB01 > 1 ) ) THEN
       CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
    ENDIF
 
@@ -5360,23 +5360,23 @@ CONTAINS
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
       ! Hydrophilic ELEMENTAL CARBON
-      Spc(id_ECIL1-1+K)%Conc(I,J,L) = Spc(id_ECIL1-1+K)%Conc(I,J,L) + &
+      Spc(id_ECIL01-1+K)%Conc(I,J,L) = Spc(id_ECIL01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,1) )
 
       ! Hydrophobic ELEMENTAL CARBON
-      Spc(id_ECOB1-1+K)%Conc(I,J,L) = Spc(id_ECOB1-1+K)%Conc(I,J,L) + &
+      Spc(id_ECOB01-1+K)%Conc(I,J,L) = Spc(id_ECOB01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,2) )
 
       ! Hydrophilic ORGANIC CARBON
-      Spc(id_OCIL1-1+K)%Conc(I,J,L) = Spc(id_OCIL1-1+K)%Conc(I,J,L) + &
+      Spc(id_OCIL01-1+K)%Conc(I,J,L) = Spc(id_OCIL01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,1) )
 
       ! Hydrophobic ORGANIC CARBON
-      Spc(id_OCOB1-1+K)%Conc(I,J,L) = Spc(id_OCOB1-1+K)%Conc(I,J,L) + &
+      Spc(id_OCOB01-1+K)%Conc(I,J,L) = Spc(id_OCOB01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,2) )
 
       ! Number corresponding to EC + OC [No.]
-      Spc(id_NK1-1+K)%Conc(I,J,L)   = Spc(id_NK1-1+K)%Conc(I,J,L) + &
+      Spc(id_NK01-1+K)%Conc(I,J,L)   = Spc(id_NK01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * NUMBSRC(I,J,K) )
 
    ENDDO
@@ -7641,24 +7641,24 @@ CONTAINS
    id_ASOA2    = IND_('ASOA2'   )
    id_ASOA3    = IND_('ASOA3'   )
    id_ASOAN    = IND_('ASOAN'   )
-   id_AW1      = IND_('AW1'     )
+   id_AW01     = IND_('AW01'    )
    id_BCPI     = IND_('BCPI'    )
    id_BCPO     = IND_('BCPO'    )
    id_BENZ     = IND_('BENZ'    )
-   id_ECIL1    = IND_('ECIL1'   )
-   id_ECOB1    = IND_('ECOB1'   )
+   id_ECIL01   = IND_('ECIL01'  )
+   id_ECOB01   = IND_('ECOB01'  )
    id_HO2      = IND_('HO2'     )
    id_ISOP     = IND_('ISOP'    )
    id_LIMO     = IND_('LIMO'    )
    id_MTPA     = IND_('MTPA'    )
    id_MTPO     = IND_('MTPO'    )
    id_NAP      = IND_('NAP'     )
-   id_NK1      = IND_('NK1'     )
+   id_NK01     = IND_('NK01'    )
    id_NH4      = IND_('NH4'     )
    id_NO       = IND_('NO'      )
    id_NO3      = IND_('NO3'     )
-   id_OCIL1    = IND_('OCIL1'   )
-   id_OCOB1    = IND_('OCOB1'   )
+   id_OCIL01   = IND_('OCIL01'  )
+   id_OCOB01   = IND_('OCOB01'  )
    id_O3       = IND_('O3'      )
    id_OH       = IND_('OH'      )
    id_OCPO     = IND_('OCPO'    )

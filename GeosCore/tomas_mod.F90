@@ -264,19 +264,19 @@ MODULE TOMAS_MOD
 ! !PRIVATE TYPES:
 !
   ! Species ID flags
-  INTEGER, PRIVATE :: id_AW1
-  INTEGER, PRIVATE :: id_DUST1
-  INTEGER, PRIVATE :: id_ECIL1
-  INTEGER, PRIVATE :: id_ECOB1
+  INTEGER, PRIVATE :: id_AW01
+  INTEGER, PRIVATE :: id_DUST01
+  INTEGER, PRIVATE :: id_ECIL01
+  INTEGER, PRIVATE :: id_ECOB01
   INTEGER, PRIVATE :: id_H2SO4
   INTEGER, PRIVATE :: id_NH3
   INTEGER, PRIVATE :: id_NH4
-  INTEGER, PRIVATE :: id_NK1
-  INTEGER, PRIVATE :: id_OCIL1
-  INTEGER, PRIVATE :: id_OCOB1
-  INTEGER, PRIVATE :: id_SF1
+  INTEGER, PRIVATE :: id_NK01
+  INTEGER, PRIVATE :: id_OCIL01
+  INTEGER, PRIVATE :: id_OCOB01
+  INTEGER, PRIVATE :: id_SF01
   INTEGER, PRIVATE :: id_SO4
-  INTEGER, PRIVATE :: id_SS1
+  INTEGER, PRIVATE :: id_SS01
 
 CONTAINS
 !EOC
@@ -664,9 +664,9 @@ CONTAINS
 
        ! Swap Spc into Nk, Mk, Gc arrays
        DO N = 1, IBINS
-          NK(N) = Spc(id_NK1-1+N)%Conc(I,J,L)
+          NK(N) = Spc(id_NK01-1+N)%Conc(I,J,L)
           DO JC = 1, ICOMP-IDIAG
-             MK(N,JC) = Spc(id_NK1-1+N+JC*IBINS)%Conc(I,J,L)
+             MK(N,JC) = Spc(id_NK01-1+N+JC*IBINS)%Conc(I,J,L)
 
 
              IF( IT_IS_NAN( MK(N,JC) ) ) THEN
@@ -675,7 +675,7 @@ CONTAINS
              ENDIF
 
           ENDDO
-          MK(N,SRTH2O) = Spc(id_AW1-1+N)%Conc(I,J,L)
+          MK(N,SRTH2O) = Spc(id_AW01-1+N)%Conc(I,J,L)
 
        ENDDO
 
@@ -1028,13 +1028,13 @@ CONTAINS
 
        ! Swap Nk, Mk, and Gc arrays back to Spc
        DO N = 1, IBINS
-          TRACNUM = id_NK1 - 1 + N
+          TRACNUM = id_NK01 - 1 + N
           Spc(TRACNUM)%Conc(I,J,L) = NK(N)
           DO JC = 1, ICOMP-IDIAG
-             TRACNUM = id_NK1 - 1 + N + IBINS * JC
+             TRACNUM = id_NK01 - 1 + N + IBINS * JC
              Spc(TRACNUM)%Conc(I,J,L) = MK(N,JC)
           ENDDO
-          Spc(id_AW1-1+N)%Conc(I,J,L) = MK(N,SRTH2O)
+          Spc(id_AW01-1+N)%Conc(I,J,L) = MK(N,SRTH2O)
        ENDDO
        Spc(id_H2SO4)%Conc(I,J,L) = GC(SRTSO4)
 
@@ -3681,12 +3681,12 @@ CONTAINS
 
     ! Swap GEOSCHEM variables into aerosol algorithm variables
     DO K = 1, IBINS
-       NKID = id_NK1 - 1 + K
+       NKID = id_NK01 - 1 + K
        NK(K) = Spc(NKID)%Conc(I,J,L)
        DO JC = 1, ICOMP-IDIAG
           MK(K,JC) = Spc(NKID+JC*IBINS)%Conc(I,J,L)
        ENDDO
-       MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
+       MK(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
     ENDDO
     !sfarina - initialize Gc to ensure storenm doesn't go NaN on us.
     DO JC=1, ICOMP-1
@@ -3870,13 +3870,13 @@ CONTAINS
 
     ! Swap Nk and Mk arrays back to Spc
     DO K = 1, IBINS
-       TRACNUM = id_NK1 - 1 + K
+       TRACNUM = id_NK01 - 1 + K
        Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
        DO JC = 1, ICOMP-IDIAG
-          TRACNUM = id_NK1 - 1 + K + IBINS*JC
+          TRACNUM = id_NK01 - 1 + K + IBINS*JC
           Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
        ENDDO
-       Spc(id_AW1-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
+       Spc(id_AW01-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
     ENDDO
 
     ! Free pointer memory
@@ -4013,17 +4013,17 @@ CONTAINS
 
     ! Swap GEOSCHEM variables into TOMAS variables
     DO K = 1, IBINS
-       TRACNUM = id_NK1 - 1 + K
+       TRACNUM = id_NK01 - 1 + K
        NK(K) = Spc(TRACNUM)%Conc(I,J,L)
        DO JC = 1, ICOMP-IDIAG  ! do I need aerosol water here?
-          TRACNUM = id_NK1 - 1 + K + IBINS*JC
+          TRACNUM = id_NK01 - 1 + K + IBINS*JC
           MK(K,JC) = Spc(TRACNUM)%Conc(I,J,L)
           IF( IT_IS_NAN( MK(K,JC) ) ) THEN
              PRINT *,'+++++++ Found NaN in SOACOND ++++++++'
              PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',JC
           ENDIF
        ENDDO
-       MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
+       MK(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
     ENDDO
 
     ! Take the bulk NH4 and allocate to size-resolved NH4
@@ -4207,13 +4207,13 @@ CONTAINS
 
     ! Swap Nk and Mk arrays back to Spc array
     DO K = 1, IBINS
-       TRACNUM = id_NK1 - 1 + K
+       TRACNUM = id_NK01 - 1 + K
        Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
        DO JC = 1, ICOMP-IDIAG
-          TRACNUM = id_NK1 - 1 + K + IBINS*JC
+          TRACNUM = id_NK01 - 1 + K + IBINS*JC
           Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
        ENDDO
-       Spc(id_AW1-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
+       Spc(id_AW01-1+K)%Conc(I,J,L) = Mk(K,SRTH2O)
     ENDDO
 
     ! Free pointer memory
@@ -6425,20 +6425,20 @@ CONTAINS
 
     ! Define species indices here, these are now saved as
     ! module variables (bmy, 6/20/16)
-    id_NK1   = Ind_('NK1'  )
-    id_H2SO4 = Ind_('H2SO4')
-    id_AW1   = Ind_('AW1'  )
-    id_SF1   = Ind_('SF1'  )
-    id_SO4   = Ind_('SO4'  )
-    id_NH3   = Ind_('NH3'  )
-    id_NH4   = Ind_('NH4'  )
-    id_SF1   = Ind_('SF1'  )
-    id_SS1   = Ind_('SS1'  )
-    id_ECIL1 = Ind_('ECIL1')
-    id_ECOB1 = Ind_('ECOB1')
-    id_OCIL1 = Ind_('OCIL1')
-    id_OCOB1 = Ind_('OCOB1')
-    id_DUST1 = Ind_('DUST1')
+    id_NK01   = Ind_('NK01'  )
+    id_H2SO4  = Ind_('H2SO4')
+    id_AW01   = Ind_('AW01'  )
+    id_SF01   = Ind_('SF01'  )
+    id_SO4    = Ind_('SO4'  )
+    id_NH3    = Ind_('NH3'  )
+    id_NH4    = Ind_('NH4'  )
+    id_SF01   = Ind_('SF01'  )
+    id_SS01   = Ind_('SS01'  )
+    id_ECIL01 = Ind_('ECIL01')
+    id_ECOB01 = Ind_('ECOB01')
+    id_OCIL01 = Ind_('OCIL01')
+    id_OCOB01 = Ind_('OCOB01')
+    id_DUST01 = Ind_('DUST01')
 
     ! Now read large TOMAS input files from a common disk directory
     ! (bmy, 1/30/14)
@@ -6466,43 +6466,30 @@ CONTAINS
     ICOMP = 0
     IDIAG = 0
     K = 0
-    !IF( LSULF30 )  THEN
-    IF (id_SF1 > 0) THEN
+    IF (id_SF01 > 0) THEN
        ICOMP = ICOMP + 1
-       !SRTSO4 = ICOMP
     ENDIF
-    !IF( LSALT30 )  THEN
-    IF ( id_SS1 > 0 ) THEN
+    IF ( id_SS01 > 0 ) THEN
        ICOMP = ICOMP + 1
-       !SRTNACL = ICOMP
     ENDIF
-    !IF( LCARB30 )  THEN
-    IF ( id_ECIL1 > 0 .AND. id_ECOB1 > 0 .AND. &
-         id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
+    IF ( id_ECIL01 > 0 .AND. id_ECOB01 > 0 .AND. &
+         id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
        ICOMP = ICOMP + 1
-       !SRTECIL = ICOMP
        ICOMP = ICOMP + 1
-       !SRTECOB = ICOMP
        ICOMP = ICOMP + 1
-       !SRTOCIL = ICOMP
        ICOMP = ICOMP + 1
-       !SRTOCOB = ICOMP
     ENDIF
-    !IF( LDUST30 )  THEN
-    IF ( id_DUST1 > 0 ) THEN
+    IF ( id_DUST01 > 0 ) THEN
        ICOMP = ICOMP + 1
-       !SRTDUST = ICOMP
     ENDIF
 
     ! Have to add one more for aerosol water
     IF( ICOMP > 1 ) THEN
        ICOMP = ICOMP + 1
        IDIAG = IDIAG + 1
-       !SRTNH4 = ICOMP
 
        ICOMP = ICOMP + 1
        IDIAG = IDIAG + 1
-       !SRTH2O = ICOMP
     ENDIF
     print *, 'In init_TOMAS, ICOMP = ', ICOMP
     print *, 'In init_TOMAS, IBINS = ', IBINS
@@ -6824,7 +6811,7 @@ CONTAINS
     ! convection (ewl, 9/29/15)
     Spc => State_Chm%Species
 
-    BIN = N - id_NK1 + 1
+    BIN = N - id_NK01 + 1
     IF ( BIN > IBINS ) THEN
        BIN = MOD( BIN, IBINS )
        IF ( BIN == 0 ) BIN = IBINS
@@ -6837,15 +6824,15 @@ CONTAINS
     MNACL = 0.E0
     MDUST = 0.E0
 
-    IF ( id_ECIL1 > 0 .AND.id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
-       MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,L) * UNITFACTOR
-       MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,L) * UNITFACTOR
-       MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
+       MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+       MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+       MOCOB = Spc(id_OCOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     ENDIF
-    IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_DUST01 > 0 ) MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     !account for ammonium sulfate
-    IF ( id_SF1 > 0 ) MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,L) * 1.2 * UNITFACTOR
-    IF ( id_SS1 > 0 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_SF01 > 0 ) MSO4  = Spc(id_SF01-1+BIN)%Conc(I,J,L) * 1.2 * UNITFACTOR
+    IF ( id_SS01 > 0 ) MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4  / MTOT
@@ -6893,7 +6880,7 @@ CONTAINS
 
     ! Calculate the soluble fraction of mass
     MECOB = 0.E0
-    IF ( id_ECOB1 > 0 ) MECOB = Spc(id_ECOB1-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_ECOB01 > 0 ) MECOB = Spc(id_ECOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     SOLFRAC = MTOT / ( MTOT + MECOB )
 
     ! Free pointer
@@ -6974,7 +6961,7 @@ CONTAINS
     ! Point to chemical species array
     Spc => State_Chm%Species
 
-    BIN = N - id_NK1 + 1
+    BIN = N - id_NK01 + 1
     IF ( BIN > IBINS ) THEN
        BIN = MOD( BIN, IBINS )
        IF ( BIN == 0 ) BIN = IBINS
@@ -6986,16 +6973,14 @@ CONTAINS
     MSO4  = 0.E0
     MNACL = 0.E0
 
-    IF ( id_ECIL1 > 0 .AND.id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
-       !IF (LCARB30) THEN
-       MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,L)
-       MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,L)
-       MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,L)
+    IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
+       MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L)
+       MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,L)
+       MOCOB = Spc(id_OCOB01-1+BIN)%Conc(I,J,L)
     ENDIF
-    IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L)
-    !IF (LDUST30) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,L)
-    MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,L) * 1.2 !account for ammonium sulfate
-    MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,L)
+    IF ( id_DUST01 > 0 ) MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,L)
+    MSO4  = Spc(id_SF01-1+BIN)%Conc(I,J,L) * 1.2 !account for ammonium sulfate
+    MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,L)
 
     MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
     XOCIL = MOCIL / MTOT
@@ -7201,27 +7186,27 @@ CONTAINS
     if (rhe .gt. 99.) rhe=99.
     if (rhe .lt. 1.) rhe=1.
 
-    so4mass=Spc(id_SF1-1+bin)%Conc(I,J,L)*1.2 !1.2 converts kg so4 to kg nh4hso4
+    so4mass=Spc(id_SF01-1+bin)%Conc(I,J,L)*1.2 !1.2 converts kg so4 to kg nh4hso4
     wrso4=waterso4(rhe)       !use external function
 
     ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
-    if (id_SS1.gt.0) then
-       naclmass=Spc(id_SS1-1+bin)%Conc(I,J,L) !already as kg nacl - no conv necessary
+    if (id_SS01.gt.0) then
+       naclmass=Spc(id_SS01-1+bin)%Conc(I,J,L) !already as kg nacl - no conv necessary
        wrnacl=waternacl(rhe)  !use external function
     else
        naclmass = 0.e+0_fp
        wrnacl = 1.e+0_fp
     endif
 
-    if (id_OCIL1 > 0) then
-       ocilmass=Spc(id_OCIL1-1+bin)%Conc(I,J,L)  !already as kg ocil - no conv necessary
+    if (id_OCIL01 > 0) then
+       ocilmass=Spc(id_OCIL01-1+bin)%Conc(I,J,L)  !already as kg ocil - no conv necessary
        wrocil=waterocil(rhe)
     else
        ocilmass = 0.e+0_fp
        wrocil = 1.e+0_fp
     endif
 
-    Spc(id_AW1-1+bin)%Conc(I,J,L)= so4mass*(wrso4-1.e+0_fp) + &
+    Spc(id_AW01-1+bin)%Conc(I,J,L)= so4mass*(wrso4-1.e+0_fp) + &
                              naclmass*(wrnacl-1.e+0_fp) &
                              + ocilmass*(wrocil-1.e+0_fp)
 
@@ -7435,9 +7420,9 @@ CONTAINS
     DO I = 1, State_Grid%NX
     DO BIN = 1, IBINS
 
-       TRACID = id_NK1 + BIN - 1
-       !print *,"TRACID=",TRACID,"id_NK1=",id_NK1, "BIN=", BIN
-       WID    = id_NK1 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
+       TRACID = id_NK01 + BIN - 1
+       !print *,"TRACID=",TRACID,"id_NK01=",id_NK01, "BIN=", BIN
+       WID    = id_NK01 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
        !print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
 
        ! Get the diameter from an external function
@@ -7446,20 +7431,16 @@ CONTAINS
        ! Prepare the mass mixing ratio to call external function
        ! for density
        MH2O = Spc(WID)%Conc(I,J,1)
-       !IF ( LSULF30 ) MSO4  = Spc(id_SF1-1+BIN)%Conc(I,J,LEV)
-       IF ( id_SF1 > 0 ) MSO4 = Spc(id_SF1-1+BIN)%Conc(I,J,LEV)
-       !IF ( LSALT30 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,LEV)
-       IF ( id_SS1 > 0 ) MNACL = Spc(id_SS1-1+BIN)%Conc(I,J,LEV)
-       IF ( id_ECIL1 > 0 .AND.id_ECOB1 > 0 .AND. &
-            id_OCIL1 > 0 .AND. id_OCOB1 > 0 ) THEN
-          !IF ( LCARB30 ) THEN
-          MECIL = Spc(id_ECIL1-1+BIN)%Conc(I,J,LEV)
-          MECOB = Spc(id_ECOB1-1+BIN)%Conc(I,J,LEV)
-          MOCIL = Spc(id_OCIL1-1+BIN)%Conc(I,J,LEV)
-          MOCOB = Spc(id_OCOB1-1+BIN)%Conc(I,J,LEV)
+       IF ( id_SF01 > 0 ) MSO4 = Spc(id_SF01-1+BIN)%Conc(I,J,LEV)
+       IF ( id_SS01 > 0 ) MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,LEV)
+       IF ( id_ECIL01 > 0 .AND. id_ECOB01 > 0 .AND. &
+            id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
+          MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,LEV)
+          MECOB = Spc(id_ECOB01-1+BIN)%Conc(I,J,LEV)
+          MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,LEV)
+          MOCOB = Spc(id_OCOB01-1+BIN)%Conc(I,J,LEV)
        ENDIF
-       !IF ( LDUST30 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,LEV)
-       IF ( id_DUST1 > 0 ) MDUST = Spc(id_DUST1-1+BIN)%Conc(I,J,LEV)
+       IF ( id_DUST01 > 0 ) MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,LEV)
 
        ! Get density from external function
        DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, &
@@ -7625,18 +7606,18 @@ CONTAINS
 
        ! Swap GEOSCHEM variables into aerosol algorithm variables
        DO K = 1, IBINS
-          TRACNUM = id_NK1 - 1 + K
+          TRACNUM = id_NK01 - 1 + K
           ! Check for nan
           IF ( IT_IS_NAN( Spc(TRACNUM)%Conc(I,J,L) ) ) &
                print *, 'Found NaN at',I, J, L,'Species',TRACNUM
           NK(K) = Spc(TRACNUM)%Conc(I,J,L)
           DO JC = 1, ICOMP-IDIAG
-             TRACNUM = id_NK1 - 1 + K + IBINS*JC
+             TRACNUM = id_NK01 - 1 + K + IBINS*JC
              IF ( IT_IS_NAN( Spc(TRACNUM)%Conc(I,J,L) ) ) &
                   print *, 'Found NaN at',I, J, L,'Species',TRACNUM
              MK(K,JC) = Spc(TRACNUM)%Conc(I,J,L)
           ENDDO
-          MK(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
+          MK(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
        ENDDO
 
        DO JC = 1, ICOMP - 1
@@ -7694,13 +7675,13 @@ CONTAINS
 
        ! Swap Nk and Mk arrays back to Spc
        DO K = 1, IBINS
-          TRACNUM = id_NK1 - 1 + K
+          TRACNUM = id_NK01 - 1 + K
           Spc(TRACNUM)%Conc(I,J,L) = Nk(K)
           DO JC = 1, ICOMP-IDIAG
-             TRACNUM = id_NK1 - 1 + K + IBINS*JC
+             TRACNUM = id_NK01 - 1 + K + IBINS*JC
              Spc(TRACNUM)%Conc(I,J,L) = Mk(K,JC)
           ENDDO
-          Spc(id_AW1-1+K)%Conc(I,J,L) = MK(K,SRTH2O)
+          Spc(id_AW01-1+K)%Conc(I,J,L) = MK(K,SRTH2O)
        ENDDO
 
     ENDDO
@@ -9265,9 +9246,9 @@ CONTAINS
     !-------------------------------------------------------------
     ! Calculate bin that we're working with
     !-------------------------------------------------------------
-    NUMBIN = MOD(N-id_NK1+1,IBINS)
+    NUMBIN = MOD(N-id_NK01+1,IBINS)
     IF (NUMBIN==0) NUMBIN = IBINS
-    ID = id_NK1-1+NUMBIN   !ID = Species ID of number at current bin
+    ID = id_NK01-1+NUMBIN   !ID = Species ID of number at current bin
 
     !-------------------------------------------------------------
     ! Calculate aerosol water in case it has not been initialized elsewhere
@@ -9336,7 +9317,7 @@ CONTAINS
        IF( JC == SRTOCOB ) MOCOB = Spc(ID+JC*IBINS)%Conc(I,J,L)
        IF( JC == SRTDUST ) MDUST = Spc(ID+JC*IBINS)%Conc(I,J,L)
     ENDDO
-    MH2O  = Spc(id_AW1-1+NUMBIN)%Conc(I,J,L)
+    MH2O  = Spc(id_AW01-1+NUMBIN)%Conc(I,J,L)
 
     !dbg print *,'mh2o',mh2o,'at',i,j,l
 

@@ -122,7 +122,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    INTEGER, SAVE      :: id_DST1, id_NK1, id_CO2   ! Species ID flags
+    INTEGER, SAVE      :: id_DST1, id_NK01, id_CO2   ! Species ID flags
 
     ! Scalars
     INTEGER            :: N_TROP, N
@@ -155,7 +155,7 @@ CONTAINS
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
        id_DST1 = Ind_('DST1')
-       id_NK1  = Ind_('NK1' )
+       id_NK01 = Ind_('NK01')
        id_CO2  = Ind_('CO2' )
     ENDIF
 
@@ -623,7 +623,7 @@ CONTAINS
           !------------------------------------------------------------------
           ! Do TOMAS aerosol microphysics and dry dep
           !------------------------------------------------------------------
-          IF ( id_NK1 > 0 ) THEN
+          IF ( id_NK01 > 0 ) THEN
              CALL Do_TOMAS( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Diag = State_Diag,                         &

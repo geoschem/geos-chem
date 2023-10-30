@@ -792,7 +792,7 @@ CONTAINS
 
 #ifdef TOMAS
 
-          ! Get species name (i.e. DUST1 .. DUST40) for TOMAS simulatiosn
+          ! Get species name (i.e. DUST01 .. DUST40) for TOMAS simulatiosn
           IF ( I < 10 )  THEN
              WRITE( ISTR1,'(i1)' ) I
              SpcName = 'DUST'   // ISTR1

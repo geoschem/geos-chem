@@ -78,7 +78,7 @@ MODULE GAMAP_MOD
   CHARACTER(LEN=40)              :: SIM_NAME
 
   ! Species ID flags
-  INTEGER :: id_NK1
+  INTEGER :: id_NK01
 
 CONTAINS
 !EOC
@@ -1545,7 +1545,7 @@ CONTAINS
              !-----------------------------------------------
              ! Drydep flux: TOMAS aerosol tracers
              !-----------------------------------------------
-             T = id_NK1 + IBINS - 1 + ( N - nDryDep )
+             T = id_NK01 + IBINS - 1 + ( N - nDryDep )
              SpcInfo       => State_Chm%SpcData(T)%Info
 
              ! Drydep flux (extended deposited species)
@@ -1689,8 +1689,8 @@ CONTAINS
           ! NOTE: requires 1:1 tracer index to species index mapping
           SpcInfo => State_Chm%SpcData(T)%Info
 
-          IF ( ( T .ge. id_NK1       ) .and. &
-               ( T .lt. id_NK1+IBINS ) ) THEN
+          IF ( ( T .ge. id_NK01       ) .and. &
+               ( T .lt. id_NK01+IBINS ) ) THEN
              UNIT(T,60) = 'no.'
           ELSE
              UNIT(T,60) = 'kg'
@@ -2050,7 +2050,7 @@ CONTAINS
     !=================================================================
     ! Define species ID flags
     !=================================================================
-    id_NK1   = Ind_('NK1'  )
+    id_NK01   = Ind_('NK01'  )
 
     !=================================================================
     ! Allocate module arrays

@@ -126,8 +126,7 @@ MODULE SeaSalt_Mod
   ! Scalars
   INTEGER               :: NR
   INTEGER               :: id_MOPO,     id_MOPI
-  INTEGER               :: id_NK1,      id_SALA
-  INTEGER               :: id_SALC,     id_SS1
+  INTEGER               :: id_SALA,     id_SALC
   INTEGER               :: id_SALACL,   id_SALCCL
   INTEGER               :: id_SALAAL,   id_SALCAL
   REAL(fp)              :: REFF_accum,  REFF_coarse
@@ -1140,8 +1139,6 @@ CONTAINS
     id_MOPO   = Ind_('MOPO'  )
     id_SALA   = Ind_('SALA'  )
     id_SALC   = Ind_('SALC'  )
-    id_NK1    = Ind_('NK1'   )
-    id_SS1    = Ind_('SS1'   )
     id_SALACL = Ind_('SALACL')
     id_SALCCL = Ind_('SALCCL')
     id_SALAAL = Ind_('SALAAL')

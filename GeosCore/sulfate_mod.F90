@@ -168,7 +168,7 @@ MODULE SULFATE_MOD
   REAL(fp)               :: TS_EMIS
 
   ! Species ID flags
-  INTEGER                :: id_AS,     id_AHS,    id_AW1
+  INTEGER                :: id_AS,     id_AHS,    id_AW01
   INTEGER                :: id_DAL1,   id_DAL2,   id_DAL3
   INTEGER                :: id_DAL4,   id_DMS,    id_DST1
   INTEGER                :: id_DST2,   id_DST3,   id_DST4
@@ -176,10 +176,10 @@ MODULE SULFATE_MOD
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
   INTEGER                :: id_NH4aq,  id_NIT,    id_NITd1
   INTEGER                :: id_NITd2,  id_NITd3,  id_NITd4
-  INTEGER                :: id_NITs,   id_NK1,    id_NK5
-  INTEGER                :: id_NK8,    id_NK10,   id_NK20
+  INTEGER                :: id_NITs,   id_NK01,   id_NK05
+  INTEGER                :: id_NK08,   id_NK10,   id_NK20
   INTEGER                :: id_NO3,    id_O3,     id_OH
-  INTEGER                :: id_SALA,   id_SALC,   id_SF1
+  INTEGER                :: id_SALA,   id_SALC,   id_SF01
   INTEGER                :: id_SO2,    id_SO4,    id_SO4aq
   INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3
   INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
@@ -797,11 +797,11 @@ CONTAINS
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
-    IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
+    IF (id_SF01 > 0 .and. id_NK01 > 0 ) THEN
 
        ! Get NH4 and aerosol water into the same array
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          BINMASS(:,:,:,M) = Spc(id_SF1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,M) = Spc(id_SF01+M-1)%Conc(:,:,:)
        ENDDO
 
        IF ( SRTNH4 > 0 ) THEN
@@ -818,7 +818,7 @@ CONTAINS
              ! Change pointer to a variable to avoid array temporary
              ! (bmy, 7/7/17)
              DO M = 1, IBINS
-                MK_TEMP2(M) = Spc(id_SF1+M-1)%Conc(I,J,L)
+                MK_TEMP2(M) = Spc(id_SF01+M-1)%Conc(I,J,L)
              ENDDO
              NH4_CONC = Spc(id_NH4)%Conc(I,J,L)
              CALL NH4BULKTOBIN( MK_TEMP2, NH4_CONC, TEMPNH4 )
@@ -834,17 +834,17 @@ CONTAINS
 
        TID = IBINS*(ICOMP-1) +1
        DO M = 1, IBINS
-          BINMASS(:,:,:,TID+M-1) = Spc(id_AW1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,TID+M-1) = Spc(id_AW01+M-1)%Conc(:,:,:)
        ENDDO
 
-       !IF ( id_SF1 > 0 ) THEN
+       !IF ( id_SF01 > 0 ) THEN
        CALL SRCSF30( Input_Opt, State_Grid, State_Met, &
                      State_Chm, BINMASS(:,:,:,:), RC )
 
        ! Return the aerosol mass after emission subroutine to Spc
        ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          Spc(id_SF1+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
+          Spc(id_SF01+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
        ENDDO
     ENDIF
 
@@ -1159,11 +1159,11 @@ CONTAINS
        !=============================================================
        IF ( SGCOAG ) THEN
 
-! ewl: TC1 = Spc(:,:,:,id_NK1:id_NK1+IBINS-1)
+! ewl: TC1 = Spc(:,:,:,id_NK01:id_NK01+IBINS-1)
 
           !save number and mass before emission
           !DO M = 1, IBINS
-          !   N0(:,M) = TC1(id_NK1+M-1)%Conc(I,J,:)
+          !   N0(:,M) = TC1(id_NK01+M-1)%Conc(I,J,:)
           !ENDDO
           !M0(:,:) = TC2(I,J,:,1:IBINS)
 
@@ -1179,7 +1179,7 @@ CONTAINS
                 !sfarina - sqrt is expensive.
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
-                NDIST(K) = TC1(id_NK1+K-1)%Conc(I,J,L)
+                NDIST(K) = TC1(id_NK01+K-1)%Conc(I,J,L)
                 !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
@@ -1276,7 +1276,7 @@ CONTAINS
                                        'after SUBGRIDCOAG at ',I,J,L
 
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = NDIST2(K)
+                TC1(id_NK01+K-1)%Conc(I,J,L) = NDIST2(K)
                 DO C=1,ICOMP
                    TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                 ENDDO
@@ -1289,7 +1289,7 @@ CONTAINS
              !
              !DO K = 1, IBINS
              !!sfarina debug
-             !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+             !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
              ! write(*,*) '"Negative NK emis" details:'
              ! write(*,*) 'NTOP       ', NTOP
              ! write(*,*) 'S_SO4:     ', S_SO4
@@ -1297,7 +1297,7 @@ CONTAINS
              ! write(*,*) 'EFRAC(L):  ', EFRAC(L)
              ! DO Bi=1,IBINS
              !  write(*,*) 'Bin        ',Bi
-             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi-1)%Conc(I,J,L)
+             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK01+Bi-1)%Conc(I,J,L)
              !  write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
              !  write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
              !  write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
@@ -1330,10 +1330,10 @@ CONTAINS
                 !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
                 !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
                 !     'at',I,J,L,K
-                !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K), &
+                !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+                !   print *,'Negative NK emis ',TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K), &
                 !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK1+K-1)%Conc(I,J,L),N0(L,K)
+                !   print *,'tc1, N0 ',TC1(id_NK01+K-1)%Conc(I,J,L),N0(L,K)
                 !end if
 
                 !sfarina - I have studied this extensively and determined that
@@ -1351,7 +1351,7 @@ CONTAINS
                 !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
                 !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
                 !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) &
+                !                      TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) &
                 AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                 AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
              ENDDO
@@ -1368,7 +1368,7 @@ CONTAINS
           DO L = 1, State_Grid%NZ
              SO4(L) = TSO4 * EFRAC(L)
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = TC1(id_NK1+K-1)%Conc(I,J,L) + &
+                TC1(id_NK01+K-1)%Conc(I,J,L) = TC1(id_NK01+K-1)%Conc(I,J,L) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
                TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
@@ -7875,13 +7875,13 @@ CONTAINS
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
 #if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK5,  .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK5,  .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK8,  .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK8,  .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS30 )
           CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
 
@@ -9076,7 +9076,7 @@ CONTAINS
     ! Define flags for species ID's
     id_AS    = Ind_('AS'       )
     id_AHS   = Ind_('AHS'      )
-    id_AW1   = Ind_('AW1'      )
+    id_AW01  = Ind_('AW01'     )
     id_DAL1  = Ind_('DSTAL1'   )
     id_DAL2  = Ind_('DSTAL2'   )
     id_DAL3  = Ind_('DSTAL3'   )
@@ -9101,9 +9101,9 @@ CONTAINS
     id_NITd3 = Ind_('NITD3'    )
     id_NITd4 = Ind_('NITD4'    )
     id_NITs  = Ind_('NITs'     )
-    id_NK1   = Ind_('NK1'      )
-    id_NK5   = Ind_('NK5'      )
-    id_NK8   = Ind_('NK8'      )
+    id_NK01  = Ind_('NK01'     )
+    id_NK05  = Ind_('NK05'     )
+    id_NK08  = Ind_('NK08'     )
     id_NK10  = Ind_('NK10'     )
     id_NK20  = Ind_('NK20'     )
     id_NO3   = Ind_('NO3'      )
@@ -9113,7 +9113,7 @@ CONTAINS
     id_PSO4  = Ind_('PSO4'     )
     id_SALA  = Ind_('SALA'     )
     id_SALC  = Ind_('SALC'     )
-    id_SF1   = Ind_('SF1'      )
+    id_SF01  = Ind_('SF01'     )
     id_SO2   = Ind_('SO2'      )
     id_SO4   = Ind_('SO4'      )
     id_SO4aq = Ind_('SO4aq'    )

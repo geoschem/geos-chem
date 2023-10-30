@@ -81,7 +81,7 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
      ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
      ! Now use State_Chm%nDryDep for # dry depositing species
      ! (ewl, 10/14/15)
-     IF ( Ind_('NK1') > 1 ) THEN
+     IF ( Ind_('NK01') > 1 ) THEN
         NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
      ELSE
         NMAX = State_Chm%nDryDep
