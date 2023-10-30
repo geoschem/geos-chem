@@ -131,7 +131,7 @@ CONTAINS
     USE TIME_MOD,                 ONLY : Get_Month
     USE TIME_MOD,                 ONLY : Get_Year
     USE Timers_Mod
-    USE UnitConv_Mod,             ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     USE UCX_MOD,                  ONLY : CALC_STRAT_AER
     USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
     USE UCX_MOD,                  ONLY : UCX_NOX
@@ -172,13 +172,12 @@ CONTAINS
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: IERR,       S,         Thread
-    INTEGER                :: errorCount
+    INTEGER                :: errorCount, origUnit
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
     ! Strings
-    CHARACTER(LEN=63)      :: OrigUnit
-    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: errMsg,     thisLoc
 
     ! SAVEd scalars
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
@@ -357,9 +356,15 @@ CONTAINS
     !========================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !========================================================================
-    CALL Convert_Spc_Units( Input_Opt,            State_Chm,   State_Grid,   &
-                            State_Met,           'molec/cm3', RC,            &
-                            OrigUnit=OrigUnit                               )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLECULES_SPECIES_PER_CM3,                             &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90')
@@ -1721,9 +1726,14 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
-                            OrigUnit,  RC )
-
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+    
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )

@@ -3640,8 +3640,9 @@ CONTAINS
     LACTIVEH2O = Input_Opt%LACTIVEH2O
 
     ! Check that species concentration units are as expected
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       MSG = 'Incorrect species units: '                                  // & 
+              TRIM( UNIT_STR(State_Chm%Spc_Units) )
        LOC = 'UCX_MOD: SET_H2O_TRAC'
        CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
     ENDIF
