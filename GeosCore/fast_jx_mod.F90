@@ -105,7 +105,7 @@ CONTAINS
     REAL(fp), INTENT(IN), DIMENSION(L1_     )  :: T_COL
     LOGICAL,  INTENT(IN)                       :: AOD999
     INTEGER,  INTENT(IN)                       :: ILON, ILAT
-    REAL(fp), INTENT(IN), DIMENSION(A_,L1_)    :: AERX_COL ! Aerosol column
+    REAL(fp), INTENT(IN), DIMENSION(AN_,L1_)   :: AERX_COL ! Aerosol column
     REAL(fp), INTENT(IN), DIMENSION(L1_   )    :: T_CLIM   ! Clim. temps (K)
     REAL(fp), INTENT(IN), DIMENSION(L1_   )    :: OOJ      ! O3 col depth (#/cm2)
     REAL(fp), INTENT(IN), DIMENSION(L1_+1 )    :: ZZJ      ! Edge alts (cm)

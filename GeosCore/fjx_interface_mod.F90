@@ -236,9 +236,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod,     ONLY : A_, L_, L1_, W_, JVN_, JXL_, JXL1_
+    USE CMN_FJX_Mod,     ONLY : AN_, L_, L1_, W_, JVN_, JXL_, JXL1_
     USE CMN_FJX_Mod,     ONLY : NRATJ, JIND, JFACTA, FL
-    USE CMN_SIZE_MOD,    ONLY : NDUST, NRH, NAER
+    USE CMN_SIZE_MOD,    ONLY : NDUST, NRH, NRHAER, NSTRATAER
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -308,7 +308,7 @@ CONTAINS
     REAL(fp)      :: O3_CTM(State_Grid%NZ+1)
     REAL(fp)      :: T_CTM(State_Grid%NZ+1), OPTD(State_Grid%NZ)
     REAL(fp)      :: OPTDUST(State_Grid%NZ,NDUST)
-    REAL(fp)      :: OPTAER(State_Grid%NZ,A_)
+    REAL(fp)      :: OPTAER(State_Grid%NZ,NRHAER*NRH+NSTRATAER)
 
     ! Local variables for cloud overlap (hyl, phs)
     INTEGER       :: NUMB, KK, I
@@ -323,7 +323,7 @@ CONTAINS
     REAL(fp)      :: CLDF1D(State_Grid%NZ)
     REAL(fp)      :: ODNEW(State_Grid%NZ)
     REAL(fp)      :: P_CTM(State_Grid%NZ+2)
-    REAL(fp)      :: AERX_COL(A_,L1_)
+    REAL(fp)      :: AERX_COL(AN_,L1_)
     REAL(fp)      :: T_CLIM(L1_)
     REAL(fp)      :: O3_CLIM(L1_)
     REAL(fp)      :: Z_CLIM(L1_+1)
@@ -490,24 +490,36 @@ CONTAINS
 
        ! Aerosol OD profile [unitless] at (NLON,NLAT)
        ! and at 1000nm, IWV1000 (DAR)
-       !OPTAER wants NAER*NRH values but ODAER is now NAER
-       !use IRHARR to map to correct OPTAER bin (DAR 08/13)
        OPTAER = 0.0e+0_fp
-       DO N = 1, NAER
+
+       ! OD profiles for aerosols undergoing hygroscopic growth. The OD
+       ! profile array has 5 columns for each of these aerosols, one for each
+       ! humidity in the optical properties LUT used by Fast-JX. For each grid
+       ! cell and aerosol, assign OD based on humidity in the grid box; values for
+       ! that grid cell and aerosol will be zero for all other humidity bins,
+       ! e.g. if RH<50% at L=1 then OPTAER(1,1) will contain SO4 OD and OPTAER(1,2:5)
+       ! will be all zeros.
+       DO N = 1, NRHAER
        DO L = 1, State_Grid%NZ
           IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
           OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,State_Chm%Phot%IWV1000,N)
        ENDDO
        ENDDO
+
+       ! OD profiles for stratospheric aerosols (N=1: ssa, N=2: psc)
+       DO N = 1, NSTRATAER
+       DO L = 1, State_Grid%NZ
+          IOPT = (NRHAER * NRH) + N
+          OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,State_Chm%Phot%IWV1000,NRHAER+N)
+       ENDDO
+       ENDDO
+
+       ! Mineral dust optical depth profiles
        DO N = 1, NDUST
        DO L = 1, State_Grid%NZ
           OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,State_Chm%Phot%IWV1000,N)
        ENDDO
        ENDDO
-
-       ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-       ! and at 1000nm, IWV1000 (DAR)
-       !OPTDUST = ODMDUST(NLON,NLAT,:,State_Chm%Phot%IWV1000,:)
 
        ! Cloud OD profile [unitless] at (NLON,NLAT)
        OPTD = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
@@ -985,8 +997,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod,     ONLY : L_, L1_, A_, ZZHT
-    USE CMN_SIZE_Mod,    ONLY : NAER, NRH, NDUST
+    USE CMN_FJX_Mod,     ONLY : L_, L1_, AN_, ZZHT
+    USE CMN_SIZE_Mod,    ONLY : NDUST, NRH, NRHAER, NSTRATAER
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PhysConstants,   ONLY : AIRMW, AVO, g0, BOLTZ
     USE State_Chm_Mod,   ONLY : ChmState
@@ -1002,7 +1014,7 @@ CONTAINS
     REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
     REAL(fp), INTENT(INOUT)    :: CLDOD(L_)         ! Cloud optical depth
     REAL(fp), INTENT(IN)       :: DSTOD(L_,NDUST)   ! Mineral dust OD
-    REAL(fp), INTENT(IN)       :: AEROD(L_,A_)      ! Aerosol OD
+    REAL(fp), INTENT(IN)       :: AEROD(L_,NRHAER*NRH+NSTRATAER) ! Aerosol OD
     REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
     TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
     TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
@@ -1010,7 +1022,7 @@ CONTAINS
 !
 ! !OUTPUT VARIABLES:
 !
-    REAL(fp), INTENT(OUT)      :: AERCOL(A_,L1_)    ! Aerosol column
+    REAL(fp), INTENT(OUT)      :: AERCOL(AN_,L1_)   ! Aerosol column
     REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)       ! Clim. temperatures (K)
     REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
     REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
@@ -1044,7 +1056,7 @@ CONTAINS
     USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
 
     ! Zero aerosol column
-    DO K=1,A_
+    DO K=1,AN_
        DO I=1,L1_
           AERCOL(K,I) = 0.e+0_fp
        ENDDO
@@ -1141,19 +1153,25 @@ CONTAINS
           AERCOL(3,I) = CLDOD(I)
        ENDIF
 
-       ! Also add in aerosol optical depth columns (rvm, bmy, 9/30/00)
+       ! Mineral dust optical depth columns
        DO N = 1, NDUST
           AERCOL(3+N,I) = DSTOD(I,N)
        ENDDO
 
-       ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-       DO N = 1, NAER*NRH
-          AERCOL(3+N+NDUST,I) = AEROD(I,N)
+       ! Aerosol optical depth columns for aerosols undergroing
+       ! hygroscopic growth
+       DO N = 1, NRHAER*NRH
+          AERCOL(3+NDUST+N,I) = AEROD(I,N)
+       ENDDO
+
+       ! Stratospheric aerosol optical depth columns
+       DO N = 1, NSTRATAER
+          AERCOL(3+NDUST+NRHAER*NRH+N,I) = AEROD(I,NRHAER*NRH+N)
        ENDDO
 
     ENDDO
 
-    DO K = 1,(3+NDUST+(NAER))
+    DO K = 1,AN_
        AERCOL(K,L1_    ) = 0.e+0_fp
     ENDDO
 
