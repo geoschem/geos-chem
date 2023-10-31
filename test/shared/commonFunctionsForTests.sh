@@ -648,14 +648,14 @@ function gcc_enable_or_disable_bootstrap() {
 
             if [[ "x${bootStrap}" == "xyes" ]]; then
                 # Set missing restart file variables to defaults
-                sed_ie "s/EFYO/CYS/"             "${hcoCfg}"
-                sed_ie "s/EFY.*xyz 1/CYS xyz 1/" "${hcoCfg}"
-                sed_ie "s/EY.*xyz 1/CYS xyz 1/"  "${hcoCfg}"
+		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EY/CYS/"   2>/dev/null
+		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EFYO/CYS/" 2>/dev/null
+		grep -l "BC_ "  "${hcoCfg}" | xargs sed -i "s/EFY/CYS/"  2>/dev/null
             else
-                # Don't set missing restart file variables to defaults
-                sed_ie "s/CYS.*xyz 1/EFY xyz 1/" "${hcoCfg}"
-                sed_ie "s/CYS/EFYO/"             "${hcoCfg}"
-                sed_ie "s/EY.*xyz 1/EFYO xyz 1/" "${hcoCfg}"
+		# Don't set missing restart file variables to defaults
+		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/CYS/EFYO/" 2>/dev/null
+		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EY/EFYO/"  2>/dev/null
+		grep -l "BC_ "  "${hcoCfg}" | xargs sed -i "s/CYS/EFY/"  2>/dev/null
             fi
         fi
     done
@@ -687,10 +687,10 @@ function gchp_enable_or_disable_bootstrap() {
 
             if [[ "x${bootStrap}" == "xyes" ]]; then
                 # Set missing restart file variables to defaults
-                sed_ie "s/_in_Restart=./_in_Restart=0/" "${script}"
+                sed_ie "s/Require_Species_in_Restart=./Require_Species_in_Restart=0/" "${script}"
             else
                 # Don't set missing restart file variables to defaults
-                sed_ie "s/_in_Restart=./_in_Restart=1/" "${script}"
+                sed_ie "s/Require_Species_in_Restart=./Require_Species_in_Restart=1/" "${script}"
             fi
         fi
     done
