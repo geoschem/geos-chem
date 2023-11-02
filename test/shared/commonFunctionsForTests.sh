@@ -77,6 +77,23 @@ function sed_ie() {
 }
 
 
+function sed_string() {
+    #========================================================================
+    # Returns a sed command string to replace a substring in a line of text.
+    #
+    # 1st argument = String of text
+    # 2nd argument = Substring
+    # 3rd argument = Replacement substring
+    #========================================================================
+    text=${1//\//\\\/}                # Replace '/' with '\/'
+    text=${text//\*/\\\*}             # Replace '*' with '\*'
+    text=${text//\./\\\.}             # Replace '.' with '\.'
+    text=${text//\$/\\\$}             # Replace '$' with '\$'
+    newText=${text/"${2}"/"${3}"}     # Repace substr w/ replacement str
+    echo "s/${text}/${newText}/"  # Create sed command
+}
+
+
 function absolute_path() {
     #========================================================================
     # Returns the absolute path from a relative path
@@ -623,6 +640,34 @@ function print_bootstrap_info_message() {
 }
 
 
+function change_time_cycle_flags() {
+    #========================================================================
+    # Changes the HEMCO time cycle flag for a given HEMCO container.
+    #
+    # 1st argument = HEMCO configuration file
+    # 2nd argument = HEMCO container
+    # 3rd argument = Old time cycle flag
+    # 4th argument = New time cycle flag
+    #========================================================================
+    hcoCfg="${1}"
+    hcoCont="${2}"
+    oldFlag="${3}"
+    newFlag="${4}"
+
+    # Search for the container in HEMCO configuration file
+    # The set -f prevents * from being expanded to a file listing
+    set -f
+    text=$(grep "${hcoCont}" "${hcoCfg}")
+    unset -f
+
+    # Replace the time cycle flag for the container
+    if [[ "x${text}" != "x" ]]; then
+	sedCmd=$(sed_string "${text}" "${oldFlag}" "${newFlag}")
+	sed_ie "${sedCmd}" "${hcoCfg}"
+    fi
+}
+
+
 function gcc_enable_or_disable_bootstrap() {
     #========================================================================
     # Edits HEMCO_Config.rc files to enable or disable "bootstrapping",
@@ -647,15 +692,15 @@ function gcc_enable_or_disable_bootstrap() {
             hcoCfg="${runDir}/HEMCO_Config.rc"
 
             if [[ "x${bootStrap}" == "xyes" ]]; then
-                # Set missing restart file variables to defaults
-		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EY/CYS/"   2>/dev/null
-		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EFYO/CYS/" 2>/dev/null
-		grep -l "BC_ "  "${hcoCfg}" | xargs sed -i "s/EFY/CYS/"  2>/dev/null
+		# Set missing species in restarts & BC files to defaults
+		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EFYO" "CYS"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EY"   "CYS"
+		change_time_cycle_flags "${hcoCfg}" "BC_ "  "EFY"  "CYS"
             else
-		# Don't set missing restart file variables to defaults
-		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/CYS/EFYO/" 2>/dev/null
-		grep -l "SPC_ " "${hcoCfg}" | xargs sed -i "s/EY/EFYO/"  2>/dev/null
-		grep -l "BC_ "  "${hcoCfg}" | xargs sed -i "s/CYS/EFY/"  2>/dev/null
+		# Halt run if species are missing from restarts & BC files
+		change_time_cycle_flags "${hcoCfg}" "SPC_ " "CYS"  "EFYO"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EY"   "EFYO"
+		change_time_cycle_flags "${hcoCfg}" "BC_ "  "CYS"  "EFY"
             fi
         fi
     done
