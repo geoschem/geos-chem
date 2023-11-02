@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Prevent `POAEMISS` from being assigned a value if not allocated (in `carbon_mod.F90`)
+- Changed incorrect comment about static H2O option in `GeosCore/input_mod.F90`
 
 ## [14.2.2] - 2023-10-23
 ### Changed
