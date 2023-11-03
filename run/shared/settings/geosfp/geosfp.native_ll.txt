@@ -55,7 +55,6 @@ SNOMAS    kg_m-2        N Y F0;003000 none  none SNOMAS     ./MetDir/Y%y4/M%m2/D
 # tavg1_2d_rad_Nx
 ALBD      1             N Y F0;003000 none  none ALBEDO     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
 CLDFRC    1             N Y F0;003000 none  none CLDTOT     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
-RADLWG    W_m-2         N Y F0;003000 none  none LWGNT      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
 RADSWG    W_m-2         N Y F0;003000 none  none SWGDN      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
 
 # tavg1_2d_slv_Nx

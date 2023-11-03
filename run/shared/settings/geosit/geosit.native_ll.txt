@@ -54,7 +54,6 @@ SNOMAS    kg_m-2     N Y F0;003000 none  none SNOMAS   ./MetDir/%y4/%m2/%d2/GEOS
 
 ALBD      1          N Y F0;003000 none  none ALBEDO   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_L576x361_slv.GEOS5294.%y4-%m2-%d2T%h2%n2Z.nc4 1995-01-01T00:30:00P01:00
 CLDFRC    1          N Y F0;003000 none  none CLDTOT   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_L576x361_slv.GEOS5294.%y4-%m2-%d2T%h2%n2Z.nc4 1995-01-01T00:30:00P01:00
-RADLWG    W_m-2      N Y F0;003000 none  none LWGNT    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_L576x361_slv.GEOS5294.%y4-%m2-%d2T%h2%n2Z.nc4 1995-01-01T00:30:00P01:00
 RADSWG    W_m-2      N Y F0;003000 none  none SWGDN    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_L576x361_slv.GEOS5294.%y4-%m2-%d2T%h2%n2Z.nc4 1995-01-01T00:30:00P01:00
 
 QV2M      kg_kg-1    N Y F0;003000 none  none QV2M     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_L576x361_slv.GEOS5294.%y4-%m2-%d2T%h2%n2Z.nc4 1995-01-01T00:30:00P01:00
