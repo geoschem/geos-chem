@@ -74,8 +74,8 @@
     INTEGER,  SAVE     :: id_NK01
 
     ! Scalars
-    INTEGER            :: nDryDep
-    INTEGER            :: I,      J,        L
+    INTEGER            :: nDryDep, IBINS
+    INTEGER            :: I,      J,        L,     AS
     INTEGER            :: N,      JC,       BIN,   ID
     REAL(fp)           :: DTCHEM, AREA_CM2, FLUX,  X,    Y
     REAL(fp)           :: Y0,     RKT,      DEN,   DP,   PDP
@@ -89,20 +89,20 @@
     REAL(fp)           :: TC(State_Grid%NZ)
     REAL(fp)           :: TC0(State_Grid%NZ)
     REAL(fp)           :: VTS(State_Grid%NZ) ! Settling V [m/s]
-    REAL(fp)           :: NU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
-    REAL(fp)           :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
-    REAL(fp)           :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(fp)           :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(fp)           :: X0(IBINS,ICOMP-IDIAG+1    )
+    REAL(fp)           :: NU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)           :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)           :: SIZ_DIA(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(fp)           :: SIZ_DEN(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(fp)           :: X0(State_Chm%nTomasBins,ICOMP-IDIAG+1    )
 
     ! Pointers
     TYPE(SpcConc), POINTER  :: Spc     (:      )
     REAL(fp),      POINTER  :: BXHEIGHT(:,:,:  )
     REAL(fp),      POINTER  :: T       (:,:,:  )
-    REAL(fp),      POINTER  :: DepFreq (:,:,:  )                ! IM, JM, nDryDep
+    REAL(fp),      POINTER  :: DepFreq (:,:,:  )  ! IM, JM, nDryDep
 
     ! SAVEd arrays
-    INTEGER,  SAVE     :: DRYD(IBINS)
+    INTEGER, SAVE, ALLOCATABLE :: DRYD(:)
 
     ! Debug
     !integer   :: ii, jj , ix, jx, bb, ll
@@ -117,6 +117,9 @@
 
     ! Number of dry-deposited species
     nDryDep   = State_Chm%nDryDep
+
+    ! Number of bins
+    IBINS     = State_Chm%nTomasBins
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
     IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
@@ -153,12 +156,15 @@
           CALL ERROR_STOP( MSG, LOC )
        ENDIF
 
+       ALLOCATE( DRYD( State_Chm%nTomasBins ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DRYD (aero_drydep.F90)' )
+       DRYD = 0
+
        ! First identify if the size-resolved aerosol species have their
        ! deposition velocity calculated.
        ! dryd is an array that keeps the drydep species ID.  So if the
        ! aerosol component has dryd = 0, that means it was not included
        ! as a dry depositting species.
-       DRYD = 0
        DO BIN = 1, IBINS
           DO N   = 1, nDryDep
              !just want to match only once (win, 5/24/06)

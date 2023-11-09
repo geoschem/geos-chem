@@ -187,9 +187,6 @@ CONTAINS
     USE State_Met_Mod,     ONLY : MetState
     USE UnitConv_Mod,      ONLY : Convert_Spc_Units
     USE TIME_MOD,          ONLY : GET_MONTH
-#ifdef TOMAS
-    USE TOMAS_MOD,        ONLY : IBINS
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -622,7 +619,7 @@ CONTAINS
           SOILDUST(I,J,L,:) = 0.e0_fp
 
           ! Loop over the # of TOMAS dust bins
-          DO K = 1, IBINS
+          DO K = 1, State_Chm%nTomasBins
 
              ! Get the overall species index for species K
              N    = id_DUST01 + K - 1

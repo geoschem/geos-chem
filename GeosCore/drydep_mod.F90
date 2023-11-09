@@ -1179,8 +1179,8 @@ CONTAINS
 #ifdef TOMAS
     ! For TOMAS aerosol (win, 7/15/09)
     INTEGER  :: BIN
-    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
+    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
 #endif
 
     ! Loop indices (bmy, 3/29/12)

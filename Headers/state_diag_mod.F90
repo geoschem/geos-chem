@@ -15900,8 +15900,7 @@ CONTAINS
        CASE( 'DRYALT'       )
           numTags = State_Chm%nDryAlt
        CASE( 'TOMASBIN', 'T' )
-          !numTags = HcoState%MicroPhys%nBins
-          numTags = 15  !!!! fix this - pass this in - should not be hard coded
+          numTags = State_Chm%nTomasBins
        CASE( 'DUSTBIN', 'B' )
           numTags = NDUST
        CASE( 'FIX',     'F' )

@@ -74,7 +74,6 @@ MODULE TOMAS_MOD
 !BOC
   !========================================================================
   ! Module Variables:
-  ! IBINS   : Number of size bins
   ! ICOMP   : Number of aerosol mass species + 1 for number
   ! Nk      : Aerosol number internal array
   ! Mk      : Aerosol mass internal array
@@ -105,18 +104,6 @@ MODULE TOMAS_MOD
 !
 ! !DEFINED PARAMETERS:
 !
-  ! Note that there is a parameter declared in CMN_SIZE called TOMASBIN -->
-  ! which defines how many size bins (win, 7/7/09)
-#if defined(TOMAS12)
-  INTEGER, PARAMETER   :: IBINS = 12
-#elif defined(TOMAS15)
-  INTEGER, PARAMETER   :: IBINS = 15
-#elif defined(TOMAS40)
-  INTEGER, PARAMETER   :: IBINS = 40
-#else
-  INTEGER, PARAMETER   :: IBINS = 30
-#endif
-
   INTEGER, PARAMETER   :: SRTSO4  = 1
   INTEGER, PARAMETER   :: SRTNACL = 2
   INTEGER, PARAMETER   :: SRTECIL = 3
@@ -135,23 +122,23 @@ MODULE TOMAS_MOD
   INTEGER                       :: ICOMP,   IDIAG
 
   ! Arrays
-  REAL(fp), TARGET, SAVE        :: Xk(IBINS+1)
-  REAL*4,   save,   ALLOCATABLE :: MOLWT(:)
-  INTEGER,          SAVE        :: BINACT1(101,101,101)
-  REAL(fp),         SAVE        :: FRACTION1(101,101,101)
-  INTEGER,          SAVE        :: BINACT2(101,101,101)
-  REAL(fp),         SAVE        :: FRACTION2(101,101,101)
+  REAL(fp), SAVE,   ALLOCATABLE, TARGET :: Xk(:)
+  REAL*4,   SAVE,   ALLOCATABLE :: MOLWT(:)
+  INTEGER,  SAVE                :: BINACT1(101,101,101)
+  REAL(fp), SAVE                :: FRACTION1(101,101,101)
+  INTEGER,  SAVE                :: BINACT2(101,101,101)
+  REAL(fp), SAVE                :: FRACTION2(101,101,101)
 
-  REAL(fp) :: AVGMASS(IBINS)       ! Average mass per particle
-                                   ! mid-range of size bin
-                                   ! [kg/no.]
+  REAL(fp), ALLOCATABLE         :: AVGMASS(:)       ! Average mass per particle
+                                                    ! mid-range of size bin
+                                                    ! [kg/no.]
   REAL(fp) :: cosmic_ions(72,46,9) !careful, this is not GCHP safe!
                                    ! [ion pairs kg^-1 s^-1]
 
-  REAL(fp),         SAVE        :: OCSCALE30(IBINS)
-  REAL(fp),         SAVE        :: OCSCALE100(IBINS)
-  REAL(fp),         SAVE        :: ECSCALE30(IBINS)
-  REAL(fp),         SAVE        :: ECSCALE100(IBINS)
+  REAL(fp), SAVE, ALLOCATABLE   :: OCSCALE30(:)
+  REAL(fp), SAVE, ALLOCATABLE   :: OCSCALE100(:)
+  REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE30(:)
+  REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE100(:)
 
   INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
   INTEGER  :: act_nuc = 0 ! in BL
@@ -173,96 +160,14 @@ MODULE TOMAS_MOD
   REAL(fp), ALLOCATABLE :: H2SO4_RATE(:,:,:) ! H2SO4 prod rate [kg s-1]
   REAL(fp), ALLOCATABLE :: PSO4AQ_RATE(:,:,:) ! Cld chem sulfate prod rate [kg s-1]
 
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
-  !tomas12 or tomas15
-  data OCSCALE30/ &
-#ifdef TOMAS15
-       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-#endif
-       1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
-       1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
-       9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
-
-  data OCSCALE100/ &
-#ifdef TOMAS15
-       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-#endif
-       1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
-       2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
-       2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/! use for biomass burning
-
-  data ECSCALE30/ &
-#ifdef TOMAS15
-       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-#endif
-       1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
-       1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
-       9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05/! use for fossil fuel (bimodal)
-
-  data ECSCALE100/ &
-#ifdef TOMAS15
-       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
-#endif
-       1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
-       2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
-       2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04/  ! use for biomass burning
-
-#else
-  !tomas30 or tomas40
-  DATA OCSCALE30/  &     ! use for fossil fuel
-#ifdef TOMAS40
-       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-#endif
-       1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
-       4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
-       1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
-       2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04, &
-       2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06, &
-       1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-  DATA OCSCALE100/  &    ! use for biomass burning
-#ifdef TOMAS40
-       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-#endif
-       3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
-       0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
-       0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
-       0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  , &
-       0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 , &
-       0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-
-  DATA ECSCALE30/  &     ! use for fossil fuel
-#ifdef TOMAS40
-       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
-#endif
-       1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
-       4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
-       1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
-       2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04, &
-       2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06, &
-       1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11/
-
-  DATA ECSCALE100/  &    ! use for biomass burning
-#ifdef TOMAS40
-       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
-#endif
-       3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
-       0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
-       0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
-       0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  , &
-       0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 , &
-       0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06/
-#endif
-
   ! Subgrid coagulation timescale (win, 10/28/08)
   REAL*4 :: SGCTSCALE
 !
 ! !PRIVATE TYPES:
 !
+  ! Number of bins (copied from State_Chm%nTomasBins)
+  INTEGER, PRIVATE :: IBINS
+
   ! Species ID flags
   INTEGER, PRIVATE :: id_AW01
   INTEGER, PRIVATE :: id_DUST01
@@ -6440,6 +6345,9 @@ CONTAINS
     id_OCOB01 = Ind_('OCOB01')
     id_DUST01 = Ind_('DUST01')
 
+    ! Number of size bins
+    IBINS = State_Chm%nTomasBins
+
     ! Now read large TOMAS input files from a common disk directory
     ! (bmy, 1/30/14)
     DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'TOMAS_201402/'
@@ -6498,6 +6406,30 @@ CONTAINS
     ! Allocate arrays
     !=================================================================
 
+    ALLOCATE( Xk( State_Chm%nTomasBins+1 ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'Xk [TOMAS]' )
+    Xk(:) = 0e+0_fp
+
+    ALLOCATE( AVGMASS( State_Chm%nTomasBins ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'AVGMASS [TOMAS]' )
+    AVGMASS(:) = 0e+0_fp
+
+    ALLOCATE( OCSCALE30( State_Chm%nTomasBins ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCSCALE30 [TOMAS]' )
+    OCSCALE30(:) = 0e+0_fp
+
+    ALLOCATE( OCSCALE100( State_Chm%nTomasBins ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCSCALE100 [TOMAS]' )
+    OCSCALE100(:) = 0e+0_fp
+
+    ALLOCATE( ECSCALE30( State_Chm%nTomasBins ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ECSCALE30 [TOMAS]' )
+    ECSCALE30(:) = 0e+0_fp
+
+    ALLOCATE( ECSCALE100( State_Chm%nTomasBins ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'ECSCALE100 [TOMAS]' )
+    ECSCALE100(:) = 0e+0_fp
+
     ALLOCATE( MOLWT( ICOMP ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLWT [TOMAS]' )
     MOLWT(:) = 0e+0_fp
@@ -6509,6 +6441,100 @@ CONTAINS
     ALLOCATE( PSO4AQ_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'PSO4AQ_RATE' )
     PSO4AQ_RATE = 0.0e+0_fp
+
+
+#if  defined( TOMAS12 ) || defined( TOMAS15 )
+    !tomas12 or tomas15
+    ! use for fossil fuel (bimodal)
+    OCSCALE30 = [ &
+#ifdef TOMAS15
+       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
+#endif
+       1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
+       1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
+       9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05 ]
+
+    ! use for biomass burning
+    OCSCALE100 = [ &
+#ifdef TOMAS15
+       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
+#endif
+       1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
+       2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
+       2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04 ]
+
+    ! use for fossil fuel (bimodal)
+    ECSCALE30 = [ &
+#ifdef TOMAS15
+       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
+#endif
+       1.1291E-03, 4.9302E-03, 1.2714E-02, 3.6431E-02, &
+       1.0846E-01, 2.1994E-01, 2.7402E-01, 2.0750E-01, &
+       9.5304E-02, 2.6504E-02, 1.2925E-02, 1.6069E-05 ]
+
+    ! use for biomass burning
+    ECSCALE100 = [ &
+#ifdef TOMAS15
+       0.0e+0_fp     , 0.0e+0_fp     , 0.0e+0_fp     , &
+#endif
+       1.9827E-06, 3.9249E-05, 5.0202E-04, 4.1538E-03, &
+       2.2253E-02, 7.7269E-02, 1.7402E-01, 2.5432E-01, &
+       2.4126E-01, 1.4856E-01, 7.6641E-02, 9.8120E-04 ]
+
+#else
+    !tomas30 or tomas40
+    ! use for fossil fuel
+    OCSCALE30 = [  &
+#ifdef TOMAS40
+       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
+       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
+#endif
+       1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
+       4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
+       1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
+       2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04, &
+       2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06, &
+       1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11 ]
+
+    ! use for biomass burning
+    OCSCALE100 = [  &
+#ifdef TOMAS40
+       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
+       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
+#endif
+       3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
+       0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
+       0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
+       0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  , &
+       0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 , &
+       0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06 ]
+
+    ! use for fossil fuel
+    ECSCALE30 = [ &
+#ifdef TOMAS40
+       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
+       0.0     , 0.0     , 0.0     , 0.0     , 0.0     , &
+#endif
+       1.04E-03, 2.77E-03, 6.60E-03, 1.41E-02, 2.69E-02, &
+       4.60E-02, 7.06E-02, 9.69E-02, 1.19E-01, 1.31E-01, &
+       1.30E-01, 1.15E-01, 9.07E-02, 6.44E-02, 4.09E-02, &
+       2.33E-02, 1.19E-02, 5.42E-03, 2.22E-03, 8.12E-04, &
+       2.66E-04, 7.83E-05, 2.06E-05, 4.86E-06, 1.03E-06, &
+       1.94E-07, 3.29E-08, 4.99E-09, 6.79E-10, 8.26E-11 ]
+
+    ! use for biomass burning
+    ECSCALE100 = [  &
+#ifdef TOMAS40
+       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
+       0.0        , 0.0        , 0.0        , 0.0        , 0.0       , &
+#endif
+       3.2224e-07 , 1.6605e-06 , 7.6565e-06 , 3.1592e-05 , 0.00011664, &
+       0.00038538 , 0.0011394  , 0.0030144  , 0.0071362  , 0.015117  , &
+       0.028657   , 0.048612   , 0.073789   , 0.10023    , 0.12182   , &
+       0.1325     , 0.12895    , 0.11231    , 0.087525   , 0.061037  , &
+       0.038089   , 0.02127    , 0.010628   , 0.0047523  , 0.0019015 , &
+       0.00068081 , 0.00021813 , 6.2536e-05 , 1.6044e-05 , 3.6831e-06 ]
+#endif
 
     !=================================================================
     ! Calculate aerosol size bin boundaries (dry mass / particle)
@@ -10637,9 +10663,16 @@ CONTAINS
     !=================================================================
     ! CLEANUP_TOMAS begins here!
     !=================================================================
-    IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT      )
-    IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE )
-    IF ( ALLOCATED( PSO4AQ_RATE  ) ) DEALLOCATE( PSO4AQ_RATE )
+    IF ( ALLOCATED( Xk          ) ) DEALLOCATE( Xk          )
+    IF ( ALLOCATED( AVGMASS     ) ) DEALLOCATE( AVGMASS     )
+    IF ( ALLOCATED( OCSCALE30   ) ) DEALLOCATE( OCSCALE30   )
+    IF ( ALLOCATED( OCSCALE100  ) ) DEALLOCATE( OCSCALE100  )
+    IF ( ALLOCATED( ECSCALE30   ) ) DEALLOCATE( ECSCALE30   )
+    IF ( ALLOCATED( ECSCALE100  ) ) DEALLOCATE( ECSCALE100  )
+    IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
+    IF ( ALLOCATED( MOLWT       ) ) DEALLOCATE( MOLWT       )
+    IF ( ALLOCATED( H2SO4_RATE  ) ) DEALLOCATE( H2SO4_RATE  )
+    IF ( ALLOCATED( PSO4AQ_RATE ) ) DEALLOCATE( PSO4AQ_RATE )
 
   END SUBROUTINE CLEANUP_TOMAS
 !EOC

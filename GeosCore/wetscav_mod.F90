@@ -1596,7 +1596,6 @@ CONTAINS
 #endif
 #ifdef TOMAS
     USE ERROR_MOD
-    USE TOMAS_MOD,      ONLY : IBINS,    ICOMP
     USE UnitConv_Mod
 #endif
 !
@@ -2523,7 +2522,7 @@ CONTAINS
     USE ERROR_MOD
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS, GETDP, STRATSCAV
+    USE TOMAS_MOD,          ONLY : GETDP, STRATSCAV
 !
 ! !INPUT PARAMETERS:
 !
@@ -2559,10 +2558,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL(fp)       :: DPAERO          ! Average diameter of particle
-    REAL(fp)       :: SCAVR !Below-cloud scavenging coefficient (per cm rain)
-    REAL(fp), SAVE :: SCAVRSAVE(IBINS)
-    INTEGER        :: BIN
+    REAL(fp)       :: DPAERO ! Average diameter of particle
+    REAL(fp)       :: SCAVR  !Below-cloud scavenging coefficient (per cm rain)
 
     !=================================================================
     ! WASHFRAC_SIZE_AEROSOL begins here!
@@ -2573,25 +2570,6 @@ CONTAINS
        !-------------
        ! T >= 268K
        !-------------
-
-       !--------------------------------------------------------------
-       !!sfarina - This contruct assumes species are dealt with sequentially,
-       !!  but wetdep parallelizes over species
-       !!  It could be possible to calculated the lookup table and save
-       !!  in an I,J,L,BIN array but for now we will calculate redundantly.
-       !! For aerosol number, get Dp and calculate scavr
-       !IF ( N < id_NK01 + IBINS ) THEN
-       !   DPAERO = GETDP( I, J, L, N, State_Met, State_Chm )
-       !   ! External function stratscav returns the scavenging rate (mm^-1)
-       !   ! Let scavr has a unit of cm^-1
-       !   SCAVR = 10.e+0_fp* STRATSCAV( DPAERO )
-       !   SCAVRSAVE(N-id_NK01+1) = scavr
-       !ELSE
-       !   BIN = MOD( N - id_NK01 + 1, IBINS )
-       !   IF( BIN == 0 ) BIN = IBINS
-       !   SCAVR = SCAVRSAVE(BIN)
-       !ENDIF
-       !---------------------------------------------------------------
 
        DPAERO = GETDP( I, J, L, N, State_Met, State_Chm, RC )
        ! External function stratscav returns the scavenging rate (mm^-1)
@@ -3995,7 +3973,6 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
     USE State_Met_Mod,  ONLY : MetState              ! Met State object
 #ifdef TOMAS
-    USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
     USE TOMAS_MOD,      ONLY : GETFRACTION
 #endif
 !
@@ -4057,7 +4034,7 @@ CONTAINS
 
 #ifdef TOMAS
     ! Scavenging fraction of 30-bin aerosols (win, 7/16/09)
-    REAL(fp)           :: TOM_SC_FRACTION(IBINS)
+    REAL(fp)           :: TOM_SC_FRACTION(State_Chm%nTomasBins)
     REAL(fp)           :: SOLFRAC, XFRAC
 #endif
 
@@ -4119,7 +4096,7 @@ CONTAINS
 
 #ifdef TOMAS
        IF ( id_NK01 > 0 ) THEN
-          IF ( N >= id_NK01 .and. N < id_NK01 + IBINS ) THEN
+          IF ( N >= id_NK01 .and. N < id_NK01 + State_Chm%nTomasBins ) THEN
 
              CALL GETFRACTION( I, J, L, N, LS, &
                                State_Chm, State_Grid, State_Met, &
@@ -4127,7 +4104,7 @@ CONTAINS
 
              RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
           ELSE IF ( N >= id_SF01             .and. &
-                    N <  id_DUST01 + IBINS ) THEN
+                    N <  id_DUST01 + State_Chm%nTomasBins ) THEN
 
              CALL GETFRACTION( I, J, L, N, LS, &
                                State_Chm, State_Grid, State_Met, &
@@ -4286,7 +4263,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState              ! Grid State object
     USE State_Met_Mod,  ONLY : MetState              ! Met State object
 #ifdef TOMAS
-    USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
+    USE TOMAS_MOD,      ONLY : AQOXID
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -4825,7 +4802,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
 #ifdef TOMAS
-    USE TOMAS_MOD,      ONLY : IBINS, ICOMP, AQOXID
+    USE TOMAS_MOD,      ONLY : AQOXID
 #endif
 !
 ! !INPUT PARAMETERS:

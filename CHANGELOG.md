@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased 14.3.0] - TBD
 ### Added
 - Added capability for TOMAS simulations in GCHP
+- Added State_Chm%nTomasBins to replace hardcoded bins in TOMAS diagnostics
 
 ### Changed
 - Converted TOMAS bpch diagnostics to netCDF

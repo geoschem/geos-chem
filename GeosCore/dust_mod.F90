@@ -353,7 +353,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TOMAS_MOD,          ONLY : IBINS, Xk, SRTDUST
+    USE TOMAS_MOD,          ONLY : Xk, SRTDUST
     USE Species_Mod,        ONLY : Species
 !
 ! !INPUT PARAMETERS:
@@ -385,7 +385,8 @@ CONTAINS
 
     ! Non-SAVEd scalars
     INTEGER                :: N, BIN, I, J, L, NN, IDISP
-    REAL(fp)               :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
+    REAL(fp)               :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
+                                  State_Chm%nTomasBins)
     REAL(fp)               :: DIF, FLUXN, FLUXD
     REAL(fp)               :: DT_SETTL, AREA_CM2
 
@@ -424,7 +425,7 @@ CONTAINS
     DT_SETTL = GET_TS_CHEM()
 
     ! Save initial dust mass
-    DO BIN = 1, IBINS
+    DO BIN = 1, State_Chm%nTomasBins
 
        ! Species ID
        N = id_DUST01 - 1 + BIN
@@ -440,11 +441,12 @@ CONTAINS
 
     ! Dust settling
     CALL DRY_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                       State_Met, id_DUST01, id_DUST01-1+IBINS, RC )
+                       State_Met, id_DUST01, id_DUST01-1+State_Chm%nTomasBins,&
+                       RC )
 
     ! Calculate change in number to correspond with dust redistribution
     ! by gravitational settling
-    DO BIN = 1, IBINS
+    DO BIN = 1, State_Chm%nTomasBins
 
        ! Species ID
        N       =  id_DUST01 - 1 + BIN
@@ -453,7 +455,7 @@ CONTAINS
        ThisSpc => State_Chm%SpcData(N)%Info
 
        ! Drydep index (??? -- replace w/ species DB info?)
-       NN      = State_Chm%nDryDep + (SRTDUST-1)*IBINS + BIN
+       NN      = State_Chm%nDryDep + (SRTDUST-1)*State_Chm%nTomasBins + BIN
 
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -545,7 +547,7 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS, XK             !(win, 7/17/09)
+    USE TOMAS_MOD,          ONLY : XK
 !
 ! !INPUT PARAMETERS:
 !
@@ -580,7 +582,7 @@ CONTAINS
     LOGICAL           :: LINTERP
     INTEGER           :: I, J, K, N
     REAL(fp)          :: MEMIS
-    REAL(fp)          :: MINIT(State_Grid%NX,State_Grid%NY,1,IBINS)
+    REAL(fp)          :: MINIT(State_Grid%NX,State_Grid%NY,1,State_Chm%nTomasBins)
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -626,7 +628,7 @@ CONTAINS
     !=================================================================
     IF ( id_NK01 > 0 .and. id_DUST01 > 0 ) THEN
 
-       DO N = 1, IBINS
+       DO N = 1, State_Chm%nTomasBins
           MINIT(:,:,1,N) = Spc(id_DUST01+N-1)%Conc(:,:,1)
        ENDDO
 
@@ -645,7 +647,7 @@ CONTAINS
 
 #ifdef BPCH_DIAG
        IF ( ND59 > 0 ) THEN
-          DO K = 1, IBINS
+          DO K = 1, State_Chm%nTomasBins
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              MEMIS = Spc(id_DUST01-1+K)%Conc(I,J,1) - MINIT(I,J,1,K)
@@ -2080,7 +2082,7 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS, Xk
+    USE TOMAS_MOD,          ONLY : Xk
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -2188,7 +2190,7 @@ CONTAINS
        ! Initialize
        TOMAS_IDDEP = 0
 
-       DO BIN = 1, IBINS
+       DO BIN = 1, State_Chm%nTomasBins
           DO N   = 1, State_Chm%nDryDep
              IF ( State_Chm%Map_DryDep(N) == ( id_NK01-1+BIN ) )THEN
                 TOMAS_IDDEP(BIN) = N

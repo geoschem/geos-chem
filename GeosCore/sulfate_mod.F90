@@ -738,7 +738,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+    USE TOMAS_MOD,          ONLY : ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
@@ -767,7 +767,8 @@ CONTAINS
 !
     ! Fields for TOMAS simulation
     REAL*8           :: BINMASS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                IBINS*ICOMP)
+                                State_Chm%nTomasBins*ICOMP)
+    INTEGER          :: IBINS
     INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
@@ -777,8 +778,8 @@ CONTAINS
     TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
-    REAL(fp)         :: tempnh4(ibins)
-    REAL(fp)         :: MK_TEMP2(IBINS)
+    REAL(fp)         :: tempnh4(State_Chm%nTomasBins)
+    REAL(fp)         :: MK_TEMP2(State_Chm%nTomasBins)
 
     !=================================================================
     ! EMISSSULFATETOMAS begins here!
@@ -796,6 +797,9 @@ CONTAINS
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
+
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
 
     IF (id_SF01 > 0 .and. id_NK01 > 0 ) THEN
 
@@ -890,7 +894,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE State_Chm_Mod,        ONLY : ChmState
-    USE TOMAS_MOD,            ONLY : IBINS, AVGMASS, ICOMP
+    USE TOMAS_MOD,            ONLY : AVGMASS, ICOMP
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
     USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
@@ -906,9 +910,11 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    REAL(fp), INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                   IBINS*ICOMP)
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    REAL(fp),       INTENT(INOUT) :: TC2(State_Grid%NX, &
+                                         State_Grid%NY, &
+                                         State_Grid%NZ, &
+                                         State_Chm%nTomasBins*ICOMP)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -931,45 +937,25 @@ CONTAINS
     REAL*8                 :: SO4an(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL*8                 :: SO4bf(State_Grid%NX,State_Grid%NY)
     REAL*8                 :: SO4anbf(State_Grid%NX,State_Grid%NY,2)
-    REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+    REAL*8                 :: BFRAC(State_Chm%nTomasBins)
 
-#if  defined( TOMAS12) || defined( TOMAS15)
-    DATA BFRAC/ &
-# if  defined( TOMAS15)
-         0.0d0     , 0.0d0     , 0.0d0, &
-# endif
-         4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02, &
-         4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01, &
-         1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
-
-#else
-
-    DATA BFRAC/ &
-# if  defined( TOMAS40)
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-# endif
-         1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02, &
-         1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02, &
-         4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01, &
-         1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02, &
-         1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04, &
-         1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
-#endif
-
-    REAL(fp)               :: NDISTINIT(IBINS)
-    REAL(fp)               :: NDISTFINAL(IBINS)
-    REAL(fp)               :: MADDFINAL(IBINS)
-    REAL(fp)               :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
-    REAL(fp)               :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+    REAL(fp)               :: NDISTINIT(State_Chm%nTomasBins)
+    REAL(fp)               :: NDISTFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: MADDFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: NDIST(State_Chm%nTomasBins)
+    Real(fp)               :: MDIST(State_Chm%nTomasBins,ICOMP)
+    REAL(fp)               :: NDIST2(State_Chm%nTomasBins)
+    REAL(fp)               :: MDIST2(State_Chm%nTomasBins,ICOMP)
     REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
-    !REAL(fp)              :: N0(State_Grid%NZ,IBINS)
-    !REAL(fp)              :: M0(State_Grid%NZ,IBINS)
-    REAL(fp)               :: Ndiag(IBINS), Mdiag(IBINS)
+    !REAL(fp)              :: N0(State_Grid%NZ,State_Chm%nTomasBins)
+    !REAL(fp)              :: M0(State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)               :: Ndiag(State_Chm%nTomasBins)
+    REAL(fp)               :: Mdiag(State_Chm%nTomasBins)
     REAL(fp)               :: MADDTOTAL !optimization variable for diag
-    !REAL(fp)              :: Avginit(IBINS), Avgfinal(IBINS)
-    !REAL(fp)              :: Avginner(IBINS)
+    !REAL(fp)              :: Avginit(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avgfinal(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avginner(State_Chm%nTomasBins)
 
     REAL(fp)               :: AREA(State_Grid%NX, State_Grid%NY)
     !REAL(fp)              :: AREA3D(State_Grid%NX, State_Grid%NY,2)
@@ -980,7 +966,7 @@ CONTAINS
     TYPE(SpcConc), POINTER :: TC1(:)
 
     INTEGER                :: N_TRACERS
-
+    INTEGER                :: IBINS
     LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
     INTEGER                :: FLAG, ERR
     logical                :: pdbug !(temporary) win, 10/24/07
@@ -1040,6 +1026,33 @@ CONTAINS
 
     ! Point to species array
     TC1 => State_Chm%Species
+
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
+
+    ! Mass fraction emitted to each bin
+#if  defined( TOMAS12) || defined( TOMAS15)
+    BFRAC = [ &
+# if  defined( TOMAS15)
+         0.0d0     , 0.0d0     , 0.0d0, &
+# endif
+         4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02, &
+         4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01, &
+         1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04 ]
+
+#else
+    BFRAC = [ &
+# if  defined( TOMAS40)
+         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
+         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
+# endif
+         1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02, &
+         1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02, &
+         4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01, &
+         1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02, &
+         1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04, &
+         1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07 ]
+#endif
 
     !================================================================
     ! READ IN HEMCO EMISSIONS
