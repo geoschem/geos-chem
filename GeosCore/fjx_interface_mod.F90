@@ -507,9 +507,9 @@ CONTAINS
        OPTD = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
 
        ! Optional: The below makes Fast-JX and Cloud-J match much better for clouds
-       !DO L = 1, State_Grid%NZ
-       !   OPTD(L) = State_Met%TAUCLW(NLON,NLAT,L) + State_Met%TAUCLI(NLON,NLAT,L)
-       !ENDDO
+       DO L = 1, State_Grid%NZ
+          OPTD(L) = State_Met%TAUCLW(NLON,NLAT,L) + State_Met%TAUCLI(NLON,NLAT,L)
+       ENDDO
 
        !-----------------------------------------------------------
        !### If you want to exclude aerosol OD, mineral dust OD,
@@ -915,9 +915,9 @@ CONTAINS
 
        IF ( T_CTM(I) .GT. 233.e+0_fp ) THEN
           if ( use_liqcld ) AERCOL(2,I) = CLDOD(I)
-          AERCOL(3,I) = 0.e+0_fp
+          if ( use_liqcld ) AERCOL(3,I) = 0.e+0_fp
        ELSE
-          AERCOL(2,I) = 0.e+0_fp
+          if ( use_icecld ) AERCOL(2,I) = 0.e+0_fp
           if ( use_icecld ) AERCOL(3,I) = CLDOD(I)
        ENDIF
 
