@@ -354,12 +354,12 @@ CONTAINS
     IF ( State_Diag%Archive_OD600         ) State_Diag%OD600         = 0.0_f4
     IF ( State_Diag%Archive_TCOD600       ) State_Diag%TCOD600       = 0.0_f4
 #if defined( MODEL_GEOS )
-    ! ewl: should these diags be set later? They are not.
+    ! TODO: implement these
     IF ( State_Diag%Archive_EXTRALNLEVS ) State_Diag%EXTRALNLEVS = 0.0
     IF ( State_Diag%Archive_EXTRALNITER ) State_Diag%EXTRALNITER = 0.0
 #endif
 
-    ! Set species ids for use in diagnostics. Require ozone.
+    ! Set species ids for use in diagnostics
     IF ( FIRST ) THEN
        id_O3   = Ind_('O3')
        id_SO4  = Ind_('SO4')
@@ -411,10 +411,10 @@ CONTAINS
        ! Debug prints in Cloud-J. Limit to one grid cell so not excessive.
        ! Use this for debugging purposes only.
        LPRTJ = .false.
-       I_PRT = 1
-       J_PRT = 10
+       I_PRT = 20
+       J_PRT = 20
        IF ( I .eq. I_PRT .and. J .eq. J_PRT .and. Input_Opt%Verbose ) THEN
-          print *, "cldj_interface_mod.F90: Dloud-J prints on for lat, lon: ", &
+          print *, "cldj_interface_mod.F90: Cloud-J prints on for lat, lon: ", &
                    State_Grid%GlobalYMid(I,J), State_Grid%GlobalXMid(I,J)
           LPRTJ = .true.
        ENDIF
@@ -480,7 +480,7 @@ CONTAINS
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
 
        ! Loop over # layers in cloud-j (layers with clouds)
-       DO L=1,LWEPAR
+       DO L = 1, LWEPAR
 
           ! Get in-cloud liquid and ice water content from met-fields [kg/kg]
           LWC = State_Met%QL(I,J,L)
@@ -522,8 +522,8 @@ CONTAINS
           RRR(L) = State_Met%RH(I,J,L) / 100.d0
 
           ! Option to set clouds to zero
-          if ( .not. use_liqcld ) LWP(L) = 0.d0
-          if ( .not. use_icecld ) IWP(L) = 0.d0
+          IF ( .NOT. use_liqcld ) LWP(L) = 0.d0
+          IF ( .NOT. use_icecld ) IWP(L) = 0.d0
 
        ENDDO
 
@@ -533,33 +533,40 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Compute concentration per aerosol [g/m2]
        !-----------------------------------------------------------------
-       ! AERSP is concentration in g/m2. Size is L1_, AN_. Will need to
-       ! compute this for each lat/lon in this loop. Could be a separate
-       ! subroutine, or in set_prof. Best put in set_prof.
-       ! AN_ is # of separate aerosols per layer, = 37.
-       ! L1_ is # of layer of edges, so 73. Make the top one the same as level 72.
+       ! AERSP is column concentration in g/m2 for each aerosol. The array currently
+       ! includes entries for clouds but these are not used in Cloud-J and can be
+       ! left as zero.
+       ! Size is (L1_, AN_) where,
+       !    AN_ is # of separate aerosols per layer (=37 for GEOS-Chem)
+       !    L1_ is # of layer of edges (=73)
 
-       ! Initialize to zero
+       ! Initialize conentration array to zero
        AERSP(:,:) = 0.d0
 
        ! Set values in loop over levels
-       DO L=1,State_Grid%NZ
+       DO L= 1, State_Grid%NZ
 
           ! Layer height [m]
           BoxHt = State_Met%BXHEIGHT(I,J,L)   
 
+
+          !---------------------------------------
+          !  Non-aerosols in array
+          !--------------------------------------
           ! Leave AERSP(L,1:3) as zero since non-aerosols (black carbon
           ! absorber, water cloud, and irregular ice cloud)
 
-          ! Mineral dust [kg/m3] -> [g/m2]
+          !---------------------------------------
+          !  Mineral dust [kg/m3] -> [g/m2]
+          !--------------------------------------
           DO K = 4, 10
-             IF ( use_dust ) AERSP(L,K)  = State_Chm%SOILDUST(I,J,L,K-3)*BoxHt*1.d3
+             AERSP(L,K) = State_Chm%SOILDUST(I,J,L,K-3) * BoxHt * 1.d3
+             IF ( .NOT. use_dust ) AERSP(L,K) = 0.d0
           ENDDO
 
           !---------------------------------------
           ! Aerosols undergoing hydroscopic growth
           !--------------------------------------
-
           IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
              ! For aerosols undergoing hygroscopic growth we need to pass the
@@ -574,10 +581,11 @@ CONTAINS
              !
              ! We also separate the concentration array into 5 different arrays,
              ! one for each relative humidity entry in FJX_spec-aer.dat. Values are
-             ! in each array except where current relative humidity falls within the
+             ! zero in each array except where current relative humidity falls within the
              ! pre-defined relative humidity range for each entry. For example,
              ! AERSP(L,11-15) are 5 values of sulfate for the same grid box. If RH is
-             ! between 0 and 50 then only AERSP(L,11) is non-zero.
+             ! between 0 and 50 then only AERSP(L,11) is non-zero. AERSP(L,12:15) are
+             ! all zero values.
 
              ! Humidity bin for aerosols (1:<=50, 2:<=70, 3:<=80; 4:<=90, else 5)
              IF ( State_Met%RH(I,J,L) <= 50 ) THEN
@@ -757,9 +765,7 @@ CONTAINS
 
        ENDDO ! levels
 
-       ! Set TOA equal to concentration in top level. Not sure if this is
-       ! right. We set TOA optical depth to zero when passing to photo_jx
-       ! in old fast-jx. 
+       ! Set TOA equal to concentration in top level
        AERSP(State_Grid%NZ+1,:) = AERSP(State_Grid%NZ,:)
 
        !-----------------------------------------------------------------
@@ -785,42 +791,34 @@ CONTAINS
        !-----------------------------------------------------------------
        
        ! Cloud_JX output list for easy reference:
-       ! SKPERD
-       ! SWMSQ
-       ! OD18
-       ! NICA
-       ! JCOUNT
-       ! LDARK
-       ! WTQCA
+       ! SKPERD, SWMSQ, OD18, NICA, JCOUNT, LDARK, WTQCA
 
        ! ewl debug
        IF ( LPRTJ ) THEN
-          print *, "ewl: Calling Cloud_JX with the following inputs: "
-          print *, " -> U0       : ", U0         ! cldj 1.0
-          print *, " -> SZA      : ", SZA        ! cldj 0.0
-          print *, " -> RFL      : ", RFL        ! looks ok 5e-2 vs 6e-2
-          print *, " -> SOLF     : ", SOLF       ! looks ok 1 vs 0.97
-          print *, " -> P_CTM    : ", P_CTM      ! looks ok
-          print *, " -> Z_CLIM   : ", Z_CLIM     ! looks ok. gc sfc is 0, vs 171
-          print *, " -> T_CLIM   : ", T_CLIM     ! looks ok
-          print *, " -> HHH      : ", HHH        ! not used
-          print *, " -> AIR_CLIM : ", AIR_CLIM   ! looks ok
-          print *, " -> RRR      : ", RRR        ! FIXED
-          print *, " -> O3_CLIM  : ", O3_CLIM    ! looks ok
-          print *, " -> CCC      : ", CCC        ! not used
-          print *, " -> LWP      : ", LWP        ! LOOKS WRONG! cldj 0-15, gc 1e10 where not zero.??
-          print *, " -> IWP      : ", IWP        ! SAME ISSUE AS LWP!!!
-          print *, " -> REFFL    : ", REFFL      ! TOTALLY OFF!! GC is huge!
-          print *, " -> REFFI    : ", REFFI      ! SAME ISSUE AS REFFL!!!
-          print *, " -> CLDF     : ", CLDF       ! presumably ok. highly variable
-          print *, " -> CLDCOR   : ", CLDCOR     ! ok
-          print *, " -> CLDIW    : ", CLDIW      ! looks like bug in cldj???
-          print *, " -> AERSP    : ", AERSP      ! all zeros in cldj??
-          print *, " -> IRAN     : ", IRAN       ! ok
+          print *, "Calling Cloud_JX with the following inputs: "
+          print *, " -> U0       : ", U0
+          print *, " -> SZA      : ", SZA
+          print *, " -> RFL      : ", RFL
+          print *, " -> SOLF     : ", SOLF
+          print *, " -> P_CTM    : ", P_CTM
+          print *, " -> Z_CLIM   : ", Z_CLIM
+          print *, " -> T_CLIM   : ", T_CLIM
+          print *, " -> HHH      : ", HHH
+          print *, " -> AIR_CLIM : ", AIR_CLIM
+          print *, " -> RRR      : ", RRR
+          print *, " -> O3_CLIM  : ", O3_CLIM
+          print *, " -> CCC      : ", CCC
+          print *, " -> LWP      : ", LWP
+          print *, " -> IWP      : ", IWP
+          print *, " -> REFFL    : ", REFFL
+          print *, " -> REFFI    : ", REFFI
+          print *, " -> CLDF     : ", CLDF
+          print *, " -> CLDCOR   : ", CLDCOR
+          print *, " -> CLDIW    : ", CLDIW
+          print *, " -> AERSP    : ", AERSP
+          print *, " -> IRAN     : ", IRAN
        ENDIF
 
-       ! ewl: deleted arguments CLDFLAG, NRANDO, and LNRG since globally
-       ! set in cloud-j init via reading CJ77_inputs file
        CALL Cloud_JX( U0,       SZA,      RFL,      SOLF,     LPRTJ,     &
                       P_CTM,    Z_CLIM,   T_CLIM,   HHH,      AIR_CLIM,  &
                       RRR,      O3_CLIM,  CCC,      LWP,      IWP,       &
@@ -851,7 +849,6 @@ CONTAINS
           ENDDO
        ENDIF
 
-
        !-----------------------------------------------------------------
        ! Diagnostics for 600 nm optical depth computed in Cloud-J
        !-----------------------------------------------------------------
@@ -861,6 +858,7 @@ CONTAINS
        IF ( State_Diag%Archive_TCOD600 ) THEN
           State_Diag%TCOD600(I,J) = SUM(OD18(:))
        ENDIF
+
        !-----------------------------------------------------------------
        ! UV radiative flux diagnostics (direct, diffuse, net) [W/m2]
        ! Convention: negative is downwards
@@ -1080,18 +1078,18 @@ CONTAINS
     ! Scale monthly O3 profile to the daily O3 profile (if available)
     DO L = 1, L1_
 
-       ! Use online O3 values in the chemistry grid if selected
-       IF ( ( Input_opt%Use_Online_O3 ) .and. &
-            (L <= State_Grid%MaxChemLev) .and. &
-            (O3_CTM(L) > 0e+0_fp) ) THEN
+       ! Use online O3 values in the chemistry grid if selected; otherwise use
+       ! O3 values from the met fields or TOMS/SBUV
+       IF ( ( Input_opt%Use_Online_O3 )             &
+            .AND. ( L <= State_Grid%MaxChemLev )    &
+            .AND. ( O3_CTM(L) > 0e+0_fp ) ) THEN
 
           ! Convert from molec/cm3 to molec/cm2
           O3_CLIM(L) = O3_CTM(L) * (Z_CLIM(L+1)-Z_CLIM(L))
 
-       ! Otherwise, use O3 values from the met fields or TOMS/SBUV
        ELSEIF (State_Chm%TO3_Daily(ILON,ILAT) > 0e+0_fp) THEN
 
-!ewl: note I replaced O3_TOMS with State_Chm%TO3_Daily since should equiv.
+          ! NOTE: replaced O3_TOMS with State_Chm%TO3_Daily since is the equivalent
           O3_CLIM(L) = O3_CLIM(L) * ( State_Chm%TO3_Daily(ILON,ILAT) / PROFCOL )
 
        ENDIF
