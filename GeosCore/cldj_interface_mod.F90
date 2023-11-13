@@ -163,7 +163,7 @@ CONTAINS
     ! ewl: if these are in cloud-j, why do we need them here??
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, JXL_, JXL1_, AN_, NQD_, W_r
-    USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA
+    USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA, SAA
     USE Cld_Sub_Mod,    ONLY : Cloud_JX
     USE Cmn_Size_Mod,   ONLY : NRHAER, NRH, NDUST
     USE ErrCode_Mod
@@ -207,10 +207,11 @@ CONTAINS
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
     INTEGER            :: A, I, J, L, K, N, S, MaxLev, RH_ind
     INTEGER            :: SO4_ind, BC_ind, OC_ind, SALA_ind, SALC_ind
-    INTEGER            :: S_rh0, S_rhx, K_rh0, K_rhx
+    INTEGER            :: S_rh0, S_rhx, K_rh0, K_rhx, ind_1000
     REAL(8)            :: MW_g, BoxHt, Delta_P, IWC, LWC
-    REAL(8)            :: FRAC, RAA_eff, QAA_eff
+    REAL(8)            :: FRAC, RAA_eff, QAA_eff, SAA_eff
     REAL(8)            :: dry_to_wet_factor
+    REAL(8)            :: R_interp_factor, Q_interp_factor
     REAL(fp)           :: RH_lut(NRH)
     LOGICAL, SAVE      :: FIRST = .true.
 
@@ -347,6 +348,10 @@ CONTAINS
     RH_lut(3) = 70.d0
     RH_lut(4) = 80.d0
     RH_lut(5) = 90.d0
+
+    ! Index for wavelength 1000 in optical property LUT
+    ind_1000 = 5
+
     ! Diagnostic initialization
     IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse = 0.0_f4
     IF ( State_Diag%Archive_UVFluxDirect  ) State_Diag%UVFluxDirect  = 0.0_f4
@@ -393,15 +398,16 @@ CONTAINS
     !=================================================================
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_g, BoxHt, RH_ind                ) &
-    !$OMP PRIVATE( S_rh0, S_rhx, K_rh0, K_rhx, FRAC, RAA_eff, QAA_eff      ) &
-    !$OMP PRIVATE( dry_to_wet_factor                                       ) &
-    !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                    ) &
-    !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                       ) &
-    !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P  ) &
-    !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC          ) &
-    !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX ) &
-    !$OMP PRIVATE( FJBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST ) &
+    !$OMP PRIVATE( A, I, J, L, K, N, S, MW_g, BoxHt, RH_ind                    ) &
+    !$OMP PRIVATE( S_rh0, S_rhx, K_rh0, K_rhx, FRAC, RAA_eff, QAA_eff, SAA_eff ) &
+    !$OMP PRIVATE( dry_to_wet_factor                                           ) &
+    !$OMP PRIVATE( R_interp_factor, Q_interp_factor                            ) &
+    !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                        ) &
+    !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                           ) &
+    !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P      ) &
+    !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC              ) &
+    !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX     ) &
+    !$OMP PRIVATE( FJBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST     ) &
     !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over all latitudes and all longitudes
@@ -475,6 +481,7 @@ CONTAINS
        LWP(:)   = 0.d0  ! Water cloud mass [g/m2]
        REFFI(:) = 0.d0  ! Ice cloud effective radius   [microns]
        REFFL(:) = 0.d0  ! Water cloud effective radius [microns]
+
        ! Set cloud fraction from input meteorology field
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
@@ -579,6 +586,15 @@ CONTAINS
              ! concentration. This is only done for the hydrophilic concentrations.
              ! Hydrophobic black and organic carbon are not converted to wet.
              !
+             ! In addition to this we apply two conversion factors to take into account
+             ! that Cloud-J does not interpolate extinction and effective radius between
+             ! relative humidity entries in FJX_spec-aer.dat when computing optical
+             ! depth. A conversion factor based on linear interpolation of the parameters
+             ! is computed and applied to the concentration passed into Cloud-J. This
+             ! effectively scales the extinction and radius within the optical depth
+             ! calculation within Cloud-J. For consistency with Fast-JX previously
+             ! implemented in GEOS-Chem we use values at 1000 nm for extinction interpolation.
+             !
              ! We also separate the concentration array into 5 different arrays,
              ! one for each relative humidity entry in FJX_spec-aer.dat. Values are
              ! zero in each array except where current relative humidity falls within the
@@ -604,164 +620,218 @@ CONTAINS
              ! Sulfate [dry molec/cm3] -> [wet g/m2] (troposphere only)
              !----------------------------------------------------
 
-             ! Get indexes to optical property LUT
-             S_rh0 = 3 + NDUST + NRHAER*(SO4_ind-1) + 1  ! SO4 index for RH=0 in NDXAER
-             S_rhx = S_rh0 + RH_ind - 1  ! Sulfate index for this RH
-             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
-             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+             IF ( Input_Opt%LSULF .AND. State_Met%InTroposphere(I,J,L) ) THEN
 
-             ! Get interpolated effective radius and extinction for RH in this grid box
-             IF ( RH_ind == NRH ) THEN
-                RAA_eff = RAA(K_rhx)
-                QAA_eff = QAA(5,K_rhx)
-             ELSE
-                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
-                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
-                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
-                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
-             ENDIF
-             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                ! Get indexes to optical property LUT
+                S_rh0 = 3 + NDUST + NRHAER*(SO4_ind-1) + 1  ! SO4 index for RH=0 in NDXAER
+                S_rhx = S_rh0 + RH_ind - 1  ! Sulfate index for this RH
+                K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+                K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
 
-             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-             if ( use_so4 ) THEN
-                AERSP(L,S_rhx) = SO4_NH4_NIT(I,J,L) &
-                     * State_Met%BXHEIGHT(I,J,L) * 1.d3 * dry_to_wet_factor
-             ENDIF
+                ! Get interpolated effective radius and extinction for RH in this grid box
+                IF ( RH_ind == NRH ) THEN
+                   RAA_eff = RAA(K_rhx)
+                   QAA_eff = QAA(ind_1000,K_rhx)
+                ELSE
+                   FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                        / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                   RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                   QAA_eff = QAA(ind_1000,K_rhx) &
+                        + FRAC * ( QAA(ind_1000,K_rhx+1) - QAA(ind_1000,K_rhx) )
+                ENDIF
+                dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                R_interp_factor = RAA_eff / RAA(K_rhx)
+                Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
-             !----------------------------------------------------
-             ! Black carbon
-             !----------------------------------------------------
+                ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+                AERSP(L,S_rhx) = SO4_NH4_NIT(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
+                     * Q_interp_factor / R_interp_factor
 
-             ! Get indexes to optical property LUT
-             S_rh0 = 3 + NDUST + NRHAER*(BC_ind-1) + 1  ! BC index for RH=0 in NDXAER
-             S_rhx = s_rh0 + RH_ind - 1  ! BC index for this RH
-             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
-             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+                IF ( .NOT. use_so4 ) AERSP(L,S_rhx) = 0.d0
 
-             ! Get interpolated effective radius and extinction for RH in this grid box
-             IF ( RH_ind == NRH ) THEN
-                RAA_eff = RAA(K_rhx)
-                QAA_eff = QAA(5,K_rhx)
-             ELSE
-                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
-                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
-                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
-                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
-             ENDIF
-             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
-
-             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-             if ( use_bc ) THEN
-                AERSP(L,S_rhx) = ( ( BCPI(I,J,L) * dry_to_wet_factor ) + BCPO(I,J,L) ) &
-                     * 1.d3 * State_Met%BXHEIGHT(I,J,L)
              ENDIF
 
              !----------------------------------------------------
-             ! Organic carbon [ dry molec/cm3] -> [ wet g/m2]
+             ! Carbon
+             !----------------------------------------------------
+             IF ( Input_Opt%LCARB ) THEN
+
+                !----------------------------------------------------
+                ! Black carbon
+                !----------------------------------------------------
+
+                ! Get indexes to optical property LUT
+                S_rh0 = 3 + NDUST + NRHAER*(BC_ind-1) + 1  ! BC index for RH=0 in NDXAER
+                S_rhx = S_rh0 + RH_ind - 1  ! BC index for this RH
+                K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+                K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+                ! Get interpolated effective radius and extinction for RH in this grid box
+                IF ( RH_ind == NRH ) THEN
+                   RAA_eff = RAA(K_rhx)          ! effective radius
+                   QAA_eff = QAA(ind_1000,K_rhx) ! scattering phase function
+                   SAA_eff = SAA(ind_1000,K_rhx) ! single scattering albedo
+                ELSE
+                   FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                        / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                   RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                   QAA_eff = QAA(ind_1000,K_rhx) + FRAC * ( QAA(ind_1000,K_rhx+1) - QAA(ind_1000,K_rhx) )
+                   SAA_eff = SAA(ind_1000,K_rhx) + FRAC * ( SAA(ind_1000,K_rhx+1) - SAA(ind_1000,K_rhx) )
+                ENDIF
+                dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                R_interp_factor = RAA_eff / RAA(K_rhx)
+                Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
+
+                ! Set concentration
+                IF ( Input_Opt%LBCAE ) THEN
+
+                   ! Apply BC absorption enhancement (if using) first for hydrophilic BC
+                   AERSP(L,S_rhx) = BCPI(I,J,L)                                      &
+                        * ( Input_Opt%BCAE_1 + SAA_eff * (1.d0 - Input_Opt%BCAE_1) ) &
+                        * dry_to_wet_factor * Q_interp_factor / R_interp_factor
+
+                   ! Now apply hydrophobic using single scattering albedo for zero humidity
+                   AERSP(L,S_rhx) = AERSP(L,S_rhx) + BCPO(I,J,L) &
+                        * ( Input_Opt%BCAE_2 + SAA(ind_1000,K_rh0) * (1.d0 - Input_Opt%BCAE_2) )
+                ELSE
+
+                   ! No BC absorption enhancement
+                   AERSP(L,S_rhx) = BCPO(I,J,L) &
+                        + BCPI(I,J,L) * dry_to_wet_factor * Q_interp_factor / R_interp_factor
+
+                ENDIF
+
+                ! Convert to [dry kg/m3] -> [wet g/m2]
+                AERSP(L,S_rhx) = AERSP(L,S_rhx) * 1.d3 * BoxHt
+
+                IF ( .NOT. use_bc ) AERSP(L,S_rhx) = 0.d0
+
+                !----------------------------------------------------
+                ! Organic carbon
+                !----------------------------------------------------
+
+                ! Get indexes to optical property LUT
+                S_rh0 = 3 + NDUST + NRHAER*(OC_ind-1) + 1  ! OC index for RH=0 in NDXAER
+                S_rhx = S_rh0 + RH_ind - 1  ! OC index for this RH
+                K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+                K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+
+                ! Get interpolated effective radius and extinction for RH in this grid box
+                IF ( RH_ind == NRH ) THEN
+                   RAA_eff = RAA(K_rhx)
+                   QAA_eff = QAA(ind_1000,K_rhx)
+                ELSE
+                   FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                        / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                   RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                   QAA_eff = QAA(ind_1000,K_rhx) + FRAC * ( QAA(ind_1000,K_rhx+1) - QAA(ind_1000,K_rhx) )
+                ENDIF
+                dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                R_interp_factor = RAA_eff / RAA(K_rhx)
+                Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
+
+                ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+                AERSP(L,S_rhx) = ( OCPO(I,J,L)                                                      &
+                     + ( OCPISOA(I,J,L) * dry_to_wet_factor * Q_interp_factor / R_interp_factor ) ) &
+                     * 1.d3 * BoxHt
+
+                IF ( .NOT. use_oc ) AERSP(L,S_rhx) = 0.d0
+
+             ENDIF
+
+             !----------------------------------------------------
+             ! Seasalt [dry molec/cm3] -> [wet g/m2]
              !----------------------------------------------------
 
-             ! Get indexes to optical property LUT
-             S_rh0 = 3 + NDUST + NRHAER*(OC_ind-1) + 1  ! OC index for RH=0 in NDXAER
-             S_rhx = s_rh0 + RH_ind - 1  ! OC index for this RH
-             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
-             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+             IF ( Input_Opt%LSSALT ) THEN
 
-             ! Get interpolated effective radius and extinction for RH in this grid box
-             IF ( RH_ind == NRH ) THEN
-                RAA_eff = RAA(K_rhx)
-                QAA_eff = QAA(5,K_rhx)
-             ELSE
-                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
-                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
-                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
-                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
-             ENDIF
-             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                !----------------------------------------------------
+                ! Accumulation mode seasalt
+                !----------------------------------------------------
 
-             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-             IF ( use_oc ) THEN
-                AERSP(L,S_rhx) = ( (OCPISOA(I,J,L) * dry_to_wet_factor) + OCPO(I,J,L) ) &
-                     * 1.d3 * State_Met%BXHEIGHT(I,J,L)
-             ENDIF
+                ! Get indexes to optical property LUT
+                S_rh0 = 3 + NDUST + NRHAER*(SALA_ind-1) + 1  ! SALA index for RH=0 in NDXAER
+                S_rhx = S_rh0 + RH_ind - 1  ! SALA index for this RH
+                K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+                K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
 
-             !----------------------------------------------------
-             ! Seasalt (accum) [dry molec/cm3] -> [wet g/m2]
-             !----------------------------------------------------
+                ! Get interpolated effective radius and extinction for RH in this grid box
+                IF ( RH_ind == NRH ) THEN
+                   RAA_eff = RAA(K_rhx)
+                   QAA_eff = QAA(ind_1000,K_rhx)
+                ELSE
+                   FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                        / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                   RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                   QAA_eff = QAA(ind_1000,K_rhx) + FRAC * ( QAA(ind_1000,K_rhx+1) - QAA(ind_1000,K_rhx) )
+                ENDIF
+                dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                R_interp_factor = RAA_eff / RAA(K_rhx)
+                Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
-             ! Get indexes to optical property LUT
-             S_rh0 = 3 + NDUST + NRHAER*(SALA_ind-1) + 1  ! SALA index for RH=0 in NDXAER
-             S_rhx = s_rh0 + RH_ind - 1  ! SALA index for this RH
-             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
-             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+                ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
+                AERSP(L,S_rhx) = SALA(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
+                     * Q_interp_factor / R_interp_factor
 
-             ! Get interpolated effective radius and extinction for RH in this grid box
-             IF ( RH_ind == NRH ) THEN
-                RAA_eff = RAA(K_rhx)
-                QAA_eff = QAA(5,K_rhx)
-             ELSE
-                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
-                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
-                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
-                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
-             ENDIF
-             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                IF ( .NOT. use_sala ) AERSP(L,S_rhx) = 0.d0
 
-             ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-             IF ( use_sala ) THEN
-                AERSP(L,S_rhx) = SALA(I,J,L)   &
-                     * State_Met%BXHEIGHT(I,J,L) * 1.d3 * dry_to_wet_factor
-             ENDIF
+                !----------------------------------------------------
+                ! Coarse seasalt
+                !----------------------------------------------------
 
-             !----------------------------------------------------
-             ! Seasalt (coarse) [dry molec/cm3] -> [wet g/m2]
-             !----------------------------------------------------
+                ! Get indexes to optical property LUT
+                S_rh0 = 3 + NDUST + NRHAER*(SALC_ind-1) + 1  ! SALC index for RH=0 in NDXAER
+                S_rhx = S_rh0 + RH_ind - 1  ! SALC index for this RH
+                K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
+                K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
 
-             ! Get indexes to optical property LUT
-             S_rh0 = 3 + NDUST + NRHAER*(SALC_ind-1) + 1  ! SALC index for RH=0 in NDXAER
-             S_rhx = s_rh0 + RH_ind - 1  ! SALC index for this RH
-             K_rh0 = NDXAER(L,S_rh0)     ! index for RH=0 in FJX_spec-aer.dat
-             K_rhx = NDXAER(L,S_rhx)     ! index for this RH in FJX_spec-aer.dat
+                ! Get interpolated effective radius and extinction for RH in this grid box
+                IF ( RH_ind == NRH ) THEN
+                   RAA_eff = RAA(K_rhx)
+                   QAA_eff = QAA(ind_1000,K_rhx)
+                ELSE
+                   FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
+                        / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
+                   RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
+                   QAA_eff = QAA(ind_1000,K_rhx) + FRAC * ( QAA(ind_1000,K_rhx+1) - QAA(ind_1000,K_rhx) )
+                ENDIF
+                dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                R_interp_factor = RAA_eff / RAA(K_rhx)
+                Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
-             ! Get interpolated effective radius and extinction for RH in this grid box
-             IF ( RH_ind == NRH ) THEN
-                RAA_eff = RAA(K_rhx)
-                QAA_eff = QAA(5,K_rhx)
-             ELSE
-                FRAC = ( State_Met%RH(I,J,L) - RH_lut(RH_ind) ) &
-                     / ( RH_lut(RH_ind+1) - RH_lut(RH_ind) )
-                RAA_eff = RAA(K_rhx) + FRAC * ( RAA(K_rhx+1) - RAA(K_rhx) )
-                QAA_eff = QAA(5,K_rhx) + FRAC * ( QAA(5,K_rhx+1) - QAA(5,K_rhx) )
-             ENDIF
-             dry_to_wet_factor = ( RAA_eff / RAA(K_rh0) )**3
+                ! Set concentration, converting [dry molec/cm3] -> [wet g/m2]
+                AERSP(L,S_rhx) = SALC(I,J,L) * BoxHt  * 1.d3 * dry_to_wet_factor &
+                     * Q_interp_factor / R_interp_factor
 
-             ! Set concentration, converting [dry molec/cm3] -> [wet g/m2]
-             IF ( use_salc ) THEN
-                AERSP(L,S_rhx) = SALC(I,J,L)    &
-                     * State_Met%BXHEIGHT(I,J,L)  * 1.d3 * dry_to_wet_factor
+                IF ( .NOT. use_salc ) AERSP(L,S_rhx) = 0.d0
+
              ENDIF
 
           ENDIF
-          
+
           !------------------------
           ! Stratospheric aerosols
           !------------------------
+
+          MW_g = State_Chm%SpcData(id_SO4)%Info%MW_g
 
           ! Use sulfate concentration for stratospheric aerosols. Only set if the optical
           ! depth computed in GEOS-Chem is non-zero.
 
           !  SSA/LBS/STS
           IF ( State_Chm%Phot%ODAER(I,J,L,State_Chm%Phot%IWV1000,6) > 0._fp ) THEN
-             if ( use_stratso4 ) AERSP(L,36) =          &
-                  State_Chm%Species(id_SO4)%Conc(I,J,L) &
-                  * MW_g / AVO * State_Met%BXHEIGHT(I,J,L) * 1e+6_fp
+             AERSP(L,36) = State_Chm%Species(id_SO4)%Conc(I,J,L) &
+                  * MW_g / AVO * BoxHt * 1e+6_fp
           ENDIF
 
           !  NAT/ice PSCs
           IF ( State_Chm%Phot%ODAER(I,J,L,State_Chm%Phot%IWV1000,7) > 0._fp ) THEN
-             if ( use_psc ) AERSP(L,37) =               &
-                  State_Chm%Species(id_SO4)%Conc(I,J,L) &
-                  * MW_g / AVO * State_Met%BXHEIGHT(I,J,L) * 1e+6_fp
+             AERSP(L,37) = State_Chm%Species(id_SO4)%Conc(I,J,L) &
+                  * MW_g / AVO * BoxHt * 1e+6_fp
           ENDIF
+
+          IF ( .NOT. use_stratso4 ) AERSP(L,36) = 0.d0
+          IF ( .NOT. use_psc ) AERSP(L,37) = 0.d0
 
        ENDDO ! levels
 
