@@ -161,7 +161,6 @@ CONTAINS
        ENDIF
 #endif
     ENDIF
-
     
     !------------------------------------------------------------------------
     ! Read in AOD data even if photolysis disabled
@@ -173,7 +172,6 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-#endif
 
     !------------------------------------------------------------------------
     ! Exit without doing any computations if we are doing a dry-run
