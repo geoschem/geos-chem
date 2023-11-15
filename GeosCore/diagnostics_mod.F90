@@ -1693,6 +1693,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
+    USE UnitConv_Mod,   ONLY : KG_SPECIES_PER_KG_DRY_AIR, UNIT_STR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1833,9 +1834,10 @@ CONTAINS
     WAERSL      => State_Chm%AerMass%WAERSL
 
     ! Check that species units are kg/kg dry air
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       CALL GC_Error( 'Incorrect species units: ' // &
-                      State_Chm%Spc_Units, RC, ThisLoc )
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
+                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
+       CALL GC_Error( errMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
