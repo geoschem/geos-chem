@@ -1693,7 +1693,6 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
 !
 ! !INPUT PARAMETERS:
 !
@@ -1729,7 +1728,6 @@ CONTAINS
     INTEGER                  :: I, J, L
 
     ! Strings
-    CHARACTER(LEN=63)        :: OrigUnit
     CHARACTER(LEN=255)       :: ThisLoc
     CHARACTER(LEN=512)       :: ErrMsg
 
