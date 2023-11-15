@@ -173,6 +173,7 @@ CONTAINS
 
     ! OM/OC for POA
     ALLOCATE( Aer%OCFPOA( NX, NY ), STAT=RC )
+    CALL GC_CheckVar( 'OCFPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OCFPOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -182,6 +183,7 @@ CONTAINS
 
     ! OM/OC for OPOA, OCPI, OCPO
     ALLOCATE( Aer%OCFOPOA( NX, NY ), STAT=RC )
+    CALL GC_CheckVar( 'OCFOPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OCFOPOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -190,6 +192,7 @@ CONTAINS
     Aer%OCFOPOA = 0.0_fp
 
     ALLOCATE( Aer%BCPI( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'BCPI', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array BCPI!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -198,6 +201,7 @@ CONTAINS
     Aer%BCPI = 0.0_fp
 
     ALLOCATE( Aer%BCPO( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'BCPO', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array BCPO!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -206,6 +210,7 @@ CONTAINS
     Aer%BCPO = 0.0_fp
 
     ALLOCATE( Aer%OCPI( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'OCPI', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OCPI!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -214,6 +219,7 @@ CONTAINS
     Aer%OCPI = 0.0_fp
 
     ALLOCATE( Aer%OCPO( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'OCPO', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OCPO!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -222,6 +228,7 @@ CONTAINS
     Aer%OCPO = 0.0_fp
 
     ALLOCATE( Aer%OCPISOA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'OCPISOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OCPISOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -230,6 +237,7 @@ CONTAINS
     Aer%OCPISOA = 0.0_fp
 
     ALLOCATE( Aer%SALA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SALA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SALA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -238,6 +246,7 @@ CONTAINS
     Aer%SALA = 0.0_fp
 
     ALLOCATE( Aer%SALC( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SALC', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SALC!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -246,6 +255,7 @@ CONTAINS
     Aer%SALC = 0.0_fp
 
     ALLOCATE( Aer%ACL( NX, NY, NZ ),  STAT=RC )
+    CALL GC_CheckVar( 'ACL', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array ACL!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -254,6 +264,7 @@ CONTAINS
     Aer%ACL = 0.0_fp
 
     ALLOCATE( Aer%SO4_NH4_NIT( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SO4_NH4_NIT', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SO4_NH4_NIT!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -262,6 +273,7 @@ CONTAINS
     Aer%SO4_NH4_NIT = 0.0_fp
 
     ALLOCATE( Aer%SO4( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SO4', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SO4!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -271,6 +283,7 @@ CONTAINS
 
     ! (jmm, 06/30/18)
     ALLOCATE( Aer%HMS( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'HMS', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array HMS!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -279,6 +292,7 @@ CONTAINS
     Aer%HMS = 0.0_fp
 
     ALLOCATE( Aer%NH4( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'NH4', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array NH4!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -287,6 +301,7 @@ CONTAINS
     Aer%NH4 = 0.0_fp
 
     ALLOCATE( Aer%NIT( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'NIT', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array NIT!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -295,6 +310,7 @@ CONTAINS
     Aer%NIT = 0.0_fp
 
     ALLOCATE( Aer%SLA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SLA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SLA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -303,6 +319,7 @@ CONTAINS
     Aer%SLA = 0.0_fp
 
     ALLOCATE( Aer%SPA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SPA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SPA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -311,6 +328,7 @@ CONTAINS
     Aer%SPA   = 0.0_fp
 
     ALLOCATE( Aer%TSOA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'TSOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array TSOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -319,6 +337,7 @@ CONTAINS
     Aer%TSOA = 0.0_fp
 
     ALLOCATE( Aer%ASOA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'ASOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array ASOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -327,6 +346,7 @@ CONTAINS
     Aer%ASOA = 0.0_fp
 
     ALLOCATE( Aer%OPOA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'OPOA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array OPOA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -335,6 +355,7 @@ CONTAINS
     Aer%OPOA = 0.0_fp
 
     ALLOCATE( Aer%PM25( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'PM25', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array PM25!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -344,6 +365,7 @@ CONTAINS
 
     !zhaisx
     ALLOCATE( Aer%PM10( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'PM10', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array PM10!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -352,6 +374,7 @@ CONTAINS
     Aer%PM10 = 0.0_fp
 
     ALLOCATE( Aer%SOAGX( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SOAGX', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SOAGX!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -361,6 +384,7 @@ CONTAINS
 
     ! Mechanistic isoprene SOA (eam, 2014):
     ALLOCATE( Aer%ISOAAQ( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'ISOAAQ', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array ISOAAQ!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -370,6 +394,7 @@ CONTAINS
 
     ! Simple SOA
     ALLOCATE( Aer%SOAS( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SOAS', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array SOAS!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -377,8 +402,8 @@ CONTAINS
     ENDIF
     Aer%SOAS = 0.0_fp
 
-    ALLOCATE( Aer%FRAC_SNA( NX, NY, NZ, 3 ), &
-              STAT=RC )
+    ALLOCATE( Aer%FRAC_SNA( NX, NY, NZ, 3 ), STAT=RC )
+    CALL GC_CheckVar( 'FRAC_SNA', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array FRAC_SNA!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -388,6 +413,7 @@ CONTAINS
 
     ! Mass of hydrophobic aerosol from Mian Chin
     ALLOCATE( Aer%DAERSL( NX, NY, NZ, 2 ), STAT=RC )
+    CALL GC_CheckVar( 'DAERSL', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array DAERSL!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -397,6 +423,7 @@ CONTAINS
 
     ! Mass of hydrophilic aerosol from Mian Chin
     ALLOCATE( Aer%WAERSL( NX, NY, NZ, NAER ), STAT=RC )
+    CALL GC_CheckVar( 'WAERSL', 0, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error allocating array WAERSL!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -460,182 +487,182 @@ CONTAINS
 
     IF ( ASSOCIATED( Aer%BCPI ) ) THEN
        DEALLOCATE( Aer%BCPI, STAT=RC )
-       CALL GC_CheckVar( 'Aer%BCPI', 3, RC )
+       CALL GC_CheckVar( 'Aer%BCPI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%BCPI => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%BCPO ) ) THEN
        DEALLOCATE( Aer%BCPO, STAT=RC )
-       CALL GC_CheckVar( 'Aer%BCPO', 3, RC )
+       CALL GC_CheckVar( 'Aer%BCPO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%BCPO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%OCPI ) ) THEN
        DEALLOCATE( Aer%OCPI, STAT=RC )
-       CALL GC_CheckVar( 'Aer%OCPI', 3, RC )
+       CALL GC_CheckVar( 'Aer%OCPI', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%OCPI => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%OCPO ) ) THEN
        DEALLOCATE( Aer%OCPO, STAT=RC )
-       CALL GC_CheckVar( 'Aer%OCPO', 3, RC )
+       CALL GC_CheckVar( 'Aer%OCPO', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%OCPO => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%OCPISOA ) ) THEN
        DEALLOCATE( Aer%OCPISOA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%OCPISOA', 3, RC )
+       CALL GC_CheckVar( 'Aer%OCPISOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%OCPISOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SALA ) ) THEN
        DEALLOCATE( Aer%SALA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SALA', 3, RC )
+       CALL GC_CheckVar( 'Aer%SALA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SALA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%ACL ) ) THEN
        DEALLOCATE( Aer%ACL, STAT=RC )
-       CALL GC_CheckVar( 'Aer%ACL', 3, RC )
+       CALL GC_CheckVar( 'Aer%ACL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%ACL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SALC ) ) THEN
        DEALLOCATE( Aer%SALC, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SALC', 3, RC )
+       CALL GC_CheckVar( 'Aer%SALC', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SALC => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SO4_NH4_NIT ) ) THEN
        DEALLOCATE( Aer%SO4_NH4_NIT, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SO4_NH4_NIT', 3, RC )
+       CALL GC_CheckVar( 'Aer%SO4_NH4_NIT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SO4_NH4_NIT => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SO4 ) ) THEN
        DEALLOCATE( Aer%SO4, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SO4', 3, RC )
+       CALL GC_CheckVar( 'Aer%SO4', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SO4 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%HMS ) ) THEN
        DEALLOCATE( Aer%HMS, STAT=RC )
-       CALL GC_CheckVar( 'Aer%HMS', 3, RC )
+       CALL GC_CheckVar( 'Aer%HMS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%HMS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%NH4 ) ) THEN
        DEALLOCATE( Aer%NH4, STAT=RC )
-       CALL GC_CheckVar( 'Aer%NH4', 3, RC )
+       CALL GC_CheckVar( 'Aer%NH4', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%NH4 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%NIT ) ) THEN
        DEALLOCATE( Aer%NIT, STAT=RC )
-       CALL GC_CheckVar( 'Aer%NIT', 3, RC )
+       CALL GC_CheckVar( 'Aer%NIT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%NIT => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SLA ) ) THEN
        DEALLOCATE( Aer%SLA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SLA', 3, RC )
+       CALL GC_CheckVar( 'Aer%SLA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SLA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SPA ) ) THEN
        DEALLOCATE( Aer%SPA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SPA', 3, RC )
+       CALL GC_CheckVar( 'Aer%SPA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SPA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%TSOA ) ) THEN
        DEALLOCATE( Aer%TSOA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%TSOA', 3, RC )
+       CALL GC_CheckVar( 'Aer%TSOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%TSOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%ASOA ) ) THEN
        DEALLOCATE( Aer%ASOA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%ASOA', 3, RC )
+       CALL GC_CheckVar( 'Aer%ASOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%ASOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%OPOA ) ) THEN
        DEALLOCATE( Aer%OPOA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%OPOA', 3, RC )
+       CALL GC_CheckVar( 'Aer%OPOA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%OPOA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SOAGX ) ) THEN
        DEALLOCATE( Aer%SOAGX, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SOAGX', 3, RC )
+       CALL GC_CheckVar( 'Aer%SOAGX', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SOAGX => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%PM25 ) ) THEN
        DEALLOCATE( Aer%PM25, STAT=RC )
-       CALL GC_CheckVar( 'Aer%PM25', 3, RC )
+       CALL GC_CheckVar( 'Aer%PM25', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%PM25 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%PM10 ) ) THEN
        DEALLOCATE( Aer%PM10, STAT=RC )
-       CALL GC_CheckVar( 'Aer%PM10', 3, RC )
+       CALL GC_CheckVar( 'Aer%PM10', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%PM10 => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%ISOAAQ ) ) THEN
        DEALLOCATE( Aer%ISOAAQ, STAT=RC )
-       CALL GC_CheckVar( 'Aer%ISOAAQ', 3, RC )
+       CALL GC_CheckVar( 'Aer%ISOAAQ', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%ISOAAQ => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%SOAS ) ) THEN
        DEALLOCATE( Aer%SOAS, STAT=RC )
-       CALL GC_CheckVar( 'Aer%SOAS', 3, RC )
+       CALL GC_CheckVar( 'Aer%SOAS', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%SOAS => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%FRAC_SNA ) ) THEN
        DEALLOCATE( Aer%FRAC_SNA, STAT=RC )
-       CALL GC_CheckVar( 'Aer%FRAC_SNA', 4, RC )
+       CALL GC_CheckVar( 'Aer%FRAC_SNA', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%FRAC_SNA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%DAERSL ) ) THEN
        DEALLOCATE( Aer%DAERSL, STAT=RC )
-       CALL GC_CheckVar( 'Aer%DAERSL', 4, RC )
+       CALL GC_CheckVar( 'Aer%DAERSL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%DAERSL => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%WAERSL ) ) THEN
        DEALLOCATE( Aer%WAERSL, STAT=RC )
-       CALL GC_CheckVar( 'Aer%WAERSL', 4, RC )
+       CALL GC_CheckVar( 'Aer%WAERSL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%WAERSL => NULL()
     ENDIF
