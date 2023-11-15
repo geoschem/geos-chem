@@ -65,34 +65,34 @@ MODULE AerMass_Container_Mod
      ! DAERSL      : Mass of hydrophobic aerosol (Mian Chin)
      ! WAERSL      : Mass of hydrophilic aerosol (Mian Chin)
      !========================================================================
-     REAL(fp), ALLOCATABLE :: OCFPOA     (:,:)
-     REAL(fp), ALLOCATABLE :: OCFOPOA    (:,:)
-     REAL(fp), ALLOCATABLE :: BCPI       (:,:,:)
-     REAL(fp), ALLOCATABLE :: BCPO       (:,:,:)
-     REAL(fp), ALLOCATABLE :: OCPI       (:,:,:)
-     REAL(fp), ALLOCATABLE :: OCPO       (:,:,:)
-     REAL(fp), ALLOCATABLE :: OCPISOA    (:,:,:)
-     REAL(fp), ALLOCATABLE :: SALA       (:,:,:)
-     REAL(fp), ALLOCATABLE :: ACL        (:,:,:)
-     REAL(fp), ALLOCATABLE :: SALC       (:,:,:)
-     REAL(fp), ALLOCATABLE :: SO4_NH4_NIT(:,:,:)
-     REAL(fp), ALLOCATABLE :: SO4        (:,:,:)
-     REAL(fp), ALLOCATABLE :: HMS        (:,:,:)
-     REAL(fp), ALLOCATABLE :: NH4        (:,:,:)
-     REAL(fp), ALLOCATABLE :: NIT        (:,:,:)
-     REAL(fp), ALLOCATABLE :: SLA        (:,:,:)
-     REAL(fp), ALLOCATABLE :: SPA        (:,:,:)
-     REAL(fp), ALLOCATABLE :: TSOA       (:,:,:)
-     REAL(fp), ALLOCATABLE :: ASOA       (:,:,:)
-     REAL(fp), ALLOCATABLE :: OPOA       (:,:,:)
-     REAL(fp), ALLOCATABLE :: SOAGX      (:,:,:)
-     REAL(fp), ALLOCATABLE :: PM25       (:,:,:)
-     REAL(fp), ALLOCATABLE :: PM10       (:,:,:)
-     REAL(fp), ALLOCATABLE :: ISOAAQ     (:,:,:)
-     REAL(fp), ALLOCATABLE :: SOAS       (:,:,:)
-     REAL(fp), ALLOCATABLE :: FRAC_SNA   (:,:,:,:)
-     REAL(fp), ALLOCATABLE :: DAERSL     (:,:,:,:)
-     REAL(fp), ALLOCATABLE :: WAERSL     (:,:,:,:)
+     REAL(fp), POINTER :: OCFPOA     (:,:)
+     REAL(fp), POINTER :: OCFOPOA    (:,:)
+     REAL(fp), POINTER :: BCPI       (:,:,:)
+     REAL(fp), POINTER :: BCPO       (:,:,:)
+     REAL(fp), POINTER :: OCPI       (:,:,:)
+     REAL(fp), POINTER :: OCPO       (:,:,:)
+     REAL(fp), POINTER :: OCPISOA    (:,:,:)
+     REAL(fp), POINTER :: SALA       (:,:,:)
+     REAL(fp), POINTER :: ACL        (:,:,:)
+     REAL(fp), POINTER :: SALC       (:,:,:)
+     REAL(fp), POINTER :: SO4_NH4_NIT(:,:,:)
+     REAL(fp), POINTER :: SO4        (:,:,:)
+     REAL(fp), POINTER :: HMS        (:,:,:)
+     REAL(fp), POINTER :: NH4        (:,:,:)
+     REAL(fp), POINTER :: NIT        (:,:,:)
+     REAL(fp), POINTER :: SLA        (:,:,:)
+     REAL(fp), POINTER :: SPA        (:,:,:)
+     REAL(fp), POINTER :: TSOA       (:,:,:)
+     REAL(fp), POINTER :: ASOA       (:,:,:)
+     REAL(fp), POINTER :: OPOA       (:,:,:)
+     REAL(fp), POINTER :: SOAGX      (:,:,:)
+     REAL(fp), POINTER :: PM25       (:,:,:)
+     REAL(fp), POINTER :: PM10       (:,:,:)
+     REAL(fp), POINTER :: ISOAAQ     (:,:,:)
+     REAL(fp), POINTER :: SOAS       (:,:,:)
+     REAL(fp), POINTER :: FRAC_SNA   (:,:,:,:)
+     REAL(fp), POINTER :: DAERSL     (:,:,:,:)
+     REAL(fp), POINTER :: WAERSL     (:,:,:,:)
 
   END TYPE AerMassContainer
 !
@@ -444,36 +444,200 @@ CONTAINS
     RC = GC_SUCCESS
 
     ! Deallocate arrays and nullify pointer
-    IF ( ASSOCIATED( Aer ) ) THEN
-       IF (ALLOCATED(Aer%OCFPOA       )) DEALLOCATE(Aer%OCFPOA       )
-       IF (ALLOCATED(Aer%OCFOPOA      )) DEALLOCATE(Aer%OCFOPOA      )
-       IF (ALLOCATED(Aer%BCPI         )) DEALLOCATE(Aer%BCPI         )
-       IF (ALLOCATED(Aer%BCPO         )) DEALLOCATE(Aer%BCPO         )
-       IF (ALLOCATED(Aer%OCPI         )) DEALLOCATE(Aer%OCPI         )
-       IF (ALLOCATED(Aer%OCPO         )) DEALLOCATE(Aer%OCPO         )
-       IF (ALLOCATED(Aer%OCPISOA      )) DEALLOCATE(Aer%OCPISOA      )
-       IF (ALLOCATED(Aer%SALA         )) DEALLOCATE(Aer%SALA         )
-       IF (ALLOCATED(Aer%ACL          )) DEALLOCATE(Aer%ACL          )
-       IF (ALLOCATED(Aer%SALC         )) DEALLOCATE(Aer%SALC         )
-       IF (ALLOCATED(Aer%SO4_NH4_NIT  )) DEALLOCATE(Aer%SO4_NH4_NIT  )
-       IF (ALLOCATED(Aer%SO4          )) DEALLOCATE(Aer%SO4          )
-       IF (ALLOCATED(Aer%HMS          )) DEALLOCATE(Aer%HMS          )
-       IF (ALLOCATED(Aer%NH4          )) DEALLOCATE(Aer%NH4          )
-       IF (ALLOCATED(Aer%NIT          )) DEALLOCATE(Aer%NIT          )
-       IF (ALLOCATED(Aer%SLA          )) DEALLOCATE(Aer%SLA          )
-       IF (ALLOCATED(Aer%SPA          )) DEALLOCATE(Aer%SPA          )
-       IF (ALLOCATED(Aer%TSOA         )) DEALLOCATE(Aer%TSOA         )
-       IF (ALLOCATED(Aer%ASOA         )) DEALLOCATE(Aer%ASOA         )
-       IF (ALLOCATED(Aer%OPOA         )) DEALLOCATE(Aer%OPOA         )
-       IF (ALLOCATED(Aer%SOAGX        )) DEALLOCATE(Aer%SOAGX        )
-       IF (ALLOCATED(Aer%PM25         )) DEALLOCATE(Aer%PM25         )
-       IF (ALLOCATED(Aer%PM10         )) DEALLOCATE(Aer%PM10         )
-       IF (ALLOCATED(Aer%ISOAAQ       )) DEALLOCATE(Aer%ISOAAQ       )
-       IF (ALLOCATED(Aer%SOAS         )) DEALLOCATE(Aer%SOAS         )
-       IF (ALLOCATED(Aer%FRAC_SNA     )) DEALLOCATE(Aer%FRAC_SNA     )
-       IF (ALLOCATED(Aer%DAERSL       )) DEALLOCATE(Aer%DAERSL       )
-       IF (ALLOCATED(Aer%WAERSL       )) DEALLOCATE(Aer%WAERSL       )
-       Aer => NULL()
+    IF ( ASSOCIATED( Aer%OCFPOA ) ) THEN
+       DEALLOCATE( Aer%OCFPOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OCFPOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OCFPOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%OCFOPOA ) ) THEN
+       DEALLOCATE( Aer%OCFOPOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OCFOPOA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OCFOPOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%BCPI ) ) THEN
+       DEALLOCATE( Aer%BCPI, STAT=RC )
+       CALL GC_CheckVar( 'Aer%BCPI', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%BCPI => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%BCPO ) ) THEN
+       DEALLOCATE( Aer%BCPO, STAT=RC )
+       CALL GC_CheckVar( 'Aer%BCPO', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%BCPO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%OCPI ) ) THEN
+       DEALLOCATE( Aer%OCPI, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OCPI', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OCPI => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%OCPO ) ) THEN
+       DEALLOCATE( Aer%OCPO, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OCPO', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OCPO => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%OCPISOA ) ) THEN
+       DEALLOCATE( Aer%OCPISOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OCPISOA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OCPISOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SALA ) ) THEN
+       DEALLOCATE( Aer%SALA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SALA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SALA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%ACL ) ) THEN
+       DEALLOCATE( Aer%ACL, STAT=RC )
+       CALL GC_CheckVar( 'Aer%ACL', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%ACL => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SALC ) ) THEN
+       DEALLOCATE( Aer%SALC, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SALC', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SALC => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SO4_NH4_NIT ) ) THEN
+       DEALLOCATE( Aer%SO4_NH4_NIT, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SO4_NH4_NIT', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SO4_NH4_NIT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SO4 ) ) THEN
+       DEALLOCATE( Aer%SO4, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SO4', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SO4 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%HMS ) ) THEN
+       DEALLOCATE( Aer%HMS, STAT=RC )
+       CALL GC_CheckVar( 'Aer%HMS', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%HMS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%NH4 ) ) THEN
+       DEALLOCATE( Aer%NH4, STAT=RC )
+       CALL GC_CheckVar( 'Aer%NH4', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%NH4 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%NIT ) ) THEN
+       DEALLOCATE( Aer%NIT, STAT=RC )
+       CALL GC_CheckVar( 'Aer%NIT', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%NIT => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SLA ) ) THEN
+       DEALLOCATE( Aer%SLA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SLA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SLA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SPA ) ) THEN
+       DEALLOCATE( Aer%SPA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SPA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SPA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%TSOA ) ) THEN
+       DEALLOCATE( Aer%TSOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%TSOA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%TSOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%ASOA ) ) THEN
+       DEALLOCATE( Aer%ASOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%ASOA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%ASOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%OPOA ) ) THEN
+       DEALLOCATE( Aer%OPOA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%OPOA', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%OPOA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SOAGX ) ) THEN
+       DEALLOCATE( Aer%SOAGX, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SOAGX', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SOAGX => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%PM25 ) ) THEN
+       DEALLOCATE( Aer%PM25, STAT=RC )
+       CALL GC_CheckVar( 'Aer%PM25', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%PM25 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%PM10 ) ) THEN
+       DEALLOCATE( Aer%PM10, STAT=RC )
+       CALL GC_CheckVar( 'Aer%PM10', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%PM10 => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%ISOAAQ ) ) THEN
+       DEALLOCATE( Aer%ISOAAQ, STAT=RC )
+       CALL GC_CheckVar( 'Aer%ISOAAQ', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%ISOAAQ => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%SOAS ) ) THEN
+       DEALLOCATE( Aer%SOAS, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SOAS', 3, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SOAS => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%FRAC_SNA ) ) THEN
+       DEALLOCATE( Aer%FRAC_SNA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%FRAC_SNA', 4, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%FRAC_SNA => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%DAERSL ) ) THEN
+       DEALLOCATE( Aer%DAERSL, STAT=RC )
+       CALL GC_CheckVar( 'Aer%DAERSL', 4, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%DAERSL => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( Aer%WAERSL ) ) THEN
+       DEALLOCATE( Aer%WAERSL, STAT=RC )
+       CALL GC_CheckVar( 'Aer%WAERSL', 4, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%WAERSL => NULL()
     ENDIF
 
   END SUBROUTINE Cleanup_AerMass_Container
