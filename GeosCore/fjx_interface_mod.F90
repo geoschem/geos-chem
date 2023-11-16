@@ -511,15 +511,6 @@ CONTAINS
           OPTD(L) = State_Met%TAUCLW(NLON,NLAT,L) + State_Met%TAUCLI(NLON,NLAT,L)
        ENDDO
 
-       !-----------------------------------------------------------
-       !### If you want to exclude aerosol OD, mineral dust OD,
-       !### or cloud OD, then uncomment the following lines.
-       !### This effectively runs Fast-JX as clear sky.
-       !OPTAER  = 0d0
-       !OPTDUST = 0d0
-       !OPTD(:)    = 0d0
-       !-----------------------------------------------------------
-
 #if defined( MODEL_GEOS )
        ! Initialize diagnostics arrays
        IF ( State_Diag%Archive_EXTRALNLEVS ) THEN
