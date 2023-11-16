@@ -323,7 +323,9 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Run_CloudJ (in module GeosCore/cldj_interface_mod.F90)'
 
-    ! Set debugging logicals to turn optical depth sources on/off
+    ! Set debugging logicals to turn optical depth sources on/off. If using,
+    ! uncomment where they are appear later in this file. They are commented out by
+    ! default to avoid unnecessary slow-down.
     use_liqcld   = .true.
     use_icecld   = .true.
     use_dust     = .true.
@@ -528,10 +530,6 @@ CONTAINS
           ! Convert relative humidity [unitless] from percent to fraction
           RRR(L) = State_Met%RH(I,J,L) / 100.d0
 
-          ! Option to set clouds to zero
-          IF ( .NOT. use_liqcld ) LWP(L) = 0.d0
-          IF ( .NOT. use_icecld ) IWP(L) = 0.d0
-
        ENDDO
 
        ! Set top of atmosphere relative humidity to 10% of layer below
@@ -568,7 +566,6 @@ CONTAINS
           !--------------------------------------
           DO K = 4, 10
              AERSP(L,K) = State_Chm%SOILDUST(I,J,L,K-3) * BoxHt * 1.d3
-             IF ( .NOT. use_dust ) AERSP(L,K) = 0.d0
           ENDDO
 
           !---------------------------------------
@@ -647,8 +644,6 @@ CONTAINS
                 AERSP(L,S_rhx) = SO4_NH4_NIT(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
                      * Q_interp_factor / R_interp_factor
 
-                IF ( .NOT. use_so4 ) AERSP(L,S_rhx) = 0.d0
-
              ENDIF
 
              !----------------------------------------------------
@@ -704,8 +699,6 @@ CONTAINS
                 ! Convert to [dry kg/m3] -> [wet g/m2]
                 AERSP(L,S_rhx) = AERSP(L,S_rhx) * 1.d3 * BoxHt
 
-                IF ( .NOT. use_bc ) AERSP(L,S_rhx) = 0.d0
-
                 !----------------------------------------------------
                 ! Organic carbon
                 !----------------------------------------------------
@@ -734,8 +727,6 @@ CONTAINS
                 AERSP(L,S_rhx) = ( OCPO(I,J,L)                                                      &
                      + ( OCPISOA(I,J,L) * dry_to_wet_factor * Q_interp_factor / R_interp_factor ) ) &
                      * 1.d3 * BoxHt
-
-                IF ( .NOT. use_oc ) AERSP(L,S_rhx) = 0.d0
 
              ENDIF
 
@@ -773,8 +764,6 @@ CONTAINS
                 AERSP(L,S_rhx) = SALA(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
                      * Q_interp_factor / R_interp_factor
 
-                IF ( .NOT. use_sala ) AERSP(L,S_rhx) = 0.d0
-
                 !----------------------------------------------------
                 ! Coarse seasalt
                 !----------------------------------------------------
@@ -803,8 +792,6 @@ CONTAINS
                 AERSP(L,S_rhx) = SALC(I,J,L) * BoxHt  * 1.d3 * dry_to_wet_factor &
                      * Q_interp_factor / R_interp_factor
 
-                IF ( .NOT. use_salc ) AERSP(L,S_rhx) = 0.d0
-
              ENDIF
 
           ENDIF
@@ -830,13 +817,23 @@ CONTAINS
                   * MW_g / AVO * BoxHt * 1e+6_fp
           ENDIF
 
-          IF ( .NOT. use_stratso4 ) AERSP(L,36) = 0.d0
-          IF ( .NOT. use_psc ) AERSP(L,37) = 0.d0
-
        ENDDO ! levels
 
        ! Set TOA equal to concentration in top level
        AERSP(State_Grid%NZ+1,:) = AERSP(State_Grid%NZ,:)
+
+       ! Debugging option to set contributions from different sources to zero.
+       ! Uncomment if using.
+       !IF ( .NOT. use_liqcld   ) LWP(:)         = 0.d0
+       !IF ( .NOT. use_icecld   ) IWP(:)         = 0.d0
+       !IF ( .NOT. use_dust     ) AERSP(:,4:10)  = 0.d0
+       !IF ( .NOT. use_so4      ) AERSP(:,11:15) = 0.d0
+       !IF ( .NOT. use_bc       ) AERSP(:,16:20) = 0.d0
+       !IF ( .NOT. use_oc       ) AERSP(:,21:25) = 0.d0
+       !IF ( .NOT. use_sala     ) AERSP(:,26:30) = 0.d0
+       !IF ( .NOT. use_salc     ) AERSP(:,31:35) = 0.d0
+       !IF ( .NOT. use_stratso4 ) AERSP(:,36)    = 0.d0
+       !IF ( .NOT. use_psc      ) AERSP(:,37)    = 0.d0
 
        !-----------------------------------------------------------------
        ! Set remaining inputs needed for Cloud_JX

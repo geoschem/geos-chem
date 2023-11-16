@@ -808,7 +808,9 @@ CONTAINS
     ! SET_PROF begins here!
     !=================================================================
 
-    ! Set logicals for debugging to turn optical depth sources on/off
+    ! Debugging option to turn optical depth sources on/off. Uncomment where
+    ! used elsewhere in this file to use. They are commented out by default
+    ! to avoid unnecessary model slow-down.
     use_liqcld   = .true.
     use_icecld   = .true.
     use_dust     = .true.
@@ -914,16 +916,16 @@ CONTAINS
        AERCOL(1,I) = 0e+0_fp
 
        IF ( T_CTM(I) .GT. 233.e+0_fp ) THEN
-          if ( use_liqcld ) AERCOL(2,I) = CLDOD(I)
-          if ( use_liqcld ) AERCOL(3,I) = 0.e+0_fp
+          AERCOL(2,I) = CLDOD(I)
+          AERCOL(3,I) = 0.e+0_fp
        ELSE
-          if ( use_icecld ) AERCOL(2,I) = 0.e+0_fp
-          if ( use_icecld ) AERCOL(3,I) = CLDOD(I)
+          AERCOL(2,I) = 0.e+0_fp
+          AERCOL(3,I) = CLDOD(I)
        ENDIF
 
        ! Mineral dust optical depth columns
        DO N = 1, NDUST
-          if ( use_dust ) AERCOL(3+N,I) = DSTOD(I,N)
+          AERCOL(3+N,I) = DSTOD(I,N)
        ENDDO
 
        ! Aerosol optical depth columns for aerosols undergroing
@@ -942,6 +944,19 @@ CONTAINS
     DO K = 1,AN_
        AERCOL(K,L1_    ) = 0.e+0_fp
     ENDDO
+
+    ! Debugging option to turn off contributions for different sources.
+    ! Uncomment if using.
+    !IF ( .NOT. use_liqcld   ) AERCOL(2,:)     = 0.0_fp
+    !IF ( .NOT. use_icecld   ) AERCOL(3,:)     = 0.0_fp
+    !IF ( .NOT. use_dust     ) AERCOL(4:10,:)  = 0.0_fp
+    !IF ( .NOT. use_so4      ) AERCOL(11:15,:) = 0.0_fp
+    !IF ( .NOT. use_bc       ) AERCOL(16:20,:) = 0.0_fp
+    !IF ( .NOT. use_oc       ) AERCOL(21:25,:) = 0.0_fp
+    !IF ( .NOT. use_sala     ) AERCOL(26:30,:) = 0.0_fp
+    !IF ( .NOT. use_salc     ) AERCOL(31:35,:) = 0.0_fp
+    !IF ( .NOT. use_stratso4 ) AERCOL(36,:)    = 0.0_fp
+    !IF ( .NOT. use_psc      ) AERCOL(37,:)    = 0.0_fp
 
     !=================================================================
     ! Calculate column quantities for FAST-JX
