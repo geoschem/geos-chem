@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed C and N balance in 63 reactions (Bates2023 Table S2)
+- Replaced the HMS + OH -> 2SO4 + CH2O - SO2 reaction with HMS + OH + SO2 -> 2SO4 + CH2O reaction and divided the rate constant be [SO2] to improve stability
 
 ## [14.2.1] - Oct 2023
 ### Changed
