@@ -27,7 +27,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      not_used
 GCAPSCENARIO:                not_used
 GCAPVERTRES:                 not_used
 Logfile:                     *

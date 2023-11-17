@@ -26,7 +26,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      not_used
 GCAP2SCENARIO:               not_used
 Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc

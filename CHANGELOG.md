@@ -4,7 +4,15 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased 14.2.2] - 2023-10-23
+## [Unreleased 14.2.3] - TBD
+### Fixed
+- Add fix to properly read GHGI v2 express extension emissions in CH4 and carbon simulations
+- Move OH perturbation scale factor to outside EMISSIONS logical bracket in HEMCO_Config.rc files for CH4 and carbon simulations
+
+### Removed
+- Remove definition of METDIR from primary HEMCO_Config.rc files to ensure use of the definition in the HEMCO_Config.rc.*_metfields files
+
+## [14.2.2] - 2023-10-23
 ### Changed
 - Updated sample restart files for fullchem and TransportTracers simulations to files saved out from the 14.2.0 1-year benchmarks
 
