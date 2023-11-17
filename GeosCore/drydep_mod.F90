@@ -479,7 +479,7 @@ CONTAINS
           !-----------------------------------------------------------
           ! Special treatment for snow vs. ice
           !-----------------------------------------------------------
-          IF ( State_Met%isSnow(I,J) ) THEN
+          IF ( (State_Met%isSnow(I,J)) .OR. (State_Met%isIce(I,J))) THEN
 
              !-------------------------------------
              ! %%% SURFACE IS SNOW OR ICE %%%
@@ -1465,7 +1465,7 @@ CONTAINS
           !** If the surface to be snow or ice;
           !** set II to 1 instead.
           !
-          IF(State_Met%isSnow(I,J)) II=1
+          IF((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
           !* Read the internal resistance RI (minimum stomatal resistance for
           !* water vapor,per unit area of leaf) from the IRI array; a '9999'
@@ -1610,9 +1610,9 @@ CONTAINS
 
                 ENDIF
 
-             ! currently messy test for if surface is snow/ice to change O3
-             ! surface resistance to an updated value
-             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
+             ! Test for if surface is snow/ice to change O3
+             ! surface resistance to an observation derived value
+             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 1)) THEN
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
                 ! Check latitude and longitude, alter F0 only for Amazon
