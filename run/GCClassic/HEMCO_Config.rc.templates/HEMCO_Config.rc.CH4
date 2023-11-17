@@ -879,8 +879,6 @@ ${RUNDIR_GLOBAL_Cl}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-(((EMISSIONS
-
 #==============================================================================
 # --- Soil absorption scale factors ---
 #
@@ -895,6 +893,8 @@ ${RUNDIR_GLOBAL_Cl}
 # analytical inversions.
 #==============================================================================
 2 OH_pert_factor  1.0 - - - xy 1 1
+
+(((EMISSIONS
 
 #==============================================================================
 # --- Seasonal scaling factors ----

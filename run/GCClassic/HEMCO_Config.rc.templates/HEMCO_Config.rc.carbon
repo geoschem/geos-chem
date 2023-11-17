@@ -1378,8 +1378,6 @@ ${RUNDIR_CO2_COPROD}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-(((EMISSIONS
-
 #==============================================================================
 # --- Multiply by -1 to get a "negative" flux.
 #==============================================================================
@@ -1392,6 +1390,8 @@ ${RUNDIR_CO2_COPROD}
 # analytical inversions.
 #==============================================================================
 2 OH_pert_factor  1.0 - - - xy 1 1
+
+(((EMISSIONS
 
 #==============================================================================
 # --- Seasonal scaling factors ----
