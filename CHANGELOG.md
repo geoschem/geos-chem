@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [14.2.2] - 2023-10-23
 ### Changed
 - Updated sample restart files for fullchem and TransportTracers simulations to files saved out from the 14.2.0 1-year benchmarks
+- Change GCHP grid resolution threshold for lowering timesteps from C180 inclusive to C180 exclusive
 
 ## [14.2.1] - 2023-10-10
 ### Added
