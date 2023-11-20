@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Added the `-n` aka `--no-bootstrap` option to integration tests to disable bootstrapping missing species in restart files
 - Use integer parameters for species units instead of strings (for computational efficiency)
+- Update error message for missing surface CH4 emissions with instructions on how to resolve the problem
 
 ### Fixed
 - Prevent `POAEMISS` from being assigned a value if not allocated (in `carbon_mod.F90`)
