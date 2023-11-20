@@ -169,7 +169,9 @@ CONTAINS
        ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
                 'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
                 'corresponds to your emissions year in HEMCO_Config.rc ' // &
-                '(NOAA GMD for 1978 and later; else CMIP6).'
+                '(NOAA GMD for 1978 and later; else CMIP6). To use the last year ' // &
+                'available you can change the time cycle flag in HEMCO_Config.rc for ' // &
+                'the inventory from RY to CY.'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
