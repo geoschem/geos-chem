@@ -1035,6 +1035,8 @@ CONTAINS
        TSCALE = 1.*3600.
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
        TSCALE = 0.5*3600.
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       TSCALE = 0.25*3600.
     ENDIF
 
     ! Point to species array
