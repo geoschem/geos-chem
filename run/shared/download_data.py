@@ -47,7 +47,39 @@ GEOSCHEM_INPUT_FILE = "./geoschem_config.yml"
 DATA_DOWNLOAD_SCRIPT = "./auto_generated_download_script.sh"
 
 
-def extract_pathnames_from_log(args):
+def read_config_file(
+        config_file,
+        to_str=False
+):
+    """
+    Reads configuration information from a YAML file.
+
+    Args:
+    -----
+    config_file : str
+        The configuration file in YAML format
+    to_str : bool
+        Set this to True if you wish to return the data in the YAML
+        file as strings, or False otherwise.
+
+    Returns:
+    --------
+    config : dict
+        Dictionary with the contents of the YAML file
+    """
+    try:
+        with open(config_file, encoding="UTF-8") as stream:
+            if to_str:
+                return yaml.load(stream, Loader=yaml.loader.BaseLoader)
+            return yaml.load(stream, Loader=yaml.loader.SafeLoader)
+    except Exception as err:
+        msg = f"Error reading configuration in {config_file}: {err}"
+        raise Exception(msg) from err
+
+
+def extract_pathnames_from_log(
+        args
+):
     """
     Returns a list of pathnames from a GEOS-Chem log file.
 
@@ -149,7 +181,8 @@ def extract_pathnames_from_log(args):
 
 def get_run_info():
     """
-    Searches through the geoschem_config.yml file for GEOS-Chem run parameters.
+    Searches through the geoschem_config.yml file for GEOS-Chem
+    simulation parameters.
 
     Returns:
     -------
@@ -157,58 +190,101 @@ def get_run_info():
         Contains the GEOS-Chem run parameters: start_date,
         start_time, end_date, end_time, met, grid, and sim.
     """
+
+    # Read GEOS-Chem configuration file
+    config = read_config_file(
+        GEOSCHEM_INPUT_FILE,
+        to_str=True
+    )
+
+    # Create dictionary with GEOS-Chem simulation parameters
+    # NOTE: Numbers are returned as strings, and need to be converted
     run_info = {}
     run_info["nest"] = ""
     run_info["tomas15"] = False
     run_info["tomas40"] = False
-
-    try:
-        with open(GEOSCHEM_INPUT_FILE, "r") as f:
-            for line in f:
-                if "start_date" in line:
-                    substr = line.split(":")[1]
-                    run_info["start_date"] = (substr.split(" ")[1]).strip()
-                    run_info["start_time"] = (substr.split(" ")[2]).strip()
-                elif "end_date" in line:
-                    substr = line.split(":")[1]
-                    run_info["end_date"] = (substr.split(" ")[1]).strip()
-                    run_info["end_time"] = (substr.split(" ")[2]).strip()
-                elif "met_field" in line:
-                    run_info["met"] = (line.split(":")[1]).strip()
-                elif "name" in line:
-                    run_info["sim"] = (line.split(":")[1]).strip()
-                elif "resolution" in line:
-                    grid = (line.split(":")[1]).strip()
-
-                    # Adjust grid string to match file names
-                    if "4.0x5.0" in grid:
-                        run_info["grid"] = "4x5"
-                    elif "2.0x2.5" in grid:
-                        run_info["grid"] = "2x25"
-                    elif "0.5x0.625" in grid:
-                        run_info["grid"] = "05x0625"
-                    elif "0.25x0.3125" in grid:
-                        run_info["grid"] = "025x03125"
-                elif "Longitude" in line:
-                    if "-130.0" in line or "-140.0" in line:
-                        run_info["nest"] = "na"
-                        break
-                    elif "60.0" in line or "70.0" in line:
-                        run_info["nest"] = "as"
-                elif "NK15" in line:
-                    run_info["tomas15"] = True
-                elif "NK40" in line:
-                    run_info["tomas15"] = False
-                    run_info["tomas40"] = True
-            f.close()
-    except FileNotFoundError:
-        msg = "Could not open " + GEOSCHEM_INPUT_FILE
-        raise FileNotFoundError(msg)
+    run_info["start_date"] = int(
+        config["simulation"]["start_date"][0]
+    )
+    run_info["start_time"] = int(
+        config["simulation"]["start_date"][1]
+    )
+    run_info["end_date"] = int(
+        config["simulation"]["end_date"][0]
+    )
+    run_info["end_time"] = int(
+        config["simulation"]["end_date"][1]
+    )
+    run_info["met_field"] = config["simulation"]["met_field"]
+    run_info["sim"] = config["simulation"]["name"]
+    run_info["resolution"] = config["grid"]["resolution"]
+    run_info["grid"] = get_grid_suffix(
+        run_info["resolution"]
+    )
+    run_info["nest"] = get_nest_suffix(
+        config["grid"]["longitude"]["range"]
+    )
+    run_info["tomas15"] = \
+        "NK15" in config["operations"]["transport"]["transported_species"]
+    run_info["tomas40"] = \
+        "NK40" in config["operations"]["transport"]["transported_species"]
 
     return run_info
 
 
-def expand_restart_file_names(paths, args, run_info):
+def get_grid_suffix(
+        resolution
+):
+    """
+    Given a model resolution, returns the grid filename suffix.
+
+    Args:
+    -----
+    resolution : str
+        The grid resolution (read from geoschem_config.yml)
+
+    Returns:
+    --------
+    suffix : str
+        The corresponding filename suffix
+    """
+    if "4.0x5.0" in resolution:
+        return "4x5"
+    if "2.0x2.5" in resolution:
+        return "2x25"
+    if "0.5x0.625" in resolution:
+        return "05x0625"
+    return "025x03125"
+
+
+def get_nest_suffix(
+        longitude
+):
+    """
+    Given a model resolution, returns the nested-grid suffix.
+
+    Args:
+    -----
+    resolution : str
+        The grid resolution (read from geoschem_config.yml)
+
+    Returns:
+    --------
+    suffix : str
+        The corresponding nested-grid suffix
+    """
+    if "-130" in longitude or "-140" in longitude:
+        return "na"
+    if "60" in longitude or "70" in longitude:
+        return "as"
+    return ""
+
+
+def expand_restart_file_names(
+        paths,
+        args,
+        run_info
+):
     """
     Tests if the GEOS-Chem restart file is a symbolic link to
     ExtData.  If so, will append the link to the remote file
@@ -230,6 +306,8 @@ def expand_restart_file_names(paths, args, run_info):
     # Get the full name of the restart file in ExtData
     # ------------------------------------------------------------------
     for path in paths["found"] + paths["missing"]:
+
+        # TODO: Never-nest this block of code
         if "ExtData" in path:
             index = path.find("ExtData")+8
             root = path[0:index] + rst["root"]
@@ -286,7 +364,10 @@ def expand_restart_file_names(paths, args, run_info):
     return paths
 
 
-def write_unique_paths(paths, unique_log):
+def write_unique_paths(
+        paths,
+        unique_log
+):
     """
     Writes unique data paths from dry-run output to a file.
 
@@ -302,20 +383,23 @@ def write_unique_paths(paths, unique_log):
     combined_paths.sort()
 
     try:
-        with open(unique_log, "w") as f:
+        with open(unique_log, "w") as ofile:
             for comment in paths["comments"]:
-                print(comment, file=f)
+                print(comment, file=ofile)
             for path in combined_paths:
-                print(path, file=f)
+                print(path, file=ofile)
             for comment in paths["comments"]:
-                print(comment, file=f)
-        f.close()
-        print("Log with unique file paths written to: {}".format(unique_log))
+                print(comment, file=ofile)
+        ofile.close()
+        print(f"Log with unique file paths written to: {unique_log}")
     except FileNotFoundError:
-        raise FileNotFoundError("Could not write {}".format(unique_log))
+        raise FileNotFoundError(f"Could not write {unique_log}")
 
 
-def create_download_script(paths, args):
+def create_download_script(
+        paths,
+        args
+):
     """
     Creates a data download script to obtain missing files
     from the s3://gcgrid bucket on the AWS cloud or from a
@@ -516,7 +600,9 @@ def create_download_script(paths, args):
         os.chmod(DATA_DOWNLOAD_SCRIPT, 0o755)
 
 
-def download_the_data(args):
+def download_the_data(
+        args
+):
     """
     Downloads GEOS-Chem data files from the AWS s3://gcgrid bucket
     or from a specified server.
@@ -586,11 +672,7 @@ def parse_args():
     skip_found = False
 
     # Read the YAML configuration file
-    try:
-        config = yaml.load(open("download_data.yml"), Loader=yaml.FullLoader)
-    except FileNotFoundError:
-        msg = "Could not find configuration file 'download_data.yml'!"
-        raise FileNotFoundError(msg)
+    config = read_config_file("download_data.yml")
 
     # Get a list of mirror names + short names
     mirror_list = list(config["mirrors"].keys())
