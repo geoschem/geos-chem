@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated rate coefficients and products in 63 reactions per JPL / IUPAC recommendations (JPL 19-5; Bates2023)
 - Consolidated product branches to remove 25 reactions (Bates2023 Table S4)
+- Update rxns with zero Arrhenius `B` parameters to use function `GCARR_ac` instead of `GCARR_abc`
 
 ### Fixed
 - Fixed C and N balance in 63 reactions (Bates2023 Table S2)
