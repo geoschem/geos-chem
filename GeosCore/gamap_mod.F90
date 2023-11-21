@@ -1043,15 +1043,15 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : W_
-    USE CMN_SIZE_MOD,       ONLY : NRHAER, NDUST, NSTRATAER
+    USE CMN_FJX_Mod,     ONLY : W_
+    USE CMN_SIZE_MOD,    ONLY : NRHAER, NDUST, NSTRATAER
     USE ErrCode_Mod
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE Species_Mod,     ONLY : Species
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Chm_Mod,   ONLY : Ind_
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
+    USE TOMAS_MOD,       ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1078,7 +1078,6 @@ CONTAINS
     CHARACTER(LEN=40)       :: NAME5, NAME6
     REAL(fp),      SAVE     :: POP_XMW
     REAL(fp)                :: DUM
-    INTEGER                 :: N_Hg_CATS
     INTEGER                 :: SPC_INDEX
 
     ! Objects
@@ -1128,8 +1127,8 @@ CONTAINS
        MWT  (T,45) = SpcInfo%MW_g * 1.e-3_fp
        UNIT(T,45) = 'ppbv'
 
-       ! Special handling for Rn-Pb-Be simulation (bmy, 5/11/05)
-       IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+       ! Special handling for TransportTracer simulation (bmy, 5/11/05)
+       IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
           SELECT CASE( T )
           CASE( 1 )
              UNIT (T,45) = 'mBq/SCM'
@@ -1523,7 +1522,7 @@ CONTAINS
              NTRAC(44)     = NTRAC(44) + 1
 
              ! For the Rn simulation, unit is kg/s (bmy, 2/22/08)
-             IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+             IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
                 UNIT(N,44) = 'kg/s'
              ELSE
                 UNIT(N,44) = 'molec/cm2/s'
@@ -2027,7 +2026,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                :: AS, NYMDb, NHMSb
-    INTEGER                :: MAXTRACER_HG, N
+    INTEGER                :: N
 
     !=================================================================
     ! INIT_GAMAP begins here!
@@ -2073,61 +2072,29 @@ CONTAINS
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'NTRAC' )
     NTRAC = 0
 
-    IF ( Input_Opt%ITS_A_MERCURY_SIM .and. Input_Opt%LSPLIT) THEN
+    ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
+    INDEX = 0
 
-       MAXTRACER_HG = 480
+    ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
+    MWT = 0.0
 
-       ALLOCATE( INDEX( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
-       INDEX = 0
+    ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
+    SCALE = 0.0
 
-       ALLOCATE( MWT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
-       MWT = 0.0
+    ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
+    NAME = ''
 
-       ALLOCATE( SCALE( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
-       SCALE = 0.0
+    ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
+    FNAME = ''
 
-       ALLOCATE( NAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
-       NAME = ''
-
-       ALLOCATE( FNAME( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
-       FNAME = ''
-
-       ALLOCATE( UNIT( MAXTRACER_HG, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
-       UNIT = ''
-
-    ELSE
-
-       ALLOCATE( INDEX( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'INDEX' )
-       INDEX = 0
-
-       ALLOCATE( MWT( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'MWT' )
-       MWT = 0.0
-
-       ALLOCATE( SCALE( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'SCALE' )
-       SCALE = 0.0
-
-       ALLOCATE( NAME( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'NAME' )
-       NAME = ''
-
-       ALLOCATE( FNAME( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'FNAME' )
-       FNAME = ''
-
-       ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
-       UNIT = ''
-
-    ENDIF
+    ALLOCATE( UNIT( MAXTRACER, MAXDIAG ), STAT=AS )
+    IF ( AS /= 0 ) CALL ALLOC_ERR( 'UNIT' )
+    UNIT = ''
 
     !=================================================================
     ! Initialize arrays for "diaginfo.dat" & "tracerinfo.dat" files

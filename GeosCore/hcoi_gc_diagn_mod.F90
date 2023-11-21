@@ -234,6 +234,7 @@ CONTAINS
 
     ! Exit if the CH4 simulation is not selected
     IF ( ( .not. Input_Opt%ITS_A_CH4_SIM      ) .and. &
+         ( .not. Input_Opt%ITS_A_TAGCH4_SIM   ) .and. &
          ( .not. Input_Opt%ITS_A_CARBON_SIM ) ) RETURN
 
     ! Get default HEMCO species ID for CH4
@@ -649,6 +650,36 @@ CONTAINS
 
        ! Create diagnostic container
        DiagnName = 'CH4_SOILABSORB'
+       CALL Diagn_Create( HcoState  = HcoState,          &
+                          cName     = TRIM( DiagnName ), &
+                          ExtNr     = ExtNr,             &
+                          Cat       = Cat,               &
+                          Hier      = -1,                &
+                          HcoID     = HcoID,             &
+                          SpaceDim  = 2,                 &
+                          LevIDx    = -1,                &
+                          OutUnit   = 'kg/m2/s',         &
+                          COL       = HcoState%Diagn%HcoDiagnIDManual,  &
+                          AutoFill  = 1,                 &
+                          RC        = RC                  )
+       IF ( RC /= HCO_SUCCESS ) RETURN
+    ENDIF
+
+    !-------------------------------------------------------------------------
+    ! %%%%% CH4 from hydroelectric reservoirs (Category 15 or species CH4_RES)
+    !-------------------------------------------------------------------------
+
+    ! Check if tagged CH4 simulation
+    Cat   = 15
+    HcoID = HCO_GetHcoID( 'CH4_RES', HcoState )
+    IF ( HcoID <= 0 ) THEN
+       HcoID = id_CH4
+    ENDIF
+
+    IF ( HcoID > 0 ) THEN
+
+       ! Create diagnostic container
+       DiagnName = 'CH4_RESERVOIRS'
        CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
                           ExtNr     = ExtNr,             &

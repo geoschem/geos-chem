@@ -42,6 +42,7 @@ cd ${srcrundir}
 # Source common bash functions from scripts in the run/shared folder
 . ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
 . ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
+. ${gcdir}/run/shared/singleCarbonSpecies.sh   # Single carbon species setup
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -204,6 +205,34 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
+
+# Ask user to specify carbon simulation options
+elif [[ "x${sim_name}" == "xcarbon" ]]; then
+    printf "${thinline}Do you wish to use a single advected species?${thinline}"
+    printf "  1. Use all species\n"
+    printf "  2. Use CH4 only\n"
+    printf "  3. Use CO2 only\n"
+    printf "  4. Use CO only\n"
+    printf "  5. Use OCS only\n"
+    valid=0
+    while [ "${valid}" -eq 0 ]; do
+	read -p "${USER_PROMPT}" prompt
+	valid=1
+        if [[ "x${prompt}" == "x1" ]]; then
+	    sim_extra_option="none"
+	elif [[ "x${prompt}" == "x2" ]]; then
+	    sim_extra_option="CH4"
+	elif [[ "x${prompt}" == "x3" ]]; then
+	    sim_extra_option="CO2"
+	elif [[ "x${prompt}" == "x4" ]]; then
+	    sim_extra_option="CO"
+	elif [[ "x${prompt}" == "x5" ]]; then
+	    sim_extra_option="OCS"
+	else
+	    valid=0
+	    printf "Invalid selection. Try again.\n"
+	fi
+    done
 fi
 
 RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
@@ -447,16 +476,16 @@ ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     start_date='20190701'
-    restart_dir='GC_14.0.0'
+    restart_dir='GC_14.2.0'
     restart_name="${sim_name}"
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.0.0'
+    restart_dir='GC_14.2.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_14.0.0'
+    restart_dir='GC_14.2.0'
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
@@ -530,6 +559,19 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
 RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+if [[ "x${sim_extra_option}" == "xbenchmark"        ||
+      "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xtagCH4"           ||
+      "x${sim_name}"         == "xTransportTracers" ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
+else
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='1'\n"
+fi
 
 #--------------------------------------------------------------------
 # Replace settings in config files with RUNDIR variables
@@ -547,6 +589,13 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings "${sim_extra_option}" "GCHP"
+fi
+
+# If necessary, edit config files for a carbon single species simulation
+if [[ "x${sim_name}" == "xcarbon" ]]; then
+    if [[ "x${sim_extra_option}" != "xnone" ]]; then
+	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
+    fi
 fi
 
 # Call setCommonRunSettings.sh so that all config files are consistent with its

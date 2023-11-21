@@ -58,15 +58,17 @@ operations:
      use_non_local_pbl: false
 
   photolysis:
-    input_dir: /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2021-10/
+    activate: true
+    input_directories:
+      fastjx_input_dir: /discover/nobackup/ewlundgr/data/ExtData/FAST_JX/v2021-10/
     overhead_O3:
       use_online_O3_from_model: true
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
     photolyze_nitrate_aerosol:
-      activate: false
-      NITs_Jscale_JHNO3: 0.0
-      NIT_Jscale_JHNO2: 0.0
+      activate: true
+      NITs_Jscale_JHNO3: 100.0
+      NIT_Jscale_JHNO2: 100.0
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 
@@ -90,13 +92,6 @@ operations:
       - AONITA
       - AROMP4
       - AROMP5
-      - ASOA1
-      - ASOA2
-      - ASOA3
-      - ASOAN
-      - ASOG1
-      - ASOG2
-      - ASOG3
       - ATOOH
       - BALD
       - BCPI
@@ -308,14 +303,6 @@ operations:
       - SOAP
       - SOAS
       - TOLU
-      - TSOA0
-      - TSOA1
-      - TSOA2
-      - TSOA3
-      - TSOG0
-      - TSOG1
-      - TSOG2
-      - TSOG3
       - XYLE
 
   wet_deposition:
@@ -335,7 +322,7 @@ aerosols:
       hydrophobic: 1.0
 
   complex_SOA:
-    activate:  true
+    activate:  false
     semivolatile_POA: false
 
   dust:

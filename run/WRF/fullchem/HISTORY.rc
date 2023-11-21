@@ -1,0 +1,414 @@
+###############################################################################
+###                 HISTORY.rc file for WRF-GC simulations                  ###
+###  Contact: WRF-GC Developer, Haipeng Lin (linhaipeng@pku.edu.cn)         ###
+###                                                                         ###
+###     This file is based upon GEOS-Chem Support Team's original work.     ###
+###############################################################################
+
+#============================================================================
+# EXPID allows you to specify the beginning of the file path corresponding
+# to each diagnostic collection.  For example:
+#
+#   EXPID: ./GEOSChem 
+#      Will create netCDF files whose names begin "GEOSChem",
+#      in this run directory.
+#
+#   EXPID: ./OutputDir/GEOSChem
+#      Will create netCDF files whose names begin with "GEOSChem"
+#      in the OutputDir sub-folder of this run directory.
+#
+#============================================================================
+EXPID:  ./WRFGC
+
+#==============================================================================
+# %%%%% COLLECTION NAME DECLARATIONS %%%%%
+#
+# To disable a collection, place a "#" character in front of its name
+#
+# NOTE: These are the "default" collections for GEOS-Chem, but you can create
+# your own customized diagnostic collections as well.
+#==============================================================================
+COLLECTIONS: 'SpeciesConc',
+             'Budget',
+             #'AerosolMass',
+             #'Aerosols',
+             'CloudConvFlux',
+             #'ConcAfterChem',
+             #'DryDep',
+             #'JValues',
+             'KppDiags',
+             #'LevelEdgeDiags',      
+             #'ProdLoss',
+             #'StateChm',     
+             #'StateMet',      
+             #'WetLossConv',
+             #'WetLossLS',
+::
+###############################################################################
+### The rest of this file consists of collection definitions.               ###
+### Above collections whose declarations are commented out will be ignored. ###
+### Make sure that each collection definition, as well as the list of       ###
+### collections above, ends with a double-colon ("::").                     ###
+###############################################################################
+
+#==============================================================================
+# %%%%% THE SpeciesConc COLLECTION %%%%%
+#
+# GEOS-Chem species concentrations (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.frequency:      00000000 010000,
+  SpeciesConc.duration:       00000000 120000,
+  SpeciesConc.mode:           'instantaneous'
+  SpeciesConc.fields:         'SpeciesConc_?ADV?             ',
+::
+#==============================================================================
+# %%%%% THE Budget COLLECTION %%%%%
+#
+# GEOS-Chem budget diagnostics defined as species kg/s in the column
+# (full, troposphere, or PBL) due to a single component (e.g. chemistry)
+# (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.frequency:    00000000 010000,
+  Budget.duration:     00000000 120000,
+  Budget.mode:         'instantaneous'
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',  
+                       'BudgetEmisDryDepTrop_?ADV?           ',  
+                       'BudgetEmisDryDepPBL_?ADV?            ',  
+                       'BudgetChemistryFull_?ADV?            ',
+                       'BudgetChemistryTrop_?ADV?            ',
+                       'BudgetChemistryPBL_?ADV?             ',
+                       'BudgetMixingFull_?ADV?               ',
+                       'BudgetMixingTrop_?ADV?               ',
+                       'BudgetMixingPBL_?ADV?                ',    
+                       'BudgetConvectionFull_?ADV?           ',
+                       'BudgetConvectionTrop_?ADV?           ',
+                       'BudgetConvectionPBL_?ADV?            ',  
+                       'BudgetWetDepFull_?WET?               ',
+                       'BudgetWetDepTrop_?WET?               ',
+                       'BudgetWetDepPBL_?WET?                ',  
+::
+#==============================================================================
+# %%%%% THE AerosolMass COLLECTION %%%%%
+#
+# Aerosol and PM2.5 mass
+#
+# Available for full-chemistry and aerosol-only simulations
+#==============================================================================
+  AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  AerosolMass.format:         'CFIO',
+  AerosolMass.frequency:      00000000 010000,
+  AerosolMass.duration:       00000000 120000,
+  AerosolMass.mode:           'instantaneous'
+  AerosolMass.fields:         'AerMassBC                    ',
+                              'AerMassNH4                   ',
+                              'AerMassNIT                   ',
+                              'AerMassPOA                   ',
+                              'AerMassSAL                   ',
+                              'AerMassSO4                   ',
+                              'AerMassSOAGX                 ',
+                              'AerMassSOAMG                 ',
+                              'PM25                         ',
+                              'TotalOA                      ',
+                              'TotalOC                      ',
+::
+#==============================================================================
+# %%%%% The Aerosols COLLECTION %%%%%
+#
+# Aerosol optical depth, surface area, number density, and hygroscopic growth
+#
+# Available for full-chemistry or aerosol-only simulations
+#==============================================================================
+  Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  Aerosols.format:            'CFIO',
+  Aerosols.frequency:         00000000 010000,
+  Aerosols.duration:          00000000 120000,
+  Aerosols.mode:              'instantaneous'
+  Aerosols.fields:            'AODDust                       ',
+                              'AODDustWL1_?DUSTBIN?          ',
+                              'AODHygWL1_?HYG?               ',
+                              'AODSOAfromAqIsopreneWL1       ',
+                              'AODStratLiquidAerWL1          ',
+                              'AODPolarStratCloudWL1         ',
+                              'AerHygroscopicGrowth_?HYG?    ',
+                              'AerNumDensityStratLiquid      ',
+                              'AerNumDensityStratParticulate ',
+                              'AerAqueousVolume              ',
+                              'AerSurfAreaDust               ',
+                              'AerSurfAreaHyg_?HYG?          ',
+                              'AerSurfAreaStratLiquid        ',
+                              'AerSurfAreaPolarStratCloud    ',
+                              'Chem_AeroAreaMDUST1           ',
+                              'Chem_AeroAreaMDUST2           ',
+                              'Chem_AeroAreaMDUST3'          ',
+                              'Chem_AeroAreaMDUST4           ',
+                              'Chem_AeroAreaMDUST5           ',
+                              'Chem_AeroAreaMDUST6           ',
+                              'Chem_AeroAreaMDUST7           ',
+                              'Chem_AeroAreaSULF             ',
+                              'Chem_AeroAreaBC               ',
+                              'Chem_AeroAreaOC               ',
+                              'Chem_AeroAreaSSA              ',
+                              'Chem_AeroAreaSSC              ',
+                              'Chem_AeroAreaBGSULF           ',
+                              'Chem_AeroAreaICEI             ',
+                              'Chem_AeroRadiMDUST1           ',
+                              'Chem_AeroRadiMDUST2           ',
+                              'Chem_AeroRadiMDUST3           ',
+                              'Chem_AeroRadiMDUST4           ',
+                              'Chem_AeroRadiMDUST5           ',
+                              'Chem_AeroRadiMDUST6           ',
+                              'Chem_AeroRadiMDUST7           ',
+                              'Chem_AeroRadiSULF             ',
+                              'Chem_AeroRadiBC               ',
+                              'Chem_AeroRadiOC               ',
+                              'Chem_AeroRadiSSA              ',
+                              'Chem_AeroRadiSSC              ',
+                              'Chem_AeroRadiBGSULF           ',
+                              'Chem_AeroRadiICEI             ',
+                              'Chem_WetAeroAreaMDUST1        ',
+                              'Chem_WetAeroAreaMDUST2        ',
+                              'Chem_WetAeroAreaMDUST3        ',
+                              'Chem_WetAeroAreaMDUST4        ',
+                              'Chem_WetAeroAreaMDUST5        ',
+                              'Chem_WetAeroAreaMDUST6        ',
+                              'Chem_WetAeroAreaMDUST7        ',
+                              'Chem_WetAeroAreaSULF          ',
+                              'Chem_WetAeroAreaBC            ',
+                              'Chem_WetAeroAreaOC            ',
+                              'Chem_WetAeroAreaSSA           ',
+                              'Chem_WetAeroAreaSSC           ',
+                              'Chem_WetAeroAreaBGSULF        ',
+                              'Chem_WetAeroAreaICEI          ',
+                              'Chem_WetAeroRadiMDUST1        ',
+                              'Chem_WetAeroRadiMDUST2        ',
+                              'Chem_WetAeroRadiMDUST3        ',
+                              'Chem_WetAeroRadiMDUST4        ',
+                              'Chem_WetAeroRadiMDUST5        ',
+                              'Chem_WetAeroRadiMDUST6        ',
+                              'Chem_WetAeroRadiMDUST7        ',
+                              'Chem_WetAeroRadiSULF          ',
+                              'Chem_WetAeroRadiBC            ',
+                              'Chem_WetAeroRadiOC            ',
+                              'Chem_WetAeroRadiSSA           ',
+                              'Chem_WetAeroRadiSSC           ',
+                              'Chem_WetAeroRadiBGSULF        ',
+                              'Chem_WetAeroRadiICEI          ',
+                              'Chem_StatePSC                 ',
+                              'Chem_KhetiSLAN2O5H2O          ',
+                              'Chem_KhetiSLAN2O5HCl          ',
+                              'Chem_KhetiSLAClNO3H2O         ',
+                              'Chem_KhetiSLAClNO3HCl         ',
+                              'Chem_KhetiSLAClNO3HBr         ',
+                              'Chem_KhetiSLABrNO3H2O         ',
+                              'Chem_KhetiSLABrNO3HCl         ',
+                              'Chem_KhetiSLAHOClHCl          ',
+                              'Chem_KhetiSLAHOClHBr          ',
+                              'Chem_KhetiSLAHOBrHCl          ',
+                              'Chem_KhetiSLAHOBrHBr          ',
+::
+#==============================================================================
+# %%%%% THE CloudConvFlux COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.frequency:    00000000 010000,
+  CloudConvFlux.duration:     00000000 120000,
+  CloudConvFlux.mode:         'instantaneous'
+  CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
+::
+#==============================================================================
+# %%%%% THE ConcAfterChem COLLECTION %%%%%
+#
+# Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
+# or OH after the CH4 specialty-simulation chemistry routine.
+#
+# OH:       Available for all full-chemistry simulations and CH4 specialty sim
+# HO2:      Available for all full-chemistry simulations
+# O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
+#==============================================================================
+  ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  ConcAfterChem.frequency:    00000000 010000,
+  ConcAfterChem.duration:     00000000 120000,
+  ConcAfterChem.mode:         'instantaneous'
+  ConcAfterChem.fields:       'OHconcAfterChem               ',  
+                              'HO2concAfterChem              ',  
+                              'O1DconcAfterChem              ',  
+                              'O3PconcAfterChem              ',  
+::
+#==============================================================================
+# %%%%% THE DryDep COLLECTION %%%%%
+#
+# Dry depositon fluxes and velocities (for all dry-depositing species)
+#
+# Available for all simuations that have dry-depositing species
+#==============================================================================
+  DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
+  DryDep.frequency:           00000000 010000,
+  DryDep.duration:            00000000 120000,
+  DryDep.mode:                'instantaneous'
+  DryDep.fields:              'DryDepVel_?DRY?               ',
+                              'DryDepMix_?DRY?               ',
+                              'DryDepChm_?DRY?               ',
+                              'DryDep_?DRY?                  ',
+::
+#==============================================================================
+# %%%%% THE JValues COLLECTION %%%%%
+#
+# Photolysis rates (from the FAST-JX photolysis module)
+#
+# Available for all full-chemistry simulations
+#==============================================================================
+  JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  JValues.frequency:          00000000 010000,
+  JValues.duration:           00000000 120000,
+  JValues.mode:               'instantaneous'
+  JValues.fields:             'Jval_?PHO?                    ',
+                              'JvalO3O1D                     ',
+                              'JvalO3O3P                     ',
+                              'UVFluxDiffuse_?UVFLX?         ',
+                              'UVFluxDirect_?UVFLX?          ',
+                              'UVFluxNet_?UVFLX?             ',
+::
+#==============================================================================
+# %%%%% THE KppDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver.
+#
+# Available for full-chemistry simulations (all variations)
+#==============================================================================
+  KppDiags.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.frequency:     00000000 010000,
+  KppDiags.duration:      00000000 010000,
+  KppDiags.mode:          'instantaneous'
+  KppDiags.fields:        'KppError                  ',
+::
+#==============================================================================
+# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
+#
+# Diagnostics that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.frequency:   00000000 010000,
+  LevelEdgeDiags.duration:    00000000 120000,
+  LevelEdgeDiags.mode:        'instantaneous'
+  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
+                              'Met_PEDGE                     ',
+                              'Met_PEDGEDRY                  ',
+                              'Met_PFICU                     ',
+                              'Met_PFILSAN                   ',
+                              'Met_PFLCU                     ',
+                              'Met_PFLLSAN                   ',
+::
+#==============================================================================
+# %%%%% THE ProdLoss COLLECTION %%%%%
+#
+# Chemical production and loss rates
+#
+# Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
+#==============================================================================
+  ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.frequency:         00000000 010000,
+  ProdLoss.duration:          00000000 120000,
+  ProdLoss.mode:              'instantaneous'
+  ProdLoss.fields:            'Prod_?PRD?                    ', 
+                              'ProdBCPIfromBCPO              ', 
+                              'ProdOCPIfromOCPO              ',
+                              'ProdSO4fromH2O2inCloud        ',
+#                              'ProdSO4fromO2inCloudMetal     ',
+                              'ProdSO4fromO3inCloud          ',
+                              'ProdSO4fromO3inSeaSalt        ',
+                              'ProdSO4fromHOBrInCloud        ',
+                              'ProdSO4fromSRO3               ',
+                              'ProdSO4fromSRHObr             ',
+                              'ProdSO4fromO3s                ',
+                              'Loss_?LOS?                    ',
+                              'LossHNO3onSeaSalt             ',
+::
+#==============================================================================
+# %%%%% THE StateChm COLLECTION %%%%%
+#
+# Fields of the State_Chm object (see also Aerosols collection)
+#
+# Available for full-chemistry and aerosols-only simulations
+#==============================================================================
+  StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  StateChm.frequency:         00000000 010000,
+  StateChm.duration:          00000000 120000,
+  StateChm.mode:              'instantaneous'
+  StateChm.fields:            'Chem_IsorropAeropHAccum       ',
+                              'Chem_IsorropAeropHCoarse      ',
+                              'Chem_IsorropHplusAccum        ',
+                              'Chem_IsorropHplusCoarse       ',
+                              'Chem_IsorropAeroH2OAccum      ',
+                              'Chem_IsorropAeroH2OCoarse     ',
+                              'Chem_IsorropSulfate           ',
+                              'Chem_IsorropNitrateAccum      ',
+                              'Chem_IsorropNitrateCoarse     ',
+                              'Chem_IsorropChlorideAccum     ',
+                              'Chem_IsorropChlorideCoarse    ',
+                              'Chem_IsorropBisulfate         ',
+                              'Chem_pHCloud                  ',
+                              'Chem_isCloud                  ',
+                              'Chem_SSAlkAccumMode           ',
+                              'Chem_SSAlkCoarseMode          ',
+                              'Chem_HSO3AQ                   ',
+                              'Chem_SO3AQ                    ',
+                              'Chem_fupdateHOBr              ',
+                              'Chem_GammaN2O5overall         ',
+                              'Chem_GammaN2O5fine            ',
+                              'Chem_YieldClNO2fine           ',
+::
+#==============================================================================
+# %%%%% The StateMet COLLECTION %%%%%
+#
+# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+#
+# Available for all simulations
+#==============================================================================
+  StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  StateMet.frequency:         00000000 010000,
+  StateMet.duration:          00000000 120000,
+  StateMet.mode:              'instantaneous'
+  StateMet.fields:            'Met_AD                        ',
+::
+#==============================================================================
+# %%%%% THE WetLossConv COLLECTION %%%%%
+#
+# Loss of soluble species in convective updrafts
+#
+# Available for all simulations that have soluble species
+#==============================================================================
+  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossConv.frequency:      00000000 010000,
+  WetLossConv.duration:       00000000 120000,
+  WetLossConv.mode:           'instantaneous'
+  WetLossConv.fields:         'WetLossConv_?WET?             ',
+                              'WetLossConvFrac_?WET?         ',
+::
+#==============================================================================
+# %%%%% THE WetLossLS COLLECTION %%%%%
+#
+# Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
+#
+# Available for all simulations that have soluble species
+#==============================================================================
+# Loss due to rainout and washout (per deposited species)
+  WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossLS.format:           'CFIO',
+  WetLossLS.frequency:        00000000 010000,
+  WetLossLS.duration:         00000000 120000,
+  WetLossLS.mode:             'instantaneous'
+  WetLossLS.fields:           'WetLossLS_?WET?               ',
+::

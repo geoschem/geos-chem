@@ -45,9 +45,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE FullChem_SetStateHet( I,         J,         L,                  &
-                                   Input_Opt, State_Chm, State_Met,          &
-                                   H,         RC                            )
+  SUBROUTINE fullChem_SetStateHet( I,         J,         L,                  &
+                                   id_SALA,   id_SALAAL, id_SALC,            &
+                                   id_SALCAL, Input_Opt, State_Chm,          &
+                                   State_Met, H,         RC                 )
 !
 ! !USES:
 !
@@ -57,25 +58,32 @@ CONTAINS
     USE PhysConstants,    ONLY : AVO, PI
     USE Input_Opt_Mod,    ONLY : OptInput
     USE rateLawUtilFuncs
-    USE State_Chm_Mod,    ONLY : ChmState
+    USE State_Chm_Mod,    ONLY : ChmState, Ind_
     USE State_Met_Mod,    ONLY : MetState
+
+  ! Species ID flags
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I
-    INTEGER,        INTENT(IN)    :: J
-    INTEGER,        INTENT(IN)    :: L
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt
-    TYPE(ChmState), INTENT(IN)    :: State_Chm
-    TYPE(MetState), INTENT(IN)    :: State_Met
+    INTEGER,        INTENT(IN)    :: I          ! Lon (or X-dim) gridbox index
+    INTEGER,        INTENT(IN)    :: J          ! Lat (or Y-dim) gridbox index
+    INTEGER,        INTENT(IN)    :: L          ! Vertical level index
+    INTEGER ,       INTENT(IN)    :: id_SALA    ! Indices of SALA, SALAAL
+    INTEGER,        INTENT(IN)    :: id_SALAAL  !  SALC, and SALCAL species
+    INTEGER,        INTENT(IN)    :: id_SALC    !  in the State_Chm%Species
+    INTEGER,        INTENT(IN)    :: id_SALCAL  !  object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(ChmState), INTENT(IN)    :: State_Chm  ! Chemistry State object
+    TYPE(MetState), INTENT(IN)    :: State_Met  ! Meterology State object
 !
 ! INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(HetState), INTENT(INOUT) :: H
+    TYPE(HetState), INTENT(INOUT) :: H          ! Hetchem State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC
+    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
+
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -145,11 +153,20 @@ CONTAINS
     H%H_conc_ICl    = 10.0**( -4.5_dp              )
     H%H_conc_SSA    = H%H_conc_Sul
     H%H_conc_SSC    = 10.0**( -5.0_dp              )
-    H%ssAlk         = State_Chm%SSAlk(I,J,L,:)
-    H%SSA_is_Alk    = ( H%ssAlk(1) > 0.05_dp       )
-    H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk        )
-    H%SSC_is_Alk    = ( H%ssAlk(2) > 0.05_dp       )
-    H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk        )
+    H%f_Alk_SSA     = SafeDiv( State_Chm%Species(id_SALAAL)%Conc(I,J,L),     &
+                               State_Chm%Species(id_SALA  )%Conc(I,J,L),     &
+                               0.0_dp                                       )
+    H%f_Alk_SSA     = MAX( MIN( H%f_Alk_SSA, 1.0_dp ), 0.0_dp )
+    H%f_Acid_SSA    = 1.0_dp - H%f_Alk_SSA
+    H%f_Alk_SSC     = SafeDiv( State_Chm%Species(id_SALCAL)%Conc(I,J,L),     &
+                               State_Chm%Species(id_SALC  )%Conc(I,J,L),     &
+                               0.0_dp                                       )
+    H%f_Alk_SSC     = MAX( MIN( H%f_Alk_SSC, 1.0_dp ), 0.0_dp )
+    H%f_Acid_SSC    = 1.0_dp - H%f_Alk_SSC
+    H%SSA_is_Alk    = ( ABS( H%f_Alk_SSA ) > 0.01_dp )
+    H%SSA_is_Acid   = ( .not.  H%SSA_is_Alk          )
+    H%SSC_is_Alk    = ( ABS( H%f_Alk_SSC ) > 0.01_dp )
+    H%SSC_is_Acid   = ( .not.  H%SSC_is_Alk          )
 
     ! Other fields
     H%gamma_HO2     = Input_Opt%gamma_HO2

@@ -1,0 +1,723 @@
+#------------------------------------------------------------------------------
+#                  Harmonized Emissions Component (HEMCO)                     !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Config.rc
+#
+# !DESCRIPTION: Contains configuration information for HEMCO. Define the
+#  emissions inventories and corresponding file paths here. Entire
+#  configuration files can be inserted into this configuration file with
+#  an '>>>include' statement, e.g. '>>>include HEMCO\_Config\_test.rc'
+#  The settings of include-files will be ignored.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized for the CO2 simulation.
+#  See The HEMCO User's Guide for file details:
+#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#
+# !REVISION HISTORY:
+#  See https://github.com/geoschem/geos-chem for complete history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+###############################################################################
+### BEGIN SECTION SETTINGS
+###############################################################################
+
+ROOT:                        /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/HEMCO
+METDIR:                      not_used
+GCAPSCENARIO:                not_used
+GCAPVERTRES:                 47
+Logfile:                     *
+DiagnFile:                   HEMCO_Diagn.rc
+DiagnPrefix:                 ./HEMCO_diagnostics
+DiagnFreq:                   Monthly
+Wildcard:                    *
+Separator:                   /
+Unit tolerance:              1
+Negative values:             2
+Only unitless scale factors: false
+Verbose:                     0
+Warnings:                    1
+
+### END SECTION SETTINGS ###
+
+###############################################################################
+### BEGIN SECTION EXTENSION SWITCHES
+###############################################################################
+# ExtNr ExtName                on/off  Species  Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES ---------------------------------------------------------
+    --> EMISSIONS              :       true
+    --> CHEMISTRY_INPUT        :       true
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
+    --> FOSSIL_ODIAC           :       true     # 2000-2018
+    --> FOSSIL_CDIAC           :       false    # 1980-2014
+    --> OCEAN_EXCH_TAKA09      :       false    # 2000
+    --> OCEAN_EXCH_SCALED      :       true     # 2000-2013
+    --> BBIO_DIURNAL           :       false    # 1985
+    --> BBIO_SIB3              :       true     # 2006-2010
+    --> NET_TERR_EXCH          :       true     # 2000
+    --> CO2CORR                :       true     # 2000-2018
+# ----- AIRCRAFT EMISSIONS ----------------------------------------------------
+# There are 3 switches:
+#
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#     this is not recommended due to the amount of computational overhead
+#     that will be incurred in regridding.  But this may be useful for
+#     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
+#
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#     incur much less computational overhaead.  This options should suffice
+#     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
+#
+#  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
+#     2019 alone will be used.  This will yield a "best estimate" of
+#     aviation emisssion. This could be important because simply scaling
+#     aviation emissions up and down is rather nonphysical.  But if
+#     AEIC_SCALE_1990_2019 is set to true, then aviation emissions for
+#     1990 to 2019 are estimated by:
+#
+#     a. Scaling ALL aviation emissions based on the growth in fuelburn
+#        from 1990 to 2019* estimated by Lee et al. (2021); and
+#
+#     b. Scaling aviation NOx emissions by an additional factor to reflect
+#        the changes in the NOx emissions index over the same period as
+#        reported by Lee et al. (2021).
+#
+#     Recommended setting: "AEIC_SCALE_1990_2019: true"
+#
+# See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019_DAILY         :       false    # 2019 (daily data)
+    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+# ----- SHIP EMISSIONS --------------------------------------------------------
+    --> SHIP                   :       true
+    --> CEDS_SHIP              :       true     # 1750-2014
+    --> ICOADS_SHIP            :       false    # 2004
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
+    --> CO2_COPROD             :       true     # 2004-2009
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2000-2020
+# -----------------------------------------------------------------------------
+111     GFED                   : on    CO2/CO2bb
+    --> GFED4                  :       true
+    --> GFED_daily             :       true
+    --> GFED_3hourly           :       false
+    --> Scaling_CO             :       1.05
+    --> Scaling_NAP            :       2.75e-4
+    --> hydrophilic BC         :       0.2
+    --> hydrophilic OC         :       0.5
+    --> fraction POG1          :       0.49
+114     FINN                   : off   CO2/CO2bb
+    --> FINN_daily             :       true
+    --> Scaling_CO             :       1.0
+    --> hydrophilic BC         :       0.2
+    --> hydrophilic OC         :       0.5
+
+### END SECTION EXTENSION SWITCHES ###
+
+###############################################################################
+### BEGIN SECTION BASE EMISSIONS
+###############################################################################
+
+# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
+(((EMISSIONS
+
+#==============================================================================
+# --- FOSSIL FUEL EMISSIONS ---
+#
+# National CO2 fossil fuel emissions exclude international shipping and aviation
+# Carbon Dioxide Information Analysis Center (CDIAC) 1x1 national emissions
+# (Andres et al., 2011)
+# Open-source Data Inventory of Anthropogenic CO2 (ODIAC) 1x1 national emissions
+# (Oda & Maksyutov, 2011)
+#
+# ---> Recommended option: ODIAC (set FOSSIL_ODIAC = true)
+#      ODIAC updated to v2019 by J. Fisher and Y. Cao, 12/2019
+#==============================================================================
+(((FOSSIL_CDIAC
+0 FOSSILCO2_CDIAC   $ROOT/CO2/v2014-09/FOSSIL/CDIAC_v2014.monthly.generic.1x1.nc CO2 1980-2014/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 1
+0 FOSSILCO2FF_CDIAC -                                                            -   -                  - -  -       CO2ff 40/41/80 1 1
+)))FOSSIL_CDIAC
+
+(((FOSSIL_ODIAC
+0 FOSSILCO2_ODIAC   $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
+0 FOSSILCO2FF_ODIAC -                                                            -   -                  - -  -       CO2ff 40/41/80 1 2
+)))FOSSIL_ODIAC
+
+#==============================================================================
+# --- OCEAN EXCHANGE EMISSIONS ---
+#
+# Ocean uptake/emission from Takahashi et al. (2009) and earlier works.
+# Climatological exchange for 2000 (-1.4 PgC/yr) or scaled ocean exchange, which
+# accounts for changing atmospheric CO2 (as in the paper) are now available.
+#
+# ---> Recommended option: scaled ocean exchange (set OCEAN_EXCH_SCALED = true)
+#==============================================================================
+(((OCEAN_EXCH_TAKA09
+0 OCEANCO2_TAKA_ANNUAL    $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Annual.nc      CO2 2000/1/1/0         C xy kg/m2/s CO2   - 2 1
+0 OCEANCO2OC_TAKA_ANNUAL  -                                                    -   -                  - -  -       CO2oc - 2 1
+0 OCEANCO2_TAKA_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc     CO2 2000/1-12/1/0      C xy kg/m2/s CO2   - 2 2
+0 OCEANCO2OC_TAKA_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 2
+)))OCEAN_EXCH_TAKA09
+
+(((OCEAN_EXCH_SCALED
+0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
+0 OCEANCO2OC_SCALED_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 3
+)))OCEAN_EXCH_SCALED
+
+#==============================================================================
+# --- BALANCED BIOSPHERE EXCHANGE ---
+#
+# These emissions have a seasonal cycle of uptake/emission but have a net
+# annual uptake of close to zero (balanced).
+# CASA model daily emissions for a single year at coarse resolution have a
+# diurnal cycle imposed (Olsen & Randerson, 2004)
+# SiB3 emissions are from Nick Parazoo (Messerschmidt et al., 2011) for
+# 2006-2010.
+#
+# ---> Recommended option: SiB3 (set BBIO_SIB3 = true)
+#==============================================================================
+(((BBIO_DIURNAL
+0 BBIOCO2_DIURNAL    $ROOT/CO2/v2014-09/BBIO/BBIO_diurnal_CO2.nc CO2 1985/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
+0 BBIOCO2BAL_DIURNAL -                                           -   -                   - -  -       CO2bal - 3 1
+)))BBIO_DIURNAL
+
+(((BBIO_SIB3
+0 SIB_BBIO_CO2    $ROOT/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc CO2 2006-2010/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
+0 SIB_BBIO_CO2BAL -                                      -   -                        - -  -       CO2bal - 3 1
+)))BBIO_SIB3
+
+#==============================================================================
+# --- NET TERRESTRIAL EXCHANGE ---
+#
+# TransCom annual net/residual terrestrial biosperhic CO2 (Baker et al., 2006)
+#
+# ---> Recommended for use in forward modelling, optional for
+#      inversion/assimilation
+#==============================================================================
+(((NET_TERR_EXCH
+0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2nte - 5 1
+0 CO2NTE_NET_TERRESTRIAL -                                                                 -   -          - -  -       CO2    - 5 1
+)))NET_TERR_EXCH
+
+#==============================================================================
+# --- SHIP EMISSIONS ---
+#==============================================================================
+(((SHIP
+
+(((ICOADS_SHIP
+# The spatial distribution is scaled with global annual scale factors #50
+0 ICOADS_CO2_SHIP    $ROOT/ICOADS_SHIP/v2014-07/ICOADS_ship_CO2_2004.generic.1x1.nc CO2 2004/1-12/1/0 C xy kg/m2/s CO2   50 6 1
+0 ICOADS_CO2SE_SHIP  -                                                              -   -             - -  -       CO2se 50 6 1
+)))ICOADS_SHIP
+
+(((CEDS_SHIP
+0 CEDS_CO2_SHP       $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc     CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2   - 6 1
+0 CEDS_CO2SE_SHIP    -                                                              -        -                  - -  -       CO2se - 6 1
+)))CEDS_SHIP
+
+)))SHIP
+
+#==============================================================================
+# --- AEIC 2019 aircraft emissions ---
+#
+# Data files are for 2019, but scale factors from 1990-2019 can be applied
+# in order to get year-specific emissions.  See the notes in the AEIC2019
+# scale factor section below for more information.
+#==============================================================================
+(((AEIC2019_DAILY
+0 AEIC19_DAILY_CO2   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s CO2   241/60 20 1
+0 AEIC19_DAILY_CO2AV -                                                             -        -                - -   -       CO2av 241/60 20 1
+)))AEIC2019_DAILY
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_CO2   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s CO2   241/60 20 1
+0 AEIC19_MONMEAN_CO2AV -                                                                          -        -             - -   -       CO2av 241/60 20 1
+)))AEIC2019_MONMEAN
+
+#==============================================================================
+# --- CO2 SURFACE CORRECTION FOR CO OXIDATION ---
+#
+# These emissions will be subtracted!
+# Fossil fuel CO and CH4 are based on the national distribution scaled with #10.
+# Biogenic CH4 data is converted to CO2 using scale factor #20.
+# Isoprene and monoterpene are converted from kgC to kgCO2 by scale factor #21.
+# Approach is described in Nassar et al. (2010)
+#
+# ---> Recommended for use if chemical production (above) is turned on
+#
+# Now multiply by scale factor of -1.0 (#90 in scale factor section below)
+# to make these emissions negative, so that they will be subtracted.
+===============================================================================
+(((CO2CORR
+0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
+0 FOSSILCO2CORR_MONTHLY -                                                          -       -                  - -  -       CO2corr 10/40/41/80/90 8 1
+0 CO2_LIVESTOCK         $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2CORR_LIVESTOCK     -                                                          -       -                  - -  -       CO2corr 20/90          8 1
+0 CO2_WASTE             $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_005 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2CORR_WASTE         -                                                          -       -                  - -  -       CO2corr 20/90          8 1
+0 CO2_RICE              $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_007 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2CORR_RICE          -                                                          -       -                  - -  -       CO2corr 20/90          8 1
+0 CO2_WETLANDS          $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_010 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2CORR_WETLANDS      -                                                          -       -                  - -  -       CO2corr 20/90          8 1
+0 CO2_NATURAL           $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_012 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2CORR_NATURAL       -                                                          -       -                  - -  -       CO2corr 20/90          8 1
+0 CO2_ISOPRENE          $ROOT/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc         ISOP    2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2CORR_ISOPRENE      -                                                          -       -                  - -  -       CO2corr 21/30/90       8 1
+0 CO2_MONOTERP          $ROOT/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc      MONOT   2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2CORR_MONOTERP      -                                                          -       -                  - -  -       -       21/30/90       8 1
+)))CO2CORR
+
+###############################################################################
+### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
+###
+### These fields are needed by the extensions listed above. The assigned ExtNr
+### must match the ExtNr entry in section 'Extension switches'. These fields
+### are only read if the extension is enabled.  The fields are imported by the
+### extensions by field name.  The name given here must match the name used
+### in the extension's source code.
+###############################################################################
+
+#==============================================================================
+# --- GFED biomass burning emissions (Extension 111)
+# NOTE: These are the base emissions in kgDM/m2/s.
+#==============================================================================
+(((GFED4
+111 GFED_TEMP       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2020-02/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2019/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+
+(((GFED_daily
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2020-02/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2019/1-12/1-31/0  RF xy 1 * - 1 1
+)))GFED_daily
+
+(((GFED_3hourly
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2020-02/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2019/1-12/1/0-23  RF xy 1 * - 1 1
+)))GFED_3hourly
+)))GFED4
+
+#==============================================================================
+# --- FINN v1.5 biomass burning emissions (Extension 114)
+#==============================================================================
+(((.not.FINN_daily
+114 FINN_VEGTYP1       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP2       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP3       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP4       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP5       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP9       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+))).not.FINN_daily
+
+(((FINN_daily
+114 FINN_DAILY_VEGTYP1 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP2 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP3 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP4 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP5 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP9 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+)))FINN_daily
+
+)))EMISSIONS
+
+###############################################################################
+### NON-EMISSIONS DATA (subsection of BASE EMISSIONS SECTION)
+###
+### Non-emissions data. The following fields are read through HEMCO but do
+### not contain emissions data. The extension number is set to wildcard
+### character denoting that these fields will not be considered for emission
+### calculation. A given entry is only read if the assigned species name is
+### an HEMCO species.
+###############################################################################
+
+#==============================================================================
+# --- Time zones (offset to UTC) ---
+#==============================================================================
+* TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
+
+#==============================================================================
+# --- CHEMICAL PRODUCTION FROM CO OXIDATION ---
+#
+# ---> Recommended for use in forward modelling, optional for
+#      inversion/assimilation
+#==============================================================================
+(((CHEMISTRY_INPUT
+(((CO2_COPROD
+* CO2_COPROD     $ROOT/CO2/v2019-02/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc                            LCO               2004-2009/1-12/1/0 C xyz kgC/m3/s * - 1 1
+)))CO2_COPROD
+)))CHEMISTRY_INPUT
+
+#==============================================================================
+# --- Olson land map masks ---
+#==============================================================================
+(((OLSON_LANDMAP
+* LANDTYPE00 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE00 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE01 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE01 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE02 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE02 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE03 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE03 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE04 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE04 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE05 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE05 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE06 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE06 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE07 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE07 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE08 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE08 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE09 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE09 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE10 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE10 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE11 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE11 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE12 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE12 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE13 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE13 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE14 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE14 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE15 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE15 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE16 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE16 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE17 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE17 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE18 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE18 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE19 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE19 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE20 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE20 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE21 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE21 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE22 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE22 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE23 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE23 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE24 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE24 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE25 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE25 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE26 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE26 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE27 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE27 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE28 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE28 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE29 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE29 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE30 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE30 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE31 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE31 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE32 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE32 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE33 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE33 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE34 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE34 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE35 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE35 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE36 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE36 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE37 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE37 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE38 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE38 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE39 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE39 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE40 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE40 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE41 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE41 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE42 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE42 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE43 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE43 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE44 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE44 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE45 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE45 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE46 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE46 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE47 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE47 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE48 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE48 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE49 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE49 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE50 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE50 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE51 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE51 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE52 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE52 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE53 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE53 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE54 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE54 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE55 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE55 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE56 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE56 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE57 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE57 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE58 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE58 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE59 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE59 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE60 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE60 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE61 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE61 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE62 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE62 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE63 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE63 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE64 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE64 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE65 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE65 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE66 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE66 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE67 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE67 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE68 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE68 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE69 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE69 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE70 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE70 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE71 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE71 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE72 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE72 1985/1/1/0 C xy 1 * - 1 1
+)))OLSON_LANDMAP
+
+#==============================================================================
+# --- Yuan processed MODIS leaf area index data ---
+#
+# Source: Yuan et al 2011, doi:10.1016/j.rse.2011.01.001
+#         http://globalchange.bnu.edu.cn/research/lai
+#
+# NOTES:
+# (1) LAI data corresponding to each Olson land type is stored in
+#      separate netCDF variables (XLAI00, XLAI01, ... XLAI72).
+#      The "XLAI" denotes that the files are prepared in this way.
+# (2) Units are "cm2 leaf/cm2 grid box".
+# (3) Data is timestamped every 8 days, starting from the 2nd of the month.
+#==============================================================================
+(((YUAN_MODIS_LAI
+* XLAI00 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI00 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI01 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI01 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI02 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI02 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI03 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI03 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI04 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI04 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI05 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI05 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI06 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI06 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI07 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI07 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI08 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI08 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI09 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI09 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI10 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI10 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI11 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI11 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI12 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI12 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI13 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI13 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI14 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI14 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI15 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI15 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI16 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI16 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI17 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI17 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI18 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI18 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI19 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI19 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI20 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI20 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI21 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI21 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI22 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI22 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI23 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI23 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI24 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI24 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI25 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI25 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI26 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI26 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI27 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI27 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI28 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI28 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI29 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI29 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI30 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI30 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI31 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI31 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI32 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI32 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI33 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI33 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI34 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI34 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI35 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI35 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI36 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI36 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI37 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI37 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI38 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI38 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI39 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI39 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI40 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI40 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI41 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI41 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI42 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI42 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI43 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI43 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI44 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI44 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI45 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI45 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI46 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI46 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI47 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI47 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI48 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI48 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI49 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI49 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI50 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI50 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI51 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI51 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI52 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI52 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI53 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI53 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI54 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI54 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI55 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI55 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI56 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI56 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI57 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI57 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI58 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI58 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI59 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI59 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI60 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI60 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI61 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI61 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI62 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI62 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI63 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI63 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI64 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI64 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI65 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI65 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI66 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI66 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI67 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI67 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI68 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI68 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI69 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI69 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI70 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI70 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI71 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+)))YUAN_MODIS_LAI
+
+### END SECTION BASE EMISSIONS ###
+
+###############################################################################
+### BEGIN SECTION SCALE FACTORS
+###############################################################################
+
+# ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
+
+(((EMISSIONS
+
+#==============================================================================
+# --- FOSSIL FUEL CO2 SURFACE CORRECTION FACTOR ---
+#
+# Fossil fuel CO2 emissions must be scaled down to avoid counting emissions
+# already accounted for by CO and CH4 oxidation to CO2.
+#
+# The necssary annual reduction in emissions related to fossil fuels is
+# determined as:  global C mass from FF (CO+CH4) / global C mass from FF CO2
+#
+# Note: GEOS-Chem v8-03-02 to v9-02, assumed: 0.0489 for all years but that
+# value seems to correspond to mid-1980s fossil fuel combustion since CO
+# emissions have held constant (Granier et al., 2011) while CO2 has risen.
+#
+#==============================================================================
+(((CO2CORR
+#10 CO2_FOSSFUEL_CORR 0.0489 - - - xy 1 1
+
+## CO2 scale factors from CO oxidation by decade (comment out for now)
+##10 CO2_FOSSFUEL_CORR 0.052815/0.054486/0.054902/0.055107/0.053166/0.051611/0.050065/0.048803/0.047060/0.046041 - 1980-1989/1/1/0 C xy 1 1
+##10 CO2_FOSSFUEL_CORR 0.045816/0.045153/0.045541/0.045556/0.044800/0.043875/0.042910/0.042206/0.042257/0.042468 - 1990-1999/1/1/0 C xy 1 1
+##10 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118 - 2000-2009/1/1/0 C xy 1 1
+##10 CO2_FOSSFUEL_CORR 0.030622/0.029674/0.029029/0.028355                                                       - 2010-2013/1/1/0 C xy 1 1
+
+# All scale factors for years 2000-2013 lumped into a single entry
+10 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118/0.030622/0.029674/0.029029/0.028355 - 2000-2013/1/1/0 C xy 1 1
+)))CO2CORR
+
+#==============================================================================
+# --- CO2 CONVERSION FACTORS ---
+#==============================================================================
+20 CH4TOCO2  2.75   - - - xy 1 1
+21 CTOCO2    3.6667 - - - xy 1 1
+30 NMHCSCALE 0.3333 - - - xy 1 1
+
+#==============================================================================
+# ---- TIMES diurnal and weekly scale factors for national fossil fuel CO2 ---
+#
+# These temporal scale factors are described in Nassar et al. (2013)
+#==============================================================================
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+40 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
+41 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0 C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+#==============================================================================
+# --- SHIP ANNUAL SCALE FACTOR ---
+#
+# Based on a linear fit of 1985-2002 values from Endresen et al. (2007).
+#==============================================================================
+(((ICOADS_SHIP
+50 CO2_SHIP_SCALE 1.043/1.068/1.094/1.128/1.154/1.180/1.205/1.231/1.265/1.291/1.316/1.342/1.368/1.393/1.427/1.453/1.479/1.504/1.530/1.556/1.590/1.615/1.641/1.667/1.641 - 1985-2009/1/1/0 C xy 1 1
+)))ICOADS_SHIP
+
+#==============================================================================
+# --- AEIC2019 aircraft emissions scale factors ---
+#
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
+#==============================================================================
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+#------------------------------------------------------------------------------
+# Assume 3.159 kg CO2 from every kg of fuel burned
+# cf Hileman, Stratton, & Donohoo, _J. Propul. Power_, 26(6), 1184–1196, 2010.
+#------------------------------------------------------------------------------
+60 AEIC19_FBtoCO2 3.159 - - - xy unitless 1
+
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Lee et al.
+# (2021) only covers 1990 to 2018, so to get to 2019 it is assumed that the
+# growth from 2017 to 2018 is the same as that from 2018 to 2019.
+# So the formula is something like:
+#
+# Emissions of CO in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down.
+#
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
+)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
+
+#==============================================================================
+# --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
+#
+# Regional scale factors slightly less than 1 remove surface contribution from
+# domestic aviation in national fossil fuel emisisons, which should instead be
+# counted in the air as a 3D field. This scale factor should be applied to the
+# main/national fossil fuel emission field if using avaition emissions.
+#==============================================================================
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+80 AVIATION_SURF_CORR $ROOT/CO2/v2015-04/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+#==============================================================================
+# Scale factor to make emissions negative
+#==============================================================================
+(((CO2CORR
+90 CO2_NEGATIVE -1.0 - 2000/1/1/0 C xy 1 1
+)))CO2CORR
+
+)))EMISSIONS
+
+### END SECTION SCALE FACTORS ###
+
+###############################################################################
+### BEGIN SECTION MASKS
+###############################################################################
+
+# ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper Lon1/Lat1/Lon2/Lat2
+
+### END SECTION MASKS ###
+
+###############################################################################
+### REFERNCES
+###############################################################################
+#
+# Andres. R.J., J.S Gregg, L. Losey, G. Marland, T.A. Boden (2011), Montly,
+# global emissions of carbon dioxide from fossil fuel consumption, Tellus 63B,
+# 309-327.
+#
+# Baker, D.F. et al. (2006) TransCom3 inversion intercomparison: Impact of
+# transport model errors on the interannual variability of regional CO2 fluxes,
+# 1998-2003, Global Biogeochem., Cy., 20, GB1002, doi:10.29/2004GB002439.
+#
+# Endresen, O. et al. (2007), A historical reconstuctino of ships fuel
+# consuption and emissions, J. Geophys. Res., 112, D12301,
+# doi:10.1029/2006JD007630.
+#
+# Granier, C. et al. (2011), Evolution of anthropogenic and biomass burning
+# emissions of air pollutants at global and regional scales during the 1980-2010
+# period, Climatic Change, 109:163-190, doi:10.1007/s10584-011-0154-1.
+#
+# Keller, C.A., M.S. Long, R.M. Yantosca, A.M. DaSilva, S. Pawson, D.J. Jacob
+# (2014), HEMCO v1.0: a versatile, ESMF-compliant component for calculating
+# emissions in atmospheric models, Geosci., Model Dev., 7, 1409?1417,
+# doi:10.5194/gmd-7-1409-2014.
+#
+# Messerschmidt, J., N. Parazoo, N.M. Deutscher, C. Roehl, T. Warneke, P.O.
+# Wennberg, and D. Wunch (2012) Evaluation of atmosphere-biosphere exchange
+# estimations with TCCON measurements, Atmos. Chem. Phys. Discussions, 12,
+# 12759-12800, doi:10.5194/acpd-12-12759-2012.
+#
+# Nassar, R., D.B.A. Jones, P. Suntharalingam, J.M. Chen, R.J. Andres, K.J.
+# Wecht, R.M. Yantosca, S.S. Kulawik, K.W. Bowman, J.R. Worden, T. Machida and
+# H. Matsueda (2010), Modeling global atmospheric CO2 with improved emission
+# inventories and CO2 production from the oxidation of other carbon species,
+# Geoscientific Model Development, 3, 689-716.
+#
+# Nassar, R., L. Napier-Linton, K.R. Gurney, R.J. Andres, T. Oda, F.R. Vogel,
+# F. Deng (2013), Improving the temporal and spatial distribution of CO2
+# emissions from global fossil fuel emission datasets, Journal of Geophysical
+# Research: Atmospheres, 118, 917-933, doi:10.1029/2012JD018196.
+#
+# Oda, T. and S. Maksyutov (2011), A very high-resolution (1 km x 1 km) global
+# fossil fuel CO2 emission inventory derived using a point source database and
+# satellite observations of nighttime lights, Atmos. Chem. Phys., 11, 543?556,
+# doi:10.5194/acp-11-543-2011.
+#
+# Olsen, S.C. and J.T. Randerson (2004), Differences between surface and column
+# atmospheric CO2 and implications for carbon cycle research, J. Geophys. Res.
+# 109, D02301, doi:10.1029/2003JD003968.
+#
+# Olsen, S.C., D.J. Weubbles, B. Owen (2013) Comparison of global 3-D aviation
+# datasets, Atmos. Chem. Phys., 13, 429?441, doi:10.5194/acp-13-429-2013.
+#
+# Simone, N., M. Stettler, S. Eastham, S. Barrett, Aviation Emissions Inventory
+# Code (AEIC ) User Manual (R1), Laboratory for Aviation and the Environment,
+# Massachusetts Institute of Technology, January 2013, Report No:
+# LAE-2013-001-N,
+# www.LAE.MIT.edu.
+#
+# Takahashi, T., et al. (2009), Climatological mean and decadal change in
+# surface ocean pCO2, and net sea-air CO2 flux over the global oceans, Deep-Sea
+# Res. II, 56(8?10), 554?577, doi:10.1016/j.dsr2.2008.12.009.
+#
+### END OF HEMCO INPUT FILE ###
+#EOC

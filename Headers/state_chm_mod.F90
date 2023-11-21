@@ -23,6 +23,7 @@ MODULE State_Chm_Mod
 !
   USE Dictionary_M, ONLY : dictionary_t  ! Fortran hash table type
   USE ErrCode_Mod                        ! Error handling
+  USE Phot_Container_Mod                 ! For photolysis state object
   USE PhysConstants                      ! Physical constants
   USE Precision_Mod                      ! GEOS-Chem precision types
   USE Registry_Mod                       ! Registry module
@@ -82,6 +83,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nPhotol              ! # photolysis species
      INTEGER                    :: nProd                ! # of prod species
      INTEGER                    :: nRadNucl             ! # of radionuclides
+     INTEGER                    :: nTracer              ! # of transport tracers
      INTEGER                    :: nWetDep              ! # wetdep species
 
      !-----------------------------------------------------------------------
@@ -102,6 +104,7 @@ MODULE State_Chm_Mod
      INTEGER,           POINTER :: Map_Prod   (:      ) ! Prod diag species
      CHARACTER(LEN=36), POINTER :: Name_Prod  (:      ) !  ID and names
      INTEGER,           POINTER :: Map_RadNucl(:      ) ! Radionuclide IDs
+     INTEGER,           POINTER :: Map_Tracer (:      ) ! Transport tracer IDs
      INTEGER,           POINTER :: Map_WetDep (:      ) ! Wetdep species IDs
      INTEGER,           POINTER :: Map_WL     (:      ) ! Wavelength bins in fjx
 
@@ -219,6 +222,12 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: fupdateHOCl(:,:,:  ) ! Correction factor for
                                                         ! HOCl removal by SO2
                                                         ! [unitless]
+
+     !-----------------------------------------------------------------------
+     ! Fields for photolysis
+     !-----------------------------------------------------------------------
+     TYPE(PhotContainer), POINTER :: phot               ! Photolysis/optics container
+
      !-----------------------------------------------------------------------
      ! Fields for dry deposition
      !-----------------------------------------------------------------------
@@ -322,6 +331,14 @@ MODULE State_Chm_Mod
      REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
      REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
                                                         ! third dim is cat, total 15
+     LOGICAL                    :: IsCH4BCPerturbed     ! Is CH4 BC perturbed?
+
+#ifdef APM
+     !-----------------------------------------------------------------------
+     ! Fields for APM aerosol microphysics
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: PSO4_SO2APM2(:,:,: )
+#endif
 
      !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
@@ -334,6 +351,10 @@ MODULE State_Chm_Mod
      ! Carbon stuff for GEOS 
      !-----------------------------------------------------------------------
 #if defined( MODEL_GEOS )
+     ! CO mesosphere boundary
+     INTEGER            :: COmesosphere 
+     CHARACTER(LEN=255) :: impCOmeso
+     ! CO2 photolysis
      INTEGER            :: CO2fromGOCART
      CHARACTER(LEN=255) :: impCO2name
      INTEGER            :: numphoto
@@ -460,6 +481,7 @@ CONTAINS
     State_Chm%Map_Prod          => NULL()
     State_Chm%Name_Prod         => NULL()
     State_Chm%Map_RadNucl       => NULL()
+    State_Chm%Map_Tracer        => NULL()
     State_Chm%Map_WetDep        => NULL()
     State_Chm%Map_WL            => NULL()
 
@@ -474,6 +496,9 @@ CONTAINS
     State_Chm%SpeciesAdj    => NULL()
     State_Chm%CostFuncMask  => NULL()
 #endif
+
+    ! Photolysis state
+    State_Chm%Phot              => NULL()
 
     ! RRTMG state
     State_Chm%RRTMG_iSeed       = 0
@@ -579,8 +604,12 @@ CONTAINS
     State_Chm%Do_SulfateMod_Cld     = .FALSE.
     State_Chm%Do_SulfateMod_SeaSalt = .FALSE.
 
-#ifdef MODEL_GEOS
-    ! Add quantities for coupling to the NASA/GEOS ESM
+   ! Flag if CH4 BC has been perturbed or not
+    State_Chm%IsCH4BCPerturbed  = .FALSE.
+
+#if defined( MODEL_GEOS )
+    State_Chm%COmesosphere      = .FALSE.
+    State_Chm%impCOmeso         = "unknown" 
     State_Chm%CO2fromGOCART     = .FALSE.
     State_Chm%impCO2name        = "unknown" 
     State_Chm%numphoto          = 0
@@ -601,6 +630,10 @@ CONTAINS
 #ifdef MODEL_CESM
     ! Add quantities for coupling to CESM
     State_Chm%H2SO4_PRDR        => NULL()
+#endif
+#ifdef APM
+    ! Add fields for APM microphysics
+    State_Chm%PSO4_SO2APM2      => NULL()
 #endif
 
   END SUBROUTINE Zero_State_Chm
@@ -761,6 +794,17 @@ CONTAINS
     ENDDO
 
     !========================================================================
+    ! Allocate and initialize the photolysis object
+    !========================================================================
+    ALLOCATE( State_Chm%Phot, STAT=RC )
+    CALL Init_Phot_Container( Input_Opt, State_Grid, State_Chm%Phot, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Init_Phot_Container" routine!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
     ! Determine the number of advected, drydep, wetdep, and total species
     !========================================================================
 
@@ -779,6 +823,7 @@ CONTAINS
     State_Chm%nOmitted = SpcCount%nOmitted
     State_Chm%nPhotol  = SpcCount%nPhotol
     State_Chm%nRadNucl = SpcCount%nRadNucl
+    State_Chm%nTracer  = SpcCount%nTracer
     State_Chm%nWetDep  = SpcCount%nWetDep
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
@@ -874,7 +919,6 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-
 
     !========================================================================
     ! Allocate and initialize chemical species fields
@@ -2198,7 +2242,7 @@ CONTAINS
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to CH4 simulations
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
         ! CH4_EMIS
         chmId = 'CH4_EMIS'
         CALL Init_and_Register(                                              &
@@ -2207,7 +2251,7 @@ CONTAINS
             State_Grid = State_Grid,                                         &
             chmId      = chmId,                                              &
             Ptr2Data   = State_Chm%CH4_EMIS,                                 &
-            nSlots     = 15,                                                 &
+            nSlots     = 16,                                                 &
             RC         = RC                                                 )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -2247,6 +2291,27 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+#ifdef APM
+    !=======================================================================
+    ! Initialize State_Chm quantities for APM microphysics simulations
+    !=======================================================================
+    chmId = 'PSO4SO2APM2'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         chmId      = chmId,                                                 &
+         Ptr2Data   = State_Chm%PSO4_SO2APM2,                                &
+         noRegister = .TRUE.,                                                &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+#endif
 
     !========================================================================
     ! Once we are done registering all fields, we need to define the
@@ -2318,7 +2383,6 @@ CONTAINS
 !
     USE GCKPP_Parameters, ONLY : NSPEC
     USE Input_Opt_Mod,    ONLY : OptInput
-    USE Cmn_Fjx_Mod,      ONLY : W_
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2475,6 +2539,13 @@ CONTAINS
        State_Chm%Map_RadNucl = 0
     ENDIF
 
+    IF ( State_Chm%nTracer > 0 ) THEN
+       ALLOCATE( State_Chm%Map_Tracer( State_Chm%nTracer ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Tracer', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Tracer = 0
+    ENDIF
+
     IF ( State_Chm%nWetDep > 0 ) THEN
        ALLOCATE( State_Chm%Map_WetDep( State_Chm%nWetDep ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_WetDep', 0, RC )
@@ -2482,8 +2553,8 @@ CONTAINS
        State_Chm%Map_WetDep = 0
     ENDIF
 
-    IF ( W_ > 0 ) THEN
-       ALLOCATE( State_Chm%Map_WL( W_ ), STAT=RC )
+    IF ( State_Chm%Phot%nWLbins > 0 ) THEN
+       ALLOCATE( State_Chm%Map_WL( State_Chm%Phot%nWLbins ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_WL', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_WL = 0
@@ -2593,11 +2664,19 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
-       ! Set up the mapping for WETDEP SPECIES
+       ! Set up the mapping for RADIONUCLIDE SPECIES
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_RadioNuclide ) THEN
           C                        = ThisSpc%RadNuclId
           State_Chm%Map_RadNucl(C) = ThisSpc%ModelId
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Set up the mapping for TRANSPORT TRACER SPECIES
+       !---------------------------------------------------------------------
+       IF ( ThisSpc%Is_Tracer ) THEN
+          C                       = ThisSpc%TracerId
+          State_Chm%Map_Tracer(C) = ThisSpc%ModelId
        ENDIF
 
        !---------------------------------------------------------------------
@@ -2630,16 +2709,16 @@ CONTAINS
     ENDDO
 
     ! Write closing line
-    WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
+    IF ( Input_Opt%amIRoot ) WRITE( 6,'(  a)'   ) REPEAT( '=', 79)
 
     !------------------------------------------------------------------------
     ! Set up the mapping for UVFlux Diagnostics
     ! placeholder for now since couldn't figure out how to read in WL from file
     !------------------------------------------------------------------------
-    IF ( W_ > 0 ) THEN
+    IF ( State_Chm%Phot%nWLbins > 0 ) THEN
 
        ! Define identifying string
-       DO N = 1, W_
+       DO N = 1, State_Chm%Phot%nWLbins
           State_Chm%Map_WL(N) = 0
        ENDDO
     ENDIF
@@ -2958,6 +3037,11 @@ CONTAINS
     !=======================================================================
     ! Deallocate and nullify pointer fields of State_Chm
     !=======================================================================
+    IF ( ASSOCIATED ( State_Chm%Phot ) ) THEN
+       CALL Cleanup_Phot_Container(State_Chm%Phot, RC )
+       State_Chm%Phot => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_Advect ) ) THEN
        DEALLOCATE( State_Chm%Map_Advect, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 2, RC )
@@ -3051,9 +3135,16 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%Map_RadNucl ) ) THEN
        DEALLOCATE( State_Chm%Map_RadNucl, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%Map_WetDep', 2, RC )
+       CALL GC_CheckVar( 'State_Chm%Map_RadNucl', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_RadNucl => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_Tracer ) ) THEN
+       DEALLOCATE( State_Chm%Map_Tracer, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_Tracer', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_Tracer => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_WetDep ) ) THEN
@@ -3693,6 +3784,15 @@ CONTAINS
        State_Chm%NOXLAT => NULL()
     ENDIF
 
+#ifdef APM
+    IF ( ASSOCIATED( State_Chm%PSO4_SO2APM2 ) ) THEN
+      DEALLOCATE( State_Chm%PSO4_SO2APM2, STAT=RC )
+      CALL GC_CheckVar( 'State_Chm%PSO4_SO2APM2', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      State_Chm%PSO4_SO2APM2 => NULL()
+    ENDIF
+#endif
+
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
     !-----------------------------------------------------------------------
@@ -3850,7 +3950,7 @@ CONTAINS
 
        CASE( 'BOUNDARYCOND' )
           IF ( isDesc  ) Desc   = 'Transport boundary conditions for species'
-          IF ( isUnits ) Units  = 'v/v'
+          IF ( isUnits ) Units  = 'kg kg-1 dry'
           IF ( isRank  ) Rank   = 3
           IF ( isSpc   ) PerSpc = 'ADV'
 
@@ -6592,6 +6692,7 @@ CONTAINS
 !   'N' or 'n' : Returns radionuclide species index
 !   'P' or 'p' : Returns photolysis species index
 !   'S' or 's' : Returns main species index (aka "ModelId")
+!   'T' or 't' : Returns transport tracer index
 !   'V' or 'v' : Returns KPP variable species index
 !   'W' or 'w' : Returns wet-deposition species index
 !
@@ -6666,6 +6767,11 @@ CONTAINS
        ! Species/ModelID
        CASE ( 'S', 's' )
           Indx = SpcDataLocal(N)%Info%ModelID
+          RETURN
+
+       ! Transport tracer ID
+       CASE( 'T', 't' )
+          Indx = SpcDataLocal(N)%Info%TracerId
           RETURN
 
        ! KPP variable species ID

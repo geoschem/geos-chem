@@ -6,6 +6,9 @@
 # run directory to specify start date. Set grid resolution, number of cores,
 # and other common settings in setCommonRunSettings.sh prior to running.
 
+# Stop run if errors encountered
+set -eo pipefail
+
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
 log=gchp.${start_str:0:13}z.log
@@ -19,9 +22,9 @@ else
 fi
 
 # Update config files, set restart symlink, and do sanity checks
-source setCommonRunSettings.sh --verbose >> ${log}
-source setRestartLink.sh >> ${log}
-source checkRunSettings.sh >> ${log}
+source setCommonRunSettings.sh --verbose 2>&1 | tee ${log}
+source setRestartLink.sh 2>&1 | tee ${log}
+source checkRunSettings.sh 2>&1 | tee ${log}
 
 # Run GCHP with # processors specified in config file setCommonRunSettings.sh
 nCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' setCommonRunSettings.sh )
@@ -31,14 +34,30 @@ nCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' setCommonRunSettings.sh )
 #--------------------------------------------------
 time mpirun -np ${nCores} ./gchp 2>&1 | tee -a ${log}
 
-# Rename and move restart file and update restart symlink if new start time ok
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done
+
+# Rename restart file and update restart symlink if new start time ok
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   rm Restarts/gcchem_internal_checkpoint
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh 2>&1 | tee -a ${log}
 fi
-

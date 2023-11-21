@@ -38,6 +38,7 @@ COLLECTIONS: 'Restart',
              #'LevelEdgeDiags',
              #'ProdLoss',
              #'SatDiagn',
+             #'SatDiagnEdge',
              #'StateMet',
              #'WetLossConv',
              #'WetLossLS',
@@ -289,6 +290,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnSurfFlux_NO            ',
                               'SatDiagnProd_?PRD?             ',
                               'SatDiagnLoss_?LOS?             ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%

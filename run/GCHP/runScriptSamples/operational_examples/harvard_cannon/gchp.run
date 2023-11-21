@@ -4,7 +4,7 @@
 #SBATCH -N 2
 #SBATCH --exclusive
 #SBATCH -t 0-8:00
-#SBATCH -p seas_compute
+#SBATCH -p huce_intel,seas_compute,shared
 #SBATCH --mem=180000
 #SBATCH --mail-type=END
 
@@ -31,18 +31,35 @@ NY=$( grep NY GCHP.rc | awk '{print $2}' )
 coreCount=$(( ${NX} * ${NY} ))
 planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
 if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
-	${planeCount}=$(( ${planeCount} + 1 ))
+    planeCount=$(( ${planeCount} + 1 ))
 fi
 time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
-# Rename and move restart file and update restart symlink if new start time ok
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done
+
+# Rename restart file and update restart symlink if new start time ok
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   rm -f Restarts/gcchem_internal_checkpoint
    exit 1
 else
     N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi
 

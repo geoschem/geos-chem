@@ -1,28 +1,28 @@
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
+# Define grid labels
+#
 # Define output grids different from the native cubed sphere in this section.
-# Each diagnostics collection will be output on the native resolution cubed
-# sphere grid unless a different grid is configured. A few examples are
-# provided below.
+# Each diagnostics collection is output on the native resolution global cubed
+# sphere grid unless a different grid defined here is set for that collection
+# in the collections section of this file.
 #
-# To use a grid for a specific collection, include the 'grid_label' field
-# in the collection definition. For example,
+# See the examples below for defining different types of grid at different
+# resolutions. See the collections section later on in this file for
+# instructions on using an alternative grid for output.
 #
-#   SpeciesConc.grid_label:   REGIONAL1x1
-#
-# If you are outputting on a lat/lon grid, be sure to specify conservative
-# regridding. Otherwise regridding will be bi-linear.
-#
-#   SpeciesConc.conservative: 1
-#
+# Beware that the online regridding is area-conserving. Only diagnostics
+# independent of grid cell area should be output on a custom grid. For more
+# information see the HISTORY.rc page at gchp.readthedocs.io/.
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution
@@ -60,21 +60,46 @@ COLLECTIONS: 'Emissions',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-             #'StateMet',
+             'StateMet',
 ::
 #==============================================================================
 # Define collections
+#
 # The rest of this file consists of collection definitions.
 # Above collections whose declarations are commented out will be ignored.
-# You can skip individual diagnostics by commenting them out.
+# You can skip individual diagnostics by commenting out their names.
 #
 # WARNING: Frequency, duration, and mode will be over-written with
-# settings in setCommonRunSettings.sh. Edit those settings there. Add collections
-# as needed to that file as needed or edit in place new collections here.
+# settings in setCommonRunSettings.sh. Edit settings in that file. You can execute the
+# script to update this file and then inspect results before submitting a
+# run. Collection names are hard-coded in that file; if you add more
+# collections then you must also add them there for auto-update, or manually
+# change settings for the new collection in this file.
 #
 # NOTES:
-#    (1) See the GRID_LABELS sections above for details about output grids
-#    (2) To output a reduced set of levels, use the levels keyword, e.g.:
+#    (1) Template keyword defines suffix of output filename, appended to
+#        '{EXPID}.{collection}.'. See top of this file for EXPID definition.
+#
+#    (2) Frequency keyword sets frequency of data in each output file
+#
+#    (3) Duration keyword sets frequency of output file
+#  
+#    (4) Mode keyword may be 'time-averaged' or 'instantaneous'
+#
+#    (5) See the GRID_LABELS sections above for details about output grids
+#
+#    (6) To output data on a grid other than native res global cubed sphere
+#        include the 'grid_label' field. For example, 
+#
+#           SpeciesConc.grid_label:   REGIONAL1x1
+#
+#    (7) If you are outputting on a lat/lon grid, be sure to specify
+#        conservative regridding. Otherwise regridding will be bi-linear.
+#
+#           SpeciesConc.conservative: 1
+#
+#    (8) To output a reduced set of levels, use the levels keyword, e.g.:
+#
 #           SpeciesConc.levels: 1 2 3
 #
 #==============================================================================
@@ -101,10 +126,11 @@ COLLECTIONS: 'Emissions',
                               'EmisCH4_Lakes        ', 'GCHPchem',
                               'EmisCH4_Termites     ', 'GCHPchem',
                               'EmisCH4_SoilAbsorb   ', 'GCHPchem',
+                              'EmisCH4_Reservoirs   ', 'GCHPchem',
                               'EmisCO_Total         ', 'GCHPchem',
                               'EmisCO_Aircraft      ', 'GCHPchem',
                               'EmisCO_Anthro        ', 'GCHPchem',
-                              'EmisCO_BioBurn       ', 'GCHPchem',
+                              'EmisCO_BiomassBurn   ', 'GCHPchem',
                               'EmisCO_Ship          ', 'GCHPchem',
                               'EmisCO2_Total        ', 'GCHPchem',
                               'EmisCO2_FossilFuel   ', 'GCHPchem',
@@ -114,7 +140,7 @@ COLLECTIONS: 'Emissions',
                               'EmisCO2_Ship         ', 'GCHPchem',
                               'EmisCO2_Aviation     ', 'GCHPchem',
                               'EmisCO2_CO2SurfCorr  ', 'GCHPchem',
-                             #'EmisCO2_Biomass_GFED ', 'GCHPchem',
+                              'EmisCO2_BiomassBurn  ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)

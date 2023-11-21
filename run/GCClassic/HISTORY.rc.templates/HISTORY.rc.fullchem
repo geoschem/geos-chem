@@ -1,4 +1,4 @@
-<###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -45,10 +45,13 @@ COLLECTIONS: 'Restart',
              ##'ProdLoss',
              ##'RRTMG',
              ##'RxnRates',
+             ##'RxnConst',
              ##'SatDiagn',
+             ##'SatDiagnEdge',
              ##'StateChm',
              #'StateMet',
              ##'StratBM',
+             ##'UVFlux',
              ##'WetLossConv',
              ##'WetLossLS',
              ##'BoundaryConditions',
@@ -121,7 +124,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
-                              #'SpeciesConcMND_?ALL?          ',
+                              ##'SpeciesConcMND_?ALL?          ',
 ::
 #==============================================================================
 # %%%%% THE AdvFluxVert COLLECTION %%%%%
@@ -365,9 +368,9 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% THE JValues COLLECTION %%%%%
 #
-# Photolysis rates and UV fluxes (from the FAST-JX photolysis module)
+# Photolysis rates (from the photolysis module)
 #
-# Available for all full-chemistry simulations
+# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
   JValues.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -376,9 +379,17 @@ COLLECTIONS: 'Restart',
   JValues.fields:             'Jval_?PHO?                    ',
                               'JvalO3O1D                     ',
                               'JvalO3O3P                     ',
-                              'UVFluxDiffuse_?UVFLX?         ',
-                              'UVFluxDirect_?UVFLX?          ',
-                              'UVFluxNet_?UVFLX?             ',
+::
+#==============================================================================
+# %%%%% THE UVFlux COLLECTION %%%%%
+#
+# UV fluxes (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  UVFlux.template:           'UVFluxDiffuse_?UVFLX?         ',
+                             'UVFluxDirect_?UVFLX?          ',
+                             'UVFluxNet_?UVFLX?             ',
 ::
 #==============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%
@@ -553,6 +564,26 @@ COLLECTIONS: 'Restart',
                        'RxnRate_EQ002                           ',
 ::
 #==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of reactants
+# in the reaction.
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnConst.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnConst.duration:   ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnConst.mode:       'time-averaged'
+  RxnConst.fields:     'RxnConst_EQ001                          ',
+                       'RxnConst_EQ002                          ',
+::
+#==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
 # GEOS-Chem data during satellite overpass
@@ -622,6 +653,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnRxnRate_EQ386          ',
                               'SatDiagnRxnRate_EQ387          ',
                               'SatDiagnRxnRate_EQ388          ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%
