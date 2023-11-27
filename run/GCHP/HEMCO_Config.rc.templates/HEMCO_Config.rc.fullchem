@@ -26,7 +26,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      not_used
 GCAP2SCENARIO:               not_used
 Logfile:                     *
 DiagnFile:                   HEMCO_Diagn.rc
@@ -1633,10 +1632,13 @@ VerboseOnCores:              root       # Accepted values: root all
 (((CEDS_GBDMAPS
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS.rc
 )))CEDS_GBDMAPS
+
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
@@ -2649,9 +2651,11 @@ VerboseOnCores:              root       # Accepted values: root all
 )))CEDS_GBDMAPS_SHIP
 
 (((CEDS_SHIP_byFuelType
-(((.not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+(((.not.CEDS_GBDMAPS_SHIP
+(((.not.CEDSv2_SHIP
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_SHIP_byFuelType.rc
-))).not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+))).not.CEDSv2_SHIP
+))).not.CEDS_GBDMAPS_SHIP
 )))CEDS_SHIP_byFuelType
 
 #==============================================================================
