@@ -42,6 +42,7 @@ cd ${srcrundir}
 
 # Source common bash functions from scripts in the run/shared folder
 . ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
+. ${gcdir}/run/shared/setupForRestarts.sh      # Functions for restart files
 . ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
 . ${gcdir}/run/shared/singleCarbonSpecies.sh   # Single carbon species setup
 
@@ -1033,139 +1034,139 @@ fi
 
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
+# Bash functions used here are from ../shared/setupForRestarts.sh
 #--------------------------------------------------------------------
 
-if [[ ${met} = "merra2" ]] || [[ ${met} = "geosfp" ]]; then
+# Parse the download_data.yml file and export environment variables
+# so that we can use them in ../shared/setupForRestarts.sh
+rst_files=$(parseYaml "CodeDir/src/GEOS-Chem/run/shared/download_data.yml" "RUNDIR_")
+for var in ${rst_files[@]}; do
+    [[ "x${var}" =~ "RUNDIR_restarts_" ]] && export "${var}"
+done
+    
+# Root paths for restarts
+# Check the Linux Kernel version to see if we are on the AWS cloud.
+# If we are, define the command to copy the restart file from s3://gcgrid
+is_aws=$(uname -r | grep aws)
+rst_root=$(getRemoteRoot "${is_aws}")
+s3_cp=$(getS3CopyCmd "${is_aws}")
+loc_root="${rundir}/Restarts"
 
-    # Root path for restarts
-    # Check the Linux Kernel version to see if we are on the AWS cloud.
-    # If we are, define the command to copy the restart file from s3://gcgrid
-    is_aws=$(uname -r | grep aws)
-    if [[ "x${is_aws}" != "x" ]]; then
-	rst_root="s3://gcgrid/GEOSCHEM_RESTARTS"
-	s3_cp="aws s3 cp --request-payer=requester"
-    else
-	rst_root="${GC_DATA_ROOT}/GEOSCHEM_RESTARTS"
-    fi
+# Determine the remote and local restart file paths for each simulation
+if [[ "x${sim_name}" == "xaerosol" ]]; then
+    remote_rst=$(getAerosolRemote "${rst_root}")
+    local_rst=$(getAerosolLocal "${loc_root}")
 
-    if [[ "x${sim_name}" == "xfullchem"     ||
-          "x${sim_name}" == "xaerosol"      ||
-          "x${sim_name}" == "xtagO3"    ]]; then
+elif [[ "x${sim_name}" == "xcarbon" ]]; then
+    remote_rst=$(getCarbonRemote "${rst_root}")
+    local_rst=$(getCarbonLocal "${loc_root}")
 
-	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS15.${startdate}_0000z.nc4
-	elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-	    sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.TOMAS40.${startdate}_0000z.nc4
-	else
-	    # Use restart file from the latest 1-year benchmark
-	    sample_rst=${rst_root}/GC_14.2.0/GEOSChem.Restart.fullchem.${startdate}_0000z.nc4
-	fi
+elif [[ "x${sim_name}" == "xCH4" ]]; then
+    remote_rst=$(getCH4Remote "${rst_root}")
+    local_rst=$(getCH4Local "${loc_root}")
 
-    elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
+elif [[ "x${sim_name}" == "xco2" ]]; then
+    remote_rst=$(getCO2Remote "${rst_root}")
+    local_rst=$(getCO2Local "${loc_root}")
 
-	# Use restart file from the latest 1-year TransportTracers benchmark
-	sample_rst=${rst_root}/GC_14.2.0/GEOSChem.Restart.TransportTracers.${startdate}_0000z.nc4
+elif [[ "x${sim_name}" == "xfullchem" ]]; then
+    # NOTE: Also handles TOMAS40 and TOMAS15
+    remote_rst=$(getFullchemRemote "${sim_extra_option}" "${rst_root}")
+    local_rst=$(getFullchemLocal "${sim_extra_option}" "${loc_root}")
 
-    elif [[ "x${sim_name}" == "xHg" ]]; then
+elif [[ "x${sim_name}" == "xmetals" ]]; then
+    remote_rst=$(getMetalsRemote "${rst_root}")
+    local_rst=$(getMetalsLocal "${loc_root}")   
 
-	# For Hg, point to the restart file w/ KPP species (in v2021-12)
-	sample_rst=${rst_root}/v2021-12/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
+elif [[ "x${sim_name}" == "xHg" ]]; then
+    remote_rst=$(getMercuryRemote "${rst_root}")
+    local_rst=$(getMercuryLocal "${loc_root}")   
 
-    elif [[ "x${sim_name}" == "xPOPs" ]]; then
+elif [[ "x${sim_name}" == "xtagCH4" ]]; then
+    remote_rst=$(getTagCH4Remote "${rst_root}")
+    local_rst=$(getTagCH4Local "${loc_root}")
 
-	# For POPs, the extra option is in the restart file name
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}_${sim_extra_option}.${startdate}_0000z.nc4
+elif [[ "x${sim_name}" == "xtagCO" ]]; then
+    remote_rst=$(getTagCORemote "${rst_root}")
+    local_rst=$(getTagCOLocal "${loc_root}")
 
-    elif [[ "x${sim_name}" == "xmetals" ]]; then
-
-	# For metals, use the extra option is in the restart file name
-	sample_rst=${rst_root}/v2021-06/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
-
-    elif [[ "x${sim_name}" == "xcarbon" ]]; then
-
-	# For carbon, point to the restarts in v2023-01
-	sample_rst=${rst_root}/v2023-01/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
-
-    else
-
-	# For other specialty simulations, use previoiusly saved restarts
-	sample_rst=${rst_root}/v2020-02/GEOSChem.Restart.${sim_name}.${startdate}_0000z.nc4
-
-    fi
-
-elif [[ ${met} = "ModelE2.1" ]]; then
-
-    # Root path for restarts
-    # Check the Linux Kernel version to see if we are on the AWS cloud.
-    # If we are, define the command to copy the restart file from s3://gcgrid
-    is_aws=$(uname -r | grep aws)
-    if [[ "x${is_aws}" != "x" ]]; then
-	rst_root="s3://gcgrid/GCAP2_RESTARTS"
-	s3_cp="aws s3 cp --request-payer=requester"
-    else
-	rst_root="${GC_DATA_ROOT}/GCAP2_RESTARTS"
-    fi
-
-    if [[ "x${sim_name}" == "xfullchem" ]]; then
-
-        # For TOMAS simulations, use restarts provided by the TOMAS team
-        # For other fullchem simulations, use restart the latest 1-yr benchmark
-        if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
-    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS15.nc4
-        elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
-    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS40.nc4
-        else
-    	    sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GCAP2.Restart.fullchem.20190701_0000z.nc4
-        fi
-
-    elif [[ ${sim_name} = "TransportTracers" ]]; then
-
-        # For TransportTracers, use restart from latest 1-year benchmark
-        sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
-
-    else
-
-        # For other specialty simulations, use previously saved restarts
-        sample_rst=${rst_root}/v2018-11/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.${grid_res}_${sim_name}.nc4
-
-    fi
+elif [[ "x${sim_name}" == "xtagO3" ]]; then
+    remote_rst=$(getTagO3Remote "${rst_root}")
+    local_rst=$(getTagO3Local "${loc_root}")
+        
+elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
+    remote_rst=$(getTracersRemote "${rst_root}")
+    local_rst=$(getTracersLocal "${loc_root}")
+    
+elif [[ "x${sim_name}" == "xmetals" ]]; then
+    remote_rst=$(getMetalsRemote "${rst_root}")
+    local_rst=$(getMetalsLocal "${loc_root}")
 
 fi
+
+#elif [[ ${met} = "ModelE2.1" ]]; then
+#
+#    # Root path for restarts
+#    # Check the Linux Kernel version to see if we are on the AWS cloud.
+#    # If we are, define the command to copy the restart file from s3://gcgrid
+#    is_aws=$(uname -r | grep aws)
+#    if [[ "x${is_aws}" != "x" ]]; then
+#	rst_root="s3://gcgrid/GCAP2_RESTARTS"
+#	s3_cp="aws s3 cp --request-payer=requester"
+#    else
+#	rst_root="${GC_DATA_ROOT}/GCAP2_RESTARTS"
+#    fi
+#
+#    if [[ "x${sim_name}" == "xfullchem" ]]; then
+#
+#        # For TOMAS simulations, use restarts provided by the TOMAS team
+#        # For other fullchem simulations, use restart the latest 1-yr benchmark
+#        if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
+#    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS15.nc4
+#        elif [[ "x${sim_extra_option}" == "xTOMAS40" ]]; then
+#    	    sample_rst=${rst_root}/v2020-02/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.4x5_TOMAS40.nc4
+#        else
+#    	    sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GCAP2.Restart.fullchem.20190701_0000z.nc4
+#        fi
+#
+#    elif [[ ${sim_name} = "TransportTracers" ]]; then
+#
+#        # For TransportTracers, use restart from latest 1-year benchmark
+#        sample_rst=${rst_root}/GC_13.0.0/${RUNDIR_GRID_NLEV}L/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+#
+#    else
+#
+#        # For other specialty simulations, use previously saved restarts
+#        sample_rst=${rst_root}/v2018-11/${RUNDIR_GRID_NLEV}L/initial_GCAP2_rst.${grid_res}_${sim_name}.nc4
+#
+#    fi
+#
+#fi
+#
+
+## Copy the restart file to the run directory (for AWS or on a local server)
+#if [[ "x${is_aws}" != "x" ]]; then
+#    ${s3_cp} ${remote_rst} ${local_rst}
+#elif [[ -f ${remote_rst} ]]; then
+#    cp ${remote_rst} ${local_rst}
+#else
+#    printf "\n  -- The following sample restart provided for this simulation was not found:"
+#    printf "\n     ${sample_rst}"
+#    printf "\n     You will need to provide this initial restart file or disable"
+#    printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
+#    printf "\n     with default background species concentrations.\n"
+#fi
 
 # Copy the restart file to the run directory (for AWS or on a local server)
-if [[ "x${is_aws}" != "x" ]]; then
-    ${s3_cp} ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4 2>/dev/null
-elif [[ -f ${sample_rst} ]]; then
-    cp ${sample_rst} ${rundir}/Restarts/GEOSChem.Restart.${startdate}_0000z.nc4
-else
-    printf "\n  -- The following sample restart provided for this simulation was not found:"
-    printf "\n     ${sample_rst}"
-    printf "\n     You will need to provide this initial restart file or disable"
-    printf "\n     GC_RESTARTS in HEMCO_Config.rc to initialize your simulation"
-    printf "\n     with default background species concentrations.\n"
-fi
+copyRemoteToLocal "${remote_rst}" "${local_rst}" "${is_aws}" "${s3_cp}"
 
-# Sample restarts for several simulations do not contain all species. For those
-# simulations, print a warning and change the time cycle option in HEMCO config
-# so that we do not force an error if not found (i.e. EFYO --> EY)
-if [[ "x${sim_extra_option}" == "xaciduptake"       ||
-      "x${sim_extra_option}" == "xmarinePOA"        ||
-      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
-      "x${sim_extra_option}" == "xAPM"              ||
-      "x${sim_name}"         == "xPOPs"             ||
-      "x${sim_name}"         == "xtagCH4"           ||
-      "x${sim_name}"         == "xtagO3"        ]]; then
-    old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
-    new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
-    sed_ie "s|${old}|${new}|" HEMCO_Config.rc
+# Change time cycle flags in HEMCO_Config.rc for those simulations
+# in which the restart files do not contain all species
+setEFYOtoEYinHcoCfg "${sim_name}" "${sim_extra_option}"
 
-    printf "\n  -- The sample restart provided for this simulation may not"
-    printf "\n     contain all species defined in this simulation. Missing"
-    printf "\n     species will be assigned default background concentrations."
-    printf "\n     Check your GEOS-Chem log file for details. As always, it"
-    printf "\n     is recommended that you spin up your simulation to ensure"
-    printf "\n     proper initial conditions.\n"
-fi
+#--------------------------------------------------------------------
+# Other setup tasks
+#--------------------------------------------------------------------
 
 # Call function to setup configuration files with settings common between
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to
