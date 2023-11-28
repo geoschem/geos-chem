@@ -132,13 +132,6 @@ CONTAINS
     ! Store # of photolysis reactions in State_Chm object
     State_Chm%Phot%nPhotRxns = NRatJ
 
-! ewl: do we need this?? state_grid not passed here.
-!    ! Random error handling??? Is this needed?
-!    if (State_Grid%NZ+1 .gt. JXL1_) then
-!       CALL ERROR_STOP('Init_CloudJ: not enough levels in JX', &
-!                       'cldj_interface_mod.F90' )
-!    endif
-
   END SUBROUTINE INIT_CLOUDJ
 !EOC
 !------------------------------------------------------------------------------
@@ -163,7 +156,7 @@ CONTAINS
     USE Aerosol_Mod,    ONLY : SALA, SALC, SLA, SPA
     ! ewl: if these are in cloud-j, why do we need them here??
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
-    USE Cldj_Cmn_Mod,   ONLY : JVN_, JXL_, JXL1_, AN_, NQD_, W_r
+    USE Cldj_Cmn_Mod,   ONLY : JVN_, AN_, NQD_, W_r
     USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA, SAA
     USE Cld_Sub_Mod,    ONLY : Cloud_JX
     USE Cmn_Size_Mod,   ONLY : NRHAER, NRH, NDUST
@@ -288,12 +281,12 @@ CONTAINS
     ! These are currently never set. Should they be output from Cloud-J?
     REAL(fp) :: FJBOT(W_)
     REAL(fp) :: FSBOT(W_)
-    REAL(fp) :: FLXD(JXL1_,W_)
-    REAL(fp) :: FJFLX(JXL_,W_)
+    REAL(fp) :: FLXD(L1_,W_)
+    REAL(fp) :: FJFLX(L_,W_)
 
     ! For UVFlux* diagnostics
-    REAL(fp) :: FDIRECT (JXL1_)
-    REAL(fp) :: FDIFFUSE(JXL1_)
+    REAL(fp) :: FDIRECT (L1_)
+    REAL(fp) :: FDIFFUSE(L1_)
     REAL(fp) :: UVX_CONST
 
     ! Species ids

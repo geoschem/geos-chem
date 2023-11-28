@@ -162,7 +162,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod,    ONLY : A_, AN_, W_, WX_, JVN_, N_, JXL_
+#ifdef FASTJX
+    USE CMN_FJX_Mod,    ONLY : A_, AN_, W_, WX_, JVN_, N_, L_
+#else
+    USE Cldj_Cmn_Mod,   ONLY : A_, AN_, W_, WX_, JVN_, N_, L_
+#endif
     USE CMN_Size_Mod,   ONLY : NDUST, NAER
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -217,7 +221,7 @@ CONTAINS
     Phot%nMaxPhotRxns = JVN_! Maximum # of photolysis reactions (JVN_?)
 
     ! Integer scalars
-    Phot%JTAUMX = (N_-4*JXL_)/2
+    Phot%JTAUMX = (N_-4*L_)/2
 
     Phot%RXN_O2     = -1
     Phot%RXN_O3_1   = -1
