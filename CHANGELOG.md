@@ -5,11 +5,15 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
+
 ### Changed
 - Added the `-n` aka `--no-bootstrap` option to integration tests to disable bootstrapping missing species in restart files
 - Use integer parameters for species units instead of strings (for computational efficiency)
 - Update error message for missing surface CH4 emissions with instructions on how to resolve the problem
 - Change GCHP grid resolution threshold for lowering timesteps from C180 inclusive to C180 exclusive
+- Read GEOS-Chem Classic restart file paths from the relevant `download_data.yml` file
 
 ### Fixed
 - Prevent `POAEMISS` from being assigned a value if not allocated (in `carbon_mod.F90`)
