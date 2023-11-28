@@ -751,7 +751,7 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
        Input_Opt%ITS_AN_AEROSOL_SIM .or. &
        Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-     CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
+     CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
