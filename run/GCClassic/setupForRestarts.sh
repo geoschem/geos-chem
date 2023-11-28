@@ -93,7 +93,7 @@ function unsetRestartEnvVar() {
     #========================================================================
     if [[ "x${1}" =~ "RUNDIR_restarts_" ]]; then
         array=(${1//\=/ })
-        unset "${1}"
+        unset "${array[0]}"
     fi
     return $?
 }

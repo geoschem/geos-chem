@@ -1061,7 +1061,7 @@ loc_root="${rundir}/Restarts"
 
 # Copy the proper restart file to the run directory Restarts/ folder
 copyRestartToRunDir "${sim_name}" "${sim_extra_option}" \
-		    "${rt_root}" "${loc_root}"
+		    "${rst_root}" "${loc_root}"
 
 # Change time cycle flags in HEMCO_Config.rc for those simulations
 # in which the restart files do not contain all species
