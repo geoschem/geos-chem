@@ -128,7 +128,7 @@ function getS3CopyCmd() {
 
     # We are on the AWS cloud
     if [[ "x${1}" != "x" ]]; then
-        echo "aws s3 cp --request-payer=requester"
+        echo "aws s3 cp --request-payer requester "
         return $?
     fi
 
@@ -421,7 +421,7 @@ function copyRemoteToLocal() {
 
     # If we are on AWS, copy the remote restart file from s3://gcgrid
     if [[ "x${is_aws}" != "x" ]]; then
-        "${s3_cp}" "${remote_rst}" "${local_rst}"
+        ${s3_cp} "${remote_rst}" "${local_rst}"
         return $?
     fi
 
