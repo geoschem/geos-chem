@@ -79,7 +79,9 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : Init_CMN_FJX
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Grid_Mod,  ONLY : GrdState
@@ -143,6 +145,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
+#ifdef FASTJX
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
@@ -152,6 +155,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
 #ifdef BPCH_DIAG
     !=======================================================================

@@ -1,3 +1,4 @@
+#ifdef FASTJX
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1044,3 +1045,4 @@ CONTAINS
   END SUBROUTINE SET_PROF_FJX
 !EOC
 END MODULE FJX_INTERFACE_MOD
+#endif
