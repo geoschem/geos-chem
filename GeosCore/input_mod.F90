@@ -3124,10 +3124,10 @@ CONTAINS
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
                        TRIM( Input_Opt%CloudJ_Dir )
-       WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
-       WRITE( 6,100 ) 'Ozone from met for FAST-JX? : ',                      &
+       WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
+       WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET
-       WRITE( 6,100 ) 'TOMS/SBUV ozone for FAST-JX?: ', Input_Opt%USE_TOMS_O3
+       WRITE( 6,100 ) 'Use TOMS/SBUV ozone?        : ', Input_Opt%USE_TOMS_O3
        WRITE( 6,100 ) 'Photolyse nitrate aerosol?  : ', Input_Opt%hvAerNIT
        WRITE( 6,105 ) 'JNITs scaling of JHNO3      : ', Input_Opt%hvAerNIT_JNITs
        WRITE( 6,105 ) 'JNIT scaling of JHNO3       : ', Input_Opt%hvAerNIT_JNIT
