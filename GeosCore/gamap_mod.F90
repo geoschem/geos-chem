@@ -1043,10 +1043,10 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef CLOUDJ
-    USE Cldj_Cmn_Mod,    ONLY : W_
+#ifdef FASTJX
+    USE CMN_FJX_Mod,     ONLY : W_
 #else
-     USE CMN_FJX_Mod,    ONLY : W_
+    USE Cldj_Cmn_Mod,    ONLY : W_
 #endif
     USE CMN_SIZE_MOD,    ONLY : NRHAER, NDUST, NSTRATAER
     USE ErrCode_Mod

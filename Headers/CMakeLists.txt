@@ -34,5 +34,5 @@ add_library(Headers
 # Define dependencies for libHeaders.a
 target_link_libraries(Headers PUBLIC
   KPP_FirstPass
-  $<$<BOOL:${CLOUDJ}>:CloudJ_Core> # depends on Cloud-J if Cloud-J is true
+  CloudJ_Core
 )

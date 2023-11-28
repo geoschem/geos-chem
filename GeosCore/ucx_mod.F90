@@ -756,10 +756,10 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef CLOUDJ
-    USE Cldj_Cmn_Mod,    ONLY : RAA
-#else
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : RAA
+#else
+    USE Cldj_Cmn_Mod,    ONLY : RAA
 #endif
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
@@ -927,10 +927,10 @@ CONTAINS
                 RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
-#ifdef CLOUDJ
-                RWET(IBC) = RAA(29) * 1.0e-6_fp
-#else
+#ifdef FASTJX
                 RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
+#else
+                RWET(IBC) = RAA(29) * 1.0e-6_fp
 #endif
              ENDIF
 

@@ -1,4 +1,3 @@
-#ifdef CLOUDJ
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1166,4 +1165,3 @@ CONTAINS
   END SUBROUTINE Set_Clim_Profiles
 !EOC
 END MODULE CLDJ_INTERFACE_MOD
-#endif
