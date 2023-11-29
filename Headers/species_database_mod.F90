@@ -839,7 +839,8 @@ CONTAINS
              ThisSpc%Is_Gas = .TRUE.
           ELSE
              errMsg = "Is_Gas and Is_Aerosol are both FALSE for species " // &
-                      TRIM( spc ) // "!"
+                      TRIM( spc ) // "!This species may not be included " // &
+                      "in species_database.yml. Please check that file."
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
