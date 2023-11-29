@@ -321,6 +321,28 @@ function getMetalsRemote() {
 }
 
 
+function getPOPsLocal() {
+    #========================================================================
+    # Returns local restart file path for the POPs simulation
+    #
+    # 1st argument: Local restart file directory
+    #========================================================================
+    echo $(join "${1}" "${RUNDIR_restarts_pops_local}")
+    return $?
+}
+
+
+function getPOPsRemote() {
+    #========================================================================
+    # Returns remote restart file path for the TagCH4 simulation
+    #
+    # 1st argument: Remote restart file directory
+    #========================================================================
+    echo $(join "${1}" "${RUNDIR_restarts_pops_remote}")
+    return $?
+}
+
+
 function getTagCH4Local() {
     #========================================================================
     # Returns local restart file path for the TagCH4 simulation
@@ -514,6 +536,10 @@ function copyRestartToRunDir() {
     elif [[ "x${sim_name}" == "xHg" ]]; then
         remote_rst=$(getMercuryRemote "${rst_root}")
         local_rst=$(getMercuryLocal "${loc_root}")
+
+    elif [[ "x${sim_name}" == "xPOPs" ]]; then
+        remote_rst=$(getPOPsRemote "${rst_root}")
+        local_rst=$(getPOPsLocal "${loc_root}")
 
     elif [[ "x${sim_name}" == "xtagCH4" ]]; then
         remote_rst=$(getTagCH4Remote "${rst_root}")
