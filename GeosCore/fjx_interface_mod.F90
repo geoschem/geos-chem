@@ -158,7 +158,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Skip if not in dry-run mode
+    ! Skip if in dry-run mode
     IF ( notDryRun ) THEN
        NJXX = NJX
        do J = 1,NJX

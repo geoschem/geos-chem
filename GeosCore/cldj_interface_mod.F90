@@ -30,6 +30,7 @@ MODULE CLDJ_INTERFACE_MOD
 ! !PRIVATE MEMBER FUNCTIONS:
 !
   PRIVATE :: Set_Clim_Profiles
+  PRIVATE :: Get_RH_Index
 !
 ! !REVISION HISTORY:
 !  14 Dec 2022 - E. Lundgren - initial version, adapted from fast_jx_mod
@@ -94,9 +95,9 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: notDryRun
-    INTEGER            :: NJXX ! ewl: what is this?
+    INTEGER            :: NJXX
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    CHARACTER(LEN=6)   :: TITLEJXX(JVN_) ! ewl: do we do anything with this??
+    CHARACTER(LEN=6)   :: TITLEJXX(JVN_)
 
     !=================================================================
     ! INIT_CLOUDJ begins here!
@@ -154,7 +155,6 @@ CONTAINS
 !
     USE Aerosol_Mod,    ONLY : SO4_NH4_NIT, BCPI, BCPO, OCPO, OCPISOA
     USE Aerosol_Mod,    ONLY : SALA, SALC, SLA, SPA
-    ! ewl: if these are in cloud-j, why do we need them here??
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, AN_, NQD_, W_r
     USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA, SAA
@@ -595,17 +595,7 @@ CONTAINS
              ! all zero values.
 
              ! Humidity bin for aerosols (1:<=50, 2:<=70, 3:<=80; 4:<=90, else 5)
-             IF ( State_Met%RH(I,J,L) <= 50 ) THEN
-                RH_ind = 1
-             ELSE IF ( State_Met%RH(I,J,L) <= 70 ) THEN
-                RH_ind = 2
-             ELSE IF ( State_Met%RH(I,J,L) <= 80 ) THEN
-                RH_ind = 3
-             ELSE IF ( State_Met%RH(I,J,L) <= 90 ) THEN
-                RH_ind = 4
-             ELSE
-                RH_ind = 5
-             ENDIF
+             RH_ind = Get_RH_Index( State_Met%RH(I,J,L) )
 
              !----------------------------------------------------
              ! Sulfate [dry molec/cm3] -> [wet g/m2] (troposphere only)
@@ -1158,5 +1148,53 @@ CONTAINS
     ENDDO
 
   END SUBROUTINE Set_Clim_Profiles
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_RH_Index
+!
+! !DESCRIPTION: Function GET\_RH_\Index gets index corresponding to relative
+!  humidity bin used in Cloud-J tables (1-5).
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Get_RH_Index( RH ) RESULT( index )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN) :: RH  ! Relative humidity [%]
+!
+! !RETURN VALUE:
+!
+    INTEGER :: index
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  29 Nov 2023 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    IF ( RH <= 50 ) index = 1
+    RETURN
+
+    IF ( RH <= 70 ) index = 2
+    RETURN
+
+    IF ( RH <= 80 ) index = 3
+    RETURN
+
+    IF ( RH <= 90 ) index = 4
+    RETURN
+
+    index = 5
+
+  END FUNCTION Get_RH_Index
 !EOC
 END MODULE CLDJ_INTERFACE_MOD
