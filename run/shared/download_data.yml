@@ -35,9 +35,9 @@ restarts:
   ch4:
     remote: v2020-02/GEOSChem.Restart.CH4.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
-  ch4:
-    remote: v2020-02/GEOSChem.Restart.CO2.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
+  co2:
+    remote: v2020-02/GEOSChem.Restart.CO2.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
   fullchem:
     remote: GC_14.2.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
@@ -47,6 +47,9 @@ restarts:
   mercury:
     remote: v2021-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
+  pops:
+    remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
   tagch4:
     remote: v2020-02/GEOSChem.Restart.CH4.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
@@ -55,7 +58,7 @@ restarts:
     local:  GEOSChem.Restart.20190701_0000z.nc4 
   tago3:
     remote: GC_14.2.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
-    local:  GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
   tomas15:
     remote: v2021-12/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
@@ -65,7 +68,4 @@ restarts:
   transporttracers:
     remote: GC_14.2.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
-  other:
-    remote: v2020-02/initial_GEOSChem_rst.2x25_@SUFFIX@
-    local:  GEOSChem.Restart.20190701_0000z.nc4
   
