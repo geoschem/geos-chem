@@ -1181,17 +1181,25 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    IF ( RH <= 50 ) index = 1
-    RETURN
+    IF ( RH <= 50 ) THEN
+       index = 1
+       RETURN
+    ENDIF
 
-    IF ( RH <= 70 ) index = 2
-    RETURN
+    IF ( RH <= 70 ) THEN
+       index = 2
+       RETURN
+    ENDIF
 
-    IF ( RH <= 80 ) index = 3
-    RETURN
+    IF ( RH <= 80 ) THEN
+       index = 3
+       RETURN
+    ENDIF
 
-    IF ( RH <= 90 ) index = 4
-    RETURN
+    IF ( RH <= 90 ) THEN
+       index = 4
+       RETURN
+    ENDIF
 
     index = 5
 
