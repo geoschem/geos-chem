@@ -91,6 +91,7 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
+     INTEGER,           POINTER :: Map_All    (:      ) ! All species IDs
      INTEGER,           POINTER :: Map_DryAlt (:      ) ! Dryalt species IDs
      INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species IDs
      INTEGER,           POINTER :: Map_GasSpc (:      ) ! Gas species IDs
@@ -468,6 +469,7 @@ CONTAINS
     ! Mapping vectors
     State_Chm%Map_Advect        => NULL()
     State_Chm%Map_Aero          => NULL()
+    State_Chm%Map_All           => NULL()
     State_Chm%Map_DryAlt        => NULL()
     State_Chm%Map_DryDep        => NULL()
     State_Chm%Map_GasSpc        => NULL()
@@ -926,8 +928,9 @@ CONTAINS
     ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
 #if defined ( MODEL_GCHPCTM )
-       ! Species concentration array pointers will be set to point to MAPL internal state
-       ! every timestep when intstate level values are flipped to match GEOS-Chem standard
+       ! Species concentration array pointers will be set to point
+       ! to MAPL internal state every timestep when internal state level
+       ! values are flipped to match GEOS-Chem standard
        State_Chm%Species(N)%Conc => NULL()
 #else
        ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
@@ -935,6 +938,8 @@ CONTAINS
                                             State_Grid%NZ ), STAT=RC )
        State_Chm%Species(N)%Conc = 0.0_f8
 #endif
+       State_Chm%Species(N)%Units = 0
+       State_Chm%Species(N)%Previous_Units = 0
     ENDDO
 
 #ifdef ADJOINT
@@ -2444,6 +2449,13 @@ CONTAINS
        State_Chm%Map_Aero = 0
     ENDIF
 
+    IF ( State_Chm%nSpecies > 0 ) THEN
+       ALLOCATE( State_Chm%Map_All( State_Chm%nSpecies ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_All', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_All = 0
+    ENDIF
+
     IF (  State_Chm%nDryAlt > 0 ) THEN
        ALLOCATE( State_Chm%Map_DryAlt( State_Chm%nDryAlt ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_DryAlt', 0, RC )
@@ -2578,11 +2590,14 @@ CONTAINS
        ThisSpc => State_Chm%SpcData(N)%Info
 
        !---------------------------------------------------------------------
+       ! Set up the mapping for ALL SPECIES
+       !---------------------------------------------------------------------
+       State_Chm%Map_All(N) = ThisSpc%ModelID
+
+       !---------------------------------------------------------------------
        ! Set up the mapping for ADVECTED SPECIES
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Advected ) THEN
-
-          ! Update the mapping vector of advected species
           C                       = ThisSpc%AdvectId
           State_Chm%Map_Advect(C) = ThisSpc%ModelId
        ENDIF
@@ -3054,6 +3069,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Aero => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_All ) ) THEN
+       DEALLOCATE( State_Chm%Map_All, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_All', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_All => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN
