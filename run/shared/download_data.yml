@@ -27,8 +27,8 @@ mirrors:
 restarts:
   root: GEOSCHEM_RESTARTS
   aerosol:
-    remote: v2021-09/GEOSChem.Restart.fullchem.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
+    remote: GC_14.2.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
   carbon:
     remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
