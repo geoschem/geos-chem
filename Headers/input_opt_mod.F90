@@ -417,15 +417,21 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: TurnOffHetRates
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #endif
 
 #if defined( MODEL_CESM )
-     LOGICAL                     :: onlineAlbedo       = .TRUE. ! Use albedo from land model
-     LOGICAL                     :: onlineLandTypes    = .TRUE. ! Use land types from land model
-     LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
-     LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
+     ! Use albedo from land model
+     LOGICAL                     :: onlineAlbedo       = .TRUE.
+     ! Use land types from land model
+     LOGICAL                     :: onlineLandTypes    = .TRUE.
+     ! Use dry deposition velocities as computed by the Community Land Model
+     LOGICAL                     :: ddVel_CLM          = .TRUE.
+     ! Apply water vapor tendency to specific humidity
+     LOGICAL                     :: applyQtend         = .TRUE.
+     ! Apply photolytic correction for convective scavenging of soluble tracers?
+     LOGICAL                     :: correctConvUTLS    = .TRUE.
 #endif
 
 #ifdef ADJOINT
