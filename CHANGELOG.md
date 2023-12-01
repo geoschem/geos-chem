@@ -23,6 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added compile-time option FASTJX to use legacy Fast-JX photolysis instead of Cloud-J
 - Added new diagnostics OD600 and TCOD600 for 600 nm optical depths (per-level and total column) used for computing J-values in either Fast-JX or Cloud-J
 
+### Added
+- Added GEOS-IT as meteorology option and labeled as beta during run directory creation until full inventory and offline emissions are available.
+
 ## [14.2.3] - 2023-12-01
 ### Added
 - GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
