@@ -155,7 +155,7 @@ MODULE TOMAS_MOD
 
   INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
   INTEGER  :: act_nuc = 0 ! in BL
-  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu 
+  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
                           ! (Yu currently broken, JRP 202101)
   INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                           ! nucleation tuned by factor of 1.0D-5
@@ -305,6 +305,7 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -343,8 +344,8 @@ CONTAINS
     RC    = GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine DO_TOMAS in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -401,6 +402,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -515,8 +517,8 @@ CONTAINS
     ! are now generally [kg/kg] in GEOS-Chem, they are converted to
     ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine
     ! (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine AEROPHYS in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -1758,7 +1760,7 @@ CONTAINS
     enddo
     CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1e-6_fp)
     surf_area = surf_area/(dble(boxvol))
-    
+
     return
 
   end subroutine getcondsink
@@ -1980,7 +1982,7 @@ CONTAINS
        !print*,'H2SO4rate',H2SO4rate
        !print*,'massnuc',massnuc,'CS*gasConc',CS*gasConc
 
-    else  
+    else
        ! nucleation didn't occur
     endif
 
@@ -1997,7 +1999,7 @@ CONTAINS
 !
 ! !DESCRIPTION: This subroutine calls the Vehkamaki 2002 and Napari 2002
 !  nucleation parameterizations and gets the binary and ternary nucleation
-!  rates. 
+!  rates.
 !  WRITTEN BY Jeff Pierce, April 2007 for GISS GCM-II
 !  Put in GEOS-Chem by win T. 9/30/08
 !\\
@@ -2571,7 +2573,7 @@ CONTAINS
        fn=1.0e+6_fp
        fnl=log(fn)
     endif
-      
+
     rnuc=0.141027-0.00122625*fnl-7.82211e-6_fp*fnl**2. &
         -0.00156727*temp-0.00003076*temp*fnl &
         +0.0000108375*temp**2.
@@ -3101,7 +3103,7 @@ CONTAINS
        if (errorswitch) print*,'NUCLEATION: Error after mnfix'
 
        ! there is a chance that Gcf will go less than zero because we are
-       ! artificially growing particles into the first size bin. 
+       ! artificially growing particles into the first size bin.
        ! don't let it go less than zero.
 
     else
@@ -3649,11 +3651,12 @@ CONTAINS
     ! only convert units for a single grid box. Otherwise, run will
     ! take too long (ewl, 9/30/15)
     UNITCHANGE_KGM2 = .FALSE.
-    IF ( TRIM( State_Chm%Spc_Units ) .eq. 'kg/m2' ) THEN
+    IF ( State_Chm%Spc_Units  == KG_SPECIES_PER_M2 ) THEN
        UNITCHANGE_KGM2 = .TRUE.
        CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, .FALSE., RC )
-    ELSE IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect initial species units: ' // TRIM(State_Chm%Spc_Units)
+    ELSE IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect initial species units: ' // &
+              TRIM( UNIT_STR(State_Chm%Spc_Units) )
        LOC = 'Routine AQOXID in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -3881,10 +3884,11 @@ CONTAINS
     ENDIF
 
     ! Check that species units are as expected (ewl, 9/29/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' .AND. &
-         TRIM( State_Chm%Spc_Units ) /= 'kg/m2' ) THEN
-       CALL ERROR_STOP('Incorrect final species units:' // State_Chm%Spc_Units,&
-                       'Routine AQOXID in tomas_mod.F90')
+    IF ( State_Chm%Spc_Units /= KG_SPECIES          .AND. &
+         State_Chm%Spc_Units /= KG_SPECIES_PER_M2 )  THEN
+       MSG = 'Incorrect final species units:' // &
+              TRIM( UNIT_STR( State_Chm%Spc_Units ) )
+       CALL ERROR_STOP( MSG, 'Routine AQOXID in tomas_mod.F90' )
     ENDIF
 
   END SUBROUTINE AQOXID
@@ -3919,6 +3923,7 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -3984,8 +3989,8 @@ CONTAINS
     SOACOND_WARNING_CT = 0
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine SOACOND in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -4189,7 +4194,7 @@ CONTAINS
 !
 ! !IROUTINE: multicoag
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -5046,7 +5051,7 @@ CONTAINS
           write(*,*)'+++ cdt',cdt !<temp>
        endif
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-      
+
        atauc(k,srtso4)=tj(srtso4)*tk(k)*dp(k,srtso4)*cdt
 
        if (sK .gt. 0.e+0_fp) then
@@ -5216,7 +5221,7 @@ CONTAINS
              Mkf(k,jj)=Mko(k,jj)
           enddo
        enddo
-       
+
        !Update water concentrations
        call ezwatereqm(Mkf, RHTOMAS)
 
@@ -5827,7 +5832,7 @@ CONTAINS
                       print *,'Number_that_remain_in_low_bin',DN
                    endif
                    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-                   
+
                    !<step5.3> For fixing mass conserv problem (win, 7/24/06)
                    macc=0e+0_fp
 
@@ -6339,7 +6344,7 @@ CONTAINS
     ALLOCATE( MOLWT( ICOMP ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'MOLWT [TOMAS]' )
     MOLWT(:) = 0e+0_fp
-    
+
     ALLOCATE( H2SO4_RATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
     IF ( AS /= 0 ) CALL ALLOC_ERR( 'H2SO4_RATE' )
     H2SO4_RATE = 0.0e+0_fp
@@ -6447,7 +6452,7 @@ CONTAINS
 !
 ! !IROUTINE: readbinact
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -6502,7 +6507,7 @@ CONTAINS
 !
 ! !IROUTINE: readfraction
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -6575,6 +6580,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -6628,14 +6634,15 @@ CONTAINS
 
     ! Determine factor used to convert Spc to units of [kg] locally
     ! (ewl, 9/29/15)
-    IF ( TRIM( State_Chm%Spc_Units ) == 'kg/m2' ) THEN
+    IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
        UNITFACTOR = State_Grid%AREA_M2(I,J)
 
-    ELSE IF (  TRIM( State_Chm%Spc_Units ) == 'kg/kg dry' ) THEN
+    ELSE IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
        UNITFACTOR = State_Met%AD(I,J,L)
 
     ELSE
-       MSG = 'Unexpected species units: ' // TRIM(State_Chm%Spc_Units)
+       MSG = 'Unexpected species units: ' // &
+              TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine GETFRACTION in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -6729,7 +6736,7 @@ CONTAINS
 !
 ! !IROUTINE: getactbin
 !
-! !DESCRIPTION: 
+! !DESCRIPTION:
 !\\
 !\\
 ! !INTERFACE:
@@ -6742,6 +6749,7 @@ CONTAINS
     USE ERROR_MOD
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -6786,8 +6794,8 @@ CONTAINS
     RC                =  GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine GETACTBIN in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -7163,7 +7171,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
     USE State_Grid_Mod,     ONLY : GrdState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -7192,11 +7200,10 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: I,J, BIN, JC, TRACID, WID
-    INTEGER             :: N, NA, nAdvect
+    INTEGER             :: N, NA, nAdvect, origUnit
     REAL(fp)            :: MSO4, MNACL, MH2O
     REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
     CHARACTER(LEN=255)  :: MSG, LOC
-    CHARACTER(LEN=63)   :: OrigUnit
 
     ! Arrays
     REAL(fp)            :: AMASS(ICOMP)
@@ -7214,8 +7221,15 @@ CONTAINS
     ! Convert species units to [kg] for this routine.
     ! NOTE: For complete area-independence, species units will need to be
     !       mixing ratio or mass per unit area in TOMAS
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine AERO_DIADEN in tomas_mod.F90')
@@ -7223,8 +7237,9 @@ CONTAINS
     ENDIF
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // &
+              TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -7291,16 +7306,22 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
        MSG = 'Incorrect species units at end of AERO_DIADEN: ' &
-             // TRIM(State_Chm%Spc_Units)
+             // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine AERO_DIADEN in tomas_mod.F90')
@@ -7402,8 +7423,8 @@ CONTAINS
     ERRORSWITCH = .FALSE.
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
        LOC = 'Routine CHECKMN in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -7988,14 +8009,14 @@ CONTAINS
                 MK(K,J) = XOLD * NK(K) * FJ
                 MK(KK,J) = MK(KK,J) + MSHIFT * FJ
              ENDDO
-             
+
           ELSE
              ERRORSWITCH = .TRUE.
              PRINT *, 'MNFIX(4): AVG < Xk(',k,')'
              GOTO 300
           ENDIF
 222    ENDIF
-       
+
        !if (PRT) then     !<step5.1-temp>
        !   print *,'After_Check5---------------------'
        !   totmas = sum(MK(k,1:icomp-1))
@@ -8221,7 +8242,7 @@ CONTAINS
     REAL(fp) kcoag(ibins) ! the coagulation rate for the particles in each bin (s^-1)
     !REAL*4 aerodens
     !external aerodens
-    
+
     REAL*4 mu                     !viscosity of air (kg/m s)
     REAL*4 mfp                    !mean free path of air molecule (m)
     REAL*4 Kn                     !Knudsen number of particle
@@ -9524,7 +9545,7 @@ CONTAINS
           endif
        endif
     endif
-    
+
     !check for error
     if (value .gt. 30.) then
        write(*,*) 'ERROR in waterso4'

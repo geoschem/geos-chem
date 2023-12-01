@@ -2466,7 +2466,7 @@ CONTAINS
     Input_Opt%LACTIVEH2O = v_bool
 
     !------------------------------------------------------------------------
-    ! Turn on online stratospheric H2O?
+    ! Use a more conservative boundary condition for strat. H2O?
     !------------------------------------------------------------------------
     key    = "operations%chemistry%active_strat_H2O%use_static_bnd_cond"
     v_bool = MISSING_BOOL
