@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
+- Restored consideration of both isSnow and isIce in dry deposition
 
 ## [14.2.2] - 2023-10-23
 ### Changed
