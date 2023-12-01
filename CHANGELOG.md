@@ -12,6 +12,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
 - Restored consideration of both isSnow and isIce in dry deposition
 
+### Added
+- Added interface to Cloud-J package for computing photolysis rates
+- Added compile-time option FASTJX to use legacy Fast-JX photolysis instead of Cloud-J
+- Added new diagnostics OD600 and TCOD600 for 600 nm optical depths (per-level and total column) used for computing J-values in either Fast-JX or Cloud-J
+
 ## [14.2.3] - 2023-12-01
 ### Added
 - GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
