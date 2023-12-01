@@ -50,7 +50,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE APM_INIT_MOD, ONLY : IFRADF
 #endif
 #ifdef TOMAS
-  USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
+  USE TOMAS_MOD, ONLY : ICOMP, IDIAG
 #endif
 
   IMPLICIT NONE
@@ -335,7 +335,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      ELSE
         ! Extend dry dep tracers if TOMAS aerosol is turned on
         IF ( id_NK01 > 0 ) THEN
-           M = nDryDep + ( ( ICOMP - IDIAG )* IBINS )
+           M = nDryDep + ( ( ICOMP - IDIAG )* State_Chm%nTomasBins )
         ELSE
            M = nDryDep
         ENDIF
@@ -364,10 +364,10 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
            ELSE
               ! To calculate the id_xxx of the associated
               ! tracer. (ccc, 3/11/10)
-              NN  = MOD( N - nDryDep-1, IBINS ) + id_NK01
+              NN  = MOD( N - nDryDep-1, State_Chm%nTomasBins ) + id_NK01
 
               ! Tracer number for bpch file
-              NN1  = ( N - nDryDep ) + ( id_NK01 + IBINS - 1 )
+              NN1  = ( N - nDryDep ) + ( id_NK01 + State_Chm%nTomasBins - 1 )
            ENDIF
 
         ENDIF
@@ -524,7 +524,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'No.'
      CATEGORY = 'NK-EMISS'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_NK01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
@@ -542,7 +542,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg S'
      CATEGORY = 'SF-EMISS'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_SF01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
@@ -560,7 +560,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'SS-EMISS'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_SS01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
@@ -578,7 +578,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'ECIL-SRC'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_ECIL01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
@@ -596,7 +596,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'ECOB-SRC'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_ECOB01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
@@ -614,7 +614,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'OCIL-SRC'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_OCIL01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
@@ -632,7 +632,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'OCOB-SRC'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_OCOB01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
@@ -650,7 +650,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'DUST-SRC'
-     DO NBIN = 1,IBINS
+     DO NBIN = 1,State_Chm%nTomasBins
         N = id_DUST01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
@@ -693,7 +693,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -722,7 +722,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -751,7 +751,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -780,7 +780,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -809,7 +809,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -838,7 +838,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         SCALEX = 1.e+0_fp
 
         IF ( ( NN .ge. id_NK01 ) .and. &
-             ( NN .lt. id_NK01+IBINS )      ) THEN
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
