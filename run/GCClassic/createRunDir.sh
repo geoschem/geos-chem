@@ -341,7 +341,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
-printf "  3. GEOS-IT\n"
+printf "  3. GEOS-IT (Beta release)\n"
 printf "  4. GISS ModelE2.1 (GCAP 2.0)\n"
 
 valid_met=0
