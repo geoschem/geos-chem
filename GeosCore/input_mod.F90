@@ -5495,6 +5495,8 @@ CONTAINS
        MAX_DYN = 600
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
        MAX_DYN = 300
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       MAX_DYN = 300
     ELSE
        MAX_DYN = 3600
     ENDIF
