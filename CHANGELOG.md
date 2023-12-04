@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
 - Restored consideration of both isSnow and isIce in dry deposition
+- Fixed calculation of FRLAND_NOSNO_NOICE in `calc_met_mod.F90`
 
 ## [14.2.3] - 2023-12-01
 ### Added
