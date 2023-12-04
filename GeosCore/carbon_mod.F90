@@ -16,7 +16,6 @@ MODULE CARBON_MOD
 !
 ! !USES:
 !
-  USE AEROSOL_MOD, ONLY : OCFPOA, OCFOPOA
   USE PhysConstants     ! Physical constants
   USE PRECISION_MOD     ! For GEOS-Chem Precisions
 
@@ -898,11 +897,6 @@ CONTAINS
          CALL DEBUG_MSG( '### CHEMCARBON: a SOA_CHEM' )
       ENDIF
 
-#ifdef BPCH_DIAG
-      ! NOTE: This is only needed for ND51, ND51b (bmy, 10/4/19)
-      ! Get total organic aerosol:
-      CALL OASAVE( SAVEOA, Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#endif
    ENDIF
 
  END SUBROUTINE CHEMCARBON
@@ -1891,8 +1885,8 @@ CONTAINS
          JHC = PARENTPOA
          JSV = IDSV(JHC)
          DO IPR = 1, NPROD(JSV)
-            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFPOA(I,J)
-            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFPOA(I,J)
+            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFPOA(I,J)
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFPOA(I,J)
          ENDDO
       ENDIF
 
@@ -1903,8 +1897,8 @@ CONTAINS
          JHC = PARENTOPOA
          JSV = IDSV(JHC)
          DO IPR = 1, NPROD(JSV)
-            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * OCFOPOA(I,J)
-            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * OCFOPOA(I,J)
+            ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) * State_Chm%AerMass%OCFOPOA(I,J)
+            ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) * State_Chm%AerMass%OCFOPOA(I,J)
          ENDDO
       ENDIF
 
@@ -2021,7 +2015,7 @@ CONTAINS
       ! Now treat either traditional POA or semivolatile POA (hotp 7/25/10)
       IF ( id_OCPI > 0 .and. id_OCPO > 0 ) THEN
          MPOC = ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * FAC
-         MPOC = MPOC * OCFOPOA(I,J)
+         MPOC = MPOC * State_Chm%AerMass%OCFOPOA(I,J)
       ELSE
          ! semivolpoa2: MPOC is zero now (hotp 2/27/09)
          MPOC = 1e-30_fp
@@ -2101,8 +2095,8 @@ CONTAINS
             JHC = PARENTPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFPOA(I,J)
             ENDDO
          ENDIF
 
@@ -2112,8 +2106,8 @@ CONTAINS
             JHC = PARENTOPOA
             JSV = IDSV(JHC)
             DO IPR = 1, NPROD(JSV)
-               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / OCFOPOA(I,J)
-               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / OCFOPOA(I,J)
+               ORG_GAS(IPR,JSV) = ORG_GAS(IPR,JSV) / State_Chm%AerMass%OCFOPOA(I,J)
+               ORG_AER(IPR,JSV) = ORG_AER(IPR,JSV) / State_Chm%AerMass%OCFOPOA(I,J)
             ENDDO
          ENDIF
 
@@ -3330,8 +3324,8 @@ CONTAINS
       print*, 'Semivolatile POA settings:---------------'
       print*, ' ALPHA:   ', ALPHA(1,1,9), ALPHA(1,2,9)
       ! OCFPOA and OCFOPOA are now 2D arrays
-      !print*, ' POA OA/OC ratio:    ', OCFPOA(I,J)
-      !print*, ' OPOA OA/OC ratio:   ', OCFOPOA(I,J)
+      !print*, ' POA OA/OC ratio:    ', State_Chm%AerMass%OCFPOA(I,J)
+      !print*, ' OPOA OA/OC ratio:   ', State_Chm%AerMass%OCFOPOA(I,J)
       print*, ' LSVPOA is set to:   ', Input_Opt%LSVPOA
 
       print*, 'CHECK MHC, NOX, PR', MHC, MNOX, MPROD
@@ -6276,10 +6270,10 @@ CONTAINS
    ! Add primary material as appropriate
    IF ( id_POA1 > 0 ) THEN
       MOTEMP = MOTEMP              + &
-               Spc(id_POA1 )%Conc(I,J,L) * OCFPOA(I,J)  + &
-               Spc(id_POA2 )%Conc(I,J,L) * OCFPOA(I,J)  + &
-               Spc(id_OPOA1)%Conc(I,J,L) * OCFOPOA(I,J) + &
-               Spc(id_OPOA2)%Conc(I,J,L) * OCFOPOA(I,J)
+               Spc(id_POA1 )%Conc(I,J,L) * State_Chm%AerMass%OCFPOA(I,J)  + &
+               Spc(id_POA2 )%Conc(I,J,L) * State_Chm%AerMass%OCFPOA(I,J)  + &
+               Spc(id_OPOA1)%Conc(I,J,L) * State_Chm%AerMass%OCFOPOA(I,J) + &
+               Spc(id_OPOA2)%Conc(I,J,L) * State_Chm%AerMass%OCFOPOA(I,J)
    ELSEIF ( id_OCPI > 0 ) THEN
       MOTEMP = MOTEMP + &
                ( Spc(id_OCPI)%Conc(I,J,L) + Spc(id_OCPO)%Conc(I,J,L) ) * 2.1e+0_fp

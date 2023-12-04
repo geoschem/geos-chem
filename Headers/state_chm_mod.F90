@@ -21,6 +21,7 @@ MODULE State_Chm_Mod
 !
 ! USES:
 !
+  USE AerMass_Container_Mod              ! Aerosol mass object          
   USE Dictionary_M, ONLY : dictionary_t  ! Fortran hash table type
   USE ErrCode_Mod                        ! Error handling
   USE Phot_Container_Mod                 ! For photolysis state object
@@ -142,23 +143,24 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Aerosol quantities
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: AeroArea   (:,:,:,:) ! Aerosol Area [cm2/cm3]
-     REAL(fp),          POINTER :: AeroRadi   (:,:,:,:) ! Aerosol Radius [cm]
-     REAL(fp),          POINTER :: WetAeroArea(:,:,:,:) ! Aerosol Area [cm2/cm3]
-     REAL(fp),          POINTER :: WetAeroRadi(:,:,:,:) ! Aerosol Radius [cm]
-     REAL(fp),          POINTER :: AeroH2O    (:,:,:,:) ! Aerosol water [cm3/cm3]
-     REAL(fp),          POINTER :: GammaN2O5  (:,:,:,:) ! N2O5 aerosol uptake [unitless]
-     REAL(fp),          POINTER :: SSAlk      (:,:,:,:) ! Sea-salt alkalinity[-]
-     REAL(fp),          POINTER :: H2O2AfterChem(:,:,:) ! H2O2, SO2 [v/v]
-     REAL(fp),          POINTER :: SO2AfterChem (:,:,:) !  after sulfate chem
-     REAL(fp),          POINTER :: OMOC           (:,:) ! OM:OC Ratio [unitless]
-     REAL(fp),          POINTER :: OMOC_POA       (:,:) ! OM:OC Ratio (OCFPOA) [unitless]
-     REAL(fp),          POINTER :: OMOC_OPOA      (:,:) ! OM:OC Ratio (OCFOPOA) [unitless]
-     REAL(fp),          POINTER :: ACLArea      (:,:,:) ! Fine Cl- Area [cm2/cm3]
-     REAL(fp),          POINTER :: ACLRadi      (:,:,:) ! Fine Cl- Radius [cm]
-     REAL(fp),          POINTER :: QLxpHCloud   (:,:,:) !
-     REAL(fp),          POINTER :: SoilDust   (:,:,:,:) ! Soil dust [kg/m3]
-     REAL(fp),          POINTER :: ORVCsesq     (:,:,:) ! Sesquiterpenes mass [kg/box]
+     TYPE(AerMassContainer), POINTER :: AerMass ! Aerosol mass data object
+     REAL(fp), POINTER :: AeroArea   (:,:,:,:)  ! Aerosol Area [cm2/cm3]
+     REAL(fp), POINTER :: AeroRadi   (:,:,:,:)  ! Aerosol Radius [cm]
+     REAL(fp), POINTER :: WetAeroArea(:,:,:,:)  ! Aerosol Area [cm2/cm3]
+     REAL(fp), POINTER :: WetAeroRadi(:,:,:,:)  ! Aerosol Radius [cm]
+     REAL(fp), POINTER :: AeroH2O    (:,:,:,:)  ! Aerosol water [cm3/cm3]
+     REAL(fp), POINTER :: GammaN2O5  (:,:,:,:)  ! N2O5 aerosol uptake [unitless]
+     REAL(fp), POINTER :: SSAlk      (:,:,:,:)  ! Sea-salt alkalinity[-]
+     REAL(fp), POINTER :: H2O2AfterChem(:,:,:)  ! H2O2, SO2 [v/v]
+     REAL(fp), POINTER :: SO2AfterChem (:,:,:)  !  after sulfate chem
+     REAL(fp), POINTER :: OMOC           (:,:)  ! OM:OC Ratio [unitless]
+     REAL(fp), POINTER :: OMOC_POA       (:,:)  ! OM:OC Ratio (OCFPOA) [unitless]
+     REAL(fp), POINTER :: OMOC_OPOA      (:,:)  ! OM:OC Ratio (OCFOPOA) [unitless]
+     REAL(fp), POINTER :: ACLArea      (:,:,:)  ! Fine Cl- Area [cm2/cm3]
+     REAL(fp), POINTER :: ACLRadi      (:,:,:)  ! Fine Cl- Radius [cm]
+     REAL(fp), POINTER :: QLxpHCloud   (:,:,:)  !
+     REAL(fp), POINTER :: SoilDust   (:,:,:,:)  ! Soil dust [kg/m3]
+     REAL(fp), POINTER :: ORVCsesq     (:,:,:)  ! Sesquiterpenes mass [kg/box]
 
      !-----------------------------------------------------------------------
      ! Fields for nitrogen deposition
@@ -505,6 +507,7 @@ CONTAINS
     State_Chm%RRTMG_iCld        = 0
 
     ! Aerosol and chemistry quantities
+    State_Chm%AerMass           => NULL()
     State_Chm%AeroArea          => NULL()
     State_Chm%AeroRadi          => NULL()
     State_Chm%WetAeroArea       => NULL()
@@ -1006,6 +1009,18 @@ CONTAINS
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
+        !---------------------------------------------------------------------
+       ! Aerosol object
+       ! NOTE: content is currently not registered
+       !---------------------------------------------------------------------
+       ALLOCATE( State_Chm%AerMass, STAT=RC )
+       CALL Init_AerMass_Container( Input_Opt, State_Grid, State_Chm%AerMass, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "Init_AerMass_Container" routine!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       
        !---------------------------------------------------------------------
        ! AeroArea
        !---------------------------------------------------------------------
@@ -3182,6 +3197,11 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%BoundaryCond', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%BoundaryCond => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%AerMass ) ) THEN
+       CALL Cleanup_AerMass_Container(State_Chm%AerMass, RC )
+       State_Chm%AerMass => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%AeroArea ) ) THEN

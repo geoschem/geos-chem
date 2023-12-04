@@ -61,7 +61,6 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   ! GEOS-Chem chemistry modules
   !--------------------------------------------------------------------------
-  USE AEROSOL_MOD,     ONLY : Set_AerMass_Diagnostic
   USE CARBON_MOD            ! For SOA simulation
   USE CHEMISTRY_MOD         ! Driver routines for chemistry
   USE LINEAR_CHEM_MOD       ! For linearized chemistry above chem grid

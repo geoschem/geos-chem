@@ -1,26 +1,5 @@
 # GeosCore/CMakeLists.txt
 
-#-----------------------------------------------------------------------------
-# Define libTransport.a
-#-----------------------------------------------------------------------------
-add_library(Transport
-  STATIC EXCLUDE_FROM_ALL
-  diag_mod.F90
-  calc_met_mod.F90
-  diagnostics_mod.F90
-  pjc_pfix_mod.F90
-  tpcore_fvdas_mod.F90
-  tpcore_window_mod.F90
-  pjc_pfix_window_mod.F90
-  transport_mod.F90
-)
-
-# Dependencies
-target_link_libraries(Transport
-  PUBLIC
-  GeosUtil
-)
-
 # Add a compilation flag to force REAL to REAL*8 if necessary
 # only for file tpcore_window_mod.F90
 if(${USE_REAL8})
@@ -41,6 +20,7 @@ add_library(GeosCore
   aero_drydep.F90
   aerosol_mod.F90
   airs_ch4_mod.F90
+  calc_met_mod.F90
   carbon_mod.F90
   carbon_gases_mod.F90
   chemistry_mod.F90
@@ -49,6 +29,8 @@ add_library(GeosCore
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
+  diag_mod.F90
+  diagnostics_mod.F90
   diag3.F90
   drydep_mod.F90
   dust_mod.F90
@@ -77,11 +59,12 @@ add_library(GeosCore
   mixing_mod.F90
   modis_lai_mod.F90
   ndxx_setup.F90
-  oasave.F90
   ocean_mercury_mod.F90
   olson_landmap_mod.F90
   pbl_mix_mod.F90
   photolysis_mod.F90
+  pjc_pfix_mod.F90
+  pjc_pfix_window_mod.F90
   planeflight_mod.F90
   pops_mod.F90
   RnPbBe_mod.F90
@@ -94,7 +77,10 @@ add_library(GeosCore
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90
+  tpcore_fvdas_mod.F90
+  tpcore_window_mod.F90
   tracer_mod.F90
+  transport_mod.F90
   ucx_mod.F90
   uvalbedo_mod.F90
   vdiff_mod.F90
@@ -119,7 +105,6 @@ endif()
 
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
-  Transport 
   ObsPack 
   History 
   Isorropia 
