@@ -47,7 +47,7 @@ EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
 EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
-                    "luowd"   "rrtmg" "tomas15" "tomas40" )
+                    "luowd"   "rrtmg" "tomas15" )
 EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg" "tomas15")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
@@ -430,8 +430,6 @@ function config_options() {
 	options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
 	options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "tomas40" ]]; then
-	options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=40 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
     else
 	options="${baseOptions}"
     fi
@@ -474,8 +472,6 @@ function compiletest_name() {
 	result="${displayName} with RRTMG"
     elif [[ "${buildDir}" =~ "tomas15" ]]; then
 	result="${displayName} with TOMAS15"
-    elif [[ "${buildDir}" =~ "tomas40" ]]; then
-	result="${displayName} with TOMAS40"
     else
 	result="${displayName}"
     fi
