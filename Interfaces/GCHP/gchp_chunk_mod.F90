@@ -642,11 +642,11 @@ CONTAINS
     ! Diagnostics
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
+    USE Diagnostics_Mod,    ONLY : Set_AerMass_Diagnostic
 #ifdef ADJOINT
     USE PhysConstants,      ONLY : AIRMW
     USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
 #endif
-    USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
