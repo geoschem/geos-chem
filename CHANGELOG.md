@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Fixed
+- Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
+
 ## [14.2.3] - 2023-12-01
 ### Added
 - GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
