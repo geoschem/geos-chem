@@ -375,7 +375,7 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !========================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",   RC )
+       CALL Timer_End  ( "=> Gas-phase chem", RC )
        CALL Timer_Start( "=> Photolysis", RC )
     ENDIF
 
@@ -397,7 +397,7 @@ CONTAINS
 
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Photolysis", RC )
-       CALL Timer_Start( "=> FlexChem",           RC ) ! ended in Do_Chemistry
+       CALL Timer_Start( "=> Gas-phase chem", RC ) ! ended in Do_Chemistry
     ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
@@ -479,10 +479,6 @@ CONTAINS
            '       computed Y upon return:            ', f11.4, /,          &
            'Hexit, last accepted step before exit:    ', f11.4, /,          &
            'Hnew, last predicted step (not yet taken):', f11.4 )
-
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "  -> FlexChem loop", RC )
-    ENDIF
 
     !------------------------------------------------------------------------
     ! Always consider halogens as "fast" species for auto-reduce
@@ -589,14 +585,6 @@ CONTAINS
        ! (update submitted by E. Fleming (NASA), 10/11/2018)
        !=====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
-
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "  -> Photolysis rates",          &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
 
           ! Only proceed if doing photolysis
           IF ( Input_Opt%Do_Photolysis ) THEN
@@ -720,13 +708,6 @@ CONTAINS
              ENDDO
           ENDIF
 
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "  -> Photolysis rates",            &
-                             InLoop    = .TRUE.,                             &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
-          ENDIF
        ENDIF
 
 #if defined( MODEL_CESM )
@@ -801,16 +782,6 @@ CONTAINS
        ENDDO
 
        !=====================================================================
-       ! Start KPP main timer
-       !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> KPP",                          &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
-
-       !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#1)
        !
        ! Populate KPP global variables and arrays in gckpp_global.F90
@@ -823,14 +794,6 @@ CONTAINS
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
-
        ! Copy values into the various KPP global variables
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
@@ -840,14 +803,6 @@ CONTAINS
                                     State_Grid = State_Grid,                 &
                                     State_Met  = State_Met,                  &
                                     RC         = RC                         )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#2)
@@ -862,14 +817,6 @@ CONTAINS
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     RCONST",                       &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
-
        ! Compute sulfur chemistry reaction rates [1/s]
        ! If size_res = T, we'll call fullchem_HetDropChem below.
        CALL Set_Sulfur_Chem_Rates( I          = I,                           &
@@ -883,14 +830,6 @@ CONTAINS
                                    size_res   = size_res,                    &
                                    RC         = RC                          )
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     RCONST",                         &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
-
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#3)
        !
@@ -902,14 +841,6 @@ CONTAINS
        ! See https://github.com/geoschem/geos-chem/issues/1157
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
-
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
 
        ! Populate fields of the State_Het object
        CALL fullchem_SetStateHet( I         = I,                             &
@@ -924,14 +855,6 @@ CONTAINS
                                   State_Met = State_Met,                     &
                                   H         = State_Het,                     &
                                   RC        = RC                            )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#5)
@@ -950,14 +873,6 @@ CONTAINS
        ! (5) Liquid water content is nonzero
        !=====================================================================
        IF ( State_Met%CLDF(I,J,L) > 1.0e-4_fp ) THEN
-
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "     RCONST",                    &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        =  RC                              )
-          ENDIF
 
           ! Liquid water content (same formula from the old sulfate_mod.F90)
           LWC = ( State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L)              &
@@ -979,17 +894,10 @@ CONTAINS
                                         State_Chm = State_Chm               )
           ENDIF
 
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "     RCONST",                       &
-                             InLoop    = .TRUE.,                              &
-                             ThreadNum = Thread,                              &
-                             RC        =  RC                                 )
-          ENDIF
        ENDIF
 
        !=====================================================================
-       ! Start KPP main timer and prepare arrays
+       ! Prepare arrays
        !=====================================================================
 
        ! Zero out dummy species index in KPP
@@ -1002,24 +910,8 @@ CONTAINS
        ! Update reaction rates
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     RCONST",                       &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
-
        ! Update the array of rate constants
        CALL Update_RCONST( )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     RCONST",                         &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -1087,26 +979,10 @@ CONTAINS
        ! let us reset concentrations before calling "Integrate" a 2nd time.
        C_before_integrate = C
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     Integrate 1",                  &
-                            InLoop    =  .TRUE.,                             &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
-
        ! Call the Rosenbrock integrator
        ! (with optional auto-reduce functionality)
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     Integrate 1",                    &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
@@ -1202,25 +1078,9 @@ CONTAINS
           ! Update rates again
           CALL Update_RCONST( )
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "     Integrate 2",               &
-                               InLoop    =  .TRUE.,                          &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
-
           ! Call the Rosenbrock integrator (w/ auto-reduction disabled)
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
-
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "     Integrate 2",                 &
-                             InLoop    =  .TRUE.,                            &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
-          ENDIF
 
           !==================================================================
           ! HISTORY: Archive KPP solver diagnostics
@@ -1382,21 +1242,6 @@ CONTAINS
           State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
 
        ENDDO
-
-       IF ( Input_Opt%useTimers ) THEN
-
-          ! Stop main KPP timer
-          CALL Timer_End( TimerName  = "  -> KPP",                           &
-                          InLoop     = .TRUE.,                               &
-                          ThreadNum  = Thread,                               &
-                          RC         = RC                                   )
-
-          ! Start Prod/Loss timer
-          CALL Timer_Start( TimerName = "  -> Prod/loss diags",              &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
 
 #ifdef BPCH_DIAG
 #ifdef TOMAS
@@ -1579,14 +1424,6 @@ CONTAINS
 
        ENDIF
 
-       ! Stop Prod/Loss timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Prod/loss diags",               &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
-
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
@@ -1597,14 +1434,6 @@ CONTAINS
        IF ( State_Diag%Archive_OHreactivity           .or.                   &
             State_Diag%Archive_SatDiagnOHreactivity ) THEN
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "  -> OH reactivity diag",        &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
-
           ! Archive OH reactivity diagnostic
           CALL Get_OHreactivity ( C, RCONST, OHreact )
           IF ( State_Diag%Archive_OHreactivity ) THEN
@@ -1614,36 +1443,11 @@ CONTAINS
              State_Diag%SatDiagnOHreactivity(I,J,L) = OHreact
           ENDIF
 
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "  -> OH reactivity diag",          &
-                             InLoop    = .TRUE.,                             &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
-          ENDIF
        ENDIF
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Stop timer
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "  -> FlexChem loop", RC )
-    ENDIF
-
-    ! Compute sum of in-loop timers
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Sum_Loop( "  -> Init KPP",            RC )
-       CALL Timer_Sum_Loop( "  -> Het chem rates",      RC )
-       CALL Timer_Sum_Loop( "  -> Photolysis rates",    RC )
-       CALL Timer_Sum_Loop( "  -> KPP",                 RC )
-       CALL Timer_Sum_Loop( "     RCONST",              RC )
-       CALL Timer_Sum_Loop( "     Integrate 1",         RC )
-       CALL Timer_Sum_Loop( "     Integrate 2",         RC )
-       CALL Timer_Sum_Loop( "  -> Prod/loss diags",     RC )
-       CALL Timer_Sum_Loop( "  -> OH reactivity diag",  RC )
-    ENDIF
 
     !=======================================================================
     ! Return gracefully if integration failed 2x anywhere

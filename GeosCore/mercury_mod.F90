@@ -634,7 +634,6 @@ CONTAINS
     USE GcKpp_Model
     USE Gckpp_Global
     USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
-    USE Timers_Mod
     USE Photolysis_Mod,     ONLY : Do_Photolysis
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
