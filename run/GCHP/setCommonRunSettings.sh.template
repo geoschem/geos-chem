@@ -46,7 +46,7 @@ Do_Chemistry=true
 Do_Advection=true
 Do_Cloud_Conv=true
 Do_PBL_Mixing=true
-Do_Non_Local_Mixing=true
+Do_Non_Local_Mixing=${RUNDIR_USE_NLPBL}
 Do_DryDep=true
 Do_WetDep=true
 
@@ -89,6 +89,7 @@ Diag_Collections=(SpeciesConc    \
                   StateChm	 \
                   StateMet       \
                   StratBM        \
+                  Tomas          \
                   Transport	 \
                   UVFlux         \
                   WetLossConv    \
@@ -173,7 +174,37 @@ if [[ ${dustEntry} != "missing" ]]; then
         fi
     fi
 fi
-
+#------------------------------------------------------------------
+#    ONLINE DUST MASS TUNING FACTOR (for TOMAS)
+#------------------------------------------------------------------
+# Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
+# benchmarking and is resolution-dependent. We recommend using offline dust
+# instead of the online extension for GCHP science runs.
+TomasDustEntry=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
+if [[ ${TomasDustEntry} != "missing" ]]; then
+    TomasDustSetting=(${TomasDustEntry// / })
+    if [[ ${TomasDustSetting[3]} = "on" ]]; then
+        if [[ ${STRETCH_GRID} == 'ON' ]]; then
+            echo "WARNING: Online dust (TOMAS_DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
+        fi
+        if [[ $CS_RES -eq 24 ]]; then
+            TomasDust_SF=6.0e-4
+        elif [[ $CS_RES -eq 48 ]]; then
+            TomasDust_SF=5.0416e-4
+        elif [[ $CS_RES -eq 90 ]]; then
+            TomasDust_SF=4.0e-4
+        elif [[ $CS_RES -eq 180 ]]; then
+            TomasDust_SF=3.23e-4
+        elif [[ $CS_RES -eq 360 ]]; then
+            TomasDust_SF=2.35e-4
+        elif [[ $CS_RES -eq 720 ]]; then
+            TomasDust_SF=2.3e-4
+        else
+            echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
+            exit 1
+        fi
+    fi
+fi
 #------------------------------------------------
 #   DOMAIN DECOMPOSITION
 #------------------------------------------------
@@ -565,6 +596,9 @@ print_msg "HEMCO settings:"
 print_msg "---------------"
 if [[ ${dustSetting[3]} = "on" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
+fi
+if [[ ${TomasDustSetting[3]} = "on" ]]; then
+    replace_val "--> Mass tuning factor" ${TomasDust_SF} HEMCO_Config.rc
 fi
 
 ###  Set initial restart file options

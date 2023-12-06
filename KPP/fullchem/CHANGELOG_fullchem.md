@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 # Mechanism history
 
 ## [Unreleased 14.3.0] - TBD
+### Added
+- Added PH2SO2 and PSO4AQ to track production of SO4 for use in TOMAS
+
 ### Changed
 - Updated rate coefficients and products in 63 reactions per JPL / IUPAC recommendations (JPL 19-5; Bates2023)
 - Consolidated product branches to remove 25 reactions (Bates2023 Table S4)

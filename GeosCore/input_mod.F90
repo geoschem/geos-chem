@@ -5955,8 +5955,8 @@ CONTAINS
     !=================================================================
 
 #ifdef TOMAS
-    ! For TOMAS only: If DUST1 is present, the other dust species are too
-    I = MAX( Ind_('DUST1','A'), 0 )
+    ! For TOMAS only: If DUST01 is present, the other dust species are too
+    I = MAX( Ind_('DUST01','A'), 0 )
 #else
     ! Non-TOMAS simulations: Need all DST1-DST4 species
     I = MAX( Ind_('DST1','A'), 0 ) + &

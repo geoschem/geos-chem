@@ -405,6 +405,8 @@ TOLU       = IGNORE; {C7H8; Toluene}
 TRO2       = IGNORE; {Peroxy radical from TOLU oxidation}
 XYLE       = IGNORE; {C8H10; Xylene}
 XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
+PH2SO4     = IGNORE; {SO4 from gas-phase chemistry}
+PSO4AQ     = IGNORE; {SO4 from cloud chemistry}
 
 #DEFFIX
 
@@ -428,14 +430,14 @@ HNO3 + SALCAL       = NITs               : K_MT(6);
 //
 // Cloud
 // S(IV) --> S(VI)
-SO2 + H2O2          = SO4                : K_CLD(1);
-SO2 + O3            = SO4                : K_CLD(2) + SRO3; {Jan 2023; Added SRO3 here; BA}
-SO2 {+O2}           = SO4                : K_CLD(3);        {Mn & Fe catalysis + HET_DROP_CHEM()}
+SO2 + H2O2          = SO4 + PSO4AQ       : K_CLD(1);
+SO2 + O3            = SO4 + PSO4AQ       : K_CLD(2) + SRO3; {Jan 2023; Added SRO3 here; BA}
+SO2 {+O2}           = SO4 + PSO4AQ       : K_CLD(3);        {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
 // HMS
 CH2O + SO2          = HMS                : K_CLD(4);        {Sep 2021; Moch2020; MSL}
 HMS                 = SO2 + CH2O         : K_CLD(5);        {Sep 2021; Moch2020; MSL}
-HMS + OH            = 2SO4 + CH2O - SO2  : K_CLD(6);        {Sep 2021; Moch2020; MSL}
+HMS + OH + SO2      = 2SO4 + CH2O + 2PSO4AQ : K_CLD(6);     {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
@@ -666,7 +668,7 @@ MPN {+M} = MO2 + NO2 :                       GCJPLPR_abcabc(1.05d-02, 4.8d+00, -
 DMS + OH = SO2 + MO2 + CH2O :                GCARR_ac(1.20d-11, -280.0d0);
 DMS + OH = 0.750SO2 + 0.250MSA + MO2 :       GC_DMSOH_acac(8.20d-39, 5376.0d0, 1.05d-5, 3644.0d0);
 DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :        GCARR_ac(1.90d-13, 530.0d0);
-SO2 + OH {+M} = SO4 + HO2 :                  GCJPLPR_abab(2.90d-31, 4.1d+00, 1.7d-12, -0.2d0, 0.6d0);                          {2023/04/18; JPL 19-5; KHB}
+SO2 + OH {+M} = SO4 + HO2 + PH2SO4 :         GCJPLPR_abab(2.90d-31, 4.1d+00, 1.7d-12, -0.2d0, 0.6d0);                          {2023/04/18; JPL 19-5; KHB}
 Br + O3 = BrO + O2 :                         GCARR_ac(1.60d-11, -780.0d0);                                                     {2012/06/07; Parrella2012; JPP}
 BrO + HO2 = HOBr + O2 :                      GCARR_ac(4.50d-12, 460.0d0);                                                      {2012/06/07; Parrella2012; JPP}
 Br + HO2 = HBr + O2 :                        GCARR_ac(4.80d-12, -310.0d0);                                                     {2012/06/07; Parrella2012; JPP}
@@ -857,11 +859,11 @@ CH2OO + H2O = 0.730HMHP + 0.210HCOOH +
 CH2OO + H2O + H2O = 0.400HMHP +
  0.540HCOOH + 0.060CH2O + 0.060H2O2 :        GCARR_ac(2.88d-35, 1391.0d0);                                                     {2019/11/06; Bates2019; KHB}
 CH2OO + O3 = CH2O :                          1.40d-12;                                                                         {2019/11/06; Bates2019; KHB}
-CH2OO + SO2 = CH2O + SO4 :                   3.80d-11;                                                                         {2019/11/06; Bates2019; KHB; 2023/04/18; JPL 19-5; KHB}
+CH2OO + SO2 = CH2O + SO4 + PH2SO4 :          3.80d-11;                                                                         {2019/11/06; Bates2019; KHB; 2023/04/18; JPL 19-5; KHB}
 CH3CHOO + CO = ALD2 + CO2 :                  1.20d-15;                                                                         {2015/09/25; Millet2015; DBM,EAM; 2023/04/18; Bates2023; KHB}
 CH3CHOO + NO = ALD2 + NO2 :                  1.00d-14;                                                                         {2015/09/25; Millet2015; DBM,EAM}
 CH3CHOO + NO2 = ALD2 + NO3 :                 4.25d-12;                                                                         {2015/09/25; Millet2015; DBM,EAM; 2023/04/18; JPL 19-5; KHB}
-CH3CHOO + SO2 = ALD2 + SO4 :                 2.65d-11;                                                                         {2015/09/25; Millet2015; DBM,EAM; 2023/04/18; JPL 19-5; KHB}
+CH3CHOO + SO2 = ALD2 + SO4 + PH2SO4 :        2.65d-11;                                                                         {2015/09/25; Millet2015; DBM,EAM; 2023/04/18; JPL 19-5; KHB}
 CH3CHOO + H2O = ALD2 + H2O2 :                6.00d-18;                                                                         {2015/09/25; Millet2015; DBM,EAM}
 CH3CHOO + H2O = ACTA :                       1.00d-17;                                                                         {2015/09/25; Millet2015; DBM,EAM}
 MTPA + OH = PIO2 :                           GCARR_ac(1.21d-11, 440.0d0);                                                      {2017/03/23; IUPAC2010; EVF}

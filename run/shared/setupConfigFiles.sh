@@ -288,7 +288,8 @@ function set_common_settings() {
 	# Remove @ from HISTORY diagnostic fields & uncomment RRTMG collection
 	sed_ie 's|@||'                                 HISTORY.rc
         sed_ie "s|##'RRTMG'|'RRTMG'|"                  HISTORY.rc
-
+        sed_ie "s|#'Default|'Default|"                 HISTORY.rc
+	
 	# Issue a warning
 	printf "\nWARNING: All RRTMG run options are enabled which will significantly slow down the model!"
         printf "\nEdit geoschem_config.yml and HISTORY.rc in your new run directory to customize options to only"
@@ -309,135 +310,135 @@ function set_common_settings() {
 	# Add TOMAS species for the first 15 bins following XYLE
         prev_line='      - XYLE'
         new_line='\      - H2SO4\
-      - NK1\
-      - NK2\
-      - NK3\
-      - NK4\
-      - NK5\
-      - NK6\
-      - NK7\
-      - NK8\
-      - NK9\
+      - NK01\
+      - NK02\
+      - NK03\
+      - NK04\
+      - NK05\
+      - NK06\
+      - NK07\
+      - NK08\
+      - NK09\
       - NK10\
       - NK11\
       - NK12\
       - NK13\
       - NK14\
       - NK15\
-      - SF1\
-      - SF2\
-      - SF3\
-      - SF4\
-      - SF5\
-      - SF6\
-      - SF7\
-      - SF8\
-      - SF9\
+      - SF01\
+      - SF02\
+      - SF03\
+      - SF04\
+      - SF05\
+      - SF06\
+      - SF07\
+      - SF08\
+      - SF09\
       - SF10\
       - SF11\
       - SF12\
       - SF13\
       - SF14\
       - SF15\
-      - SS1\
-      - SS2\
-      - SS3\
-      - SS4\
-      - SS5\
-      - SS6\
-      - SS7\
-      - SS8\
-      - SS9\
+      - SS01\
+      - SS02\
+      - SS03\
+      - SS04\
+      - SS05\
+      - SS06\
+      - SS07\
+      - SS08\
+      - SS09\
       - SS10\
       - SS11\
       - SS12\
       - SS13\
       - SS14\
       - SS15\
-      - ECOB1\
-      - ECOB2\
-      - ECOB3\
-      - ECOB4\
-      - ECOB5\
-      - ECOB6\
-      - ECOB7\
-      - ECOB8\
-      - ECOB9\
+      - ECOB01\
+      - ECOB02\
+      - ECOB03\
+      - ECOB04\
+      - ECOB05\
+      - ECOB06\
+      - ECOB07\
+      - ECOB08\
+      - ECOB09\
       - ECOB10\
       - ECOB11\
       - ECOB12\
       - ECOB13\
       - ECOB14\
       - ECOB15\
-      - ECIL1\
-      - ECIL2\
-      - ECIL3\
-      - ECIL4\
-      - ECIL5\
-      - ECIL6\
-      - ECIL7\
-      - ECIL8\
-      - ECIL9\
+      - ECIL01\
+      - ECIL02\
+      - ECIL03\
+      - ECIL04\
+      - ECIL05\
+      - ECIL06\
+      - ECIL07\
+      - ECIL08\
+      - ECIL09\
       - ECIL10\
       - ECIL11\
       - ECIL12\
       - ECIL13\
       - ECIL14\
       - ECIL15\
-      - OCOB1\
-      - OCOB2\
-      - OCOB3\
-      - OCOB4\
-      - OCOB5\
-      - OCOB6\
-      - OCOB7\
-      - OCOB8\
-      - OCOB9\
+      - OCOB01\
+      - OCOB02\
+      - OCOB03\
+      - OCOB04\
+      - OCOB05\
+      - OCOB06\
+      - OCOB07\
+      - OCOB08\
+      - OCOB09\
       - OCOB10\
       - OCOB11\
       - OCOB12\
       - OCOB13\
       - OCOB14\
       - OCOB15\
-      - OCIL1\
-      - OCIL2\
-      - OCIL3\
-      - OCIL4\
-      - OCIL5\
-      - OCIL6\
-      - OCIL7\
-      - OCIL8\
-      - OCIL9\
+      - OCIL01\
+      - OCIL02\
+      - OCIL03\
+      - OCIL04\
+      - OCIL05\
+      - OCIL06\
+      - OCIL07\
+      - OCIL08\
+      - OCIL09\
       - OCIL10\
       - OCIL11\
       - OCIL12\
       - OCIL13\
       - OCIL14\
       - OCIL15\
-      - DUST1\
-      - DUST2\
-      - DUST3\
-      - DUST4\
-      - DUST5\
-      - DUST6\
-      - DUST7\
-      - DUST8\
-      - DUST9\
+      - DUST01\
+      - DUST02\
+      - DUST03\
+      - DUST04\
+      - DUST05\
+      - DUST06\
+      - DUST07\
+      - DUST08\
+      - DUST09\
       - DUST10\
       - DUST11\
       - DUST12\
       - DUST13\
       - DUST14\
       - DUST15\
-      - AW1\
-      - AW2\
-      - AW3\
-      - AW4\
-      - AW5\
-      - AW6\
-      - AW7\
-      - AW8\
-      - AW9\
+      - AW01\
+      - AW02\
+      - AW03\
+      - AW04\
+      - AW05\
+      - AW06\
+      - AW07\
+      - AW08\
+      - AW09\
       - AW10\
       - AW11\
       - AW12\
@@ -721,8 +722,151 @@ function set_common_settings() {
 	    insert_text "${prev_line}" "${new_line}" geoschem_config.yml
         fi
 
-	# Remove the @ from HISTORY.rc diagnostic fields
-	sed_ie 's/@//' HISTORY.rc
+        # Remove @ from HISTORY diagnostic fields & uncomment TOMAS collection
+        sed_ie 's|@||'                                 HISTORY.rc
+        sed_ie "s|##'Tomas'|'Tomas'|"                  HISTORY.rc
+        sed_ie "s|#'Default|'Default|"                 HISTORY.rc
+
+	# Add TOMAS species
+        prev_line="'SpeciesConc_ACET           ', 'GCHPchem',"
+        new_line="                          'SpeciesConc_NK1            ', 'GCHPchem',\n\
+                          'SpeciesConc_NK02           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK03           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK04           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK05           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK06           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK07           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK08           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK09           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK10           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK11           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK12           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK13           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK14           ', 'GCHPchem',\n\
+                          'SpeciesConc_NK15           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF01           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF02           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF03           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF04           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF05           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF06           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF07           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF08           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF09           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF10           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF11           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF12           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF13           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF14           ', 'GCHPchem',\n\
+                          'SpeciesConc_SF15           ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB01         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB02         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB03         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB04         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB05         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB06         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB07         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB08         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB09         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB10         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB11         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB12         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB13         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB14         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECOB15         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL01         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL02         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL03         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL04         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL05         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL06         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL07         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL08         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL09         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL10         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL11         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL12         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL13         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL14         ', 'GCHPchem',\n\
+                          'SpeciesConc_ECIL15         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB01         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB02         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB03         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB04         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB05         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB06         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB07         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB08         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB09         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB10         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB11         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB12         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB13         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB14         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCOB15         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL01         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL02         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL03         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL04         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL05         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL06         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL07         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL08         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL09         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL10         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL11         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL12         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL13         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL14         ', 'GCHPchem',\n\
+                          'SpeciesConc_OCIL15         ', 'GCHPchem',\n\
+                          'SpeciesConc_SS01           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS02           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS03           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS04           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS05           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS06           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS07           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS08           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS09           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS10           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS11           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS12           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS13           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS14           ', 'GCHPchem',\n\
+                          'SpeciesConc_SS15           ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST01         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST02         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST03         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST04         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST05         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST06         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST07         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST08         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST09         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST10         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST11         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST12         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST13         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST14         ', 'GCHPchem',\n\
+                          'SpeciesConc_DUST15         ', 'GCHPchem',\n\
+                          'SpeciesConc_AW01           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW02           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW03           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW04           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW05           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW06           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW07           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW08           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW09           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW10           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW11           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW12           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW13           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW14           ', 'GCHPchem',\n\
+                          'SpeciesConc_AW15           ', 'GCHPchem',"
+
+        insert_text "${prev_line}" "${new_line}" HISTORY.rc
+
     fi
 
     #------------------------------------------------------------------------

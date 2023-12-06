@@ -260,11 +260,11 @@ MODULE CARBON_MOD
 
   ! Species ID flags
   INTEGER :: id_ASOG1,   id_ASOG2,  id_ASOG3,  id_ASOA1,  id_ASOA2
-  INTEGER :: id_ASOA3,   id_ASOAN,  id_AW1,    id_BCPI,   id_BCPO
-  INTEGER :: id_BENZ,    id_ECIL1,  id_ECOB1,  id_HO2
+  INTEGER :: id_ASOA3,   id_ASOAN,  id_AW01,   id_BCPI,   id_BCPO
+  INTEGER :: id_BENZ,    id_ECIL01, id_ECOB01, id_HO2
   INTEGER :: id_ISOP,    id_LIMO,   id_MTPA
-  INTEGER :: id_MTPO,    id_NAP,    id_NK1,    id_NH4,    id_NO
-  INTEGER :: id_NO3,     id_OCIL1,  id_OCOB1,  id_O3,     id_OH
+  INTEGER :: id_MTPO,    id_NAP,    id_NK01,   id_NH4,    id_NO
+  INTEGER :: id_NO3,     id_OCIL01, id_OCOB01, id_O3,     id_OH
   INTEGER :: id_OCPO,    id_OCPI,   id_OPOA1,  id_OPOG1,  id_OPOA2
   INTEGER :: id_OPOG2,   id_POA1,   id_POA2,   id_POG1,   id_POG2
   INTEGER :: id_TOLU,    id_TSOA0,  id_TSOA1
@@ -325,8 +325,8 @@ CONTAINS
     USE CMN_O3_MOD,           ONLY : SAVEOA
 #endif
 #ifdef TOMAS
-    USE TOMAS_MOD,            ONLY : SOACOND, IBINS              !(win, 1/25/10)
-    USE TOMAS_MOD,            ONLY : CHECKMN                     !(sfarina)
+    USE TOMAS_MOD,            ONLY : SOACOND
+    USE TOMAS_MOD,            ONLY : CHECKMN
     USE PRESSURE_MOD,         ONLY : GET_PCENTER
 #endif
 !
@@ -371,7 +371,7 @@ CONTAINS
 
 #ifdef TOMAS
     INTEGER            :: I, J
-    REAL*4             :: BOXVOL, TEMPTMS, PRES
+    REAL*4             :: BOXVOL, TEMPTMS, PRES, BOXMASS
 #endif
 
     ! Pointers
@@ -799,16 +799,16 @@ CONTAINS
 
 #ifdef TOMAS
    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
-   IF ( id_ECIL1 > 0 .and. id_ECOB1 > 0 ) THEN
-      CALL AGING_CARB( id_ECIL1, id_ECOB1, State_Grid, State_Chm )
+   IF ( id_ECIL01 > 0 .and. id_ECOB01 > 0 ) THEN
+      CALL AGING_CARB( id_ECIL01, id_ECOB01, State_Grid, State_Chm )
       IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB EC' )
       ENDIF
    ENDIF
-   IF ( id_OCIL1 > 0 .and. id_OCOB1 > 0 ) THEN
-      CALL AGING_CARB( id_OCIL1, id_OCOB1, State_Grid, State_Chm )
+   IF ( id_OCIL01 > 0 .and. id_OCOB01 > 0 ) THEN
+      CALL AGING_CARB( id_OCIL01, id_OCOB01, State_Grid, State_Chm )
       IF ( Input_Opt%Verbose ) THEN
          CALL DEBUG_MSG( '### CHEMCARBO: AGING_CARB OC' )
       ENDIF
@@ -820,22 +820,23 @@ CONTAINS
 
 #ifdef TOMAS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from chemcarbon', RC)
+                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
       !$OMP PARALLEL DO       &
       !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES )
+      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
          NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,L)  !kg
          TEMPTMS = State_Met%T(I,J,L)
          PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
             !sfarina16: SOAP -> size Resolved TOMAS SOA
-            CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, &
-                          State_Chm, State_Grid, RC)
+            CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
+                          State_Chm, State_Grid, State_Diag, RC)
          ENDIF
          Spc(id_SOAS)%Conc(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) + NEWSOA
          Spc(id_SOAP)%Conc(I,J,L) = Spc(id_SOAP)%Conc(I,J,L) - NEWSOA
@@ -1406,7 +1407,6 @@ CONTAINS
    USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE TIME_MOD,       ONLY : GET_TS_CHEM    ! [=] second
-   USE TOMAS_MOD,      ONLY : IBINS
 !
 ! !INPUT PARAMETERS:
 !
@@ -1440,7 +1440,7 @@ CONTAINS
 
    DTCHEM = GET_TS_CHEM() / 3600e+0_fp / 24e+0_fp    ![=] day
 
-   DO N = 1, IBINS
+   DO N = 1, State_Chm%nTomasBins
       Spc(id_MIL+N-1)%Conc(:,:,:) = Spc(id_MIL+N-1)%Conc(:,:,:)   &
                                     + Spc(id_MOB+N-1)%Conc(:,:,:) &
                                     * (1.e+0_fp - DEXP(-DTCHEM/TAU_HYDRO))
@@ -4347,7 +4347,7 @@ CONTAINS
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
-   USE TOMAS_MOD,          ONLY : IBINS,    AVGMASS,  ICOMP,   IDIAG
+   USE TOMAS_MOD,          ONLY : AVGMASS,  ICOMP,   IDIAG
    USE TOMAS_MOD,          ONLY : SRTECIL,  SRTECOB,  SRTOCIL
    USE TOMAS_MOD,          ONLY : SRTOCOB,  SRTSO4,   SRTNH4
    USE TOMAS_MOD,          ONLY : SRTH2O,   MNFIX
@@ -4355,17 +4355,17 @@ CONTAINS
    USE TOMAS_MOD,          ONLY : SGCTSCALE
    USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
 !
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
 ! !INPUT PARAMETERS:
 !
    INTEGER,        INTENT(IN) :: CTYPE       ! 1 = EC and 2 = OC
    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-   REAL(fp),       INTENT(IN) :: EMISMASS(State_Grid%NX,State_Grid%NY,IBINS)
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+   REAL(fp),       INTENT(IN) :: EMISMASS(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
 !
 ! !REVISION HISTORY:
 !  06 Oct 2007 - W. Trivitayanurak - Initial version
@@ -4376,23 +4376,23 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-   REAL(fp)  :: NDISTINIT(IBINS)
-   REAL(fp)  :: NDISTFINAL(IBINS)
-   REAL(fp)  :: MADDFINAL(IBINS)
-   REAL(fp)  :: NDIST(IBINS)
-   REAL(fp)  :: MDIST(IBINS,ICOMP)
-   REAL(fp)  :: NDIST2(IBINS)
-   REAL(fp)  :: MDIST2(IBINS,ICOMP)
-   REAL*4    :: BOXVOL, TEMP, PRES
-   INTEGER   :: I, J, L, K, C, N, PBL_MAX
+   REAL(fp)  :: NDISTINIT(State_Chm%nTomasBins)
+   REAL(fp)  :: NDISTFINAL(State_Chm%nTomasBins)
+   REAL(fp)  :: MADDFINAL(State_Chm%nTomasBins)
+   REAL(fp)  :: NDIST(State_Chm%nTomasBins)
+   REAL(fp)  :: MDIST(State_Chm%nTomasBins,ICOMP)
+   REAL(fp)  :: NDIST2(State_Chm%nTomasBins)
+   REAL(fp)  :: MDIST2(State_Chm%nTomasBins,ICOMP)
+   REAL*4    :: BOXVOL, TEMP, PRES, BOXMASS
+   INTEGER   :: I, J, L, K, C, N, PBL_MAX, IBINS
    REAL(fp)  :: F_OF_PBL
    LOGICAL   :: ERRORSWITCH, PDBUG
-   REAL*4    :: N0(State_Grid%NZ,IBINS)
-   REAL*4    :: N1(State_Grid%NZ,IBINS)
-   REAL*4    :: MIL0(State_Grid%NZ,IBINS)
-   REAL*4    :: MIL1(State_Grid%NZ,IBINS)
-   REAL*4    :: MOB0(State_Grid%NZ,IBINS)
-   REAL*4    :: MOB1(State_Grid%NZ,IBINS)
+   REAL*4    :: N0(State_Grid%NZ,State_Chm%nTomasBins)
+   REAL*4    :: N1(State_Grid%NZ,State_Chm%nTomasBins)
+   REAL*4    :: MIL0(State_Grid%NZ,State_Chm%nTomasBins)
+   REAL*4    :: MIL1(State_Grid%NZ,State_Chm%nTomasBins)
+   REAL*4    :: MOB0(State_Grid%NZ,State_Chm%nTomasBins)
+   REAL*4    :: MOB1(State_Grid%NZ,State_Chm%nTomasBins)
    INTEGER   :: ii, jj, ll
    LOGICAL   :: dbg = .false.
    DATA ii, jj, ll /53, 29, 8 /
@@ -4416,18 +4416,21 @@ CONTAINS
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
 
+   ! Number of bins
+   IBINS = State_Chm%nTomasBins
+
    !temp debug      if( sum(emismass(ii,jj,:)) > 0e+0_fp) dbg = .true.
    if( dbg) then
       print *,'===== Entering EMITSGC ===== at',ii,jj,ll
       print *,'Nk'
       do N = 1, ibins
-         print *,Spc(id_NK1+N-1)%conc(ii,jj,ll)
+         print *,Spc(id_NK01+N-1)%conc(ii,jj,ll)
       enddo
       print *,'Mk'
       do k=1,icomp-idiag
          print *,'comp',k
          do N = 1, IBINS
-            print *,Spc(id_NK1+k*IBINS+N-1)%Conc(ii,jj,ll)
+            print *,Spc(id_NK01+k*IBINS+N-1)%Conc(ii,jj,ll)
          enddo
       enddo
       print *,'EMISSION'
@@ -4445,15 +4448,15 @@ CONTAINS
 
          DO K = 1, IBINS
             NDISTINIT(K) = EMISMASS(I,J,K) * F_OF_PBL / AVGMASS(K)
-            NDIST(K) = Spc(id_NK1+K-1)%Conc(I,J,L)
+            NDIST(K) = Spc(id_NK01+K-1)%Conc(I,J,L)
             DO C = 1, ICOMP-IDIAG
-               MDIST(K,C) = Spc(id_NK1+IBINS*C+K-1)%Conc(I,J,L)
+               MDIST(K,C) = Spc(id_NK01+IBINS*C+K-1)%Conc(I,J,L)
                IF( IT_IS_NAN( MDIST(K,C) ) ) THEN
                   PRINT *,'+++++++ Found NaN in EMITSGC ++++++++'
                   PRINT *,'Location (I,J,L):',I,J,L,'Bin',K,'comp',C
                ENDIF
             ENDDO
-            MDIST(K,SRTH2O) = Spc(id_AW1-1+K)%Conc(I,J,L)
+            MDIST(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
             NDISTFINAL(K) = 0e+0_fp
             MADDFINAL(K) = 0e+0_fp
          ENDDO
@@ -4475,6 +4478,7 @@ CONTAINS
          ENDIF
 
          BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,L) !kg
          TEMP    = State_Met%T(I,J,L)
          PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
 
@@ -4491,12 +4495,12 @@ CONTAINS
          IF ( PDBUG ) THEN
             PRINT *,'Found error in SUBGRIDCOAG at', I,J,L
             do k=N,ibins
-               PRINT *,'Nk',Spc(id_NK1+N-1)%Conc(I,J,L)
+               PRINT *,'Nk',Spc(id_NK01+N-1)%Conc(I,J,L)
             enddo
             do k=1,8
                print *,'Mk comp',k
                do N=1,IBINS
-                  print *,Spc(id_NK1+N-1)%Conc(I,J,L)
+                  print *,Spc(id_NK01+N-1)%Conc(I,J,L)
                enddo
             enddo
          ENDIF
@@ -4551,11 +4555,11 @@ CONTAINS
                                    'after SUBGRIDCOAG at ',I,J,L
 
          DO K = 1, IBINS
-            Spc(id_NK1-1+K)%Conc(I,J,L) = NDIST2(K)
+            Spc(id_NK01-1+K)%Conc(I,J,L) = NDIST2(K)
             DO C = 1, ICOMP-IDIAG
-               Spc(id_NK1+K-1+C*IBINS)%Conc(I,J,L) = MDIST2(K,C)
+               Spc(id_NK01+K-1+C*IBINS)%Conc(I,J,L) = MDIST2(K,C)
             ENDDO
-            Spc(id_AW1-1+K)%Conc(I,J,L)  = MDIST2(K,SRTH2O)
+            Spc(id_AW01-1+K)%Conc(I,J,L)  = MDIST2(K,SRTH2O)
          ENDDO
 
          ! Save final info for diagnostic
@@ -4622,18 +4626,19 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- FUNCTION SCALECARB( State_Grid, BULKEMIS, STYPE, CTYPE ) &
+ FUNCTION SCALECARB( State_Chm, State_Grid, BULKEMIS, STYPE, CTYPE ) &
       RESULT( tomasdist )
 !
 ! !USES:
 !
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
-   USE TOMAS_MOD,      ONLY : IBINS
    USE TOMAS_MOD,      ONLY : OCSCALE30,  ECSCALE30
    USE TOMAS_MOD,      ONLY : OCSCALE100, ECSCALE100
 !
 ! !INPUT PARAMETERS:
 !
+   TYPE(ChmState), INTENT(IN) :: State_Chm  ! Chemistry State object
    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
    REAL(fp),       INTENT(IN) :: BULKEMIS(State_Grid%NX,State_Grid%NY)
    INTEGER,        INTENT(IN) :: STYPE
@@ -4641,7 +4646,7 @@ CONTAINS
 !
 ! !RETURN VALUE:
 !
-   REAL(fp) :: tomasdist(State_Grid%NX, State_Grid%NY, IBINS)
+   REAL(fp) :: tomasdist(State_Grid%NX, State_Grid%NY, State_Chm%nTomasBins)
 !
 ! !REMARKS:
 !    STYPE (source type): 1 = Fossil fuel
@@ -4666,7 +4671,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER               :: I, J, K
-   REAL(fp)              :: scalefactor(IBINS)
+   REAL(fp)              :: scalefactor(State_Chm%nTomasBins)
 
    scalefactor = 0.0d0
 
@@ -4907,23 +4912,25 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+ SUBROUTINE EMISSCARBONTOMAS( Input_Opt, State_Chm, State_Grid, State_Met, &
+                               State_Diag, RC )
 !
 ! !USES:
 !
    USE ErrCode_Mod
    USE ERROR_MOD
    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+   USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_GetDiagn
    USE HCO_State_GC_Mod,     ONLY : HcoState, ExtState
-   USE HCO_Interface_Common, ONLY : GetHcoDiagn! TOMAS: HEMCO diags (not IMGrid ready)
    USE HCO_EMISLIST_MOD,     ONLY : HCO_GetPtr !(ramnarine 12/27/2018)
    USE Input_Opt_Mod,        ONLY : OptInput
    USE State_Chm_Mod,        ONLY : ChmState
+   USE State_Diag_Mod,       ONLY : DgnState
    USE State_Grid_Mod,       ONLY : GrdState
    USE State_Met_Mod,        ONLY : MetState
    USE UnitConv_Mod
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
-   USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
+   USE TOMAS_MOD,            ONLY : AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
    USE TOMAS_MOD,            ONLY : CHECKMN
 !
@@ -4936,6 +4943,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+   TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4956,6 +4964,7 @@ CONTAINS
    REAL(fp)                 :: DTSRCE, AREA_M2
    REAL(fp)                 :: CO_ANTH_TOTAL
    REAL*4                   :: BOXVOL  ! calculated from State_Met
+   REAL*4                   :: BOXMASS  ! calculated from State_Met
    REAL*4                   :: TEMPTMS ! calculated from State_Met
    REAL*4                   :: PRES    ! calculated from State_Met
    REAL(fp)                 :: OC2OM = 1.8d0
@@ -4969,12 +4978,12 @@ CONTAINS
 
    ! Arrays
    REAL(fp)                 :: XTRA_ORG_A(State_Grid%NX,State_Grid%NY)
-   REAL(fp)                 :: BCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
-   REAL(fp)                 :: OCSRC(State_Grid%NX,State_Grid%NY,IBINS,2)
-   REAL(fp)                 :: NUMBSRC(State_Grid%NX,State_Grid%NY,IBINS)
+   REAL(fp)                 :: BCSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2)
+   REAL(fp)                 :: OCSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2)
+   REAL(fp)                 :: NUMBSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
    REAL(fp)                 :: AREA(State_Grid%NX, State_Grid%NY)
-   REAL(fp)                 :: TMP_MASS(State_Grid%NX,State_Grid%NY,IBINS)
-   REAL(fp)                 :: SIZE_DIST(State_Grid%NX,State_Grid%NY,IBINS,4) !(ramnarine 12/27/2018)
+   REAL(fp)                 :: TMP_MASS(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+   REAL(fp)                 :: SIZE_DIST(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,4) !(ramnarine 12/27/2018)
    REAL(fp)                 :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
 
    ! Strings
@@ -5008,9 +5017,9 @@ CONTAINS
       CALL ERROR_STOP ( 'HcoState not defined!', LOC )
    ENDIF
 
-   IF ( .NOT. (id_NK1 > 0   .AND. id_ECIL1 > 0 .AND. &
-               id_ECOB1 > 0 .AND. id_OCIL1 > 0 .AND. &
-               id_OCOB1 > 1 ) ) THEN
+   IF ( .NOT. (id_NK01 > 0   .AND. id_ECIL01 > 0 .AND. &
+               id_ECOB01 > 0 .AND. id_OCIL01 > 0 .AND. &
+               id_OCOB01 > 1 ) ) THEN
       CALL ERROR_STOP ( 'TOMAS Species not defined!', LOC )
    ENDIF
 
@@ -5056,8 +5065,8 @@ CONTAINS
          emis2d  => OCPO_ANTH_BULK
       END SELECT
 
-      CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., &
-                        ERR, Ptr3D=Ptr3D )
+      CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                            .FALSE., ERR, Ptr3D=Ptr3D )
       IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
          CALL GC_WARNING( 'HEMCO diagnostic not found: '//TRIM(DgnName), &
                            ERR, THISLOC=LOC )
@@ -5077,15 +5086,16 @@ CONTAINS
    ENDDO
 
    ! ---- SCALE INTO TOMAS BINS ---------------------------
-   BCFF(:,:,:,1) = SCALECARB( State_Grid, BCPI_ANTH_BULK(:,:), 1, 1 )
-   BCFF(:,:,:,2) = SCALECARB( State_Grid, BCPO_ANTH_BULK(:,:), 1, 1 )
-   OCFF(:,:,:,1) = SCALECARB( State_Grid, OCPI_ANTH_BULK(:,:), 1, 2 ) * OC2OM
-   OCFF(:,:,:,2) = SCALECARB( State_Grid, OCPO_ANTH_BULK(:,:), 1, 2 ) * OC2OM
+   BCFF(:,:,:,1) = SCALECARB( State_Chm, State_Grid, BCPI_ANTH_BULK(:,:), 1, 1 )
+   BCFF(:,:,:,2) = SCALECARB( State_Chm, State_Grid, BCPO_ANTH_BULK(:,:), 1, 1 )
+   OCFF(:,:,:,1) = SCALECARB( State_Chm, State_Grid, OCPI_ANTH_BULK(:,:), 1, 2 ) * OC2OM
+   OCFF(:,:,:,2) = SCALECARB( State_Chm, State_Grid, OCPO_ANTH_BULK(:,:), 1, 2 ) * OC2OM
 
    !end 3d emis
 
    DgnName = 'BCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5095,7 +5105,8 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'BCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5105,7 +5116,8 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPI_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                        ERR, THISLOC=LOC)
@@ -5115,7 +5127,8 @@ CONTAINS
    Ptr2D => NULL()
 
    DgnName = 'OCPO_BB'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., ERR, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_WARNING('HEMCO diagnostic not found: '//TRIM(DgnName), &
                       ERR, THISLOC=LOC)
@@ -5160,7 +5173,7 @@ CONTAINS
 
       ! ---- Calling BB subgrid coag parameterization --------
       ! (ramnarine 12/27/2018)
-      SIZE_DIST = SAKAMOTO_SIZE( State_Grid, State_Met, FIRE_NUM, &
+      SIZE_DIST = SAKAMOTO_SIZE( State_Chm, State_Grid, State_Met, FIRE_NUM, &
                                  OCPI_BIOB_BULK, BCPI_BIOB_BULK, &
                                  OCPO_BIOB_BULK, BCPO_BIOB_BULK, &
                                  AREA )
@@ -5174,17 +5187,17 @@ CONTAINS
 
    !2d bioburn
    IF ( USE_FIRE_NUM ) THEN
-      DO K = 1, IBINS        !ramnarine 12/27/2018
+      DO K = 1, State_Chm%nTomasBins        !ramnarine 12/27/2018
          BCBB(:,:,K,1) = SIZE_DIST(:,:,K,1) * AREA(:, :) * DTSRCE
          BCBB(:,:,K,2) = SIZE_DIST(:,:,K,2) * AREA(:, :) * DTSRCE
          OCBB(:,:,K,1) = SIZE_DIST(:,:,K,3) * AREA(:, :) * DTSRCE * OC2OM
          OCBB(:,:,K,2) = SIZE_DIST(:,:,K,4) * AREA(:, :) * DTSRCE * OC2OM
       ENDDO
    ELSE
-      BCBB(:,:,:,1) = SCALECARB(State_Grid, BCPI_BIOB_BULK(:,:), 3,1)
-      BCBB(:,:,:,2) = SCALECARB(State_Grid, BCPO_BIOB_BULK(:,:), 3,1)
-      OCBB(:,:,:,1) = SCALECARB(State_Grid, OCPI_BIOB_BULK(:,:), 3,2) * OC2OM
-      OCBB(:,:,:,2) = SCALECARB(State_Grid, OCPO_BIOB_BULK(:,:), 3,2) * OC2OM
+      BCBB(:,:,:,1) = SCALECARB(State_Chm, State_Grid, BCPI_BIOB_BULK(:,:), 3,1)
+      BCBB(:,:,:,2) = SCALECARB(State_Chm, State_Grid, BCPO_BIOB_BULK(:,:), 3,1)
+      OCBB(:,:,:,1) = SCALECARB(State_Chm, State_Grid, OCPI_BIOB_BULK(:,:), 3,2) * OC2OM
+      OCBB(:,:,:,2) = SCALECARB(State_Chm, State_Grid, OCPO_BIOB_BULK(:,:), 3,2) * OC2OM
    ENDIF
 
    ! Add into BCSRC and OCSRC
@@ -5207,7 +5220,7 @@ CONTAINS
       !-----------------------------------------
 
       ! Convert the total mass emission to number emisison [No.]
-      DO K = 1, IBINS
+      DO K = 1, State_Chm%nTomasBins
          NUMBSRC(:,:,K) = ( BCSRC(:,:,K,1) + BCSRC(:,:,K,2) + &
                             OCSRC(:,:,K,1) + OCSRC(:,:,K,2) )/ AVGMASS(K)
       ENDDO
@@ -5225,7 +5238,8 @@ CONTAINS
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
    DgnName = 'BIOGENIC_SOAS'
-   CALL GetHcoDiagn( HcoState, ExtState, DgnName, .FALSE., RC, Ptr2D=Ptr2D )
+   CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, &
+                         StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
    IF ( .NOT. ASSOCIATED(Ptr2D) ) THEN
       CALL GC_Error('Not found: '//TRIM(DgnName), RC, THISLOC=LOC)
       RETURN
@@ -5236,17 +5250,18 @@ CONTAINS
 
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES )
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
       CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
-                    State_Met, 'CHECKMN from emisscarbontomas', RC)
+         State_Met, State_Diag,'CHECKMN from emisscarbontomas', RC)
       IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
          BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
+         BOXMASS  = State_Met%AD(I,J,1)  ! kg
          TEMPTMS = State_Met%T(I,J,1)
          PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
-         CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, &
-                       State_Chm, State_Grid, RC )
+         CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
+                       State_Chm, State_Grid, State_Diag, RC )
       END IF
    END DO
    END DO
@@ -5296,20 +5311,19 @@ CONTAINS
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Grid_Mod,     ONLY : GrdState
    USE State_Met_Mod,      ONLY : MetState
-   USE TOMAS_MOD,          ONLY : IBINS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+   TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !INPUT PARAMETERS:
 !
    TYPE(OptInput), INTENT(IN)  :: Input_Opt               ! Input Options
    TYPE(GrdState), INTENT(IN)  :: State_Grid              ! Grid State
    TYPE(MetState), INTENT(IN)  :: State_Met               ! Meteorology State
-   REAL(fp),       INTENT(IN)  :: BCSRC(State_Grid%NX,State_Grid%NY,IBINS,2) ! Total BC [kg]
-   REAL(fp),       INTENT(IN)  :: OCSRC(State_Grid%NX,State_Grid%NY,IBINS,2) ! Total OC [kg]
-   REAL(fp),       INTENT(IN)  :: NUMBSRC(State_Grid%NX,State_Grid%NY,IBINS)
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-   TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+   REAL(fp),       INTENT(IN)  :: BCSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2) ! Total BC [kg]
+   REAL(fp),       INTENT(IN)  :: OCSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2) ! Total OC [kg]
+   REAL(fp),       INTENT(IN)  :: NUMBSRC(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
 !
 ! !REVISION HISTORY:
 !  04 Sep 2007 - W. Trivitayanurak - Initial version
@@ -5351,29 +5365,29 @@ CONTAINS
    DO L = 1, PBL_MAX
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
-   DO K = 1, IBINS
+   DO K = 1, State_Chm%nTomasBins
 
       ! Fraction of PBL spanned by grid box (I,J,L) [unitless]
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
       ! Hydrophilic ELEMENTAL CARBON
-      Spc(id_ECIL1-1+K)%Conc(I,J,L) = Spc(id_ECIL1-1+K)%Conc(I,J,L) + &
+      Spc(id_ECIL01-1+K)%Conc(I,J,L) = Spc(id_ECIL01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,1) )
 
       ! Hydrophobic ELEMENTAL CARBON
-      Spc(id_ECOB1-1+K)%Conc(I,J,L) = Spc(id_ECOB1-1+K)%Conc(I,J,L) + &
+      Spc(id_ECOB01-1+K)%Conc(I,J,L) = Spc(id_ECOB01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * BCSRC(I,J,K,2) )
 
       ! Hydrophilic ORGANIC CARBON
-      Spc(id_OCIL1-1+K)%Conc(I,J,L) = Spc(id_OCIL1-1+K)%Conc(I,J,L) + &
+      Spc(id_OCIL01-1+K)%Conc(I,J,L) = Spc(id_OCIL01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,1) )
 
       ! Hydrophobic ORGANIC CARBON
-      Spc(id_OCOB1-1+K)%Conc(I,J,L) = Spc(id_OCOB1-1+K)%Conc(I,J,L) + &
+      Spc(id_OCOB01-1+K)%Conc(I,J,L) = Spc(id_OCOB01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * OCSRC(I,J,K,2) )
 
       ! Number corresponding to EC + OC [No.]
-      Spc(id_NK1-1+K)%Conc(I,J,L)   = Spc(id_NK1-1+K)%Conc(I,J,L) + &
+      Spc(id_NK01-1+K)%Conc(I,J,L)   = Spc(id_NK01-1+K)%Conc(I,J,L) + &
                                 ( F_OF_PBL * NUMBSRC(I,J,K) )
 
    ENDDO
@@ -7440,20 +7454,22 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- FUNCTION SAKAMOTO_SIZE( State_Grid, State_Met, FIRE_NUM,  &
+ FUNCTION SAKAMOTO_SIZE( State_Chm, State_Grid, State_Met, FIRE_NUM,  &
                          OCPIBULKEMIS, BCPIBULKEMIS,       &
                          OCPOBULKEMIS, BCPOBULKEMIS, AREA) &
       RESULT ( VALUE )
 !
 ! !USES:
 !
-   USE TOMAS_MOD,      ONLY : IBINS, Xk
+   USE TOMAS_MOD,      ONLY : Xk
+   USE State_Chm_Mod,  ONLY : ChmState
    USE State_Grid_Mod, ONLY : GrdState
    USE State_Met_Mod,  ONLY : MetState
    USE TOMAS_MOD,      ONLY : AVGMASS
 !
 ! !INPUT PARAMETERS:
 !
+   TYPE(ChmState),  INTENT(IN)  :: State_Chm  ! Chemistry State object
    TYPE(GrdState),  INTENT(IN)  :: State_Grid ! Grid State object
    TYPE(MetState),  INTENT(IN)  :: State_Met  ! Meteorology State object
    REAL(fp),        INTENT(IN)  :: FIRE_NUM(State_Grid%NX,State_Grid%NY)
@@ -7465,7 +7481,7 @@ CONTAINS
 !
 ! !RETURN VALUES:
 !
-   REAL(fp)                     :: VALUE(State_Grid%NX,State_Grid%NY,IBINS,4)
+   REAL(fp)                     :: VALUE(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,4)
 !
 ! !REVISION HISTORY:
 !  01 Jan 2017 - E. Ramnarine - Initial version
@@ -7482,9 +7498,9 @@ CONTAINS
    REAL(fp)            :: dM_dxdz
    REAL(fp)            :: Dpm, sig
    REAL(fp)            :: Dl, Dh, Dk
-   REAL(fp)            :: NUM_FRAC(IBINS)
-   REAL(fp)            :: MASS(IBINS)
-   REAL(fp)            :: MASS_FRAC(IBINS)
+   REAL(fp)            :: NUM_FRAC(State_Chm%nTomasBins)
+   REAL(fp)            :: MASS(State_Chm%nTomasBins)
+   REAL(fp)            :: MASS_FRAC(State_Chm%nTomasBins)
    REAL(fp), PARAMETER :: pi=3.14159
 
    ! conditions
@@ -7509,7 +7525,7 @@ CONTAINS
               BCPIBULKEMIS(I,J) + BCPOBULKEMIS(I,J)) !total emissions [kgm-2s-1]
 
       IF ( EMIS == 0.0 ) THEN
-         DO K = 1, IBINS
+         DO K = 1, State_Chm%nTomasBins
             VALUE(I,J,K,1) = 0.0
             VALUE(I,J,K,2) = 0.0
             VALUE(I,J,K,3) = 0.0
@@ -7532,7 +7548,7 @@ CONTAINS
          !Dpm = D_0 ! no coag case
          !sig = sig_0 !no coag case
 
-         DO K = 1, IBINS
+         DO K = 1, State_Chm%nTomasBins
             ! splitting into size bins (seinfeld and pandis eq 8.54)
             !Calculate diameter of this size bin
             Dl=1.0e+9*((6.0*Xk(K))/(1400.0*3.14))**0.3333
@@ -7547,7 +7563,7 @@ CONTAINS
             MASS(K) = NUM_FRAC(K) * AVGMASS(K)
          ENDDO
 
-         DO K = 1, IBINS
+         DO K = 1, State_Chm%nTomasBins
             !Calculate mass fraction
             MASS_FRAC(K) = MASS(K) / SUM( MASS(:) )
 
@@ -7590,9 +7606,6 @@ CONTAINS
    USE State_Chm_Mod,      ONLY : ChmState
    USE State_Diag_Mod,     ONLY : DgnState
    USE State_Grid_Mod,     ONLY : GrdState
-#ifdef TOMAS
-   USE TOMAS_MOD,          ONLY : IBINS
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -7638,24 +7651,24 @@ CONTAINS
    id_ASOA2    = IND_('ASOA2'   )
    id_ASOA3    = IND_('ASOA3'   )
    id_ASOAN    = IND_('ASOAN'   )
-   id_AW1      = IND_('AW1'     )
+   id_AW01     = IND_('AW01'    )
    id_BCPI     = IND_('BCPI'    )
    id_BCPO     = IND_('BCPO'    )
    id_BENZ     = IND_('BENZ'    )
-   id_ECIL1    = IND_('ECIL1'   )
-   id_ECOB1    = IND_('ECOB1'   )
+   id_ECIL01   = IND_('ECIL01'  )
+   id_ECOB01   = IND_('ECOB01'  )
    id_HO2      = IND_('HO2'     )
    id_ISOP     = IND_('ISOP'    )
    id_LIMO     = IND_('LIMO'    )
    id_MTPA     = IND_('MTPA'    )
    id_MTPO     = IND_('MTPO'    )
    id_NAP      = IND_('NAP'     )
-   id_NK1      = IND_('NK1'     )
+   id_NK01     = IND_('NK01'    )
    id_NH4      = IND_('NH4'     )
    id_NO       = IND_('NO'      )
    id_NO3      = IND_('NO3'     )
-   id_OCIL1    = IND_('OCIL1'   )
-   id_OCOB1    = IND_('OCOB1'   )
+   id_OCIL01   = IND_('OCIL01'  )
+   id_OCOB01   = IND_('OCOB01'  )
    id_O3       = IND_('O3'      )
    id_OH       = IND_('OH'      )
    id_OCPO     = IND_('OCPO'    )
@@ -7761,27 +7774,27 @@ CONTAINS
    !SFARINA the next six are introduced with the idea that
    ! emisscarbontomas needs to be restructured and these
    ! data structures eliminated
-   ALLOCATE( BCFF(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( BCFF(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCFF' )
    BCFF = 0e+0_fp
 
-   ALLOCATE( OCFF(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( OCFF(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCFF' )
    OCFF = 0e+0_fp
 
-   ALLOCATE( BCBF(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( BCBF(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBF' )
    BCBF = 0e+0_fp
 
-   ALLOCATE( OCBF(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( OCBF(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBF' )
    OCBF = 0e+0_fp
 
-   ALLOCATE( BCBB(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( BCBB(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'BCBB' )
    BCBB = 0e+0_fp
 
-   ALLOCATE( OCBB(State_Grid%NX,State_Grid%NY,IBINS,2), STAT=AS)
+   ALLOCATE( OCBB(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins,2), STAT=AS)
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCBB' )
    OCBB = 0e+0_fp
 

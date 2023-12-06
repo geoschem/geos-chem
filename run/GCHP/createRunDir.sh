@@ -532,10 +532,13 @@ if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
 else
     if [[ "${sim_extra_option}" == "marinePOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
@@ -564,6 +567,8 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_extra_option}" == "xTOMAS15"          ||
+      "x${sim_extra_option}" == "xTOMAS40"          ||
       "x${sim_name}"         == "xPOPs"             ||
       "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xTransportTracers" ||

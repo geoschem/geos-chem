@@ -84,6 +84,7 @@ MODULE State_Chm_Mod
      INTEGER                    :: nPhotol              ! # photolysis species
      INTEGER                    :: nProd                ! # of prod species
      INTEGER                    :: nRadNucl             ! # of radionuclides
+     INTEGER                    :: nTomasBins           ! # of bins for TOMAS
      INTEGER                    :: nTracer              ! # of transport tracers
      INTEGER                    :: nWetDep              ! # wetdep species
 
@@ -828,6 +829,16 @@ CONTAINS
     State_Chm%nRadNucl = SpcCount%nRadNucl
     State_Chm%nTracer  = SpcCount%nTracer
     State_Chm%nWetDep  = SpcCount%nWetDep
+
+#if defined (TOMAS12)
+    State_Chm%nTomasBins = 12
+#elif defined(TOMAS15)
+    State_Chm%nTomasBins = 15
+#elif defined(TOMAS40)
+    State_Chm%nTomasBins = 40
+#else
+    State_Chm%nTomasBins = 30
+#endif
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
