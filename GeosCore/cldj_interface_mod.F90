@@ -153,8 +153,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : SO4_NH4_NIT, BCPI, BCPO, OCPO, OCPISOA
-    USE Aerosol_Mod,    ONLY : SALA, SALC, SLA, SPA
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, AN_, NQD_, W_r
     USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA, SAA
@@ -631,7 +629,7 @@ CONTAINS
                    Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
                    ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-                   AERSP(L,S_rhx) = SO4_NH4_NIT(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
+                   AERSP(L,S_rhx) = State_Chm%AerMass%SO4_NH4_NIT(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
                         * Q_interp_factor / R_interp_factor
 
                 ENDIF
@@ -671,18 +669,19 @@ CONTAINS
                    IF ( Input_Opt%LBCAE ) THEN
 
                       ! Apply BC absorption enhancement (if using) first for hydrophilic BC
-                      AERSP(L,S_rhx) = BCPI(I,J,L)                                      &
+                      AERSP(L,S_rhx) = State_Chm%AerMass%BCPI(I,J,L)                    &
                            * ( Input_Opt%BCAE_1 + SAA_eff * (1.d0 - Input_Opt%BCAE_1) ) &
                            * dry_to_wet_factor * Q_interp_factor / R_interp_factor
 
                       ! Now apply hydrophobic using single scattering albedo for zero humidity
-                      AERSP(L,S_rhx) = AERSP(L,S_rhx) + BCPO(I,J,L) &
+                      AERSP(L,S_rhx) = AERSP(L,S_rhx) + State_Chm%AerMass%BCPO(I,J,L) &
                            * ( Input_Opt%BCAE_2 + SAA(ind_1000,K_rh0) * (1.d0 - Input_Opt%BCAE_2) )
                    ELSE
 
                       ! No BC absorption enhancement
-                      AERSP(L,S_rhx) = BCPO(I,J,L) &
-                           + BCPI(I,J,L) * dry_to_wet_factor * Q_interp_factor / R_interp_factor
+                      AERSP(L,S_rhx) = State_Chm%AerMass%BCPO(I,J,L) &
+                           + State_Chm%AerMass%BCPI(I,J,L)           &
+                           * dry_to_wet_factor * Q_interp_factor / R_interp_factor
 
                    ENDIF
 
@@ -714,8 +713,9 @@ CONTAINS
                    Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
                    ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-                   AERSP(L,S_rhx) = ( OCPO(I,J,L)                                                      &
-                        + ( OCPISOA(I,J,L) * dry_to_wet_factor * Q_interp_factor / R_interp_factor ) ) &
+                   AERSP(L,S_rhx) = ( State_Chm%AerMass%OCPO(I,J,L)                 &
+                        + ( State_Chm%AerMass%OCPISOA(I,J,L)                        &
+                        * dry_to_wet_factor * Q_interp_factor / R_interp_factor ) ) &
                         * 1.d3 * BoxHt
 
                 ENDIF
@@ -751,7 +751,7 @@ CONTAINS
                    Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
                    ! Set concentration, converting [dry kg/m3] -> [wet g/m2]
-                   AERSP(L,S_rhx) = SALA(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
+                   AERSP(L,S_rhx) = State_Chm%AerMass%SALA(I,J,L) * BoxHt * 1.d3 * dry_to_wet_factor &
                         * Q_interp_factor / R_interp_factor
 
                    !----------------------------------------------------
@@ -779,7 +779,7 @@ CONTAINS
                    Q_interp_factor = QAA_eff / QAA(ind_1000,K_rhx)
 
                    ! Set concentration, converting [dry molec/cm3] -> [wet g/m2]
-                   AERSP(L,S_rhx) = SALC(I,J,L) * BoxHt  * 1.d3 * dry_to_wet_factor &
+                   AERSP(L,S_rhx) = State_Chm%AerMass%SALC(I,J,L) * BoxHt  * 1.d3 * dry_to_wet_factor &
                         * Q_interp_factor / R_interp_factor
 
                 ENDIF
