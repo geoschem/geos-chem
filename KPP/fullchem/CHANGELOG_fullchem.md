@@ -5,6 +5,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 # Mechanism history
 
 ## [Unreleased]
+### Added
+- Added PH2SO2 and PSO4AQ to track production of SO4 for use in TOMAS
+
 ### Changed
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
 

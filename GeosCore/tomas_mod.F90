@@ -1648,17 +1648,15 @@ CONTAINS
     enddo
     !bc 21/01/2022 - check if divide by zero below -added 2 if 
     do k=1,ibins
+       sinkfrac(k) = 0.e-0_fp
        if (CS > 0.e-0_fp) then
           sinkfrac(k) = Dpk(k)*Nko(k)*beta(k)/CS
-       else
-          sinkfrac(k) = 0.e-0_fp
        endif
     enddo
     CS = 2.e+0_fp*pi*dble(Di)*CS/(dble(boxvol)*1.e-6_fp)
+    surf_area = 0.e-0_fp
     if (CS  > 0.e-0_fp) then
        surf_area = surf_area/(dble(boxvol))
-    else
-       surf_area = 0.e-0_fp
     endif
     
     return

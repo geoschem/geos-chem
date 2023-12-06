@@ -18096,7 +18096,7 @@ CONTAINS
 
           ELSEIF ( isTomasBin ) THEN
 
-             ! TomasSbin: Tag names are "bin1" .. "bin15", so the
+             ! TomasSbin: Tag names are "bin01" .. "bin15", so the
              ! bin number is the last 2 characters of the tag name
              S = LEN_TRIM( TagItem%Name )
              READ( TagItem%Name(S-1:S), '(I2.2)' ) index

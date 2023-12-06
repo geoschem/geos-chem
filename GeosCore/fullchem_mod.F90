@@ -41,7 +41,7 @@ MODULE FullChem_Mod
   INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
   INTEGER               :: id_PSO4
 #ifdef TOMAS
-  INTEGER               :: id_NK5,  id_NK8,  id_NK10,  id_NK20
+  INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
@@ -1811,13 +1811,13 @@ CONTAINS
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
 #if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK5, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK5, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK8, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK8, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS30 )
           CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
 
@@ -2779,8 +2779,8 @@ CONTAINS
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
 #ifdef TOMAS
-    id_NK5      = Ind_( 'NK5'          )
-    id_NK8      = Ind_( 'NK8'          )
+    id_NK05     = Ind_( 'NK5'          )
+    id_NK08     = Ind_( 'NK8'          )
     id_NK10     = Ind_( 'NK10'         )
     id_NK20     = Ind_( 'NK20'         )
 #endif
