@@ -1806,7 +1806,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE State_Diag_Mod,     ONLY : DgnState
     USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN,PSO4AQ_RATE
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1837,8 +1837,8 @@ CONTAINS
     INTEGER           :: I, J, L
     INTEGER           :: k, binact1, binact2
     INTEGER           :: KMIN
+    INTEGER           :: OrigUnit
     REAL(fp)          :: SO4OXID
-    CHARACTER(LEN=63) :: OrigUnit
 
     !=================================================================
     ! TOMAS_SO4_AQ begins here!
@@ -1848,8 +1848,15 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Convert species from to [kg]
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of TOMAS_SO4_AQ in sulfate_mod.F90')
@@ -1907,8 +1914,14 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of TOMAS_SO4_AQ in sulfate_mod.F90')
