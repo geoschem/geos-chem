@@ -161,6 +161,8 @@ if [[ ${dustEntry} != "missing" ]]; then
         fi
         if [[ $CS_RES -eq 24 ]]; then
             Dust_SF=6.0e-4
+        elif [[ $CS_RES -eq 30 ]]; then
+            Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
         elif [[ $CS_RES -eq 48 ]]; then
             Dust_SF=5.0416e-4
         elif [[ $CS_RES -eq 90 ]]; then
