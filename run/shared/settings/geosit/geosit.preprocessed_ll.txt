@@ -10,7 +10,7 @@ RUNDIR_MET_LAT_RES='05'
 RUNDIR_MET_LON_RES='0625'
 RUNDIR_MET_EXT='nc4'
 
-RUNDIR_MET_CN_YR=2018
+RUNDIR_MET_CN_YR=1998
 RUNDIR_MET_PRES_UNIT='Pa '
 RUNDIR_MET_PRES_SCALE='0.01'
 
@@ -116,12 +116,12 @@ PFLLSAN  1      N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%
 # --- Fixed variables, from constants file ---
 #-------------------------------------------------------
 
-FRLAKE     1      N Y - none none FRLAKE   ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-FRLAND     1      N Y - none none FRLAND   ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-FRLANDIC   1      N Y - none none FRLANDIC ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-FROCEAN    1      N Y - none none FROCEAN  ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-PHIS       m2_s-2 N Y - none none PHIS     ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
-OCEAN_MASK 1      N Y - none none FROCEAN  ./MetDir/2018/01/GEOSIT.20180101.CN.05x0625.nc
+FRLAKE     1      N Y - none none FRLAKE   ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
+FRLAND     1      N Y - none none FRLAND   ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
+FRLANDIC   1      N Y - none none FRLANDIC ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
+FROCEAN    1      N Y - none none FROCEAN  ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
+PHIS       m2_s-2 N Y - none none PHIS     ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
+OCEAN_MASK 1      N Y - none none FROCEAN  ./MetDir/1998/01/GEOSIT.19980101.CN.05x0625.nc
 
 """
 

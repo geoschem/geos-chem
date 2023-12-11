@@ -8,7 +8,7 @@ RUNDIR_MET_RES='C180'
 RUNDIR_MET_NATIVE_RES='C180'
 RUNDIR_MET_EXT='nc4'
 
-RUNDIR_MET_CN_YR=Y2018
+RUNDIR_MET_CN_YR=Y1998
 RUNDIR_MET_CN_MO=M01
 RUNDIR_MET_PRES_UNIT='hPa'
 RUNDIR_MET_PRES_SCALE='1.0'
@@ -113,12 +113,12 @@ PFLLSAN   kg_m-2_s-1  N Y F0;013000 none  none PFLLSAN    ./MetDir/%y4/%m2/%d2/G
 # --- Fixed variables, from constants file ---
 #-------------------------------------------------------
 
-FRLAKE     1      N Y - none none FRLAKE    ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
-FRLAND     1      N Y - none none FRLAND    ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
-FRLANDIC   1      N Y - none none FRLANDICE ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
-FROCEAN    1      N Y - none none FROCEAN   ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
-PHIS       m2_s-2 N Y - none none PHIS      ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
-OCEAN_MASK 1      N Y - none none FROCEAN   ./MetDir/2018/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.2018-01-01T0300.V01.nc4
+FRLAKE     1      N Y - none none FRLAKE    ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FRLAND     1      N Y - none none FRLAND    ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FRLANDIC   1      N Y - none none FRLANDICE ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FROCEAN    1      N Y - none none FROCEAN   ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+PHIS       m2_s-2 N Y - none none PHIS      ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+OCEAN_MASK 1      N Y - none none FROCEAN   ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
 
 """
 
