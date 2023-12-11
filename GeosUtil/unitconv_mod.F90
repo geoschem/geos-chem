@@ -69,7 +69,7 @@ MODULE UnitConv_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Check_Input_Units
+  PRIVATE :: Check_Units
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> V/V DRY
@@ -150,8 +150,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,            &
-                                State_Met, outUnit,   mapping,    RC        )
+  SUBROUTINE Convert_Spc_Units( Input_Opt, State_Chm,     State_Grid,        &
+                                State_Met, mapping,       new_units,         &
+                                RC,        previous_units                   )
 !
 ! !USES:
 !
@@ -159,19 +160,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid state object
-    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology state object
-    INTEGER,          INTENT(IN)    :: mapping(:)  ! Species map to modelId
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid     ! Grid state object
+    TYPE(MetState),   INTENT(IN)    :: State_Met      ! Meteorology state object
+    INTEGER,          INTENT(IN)    :: mapping(:)     ! Species map to modelId
+    INTEGER,          INTENT(IN)    :: new_units      ! Units to convert to
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry state object
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm      ! Chemistry state object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
-    INTEGER,          OPTIONAL      :: origUnit    ! Units of input data
+    INTEGER,          INTENT(OUT)   :: RC             ! Success or failure?
+    INTEGER,          OPTIONAL      :: previous_units ! Previous units
 !
 ! !REMARKS:
 !  The purpose of optional output argument origUnit is to enable conversion
@@ -195,10 +197,10 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: isAdjoint
-    INTEGER            :: inUnit
+    INTEGER            :: in_units
 
     ! Strings
-    CHARACTER(LEN=255) :: errNoIn, errNoOut, errMsg, thisLoc
+    CHARACTER(LEN=255) :: errNoIn, errNoOut, errMsg, errUnits, thisLoc
 
     !====================================================================
     ! Convert_Spc_Units begins here!
@@ -209,33 +211,39 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    inUnit    = State_Chm%Spc_Units
+    in_units  = State_Chm%Species(mapping(1))%Units
     isAdjoint = .FALSE.
     thisLoc   = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
-    errNoOut  = 'Conversion to '            // TRIM( UNIT_STR(outUnit) )  // &
+    errNoOut  = 'Conversion to '            // TRIM( UNIT_STR(newUnits) )  // &
                 ' not defined!'
     errNoIn   = 'Conversion from '          // TRIM( UNIT_STR(inUnit ) )  // &
                 ' not defined!'
     errMsg    = 'Error in conversion from ' // TRIM( UNIT_STR(inUnit ) )  // &
-                ' to '                      // TRIM( UNIT_STR(outUnit) )  // &
+                ' to '                      // TRIM( UNIT_STR(newUnits) )  // &
                 '!'
-
-    ! Archive units of input data for output if passed as argument
-    IF ( PRESENT( origUnit ) ) origUnit = State_Chm%Spc_Units
+    errUnits  = ''
 
     ! TODO: Re-enable debug print
     ! Debugging print
     IF ( Input_Opt%Verbose ) THEN
        WRITE(6,'(a)') '     ### Species Unit Conversion: ' //                &
                       TRIM( UNIT_STR(inUnit ) )            // ' -> ' //      &
-                      TRIM( UNIT_STR(outUnit) )            // ' ###'
+                      TRIM( UNIT_STR(newUnits) )            // ' ###'
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( outUnit == inUnit ) THEN
+    IF ( newUnits == inUnit ) THEN
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "Unit conversions", RC )
        ENDIF
+       RETURN
+    ENDIF
+
+    ! Make sure all species have consistent starting units
+    CALL Check_Units( State_Chm, mapping, in_units, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in routine "Check_Units"!'
+       CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
@@ -245,14 +253,14 @@ CONTAINS
 #endif
 
     ! Convert based on input and output units
-    SELECT CASE ( inUnit )
+    SELECT CASE ( in_units )
 
        !================================================================
        ! Convert from kg/kg dry
        !================================================================
        CASE ( KG_SPECIES_PER_KG_DRY_AIR )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
              CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
                 CALL ConvertSpc_KgKgDry_to_VVDry(                            &
@@ -262,12 +270,12 @@ CONTAINS
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
                 CALL ConvertSpc_KgKgDry_to_KgKgTotal(                        &
                      State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,   RC                             )
+                     mapping,   isAdjoint,  RC                              )
 
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_KgKgDry_to_Kg(                               &
                      State_Chm, State_Grid, State_Met,                       &
-                     mappingm   isAdjoint,  RC                              )
+                     mapping,   isAdjoint,  RC                              )
 
              CASE ( KG_SPECIES_PER_M2 )
                 CALL ConvertSpc_KgKgDry_to_Kgm2(                             &
@@ -277,7 +285,7 @@ CONTAINS
              CASE ( MOLECULES_SPECIES_PER_CM3 )
                 CALL ConvertSpc_KgKgDry_to_MND(                              &
                      State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                             )
+                     mapping,   isAdjoint,  RC                              )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -289,7 +297,7 @@ CONTAINS
        !================================================================
        CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_KgKgTotal_to_KgKgDry(                        &
@@ -321,7 +329,7 @@ CONTAINS
        !====================================================================
        CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_VVDry_to_KgKgDry(                           &
@@ -351,12 +359,12 @@ CONTAINS
        !====================================================================
        CASE ( KG_SPECIES )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
             CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_Kg_to_KgKgDry(                               &
-                      State_Chm, State_Grid, State_Met,                      &
-                      mapping,   isAdjoint,  RC                             )
+                     State_Chm, State_Grid, State_Met,                       &
+                     mapping,   isAdjoint,  RC                              )
 
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
                 CALL ConvertSpc_Kg_to_KgKgDry(                               &
@@ -386,7 +394,7 @@ CONTAINS
        !====================================================================
        CASE ( KG_SPECIES_PER_M2 )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
              CASE( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_Kgm2_to_KgKgDry(                             &
@@ -411,7 +419,7 @@ CONTAINS
        !====================================================================
        CASE ( MOLECULES_SPECIES_PER_CM3 )
 
-          SELECT CASE ( outUnit )
+          SELECT CASE ( new_units )
 
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_MND_to_Kg(                                   &
@@ -442,9 +450,25 @@ CONTAINS
 
     END SELECT
 
+    !========================================================================
+    ! Additional error checks
+    !========================================================================
+
+    ! Make sure that all species have consistent "previous_units" values
+    IF ( PRESENT( previous_units ) ) THEN
+       CALL Check_Previous_Units( State_Chm, mapping, in_units, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errUnits = 'Error encountered in "Check_Previous_Units!"'
+          CALL GC_Error( errUnits, RC, thisLoc )
+          RETURN
+       ENDIF
+       previous_units = in_units
+    ENDIF
+
     ! Error if problem within called conversion routine
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
     ENDIF
 
     IF ( Input_Opt%useTimers ) THEN
@@ -506,7 +530,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: N
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     REAL(fp)           :: SpcTotal
     CHARACTER(LEN=12)  :: SpcName
     CHARACTER(LEN=255) :: errMsg, errLoc
@@ -525,14 +549,14 @@ CONTAINS
 
     ! Convert species conc units to kg
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         mapping    = (/ N /),                                               &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = (/ N /),                                           &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -573,7 +597,7 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
          mapping    = (/ N /),                                               &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -643,14 +667,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_KgKgDry_to_VVDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -775,15 +791,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_VVDry_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                       mapping,        &
-                            MOLES_SPECIES_PER_MOLES_DRY_AIR, RC             )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -911,15 +918,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_KgKgDry_to_KgKgTotal (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -1023,15 +1021,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_KgKgTotal_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                   mapping,            &
-                            KG_SPECIES_PER_KG_TOTAL_AIR, RC                 )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -1133,15 +1122,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_KgKgDry_to_Kgm2 (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -1256,15 +1236,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_Kgm2_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,         mapping,                      &
-                            KG_SPECIES_PER_M2, RC                           )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -1378,15 +1349,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_KgKgDry_to_MND (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -1514,15 +1476,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_MND_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            MOLECULES_SPECIES_PER_CM3, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !====================================================================
     !
@@ -1660,15 +1613,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_VVDry_to_Kg (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                       mapping,        &
-                            MOLES_SPECIES_PER_MOLES_DRY_AIR, RC             )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -1801,14 +1745,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_Kg_to_VVDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -1932,15 +1868,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_KgKgDry_to_Kg (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -2057,14 +1984,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertSpc_Kg_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !========================================================================
     !
     !  The conversion is as follows:
@@ -2180,15 +2099,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_MND_to_Kg (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            MOLECULES_SPECIES_PER_CM3, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -2322,14 +2232,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertSpc_Kg_to_MND (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     !========================================================================
     !
@@ -2466,15 +2368,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertBox_KgKgDry_to_Kg (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm,                 mapping,              &
-                            KG_SPECIES_PER_KG_DRY_AIR, RC                   )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
@@ -2569,14 +2462,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertBox_Kg_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( S, N                                                     )
@@ -2666,14 +2551,6 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
      ' -> at ConvertBox_Kgm2_to_Kg (in GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES_PER_M2, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
 
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
@@ -2766,14 +2643,6 @@ CONTAINS
     thisLoc = &
      ' -> at ConvertBox_Kg_to_Kgm2 (in GeosUtil/unitconv_mod.F90)'
 
-    ! Make sure all species have the proper starting units
-    CALL Check_Input_Units( State_Chm, mapping, KG_SPECIES, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Input_Units"!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
@@ -2807,15 +2676,14 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Check_Input_Units
+! !IROUTINE: Check_Units
 !
-! !DESCRIPTION: Ensures that the starting units for a given species
-!  is correct.
-!\\
+! !DESCRIPTION: Ensures that all species have the same Units value before
+!  unit conversion is done.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_Input_Units( State_Chm, mapping, unit, RC )
+  SUBROUTINE Check_Units( State_Chm, mapping, unit, RC )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2846,22 +2714,85 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
-    ! Check_Input_Units begins here!
+    ! Check_Units begins here!
     !========================================================================
 
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Check_Input_Units (in module GeosUtil/unitconv_mod.F90)'
+    thisLoc = ' -> at Check_Units (in module GeosUtil/unitconv_mod.F90)'
 
     ! Make sure all species start with the proper unit, or throw an error
     IF ( .not. ALL( State_Chm%Species(mapping)%Units == unit ) ) THEN
-       errMsg  = 'All species do not have initial units: '                // &
-            TRIM( UNIT_STR( unit ) )
+       errMsg = 'All species do not have Units = '                        // &
+                 TRIM( UNIT_STR( unit ) )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
 
-  END SUBROUTINE Check_Input_Units
+  END SUBROUTINE Check_Units
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Check_Previous_Units
+!
+! !DESCRIPTION:  Ensures that all species have the same Previous_Units value
+!  before unit conversion is done.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Check_Previous_Units( State_Chm, mapping, unit, RC )
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: mapping(:)  ! Mapping to species Id
+    INTEGER,        INTENT(IN)    :: unit        ! Input unit flag
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+!
+! !REVISION HISTORY:
+!  30 Nov 2023 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N,      S
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    !========================================================================
+    ! Check_Previous_Units begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Check_PreviousUnits (in module GeosUtil/unitconv_mod.F90)'
+
+    ! Make sure all species start with the proper unit, or throw an error
+    IF ( .not. ALL( State_Chm%Species(mapping)%Previous_Units == unit ) ) THEN
+       errMsg = 'All species do not have Previous_Units = '               // &
+                TRIM( UNIT_STR( unit ) )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE Check_Previous_Units
 !EOC
 END MODULE UnitConv_Mod
