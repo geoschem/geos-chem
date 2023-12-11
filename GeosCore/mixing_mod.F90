@@ -218,8 +218,6 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
     USE UnitConv_Mod
-
-    use timers_mod
 #ifdef MODEL_CLASSIC
     use hco_utilities_gc_mod, only: TMP_MDL ! danger
 #endif

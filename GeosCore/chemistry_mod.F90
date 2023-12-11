@@ -409,7 +409,7 @@ CONTAINS
           ! Call gas-phase chemistry
           !------------------------------------------------------------------
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Solve the KPP-generated mechanism
@@ -429,13 +429,13 @@ CONTAINS
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Do_FlexChem"!'
+             ErrMsg = 'Error encountered in "Do_FullChem"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
           !------------------------------------------------------------------
@@ -989,9 +989,8 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
 
-          ! Start "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Do carbon chemistry
@@ -1009,9 +1008,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Stop "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
        !====================================================================
@@ -1019,9 +1017,8 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-          ! Start "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Do Hg chemistry
@@ -1039,9 +1036,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Stop "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
        !=====================================================================

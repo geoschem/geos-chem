@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
 
+### Removed
+- Reduced timers saved out to essential list used for benchmarking model performance
+
 ## [14.2.3] - 2023-12-01
 ### Added
 - GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
