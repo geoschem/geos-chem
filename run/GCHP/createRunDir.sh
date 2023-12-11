@@ -697,7 +697,13 @@ RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
 RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
 RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
-RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
+
+# Set default grid resolution
+if [[ "${met}" == "geosit" ]]; then
+    RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
+else
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
+fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
