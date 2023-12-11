@@ -1697,6 +1697,7 @@ CONTAINS
     UNITCHANGE_KGKG = .FALSE.
     UNITCHANGE_KGM2 = .FALSE.
 
+    ! TODO: Fix this since Spc_Units are no longer supported
     IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
        UNITCHANGE_KGKG = .TRUE.
        CALL ConvertBox_KgKgDry_to_Kg( I,         J,          L,              &
@@ -3185,7 +3186,7 @@ CONTAINS
     LOGICAL                :: IS_RAINOUT, IS_WASHOUT, IS_BOTH
     INTEGER                :: I,     IDX,    J,         L
     INTEGER                :: N,     NW,     Hg_Cat,    EC
-    INTEGER                :: origUnit
+    INTEGER                :: previous_units
     REAL(fp)               :: Q,     QDOWN,  DT,        DT_OVER_TAU
     REAL(fp)               :: K,     K_MIN,  K_RAIN,    RAINFRAC
     REAL(fp)               :: F,     FTOP,   F_PRIME,   WASHFRAC
@@ -3227,13 +3228,14 @@ CONTAINS
     ! Convert species concentration to mass per unit area (kg/m2) for
     ! wet deposition since computation is done per column (ewl, 9/8/15)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_M2,                                     &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_WetDep,                              &
+         new_units      = KG_SPECIES_PER_M2,                                 &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3815,7 +3817,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_WetDep,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

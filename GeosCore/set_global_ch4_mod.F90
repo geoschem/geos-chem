@@ -98,7 +98,8 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: I, J, L, PBL_TOP, id_CH4, DT
-    INTEGER             :: OrigUnit
+    INTEGER             :: previous_units
+    INTEGER             :: mapping(1)
     REAL(fp)            :: CH4, dCH4
     LOGICAL             :: FOUND
 
@@ -128,7 +129,8 @@ CONTAINS
     ENDIF
 
     ! Get species ID
-    id_CH4 = Ind_( 'CH4' )
+    id_CH4     = Ind_( 'CH4' )
+    mapping(1) = id_CH4
 
     ! Get dynamic timestep
     DT = GET_TS_DYN()
@@ -178,13 +180,14 @@ CONTAINS
 
     ! Convert species to [v/v dry] aka [mol/mol dry] for this routine
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = mapping,                                           &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Add info to logfile
     IF ( FOUND .AND. Input_Opt%amIRoot .AND. FIRST ) THEN
@@ -251,7 +254,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = mapping,                                               &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

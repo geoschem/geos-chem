@@ -711,7 +711,8 @@ CONTAINS
     TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
-    INTEGER                        :: STATUS, HCO_PHASE, RST, origUnit
+    INTEGER                        :: STATUS, HCO_PHASE, RST
+    INTEGER                        :: previous_units
 #if defined( MODEL_GEOS )
     INTEGER                        :: I, J, L
 #endif
@@ -969,13 +970,14 @@ CONTAINS
 
     ! Convert to dry mixing ratio
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_All,                                 &
+         new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+         previous_units = origUnit,                                          &
+         RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     ! SDE 05/28/13: Set H2O to STT if relevant
@@ -1568,7 +1570,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_All,                                     &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 

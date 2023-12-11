@@ -247,7 +247,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
-    INTEGER                 :: DRYDEPID, origUnit
+    INTEGER                 :: DRYDEPID, previous_units
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)                :: MWkg, DENOM
@@ -360,13 +360,14 @@ CONTAINS
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_M2,                                     &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES_PER_M2,                                 &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
@@ -950,7 +951,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN

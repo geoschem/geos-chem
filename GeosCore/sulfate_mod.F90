@@ -273,7 +273,7 @@ CONTAINS
     LOGICAL                  :: LDSTUP
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
-    INTEGER                  :: origUnit
+    INTEGER                  :: previous_units
 
     ! Strings
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
@@ -536,13 +536,14 @@ CONTAINS
 
        ! Convert species to [v/v dry] aka [mol/mol dry]
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                    &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            mapping        = State_Chm%Map_Advect,                           &
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
@@ -677,6 +678,7 @@ CONTAINS
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
+            mapping    = State_Chm%Map_Advect,                               &
             outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                    &
             origUnit   = origUnit,                                           &
             RC         = RC                                                 )
@@ -790,7 +792,7 @@ CONTAINS
     INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
-    INTEGER          :: origUnit
+    INTEGER          :: previous_units
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -806,13 +808,14 @@ CONTAINS
     ! Convert species to [kg] for TOMAS. This will be removed once
     ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -883,7 +886,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -7862,7 +7866,7 @@ CONTAINS
 !
     INTEGER           :: I,      J,       L
     INTEGER           :: k,      binact1, binact2
-    INTEGER           :: KMIN,   origUnit
+    INTEGER           :: KMIN,   previous_units
     REAL(fp)          :: SO4OXID
 
     !=================================================================
@@ -7874,13 +7878,14 @@ CONTAINS
 
     ! Convert species from to [kg]
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_unit       = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -7944,7 +7949,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN

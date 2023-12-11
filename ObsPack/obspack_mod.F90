@@ -1319,7 +1319,7 @@ CONTAINS
     LOGICAL             :: prtLog,  doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
-    INTEGER             :: origUnit
+    INTEGER             :: previous_units
     REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
@@ -1345,13 +1345,14 @@ CONTAINS
     ! call this again requesting that the species are converted back to the 
     ! InUnit values.
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chem%Map_Advect,                             &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1492,7 +1493,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

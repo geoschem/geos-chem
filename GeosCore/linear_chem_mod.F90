@@ -202,8 +202,8 @@ CONTAINS
     LOGICAL            :: IT_IS_A_TAGO3_SIM
 
     ! Scalars
-    INTEGER            :: I,     J,       L,   N
-    INTEGER            :: NN,    origUnit
+    INTEGER            :: previous_units
+    INTEGER            :: I,     J,       L,   N,   NN
     REAL(fp)           :: dt,    P,       k,   M0,  RC
     REAL(fp)           :: TK,    RDLOSS,  T1L, mOH, BryTmp
     REAL(fp)           :: BOXVL, Num,     Den, M
@@ -602,13 +602,14 @@ CONTAINS
           ! Convert units to [v/v dry air] aka [mol/mol dry] 
           ! for Linoz and Synoz (ewl, 10/05/15)
           CALL Convert_Spc_Units(                                            &
-               Input_Opt  = Input_Opt,                                       &
-               State_Chm  = State_Chm,                                       &
-               State_Grid = State_Grid,                                      &
-               State_Met  = State_Met,                                       &
-               outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                 &
-               origUnit   = origUnit,                                        &
-               RC         = errCode                                         )
+               Input_Opt      = Input_Opt,                                   &
+               State_Chm      = State_Chm,                                   &
+               State_Grid     = State_Grid,                                  &
+               State_Met      = State_Met,                                   &
+               mapping        = State_Chm%Map_Advect,                        &
+               new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,             &
+               previous_units = previous_units,                              &
+               RC             = errCode                                     )
 
           ! Trap potential errors
           IF ( errCode /= GC_SUCCESS ) THEN
@@ -632,7 +633,8 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                State_Met  = State_Met,                                       &
-               outUnit    = origUnit,                                        &
+               mapping    = State_Chm%Map_Advect,                            &
+               new_units  = previous_units,                                  &
                RC         = errCode                                         )
 
           ! Trap potential errors

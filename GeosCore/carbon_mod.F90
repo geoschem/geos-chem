@@ -4968,7 +4968,7 @@ CONTAINS
    LOGICAL                  :: SGCOAG = .True.
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
-   INTEGER                  :: origUnit
+   INTEGER                  :: previous_units
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
    LOGICAL, SAVE            :: USE_FIRE_NUM = .FALSE.
    LOGICAL                  :: FND !(ramnarine 1/2/2019)
@@ -5029,14 +5029,15 @@ CONTAINS
    ! Convert concentration units to [kg] for TOMAS. This will be
    ! removed once TOMAS uses mixing ratio instead of mass
    ! as species units (ewl, 9/11/15)
-   CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+   CALL Convert_Spc_Units(                                                   &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
    ! Trap errors
    IF ( RC /= GC_SUCCESS ) THEN
@@ -5266,7 +5267,8 @@ CONTAINS
         State_Chm  = State_Chm,                                              &
         State_Grid = State_Grid,                                             &
         State_Met  = State_Met,                                              &
-        outUnit    = origUnit,                                               &
+        mapping    = State_Chm%Map_Advect,                                   &
+        new_units  = previous_units,                                         &
         RC         = RC                                                     )
 
    ! Trap errors

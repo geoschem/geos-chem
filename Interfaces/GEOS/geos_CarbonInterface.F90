@@ -503,7 +503,7 @@ CONTAINS
 !
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
-    CHARACTER(LEN=63)            :: OrigUnit
+    CHARACTER(LEN=63)            :: previous_units
     INTEGER                      :: I, LM, indCO2, indCO, STATUS
     REAL, POINTER                :: CO2(:,:,:)  => null()
     REAL, POINTER                :: COmeso(:,:) => null()
@@ -519,13 +519,14 @@ CONTAINS
        ! Make sure concentrations are in kg/kg total
        ! (this should already be the case) 
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = KG_SPECIES_PER_KG_TOTAL_AIR,                        &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            mapping        = State_Chm%Map_All,                              &
+            new_units      = KG_SPECIES_PER_KG_TOTAL_AIR,                    &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
        ASSERT_(RC==GC_SUCCESS)
 
        ! Get index
@@ -570,7 +571,7 @@ CONTAINS
           State_Chm  = State_Chm,                                            &
           State_Grid = State_Grid,                                           &
           State_Met  = State_Met,                                            &
-          outUnit    = origUnit,                                             &
+          new_units  = previous_units,                                       &
           RC         = RC                                                   )
        ASSERT_( RC == GC_SUCCESS )
 

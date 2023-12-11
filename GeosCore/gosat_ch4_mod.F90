@@ -399,7 +399,7 @@ CONTAINS
     INTEGER            :: IIJJ(2), I,      J,     N
     INTEGER            :: L,       LL,     LGOS
     INTEGER            :: JLOOP,   NOBS,   IND
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     INTEGER            :: INDS(MAXGOS)
     REAL(fp)           :: REF_DATE, TIME
     REAL(fp)           :: GC_PRES(State_Grid%NZ)
@@ -584,13 +584,14 @@ CONTAINS
 
     ! Convert species units to [v/v dry] aka [mol/mol dry]
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
@@ -945,7 +946,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN

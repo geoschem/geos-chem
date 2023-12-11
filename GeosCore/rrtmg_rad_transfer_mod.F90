@@ -204,7 +204,7 @@ CONTAINS
     LOGICAL            :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
     INTEGER            :: ITIMEVALS(8)
     INTEGER            :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     REAL*8             :: OLDSECS, NEWSECS
 
     ! SAVEd scalars
@@ -513,13 +513,14 @@ CONTAINS
 
     ! Convert species units to [kg/kg dry] for RRTMG
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt       = Input_Opt,                                        &
+         State_Chm       = State_Chm,                                        &
+         State_Grid      = State_Grid,                                       &
+         State_Met       = State_Met,                                        &
+         mapping         = State_Chm%Map_Advect,                             &
+         new_units       = KG_SPECIES_PER_KG_DRY_AIR,                        &
+         previous_units  = previous_units,                                   &
+         RC              = RC                                               )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1709,7 +1710,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN

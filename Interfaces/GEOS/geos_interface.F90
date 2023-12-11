@@ -1135,7 +1135,7 @@ CONTAINS
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: previous_units
 
     __Iam__('GEOS_Diagnostics')
 
@@ -1170,14 +1170,27 @@ CONTAINS
     ! Move 'regular' GEOS-Chem diagnostics from gchp_chunk_mod.F90 to here to
     ! make sure that these diagnostics see any post-run updates.
     ! Diagnostics routine expects units of kg/kg dry. 
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_All,                                 &
+         new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+    CALL Convert_Spc_Units( &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_All,                                     &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================

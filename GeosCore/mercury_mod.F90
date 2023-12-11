@@ -259,7 +259,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL, SAVE      :: FIRST = .TRUE.
-    INTEGER            :: THISMONTH, I, J, origUnit
+    INTEGER            :: THISMONTH, I, J, previous_units
     
     ! Pointers
     REAL(f4),  POINTER :: Ptr2D(:,:)
@@ -279,13 +279,14 @@ CONTAINS
 
     ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -373,7 +374,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -681,16 +683,16 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL                :: doSuppress
-    INTEGER                :: I,         J,         L,          K
-    INTEGER                :: N,         NN,        CN,         Hg_Cat
-    INTEGER                :: NA,        F,         SpcID,      KppID
-    INTEGER                :: P,         MONTH,     YEAR,       IRH
-    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,   TotAccep
-    INTEGER                :: TotRejec,  TotNumLU,  HCRC,       IERR
-    INTEGER                :: Day,       S,         errorCount, origUnit
-    REAL(fp)               :: REL_HUM,   rtim,      itim,       TOUT
-    REAL(fp)               :: T,         TIN
+    LOGICAL                :: doSuppress, previous_units
+    INTEGER                :: I,          J,         L,          K
+    INTEGER                :: N,          NN,        CN,         Hg_Cat
+    INTEGER                :: NA,         F,         SpcID,      KppID
+    INTEGER                :: P,          MONTH,     YEAR,       IRH
+    INTEGER                :: TotSteps,   TotFuncs,  TotJacob,   TotAccep
+    INTEGER                :: TotRejec,   TotNumLU,  HCRC,       IERR
+    INTEGER                :: Day,        S,         errorCount
+    REAL(fp)               :: REL_HUM,    rtim,      itim,       TOUT
+    REAL(fp)               :: T,          TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
@@ -866,13 +868,14 @@ CONTAINS
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLECULES_SPECIES_PER_CM3,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_All,                                 &
+         new_units      = MOLECULES_SPECIES_PER_CM3,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Unit conversion error!'
@@ -1387,7 +1390,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_All,                                     &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

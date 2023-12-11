@@ -251,7 +251,7 @@ CONTAINS
     REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
-    INTEGER             :: OrigUnit
+    INTEGER             :: previous_units
 
 
     ! For spatially and seasonally varying OM/OC
@@ -305,13 +305,14 @@ CONTAINS
 
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         mapping        = State_Chm%Map_Advect,                              &
+         previous_units = previous_units                                     &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1023,7 +1024,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN

@@ -140,7 +140,7 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Strings
-    INTEGER            :: OrigUnit
+    INTEGER            :: previous_units
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     !=======================================================================
@@ -205,13 +205,14 @@ CONTAINS
 
     ! Convert units from mol/mol dry to kg
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_All,                                 &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -455,17 +456,10 @@ CONTAINS
                                   errCode    = RC                           )
 
              ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
-
-             ! Trap potential errors
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in ""!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-                RETURN
-             ENDIF
+             !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+             !   ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
+             !   CALL GC_Error( ErrMsg, RC, ThisLoc )
+             !ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_End( "=> Linearized chem", RC )
@@ -548,11 +542,11 @@ CONTAINS
                                FullRun    = .TRUE.,                          &
                                RC         = RC                              )
 
-             ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg =  'Incorrect species units after CHEMSULFATE!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
+             !! Check units (ewl, 10/5/15)
+             !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+             !   ErrMsg =  'Incorrect species units after CHEMSULFATE!'
+             !   CALL GC_Error( ErrMsg, RC, ThisLoc )
+             !ENDIF
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1077,7 +1071,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_All,                                     &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

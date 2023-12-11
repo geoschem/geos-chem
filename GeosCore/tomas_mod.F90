@@ -343,12 +343,12 @@ CONTAINS
     ! Assume success
     RC    = GC_SUCCESS
 
-    ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine DO_TOMAS in tomas_mod.F90'
-       CALL GC_Error( MSG, RC, LOC )
-    ENDIF
+    !! Check that species units are in [kg] (ewl, 8/13/15)
+    !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+    !   MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
+    !   LOC = 'Routine DO_TOMAS in tomas_mod.F90'
+    !   CALL GC_Error( MSG, RC, LOC )
+    !ENDIF
 
     ! Do TOMAS aerosol microphysics
     CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, RC )
@@ -517,11 +517,11 @@ CONTAINS
     ! are now generally [kg/kg] in GEOS-Chem, they are converted to
     ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine
     ! (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine AEROPHYS in tomas_mod.F90'
-       CALL GC_Error( MSG, RC, LOC )
-    ENDIF
+    !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
+    !   MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
+    !   LOC = 'Routine AEROPHYS in tomas_mod.F90'
+    !   CALL GC_Error( MSG, RC, LOC )
+    !ENDIF
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
@@ -3643,6 +3643,7 @@ CONTAINS
     ! Assume success
     RC                =  GC_SUCCESS
 
+    ! TODO: Update since Spc_Units are no longer included
     ! Check that species units are in [kg] (ewl, 8/13/15)
     ! Convert species concentration units to [kg] if not necessary.
     ! Units are [kg/m2] if AQOXID is called from wet deposition
