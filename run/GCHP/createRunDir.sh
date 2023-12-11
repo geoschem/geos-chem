@@ -413,9 +413,12 @@ while [ "${valid_met}" -eq 0 ]; do
 		printf "Invalid option. Try again.\n"
 	    fi
 	done
-	
-       	# If using native files ask user to specify meteoerology for advection.
-	if [[ ${met_file_type} = "native_cs" || ${met_file_type} = "native_ll" ]]; then
+
+	# If using cubed-sphere native files ask user to specify meteoerology for
+	# advection. If using native lat-lon then always use winds.
+	if [[ ${met_file_type} = "native_ll" ]]; then
+	    adv_flux_src="wind"
+	elif [[ ${met_file_type} = "native_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
 	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
 	    printf "  2. C180 3-hourly winds\n"
@@ -462,8 +465,10 @@ while [ "${valid_met}" -eq 0 ]; do
 		# Settings for advection vars in ExtData.rc, running on discover
 	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_mass_flux.discover.txt)\n"
-	        elif [[ ${adv_flux_src} = "wind" ]]; then
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_cs" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_wind_cs.discover.txt)\n"  
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_wind_ll.discover.txt)\n"
 		fi
 		
 		# Settings for all other met vars in ExtData.rc, running on discover
@@ -477,9 +482,11 @@ while [ "${valid_met}" -eq 0 ]; do
 		
 		# Settings for advection vars in ExtData.rc, NOT running on discover
 	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_mass_flux.txt)\n"  
-	        elif [[ ${adv_flux_src} = "wind" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_mass_flux.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_cs" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_wind_cs.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_wind_ll.txt)\n"
 		fi
 	        
 		# Settings for all other met vars in ExtData.rc, NOT running on discover
@@ -699,7 +706,7 @@ RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
 RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
 
 # Set default grid resolution
-if [[ "${met}" == "geosit" ]]; then
+if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
     RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
 else
     RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
