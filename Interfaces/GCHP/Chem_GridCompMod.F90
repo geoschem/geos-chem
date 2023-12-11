@@ -973,6 +973,17 @@ CONTAINS
              VLOCATION          = MAPL_VLocationCenter,                  &
                                                  __RC__  )
     ENDIF
+    ! Include specific humidity in transport tracers simulation checkpoints for
+    ! post-processing unit conversions
+    IF ( SimType == 'TransportTracers' ) THEN
+       CALL MAPL_AddInternalSpec(GC,                                    &
+          SHORT_NAME         = 'SpecificHumidity',                      &
+          LONG_NAME          = 'specific_humidity',                     &
+          UNITS              = 'kg kg-1',                               &
+          DIMS               = MAPL_DimsHorzVert,                       &
+          VLOCATION          = MAPL_VLocationCenter,                    &
+                                               __RC__ )
+    ENDIF
 #endif
 
 !
@@ -3048,6 +3059,15 @@ CONTAINS
           ENDIF
           Ptr2d_R8 => NULL()
        ENDIF
+#else
+       ! For GEOS, update specific humidity internal state variable if using.
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'SpecificHumidity', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3d) ) THEN
+          Ptr3d(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Met%SPHU(:,:,1:State_Grid%NZ) * 1e-3_fp
+       ENDIF
+       Ptr3d => NULL()
 #endif
        
        ! Stop timer
