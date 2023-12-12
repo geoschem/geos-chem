@@ -441,7 +441,7 @@ function config_options() {
     elif [[ ${dir} =~ "carbon" ]]; then
         options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
-        options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
+        options="${baseOptions} -DMECH=Hg -DFASTJX=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then
         options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then

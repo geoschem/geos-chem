@@ -33,5 +33,7 @@ add_library(Headers
 )
 
 # Define dependencies for libHeaders.a
-target_link_libraries(Headers PUBLIC KPP_FirstPass)
-
+target_link_libraries(Headers PUBLIC
+  KPP_FirstPass
+  CloudJ_Core
+)

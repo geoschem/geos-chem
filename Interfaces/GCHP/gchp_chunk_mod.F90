@@ -516,7 +516,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM .or. &
          Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-       CALL Init_Photolysis ( Input_Opt, State_Chm, State_Diag, RC )
+       CALL Init_Photolysis ( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Init_Photolysis')
     ENDIF
 

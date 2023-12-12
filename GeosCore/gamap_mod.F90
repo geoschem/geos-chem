@@ -1043,7 +1043,11 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : W_
+#else
+    USE Cldj_Cmn_Mod,    ONLY : W_
+#endif
     USE CMN_SIZE_MOD,    ONLY : NRHAER, NDUST, NSTRATAER
     USE ErrCode_Mod
     USE Input_Opt_Mod,   ONLY : OptInput
