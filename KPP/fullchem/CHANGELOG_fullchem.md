@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added lumped furan chemistry following Carter2020
 - Restored sink reactions for HOI, IONO, IONO2
 - Added S(IV)+HOBr and S(IV)+HOCl rxns (they had been inadvertently omitted)
+- Added nitrate aerosol (NIT, NITs) to Ox family in `gckpp.kpp`
 
 ### Changed
 - Set `k(SALAAL+SO2)` and `k(SALCAL+SO2)` to zero if O3 < 1e10 molec/cm3
