@@ -2663,12 +2663,12 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState),   INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
@@ -2730,10 +2730,15 @@ CONTAINS
     thisLoc  = &
      ' -> at Set_AerMass_Diagnostic (in module GeosCore/aerosol_mod.F90)'
 
-    ! Check that species units are kg/kg dry air
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'Incorrect species units: ' // UNIT_STR( State_Chm%Spc_Units )
-       CALL GC_Error( errMsg, RC, thisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    CALL Check_Units(                                                        &
+         State_Chm = State_Chm,                                              &
+         mapping   = State_Chm%Map_All,                                      &
+         units     = KG_SPECIES_PER_KG_DRY_AIR,                              &
+         RC        = RC                                                     )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 

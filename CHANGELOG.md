@@ -10,12 +10,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
+- Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
 
 ### Fixed
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
 
 ### Removed
 - Reduced timers saved out to essential list used for benchmarking model performance
+- Removed `State_Chm%Spc_Units`; this is now superseded by `State_Chm%Species(:)%Units`
 
 ## [14.2.3] - 2023-12-01
 ### Added
