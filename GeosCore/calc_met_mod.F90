@@ -220,7 +220,7 @@ CONTAINS
     ! Scalars
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
-    INTEGER             :: L_CG,      L_TP,       N
+    INTEGER             :: L_CG,      L_TP,       N,         units
     REAL(fp)            :: PEdge_Top, Esat 
     REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
@@ -670,36 +670,31 @@ CONTAINS
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
     IF ( UpdtMR ) THEN
-       !IF ( .not. PRESENT( update_mixing_ratio ) .or. update_mixing_ratio ) THEN
-
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
-       IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR        .or.     &
-            State_Chm%Spc_Units == MOLES_SPECIES_PER_MOLES_DRY_AIR ) THEN
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L, N )
-          DO N = 1, State_Chm%nSpecies
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             State_Chm%Species(N)%Conc(I,J,L) = &
-                                      State_Chm%Species(n)%Conc(I,J,L) * &
-                                      State_Met%DP_DRY_PREV(I,J,L)        / &
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+
+          units = State_Chm%Species(N)%Units
+
+          IF ( units == KG_SPECIES_PER_KG_DRY_AIR         .or.               &
+               units == MOLES_SPECIES_PER_MOLES_DRY_AIR ) THEN
+             DO L = 1, State_Grid%NZ
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+                State_Chm%Species(N)%Conc(I,J,L) =                           &
+                                      State_Chm%Species(n)%Conc(I,J,L) *     &
+                                      State_Met%DP_DRY_PREV(I,J,L)        /  &
                                       State_Met%DELP_DRY(I,J,L)
-          ENDDO
-          ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
-
-       ELSE
-          ErrMsg = 'Incorrect species units: '                            // & 
-                    TRIM( UNIT_STR( State_Chm%Spc_Units ) )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+             ENDDO
+             ENDDO
+             ENDDO
+          ENDIF
+       ENDDO
+       !$OMP END PARALLEL DO
     ENDIF
 
   END SUBROUTINE AIRQNT

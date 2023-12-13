@@ -1895,13 +1895,14 @@ CONTAINS
 #endif
       ENDIF
 
+      ! Set the initial unit flags
+      State_Chm%Species(N)%Previous_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
+      State_Chm%Species(N)%Units          = KG_SPECIES_PER_KG_DRY_AIR
+
       ! Free pointer
       SpcInfo => NULL()
 
    ENDDO
-
-   ! Set species units
-   State_Chm%Spc_Units = KG_SPECIES_PER_KG_DRY_AIR
 
    ! If in debug mode, print out species min and max in [molec/cm3]
    IF ( Input_Opt%Verbose ) THEN
