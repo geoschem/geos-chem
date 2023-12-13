@@ -209,6 +209,13 @@ CONTAINS
        CALL Timer_Start( "Unit conversions", RC )
     ENDIF
 
+    ! Error check the mapping argument
+    IF ( SIZE(mapping) < 1 ) THEN
+       errMsg = 'The "mapping" argument has zero elements!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! Initialize
     RC        = GC_SUCCESS
     in_units  = State_Chm%Species(mapping(1))%Units
@@ -653,7 +660,7 @@ CONTAINS
     ! Scalars
     INTEGER                :: I,      J
     INTEGER                :: L,      N,        S
-    REAL(fp)               :: MW_g,   MW_ratio
+    REAL(fp)               :: MW_g
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -697,7 +704,7 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g, MW_ratio                            )
+    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -706,21 +713,18 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_g = State_Chm%SpcData(N)%Info%MW_g
 
-       ! Compute the ratio (MW air / MW species) outside of the IJL loop
-       MW_ratio = ( AIRMW / MW_g )
-
        ! Loop over grid boxes and do unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * MW_ratio
+          State_Chm%Species(N)%Conc(I,J,L) * ( AIRMW / MW_g )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * MW_ratio
+             State_Chm%SpeciesAdj(I,J,L,N) * ( AIRMW / MW_g )
           ENDIF
 #endif
        ENDDO
@@ -778,7 +782,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: MW_g,   MW_ratio
+    REAL(fp)               :: MW_g
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -821,7 +825,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g, MW_ratio                            )
+    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -830,21 +834,18 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_g = State_Chm%SpcData(N)%Info%MW_g
 
-       ! Compute the ratio (MW air / MW species) outside of the IJL loop
-       MW_ratio = ( AIRMW / MW_g )
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / MW_ratio
+          State_Chm%Species(N)%Conc(I,J,L) / ( AIRMW / MW_g )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) / MW_ratio
+             State_Chm%SpeciesAdj(I,J,L,N) / ( AIRMW / MW_g )
           ENDIF
 #endif
        ENDDO
@@ -904,7 +905,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: convFac
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -928,7 +928,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, convFac                                   )
+    !$OMP PRIVATE( I, J, L, N, S                                            )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -938,16 +938,15 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( 1.0_fp - ( State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
+          State_Chm%Species(N)%Conc(I,J,L) *                                 &
+             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
+             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
           ENDIF
 #endif
 
@@ -1041,16 +1040,15 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( 1.0_fp - ( State_Met%SPHU(I,J,L) * 1.0e-3_fp ) )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / convFac
+          State_Chm%Species(N)%Conc(I,J,L) /                                 &
+             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) / convFac
+             State_Chm%SpeciesAdj(I,J,L,N) /                                 &
+                ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
           ENDIF
 #endif
        ENDDO
@@ -1109,7 +1107,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: convFac
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1144,7 +1141,7 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, convFac                                   )
+    !$OMP PRIVATE( I, J, L, N, S                                            )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1155,15 +1152,15 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          convFac = ( g0_100 * State_Met%DELP_DRY(I,J,L) )
-
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
+       State_Chm%Species(N)%Conc(I,J,L) =                                    &
+       State_Chm%Species(N)%Conc(I,J,L) *                                    &
+          ( g0_100 * State_Met%DELP_DRY(I,J,L) )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
+                ( g0_100 * State_Met%DELP_DRY(I,J,L) )
           ENDIF
 #endif
        ENDDO
@@ -1222,7 +1219,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: convFac
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1258,7 +1254,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, convFac                                   )
+    !$OMP PRIVATE( I, J, L, N, S                                            )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1267,16 +1263,15 @@ CONTAINS
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( 1.0_fp / ( g0_100 * State_Met%DELP_DRY(I,J,L) ) )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
+          State_Chm%Species(N)%Conc(I,J,L) *                                 &
+             ( 1.0e+0_fp / ( g0_100  * State_Met%DELP_DRY(I,J,L) ) )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
+                ( 1.0e+0_fp / ( g0_100  * State_Met%DELP_DRY(I,J,L) ) )
           ENDIF
 #endif
 
@@ -1336,7 +1331,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: avoTerm, convFac, MW_kg
+    REAL(fp)           :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg,  thisLoc
@@ -1382,7 +1377,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg, convFac                            )
+    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1391,23 +1386,19 @@ CONTAINS
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Compute AVO/ MW_kg / 1e6 term outside the IJL loop
-       avoTerm = ( AVO / MW_kg ) / 1.0e+6_fp
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( State_Met%AIRDEN(I,J,L) * avoTerm )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
+          State_Chm%Species(N)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)         &
+                                           * ( AVO / MW_kg ) / 1e+6_fp
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AIRDEN(I,J,L)         &
+                                           * ( AVO / MW_kg ) / 1e+6_fp
           ENDIF
 #endif
        ENDDO
@@ -1465,7 +1456,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: avoTerm, convFac, MW_kg
+    REAL(fp)           :: MW_kg
     CHARACTER(LEN=255) :: errMsg,  thisLoc
 
     !========================================================================
@@ -1513,7 +1504,7 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg, avoTerm, convFac                   )
+    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1522,23 +1513,19 @@ CONTAINS
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Compute this term outside of the IJL loop
-       avoTerm = ( 1.0e+6_fp / ( AVO / MW_kg ) )
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( avoTerm / State_Met%AIRDEN(I,J,L) )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
-                                    
+          State_Chm%Species(N)%Conc(I,J,L) * 1e+6_fp / ( AVO / MW_kg )       &
+                                           / State_Met%AIRDEN(I,J,L)
+
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) * 1e+6_fp / ( AVO / MW_kg )       &
+                                           / State_Met%AIRDEN(I,J,L)
           ENDIF
 #endif
        ENDDO
@@ -1601,7 +1588,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: convFac, MW_g,   MW_ratio
+    REAL(fp)           :: MW_g
     CHARACTER(LEN=255) :: errMsg,  thisLoc
 
     !========================================================================
@@ -1643,7 +1630,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g, MW_ratio, convFac                   )
+    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1652,23 +1639,19 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_g = State_Chm%SpcData(N)%Info%MW_g
 
-       ! Compute this term outside of the IJL loop
-       MW_ratio = ( AIRMW / MW_g )
-
        ! Loop over grid boxes convert units
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( State_Met%AD(I,J,L) / MW_ratio )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
-                                      
+          State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)             &
+                                           / ( AIRMW / MW_g )
+
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)             &
+                                           / ( AIRMW / MW_g )
           ENDIF
 #endif
        ENDDO
@@ -1731,7 +1714,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: convFac, MW_g, MW_ratio
+    REAL(fp)           :: MW_g
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg,  thisLoc
@@ -1775,7 +1758,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g, MW_ratio, convFac                   )
+    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1784,23 +1767,18 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_g = State_Chm%SpcData(N)%Info%MW_g
 
-       ! Compute this term outside the IJL loop
-       MW_ratio = ( AIRMW / MW_g )
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( MW_ratio / State_Met%AD(I,J,L) )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
-                                       
+          State_Chm%Species(N)%Conc(I,J,L) * ( AIRMW / MW_g )                &
+                                           / State_Met%AD(I,J,L)
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) * ( AIRMW / MW_g )                &
+                                           / State_Met%AD(I,J,L)
 #endif
        ENDDO
        ENDDO
@@ -2086,7 +2064,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: avoTerm, convFac, MW_kg
+    REAL(fp)               :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg,  thisLoc
@@ -2135,7 +2113,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg, avoTerm , convFac                  )
+    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -2144,23 +2122,21 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Compute this term ouside the IJL loop
-       avoTerm = ( AVO / MW_kg )
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = ( State_Met%AIRVOL(I,J,L) * 1.0e+6_fp ) / avoTerm
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / convFac
+          State_Chm%Species(N)%Conc(I,J,L) / ( AVO / MW_kg )                 &
+                                           * ( State_Met%AIRVOL(I,J,L)       &
+                                           *   1e+6_fp                 )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
                State_Chm%SpeciesAdj(I,J,L,N) =                               &
-               State_Chm%SpeciesAdj(I,J,L,N) * convFac
+               State_Chm%SpeciesAdj(I,J,L,N) / ( AVO / MW_kg )               &
+                                             * ( State_Met%AIRVOL(I,J,L)     &
+                                             *   1e+6_fp                 )
           ENDIF
 #endif
        ENDDO
@@ -2219,7 +2195,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: avoTerm, convFac, MW_kg
+    REAL(fp)           :: MW_kg
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg,  thisLoc
@@ -2263,29 +2239,27 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, MW_kg, avoTerm, convFac                      )
+    !$OMP PRIVATE( I, J, L, N, MW_kg                                        )
     DO N = 1, State_Chm%nSpecies
 
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Compute this term outside the IJL loop
-       avoTerm = ( AVO / MW_kg )
-
        ! Loop over grid boxes and do the unit conversion
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-
-          convFac = avoTerm / ( State_Met%AIRVOL(I,J,L) * 1.0e+6_fp )
-
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * convFac
+          State_Chm%Species(N)%Conc(I,J,L) * ( AVO / MW_kg )                 &
+                                           / ( State_Met%AIRVOL(I,J,L)       &
+                                           *   1e+6_fp                 )
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
              State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * convFac
+             State_Chm%SpeciesAdj(I,J,L,N) * ( AVO / MW_kg )                 &
+                                           / ( State_Met%AIRVOL(I,J,L)       &
+                                           *   1e+6_fp                 )
          ENDIF
 #endif
        ENDDO
