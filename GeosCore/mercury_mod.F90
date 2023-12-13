@@ -683,7 +683,8 @@ CONTAINS
     LOGICAL, SAVE          :: FIRST = .TRUE.
 
     ! Scalars
-    LOGICAL                :: doSuppress, previous_units
+    LOGICAL                :: doSuppress
+    INTEGER                :: previous_units
     INTEGER                :: I,          J,         L,          K
     INTEGER                :: N,          NN,        CN,         Hg_Cat
     INTEGER                :: NA,         F,         SpcID,      KppID

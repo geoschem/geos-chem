@@ -214,12 +214,12 @@ CONTAINS
     in_units  = State_Chm%Species(mapping(1))%Units
     isAdjoint = .FALSE.
     thisLoc   = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
-    errNoOut  = 'Conversion to '            // TRIM( UNIT_STR(newUnits) )  // &
+    errNoOut  = 'Conversion to '            // TRIM( UNIT_STR(new_units)) // &
                 ' not defined!'
-    errNoIn   = 'Conversion from '          // TRIM( UNIT_STR(inUnit ) )  // &
+    errNoIn   = 'Conversion from '          // TRIM( UNIT_STR(in_units )) // &
                 ' not defined!'
-    errMsg    = 'Error in conversion from ' // TRIM( UNIT_STR(inUnit ) )  // &
-                ' to '                      // TRIM( UNIT_STR(newUnits) )  // &
+    errMsg    = 'Error in conversion from ' // TRIM( UNIT_STR(in_units )) // &
+                ' to '                      // TRIM( UNIT_STR(new_units)) // &
                 '!'
     errUnits  = ''
 
@@ -227,12 +227,13 @@ CONTAINS
     ! Debugging print
     IF ( Input_Opt%Verbose ) THEN
        WRITE(6,'(a)') '     ### Species Unit Conversion: ' //                &
-                      TRIM( UNIT_STR(inUnit ) )            // ' -> ' //      &
-                      TRIM( UNIT_STR(newUnits) )            // ' ###'
+                      TRIM( UNIT_STR(in_units ) )          // ' -> ' //      &
+                      TRIM( UNIT_STR(new_units) )          // ' ###'
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( newUnits == inUnit ) THEN
+    IF ( new_units == in_units ) THEN
+       IF ( PRESENT( previous_units ) ) previous_units = new_units
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "Unit conversions", RC )
        ENDIF
@@ -1080,7 +1081,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ConvertSpc_KgKgDry_to_Kgm2( State_Chm, State_Grid, State_Met,   &
-                                         mapping    isAdjoint,  RC          )
+                                         mapping,   isAdjoint,  RC          )
 !
 ! !INPUT PARAMETERS:
 !
@@ -1267,7 +1268,7 @@ CONTAINS
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
-          convFac = ( 1.0_fp / ( g0_100 * State_Met%DELP_DRY(I,J,L) )
+          convFac = ( 1.0_fp / ( g0_100 * State_Met%DELP_DRY(I,J,L) ) )
 
           State_Chm%Species(N)%Conc(I,J,L) =                                 &
           State_Chm%Species(N)%Conc(I,J,L) * convFac
@@ -1437,7 +1438,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ConvertSpc_MND_to_KgKgDry( State_Chm, State_Grid, State_Met,    &
-                                        mappingm,  isAdjoint, RC            )
+                                        mapping,   isAdjoint, RC            )
 !
 ! !INPUT PARAMETERS:
 !
@@ -2085,7 +2086,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: avoTerm, MW_kg
+    REAL(fp)               :: avoTerm, convFac, MW_kg
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg,  thisLoc
@@ -2134,7 +2135,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg, avoTerm                            )
+    !$OMP PRIVATE( I, J, L, N, S, MW_kg, avoTerm , convFac                  )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -2218,7 +2219,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: avoTerm, MW_kg
+    REAL(fp)           :: avoTerm, convFac, MW_kg
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg,  thisLoc
@@ -2262,7 +2263,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, MW_kg, avoTerm                               )
+    !$OMP PRIVATE( I, J, L, N, MW_kg, avoTerm, convFac                      )
     DO N = 1, State_Chm%nSpecies
 
        ! Molecular weight for the species [kg]
@@ -2449,7 +2450,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N
+    ! Scalars
+    INTEGER            :: N,      S
+
+    ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================

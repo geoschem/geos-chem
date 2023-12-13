@@ -311,7 +311,7 @@ CONTAINS
          State_Met      = State_Met,                                         &
          new_units      = KG_SPECIES,                                        &
          mapping        = State_Chm%Map_Advect,                              &
-         previous_units = previous_units                                     &
+         previous_units = previous_units,                                    &
          RC             = RC                                                )
 
     ! Trap potential errors

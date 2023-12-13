@@ -1613,7 +1613,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
-   INTEGER                   :: origUnit
+   INTEGER                   :: previous_units
    LOGICAL                   :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
@@ -1911,13 +1911,14 @@ CONTAINS
       PRINT *, "Species min and max in molec/cm3"
 
       CALL Convert_Spc_Units(                                                &
-           Input_Opt  = Input_Opt,                                           &
-           State_Chm  = State_Chm,                                           &
-           State_Grid = State_Grid,                                          &
-           State_Met  = State_Met,                                           &
-           outUnit    = MOLECULES_SPECIES_PER_CM3,                           &
-           origUnit   = origUnit,                                            &
-           RC         = RC                                                  )
+           Input_Opt      = Input_Opt,                                       &
+           State_Chm      = State_Chm,                                       &
+           State_Grid     = State_Grid,                                      &
+           State_Met      = State_Met,                                       &
+           mapping        = State_Chm%Map_All,                               &
+           new_units      = MOLECULES_SPECIES_PER_CM3,                       &
+           previous_units = previous_units,                                  &
+           RC             = RC                                              )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1943,7 +1944,8 @@ CONTAINS
            State_Chm  = State_Chm,                                           &
            State_Grid = State_Grid,                                          &
            State_Met  = State_Met,                                           &
-           outUnit    = origUnit,                                            &
+           mapping    = State_Chm%Map_All,                                   &
+           new_units  = previous_units,                                      &
            RC         = RC                                                  )
 
       ! Trap error

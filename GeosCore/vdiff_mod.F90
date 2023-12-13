@@ -2373,7 +2373,8 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors

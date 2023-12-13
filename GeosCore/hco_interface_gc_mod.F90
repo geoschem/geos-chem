@@ -4660,13 +4660,13 @@ CONTAINS
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units(                                                  
+    CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
          mapping        = State_Chm%Map_Advect,                              &
-         outUnit        = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
 

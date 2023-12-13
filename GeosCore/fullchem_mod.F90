@@ -172,7 +172,7 @@ CONTAINS
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: IERR,       S,         Thread
-    INTEGER                :: errorCount, origUnit
+    INTEGER                :: errorCount, previous_units
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
