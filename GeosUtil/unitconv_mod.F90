@@ -54,6 +54,8 @@ MODULE UnitConv_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: Check_Units
+  PUBLIC :: Check_Previous_Units
   PUBLIC :: Convert_Spc_Units
   PUBLIC :: Print_Global_Species_Kg
 
@@ -69,7 +71,6 @@ MODULE UnitConv_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: Check_Units
 
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> V/V DRY
@@ -2661,12 +2662,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_Units( State_Chm, mapping, unit, RC )
+  SUBROUTINE Check_Units( State_Chm, mapping, units, RC )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: mapping(:)  ! Mapping to species Id
-    INTEGER,        INTENT(IN)    :: unit        ! Input unit flag
+    INTEGER,        INTENT(IN)    :: units       ! Input units flag
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2701,9 +2702,9 @@ CONTAINS
     thisLoc = ' -> at Check_Units (in module GeosUtil/unitconv_mod.F90)'
 
     ! Make sure all species start with the proper unit, or throw an error
-    IF ( .not. ALL( State_Chm%Species(mapping)%Units == unit ) ) THEN
+    IF ( .not. ALL( State_Chm%Species(mapping)%Units == units ) ) THEN
        errMsg = 'All species do not have Units = '                        // &
-                 TRIM( UNIT_STR( unit ) )
+                 TRIM( UNIT_STR( units ) )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -2723,12 +2724,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_Previous_Units( State_Chm, mapping, unit, RC )
+  SUBROUTINE Check_Previous_Units( State_Chm, mapping, units, RC )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: mapping(:)  ! Mapping to species Id
-    INTEGER,        INTENT(IN)    :: unit        ! Input unit flag
+    INTEGER,        INTENT(IN)    :: units       ! Input unit flag
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -2764,9 +2765,9 @@ CONTAINS
      ' -> at Check_PreviousUnits (in module GeosUtil/unitconv_mod.F90)'
 
     ! Make sure all species start with the proper unit, or throw an error
-    IF ( .not. ALL( State_Chm%Species(mapping)%Previous_Units == unit ) ) THEN
+    IF ( .not. ALL( State_Chm%Species(mapping)%Previous_Units == units ) ) THEN
        errMsg = 'All species do not have Previous_Units = '               // &
-                TRIM( UNIT_STR( unit ) )
+                TRIM( UNIT_STR( units ) )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
