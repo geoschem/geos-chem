@@ -1191,7 +1191,8 @@ CONTAINS
     !=======================================================================
 
     ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, &
+                            PLE, TROPP, __RC__ )
 
     ! O3 mass in kg/m2
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN
@@ -1389,14 +1390,18 @@ CONTAINS
     IF ( State_Diag%Archive_GCCTTO3 .AND. &
          ASSOCIATED(State_Diag%GCCTTO3) ) TTO3  => State_Diag%GCCTTO3
 
-    ! Nothing to do if neither of the arrays is associated
+    ! Nothing to do if none of the arrays are associated
     IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) .AND. .NOT. ASSOCIATED(TO3fp) ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
 
-    ! Get O3 from species array (kg/kg total)
+    ! Get O3 from species array (kg/kg total). Do nothing if ozone is not a species.
     indO3 = Ind_('O3')
+    IF ( indO3 < 0 ) THEN
+       RC = ESMF_SUCCESS
+       RETURN
+    ENDIF
     O3 => State_Chm%Species(indO3)%Conc(:,:,:)
 
     ! Grid size

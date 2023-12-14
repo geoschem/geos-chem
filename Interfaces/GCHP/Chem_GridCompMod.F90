@@ -922,56 +922,68 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
-!-- Add two exra advected species for use in family transport  (Manyin)
+    IF ( SimType == 'fullchem' ) THEN
+       !-- Add two exra advected species for use in family transport  (Manyin)
+       CALL MAPL_AddInternalSpec(GC,                                    &
+          SHORT_NAME         = 'SPC_Bry',                               &
+          LONG_NAME          = 'Bromine group for use in transport',    &
+          UNITS              = 'kg kg-1',                               &
+!!!       PRECISION          = ESMF_KIND_R8,                            &
+          DIMS               = MAPL_DimsHorzVert,                       &
+          FRIENDLYTO         = 'DYNAMICS',                              &
+          RESTART            = MAPL_RestartSkip,                        &
+          VLOCATION          = MAPL_VLocationCenter,                    &
+                                               __RC__ )
+       if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Bry; Friendly to: DYNAMICS'
 
-          CALL MAPL_AddInternalSpec(GC,                                    &
-             SHORT_NAME         = 'SPC_Bry',                               &
-             LONG_NAME          = 'Bromine group for use in transport',    &
-             UNITS              = 'kg kg-1',                               &
-!!!          PRECISION          = ESMF_KIND_R8,                            &
-             DIMS               = MAPL_DimsHorzVert,                       &
-             FRIENDLYTO         = 'DYNAMICS',                              &
-             RESTART            = MAPL_RestartSkip,                        &
-             VLOCATION          = MAPL_VLocationCenter,                    &
-                                                  __RC__ )
-          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Bry; Friendly to: DYNAMICS'
-
-          CALL MAPL_AddInternalSpec(GC,                                    &
-             SHORT_NAME         = 'SPC_Cly',                               &
-             LONG_NAME          = 'Chlorine group for use in transport',   &
-             UNITS              = 'kg kg-1',                               &
-!!!          PRECISION          = ESMF_KIND_R8,                            &
-             DIMS               = MAPL_DimsHorzVert,                       &
-             FRIENDLYTO         = 'DYNAMICS',                              &
-             RESTART            = MAPL_RestartSkip,                        &
-             VLOCATION          = MAPL_VLocationCenter,                    &
-                                                  __RC__ )
-          if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Cly; Friendly to: DYNAMICS'
+       CALL MAPL_AddInternalSpec(GC,                                    &
+          SHORT_NAME         = 'SPC_Cly',                               &
+          LONG_NAME          = 'Chlorine group for use in transport',   &
+          UNITS              = 'kg kg-1',                               &
+!!!       PRECISION          = ESMF_KIND_R8,                            &
+          DIMS               = MAPL_DimsHorzVert,                       &
+          FRIENDLYTO         = 'DYNAMICS',                              &
+          RESTART            = MAPL_RestartSkip,                        &
+          VLOCATION          = MAPL_VLocationCenter,                    &
+                                               __RC__ )
+       if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Cly; Friendly to: DYNAMICS'
 !
-        ! Add additional RATs/ANOX exports
-!        call MAPL_AddExportSpec(GC,                                  &
-!           SHORT_NAME         = 'OX_TEND',                           &
-!           LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
-!           UNITS              = 'mol mol-1 s-1',                     &
-!           DIMS               = MAPL_DimsHorzVert,                   &
-!           VLOCATION          = MAPL_VLocationCenter,                &
+       ! Add additional RATs/ANOX exports
+!       call MAPL_AddExportSpec(GC,                                  &
+!          SHORT_NAME         = 'OX_TEND',                           &
+!          LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
+!          UNITS              = 'mol mol-1 s-1',                     &
+!          DIMS               = MAPL_DimsHorzVert,                   &
+!          VLOCATION          = MAPL_VLocationCenter,                &
 !                                                     __RC__ )
 
-     call MAPL_AddExportSpec(GC,                                     &
-           SHORT_NAME         = 'GCC_O3',                            &
-           LONG_NAME          = 'ozone_mass_mixing_ratio_total_air', &
-           UNITS              = 'kg kg-1',                           &
-           DIMS               = MAPL_DimsHorzVert,                   &
-           VLOCATION          = MAPL_VLocationCenter,                &
-                                                     __RC__ )
+       call MAPL_AddExportSpec(GC,                                     &
+             SHORT_NAME         = 'GCC_O3',                            &
+             LONG_NAME          = 'ozone_mass_mixing_ratio_total_air', &
+             UNITS              = 'kg kg-1',                           &
+             DIMS               = MAPL_DimsHorzVert,                   &
+             VLOCATION          = MAPL_VLocationCenter,                &
+                                                       __RC__ )
 
-     call MAPL_AddExportSpec(GC,                                       &
-           SHORT_NAME         = 'GCC_O3PPMV',                          &
-           LONG_NAME          = 'ozone_volume_mixing_ratio_total_air', &
-           UNITS              = 'ppmv',                                &
-           DIMS               = MAPL_DimsHorzVert,                     &
-           VLOCATION          = MAPL_VLocationCenter,                  &
+       call MAPL_AddExportSpec(GC,                                       &
+             SHORT_NAME         = 'GCC_O3PPMV',                          &
+             LONG_NAME          = 'ozone_volume_mixing_ratio_total_air', &
+             UNITS              = 'ppmv',                                &
+             DIMS               = MAPL_DimsHorzVert,                     &
+             VLOCATION          = MAPL_VLocationCenter,                  &
                                                  __RC__  )
+    ENDIF
+    ! Include specific humidity in transport tracers simulation checkpoints for
+    ! post-processing unit conversions
+    IF ( SimType == 'TransportTracers' ) THEN
+       CALL MAPL_AddInternalSpec(GC,                                    &
+          SHORT_NAME         = 'SpecificHumidity',                      &
+          LONG_NAME          = 'specific_humidity',                     &
+          UNITS              = 'kg kg-1',                               &
+          DIMS               = MAPL_DimsHorzVert,                       &
+          VLOCATION          = MAPL_VLocationCenter,                    &
+                                               __RC__ )
+    ENDIF
 #endif
 
 !
@@ -2720,11 +2732,11 @@ CONTAINS
           _ASSERT(RC==GC_SUCCESS,'Error calling Compute_Olson_Landmap')
        ENDIF
 
+#if defined( MODEL_GEOS )
        !=======================================================================
        ! Get total ozone column from GEOS-Chem export variable.
        ! Need to calculate from restart variables on first call!
        !=======================================================================
-#if defined( MODEL_GEOS )
        IF ( PHASE /= 1 ) THEN
           CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
        ENDIF
@@ -3047,6 +3059,15 @@ CONTAINS
           ENDIF
           Ptr2d_R8 => NULL()
        ENDIF
+#else
+       ! For GEOS, update specific humidity internal state variable if using.
+       CALL MAPL_GetPointer( INTSTATE, Ptr3d, 'SpecificHumidity', &
+                             notFoundOK=.TRUE., __RC__ )
+       IF ( ASSOCIATED(Ptr3d) ) THEN
+          Ptr3d(:,:,State_Grid%NZ:1:-1) =  &
+                    State_Met%SPHU(:,:,1:State_Grid%NZ) * 1e-3_fp
+       ENDIF
+       Ptr3d => NULL()
 #endif
        
        ! Stop timer
