@@ -659,9 +659,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I,      J
-    INTEGER                :: L,      N,        S
-    REAL(fp)               :: MW_g
+    INTEGER                :: N,      S
+    REAL(fp)               :: const
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -705,32 +704,25 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
+    !$OMP PRIVATE( S, N, const                                              )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Molecular weight for the species [g]
-       MW_g = State_Chm%SpcData(N)%Info%MW_g
+       ! Compute this constant term only once
+       const = AIRMW / State_Chm%SpcData(N)%Info%MW_g
 
-       ! Loop over grid boxes and do unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * ( AIRMW / MW_g )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * const
 
 #ifdef ADJOINT
           IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * ( AIRMW / MW_g )
+             State_Chm%SpeciesAdj(:,:,:,N) =                                 &
+             State_Chm%SpeciesAdj(:,:,:,N) * const
           ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -782,8 +774,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: MW_g
+    INTEGER                :: N,      S
+    REAL(fp)               :: const
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -826,32 +818,25 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
+    !$OMP PRIVATE( S, N, const                                              )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Molecular weight for the species [g]
-       MW_g = State_Chm%SpcData(N)%Info%MW_g
+       ! Compute this constant only once
+       const = AIRMW / State_Chm%SpcData(N)%Info%MW_g
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / ( AIRMW / MW_g )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc / const
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) / ( AIRMW / MW_g )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) / const
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -905,7 +890,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I, J, L, N, S
+    INTEGER                :: N,      S
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -929,31 +914,24 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S                                            )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Loop over grid boxes and do unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) *                                 &
-             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc *                                           &
+          ( 1.0_fp - ( State_Met%SPHU * 1e-3_fp ) )
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
-             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) *                                    &
+             ( 1.0_fp - ( State_Met%SPHU * 1e-3_fp ) )
+       ENDIF
 #endif
-
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1006,8 +984,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: convFac
+    INTEGER                :: N,      S
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg, thisLoc
@@ -1031,30 +1008,24 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, convFac                                   )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Loop over grid boxes and convert units
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) /                                 &
-             ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc /                                           &
+          ( 1e0_fp - ( State_Met%SPHU * 1e-3_fp ) )
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) /                                 &
-                ( 1e0_fp - ( State_Met%SPHU(I,J,L) * 1e-3_fp ) )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) /                                    &
+             ( 1e0_fp - ( State_Met%SPHU * 1e-3_fp ) )
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1107,7 +1078,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
+    INTEGER            :: N,      S
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1142,31 +1113,22 @@ CONTAINS
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S                                            )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Loop over grid boxes and convert units
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-       State_Chm%Species(N)%Conc(I,J,L) =                                    &
-       State_Chm%Species(N)%Conc(I,J,L) *                                    &
-          ( g0_100 * State_Met%DELP_DRY(I,J,L) )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * ( g0_100 * State_Met%DELP_DRY )
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
-                ( g0_100 * State_Met%DELP_DRY(I,J,L) )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * ( g0_100 * State_Met%DELP_DRY )
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1219,7 +1181,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
+    INTEGER            :: N,      S
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1255,30 +1217,22 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S                                            )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) *                                 &
-             ( 1.0e+0_fp / ( g0_100  * State_Met%DELP_DRY(I,J,L) ) )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc / ( g0_100  * State_Met%DELP_DRY )
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) *                                 &
-                ( 1.0e+0_fp / ( g0_100  * State_Met%DELP_DRY(I,J,L) ) )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) / ( g0_100  * State_Met%DELP_DRY )
+       ENDIF
 #endif
-
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1331,8 +1285,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: MW_kg
+    INTEGER            :: N,       S
+    REAL(fp)           :: const,   MW_kg
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg,  thisLoc
@@ -1378,7 +1332,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1387,24 +1341,19 @@ CONTAINS
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * State_Met%AIRDEN(I,J,L)         &
-                                           * ( AVO / MW_kg ) / 1e+6_fp
+       ! Compute this constant term once
+       const = ( AVO / MW_kg ) / 1.0e+6_fp
+
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * State_Met%AIRDEN * const
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AIRDEN(I,J,L)         &
-                                           * ( AVO / MW_kg ) / 1e+6_fp
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * State_Met%AIRDEN * const
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1456,9 +1405,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: MW_kg
-    CHARACTER(LEN=255) :: errMsg,  thisLoc
+    ! Scalars
+    INTEGER            :: N,      S
+    REAL(fp)           :: const,  MW_kg
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
     ! ConvertSpc_MND_to_KgKgDry begins here!
@@ -1505,7 +1457,7 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -1514,24 +1466,19 @@ CONTAINS
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * 1e+6_fp / ( AVO / MW_kg )       &
-                                           / State_Met%AIRDEN(I,J,L)
+       ! Compute this constant term once
+       const = 1.0e+6_fp / ( AVO / MW_kg )
+
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * const / State_Met%AIRDEN
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * 1e+6_fp / ( AVO / MW_kg )       &
-                                           / State_Met%AIRDEN(I,J,L)
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * const / State_Met%AIRDEN
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1588,9 +1535,12 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: MW_g
-    CHARACTER(LEN=255) :: errMsg,  thisLoc
+    ! Scalars
+    INTEGER            :: N,      S
+    REAL(fp)           :: const
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
     ! ConvertSpc_VVDry_to_Kg begins here!
@@ -1631,33 +1581,25 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
+    !$OMP PRIVATE( S, N, const                                              )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Molecular weight for the species [g]
-       MW_g = State_Chm%SpcData(N)%Info%MW_g
+       ! Compute this constant term only once
+       const = AIRMW / State_Chm%SpcData(N)%Info%MW_g
 
-       ! Loop over grid boxes convert units
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)             &
-                                           / ( AIRMW / MW_g )
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * State_Met%AD / const
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)             &
-                                           / ( AIRMW / MW_g )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * State_Met%AD / const
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1714,11 +1656,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: MW_g
+    INTEGER            :: N,      S
+    REAL(fp)           :: const
 
     ! Strings
-    CHARACTER(LEN=255) :: errMsg,  thisLoc
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
     ! ConvertSpc_Kg_to_VVDry begins here!
@@ -1759,31 +1701,25 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_g                                      )
+    !$OMP PRIVATE( S, N, const                                              )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Molecular weight for the species [g]
-       MW_g = State_Chm%SpcData(N)%Info%MW_g
+       ! Compute this constant only once
+       const = AIRMW / State_Chm%SpcData(N)%Info%MW_g
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * ( AIRMW / MW_g )                &
-                                           / State_Met%AD(I,J,L)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * const / State_Met%AD
+
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * ( AIRMW / MW_g )                &
-                                           / State_Met%AD(I,J,L)
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * const / State_Met%AD
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1835,7 +1771,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: I, J, L, N, S
+    ! Scalars
+    INTEGER            :: N,      S
+
+    ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
@@ -1874,29 +1813,22 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S                                            )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       ! Loop over grid boxes and convert units
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * State_Met%AD
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                 &
+          State_Chm%SpeciesAdj(:,:,:,N) * State_Met%AD
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -1949,7 +1881,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
+    INTEGER            :: N,      S
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1990,28 +1922,22 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S                                            )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc / State_Met%AD
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-            State_Chm%SpeciesAdj(I,J,L,N) =                                  &
-            State_Chm%SpeciesAdj(I,J,L,N) / State_Met%AD(I,J,L)
-         ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                  &
+          State_Chm%SpeciesAdj(:,:,:,N) / State_Met%AD
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -2064,11 +1990,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I, J, L, N, S
-    REAL(fp)               :: MW_kg
+    INTEGER                :: N,      S
+    REAL(fp)               :: const,  MW_kg
 
     ! Strings
-    CHARACTER(LEN=255)     :: errMsg,  thisLoc
+    CHARACTER(LEN=255)     :: errMsg, thisLoc
 
     !========================================================================
     ! ConvertSpc_MND_to_Kg begins here!
@@ -2103,7 +2029,8 @@ CONTAINS
     !
     !  Species(I,J,L,N) [kg]
     !
-    !    = Species(I,J,L,N) [molecules/cm3] * AIRVOL(I,J,L) / AVO * MW_KG * 1e6
+    !    = Species(I,J,L,N) [molec/cm3] * AIRVOL(I,J,L) / AVO * MW_KG * 1e6
+    !    = Species(I,J,L,N) [molec/cm3] * [1e6 / (AVO / MW_KG)] * AIRVOL(I,J,L)
     !
     ! NOTES:
     !  (1) Use exact reverse of the species mass -> # density conversion to
@@ -2114,7 +2041,7 @@ CONTAINS
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, S, MW_kg                                     )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
@@ -2123,26 +2050,19 @@ CONTAINS
        ! Molecular weight for the species [g]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) / ( AVO / MW_kg )                 &
-                                           * ( State_Met%AIRVOL(I,J,L)       &
-                                           *   1e+6_fp                 )
+       ! Define this constant term only once
+       const = 1.0e6_fp / ( AVO / MW_kg )
+
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * const * State_Met%AIRVOL
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-               State_Chm%SpeciesAdj(I,J,L,N) =                               &
-               State_Chm%SpeciesAdj(I,J,L,N) / ( AVO / MW_kg )               &
-                                             * ( State_Met%AIRVOL(I,J,L)     &
-                                             *   1e+6_fp                 )
-          ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) const * State_Met%AIRVOL
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -2195,11 +2115,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I, J, L, N, S
-    REAL(fp)           :: MW_kg
+    INTEGER            :: N,      S
+    REAL(fp)           :: const,  MW_kg
 
     ! Strings
-    CHARACTER(LEN=255) :: errMsg,  thisLoc
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
     ! ConvertSpc_Kg_to_MND begins here!
@@ -2234,38 +2154,32 @@ CONTAINS
     !  Spcies(I,J,L,N) [molecules/cm3]
     !
     !    = Species(I,J,L,N) [kg] / AIRVOL(I,J,L) * AVO / MW_KG / 1e6
+    !    = Species(I,J,L,N) [kg] * [ AVO / MW_KG / 1e6 ] / AIRVOL(I,J,L)
     !
     !========================================================================
 
     ! Loop over all species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N, MW_kg                                        )
+    !$OMP PRIVATE( S, N, MW_kg, const                                       )
     DO N = 1, State_Chm%nSpecies
 
        ! Molecular weight for the species [kg]
        MW_kg = State_Chm%SpcData(N)%Info%MW_g * 1.e-3_fp
 
-       ! Loop over grid boxes and do the unit conversion
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          State_Chm%Species(N)%Conc(I,J,L) =                                 &
-          State_Chm%Species(N)%Conc(I,J,L) * ( AVO / MW_kg )                 &
-                                           / ( State_Met%AIRVOL(I,J,L)       &
-                                           *   1e+6_fp                 )
+       ! Compute this constant term only once
+       const = ( AVO / MW_kg ) / 1.0e6_fp
+
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc =                                           &
+       State_Chm%Species(N)%Conc * const / State_Met%AIRVOL
 
 #ifdef ADJOINT
-          IF ( isAdjoint ) THEN
-             State_Chm%SpeciesAdj(I,J,L,N) =                                 &
-             State_Chm%SpeciesAdj(I,J,L,N) * ( AVO / MW_kg )                 &
-                                           / ( State_Met%AIRVOL(I,J,L)       &
-                                           *   1e+6_fp                 )
-         ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(:,:,:,N) =                                    &
+          State_Chm%SpeciesAdj(:,:,:,N) * const / State_Met%AIRVOL
+       ENDIF
 #endif
-       ENDDO
-       ENDDO
-       ENDDO
 
        ! Update units metadata
        State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
@@ -2329,7 +2243,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: N, S
+    INTEGER            :: N,      S
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -2353,6 +2267,7 @@ CONTAINS
        ! Get the modelId from the mapping array
        N = mapping(S)
 
+       ! Convert species concentration units
        State_Chm%Species(N)%Conc(I,J,L) =                                    &
        State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
 
@@ -2409,7 +2324,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  This routine is temporary and is only used for local conversion of species
-!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT.
+ !  concentrations for use in TOMAS within wetscav_mod routine WASHOUT.
 !  That routine is called within a parallel do loop and therefore units can
 !  only be converted per grid box to avoid excessive computation time. Also,
 !  State_Chm%Spc_Units cannot be changed within the parallel do loop without
@@ -2432,7 +2347,7 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
-    ! ConvertSpc_Kg_to_KgKgDry begins here!
+    ! ConvertBox_Kg_to_KgKgDry begins here!
     !========================================================================
 
     ! Initialize
@@ -2449,6 +2364,7 @@ CONTAINS
        ! Get the modelId from the mapping array
        N = mapping(S)
 
+       ! Convert species concentration units
        State_Chm%Species(N)%Conc(I,J,L) =                                    &
        State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
 
@@ -2518,7 +2434,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: N,      S
+
+    ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
@@ -2534,12 +2453,13 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( N, S                                                     )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
+       ! Convert species concentration units
        State_Chm%Species(N)%Conc(I,J,L) =                                    &
        State_Chm%Species(N)%Conc(I,J,L) * State_Grid%Area_M2(I,J)
 
@@ -2609,7 +2529,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: N,      S
+
+    ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !========================================================================
@@ -2625,12 +2548,13 @@ CONTAINS
     ! Loop over species
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( N, S                                                     )
+    !$OMP PRIVATE( S, N                                                     )
     DO S = 1, SIZE( mapping )
 
        ! Get the modelId from the mapping array
        N = mapping(S)
 
+       ! Convert species concentration units
        State_Chm%Species(N)%Conc(I,J,L) =                                    &
        State_Chm%Species(N)%Conc(I,J,L) / State_Grid%Area_M2(I,J)
 
