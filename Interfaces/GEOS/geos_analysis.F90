@@ -16,8 +16,15 @@ MODULE GEOS_Analysis
 !
 ! !USES:
 !
+  ! ESMF/MAPL
   USE ESMF     
   USE MAPL_Mod 
+
+  ! GEOS-Chem
+  USE Error_Mod
+  USE ErrCode_Mod
+  USE Precision_Mod
+  USE HCO_Error_Mod
 
   IMPLICIT NONE
   PRIVATE
@@ -63,6 +70,7 @@ MODULE GEOS_Analysis
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileTemplate 
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarName
      CHARACTER(LEN=ESMF_MAXSTR)   :: FileVarUnit
+     CHARACTER(LEN=ESMF_MAXSTR)   :: FldNameHco
      INTEGER                      :: FileVarDry
      LOGICAL                      :: ApplyIncrement
      INTEGER                      :: IAU
@@ -253,13 +261,17 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE GEOS_AnaRun( GC, Import, Internal, Export, Clock, &
-                          Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, RC )
+                          Input_Opt,  State_Met, State_Chm, State_Grid, &
+                          State_Diag, Q, PLE, TROPP, RC )
 !
 ! !USES:
 !
   USE Input_Opt_Mod,         ONLY : OptInput
   USE State_Chm_Mod,         ONLY : ChmState         ! Chemistry State obj
   USE State_Met_Mod,         ONLY : MetState         ! Meteorology State obj
+  USE State_Grid_Mod,        ONLY : GrdState         ! Meteorology State obj
+  USE State_Diag_Mod,        ONLY : DgnState         ! Meteorology State obj
+  USE UnitConv_Mod,          ONLY : Convert_Spc_Units
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -271,6 +283,8 @@ CONTAINS
     TYPE(OptInput)                             :: Input_Opt
     TYPE(MetState)                             :: State_Met
     TYPE(ChmState)                             :: State_Chm
+    TYPE(GrdState)                             :: State_Grid
+    TYPE(DgnState)                             :: State_Diag
     REAL,                INTENT(INOUT)         :: Q(:,:,:)
     REAL,                POINTER               :: PLE(:,:,:)
     REAL,                POINTER               :: TROPP(:,:)
@@ -293,29 +307,49 @@ CONTAINS
     INTEGER                       :: ispec
     CHARACTER(LEN=ESMF_MAXSTR)    :: compName
     CHARACTER(LEN=ESMF_MAXSTR)    :: Iam
+    CHARACTER(LEN=63)             :: OrigUnit
+    CHARACTER(LEN=255)            :: ErrMsg, ThisLoc 
     INTEGER                       :: STATUS 
 
     !=======================================================================
     ! GEOS_AnaRun begins here 
     !=======================================================================
 
-    ! Do nothing if
-
     ! Get configuration
     CALL ESMF_GridCompGet( GC, name=compName, __RC__ )
 
     ! callback name
     Iam = TRIM(compName)//'::GEOS_AnaRun'
+    ThisLoc = ' -> GEOS-Chem AnaRun'
+
+    ! Convert to total mixing ratio
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             'kg/kg total', STATUS, OrigUnit=OrigUnit )
+    IF ( STATUS /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error (start)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN              
+    ENDIF  
 
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
        DO ispec=1,nAnaSpec
           IF ( AnaConfig(ispec)%Active ) THEN
-             CALL DoAnalysis_( GC, Import, Internal, Export, Clock, ispec, &
-                               Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, __RC__ )
+             CALL DoAnalysis_( GC, Import, Internal, Export, Clock, ispec,   &
+                               Input_Opt,  State_Met, State_Chm, State_Grid, &
+                               State_Diag, Q, PLE, TROPP, __RC__ )
           ENDIF
        ENDDO
     ENDIF
+
+    ! Convert species back to original unit 
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OrigUnit, STATUS )
+    IF ( STATUS /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error (end)!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN              
+    ENDIF  
 
     ! Successful return
     RETURN_(ESMF_SUCCESS) 
@@ -384,14 +418,18 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE DoAnalysis_( GC, Import, Internal, Export, Clock, ispec, &
-                         Input_Opt,  State_Met, State_Chm, Q, PLE, TROPP, RC )
+                         Input_Opt,  State_Met, State_Chm, State_Grid, State_Diag, Q, PLE, TROPP, RC )
 !
 ! !USES:
 !
   USE Input_Opt_Mod,         ONLY : OptInput
   USE State_Chm_Mod,         ONLY : ChmState         ! Chemistry State obj
   USE State_Met_Mod,         ONLY : MetState         ! Meteorology State obj
+  USE State_Grid_Mod,        ONLY : GrdState         ! Grid State obj
+  USE State_Diag_Mod,        ONLY : DgnState         ! Diagnostics State obj
+  USE HCO_Utilities_GC_Mod,  ONLY : HCO_GC_EvalFld
   USE TIME_MOD,              ONLY : GET_TS_CHEM
+  Use PhysConstants,         ONLY : AIRMW
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -404,6 +442,8 @@ CONTAINS
     TYPE(OptInput)                             :: Input_Opt
     TYPE(MetState)                             :: State_Met
     TYPE(ChmState)                             :: State_Chm
+    TYPE(GrdState)                             :: State_Grid
+    TYPE(DgnState)                             :: State_Diag
     REAL,                INTENT(INOUT)         :: Q(:,:,:)
     REAL,                POINTER               :: PLE(:,:,:)
     REAL,                POINTER               :: TROPP(:,:)
@@ -436,14 +476,14 @@ CONTAINS
     REAL, POINTER              :: DiagInc(:,:,:),  DiagIncFrac(:,:,:)
     REAL, ALLOCATABLE          :: DiagInc2(:,:,:,:), DiagIncFrac2(:,:,:,:), DiagSpcRatio(:,:,:,:)
     REAL, POINTER              :: DiagMsk2d(:,:),  DiagMsk3d(:,:,:)
-    REAL, POINTER              :: AnaPtr(:,:,:), IncPtr(:,:,:), ObsHour(:,:)
+    REAL, POINTER              :: AnaPtrExt(:,:,:), IncPtr(:,:,:), ObsHour(:,:)
     REAL, POINTER              :: Ptr2D(:,:), Ptr3D(:,:,:)
     REAL, ALLOCATABLE          :: SpcBkg(:,:,:), SpcAsm(:,:,:)
     REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:,:), Spc2Asm(:,:,:,:)
     TYPE(MAPL_SimpleBundle)    :: VarBundle, VarBundleH
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile, only_vars
     TYPE(ESMF_TIME)            :: fileTime
-    INTEGER                    :: I, J, L, N, IM, JM, LM, LB, indSpc
+    INTEGER                    :: I, J, L, N, IM, JM, LM, indSpc
     INTEGER, ALLOCATABLE       :: indSpc2(:)
     INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
@@ -459,6 +499,11 @@ CONTAINS
     LOGICAL                    :: PredictorActive
     CHARACTER(LEN=ESMF_MAXSTR) :: Iam
     INTEGER                    :: STATUS 
+
+    ! temporary arrays
+    REAL, ALLOCATABLE          :: Qtmp(:,:,:)
+
+    REAL(hp), POINTER          :: AnaPtr(:,:,:)
 
     !=======================================================================
     ! DoAnalysis_ begins here 
@@ -498,10 +543,11 @@ CONTAINS
     ENDIF
 
     ! Eventually skip during predictor step
-    IF ( iopt%SkipPredictor ) THEN
-       CALL ESMF_ClockGetAlarm(Clock, "PredictorActive", PredictorAlarm, __RC__)
-       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, __RC__ )
-       IF ( PredictorActive ) TimeForAna = .FALSE.
+    IF ( iopt%SkipPredictor .AND. State_Grid%PredictorIsActive ) THEN
+       TimeForAna = .FALSE.
+!       CALL ESMF_ClockGetAlarm(Clock, "PredictorActive", PredictorAlarm, __RC__)
+!       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, __RC__ )
+!       IF ( PredictorActive ) TimeForAna = .FALSE.
     ENDIF
 
     ! Initialize/reset diagnostics
@@ -546,7 +592,19 @@ CONTAINS
 
     ! Check if file exists (only if it's time to do the analysis
     HasBundle = .FALSE.
+    AnaPtr => NULL()
     IF ( TimeForAna ) THEN
+       
+       FldName = iopt%FldNameHco
+       ALLOCATE(AnaPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+       CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, AnaPtr, STATUS, FOUND=HasBundle ) 
+       ASSERT_(STATUS==GC_SUCCESS)
+
+       ! flip temporarily to mimick direction of 3D field read through GetAnaBundle
+       AnaPtr = AnaPtr(:,:,State_Grid%NZ:1:-1)
+     
+! ----------------------------------------------------------------------------------------------       
+       ! leave here temporarily, can remove once above works ok
        only_vars = TRIM(iopt%FileVarName)
        IF ( iopt%NonZeroIncOnly ) only_vars = TRIM(only_vars)//','//TRIM(iopt%FileVarNameInc)
        CALL GetAnaBundle_( am_I_Root, iopt%FileTemplate, 'AnaFld', yy, mm, dd, h, m, grid, &
@@ -559,6 +617,7 @@ CONTAINS
                                                 ONLY_VARS=TRIM(iopt%ObsHourName), voting=.TRUE., __RC__ )
 !                                               ONLY_VARS=TRIM(iopt%ObsHourName), regrid_method=REGRID_METHOD_VOTE, __RC__ )
        ENDIF
+! ----------------------------------------------------------------------------------------------       
     ENDIF
 
     ! Apply increments if it's time to do so and if file exists
@@ -574,7 +633,8 @@ CONTAINS
        ! Get analysis field 
        VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(iopt%FileVarName), 3, RC=STATUS, QUIET=.TRUE. )
        ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
-       AnaPtr => VarBundle%r3(VarID)%q
+       AnaPtrExt => VarBundle%r3(VarID)%q
+
        IF ( iopt%nonZeroIncOnly ) THEN
           VarID   = MAPL_SimpleBundleGetIndex ( VarBundle, TRIM(iopt%FileVarNameInc), 3, RC=STATUS, QUIET=.TRUE. )
           ASSERT_(RC==ESMF_SUCCESS .AND. VarID > 0)
@@ -623,7 +683,11 @@ CONTAINS
        LM = SIZE(AnaPtr,3)
 
        ! Get lower bound of PLE array
-       LB = LBOUND(PLE,3)
+       !LB = LBOUND(PLE,3)
+
+       ! TODO: Shadow fields, temporary for testing
+       ALLOCATE(Qtmp(IM,JM,LM))
+       Qtmp = State_Met%SPHU(:,:,LM:1:-1) / 1000.0
 
        ! Set dry flag
        DryFlag = iopt%FileVarDry
@@ -650,12 +714,12 @@ CONTAINS
        ! State_Chm%Species are in kg/kg total. Make local copy in v/v dry before applying increments.
        ! Also flip vertical axis to be consistent with GEOS
        ALLOCATE(SpcBkg(IM,JM,LM),SpcAsm(IM,JM,LM))
-       SpcBkg(:,:,:) = State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwSpc
+       SpcBkg(:,:,:) = State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1) / (1.-Qtmp) * AIRMW / mwSpc
        SpcAsm(:,:,:) = SpcBkg(:,:,:)
        IF ( iopt%nSpec2 > 0 ) THEN
           ALLOCATE(Spc2Bkg(IM,JM,LM,iopt%nSpec2),Spc2Asm(IM,JM,LM,iopt%nSpec2))
           DO N=1,iopt%nSpec2
-             Spc2Bkg(:,:,:,N) = State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) / (1.-Q) * MAPL_AIRMW / mwSpc2(N)
+             Spc2Bkg(:,:,:,N) = State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) / (1.-Qtmp) * AIRMW / mwSpc2(N)
              Spc2Asm(:,:,:,N) = Spc2Bkg(:,:,:,N)
              IF ( ALLOCATED(DiagSpcRatio) ) THEN
                 WHERE ( SpcBkg > MinConc ) 
@@ -682,7 +746,16 @@ CONTAINS
           DO L=LM,1,-1
 
              ! Fraction of cell in troposphere / stratosphere 
-             tropwgt  = MAX(0.0,MIN(1.0,(PLE(I,J,L+LB)-TROPP(I,J))/(PLE(I,J,L+LB)-PLE(I,J,L+LB-1))))
+             !tropwgt  = MAX(0.0,MIN(1.0,(PLE(I,J,L+LB)-TROPP(I,J))/(PLE(I,J,L+LB)-PLE(I,J,L+LB-1))))
+             tropwgt  = MAX(0.0,                                           &
+                        MIN(1.0,                                           &
+! this is for L=1,LM:
+!                         (State_Met%PEDGE(I,J,L)-State_Met%TROPP(I,J)) /   &
+!                         (State_Met%PEDGE(I,J,L)-State_Met%PEDGE(I,J,L+1)) &
+                         (State_Met%PEDGE(I,J,LM-L+1)-State_Met%TROPP(I,J)) /   &
+                         (State_Met%PEDGE(I,J,LM-L+1)-State_Met%PEDGE(I,J,LM-L+2)) &
+                        )                                                  &
+                        )
              stratwgt = 1.0 - tropwgt    
 
              ! Count number of cells since vertical loop start that have been (at least partly) in stratosphere
@@ -719,10 +792,10 @@ CONTAINS
 
              ! Get target concentration in v/v dry
              SpcAna = AnaPtr(I,J,L)
-             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( MAPL_AIRMW / mwSpc )
+             IF ( UnitFlag == 1 ) SpcAna = SpcAna * ( AIRMW / mwSpc )
              IF ( UnitFlag == 3 ) SpcAna = SpcAna * 1.0e-6
              IF ( UnitFlag == 4 ) SpcAna = SpcAna * 1.0e-9
-             IF ( DryFlag  == 0 ) SpcAna = SpcAna / ( 1. - Q(I,J,L) )
+             IF ( DryFlag  == 0 ) SpcAna = SpcAna / ( 1. - Qtmp(I,J,L) )
 
              ! Update field
              SpcNew = SpcBkg(I,J,L)
@@ -823,10 +896,10 @@ CONTAINS
 
        ! Pass back to State_Chm%Species array: flip vertical axis and convert v/v dry to kg/kg total
        ! -------------------------------------------------------------------------------------------
-       State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1)     = SpcAsm(:,:,:)  * (1.-Q) / MAPL_AIRMW * mwSpc
+       State_Chm%Species(indSpc)%Conc(:,:,LM:1:-1) = SpcAsm(:,:,:) * (1.-Qtmp) / AIRMW * mwSpc
        IF ( iopt%nSpec2 > 0 ) THEN
           DO N=1,iopt%nSpec2 
-             State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) = Spc2Asm(:,:,:,N) * (1.-Q) / MAPL_AIRMW * mwSpc2(N)
+             State_Chm%Species(indSpc2(N))%Conc(:,:,LM:1:-1) = Spc2Asm(:,:,:,N) * (1.-Qtmp) / AIRMW * mwSpc2(N)
           ENDDO
        ENDIF
 
@@ -859,11 +932,14 @@ CONTAINS
     IF ( ALLOCATED(DiagSpcRatio) ) DEALLOCATE(DiagSpcRatio)
     IF ( ALLOCATED(indSpc2     ) ) DEALLOCATE(indSpc2)
     IF ( ALLOCATED(mwSpc2      ) ) DEALLOCATE(mwSpc2)
+    IF ( ASSOCIATED(AnaPtr     ) ) DEALLOCATE(AnaPtr)
 
     IF ( ASSOCIATED(DiagInc     ) ) DiagInc      => NULL()
     IF ( ASSOCIATED(DiagIncFrac ) ) DiagIncFrac  => NULL()
     IF ( ASSOCIATED(DiagMsk2d   ) ) DiagMsk2d    => NULL()
     IF ( ASSOCIATED(DiagMsk3d   ) ) DiagMsk3d    => NULL()
+
+    IF ( ALLOCATED(Qtmp        ) ) DEALLOCATE(Qtmp)
 
     IF ( HasBundle ) THEN
        CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
@@ -894,6 +970,9 @@ CONTAINS
 ! !USES:
 !
     USE TIME_MOD,  ONLY : GET_TS_CHEM
+    USE TIME_MOD,  ONLY : GET_TIME_AHEAD
+    USE TIME_MOD,  ONLY : GET_NYMD, GET_NHMS
+    USE TIME_MOD,  ONLY : YMD_EXTRACT 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -917,10 +996,16 @@ CONTAINS
     TYPE(ESMF_TIME)            :: currTime
     TYPE(ESMF_TimeInterval)    :: tsChemInt
     REAL                       :: tsChem
+    INTEGER                    :: cNYMD, cNHMS
+    INTEGER                    :: fDate(2)
+    ! TODO: testing only
+    INTEGER                    :: Year, Month, Day, Hour, Minute, Second
 
     ! Begins here
     __Iam__('GetAnaTime_')
 
+! TODO: remove ESMF stuff eventually
+! ---------------------------------------------------------------------------------------
     ! Get current time 
     CALL ESMF_ClockGet( Clock, currTime = currTime, __RC__ )
 
@@ -932,6 +1017,36 @@ CONTAINS
     ENDIF
     CALL ESMF_TimeIntervalSet(tsChemInt, s_r8=real(tsChem,8), __RC__ )
     CALL ESMF_TimeGet( currTime+tsChemInt, yy=yy, mm=mm, dd=dd, h=h, m=m, s=s, __RC__ )
+! ---------------------------------------------------------------------------------------
+
+    ! Use GEOS-Chem routines instead
+    IF ( Fwd ) THEN
+       tsChem = GET_TS_CHEM()
+       fDate  = GET_TIME_AHEAD(INT(tsChem))
+       cNYMD  = fDate(1)
+       cNHMS  = fDate(2)
+    ELSE
+       cNYMD  = GET_NYMD()
+       cNHMS  = GET_NHMS()
+    ENDIF
+    CALL YMD_EXTRACT( cNYMD, Year, Month,  Day    )
+    CALL YMD_EXTRACT( cNHMS, Hour, Minute, Second )    
+   
+    ! TODO: testing only 
+    IF ( yy /= Year  ) write(*,*) 'GetAnaTime_ year mismatch: ', yy, Year
+    IF ( mm /= Month ) write(*,*) 'GetAnaTime_ month mismatch: ', mm, Month 
+    IF ( dd /= Day   ) write(*,*) 'GetAnaTime_ day mismatch: ', dd, Day 
+    IF ( h  /= Hour  ) write(*,*) 'GetAnaTime_ hour mismatch: ', h, Hour 
+    IF ( m  /= Minute) write(*,*) 'GetAnaTime_ minute mismatch: ', m, Minute 
+    IF ( s  /= Second) write(*,*) 'GetAnaTime_ second mismatch: ', s, Second 
+
+    yy = Year
+    mm = Month
+    dd = Day
+    h  = Hour
+    m  = Minute
+    s  = Second
+
 
     ! All done
     RETURN_(ESMF_SUCCESS)
@@ -1189,6 +1304,7 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileTemplate,   Label='FileTemplate:'  ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarName,    Label='FileVarName:'   ,                __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarUnit,    Label='FileVarUnit:'   , Default='v/v', __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FldNameHco,     Label='FldNameHco:'    , Default='N/A', __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%FileVarDry,     Label='FileVarDry:'    , Default=-1,    __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, ThisInt,                         Label='ApplyIncrement:', Default=0,     __RC__ )
     AnaConfig(ispec)%ApplyIncrement = ( ThisInt == 1 )
@@ -1277,6 +1393,7 @@ CONTAINS
           WRITE(*,*) '- File template                 : ', TRIM(AnaConfig(ispec)%FileTemplate)
           WRITE(*,*) '- Variable name on file         : ', TRIM(AnaConfig(ispec)%FileVarName)
           WRITE(*,*) '- Variable unit on file         : ', TRIM(AnaConfig(ispec)%FileVarUnit)
+          WRITE(*,*) '- HEMCO field name              : ', TRIM(AnaConfig(ispec)%FldNameHco)   
           WRITE(*,*) '- Dry air flag (0=dry, 1=total) : ', AnaConfig(ispec)%FileVarDry 
           IF ( AnaConfig(ispec)%UseObsHour ) THEN
              WRITE(*,*) '- Observation hour name on file : ', TRIM(AnaConfig(ispec)%ObsHourName)

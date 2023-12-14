@@ -2246,18 +2246,19 @@ CONTAINS
     ! Skip GCC during replay, predictor step (posturm and cakelle2)
     !=======================================================================
 #if defined( MODEL_GEOS )
-    IF ( SkipReplayGCC ) THEN
-       CALL ESMF_ClockGetAlarm(CLOCK, "PredictorActive", PredictorAlarm, RC=STATUS)
-       VERIFY_(STATUS)
+    CALL ESMF_ClockGetAlarm(CLOCK, "PredictorActive", PredictorAlarm, RC=STATUS)
+    VERIFY_(STATUS)
 
-       PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, RC=STATUS )
-       VERIFY_(STATUS)
+    PredictorActive = ESMF_AlarmIsRinging( PredictorAlarm, RC=STATUS )
+    VERIFY_(STATUS)
 
-       IF ( PredictorActive ) THEN
-          IsRunTime = .FALSE.
-          IF ( am_I_root ) write(*,*) '  --- Skipping GCC during Predictor Step '
-       END IF
+    IF ( PredictorActive .AND. SkipReplayGCC ) THEN
+       IsRunTime = .FALSE.
+       IF ( am_I_root ) write(*,*) '  --- Skipping GCC during Predictor Step '
     END IF
+
+    ! Add flag to State_Grid object (cakelle2, 12/14/2023)
+    State_Grid%PredictorIsActive = PredictorActive 
 #endif
 
 #ifdef ADJOINT
@@ -2899,8 +2900,9 @@ CONTAINS
 
        IF ( PHASE == ANAPHASE ) THEN
           ! Call GEOS analysis routine
-          CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock, &
-                            Input_Opt, State_Met, State_Chm, Q, PLE, TROPP, __RC__ )
+          CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock,         &
+                            Input_Opt, State_Met, State_Chm, State_Grid, &
+                            State_Diag, Q, PLE, TROPP, __RC__ )
 
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
           CALL GEOS_Diagnostics( GC, IMPORT, EXPORT, Clock, Phase, Input_Opt, &
