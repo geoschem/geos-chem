@@ -1247,6 +1247,25 @@ MODULE State_Diag_Mod
 #endif
 
      !----------------------------------------------------------------------
+     ! Diagnostics related to analysis (nudging) module 
+     !----------------------------------------------------------------------
+     REAL(f4),           POINTER :: AnaInc(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaInc
+     LOGICAL                     :: Archive_AnaInc
+     
+     REAL(f4),           POINTER :: AnaIncFrac(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaIncFrac
+     LOGICAL                     :: Archive_AnaIncFrac
+     
+     REAL(f4),           POINTER :: AnaMask(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaMask
+     LOGICAL                     :: Archive_AnaMask
+     
+     REAL(f4),           POINTER :: AnaMaskSum(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaMaskSum
+     LOGICAL                     :: Archive_AnaMaskSum
+
+     !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
      CHARACTER(LEN=4)            :: State     = 'DIAG'   ! Name of this state
@@ -2400,6 +2419,22 @@ CONTAINS
     State_Diag%KppError                            => NULL()
     State_Diag%Archive_KppError                    = .FALSE.
 #endif
+
+    State_Diag%AnaInc                              => NULL()
+    State_Diag%Map_AnaInc                          => NULL()
+    State_Diag%Archive_AnaInc                      = .FALSE. 
+
+    State_Diag%AnaIncFrac                          => NULL()
+    State_Diag%Map_AnaIncFrac                      => NULL()
+    State_Diag%Archive_AnaIncFrac                  = .FALSE. 
+
+    State_Diag%AnaMask                             => NULL()
+    State_Diag%Map_AnaMask                         => NULL()
+    State_Diag%Archive_AnaMask                     = .FALSE. 
+
+    State_Diag%AnaMaskSum                          => NULL()
+    State_Diag%Map_AnaMaskSum                      => NULL()
+    State_Diag%Archive_AnaMaskSum                  = .FALSE. 
 
   END SUBROUTINE Zero_State_Diag
 !EOC
@@ -7928,6 +7963,89 @@ CONTAINS
 #endif
 
        !-------------------------------------------------------------------
+       ! Analysis (nudging) diagnostics 
+       !-------------------------------------------------------------------
+       diagID  = 'AnaInc'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaInc,                              &
+            archiveData    = State_Diag%Archive_AnaInc,                      &
+            mapData        = State_Diag%Map_AnaInc,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'AnaIncFrac'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaIncFrac,                          &
+            archiveData    = State_Diag%Archive_AnaIncFrac,                  &
+            mapData        = State_Diag%Map_AnaIncFrac,                      &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'AnaMask'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaMask,                             &
+            archiveData    = State_Diag%Archive_AnaMask,                     &
+            mapData        = State_Diag%Map_AnaMask,                         &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'AnaMaskSum'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaMaskSum,                          &
+            archiveData    = State_Diag%Archive_AnaMaskSum,                  &
+            mapData        = State_Diag%Map_AnaMaskSum,                      &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
        ! Total organic aerosol mass [ug/m3]
        !-------------------------------------------------------------------
        diagID  = 'TotalOA'
@@ -12090,6 +12208,31 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
+    ! Analysis diagnostics
+    CALL Finalize( diagId   = 'AnaInc',                                      &
+                   Ptr2Data = State_Diag%AnaInc,                             &
+                   mapData  = State_Diag%Map_AnaInc,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AnaIncFrac',                                  &
+                   Ptr2Data = State_Diag%AnaIncFrac,                         &
+                   mapData  = State_Diag%Map_AnaIncFrac,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AnaMask',                                     &
+                   Ptr2Data = State_Diag%AnaMask,                            &
+                   mapData  = State_Diag%Map_AnaMask,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AnaMaskSum',                                  &
+                   Ptr2Data = State_Diag%AnaMaskSum,                         &
+                   mapData  = State_Diag%Map_AnaMaskSum,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
     !=======================================================================
     ! These fields are only used when GEOS-Chem
@@ -13253,6 +13396,30 @@ CONTAINS
        IF ( isUnits   ) Units = 's-1'
        IF ( isRank    ) Rank  =  3
 #endif
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAINC' ) THEN
+       IF ( isDesc    ) Desc  = 'Analysis increment'
+       IF ( isUnits   ) Units = 'v/v dry air'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAINCFRAC' ) THEN
+       IF ( isDesc    ) Desc  = 'Analysis increment ratio'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAMASK' ) THEN
+       IF ( isDesc    ) Desc  = 'Analysis mask'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAMASKSUM' ) THEN
+       IF ( isDesc    ) Desc  = 'Analysis vertical counts'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
        IF ( isDesc    ) Desc  = 'Monoterpene and sesqiterpene SOA'

@@ -2902,7 +2902,7 @@ CONTAINS
           ! Call GEOS analysis routine
           CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock,         &
                             Input_Opt, State_Met, State_Chm, State_Grid, &
-                            State_Diag, Q, PLE, TROPP, __RC__ )
+                            State_Diag, __RC__ )
 
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
           CALL GEOS_Diagnostics( GC, IMPORT, EXPORT, Clock, Phase, Input_Opt, &
