@@ -336,7 +336,7 @@ CONTAINS
     ! Make sure that species are in kg/kg total. This should be the case already,
     ! but better be safe!
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg total', RC, OrigUnit=OrigUnit )
+                             outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
 
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
@@ -437,7 +437,7 @@ CONTAINS
 
     ! Convert back to original unit
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+                             OutUnit=OrigUnit, RC=RC )
 
     ! All done
     RETURN_(ESMF_SUCCESS)
@@ -499,7 +499,7 @@ CONTAINS
        ! Make sure that species are in kg/kg total. This should be the case already,
        ! but better be safe!
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                'kg/kg total', RC, OrigUnit=OrigUnit )
+                                outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
   
        ! Sync Q and H2O concentration array. Q is in kg/kg total, so is H2O. 
        LM = State_Grid%NZ
@@ -514,7 +514,7 @@ CONTAINS
 
        ! Convert back to original unit
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                OrigUnit, RC )
+                                outUnit=OrigUnit, RC=RC )
     ENDIF
 
     ! All done
@@ -1312,13 +1312,13 @@ CONTAINS
     ! make sure that these diagnostics see any post-run updates.
     ! Diagnostics routine expects units of kg/kg dry. 
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+                             outUnit=KG_SPECIES_PER_KG_DRY_AIR, OrigUnit=OrigUnit, RC=RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+                             outUnit=OrigUnit, RC=RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
