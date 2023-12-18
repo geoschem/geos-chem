@@ -1,11 +1,10 @@
 Samplings:
   gcc_persist:           {extrapolation: persist_closest}
   gcc_daily:             {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H}
-  gcc_daily_clim:        {update_reference_time: "0", update_frequency: PT24H, time_interpolation: False, extrapolation: clim}
-  gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: True, extrapolation: clim}
+  gcc_daily_clim:        {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H, time_interpolation: False, extrapolation: clim}
+  gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: False, extrapolation: clim}
   gcc_3hr:               {time_interpolation: True, extrapolation: clim}
-  gcc_monthly_clim:      {update_reference_time: "0", update_frequency: P1M, time_interpolation: False, extrapolation: clim}
-
+  gcc_monthly_clim:      {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H, time_interpolation: False, extrapolation: clim}
 
 Collections:
   GCC_ACET_seawater:

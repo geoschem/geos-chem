@@ -145,6 +145,7 @@ MODULE Chem_GridCompMod
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
   INTEGER, PARAMETER               :: CHEMPHASE = 2
+  INTEGER, PARAMETER               :: RATSPHASE = 2
 #endif
 
   ! Number of run phases, 1 or 2. Set in the rc file; else default is 2.
@@ -925,64 +926,40 @@ CONTAINS
     IF ( SimType == 'fullchem' ) THEN
        !-- Add two exra advected species for use in family transport  (Manyin)
        CALL MAPL_AddInternalSpec(GC,                                    &
-          SHORT_NAME         = 'SPC_Bry',                               &
-          LONG_NAME          = 'Bromine group for use in transport',    &
-          UNITS              = 'kg kg-1',                               &
-!!!       PRECISION          = ESMF_KIND_R8,                            &
-          DIMS               = MAPL_DimsHorzVert,                       &
-          FRIENDLYTO         = 'DYNAMICS',                              &
-          RESTART            = MAPL_RestartSkip,                        &
-          VLOCATION          = MAPL_VLocationCenter,                    &
-                                               __RC__ )
+            SHORT_NAME         = 'SPC_Bry',                               &
+            LONG_NAME          = 'Bromine group for use in transport',    &
+            UNITS              = 'kg kg-1',                               &
+!!!          PRECISION          = ESMF_KIND_R8,                            &
+            DIMS               = MAPL_DimsHorzVert,                       &
+            FRIENDLYTO         = 'DYNAMICS',                              &
+            RESTART            = MAPL_RestartSkip,                        &
+            VLOCATION          = MAPL_VLocationCenter,                    &
+            __RC__ )
        if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Bry; Friendly to: DYNAMICS'
-
+       
        CALL MAPL_AddInternalSpec(GC,                                    &
-          SHORT_NAME         = 'SPC_Cly',                               &
-          LONG_NAME          = 'Chlorine group for use in transport',   &
-          UNITS              = 'kg kg-1',                               &
-!!!       PRECISION          = ESMF_KIND_R8,                            &
-          DIMS               = MAPL_DimsHorzVert,                       &
-          FRIENDLYTO         = 'DYNAMICS',                              &
-          RESTART            = MAPL_RestartSkip,                        &
-          VLOCATION          = MAPL_VLocationCenter,                    &
-                                               __RC__ )
+            SHORT_NAME         = 'SPC_Cly',                               &
+            LONG_NAME          = 'Chlorine group for use in transport',   &
+            UNITS              = 'kg kg-1',                               &
+!!!          PRECISION          = ESMF_KIND_R8,                            &
+            DIMS               = MAPL_DimsHorzVert,                       &
+            FRIENDLYTO         = 'DYNAMICS',                              &
+            RESTART            = MAPL_RestartSkip,                        &
+            VLOCATION          = MAPL_VLocationCenter,                    &
+            __RC__ )
        if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Cly; Friendly to: DYNAMICS'
-!
-       ! Add additional RATs/ANOX exports
-!       call MAPL_AddExportSpec(GC,                                  &
-!          SHORT_NAME         = 'OX_TEND',                           &
-!          LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
-!          UNITS              = 'mol mol-1 s-1',                     &
-!          DIMS               = MAPL_DimsHorzVert,                   &
-!          VLOCATION          = MAPL_VLocationCenter,                &
-!                                                     __RC__ )
-
-       call MAPL_AddExportSpec(GC,                                     &
-             SHORT_NAME         = 'GCC_O3',                            &
-             LONG_NAME          = 'ozone_mass_mixing_ratio_total_air', &
-             UNITS              = 'kg kg-1',                           &
-             DIMS               = MAPL_DimsHorzVert,                   &
-             VLOCATION          = MAPL_VLocationCenter,                &
-                                                       __RC__ )
-
-       call MAPL_AddExportSpec(GC,                                       &
-             SHORT_NAME         = 'GCC_O3PPMV',                          &
-             LONG_NAME          = 'ozone_volume_mixing_ratio_total_air', &
-             UNITS              = 'ppmv',                                &
-             DIMS               = MAPL_DimsHorzVert,                     &
-             VLOCATION          = MAPL_VLocationCenter,                  &
-                                                 __RC__  )
     ENDIF
+    
     ! Include specific humidity in transport tracers simulation checkpoints for
     ! post-processing unit conversions
     IF ( SimType == 'TransportTracers' ) THEN
        CALL MAPL_AddInternalSpec(GC,                                    &
-          SHORT_NAME         = 'SpecificHumidity',                      &
-          LONG_NAME          = 'specific_humidity',                     &
-          UNITS              = 'kg kg-1',                               &
-          DIMS               = MAPL_DimsHorzVert,                       &
-          VLOCATION          = MAPL_VLocationCenter,                    &
-                                               __RC__ )
+            SHORT_NAME         = 'SpecificHumidity',                      &
+            LONG_NAME          = 'specific_humidity',                     &
+            UNITS              = 'kg kg-1',                               &
+            DIMS               = MAPL_DimsHorzVert,                       &
+            VLOCATION          = MAPL_VLocationCenter,                    &
+            __RC__ )
     ENDIF
 #endif
 
@@ -1381,12 +1358,30 @@ CONTAINS
     ENDIF
 
     ! Turn off three heterogenous reactions in stratosphere
-    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = 0, &
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = 1, &
                                   Label = "TurnOffHetRates:", __RC__ )
     Input_Opt%TurnOffHetRates = ( DoIt == 1 )
     IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'Disable selected het. reactions in stratosphere: ', &
                   Input_Opt%TurnOffHetRates
+    ENDIF
+
+    ! Check for negatives after KPP integration
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = -1, &
+                                  Label = "KppCheckNegatives:", __RC__ )
+    Input_Opt%KppCheckNegatives = DoIt 
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE(*,*) 'Check for negative concentrations after KPP integration: ', &
+                  Input_Opt%KppCheckNegatives
+    ENDIF
+
+    ! KPP tolerance inflation factor for second attempt
+    CALL ESMF_ConfigGetAttribute( GeosCF, Val, Default = 1.0, &
+                                  Label = "KppTolScale:", __RC__ )
+    Input_Opt%KppTolScale = Val 
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE(*,*) 'Scale KPP tolerances in second integration attempt: ', &
+                  Input_Opt%KppTolScale
     ENDIF
 #endif
 
@@ -1810,6 +1805,18 @@ CONTAINS
           IF ( am_I_Root ) WRITE(*,*) 'GCC: Bry and Cly family transport disabled'
     END SELECT
 
+    ! Apply H2O tendency to Q?
+    ! Options: -1=never do it; 0=only if GCC is RATS provider; 1=always do it
+    Input_Opt%applyQtend = .FALSE.
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Label="ApplyQtend:", Default=0, __RC__ )
+    IF ( DoIt == 1 ) THEN
+       Input_Opt%applyQtend = .TRUE. 
+    ELSEIF ( DoIt == 0 ) THEN
+       CALL ESMF_ConfigGetAttribute( MaplCF, FieldName, Label="RATS_PROVIDER:", Default="PCHEM", __RC__ ) 
+       IF ( TRIM(FieldName) == "GEOSCHEMCHEM" ) Input_Opt%applyQtend = .TRUE.
+    ENDIF
+    IF ( am_I_Root ) WRITE(*,*) '- Apply H2O tendency to Q (SPHU): ', Input_Opt%applyQtend
+
     ! Add Henry law constants and scavenging coefficients to internal state.
     ! These are needed by MOIST for wet scavenging (if this is enabled).
     CALL GEOS_AddSpecInfoForMoist ( am_I_Root, GC, GeosCF, Input_Opt, State_Chm, __RC__ )
@@ -2013,7 +2020,8 @@ CONTAINS
                                         GEOS_CalcTotOzone,         &
                                         GEOS_InitFromFile,         &
                                         GEOS_RATSandOxDiags,       &
-                                        GEOS_PreRunChecks
+                                        GEOS_PreRunChecks,         &
+                                        GEOS_SetH2O
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
     USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonSetConc,        &
                                         GEOS_CarbonRunPhoto
@@ -2652,6 +2660,10 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
+       ! Set H2O from Q (=SPHU)
+       CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, 1, __RC__ ) 
+
+       ! Set appropriate met fields for lightning
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
@@ -2671,7 +2683,7 @@ CONTAINS
        ENDIF
 
        ! Initialize RATS and OX tendency diagnostics
-       IF ( PHASE == ANAPHASE ) THEN
+       IF ( PHASE == RATSPHASE ) THEN
           CALL GEOS_RATSandOxDiags( GC, INTSTATE, Export, Input_Opt, State_Met, &
                                     State_Chm, State_Grid, Q, 1, tsChem, __RC__ ) 
        ENDIF
@@ -2917,10 +2929,17 @@ CONTAINS
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
           CALL GEOS_Diagnostics( GC, IMPORT, EXPORT, Clock, Phase, Input_Opt, &
                                  State_Met, State_Chm, State_Diag, State_Grid, __RC__ )
+       ENDIF
 
-          ! Fill RATS and OX diagnostics
+       ! Fill RATS and OX diagnostics
+       IF ( PHASE == RATSPHASE ) THEN
           CALL GEOS_RATSandOxDiags( GC, INTSTATE, Export, Input_Opt, State_Met, &
                                     State_Chm, State_Grid, Q, 2, tsChem, __RC__ ) 
+       ENDIF
+
+       ! Set H2O from Q (=SPHU)
+       IF ( Input_Opt%applyQtend ) THEN
+          CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, -1, __RC__ ) 
        ENDIF
 
        ! Update internal state fields 
