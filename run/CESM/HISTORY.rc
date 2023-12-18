@@ -544,6 +544,8 @@ COLLECTIONS: 'Metrics',
                               'KppLuDecomps                  ',
                               'KppSubsts                     ',
                               'KppSmDecomps                  ',
+                              'KppNegatives                  ',
+                              'KppNegatives0                 ',
 ::
 #==============================================================================
 # %%%%% THE LevelEdgeDiags COLLECTION %%%%%
