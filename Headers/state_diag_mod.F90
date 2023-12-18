@@ -10523,7 +10523,6 @@ CONTAINS
                                     State_Diag%Archive_KppNegatives       .or. &
                                     State_Diag%Archive_KppNegatives0      .or. &
                                     State_Diag%Archive_KppAutoReducerNVAR .or. &
-                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
                                     State_Diag%Archive_KppAutoReduceThres .or. &
                                     State_Diag%Archive_KppcNONZERO        .or. &
                                     State_Diag%Archive_KppTime            .or. &
