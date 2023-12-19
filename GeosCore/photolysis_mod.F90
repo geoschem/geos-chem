@@ -170,7 +170,23 @@ CONTAINS
     !------------------------------------------------------------------------
     CALL RD_AOD( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in FAST-JX routine "RD_AOD"!'
+       ErrMsg = 'Error encountered in routine "RD_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------------------------------------
+    ! Read in T & O3 climatology to fill e.g. upper layers or if O3 not calc.
+    !--------------------------------------------------------------------
+    ! NOTE: Cloud-J reads in an ascii file with this data during initialization
+    ! and uses it prior to calling Cloud_JX within the Cloud-J standalone. In
+    ! GEOS-Chem we read a netcdf file instead and use the data within
+    ! subroutine Set_Prof_Fjx if using Fast-JX and Set_Prof_CloudJ if using
+    ! Cloud-J. The data is stored in State_Chm%Phot%TREF/%OREF. Cloud-J
+    ! globals variables TREF and OREF are only used for Cloud-J standalone.
+    CALL RD_PROF_NC( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Rd_Prof_Nc"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -190,22 +206,6 @@ CONTAINS
     ! Exit if photolysis disabled (zero J-values)
     !------------------------------------------------------------------------
     IF ( .NOT. Input_Opt%Do_Photolysis ) RETURN
-
-    !--------------------------------------------------------------------
-    ! Read in T & O3 climatology to fill e.g. upper layers or if O3 not calc.
-    !--------------------------------------------------------------------
-    ! NOTE: Cloud-J reads in an ascii file with this data during initialization
-    ! and uses it prior to calling Cloud_JX within the Cloud-J standalone. In
-    ! GEOS-Chem we read a netcdf file instead and use the data within
-    ! subroutine Set_Prof_Fjx if using Fast-JX and Set_Prof_CloudJ if using
-    ! Cloud-J. The data is stored in State_Chm%Phot%TREF/%OREF. Cloud-J
-    ! globals variables TREF and OREF are only used for Cloud-J standalone.
-    CALL RD_PROF_NC( Input_Opt, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Rd_Prof_Nc"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !--------------------------------------------------------------------
     ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
@@ -897,7 +897,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F90)'
+    ThisLoc  = ' -> at RD_AOD (in module GeosCore/photolysis_mod.F90)'
     LBRC     = Input_Opt%LBRC
     DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
@@ -958,15 +958,19 @@ CONTAINS
 
        ! Test if the file exists and define an output string
        IF ( FileExists ) THEN
-          FileMsg = 'FAST-JX (RD_AOD): Opening'
+          FileMsg = '(RD_AOD): Opening'
        ELSE
-          FileMsg = 'FAST-JX (RD_AOD): REQUIRED FILE NOT FOUND'
+          FileMsg = '(RD_AOD): REQUIRED FILE NOT FOUND'
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
-300       FORMAT( a, ' ', a )
+#ifdef FASTJX
+          WRITE( 6, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( ThisFile )
+#else
+          WRITE( 6, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( ThisFile )
+#endif
+300       FORMAT( a, ' ', a, ' ', a )
        ENDIF
 
        ! For dry-run simulations, cycle to next file.
@@ -975,7 +979,11 @@ CONTAINS
           CYCLE
        ELSE
           IF ( .not. FileExists ) THEN
-             WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+#ifdef FASTJX
+             WRITE( ErrMsg, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( ThisFile )
+#else
+             WRITE( ErrMsg, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( ThisFile )
+#endif
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1489,7 +1497,7 @@ CONTAINS
 !
 ! !IROUTINE: rd_prof_nc
 !
-! !DESCRIPTION: Subroutine RAD\_PROF\_NC reads in the reference climatology
+! !DESCRIPTION: Subroutine RD\_PROF\_NC reads in the reference climatology
 !  from a NetCDF file rather than an ASCII .dat.
 !\\
 !\\
@@ -1582,7 +1590,7 @@ CONTAINS
     ! Assume success
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fjx_interface_mod.F90)'
+    ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/photolysis_mod.F90)'
 
     ! Set pointers
     OREF => State_Chm%Phot%OREF
@@ -1603,15 +1611,19 @@ CONTAINS
 
     ! Test if the file exists and define an output string
     IF ( FileExists ) THEN
-       FileMsg = 'FAST-JX (RD_PROF_NC): Opening'
+       FileMsg = '(RD_PROF_NC): Opening'
     ELSE
-       FileMsg = 'FAST-JX (RD_PROF_NC): REQUIRED FILE NOT FOUND'
+       FileMsg = '(RD_PROF_NC): REQUIRED FILE NOT FOUND'
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
-300    FORMAT( a, ' ', a )
+#ifdef FASTJX
+       WRITE( 6, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( nc_path )
+#else
+       WRITE( 6, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( nc_path )
+#endif
+300    FORMAT( a, ' ', a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program.
@@ -1620,7 +1632,11 @@ CONTAINS
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
-          WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+#ifdef FASTJX
+          WRITE( ErrMsg, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( nc_path )
+#else
+          WRITE( ErrMsg, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( nc_path )
+#endif
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
