@@ -5,7 +5,7 @@ Samplings:
   gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: True, extrapolation: clim}
   gcc_3hr:               {time_interpolation: True, extrapolation: clim}
   gcc_monthly_clim:      {update_reference_time: "0", update_frequency: P1M, time_interpolation: False, extrapolation: clim}
-
+  ana_sample:            {update_offset: PT900S, exact: True}
 
 Collections:
   GCC_ACET_seawater:
@@ -267,6 +267,12 @@ Collections:
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
   GCC_CMAM_CO:
     template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CMAM/v0.0.0/vmrco_monChem_CMAM_CMAM30-SD_r1i1p1.monthly_clim_0.015hPa.1979_2010.nc
+  GCC_d5294_geosit_jan18:
+    template: /home/dao_ops/d5294_geosit_jan18/run/.../archive/ana/Y%y4/M%m2/d5294_geosit_jan18.bkg.eta.%y4%m2%d2_%h2%n2z.nc4
+    freq: "PT3H"
+  CDAS.inc.eta:
+    template: ./inc.eta.%y4%m2%d2_%h2%n2z.nc4
+    freq: "PT6H"
 
 Exports:
   ACET_SEAWATER:
@@ -2686,4 +2692,15 @@ Exports:
     regrid: BILINEAR
     sample: gcc_monthly_clim
     variable: CO
-
+  GEOSIT_O3:
+    collection: GCC_d5294_geosit_jan18
+    regrid: BILINEAR
+    sample: ana_sample
+    variable: ozone
+    fail_on_missing_file: false
+  CDAS_NO2:
+    collection: CDAS.inc.eta 
+    regrid: BILINEAR
+    sample: ana_sample
+    variable: NO2 
+    fail_on_missing_file: false

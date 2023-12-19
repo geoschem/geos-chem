@@ -998,7 +998,7 @@ CONTAINS
     CALL GEOS_CheckRATSandOx( am_I_Root, GC, __RC__ )
 
     ! Analysis options
-    CALL GEOS_AnaInit( am_I_Root, GC, myState%myCF, ANAPHASE, __RC__ )
+    CALL GEOS_AnaInit( am_I_Root, ANAPHASE, __RC__ )
 
 #endif
 
@@ -2900,8 +2900,7 @@ CONTAINS
 
        IF ( PHASE == ANAPHASE ) THEN
           ! Call GEOS analysis routine
-          CALL GEOS_AnaRun( GC, Import, INTSTATE, Export, Clock,         &
-                            Input_Opt, State_Met, State_Chm, State_Grid, &
+          CALL GEOS_AnaRun( Input_Opt, State_Met, State_Chm, State_Grid, &
                             State_Diag, __RC__ )
 
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
