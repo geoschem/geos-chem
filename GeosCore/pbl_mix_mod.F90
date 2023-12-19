@@ -250,6 +250,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE PhysConstants          ! Rd, g0
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : Scale_Height
     USE State_Grid_Mod, ONLY : GrdState
@@ -280,7 +281,7 @@ CONTAINS
     ! Scalars
     LOGICAL  :: Bad_Sum
     INTEGER  :: I,      J,      L,    LTOP
-    REAL(fp) :: BLTOP,  BLTHIK, DELP
+    REAL(fp) :: BLTOP,  BLTHIK, DELP, Lower_Edge_Height
 
     ! Arrays
     REAL(fp) :: P(0:State_Grid%NZ)
@@ -296,156 +297,69 @@ CONTAINS
 
     !$OMP PARALLEL DO                                      &
     !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP )
+    !$OMP PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP ) &
+    !$OMP PRIVATE( Lower_Edge_Height )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       !----------------------------------------------
-       ! Define pressure edges:
-       ! P(L-1) = P at bottom edge of box (I,J,L)
-       ! P(L  ) = P at top    edge of box (I,J,L)
-       !----------------------------------------------
+       ! PBL height above surface, m 
+       State_Met%PBL_Top_m(I,J) = State_Met%PBLH(I,J)
 
-       ! Pressure at level edges [hPa]
-       DO L = 0, State_Grid%NZ
-          P(L) = State_Met%PEDGE(I,J,L+1)
-       ENDDO
+       ! Height of lower edge above surface, m
+       Lower_Edge_Height = 0d0
 
-       !----------------------------------------------
-       ! Find PBL top and thickness [hPa]
-       !----------------------------------------------
+       ! Find PBL top level (L) and pressure (hPa)
+       Do L=1, State_Grid%NZ
 
-       ! BLTOP = pressure at PBL top [hPa]
-       ! Use barometric law since PBL is in [m]
-       BLTOP  = P(0) * EXP( -State_Met%PBLH(I,J) / SCALE_HEIGHT )
+         If ( Lower_Edge_Height + State_Met%BXHEIGHT(I,J,L) >= State_Met%PBLH(I,J) ) then
 
-       ! BLTHIK is PBL thickness [hPa]
-       BLTHIK = P(0) - BLTOP
+            ! PBL top is in this level
+            LTOP = L
 
-       !----------------------------------------------
-       ! Find model level where BLTOP occurs
-       !----------------------------------------------
+            ! Pressure at the PBL top altitude, hPa
+            ! Use pressure lapse equation: p(PBLH) = p(z1) * exp( -(PBLH-z1) / Scale_Height )
+            ! p(z1) = State_Met%PEDGE(I,J,L) = Pressure at the lower level edge
+            ! PBLH - z1 = (State_Met%PBLH(I,J,L) - Lower_Edge_Height) = Height above the lower level edge
+            ! Scale_Height = Rd * Tv / g0
+            State_Met%PBL_Top_hPa(I,J) = State_Met%PEdge(I,J,L) * &
+                  EXP( -(State_Met%PBLH(I,J) - Lower_Edge_Height) * g0 / ( Rd * State_Met%Tv(I,J,L) ) )
 
-       ! Initialize
-       LTOP = 0
+            ! Fraction of PBL mass in layer L, will be normalized below
+            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L) - State_Met%PBL_Top_hPa(I,J)
+      
+            ! Fraction of the grid cell mass under PBL top
+            State_Met%F_Under_PBLTop(I,J,L) =   State_Met%F_of_PBL(I,J,L) / &
+                                              ( State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1) )
 
-       ! Loop over levels
-       DO L = 1, State_Grid%NZ
+            ! Model level of PBL top (integer+fraction). The top is within level CEILING(PBL_Top_L) 
+            State_Met%PBL_Top_L(I,J) = (LTOP-1) + State_Met%F_Under_PBLTop(I,J,L)
 
-          ! Exit when we get to the PBL top level
-          IF ( BLTOP > P(L) ) THEN
-             LTOP = L
-             EXIT
-          ELSE
-             State_Met%InPbl(I,J,L) = .TRUE.
-          ENDIF
+            ! PBL Thickness from surface to top, hPa
+            State_Met%PBL_Thick(I,J) = State_Met%PEdge(I,J,1) - State_Met%PBL_Top_hPa(I,J)
 
-       ENDDO
+            !! Exit Do loop after we found PBL top level
+            Exit
 
-       !----------------------------------------------
-       ! Define various related quantities
-       !----------------------------------------------
+         Else 
 
-       ! IMIX(I,J)   is the level where the PBL top occurs at (I,J)
-       ! IMIX(I,J)-1 is the number of whole levels below the PBL top
-       State_Met%IMIX(I,J) = LTOP
+            ! Grid cell fully within PBL
+            State_Met%inPBL(I,J,L) = .True.
 
-       ! Fraction of the IMIXth level underneath the PBL top
-       State_Met%FPBL(I,J) = 1.0_fp                                          &
-                           - ( BLTOP - P(LTOP) ) / ( P(LTOP-1) - P(LTOP) )
+            ! Fraction of the grid cell mass under PBL top
+            State_Met%F_Under_PBLTop(I,J,L) = 1.0d0
 
-       ! PBL top [model layers]
-       State_Met%PBL_TOP_L(I,J) = FLOAT( State_Met%IMIX(I,J) - 1 )           &
-                                + State_Met%FPBL(I,J)
+            ! Fraction of PBL mass in layer L, will be normalized below
+            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1)
 
-       ! PBL top [hPa]
-       State_Met%PBL_TOP_hPa(I,J) = BLTOP
+            ! Update lower edge height, m
+            Lower_Edge_Height = Lower_Edge_Height + State_Met%BXHeight(I,J,L)
 
-       ! Zero PBL top [m] -- compute below
-       State_Met%PBL_TOP_m(I,J) = 0.0_fp
+         EndIf
+         
+       EndDo
 
-       ! PBL thickness [hPa]
-       State_Met%PBL_THICK(I,J) = BLTHIK
-
-       !==============================================================
-       ! Loop up to edge of chemically-active grid
-       !==============================================================
-       DO L = 1, State_Grid%MaxChemLev
-
-          ! Thickness of grid box (I,J,L) [hPa]
-          DELP = P(L-1) - P(L)
-
-          IF ( L < State_Met%IMIX(I,J) ) THEN
-
-             !--------------------------------------------
-             ! (I,J,L) lies completely below the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L) = DELP / BLTHIK
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = 1.0_fp
-
-             ! PBL height [m]
-             State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J) + &
-                                        State_Met%BXHEIGHT(I,J,L)
-
-          ELSE IF ( L == State_Met%IMIX(I,J) ) THEN
-
-             !--------------------------------------------
-             ! (I,J,L) straddles the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L) = ( P(L-1) - BLTOP ) / BLTHIK
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = State_Met%FPBL(I,J)
-
-             ! PBL height [m]
-             State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J)             &
-                                      + ( State_Met%BXHEIGHT(I,J,L)          &
-                                      *   State_Met%FPBL(I,J)               )
-
-          ELSE
-
-             !--------------------------------------------
-             ! (I,J,L) lies completely above the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L)       = 0.0_fp
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = 0.0_fp
-
-          ENDIF
-
-          !### Debug
-          !IF ( I==23 .and. J==34 .and. L < 6 ) THEN
-          !   PRINT*, '###--------------------------------------'
-          !   PRINT*, '### COMPUTE_PBL_HEIGHT'
-          !   PRINT*, '### I, J, L     : ', I, J, L
-          !   PRINT*, '### P(L-1)      : ', P(L-1)
-          !   PRINT*, '### P(L)        : ', P(L)
-          !   PRINT*, '### F_OF_PBL    : ', State_Met%F_OF_PBL(I,J,L)
-          !   PRINT*, '### F_UNDER_TOP : ', &
-          !            State_Met%F_UNDER_PBLTOP(I,J,L)
-          !   PRINT*, '### IMIX        : ', State_Met%IMIX(I,J)
-          !   PRINT*, '### FPBL        : ', State_Met%FPBL(I,J)
-          !   PRINT*, '### PBL_TOP_hPa : ', State_Met%PBL_TOP_hPa(I,J)
-          !   PRINT*, '### PBL_TOP_L   : ', State_Met%PBL_TOP_L(I,J)
-          !   PRINT*, '### DELP        : ', DELP
-          !   PRINT*, '### BLTHIK      : ', BLTHIK
-          !   PRINT*, '### BLTOP       : ', BLTOP
-          !   PRINT*, '### BXHEIGHT    : ', State_Met%BXHEIGHT(I,J,L)
-          !   PRINT*, '### PBL_TOP_m   : ', State_Met%PBL_TOP_m(I,J)
-          !   PRINT*, '### other way m : ', &
-          !    P(0) * EXP( -State_Met%PBL_TOP_hPa(I,J) / SCALE_HEIGHT )
-          !ENDIF
-
-       ENDDO
+       ! Fraction of PBL mass in layer L, now normalize to sum of 1
+       State_Met%F_of_PBL(I,J,:) = State_Met%F_of_PBL(I,J,:) / State_Met%PBL_Thick(I,J)
 
        ! Error check
        IF ( ABS( SUM( State_Met%F_OF_PBL(I,J,:) ) - 1.0_fp) > 1.0e-3_fp) THEN
@@ -454,6 +368,7 @@ CONTAINS
           Bad_Sum = .TRUE.
           !$OMP END CRITICAL
        ENDIF
+
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
@@ -466,7 +381,7 @@ CONTAINS
     ENDIF
 
     ! Model level where PBL top occurs
-    State_Met%PBL_MAX_L = MAXVAL( State_Met%IMIX )
+    State_Met%PBL_MAX_L = MAXVAL( ceiling( State_Met%PBL_Top_L ) )
 
   END SUBROUTINE Compute_Pbl_Height
 !EOC
@@ -574,9 +489,9 @@ CONTAINS
 
     ! Initalize
     AD      => State_Met%AD         ! Dry air mass
-    IMIX    => State_Met%IMIX       ! Integer level where PBL top occurs
-    FPBL    => State_Met%FPBL       ! Fractional level above IMIX to PBL top
-    TC      => State_Chm%Species ! Chemical species [v/v]
+    TC      => State_Chm%Species    ! Chemical species [v/v]
+    IMIX    = ceiling( State_Met%PBL_Top_L ) ! Integer level where PBL top occurs
+    FPBL    = State_Met%PBL_Top_L - (IMIX-1) ! Fractional level above IMIX to PBL top
 
     ! Convection timestep [s]
     DTCONV = GET_TS_CONV()
@@ -663,8 +578,6 @@ CONTAINS
 
     ! Free pointers
     AD   => NULL()
-    IMIX => NULL()
-    FPBL => NULL()
     TC   => NULL()
 
   END SUBROUTINE TurbDay

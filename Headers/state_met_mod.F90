@@ -272,8 +272,6 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Fields for boundary layer mixing
      !----------------------------------------------------------------------
-     INTEGER,  POINTER :: IMIX          (:,:  ) ! Integer and fractional level
-     REAL(fp), POINTER :: FPBL          (:,:  ) !  where PBL top occurs
      INTEGER           :: PBL_MAX_L             ! Max level where PBL top occurs
 
      !----------------------------------------------------------------------
@@ -494,8 +492,6 @@ CONTAINS
     State_Met%PDOWN          => NULL()
     State_Met%QQ             => NULL()
     State_Met%REEVAP         => NULL()
-    State_Met%IMIX           => NULL()
-    State_Met%FPBL           => NULL()
     State_Met%REEVAP         => NULL()
     State_Met%PBL_MAX_L      = 0
 
@@ -741,25 +737,6 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FPBL [1] : Local variable for PBL mixing -- do not register this
-    !------------------------------------------------------------------------
-    metId = 'FPBL'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FPBL,                                        &
-         noRegister = .TRUE.,                                                &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
     ! FRCLND [1]
     !------------------------------------------------------------------------
     metId = 'FRCLND'
@@ -931,25 +908,6 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%HFLUX,                                       &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! IMIX [1]: Local variable for PBL mixing -- Do not register this
-    !------------------------------------------------------------------------
-    metId = 'IMIX'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%IMIX,                                        &
-         noRegister = .TRUE.,                                                &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3768,20 +3726,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IREG', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IREG => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%IMIX) ) THEN
-       DEALLOCATE( State_Met%IMIX, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%IMIX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%IMIX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%FPBL ) ) THEN
-       DEALLOCATE( State_Met%FPBL, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%FPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FPBL => NULL()
     ENDIF
 
     !========================================================================
