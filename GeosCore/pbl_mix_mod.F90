@@ -281,7 +281,7 @@ CONTAINS
     ! Scalars
     LOGICAL  :: Bad_Sum
     INTEGER  :: I,      J,      L,    LTOP
-    REAL(fp) :: BLTOP,  BLTHIK, DELP, Lower_Edge_Height
+    REAL(fp) :: Lower_Edge_Height
 
     ! Arrays
     REAL(fp) :: P(0:State_Grid%NZ)
@@ -297,8 +297,7 @@ CONTAINS
 
     !$OMP PARALLEL DO                                      &
     !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP ) &
-    !$OMP PRIVATE( Lower_Edge_Height )
+    !$OMP PRIVATE( I, J, L, P, LTOP, Lower_Edge_Height   )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -306,7 +305,7 @@ CONTAINS
        State_Met%PBL_Top_m(I,J) = State_Met%PBLH(I,J)
 
        ! Height of lower edge above surface, m
-       Lower_Edge_Height = 0d0
+       Lower_Edge_Height = 0.0_fp
 
        ! Find PBL top level (L) and pressure (hPa)
        Do L=1, State_Grid%NZ
@@ -346,7 +345,7 @@ CONTAINS
             State_Met%inPBL(I,J,L) = .True.
 
             ! Fraction of the grid cell mass under PBL top
-            State_Met%F_Under_PBLTop(I,J,L) = 1.0d0
+            State_Met%F_Under_PBLTop(I,J,L) = 1.0_fp
 
             ! Fraction of PBL mass in layer L, will be normalized below
             State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1)
@@ -450,15 +449,15 @@ CONTAINS
     REAL(fp)           :: AA,   CC, CC_AA, DTCONV
 
     ! Arrays
-    REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
     REAL(fp)           :: DTC
+    REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
+    REAL(fp)           :: FPBL(State_Grid%NX,State_Grid%NY)
+    INTEGER            :: IMIX(State_Grid%NX,State_Grid%NY)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    INTEGER,       POINTER  :: IMIX(:,:    )
-    REAL(fp),      POINTER  :: FPBL(:,:    )
     REAL(fp),      POINTER  :: AD  (:,:,:  )
     TYPE(SpcConc), POINTER  :: TC  (:      )
 
