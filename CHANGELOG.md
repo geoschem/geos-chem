@@ -4,6 +4,20 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [TBD] - Unreleased
+### Added
+- Added radiative forcing contributions due to trop-only ozone, CFCs, water vapor, N2O, CO2 and changes in stratosphere to RRTMG
+- Added computation of radiative forcing at the tropopause to RRTMG
+- Added option to compute stratospherically-adjusted radiative forcing at the tropopause using RK4 time marching integration with fixed dynamical heating approximation (FDH)
+- Added experimental option to apply seasonally-evolving fixed dyanmical heating approximation in RRTMG
+
+### Changed
+- Changed CO2 concentration used in RRTMG to be modifiable in geoschem_config.yml
+- Changed water vapor used in RRTMG to match to tracer field at all altitudes
+
+### Fixed
+- Fixed incorrect time-avaging in RRTMG diagnostics wheres zeros included prior to first RRTMG call
+
 ## [14.2.1] - 2023-10-10
 ### Added
 - Script `test/difference/diffTest.sh`, checks 2 different integration tests for differences
