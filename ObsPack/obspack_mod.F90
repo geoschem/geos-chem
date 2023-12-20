@@ -1281,6 +1281,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
+    USE Timers_Mod,     ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -1339,6 +1340,15 @@ CONTAINS
     ! because there are no data at this time).
     IF ( .not. State_Diag%Do_ObsPack ) RETURN
 
+    !=======================================================================
+    ! Unit conversion
+    !=======================================================================
+
+    ! Halt diags timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Ensure that units of species are [v/v dry], which is dry air mole 
     ! fraction, aka [mol/mol dry].  Capture the InUnit value, this is what 
     ! the units are prior to this call.  After we sample the species, we'll 
@@ -1359,6 +1369,11 @@ CONTAINS
        ErrMsg = 'Error encountered in "Convert_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diags timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
     !=======================================================================
@@ -1486,6 +1501,11 @@ CONTAINS
     ! Cleanup and quit
     !=======================================================================
 
+    ! Halt diags timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Return State_Chm%Species(:)%Conc to whatever units they had
     ! coming into this routine
     CALL Convert_Spc_Units(                                                  &
@@ -1502,6 +1522,11 @@ CONTAINS
        ErrMsg = 'Error encountered in "Convert_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diags timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
   END SUBROUTINE ObsPack_Sample

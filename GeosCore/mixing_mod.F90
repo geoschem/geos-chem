@@ -217,6 +217,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 #ifdef MODEL_CLASSIC
     use hco_utilities_gc_mod, only: TMP_MDL ! danger
@@ -355,6 +356,12 @@ CONTAINS
             State_Chm%Species(Input_Opt%NFD)%Conc(Input_Opt%IFD, Input_Opt%JFD, Input_Opt%LFD)
     ENDIF
 #endif
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
     ! DO_TEND previously operated in units of kg. The species arrays are in
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
@@ -373,6 +380,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
     
 #if defined( ADJOINT )  && defined ( DEBUG )
@@ -945,6 +957,11 @@ CONTAINS
 
 #endif
 
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
     ! Convert State_Chm%Species back to original units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -960,6 +977,12 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
+    ENDIF
+
 #if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &

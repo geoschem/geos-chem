@@ -1583,6 +1583,7 @@ CONTAINS
    USE State_Grid_Mod,    ONLY : GrdState
    USE State_Met_Mod,     ONLY : MetState
    USE Time_Mod,          ONLY : Expand_Date
+   USE Timers_Mod,        ONLY : Timer_End, Timer_Start
    USE UnitConv_Mod
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
@@ -1911,6 +1912,12 @@ CONTAINS
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
 
+      ! Halt HEMCO timer (so that unit conv can be timed separately)
+      IF ( Input_Opt%useTimers ) THEN
+         CALL Timer_End( "HEMCO", RC )
+      ENDIF
+
+      ! Convert units
       CALL Convert_Spc_Units(                                                &
            Input_Opt      = Input_Opt,                                       &
            State_Chm      = State_Chm,                                       &
@@ -1928,6 +1935,11 @@ CONTAINS
          RETURN
       ENDIF
 
+      ! Start HEMCO timer again
+      IF ( Input_Opt%useTimers ) THEN
+         CALL Timer_Start( "HEMCO", RC )
+      ENDIF
+
       ! Print values
       DO N = 1, State_Chm%nSpecies
          SpcInfo => State_Chm%SpcData(N)%Info
@@ -1938,6 +1950,11 @@ CONTAINS
                  ': Min = ', es15.9, ', Max = ', es15.9 )
          SpcInfo => NULL()
       ENDDO
+
+      ! Halt HEMCO timer (so that unit conv can be timed separately)
+      IF ( Input_Opt%useTimers ) THEN
+         CALL Timer_End( "HEMCO", RC )
+      ENDIF
 
       ! Convert units back
       CALL Convert_Spc_Units(                                                &
@@ -1956,6 +1973,10 @@ CONTAINS
          RETURN
       ENDIF
 
+      ! Start HEMCO timer again
+      IF ( Input_Opt%useTimers ) THEN
+         CALL Timer_Start( "HEMCO", RC )
+      ENDIF
    ENDIF
 
    !=========================================================================

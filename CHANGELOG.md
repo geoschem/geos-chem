@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
+- Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
 
 ### Fixed
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 

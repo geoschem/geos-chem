@@ -226,6 +226,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : GET_MONTH, ITS_A_NEW_MONTH
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
     
     ! Added for GTMM (ccc, 11/19/09)
@@ -277,6 +278,11 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.F90)'
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -293,6 +299,11 @@ CONTAINS
        ErrMsg = 'Error encountered in "Convert_Spc_Units" #1!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
     ENDIF
 
     !========================================================================
@@ -364,9 +375,14 @@ CONTAINS
 
     ! Add Hg(0) source into State_Chm%Species [kg]
     CALL SRCHg0( Input_Opt,  State_Chm, State_Diag, State_Grid, State_Met, RC )
-   IF ( Input_Opt%Verbose ) THEN
-      CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
-   ENDIF
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSMERCURY: a SRCHg0' )
+    ENDIF
+
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
 
     ! Convert species units back to original unit
     CALL Convert_Spc_Units(                                                  &
@@ -382,6 +398,11 @@ CONTAINS
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine EMISSMERCURY in mercury_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
     ENDIF
 
   END SUBROUTINE EMISSMERCURY
@@ -658,6 +679,8 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -868,6 +891,13 @@ CONTAINS
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -882,6 +912,11 @@ CONTAINS
        errMsg = 'Unit conversion error!'
        CALL GC_Error( errMsg, RC, 'mercury_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start gas-phase chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
     !========================================================================
@@ -1386,6 +1421,13 @@ CONTAINS
     !========================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !========================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units back
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
@@ -1400,6 +1442,11 @@ CONTAINS
        errMsg = 'Unit conversion error!'
        CALL GC_Error( errMsg, RC, 'mercury_mod.F90' )
        RETURN
+    ENDIF
+
+    ! Start gas-phase chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
     !### Debug output (uncomment if needed)

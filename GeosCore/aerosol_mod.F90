@@ -187,6 +187,7 @@ CONTAINS
     USE State_Met_Mod,     ONLY : MetState
     USE UnitConv_Mod
     USE TIME_MOD,          ONLY : GET_MONTH
+    USE Timers_Mod,        ONLY : Timer_End, Timer_Start
 #ifdef TOMAS
     USE TOMAS_MOD,        ONLY : IBINS
 #endif
@@ -303,6 +304,11 @@ CONTAINS
     ! Set pointers
     REAA => State_Chm%Phot%REAA
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -319,6 +325,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error at start of AEROSOL_CONC!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Initialize pointers
@@ -1018,6 +1029,11 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -1032,6 +1048,11 @@ CONTAINS
        CALL GC_Error('Unit conversion error', RC, &
                      'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointers

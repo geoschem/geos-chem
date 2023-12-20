@@ -4562,6 +4562,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -4660,6 +4661,13 @@ CONTAINS
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -4675,6 +4683,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -5120,6 +5133,13 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
@@ -5134,6 +5154,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     ! Cleanup

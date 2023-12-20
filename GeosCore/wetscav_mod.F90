@@ -3042,6 +3042,7 @@ CONTAINS
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
     USE TIME_MOD,         ONLY : GET_TS_DYN
+    USE Timers_Mod
     USE Species_Mod,      ONLY : Species
     USE UnitConv_Mod
 !
@@ -3225,6 +3226,11 @@ CONTAINS
     ! Initialize pointers
     SpcInfo => NULL()
 
+    ! Halt wetdep timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Wet deposition", RC )
+    ENDIF
+
     ! Convert species concentration to mass per unit area (kg/m2) for
     ! wet deposition since computation is done per column (ewl, 9/8/15)
     CALL Convert_Spc_Units(                                                  &
@@ -3242,6 +3248,11 @@ CONTAINS
        ErrorMsg = 'Unit conversion error at start of WETDEP!'
        CALL GC_Error( ErrorMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start wetdep timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Wet deposition", RC )
     ENDIF
 
     ! Dynamic timestep [s]
@@ -3811,6 +3822,11 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Halt wetdep timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Wet deposition", RC )
+    ENDIF
+
     ! Convert species concentration back to original unit (ewl, 9/8/15)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -3826,6 +3842,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error at end of WETDEP!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start wetdep timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Wet deposition", RC )
     ENDIF
 
   END SUBROUTINE WETDEP

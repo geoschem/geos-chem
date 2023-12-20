@@ -203,6 +203,11 @@ CONTAINS
        State_Chm%Species(id_CO2)%Conc = 421.0e-6_fp
     ENDIF
 
+    ! Halt "All chemistry" timer (so that diags can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
     ! Convert units from mol/mol dry to kg
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -219,6 +224,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error (kg/kg dry -> kg)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "All chemistry" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     !========================================================================
@@ -1053,6 +1063,13 @@ CONTAINS
     !========================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
     !========================================================================
+
+    ! Halt "All chemistry" timer (so unitconv+diags can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
@@ -1067,6 +1084,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "All chemistry" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     !========================================================================

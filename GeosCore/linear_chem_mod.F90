@@ -166,6 +166,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : TIMESTAMP_STRING
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
     IMPLICIT NONE
@@ -599,6 +600,11 @@ CONTAINS
        !======================================================================
        IF ( LLINOZ .OR. LSYNOZ ) THEN
 
+          ! Halt linear chem timer (so that unit conv can be timed separately)
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Linearized chem", errCode )
+          ENDIF
+
           ! Convert units to [v/v dry air] aka [mol/mol dry] 
           ! for Linoz and Synoz (ewl, 10/05/15)
           CALL Convert_Spc_Units(                                            &
@@ -618,6 +624,11 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! Start linear chem timer again
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Linearized chem", errCode )
+          ENDIF
+
           ! Do LINOZ or SYNOZ
           IF ( LLINOZ ) THEN
              CALL Do_Linoz( Input_Opt, State_Chm, State_Grid, &
@@ -625,6 +636,11 @@ CONTAINS
           ELSE
              CALL Do_Synoz( Input_Opt, State_Chm, State_Grid, &
                             State_Met, errCode )
+          ENDIF
+
+          ! Halt linear chem timer (so that unit conv can be timed separately)
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "=> Linearized chem", errCode )
           ENDIF
 
           ! Convert species units back to original unit
@@ -642,6 +658,11 @@ CONTAINS
              ErrMsg = 'Unit conversion error (backward) in "Convert_Spc_Units"!'
              CALL GC_Error( ErrMsg, errCode, ThisLoc )
              RETURN
+          ENDIF
+
+          ! Start linear chem timer again
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "=> Linearized chem", errCode )
           ENDIF
 
        ENDIF

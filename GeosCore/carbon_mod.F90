@@ -5026,6 +5026,11 @@ CONTAINS
    ! Grid box aarea
    AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
+   ! Halt HEMCO timer (so that unit conv can be timed separately)
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_End( "HEMCO", RC )
+   ENDIF
+
    ! Convert concentration units to [kg] for TOMAS. This will be
    ! removed once TOMAS uses mixing ratio instead of mass
    ! as species units (ewl, 9/11/15)
@@ -5044,6 +5049,11 @@ CONTAINS
       CALL GC_Error( 'Unit conversion error', RC, &
                      'Start of EMISSCARBONTOMAS in carbon_mod.F90' )
       RETURN
+   ENDIF
+
+   ! Start HEMCO timer again
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_Start( "HEMCO", RC )
    ENDIF
 
    ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
@@ -5261,6 +5271,11 @@ CONTAINS
 
    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
+   ! Halt HEMCO timer (so that unit conv can be timed separately)
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_End( "HEMCO", RC )
+   ENDIF
+
    ! Convert concentrations back to original units (ewl, 9/11/15)
    CALL Convert_Spc_Units(                                                   &
         Input_Opt  = Input_Opt,                                              &
@@ -5276,6 +5291,11 @@ CONTAINS
       CALL GC_Error('Unit conversion error', RC, &
                     'End of EMISSCARBONTOMAS in carbon_mod.F90')
       RETURN
+   ENDIF
+
+   ! Start HEMCO timer again
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_Start( "HEMCO", RC )
    ENDIF
 
  END SUBROUTINE EMISSCARBONTOMAS

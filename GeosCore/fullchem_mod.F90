@@ -356,6 +356,13 @@ CONTAINS
     !========================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !========================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -376,7 +383,6 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !========================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Gas-phase chem", RC )
        CALL Timer_Start( "=> Photolysis", RC )
     ENDIF
 
@@ -396,9 +402,10 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FullChem: after computing J-values' )
     ENDIF
 
+    ! Start gas-phase chem and photolysis timers again
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Photolysis", RC )
-       CALL Timer_Start( "=> Gas-phase chem", RC ) ! ended in Do_Chemistry
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
@@ -1531,6 +1538,13 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
@@ -1544,6 +1558,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
        RETURN
+    ENDIF
+
+    ! Start gas-phase chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
     !=======================================================================

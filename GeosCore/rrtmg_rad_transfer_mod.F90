@@ -511,6 +511,11 @@ CONTAINS
     RTSSAER     => State_Chm%Phot%RTSSAER
     RTASYMAER   => State_Chm%Phot%RTASYMAER
 
+    ! Halt RRTMG timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "RRTMG", RC )
+    ENDIF
+
     ! Convert species units to [kg/kg dry] for RRTMG
     CALL Convert_Spc_Units(                                                  &
          Input_Opt       = Input_Opt,                                        &
@@ -527,6 +532,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error in DO_RRTMG_RAD_TRANSFER!"'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start RRTMG timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "RRTMG", RC )
     ENDIF
 
     ! Also make sure that the ncDiag arguement is valid,
@@ -1704,6 +1714,11 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Halt RRTMG timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "RRTMG", RC )
+    ENDIF
+
     ! Convert species units back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -1717,6 +1732,11 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN
+    ENDIF
+
+    ! Start RRTMG timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "RRTMG", RC )
     ENDIF
 
     ! Nullify pointers

@@ -67,6 +67,7 @@ CONTAINS
     USE State_Met_Mod,   ONLY : MetState
     USE Time_Mod,        ONLY : Get_Ts_Conv
     USE Time_Mod,        ONLY : Get_Ts_Dyn
+    USE Timers_Mod,      ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -150,6 +151,11 @@ CONTAINS
        ! Unit conversion #1
        !=====================================================================
 
+       ! Halt mixing timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "Boundary layer mixing", RC )
+       ENDIF
+
        ! Convert species to [v/v dry] aka [mol/mol dry]
        CALL Convert_Spc_Units(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -166,6 +172,11 @@ CONTAINS
           ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol/mol dry)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+       ! Start mixing timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "Boundary layer mixing", RC )
        ENDIF
 
        !=====================================================================
@@ -187,6 +198,11 @@ CONTAINS
        ! Unit conversion #2
        !=====================================================================
 
+       ! Halt mixing timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "Boundary layer mixing", RC )
+       ENDIF
+
        ! Convert species back to original units
        CALL Convert_Spc_Units(                                               &
             Input_Opt  = Input_Opt,                                          &
@@ -202,6 +218,11 @@ CONTAINS
           ErrMsg = 'Error encountred in "Convert_Spc_Units" (from mol/mol dry)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+       ! Start mixing timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "Boundary layer mixing", RC )
        ENDIF
     ENDIF
 

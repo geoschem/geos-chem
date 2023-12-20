@@ -233,6 +233,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
     USE UnitConv_Mod
 #ifdef APM
@@ -534,6 +535,11 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
        ! Convert species to [v/v dry] aka [mol/mol dry]
        CALL Convert_Spc_Units(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -550,6 +556,12 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
@@ -672,6 +684,11 @@ CONTAINS
        ! FullRun = F: Just set up Cloud pH & related parameters, and exit
        !---------------------------------------------------------------------
 
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
        ! Convert species to [v/v dry] aka [mol/mol dry]
        CALL Convert_Spc_Units(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -688,6 +705,12 @@ CONTAINS
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
@@ -709,6 +732,11 @@ CONTAINS
 
     ENDIF ! FullRun
 
+    ! Halt aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species units back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -723,6 +751,11 @@ CONTAINS
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SULFATE in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointer
@@ -760,6 +793,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE Timers_Mod,         ONLY : Timer_End,  Timer_Start
     USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
@@ -806,6 +840,11 @@ CONTAINS
     ! EMISSSULFATETOMAS begins here!
     !=================================================================
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species to [kg] for TOMAS. This will be removed once
     ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
     CALL Convert_Spc_Units(                                                  &
@@ -823,6 +862,11 @@ CONTAINS
                      'Start of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
     ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
+    ENDIF    
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
@@ -881,6 +925,11 @@ CONTAINS
     ! Free pointer
     NULLIFY( Spc )
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species back to original units (ewl, 9/11/15)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -895,6 +944,11 @@ CONTAINS
        CALL GC_Error('Unit conversion error', RC, &
                      'End of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
     ENDIF
 
   END SUBROUTINE EMISSSULFATETOMAS
