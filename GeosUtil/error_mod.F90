@@ -688,9 +688,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     CHARACTER(LEN=10)     :: LEVEL_SAFE
-#if defined( ESMF_ )
-    CHARACTER(LEN=255)   :: Iam
-#endif
+    CHARACTER(LEN=255)    :: Iam
 
     If (PRESENT(LEVEL)) Then
         LEVEL_SAFE = To_Uppercase(LEVEL)

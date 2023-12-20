@@ -3091,7 +3091,8 @@ CONTAINS
 
        CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', &
                              notFoundOK=.TRUE., __RC__ )
-       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY)) THEN
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) &
+           ASSOCIATED(State_Chm%TStrat_Adj) ) THEN
           Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
                     State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ)
        ENDIF
