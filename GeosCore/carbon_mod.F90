@@ -4793,9 +4793,6 @@ CONTAINS
    ! Assume success
    RC = GC_SUCCESS
 
-   ! Initialize
-   POAEMISS =  0e+0_fp
-
    ! Check if using complex SOA scheme
    IF ( Input_Opt%LSOA ) THEN
 
@@ -4834,6 +4831,9 @@ CONTAINS
 
    ! Nothing to do if none of the species are defined
    IF ( SESQID <= 0 .AND. HCOPOG1 <= 0 .AND. HCOPOG2 <=0 ) RETURN
+
+   ! Initialize
+   POAEMISS =  0.0_fp
 
    ! Maximum extent of PBL [model levels]
    PBL_MAX = State_Met%PBL_MAX_L
@@ -4927,7 +4927,7 @@ CONTAINS
    USE State_Chm_Mod,        ONLY : ChmState
    USE State_Grid_Mod,       ONLY : GrdState
    USE State_Met_Mod,        ONLY : MetState
-   USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+   USE UnitConv_Mod
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
    USE TOMAS_MOD,            ONLY : IBINS,     AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
@@ -4968,7 +4968,7 @@ CONTAINS
    LOGICAL                  :: SGCOAG = .True.
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
-   CHARACTER(LEN=63)        :: OrigUnit
+   INTEGER                  :: origUnit
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
    LOGICAL, SAVE            :: USE_FIRE_NUM = .FALSE.
    LOGICAL                  :: FND !(ramnarine 1/2/2019)
@@ -5029,8 +5029,16 @@ CONTAINS
    ! Convert concentration units to [kg] for TOMAS. This will be
    ! removed once TOMAS uses mixing ratio instead of mass
    ! as species units (ewl, 9/11/15)
-   CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                           'kg', RC, OrigUnit=OrigUnit )
+   CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
+   ! Trap errors
    IF ( RC /= GC_SUCCESS ) THEN
       CALL GC_Error( 'Unit conversion error', RC, &
                      'Start of EMISSCARBONTOMAS in carbon_mod.F90' )
@@ -5253,8 +5261,15 @@ CONTAINS
    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
    ! Convert concentrations back to original units (ewl, 9/11/15)
-   CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                           OrigUnit, RC )
+   CALL Convert_Spc_Units(                                                   &
+        Input_Opt  = Input_Opt,                                              &
+        State_Chm  = State_Chm,                                              &
+        State_Grid = State_Grid,                                             &
+        State_Met  = State_Met,                                              &
+        outUnit    = origUnit,                                               &
+        RC         = RC                                                     )
+
+   ! Trap errors
    IF ( RC /= GC_SUCCESS ) THEN
       CALL GC_Error('Unit conversion error', RC, &
                     'End of EMISSCARBONTOMAS in carbon_mod.F90')

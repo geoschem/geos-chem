@@ -158,7 +158,7 @@ CONTAINS
     USE State_Met_Mod,       ONLY : MetState
     USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
     USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-    USE UnitConv_Mod,        ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -208,8 +208,8 @@ CONTAINS
     LOGICAL            :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
     INTEGER            :: ITIMEVALS(8)
     INTEGER            :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
+    INTEGER            :: origUnit
     REAL*8             :: OLDSECS, NEWSECS
-    CHARACTER(LEN=63)  :: OrigUnit
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST    = .TRUE.
@@ -564,9 +564,15 @@ CONTAINS
     RTSSAER     => State_Chm%Phot%RTSSAER
     RTASYMAER   => State_Chm%Phot%RTASYMAER
 
-    ! Convert species units to kg/kg dry for RRTMG
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg/kg dry', RC, OrigUnit=OrigUnit )
+    ! Convert species units to [kg/kg dry] for RRTMG
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2097,8 +2103,14 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN
