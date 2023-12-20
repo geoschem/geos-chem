@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
+- Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 
 ### Removed
 - Reduced timers saved out to essential list used for benchmarking model performance

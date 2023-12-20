@@ -174,7 +174,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gchp" "${runAbsPath}")
+        exeFile=$(exe_name "gchp" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
