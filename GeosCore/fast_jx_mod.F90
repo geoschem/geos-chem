@@ -1022,35 +1022,35 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-    CALL MPI_BCAST( NJX,       1,            mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NJX')
-    CALL MPI_BCAST( NW1,       1,            mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW1')
-    CALL MPI_BCAST( NW2,       1,            mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW2')
-    CALL MPI_BCAST( WBIN,      Size(WBIN),   mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WBIN')
-    CALL MPI_BCAST( WL,        Size(WL),     mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WL')
-    CALL MPI_BCAST( FL,        Size(FL),     mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: FL')
-    CALL MPI_BCAST( QO2,       Size(QO2),    mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO2')
-    CALL MPI_BCAST( QO3,       Size(QO3),    mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO3')
-    CALL MPI_BCAST( Q1D,       Size(Q1D),    mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: Q1D')
-    CALL MPI_BCAST( QQQ,       Size(QQQ),    mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QQQ')
-    CALL MPI_BCAST( QRAYL,     Size(QRAYL),  mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QRAYL')
-    CALL MPI_BCAST( TQQ,       Size(TQQ),    mpi_real8,     masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TQQ')
-    CALL MPI_BCAST( LQQ,       Size(LQQ),    mpi_integer,   masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: LQQ')
-    CALL MPI_BCAST( TITLEJX,   X_*6,         mpi_character, masterprocid, mpirun, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TITLEJX')
-    CALL MPI_BCAST( SQQ,       X_*1,         mpi_character, masterprocid, mpirun, ierr )
+    CALL MPI_BCAST( NJX,       1,            mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NJX')com
+    CALL MPI_BCAST( NW1,       1,            mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW1')com
+    CALL MPI_BCAST( NW2,       1,            mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW2')com
+    CALL MPI_BCAST( WBIN,      Size(WBIN),   mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WBIN'com
+    CALL MPI_BCAST( WL,        Size(WL),     mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WL') com
+    CALL MPI_BCAST( FL,        Size(FL),     mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: FL') com
+    CALL MPI_BCAST( QO2,       Size(QO2),    mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO2')com
+    CALL MPI_BCAST( QO3,       Size(QO3),    mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO3')com
+    CALL MPI_BCAST( Q1D,       Size(Q1D),    mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: Q1D')com
+    CALL MPI_BCAST( QQQ,       Size(QQQ),    mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QQQ')com
+    CALL MPI_BCAST( QRAYL,     Size(QRAYL),  mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QRAYLcom
+    CALL MPI_BCAST( TQQ,       Size(TQQ),    mpi_real8,     masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TQQ')com
+    CALL MPI_BCAST( LQQ,       Size(LQQ),    mpi_integer,   masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: LQQ')com
+    CALL MPI_BCAST( TITLEJX,   X_*6,         mpi_character, masterprocid, mpicom, ierr )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TITLEcom)
+    CALL MPI_BCAST( SQQ,       X_*1,         mpi_character, masterprocid, mpicom, ierr )
     IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: SQQ')
 #endif
 
