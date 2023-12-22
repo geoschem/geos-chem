@@ -46,8 +46,6 @@ MODULE QFYAML_Mod
   PUBLIC :: QFYAML_Merge
   PUBLIC :: QFYAML_Print
   PUBLIC :: QFYAML_Update
-
-  PUBLIC :: Get_Var_Index
 !
 ! !REMARKS:
 !  QFYAML -- The Quick Fortran YAML parser!

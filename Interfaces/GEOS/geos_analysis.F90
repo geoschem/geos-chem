@@ -86,6 +86,7 @@ MODULE GEOS_Analysis
      INTEGER                      :: nSpec2
      TYPE(Spec2Opt), POINTER      :: Spec2(:) => NULL()
      INTEGER                      :: ErrorMode
+     INTEGER                      :: Verbose
   END TYPE AnaOptions
 
   ! List holding all analysis information
@@ -401,6 +402,8 @@ CONTAINS
   USE HCO_Utilities_GC_Mod,  ONLY : HCO_GC_EvalFld
   USE TIME_MOD,              ONLY : GET_TS_CHEM
   Use PhysConstants,         ONLY : AIRMW
+  USE HCOIO_Util_Mod,        ONLY : HCOIO_IsValid 
+  USE HCO_State_GC_Mod,      ONLY : HcoState
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -505,42 +508,49 @@ CONTAINS
        TimeForAna = .FALSE.
     ENDIF
 
-    ! Check if file exists (only if it's time to do the analysis
+    ! Check if file exists (only if it's time to do the analysis)
     HasField = .FALSE.
     AnaPtr => NULL()
     IF ( TimeForAna ) THEN
-       
-       FldName = iopt%FldNameHco
-       ALLOCATE(AnaPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-       CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, AnaPtr, RC, FOUND=HasField ) 
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error getting field: '//TRIM(FldName)
-          CALL GC_Error( ErrMsg, RC, ThisLoc)
-          RETURN
-       ENDIF
 
-       ! Eventually read mask field
-       IF ( iopt%HasMask ) THEN
-          FldName = iopt%MskNameHco
-          ALLOCATE(MskPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-          CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, MskPtr, RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error getting mask: '//TRIM(FldName)
-             CALL GC_Error( ErrMsg, RC, ThisLoc)
-             RETURN
+       ! HEMCO field name 
+       FldName = iopt%FldNameHco
+
+       ! Check first if the field exists / is valid (in ESMF, fields can become invalid)
+       CALL HCOIO_IsValid( HcoState, FldName, HasField, RC )
+       IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
+
+       ! Evaluate field if it is valid to do so
+       IF ( HasField ) THEN
+
+          ALLOCATE(AnaPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+          CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, AnaPtr, RC )
+          IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
+
+          ! Eventually read mask field
+          IF ( iopt%HasMask ) THEN
+             FldName = iopt%MskNameHco
+             ALLOCATE(MskPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+             CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, MskPtr, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error getting mask: '//TRIM(FldName)
+                CALL GC_Error( ErrMsg, RC, ThisLoc)
+                RETURN
+             ENDIF
           ENDIF
-       ENDIF
 
        ! Handle cases where field is not found. If error mode is set to 0, stop with error.
        ! Print a warning otherwise.
-       IF ( .NOT. HasField ) THEN
+       ELSE
           IF ( iopt%ErrorMode == 0 ) THEN 
              ErrMsg = 'Field not found: '//TRIM(iopt%FldNameHco)//'; to get past this error, set error mode to > 0'
              CALL GC_Error( ErrMsg, RC, ThisLoc)
              RETURN
           ELSE
-             ErrMsg = 'Field not found: '//TRIM(iopt%FldNameHco)//'; will skip analysis'
-             CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc)
+             IF ( am_I_Root .AND. (iopt%Verbose>1) ) THEN
+                WRITE(*,*) 'GEOS-Chem analysis: field not found: '//TRIM(iopt%FldNameHco)//'; will skip analysis'
+                !CALL GC_Warning( ErrMsg, RC, ThisLoc=ThisLoc)
+             ENDIF
           ENDIF
        ENDIF
     ENDIF
@@ -550,7 +560,7 @@ CONTAINS
     IF ( HasField ) THEN 
 
        ! Verbose
-       IF ( am_I_Root ) THEN
+       IF ( am_I_Root .AND. (iopt%Verbose>0) ) THEN
           WRITE(*,100) SpecName,yy,mm,dd,h,m
 100       FORMAT( "GEOS-Chem: apply analysis for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
        ENDIF
@@ -783,7 +793,7 @@ CONTAINS
        ENDDO
 
        ! Print warning if at least one negative cell
-       IF ( NNEG > 0 ) THEN
+       IF ( NNEG > 0 .AND. iopt%Verbose > 2 ) THEN
           WRITE(6,*) '*** DoAnalysis_ warning: encountered concentration below threshold, set to minimum: ',TRIM(SpecName),NNEG,MinConc,' ***'
        ENDIF
 
@@ -999,341 +1009,213 @@ CONTAINS
 
     ! Get species name. Eventually remove single quotes from species
     key = TRIM(pkey)//"%SpeciesName"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='N/A' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       SpecName = TRIM(v_str)
+    SpecName = TRIM(v_str)
+    C = INDEX( SpecName, "'" )
+    IF ( C > 0 ) THEN
+       SpecName = SpecName(C+1:)
        C = INDEX( SpecName, "'" )
-       IF ( C > 0 ) THEN
-          SpecName = SpecName(C+1:)
-          C = INDEX( SpecName, "'" )
-          IF ( C > 0 ) SpecName = Specname(1:C-1)
-       ENDIF
-       AnaConfig(ispec)%SpecName = SpecName
-    ELSE
-       AnaConfig(ispec)%SpecName = 'N/A'
+       IF ( C > 0 ) SpecName = Specname(1:C-1)
     ENDIF
+    AnaConfig(ispec)%SpecName = SpecName
     IF ( am_I_Root ) write(6,*) 'Reading analysis settings for species: '//TRIM(AnaConfig(ispec)%SpecName)
 
     ! Active?
     key = TRIM(pkey)//"%Active"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%Active = v_bool
-    ELSE
-       AnaConfig(ispec)%Active = .FALSE. 
-    ENDIF
+    AnaConfig(ispec)%Active = v_bool
 
     ! Analysis frequency
     key = TRIM(pkey)//"%AnalysisFreq"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnalysisFreq = v_int
-    ELSE
-       AnaConfig(ispec)%AnalysisFreq = 6 
-    ENDIF    
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=6 )
+    AnaConfig(ispec)%AnalysisFreq = v_int
 
     ! Analysis hour 
     key = TRIM(pkey)//"%AnalysisHour"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnalysisHour = v_int
-    ELSE
-       AnaConfig(ispec)%AnalysisHour = 0 
-    ENDIF    
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=0 )
+    AnaConfig(ispec)%AnalysisHour = v_int
 
     ! Analysis minute 
     key = TRIM(pkey)//"%AnalysisMinute"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=0 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnalysisMinute = v_int
-    ELSE
-       AnaConfig(ispec)%AnalysisMinute = 0 
-    ENDIF    
+    AnaConfig(ispec)%AnalysisMinute = v_int
 
     ! Forward looking? 
     key = TRIM(pkey)//"%ForwardLooking"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%ForwardLooking = v_bool
-    ELSE
-       AnaConfig(ispec)%ForwardLooking = .TRUE.
-    ENDIF
+    AnaConfig(ispec)%ForwardLooking = v_bool
 
     ! Skip predictor? 
     key = TRIM(pkey)//"%SkipPredictor"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%SkipPredictor = v_bool
-    ELSE
-       AnaConfig(ispec)%SkipPredictor = .TRUE.
-    ENDIF
+    AnaConfig(ispec)%SkipPredictor = v_bool
 
     ! HEMCO field name 
     key = TRIM(pkey)//"%FldNameHco"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='N/A' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%FldNameHco = v_str
-    ELSE
-       AnaConfig(ispec)%FldNameHco = 'N/A'
-    ENDIF
+    AnaConfig(ispec)%FldNameHco = v_str
 
     ! Field units
     key = TRIM(pkey)//"%FileVarUnit"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='v/v' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%FileVarUnit = v_str
-    ELSE
-       AnaConfig(ispec)%FileVarUnit = 'v/v'
-    ENDIF
+    AnaConfig(ispec)%FileVarUnit = v_str
 
     ! Dry air flag 
     key = TRIM(pkey)//"%DryFlag"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=1 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%DryFlag = v_int
-    ELSE
-       AnaConfig(ispec)%DryFlag = 1
-    ENDIF
+    AnaConfig(ispec)%DryFlag = v_int
 
     ! Is increment?
     key = TRIM(pkey)//"%IsIncrement"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%IsIncrement = v_bool
-    ELSE
-       AnaConfig(ispec)%IsIncrement = .FALSE.
-    ENDIF
+    AnaConfig(ispec)%IsIncrement = v_bool
 
     ! IAU? 
     key = TRIM(pkey)//"%IAU"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%IAU = v_bool
-    ELSE
-       AnaConfig(ispec)%IAU = .FALSE.
-    ENDIF
+    AnaConfig(ispec)%IAU = v_bool
 
     ! Analysis window length (hours) 
     key = TRIM(pkey)//"%AnalysisWindow"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=6 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnalysisWindow = v_int
-    ELSE
-       AnaConfig(ispec)%AnalysisWindow = 6
-    ENDIF
+    AnaConfig(ispec)%AnalysisWindow = v_int
 
     ! Apply in stratosphere? 
     key = TRIM(pkey)//"%InStrat"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%InStrat = v_bool
-    ELSE
-       AnaConfig(ispec)%InStrat = .TRUE.
-    ENDIF
+    AnaConfig(ispec)%InStrat = v_bool
 
     ! Apply in troposphere? 
     key = TRIM(pkey)//"%InTrop"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%InTrop = v_bool
-    ELSE
-       AnaConfig(ispec)%InTrop = .TRUE.
-    ENDIF
+    AnaConfig(ispec)%InTrop = v_bool
 
     ! Has mask field 
     key = TRIM(pkey)//"%HasMask"
-    CALL GetKey_( Config, key, found, RC, vbool=v_bool )
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%HasMask = v_bool
-    ELSE
-       AnaConfig(ispec)%HasMask = .FALSE.
-    ENDIF
+    AnaConfig(ispec)%HasMask = v_bool
 
     ! Mask name (from HEMCO) 
     key = TRIM(pkey)//"%MskNameHco"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='N/A' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MskNameHco = v_str
-    ELSE
-       AnaConfig(ispec)%MskNameHco = 'N/A'
-    ENDIF
+    AnaConfig(ispec)%MskNameHco = v_str
 
     ! Mask threshold 
     key = TRIM(pkey)//"%MaskThreshold"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='0.1' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MaskThreshold = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MaskThreshold = 0.1 
-    ENDIF 
+    AnaConfig(ispec)%MaskThreshold = Cast_and_RoundOff( v_str, places=2 )
 
     ! Analysis level 1 
     key = TRIM(pkey)//"%AnaL1"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=1 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnaL1 = v_int
-    ELSE
-       AnaConfig(ispec)%AnaL1 = 1
-    ENDIF
+    AnaConfig(ispec)%AnaL1 = v_int
 
     ! Analysis level 2 
     key = TRIM(pkey)//"%AnaL2"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=1 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnaL2 = v_int
-    ELSE
-       AnaConfig(ispec)%AnaL2 = 1
-    ENDIF
+    AnaConfig(ispec)%AnaL2 = v_int
 
     ! Analysis level 3 
     key = TRIM(pkey)//"%AnaL3"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=72 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnaL3 = v_int
-    ELSE
-       AnaConfig(ispec)%AnaL3 = 72
-    ENDIF
+    AnaConfig(ispec)%AnaL3 = v_int
 
     ! Analysis level 4 
     key = TRIM(pkey)//"%AnaL4"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=72 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnaL4 = v_int
-    ELSE
-       AnaConfig(ispec)%AnaL4 = 72
-    ENDIF
+    AnaConfig(ispec)%AnaL4 = v_int
 
     ! Analysis fraction 
     key = TRIM(pkey)//"%AnaFraction"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%AnaFraction = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%AnaFraction = 1.0 
-    ENDIF 
+    AnaConfig(ispec)%AnaFraction = Cast_and_RoundOff( v_str, places=2 )
 
     ! Stratosphere sponge layer 
     key = TRIM(pkey)//"%StratSponge"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=0 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%StratSponge = v_int
-    ELSE
-       AnaConfig(ispec)%StratSponge = 0 
-    ENDIF
+    AnaConfig(ispec)%StratSponge = v_int
 
     ! Maximum change in stratosphere 
     key = TRIM(pkey)//"%MaxChangeStrat"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MaxChangeStrat = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MaxChangeStrat = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MaxChangeStrat = Cast_and_RoundOff( v_str, places=2 )
 
     ! Maximum change in troposphere 
     key = TRIM(pkey)//"%MaxChangeTrop"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MaxChangeTrop = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MaxChangeTrop = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MaxChangeTrop = Cast_and_RoundOff( v_str, places=2 )
 
     ! Maximum ratio change in stratosphere 
     key = TRIM(pkey)//"%MaxRatioStrat"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MaxRatioStrat = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MaxRatioStrat = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MaxRatioStrat = Cast_and_RoundOff( v_str, places=2 )
 
     ! Maximum ratio change in troposphere 
     key = TRIM(pkey)//"%MaxRatioTrop"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MaxRatioTrop = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MaxRatioTrop = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MaxRatioTrop = Cast_and_RoundOff( v_str, places=2 )
 
     ! Minimum ratio change in stratosphere 
     key = TRIM(pkey)//"%MinRatioStrat"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MinRatioStrat = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MinRatioStrat = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MinRatioStrat = Cast_and_RoundOff( v_str, places=2 )
 
     ! Minimum ratio change in troposphere 
     key = TRIM(pkey)//"%MinRatioTrop"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MinRatioTrop = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MinRatioTrop = -1.0 
-    ENDIF 
+    AnaConfig(ispec)%MinRatioTrop = Cast_and_RoundOff( v_str, places=2 )
 
     ! Minimum concentration 
     key = TRIM(pkey)//"%MinConc"
-    CALL GetKey_( Config, key, found, RC, vstr=v_str )
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='1.0e-20' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%MinConc = Cast_and_RoundOff( v_str, places=2 )
-    ELSE
-       AnaConfig(ispec)%MinConc = 1.0e-20 
-    ENDIF 
+    AnaConfig(ispec)%MinConc = Cast_and_RoundOff( v_str, places=2 )
 
     ! Error mode 
     key = TRIM(pkey)//"%ErrorMode"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=1 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       AnaConfig(ispec)%ErrorMode = v_int
-    ELSE
-       AnaConfig(ispec)%ErrorMode = 1 
-    ENDIF
+    AnaConfig(ispec)%ErrorMode = v_int
+
+    ! Verbose flag
+    key = TRIM(pkey)//"%Verbose"
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=2 )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%Verbose = v_int
 
     ! Check for "dependent" species
     key = TRIM(pkey)//"%HasSpec2"
-    CALL GetKey_( Config, key, found, RC, vint=v_int )
+    CALL GetKey_( Config, key, RC, vint=v_int, vint_default=0 )
     IF ( RC /= GC_SUCCESS ) RETURN
-    IF ( found ) THEN
-       nSpec2 = v_int
-    ELSE
-       nSpec2 = 0 
-    ENDIF
+    nSpec2 = v_int
     AnaConfig(ispec)%nSpec2 = nSpec2 
 
     IF ( nSpec2 > 0 ) THEN
@@ -1342,45 +1224,25 @@ CONTAINS
 
        ! species names 
        key = TRIM(pkey)//"%Spec2Name"
-       CALL GetKey_( Config, key, found, RC, vstr=v_str )
+       CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='unknown' )
        IF ( RC /= GC_SUCCESS ) RETURN
-       IF ( found ) THEN
-          Spec2Name = v_str 
-       ELSE
-          Spec2Name = 'unknown' 
-       ENDIF 
+       Spec2Name = v_str 
        key = TRIM(pkey)//"%Spec2Strat"
-       CALL GetKey_( Config, key, found, RC, vstr=v_str )
+       CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='1' )
        IF ( RC /= GC_SUCCESS ) RETURN
-       IF ( found ) THEN
-          Spec2Strat = v_str 
-       ELSE
-          Spec2Strat = '1' 
-       ENDIF 
+       Spec2Strat = v_str 
        key = TRIM(pkey)//"%Spec2Trop"
-       CALL GetKey_( Config, key, found, RC, vstr=v_str )
+       CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='1' )
        IF ( RC /= GC_SUCCESS ) RETURN
-       IF ( found ) THEN
-          Spec2Trop = v_str 
-       ELSE
-          Spec2Trop = '1' 
-       ENDIF 
+       Spec2Trop = v_str 
        key = TRIM(pkey)//"%Spec2MinRatio"
-       CALL GetKey_( Config, key, found, RC, vstr=v_str )
+       CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
        IF ( RC /= GC_SUCCESS ) RETURN
-       IF ( found ) THEN
-          Spec2MinRatio = v_str 
-       ELSE
-          Spec2MinRatio = '-1.0' 
-       ENDIF 
+       Spec2MinRatio = v_str 
        key = TRIM(pkey)//"%Spec2MaxRatio"
-       CALL GetKey_( Config, key, found, RC, vstr=v_str )
+       CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='-1.0' )
        IF ( RC /= GC_SUCCESS ) RETURN
-       IF ( found ) THEN
-          Spec2MaxRatio = v_str 
-       ELSE
-          Spec2MaxRatio = '-1.0' 
-       ENDIF 
+       Spec2MaxRatio = v_str 
        ! Assign parameter to various slots
        DO N = 1, nSpec2
           ! Species name
@@ -1449,6 +1311,7 @@ CONTAINS
              ENDDO
           ENDIF
           WRITE(6,*) '- Error mode                    : ', AnaConfig(ispec)%ErrorMode
+          WRITE(6,*) '- Verbose flag                  : ', AnaConfig(ispec)%Verbose
        ENDIF ! Active 
     ENDIF
 
@@ -1615,7 +1478,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE GetKey_( Config, key, found, RC, vint, vbool, vstr ) 
+  SUBROUTINE GetKey_( Config, key, RC, vint, vint_default, vbool, vbool_default, vstr, vstr_default ) 
 !
 ! !USES:
 !
@@ -1628,11 +1491,13 @@ CONTAINS
 !                                                             
 ! !INPUT/OUTPUT PARAMETERS:                                         
 !              
-    LOGICAL,           INTENT(OUT)                      :: found
-    INTEGER,           INTENT(INOUT)                    :: RC 
-    INTEGER, OPTIONAL, INTENT(OUT)                      :: vint
-    LOGICAL, OPTIONAL, INTENT(OUT)                      :: vbool
-    CHARACTER(LEN=QFYAML_StrLen), OPTIONAL, INTENT(OUT) :: vstr
+    INTEGER,           INTENT(INOUT)                      :: RC 
+    INTEGER, OPTIONAL, INTENT(OUT)                        :: vint
+    INTEGER, OPTIONAL, INTENT(IN)                         :: vint_default
+    LOGICAL, OPTIONAL, INTENT(OUT)                        :: vbool
+    LOGICAL, OPTIONAL, INTENT(IN)                         :: vbool_default
+    CHARACTER(LEN=QFYAML_StrLen), OPTIONAL, INTENT(OUT)   :: vstr
+    CHARACTER(LEN=*), OPTIONAL, INTENT(IN)                :: vstr_default
 !
 ! !REVISION HISTORY:
 !  15 Dec 2023 - C. Keller   - Initial version
@@ -1643,7 +1508,7 @@ CONTAINS
 !   
 ! LOCAL VARIABLES:
 !   
-    INTEGER :: v_int, ix
+    INTEGER :: v_int
     LOGICAL :: v_bool
     CHARACTER(LEN=QFYAML_StrLen) :: v_str
     CHARACTER(LEN=255) :: errMsg
@@ -1652,54 +1517,38 @@ CONTAINS
     ! Starts here
     RC = GC_SUCCESS
 
-    ! Check if key exists
-    CALL Get_Var_Index( Config, TRIM( key ), ix )
-    found = ( ix > 0 )
-
     ! integer
     IF ( PRESENT(vint) ) THEN
-       IF ( ix>0 ) THEN
-          v_int = MISSING_INT
-          CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             errMsg = 'Error parsing ' // TRIM( key ) // '!'
-             CALL GC_Error( errMsg, RC, Iam )
-             RETURN
-          ENDIF
-       ELSE
-          v_int = -1
+       v_int = vint_default
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, Iam )
+          RETURN
        ENDIF
        vint = v_int
     ENDIF
     
     ! bool 
     IF ( PRESENT(vbool) ) THEN
-       IF ( ix>0 ) THEN
-          v_bool = MISSING_BOOL
-          CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             errMsg = 'Error parsing ' // TRIM( key ) // '!'
-             CALL GC_Error( errMsg, RC, Iam )
-             RETURN
-          ENDIF
-       ELSE
-          v_bool = .false.
+       v_bool = vbool_default
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, Iam )
+          RETURN
        ENDIF
        vbool = v_bool
     ENDIF
     
     ! character 
     IF ( PRESENT(vstr) ) THEN
-       IF ( ix>0 ) THEN
-          v_str = MISSING_STR
-          CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-          IF ( RC /= GC_SUCCESS ) THEN
-             errMsg = 'Error parsing ' // TRIM( key ) // '!'
-             CALL GC_Error( errMsg, RC, Iam )
-             RETURN
-          ENDIF
-       ELSE
-          v_str = "unknown" 
+       v_str = TRIM(vstr_default)
+       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error parsing ' // TRIM( key ) // '!'
+          CALL GC_Error( errMsg, RC, Iam )
+          RETURN
        ENDIF
        vstr = v_str
     ENDIF
