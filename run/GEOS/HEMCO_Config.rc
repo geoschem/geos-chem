@@ -80,8 +80,9 @@ VerboseOnCores:              root       # Accepted values: root all
     --> GMI_PROD_LOSS          :       false
     --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
-    --> GMD_SFC_CH4            :       true
+    --> GMD_SFC_CH4            :       false
     --> CMIP6_SFC_CH4          :       false
+    --> GEOS_3HR_CH4           :       true
 # OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
     --> YUAN_MODIS_LAI         :       false
@@ -1411,6 +1412,20 @@ VerboseOnCores:              root       # Accepted values: root all
 * surf_salinity   $ROOT/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc                                                s_mn                   1985/1/1/0    C xy 1 * - 1 1
 * surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
 )))OCEAN_O3_DRYDEP
+
+
+#==============================================================================
+# --- Imports for GEOS handled through HEMCO ---
+#==============================================================================
+# CH4 boundary conditions
+(((GEOS_3HR_CH4
+* GEOS_CH4 /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1 
+)))GEOS_3HR_CH4
+
+# GEOS analysis fields 
+* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1 
+* CDAS_NO2 /see/extdata NO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1 
+* CDAS_SO2 /see/extdata SO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1 
 
 ### END SECTION BASE EMISSIONS 
 

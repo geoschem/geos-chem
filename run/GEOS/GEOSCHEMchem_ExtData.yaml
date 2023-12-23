@@ -5,7 +5,9 @@ Samplings:
   gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: True, extrapolation: clim}
   gcc_3hr:               {time_interpolation: True, extrapolation: clim}
   gcc_monthly_clim:      {update_reference_time: "0", update_frequency: P1M, time_interpolation: False, extrapolation: clim}
-  ana_sample:            {update_offset: PT900S, exact: True}
+  geosit_sample:         {update_offset: PT900S, exact: True}
+  cdas_sample:           {update_offset: PT3H, exact: False, time_interpolation: False}
+
 
 Collections:
   GCC_ACET_seawater:
@@ -271,8 +273,9 @@ Collections:
     template: /home/dao_ops/d5294_geosit_jan18/run/.../archive/ana/Y%y4/M%m2/d5294_geosit_jan18.bkg.eta.%y4%m2%d2_%h2%n2z.nc4
     freq: "PT3H"
   CDAS.inc.eta:
-    template: ./inc.eta.%y4%m2%d2_%h2%n2z.nc4
+    template: /discover/nobackup/projects/gmao/geos_cf_dev/cakelle2/develop/c90_dev/tmp/CRtest_mls_c90.inc.eta.%y4%m2%d2_%h2%n2z.nc4
     freq: "PT6H"
+    ref_time: "2018-08-01T00:00"
 
 Exports:
   ACET_SEAWATER:
@@ -2695,12 +2698,12 @@ Exports:
   GEOSIT_O3:
     collection: GCC_d5294_geosit_jan18
     regrid: BILINEAR
-    sample: ana_sample
+    sample: geosit_sample
     variable: ozone
     fail_on_missing_file: false
   CDAS_NO2:
     collection: CDAS.inc.eta 
     regrid: BILINEAR
-    sample: ana_sample
+    sample: cdas_sample
     variable: NO2 
     fail_on_missing_file: false

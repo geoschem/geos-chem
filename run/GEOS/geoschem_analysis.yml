@@ -14,7 +14,7 @@ general:
 species:
   Spc001:
     SpeciesName: O3
-    Active: false 
+    Active: false
     AnalysisFreq: 6
     AnalysisHour: 0
     AnalysisMinute: 0
@@ -64,6 +64,7 @@ species:
     MinConc: 1.0e-32
     HasSpec2: 0
     ErrorMode: 1
+    Verbose: 1
 
   Spc003:
     SpeciesName: SO2
