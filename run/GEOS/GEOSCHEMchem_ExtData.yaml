@@ -2707,3 +2707,9 @@ Exports:
     sample: cdas_sample
     variable: NO2 
     fail_on_missing_file: false
+  CDAS_SO2:
+    collection: CDAS.inc.eta 
+    regrid: BILINEAR
+    sample: cdas_sample
+    variable: SO2 
+    fail_on_missing_file: false
