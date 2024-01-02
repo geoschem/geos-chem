@@ -148,7 +148,7 @@ CONTAINS
     USE ERROR_MOD
     USE Input_Opt_Mod,       ONLY : OptInput
     USE PhysConstants,       ONLY : AIRMW, PI, AVO
-    USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
+    USE PRESSURE_MOD,        ONLY : GET_PCENTER, GET_PEDGE
     USE Species_Mod,         ONLY : SpcConc
     USE State_Chm_Mod,       ONLY : ChmState
     USE State_Chm_Mod,       ONLY : Ind_
@@ -156,6 +156,7 @@ CONTAINS
     USE State_Grid_Mod,      ONLY : GrdState
     USE State_Met_Mod,       ONLY : MetState
     USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
+    USE Timers_Mod,          ONLY : Timer_End, Timer_Start
     USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
     USE UnitConv_Mod
 !
