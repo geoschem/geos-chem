@@ -329,8 +329,6 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: BOH        (:,:,:  ) ! OH values [molec/cm3]
      REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
-     REAL(fp),          POINTER :: CH4_EMIS   (:,:,:  ) ! CH4 emissions [kg/m2/s].
-                                                        ! third dim is cat, total 15
      LOGICAL                    :: IsCH4BCPerturbed     ! Is CH4 BC perturbed?
 
 #ifdef APM
@@ -537,7 +535,6 @@ CONTAINS
     State_Chm%TOMS2             => NULL()
     State_Chm%BOH               => NULL()
     State_Chm%BCl               => NULL()
-    State_Chm%CH4_EMIS          => NULL()
     State_Chm%SFC_CH4           => NULL()
 
     State_Chm%UCX_REGRID        => NULL()
@@ -2243,23 +2240,6 @@ CONTAINS
     ! Initialize State_Chm quantities pertinent to CH4 simulations
     !=======================================================================
     IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-        ! CH4_EMIS
-        chmId = 'CH4_EMIS'
-        CALL Init_and_Register(                                              &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%CH4_EMIS,                                 &
-            nSlots     = 16,                                                 &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
        ! Global OH and Cl from HEMCO input
        chmId = 'BOH'
        CALL Init_and_Register(                                               &
@@ -3598,13 +3578,6 @@ CONTAINS
        State_Chm%BCl => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%CH4_EMIS ) ) THEN
-       DEALLOCATE( State_Chm%CH4_EMIS, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%CH4_EMIS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%CH4_EMIS => NULL()
-    ENDIF
-
 #ifdef LUO_WETDEP
     IF ( ASSOCIATED( State_Chm%QQ3D ) ) THEN
        DEALLOCATE( State_Chm%QQ3D, STAT=RC )
@@ -4715,11 +4688,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
-
-       CASE( 'CH4_EMIS' )
-          IF ( isDesc  ) Desc  = 'CH4 emissions by sector, CH4 specialty simulation only'
-          IF ( isUnits ) Units = 'kg/m2/s'
-          IF ( isRank  ) Rank  = 3
 
        CASE( 'BOH' )
           IF ( isDesc  ) Desc  = 'OH values, CH4 specialty simulation only'

@@ -86,10 +86,6 @@ Mask fractions:              false
 # ..... Non-Emissions Data ...........
     --> CH4_LOSS_FREQ          :       true     # 1985
     --> GLOBAL_CL              :       true     # 2010-2019
-# ..... Options for the IMI ..........
-    --> AnalyticalInv          :       false
-    --> Emis_ScaleFactor       :       false
-    --> OH_ScaleFactor         :       false
 # ----- CO and CO2-only INVENTORIES AND DATA ----------------------------------
 # ..... Global inventories ...........
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
@@ -138,6 +134,11 @@ Mask fractions:              false
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
     --> GLOBAL_OH_GC14         :       false    # 2010-2019
     --> GLOBAL_OH_GCv5         :       true     # 1985 (recommended for CH4)
+# ----- Options for analytical inversions -------------------------------------
+    --> AnalyticalInversion    :       false
+    --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
+    --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
+    --> OH_PosteriorSF         :       false    # Apply posterior scale factor  to global OH?
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
@@ -159,6 +160,23 @@ Mask fractions:              false
 #%%%%%                        CH4 EMISSIONS                               %%%%%
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 (((USE_CH4_DATA
+
+#==============================================================================
+# ---Total CH4 emissions (all sectors) from prior simulation ---
+#==============================================================================
+(((UseTotalPriorEmis
+
+(((Emis_PosteriorSF
+0 CH4_Emis_Prior ../prior_run/OutputDir/HEMCO_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 3 1 500
+)))Emis_PosteriorSF
+
+(((.not.Emis_PosteriorSF
+0 CH4_Emis_Prior ../prior_run/OutputDir/HEMCO_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 - 1 500
+))).not.Emis_PosteriorSF
+
+)))UseTotalPriorEmis
+
+(((.not.UseTotalPriorEmis
 
 #==============================================================================
 # --- CH4: Gridded GHGI v2 (Maasakkers et al., submitted to ES&T, 2023) ---
@@ -576,6 +594,8 @@ Mask fractions:              false
 (((RCP_85
 0 RCP85_CH4  $ROOT/RCP/v2020-07/RCP_85/RCPs_anthro_CH4_2005-2100_43533.nc   ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s  CH4 - 1 1
 )))RCP_85
+
+))).not.UseTotalPriorEmis
 
 )))USE_CH4_DATA
 
@@ -1259,36 +1279,10 @@ Mask fractions:              false
 
 #------------------------------------------------------------------------------
 # --- Files needed for analytical inversion ---
-#
-# These fields are are only used if analytical_inversion?' is activated in
-# geoschem_config.yml. These fields are obtained from HEMCO and applied in
-# GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
-# Entries below provided for examples only. Add your own here!
 #------------------------------------------------------------------------------
-(((AnalyticalInv
-
-# State vector file
-* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1
-
-)))AnalyticalInv
-
-#------------------------------------------------------------------------------
-# --- Scale factors for posterior run ---
-#
-# Enable emission scale factors by setting the use_emission_scale_factor or
-# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
-# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
-# Entries below are provided for examples only. Add your own here!
-#------------------------------------------------------------------------------
-(((Emis_ScaleFactor
-* EMIS_SF    gridded_posterior.nc  ScaleFactor  2000/1/1/0       C xy 1 * - 1 1
-)))Emis_ScaleFactor
-
-(((OH_ScaleFactor
-* OH_SF      Post_SF_OH.nc         SF_OH        2010-2017/1/1/0  E xy 1 * - 1 1
-)))OH_ScaleFactor
+(((AnalyticalInversion
+* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
+)))AnalyticalInversion
 
 )))USE_CH4_DATA
 
@@ -1302,7 +1296,15 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
+
+(((OH_PosteriorSF
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
+)))OH_PosteriorSF
+
+(((.not.OH_PosteriorSF
 * GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+))).not.OH_PosteriorSF
+
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
@@ -1390,8 +1392,35 @@ ${RUNDIR_CO2_COPROD}
 #==============================================================================
 2 OH_pert_factor  1.0 - - - xy 1 1
 
-(((EMISSIONS
+#==============================================================================
+# --- Scale factors for posterior run ---
+#
+# Enable emission scale factors by setting the use_emission_scale_factor or
+# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
+# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
+#
+# Entries below are provided for examples only. Add your own here!
+#==============================================================================
+(((Emis_PosteriorSF
+3 EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 1
+)))Emis_PosteriorSF
 
+(((OH_PosteriorSF
+4 OH_SF      Post_SF_OH.nc         SF_OH       2010-2017/1/1/0    C xy 1 1
+)))OH_PosteriorSF
+
+#==============================================================================
+# --- Scale factors for analytical inversions ---
+#==============================================================================
+(((AnalyticalInversion
+
+# Add perturbations to individual state vector element (N) following this format
+# Start scale factor ID at 2000 to avoid conflicts with other SFs/masks
+#200N SCALE_ELEM_000N ./Perturbations.txt - - - xy count 1
+
+)))AnalyticalInversion
+
+(((EMISSIONS
 #==============================================================================
 # --- Seasonal scaling factors ----
 #==============================================================================

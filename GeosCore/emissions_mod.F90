@@ -127,7 +127,6 @@ CONTAINS
     USE Carbon_Gases_Mod,      ONLY : Emiss_Carbon_Gases
     USE CO2_MOD,               ONLY : EmissCO2
     USE ErrCode_Mod
-    USE GLOBAL_CH4_MOD,        ONLY : EmissCH4
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
     USE Input_Opt_Mod,         ONLY : OptInput
     USE Mercury_Mod,           ONLY : EmissMercury
@@ -247,28 +246,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! For CH4 simulation
-    !
-    ! This will get the individual CH4 emission terms (gas, coal, wetlands,
-    ! ...) and write them into the individual emissions arrays defined in
-    ! global_ch4_mod (CH4_EMIS). Emissions are all done in mixing_mod, the
-    ! call to EMISSCH4 is for backwards consistency.  This is especially
-    ! needed to do the analytical inversions.
-    !
-    ! To enable CH4 emissions in a full-chemistry simulation, add entries
-    ! in HEMCO_Config.rc as is done for other species. 
-    ! (mps, 2/12/21)
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-       CALL EmissCh4( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissCH4"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
     ! For transport tracer simulation
     IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
        CALL Tracer_Source_Phase( Input_Opt, State_Chm, State_Grid, &
@@ -284,8 +261,7 @@ CONTAINS
 
     ! Carbon simulation (e.g. CO2-CO-CH4-OCS via KPP)
     !
-    ! This will get the individual CH4 emission terms in the same way
-    ! as done for the CH4 simulation above.
+    ! Computes CO2 production from CO oxidation
     IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        CALL Emiss_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,            &
                                 State_Grid, State_Met, RC                    )
