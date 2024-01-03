@@ -507,10 +507,11 @@ CONTAINS
     ! are all still zero at this point since internal state values are not
     ! copied to State_Chm%Species%Conc until Run (post-initialization).
 # if defined( MODEL_GEOS )
-    State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
+    State_Chm%Species(:)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
 #else
-    State_Chm%Spc_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
+    State_Chm%Species(:)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 #endif
+    State_Chm%Species(:)%Previous_Units = -1
 
     ! Initialize photolysis, including reading files for optical properties
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
