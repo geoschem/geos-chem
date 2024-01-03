@@ -248,8 +248,7 @@ CONTAINS
                     State_Grid, State_Met, RC )
 
     !=================================================================
-    ! Distribute the chemistry sink from total CH4 to other CH4
-    !     species. (ccc, 2/10/09)
+    ! Distribute the chemistry sink from total CH4 to tagged species
     !=================================================================
     IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
        CALL CH4_DISTRIB( Input_Opt, State_Chm, State_Grid, PREVCH4 )
@@ -325,7 +324,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: I,  J,    L
+    INTEGER            :: I, J, L, N, NA
     REAL(fp)           :: DT, GCH4, Spc2GCH4
     REAL(fp)           :: KRATE, C_OH
     REAL(fp)           :: KRATE_Cl, C_Cl
@@ -333,9 +332,6 @@ CONTAINS
     CHARACTER(LEN=255) :: ThisLoc
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-
-!    ! Array of scale factors for OH (from HEMCO)
-!    REAL(fp)           :: OH_SF(State_Grid%NX,State_Grid%NY)
 
     !=================================================================
     ! CH4_DECAY begins here!
@@ -349,21 +345,6 @@ CONTAINS
 
     ! Point to the chemical species array
     Spc => State_Chm%Species
-
-!    ! =================================================================
-!    ! Get fields for CH4 analytical inversions if needed
-!    ! =================================================================
-!    IF ( Input_Opt%UseOHSF ) THEN
-!
-!       ! Evaluate OH scale factors from HEMCO
-!       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'OH_SF', OH_SF, RC)
-!       IF ( RC /= GC_SUCCESS ) THEN
-!          ErrMsg = 'OH_SF not found in HEMCO data list!'
-!          CALL GC_Error( ErrMsg, RC, ThisLoc )
-!          RETURN
-!       ENDIF
-!
-!    ENDIF
 
     !=================================================================
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -395,85 +376,86 @@ CONTAINS
     !
     !    This is from Kirschke et al., Nat. Geosci., 2013.
     !=================================================================
+    DO NA = 1, State_Chm%nAdvect
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( L, J, I, KRATE, Spc2GCH4, GCH4, C_OH ) &
-    !$OMP PRIVATE( C_Cl, KRATE_Cl                       ) &
-    !$OMP REDUCTION( +:TROPOCH4 )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
+       ! Advected species ID
+       N = State_Chm%Map_Advect(NA)
 
-       ! Only consider tropospheric boxes
-       IF ( State_Met%InTroposphere(I,J,L) ) THEN
+       ! Only do chemistry for the total CH4 tracer in tagCH4 simulations
+       IF ( Input_Opt%ITS_A_TAGCH4_SIM .and. NA > 1 ) CYCLE
 
-          ! Calculate rate coefficients
-          KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L))
-          KRATE_Cl = 9.60e-12_fp * EXP( -1360e+0_fp / State_Met%T(I,J,L))
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, KRATE, Spc2GCH4, GCH4, C_OH ) &
+       !$OMP PRIVATE( C_Cl, KRATE_Cl                       ) &
+       !$OMP REDUCTION( +:TROPOCH4 )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
-          ! Conversion from [kg/box] --> [molec/cm3]
-          ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
-          Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
+          ! Only consider tropospheric boxes
+          IF ( State_Met%InTroposphere(I,J,L) ) THEN
 
-          ! CH4 in [molec/cm3]
-          GCH4 = Spc(1)%Conc(I,J,L) * Spc2GCH4
+             ! Calculate rate coefficients
+             KRATE    = 2.45e-12_fp * EXP( -1775e+0_fp / State_Met%T(I,J,L))
+             KRATE_Cl = 9.60e-12_fp * EXP( -1360e+0_fp / State_Met%T(I,J,L))
 
-          ! OH in [molec/cm3]
-          ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
-          C_OH = State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3
+             ! Conversion from [kg/box] --> [molec/cm3]
+             ! [kg CH4/box] * [box/cm3] * XNUMOL_CH4 [molec CH4/kg CH4]
+             Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
 
-!          ! Apply OH scale factors from a previous inversion
-!          IF ( Input_Opt%UseOHSF ) THEN
-!             C_OH = C_OH * OH_SF(I,J)
-!             IF ( Input_Opt%Verbose ) THEN
-!                !This will print over every grid box; comment out for now
-!                !Print*, 'Applying scale factor to OH: ', OH_SF(I,J)
-!             ENDIF
-!          ENDIF
+             ! CH4 in [molec/cm3]
+             GCH4 = Spc(N)%Conc(I,J,L) * Spc2GCH4
 
-          ! Cl in [molec/cm3]
-          ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
-          C_Cl = State_Chm%BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
+             ! OH in [molec/cm3]
+             ! BOH from HEMCO in units of kg/m3, convert to molec/cm3
+             C_OH = State_Chm%BOH(I,J,L) * XNUMOL_OH / CM3PERM3
 
-          TROPOCH4 = TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
-                              + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
+             ! Cl in [molec/cm3]
+             ! BCl from HEMCO in units of mol/mol, convert to molec/cm3
+             C_Cl = State_Chm%BCl(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
 
-          !-----------------------------------------------------------
-          ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-          !
-          ! Archive Loss of CH4 (kg/s) reactions with OH and Cl
-          !-----------------------------------------------------------
+             TROPOCH4 = TROPOCH4 + GCH4 * KRATE    * C_OH * DT / Spc2GCH4 &
+                                 + GCH4 * KRATE_Cl * C_Cl * DT / Spc2GCH4
 
-          ! Loss CH4 by reaction with Cl [kg/s]
-          IF ( State_Diag%Archive_LossCH4byClinTrop ) THEN
-             State_Diag%LossCH4byClinTrop(I,J,L) = &
-                  ( GCH4 * KRATE_Cl * C_Cl ) / Spc2GCH4
+             !-----------------------------------------------------------
+             ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
+             !
+             ! Archive Loss of CH4 (kg/s) reactions with OH and Cl
+             !-----------------------------------------------------------
+             IF ( NA == 1 ) THEN
+                ! Loss CH4 by reaction with Cl [kg/s]
+                IF ( State_Diag%Archive_LossCH4byClinTrop ) THEN
+                   State_Diag%LossCH4byClinTrop(I,J,L) = &
+                        ( GCH4 * KRATE_Cl * C_Cl ) / Spc2GCH4
+                ENDIF
+
+                IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
+                   State_Diag%LossCH4byOHinTrop(I,J,L) = &
+                        ( GCH4 * KRATE * C_OH ) / Spc2GCH4
+                ENDIF
+             ENDIF
+
+             ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt)
+             GCH4 = GCH4 *                                                   &
+                  ( 1.0_fp - ( KRATE * C_OH * DT ) - ( KRATE_Cl * C_Cl * DT ) )
+
+             ! Convert back from [molec/cm3] --> [kg/box]
+             Spc(N)%Conc(I,J,L) = GCH4 / Spc2GCH4
+
           ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
 
-          IF ( State_Diag%Archive_LossCH4byOHinTrop ) THEN
-             State_Diag%LossCH4byOHinTrop(I,J,L) = &
-                  ( GCH4 * KRATE * C_OH ) / Spc2GCH4
-          ENDIF
-
-          ! Calculate new CH4 value: [CH4]=[CH4](1-k[OH]*delt)
-          GCH4 = GCH4 *                                                      &
-             ( 1.0_fp - ( KRATE * C_OH * DT ) - ( KRATE_Cl * C_Cl * DT )    )
-
-          ! Convert back from [molec/cm3] --> [kg/box]
-          Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4
-
+       IF ( Input_Opt%Verbose ) THEN
+          print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
+          print*,'Trop decay should be over 1Tg per day globally'
+          print*,'    ~ 500Tg/365d ~ 1.37/d'
        ENDIF
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
 
-    IF ( Input_Opt%Verbose ) THEN
-       print*,'% --- CHEMCH4: CH4_DECAY: TROP DECAY (Tg): ',TROPOCH4/1e9
-       print*,'Trop decay should be over 1Tg per day globally'
-       print*,'    ~ 500Tg/365d ~ 1.37/d'
-    ENDIF
+    ENDDO
 
     ! Free pointers
     Spc => NULL()
@@ -818,7 +800,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I,  J,    L
+    INTEGER           :: I, J, L, N, NA
     REAL(fp)          :: DT, GCH4, Spc2GCH4, LRATE
 
     ! Strings
@@ -869,46 +851,56 @@ CONTAINS
     !=================================================================
     ! Loop over stratospheric boxes only
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, Spc2GCH4, GCH4, LRATE )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
+    DO NA = 1, State_Chm%nAdvect
 
-       ! Only proceed if we are outside of the chemistry grid
-       IF ( .not. State_Met%InTroposphere(I,J,L) ) THEN
+       ! Advected species ID
+       N = State_Chm%Map_Advect(NA)
 
-          ! Conversion factor [kg/box] --> [molec/cm3]
-          ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
-          Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
+       ! Only do chemistry for the total CH4 tracer in tagCH4 simulations
+       IF ( Input_Opt%ITS_A_TAGCH4_SIM .and. NA > 1 ) CYCLE
 
-          ! CH4 in [molec/cm3]
-          GCH4 = Spc(1)%Conc(I,J,L) * Spc2GCH4
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, Spc2GCH4, GCH4, LRATE )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
-          ! Loss rate [molec/cm3/s]
-          LRATE = GCH4 * CH4LOSS( I,J,L )
+          ! Only proceed if we are outside of the chemistry grid
+          IF ( .not. State_Met%InTroposphere(I,J,L) ) THEN
 
-          ! Update Methane concentration in this grid box [molec/cm3]
-          GCH4 = GCH4 - ( LRATE * DT )
+             ! Conversion factor [kg/box] --> [molec/cm3]
+             ! [kg/box] / [AIRVOL * 1e6 cm3] * [XNUMOL_CH4 molec/mole]
+             Spc2GCH4 = 1e+0_fp / State_Met%AIRVOL(I,J,L) / 1e+6_fp * XNUMOL_CH4
 
-          ! Convert back from [molec CH4/cm3] --> [kg/box]
-          Spc(1)%Conc(I,J,L) = GCH4 / Spc2GCH4
+             ! CH4 in [molec/cm3]
+             GCH4 = Spc(N)%Conc(I,J,L) * Spc2GCH4
 
-          !------------------------------------------------------------
-          ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
-          !
-          ! Loss of CH4 by OH above tropopause [kg/s]
-          !------------------------------------------------------------
-          IF ( State_Diag%Archive_LossCH4inStrat ) THEN
-             State_Diag%LossCH4inStrat(I,J,L) = LRATE / Spc2GCH4
+             ! Loss rate [molec/cm3/s]
+             LRATE = GCH4 * CH4LOSS( I,J,L )
+
+             ! Update Methane concentration in this grid box [molec/cm3]
+             GCH4 = GCH4 - ( LRATE * DT )
+
+             ! Convert back from [molec CH4/cm3] --> [kg/box]
+             Spc(N)%Conc(I,J,L) = GCH4 / Spc2GCH4
+
+             !------------------------------------------------------------
+             ! %%%%%% HISTORY (aka netCDF diagnostics) %%%%%
+             !
+             ! Loss of CH4 by OH above tropopause [kg/s]
+             !------------------------------------------------------------
+             IF ( State_Diag%Archive_LossCH4inStrat ) THEN
+                State_Diag%LossCH4inStrat(I,J,L) = LRATE / Spc2GCH4
+             ENDIF
+
           ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
 
-       ENDIF
     ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
 
     ! Free pointer
     Spc => NULL()
@@ -961,7 +953,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER           :: I, J, L, N, NA, nAdvect
+    INTEGER           :: I, J, L, N, NA
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -973,11 +965,8 @@ CONTAINS
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
-    ! fix nAdvect (Xueying Yu, 12/10/2017)
-    nAdvect = State_Chm%nAdvect
-
     ! Loop over the number of advected species
-    DO NA = 2, nAdvect
+    DO NA = 2, State_Chm%nAdvect
 
        ! Advected species ID
        N = State_Chm%Map_Advect(NA)

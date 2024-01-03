@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased]
 ### Changed
 - Removed emissions handling from `global_ch4_mod.F90` and `carbon_mod.F90` and instead apply scale factors to emissions directly in `HEMCO_Config.rc`
+- Loop over advected species CH4 chemistry routines to allow for multiple CH4 tracers within analytical inversion framework
 
 ### Removed
 - Removed State_Chm%CH4_EMIS
