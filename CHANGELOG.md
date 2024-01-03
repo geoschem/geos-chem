@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
+- Increse requested time limits in GCHP integration tests (compile 2h30m, run 5h)
 
 ### Fixed
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
