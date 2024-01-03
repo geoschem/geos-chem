@@ -977,7 +977,7 @@ CONTAINS
          State_Met      = State_Met,                                         &
          mapping        = State_Chm%Map_All,                                 &
          new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
-         previous_units = origUnit,                                          &
+         previous_units = previous_units,                                    &
          RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
