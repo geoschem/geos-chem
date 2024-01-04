@@ -916,7 +916,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Compute_Column_Mass
+! !IROUTINE: Compute_Budget_Diagnostics
 !
 ! !DESCRIPTION: Subroutine Compute\_Budget\_Diagnostics calculates the
 !  budget diagnostics for a given component by taking the difference of the
@@ -931,11 +931,13 @@ CONTAINS
                                          mapDataFull, isTrop,    diagTrop,   &
                                          mapDataTrop, isPBL,     diagPBL,    &
                                          mapDataPBL,  colMass,   RC,         &
-                                         timeStep,    isWetDep,  before_op  )
+                                         timeStep,    isWetDep,  before_op,  &
+                                         accum                              )
+
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,  Only : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
@@ -955,8 +957,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: isPBL            ! T if PBL col diag on
     TYPE(DgnMap),   POINTER       :: mapDataPBL       ! Map to species indexes
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
-    LOGICAL,        OPTIONAL      :: before_op        ! T = before operation
-    REAL(f8),       OPTIONAL      :: timestep         ! F = after operation
+    LOGICAL,        OPTIONAL      :: before_op        ! T = before operation; F = after
+    REAL(f8),       OPTIONAL      :: timestep         ! Timestep of the operation
+    LOGICAL,        OPTIONAL      :: accum            ! Accumulate diagnostic?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -982,7 +985,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: after,  before, wetDep
+    LOGICAL            :: after,  before, wetDep, accumulate_array
     INTEGER            :: I,      J,      L,       N
     INTEGER            :: numSpc, region, topLev,  S
     REAL(f8)           :: colSum, dt
@@ -1000,7 +1003,7 @@ CONTAINS
     ! Initialize
     RC      =  GC_SUCCESS
     errMsg  = ''
-    ThisLoc = ' -> at Compute_Column_Mass (in GeosCore/diagnostics_mod.F90)'
+    ThisLoc = ' -> at Compute_Budget_Diagnostics (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
 
@@ -1084,17 +1087,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Determine if diagnostics will be accumulated or reset. Default
+    ! is to overwrite arrays (ac
+    IF ( PRESENT( accum ) ) THEN
+       accumulate_array = accum
+    ELSE
+       accumulate_array = .FALSE.
+    ENDIF
+
     !====================================================================
     ! Before operation: Compute column masses (full, trop, PBL)
     !
     ! After operation:  Compute column differences (final-initial)
-    !                   and them update diagnostic arrays
+    !                   and then update diagnostic arrays
     !====================================================================
 
     ! Zero out the column mass array if we are calling this routine
     ! before the desired operation.  This will let us compute initial mass.
+    ! If calling this routine after the desired operation then zero out
+    ! the diagnostic arrays if not accumulating.
     IF ( before ) THEN
        colMass = 0.0_f8
+    ELSE
+       IF ( .NOT. accumulate_array ) THEN
+          IF ( isFull ) diagFull(:,:,:) = 0.0_f8
+          IF ( isTrop ) diagTrop(:,:,:) = 0.0_f8
+          IF ( isPBL  ) diagPBL(:,:,:)  = 0.0_f8
+       ENDIF
     ENDIF
 
     ! Loop over NX and NY dimensions
@@ -1145,13 +1164,15 @@ CONTAINS
                 colMass(I,J,N,1) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep &
-                                / State_Grid%AREA_M2(I,J)
+                diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
+                                  / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep
+                diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
+                                  / timeStep )
 #endif
              ENDIF
           ENDDO
+
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1193,10 +1214,11 @@ CONTAINS
                 colMass(I,J,N,2) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep &
-                                / State_Grid%AREA_M2(I,J)
+                diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
+                                  / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
+                diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
+                                  / timeStep )
 #endif
              ENDIF
           ENDDO
@@ -1241,10 +1263,11 @@ CONTAINS
                 colMass(I,J,N,3) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
-                               / State_Grid%AREA_M2(I,J)
+                diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
+                                 / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
+                                 / timeStep )
 #endif
              ENDIF
           ENDDO
