@@ -16,7 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
 - Restored consideration of both isSnow and isIce in dry deposition
-- Fixed calculation of FRLAND_NOSNO_NOICE in `calc_met_mod.F90`
+- Fixed calculation of `FRLAND_NOSNO_NOICE` in `calc_met_mod.F90`
+- Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
 
 ### Added
 - Added interface to Cloud-J package for computing photolysis rates

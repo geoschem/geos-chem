@@ -758,6 +758,7 @@ CONTAINS
        IF (ALLOCATED(Phot%RTASYMAER     )) DEALLOCATE(Phot%RTASYMAER )
 #endif
 
+       DEALLOCATE( Phot )
        Phot => NULL()
     ENDIF
 
