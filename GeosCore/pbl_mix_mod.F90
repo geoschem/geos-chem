@@ -204,7 +204,7 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Full PBL mixing budget diagnostics - Part 1 of 2
+    ! Full PBL mixing budget diagnostics - Part 2 of 2
     !========================================================================
     IF ( State_Diag%Archive_BudgetMixing ) THEN
 
@@ -255,15 +255,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
+  SUBROUTINE Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm,  &
+                                 State_Met, State_Diag, RC )
 !
 ! !USES:
 !
+    USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE PhysConstants,  ONLY : Scale_Height
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE PhysConstants,   ONLY : Scale_Height
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Met_Mod,   ONLY : MetState
+    USE State_Diag_Mod,  ONLY : DgnState
+    USE Time_Mod,        ONLY : Get_TS_Dyn
 !
 ! !INPUT PARAMETERS:
 !
@@ -272,7 +277,9 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -288,9 +295,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL  :: Bad_Sum
-    INTEGER  :: I,      J,      L,    LTOP
-    REAL(fp) :: BLTOP,  BLTHIK, DELP
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    LOGICAL            :: Bad_Sum
+    INTEGER            :: I,      J,      L,    LTOP, TS_Dyn
+    REAL(fp)           :: BLTOP,  BLTHIK, DELP
+    REAL(f8)           :: DT_Dyn
 
     ! Arrays
     REAL(fp) :: P(0:State_Grid%NZ)
@@ -301,8 +310,43 @@ CONTAINS
 
     ! Initialize
     RC              = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Compute_PBL_Height (in module GeosCore/pbl_mix_mod.F90)'
+
     Bad_Sum         = .FALSE.
     State_Met%InPbl = .FALSE.
+
+    !------------------------------------------------------------------------
+    ! Change in PBL mass for use with budget mixing PBL diagnostic - 1 of 2
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+
+       ! Get initial column masses (full, trop, PBL)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = .FALSE.,                                           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = NULL(),                                            &
+            isTrop      = .FALSE.,                                           &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = NULL(),                                            &
+            isPBL       = .TRUE.,                                            &
+            diagPBL     = State_Diag%BudgetMixingPBLHeight,                  &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Mixing PBL height budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
     !$OMP PARALLEL DO                                      &
     !$OMP DEFAULT( SHARED                                ) &
@@ -477,6 +521,43 @@ CONTAINS
 
     ! Model level where PBL top occurs
     State_Met%PBL_MAX_L = MAXVAL( State_Met%IMIX )
+
+    !------------------------------------------------------------------------
+    ! Change in PBL mass for use with budget mixing PBL diagnostic - 2 of 2
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+
+       ! Dynamic timestep [s]
+       TS_Dyn = GET_TS_DYN()
+       DT_Dyn = DBLE( TS_Dyn )
+
+       ! Compute change in column masses (after PBL ht change minus before)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = .FALSE.,                                           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = NULL(),                                            &
+            isTrop      = .FALSE.,                                           &
+            diagTrop    = NULL(),                                            &
+            mapDataTrop = NULL(),                                            &
+            isPBL       = .TRUE.,                                            &
+            diagPBL     = State_Diag%BudgetMixingPBLHeight,                  &
+            mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Dyn,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Mixing PBL height budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Compute_Pbl_Height
 !EOC
