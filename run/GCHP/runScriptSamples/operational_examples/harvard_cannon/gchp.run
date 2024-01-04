@@ -4,9 +4,20 @@
 #SBATCH -N 2
 #SBATCH --exclusive
 #SBATCH -t 0-8:00
-#SBATCH -p huce_intel,seas_compute,shared
+#SBATCH -p huce_cascade,seas_compute,shared
 #SBATCH --mem=180000
 #SBATCH --mail-type=END
+
+###############################################################################
+### Sample GCHP run script for Harvard Cannon cluster (using SLURM).
+###
+### -n           : Requests this many cores (across all nodes)
+### -N           : Requests this number of nodes
+### --mem        : Requests this amount of memory in GB
+### -p           : Requests these partitions where the job can run
+### -t           : Requests time for the job (days-hours:minutes)
+###  --exclusive : Reserves entire nodes (i.e. to prevent backfilling jobs)
+###############################################################################
 
 # Exit if command fails, and log all commands
 set -xe
