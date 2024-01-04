@@ -794,8 +794,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE HCOI_GC_Run( Input_Opt, State_Chm, State_Grid,  &
-                          State_Met, EmisTime,  Phase,  RC )
+  SUBROUTINE HCOI_GC_Run( Input_Opt, State_Chm,  State_Grid,  &
+                          State_Met, State_Diag, EmisTime,  Phase,  RC )
 !
 ! !USES:
 !
@@ -803,6 +803,7 @@ CONTAINS
     USE Get_Ndep_Mod,    ONLY : Reset_Dep_N   ! For soilnox
     USE Input_Opt_Mod,   ONLY : OptInput
     USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Diag_Mod,  ONLY : DgnState
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Met_Mod,   ONLY : MetState
     USE Time_Mod
@@ -832,6 +833,7 @@ CONTAINS
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Meteo state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
+    TYPE(DgnState),   INTENT(INOUT)  :: State_Diag ! Diagnostic state
     INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
 !
 ! !REMARKS:
@@ -1012,8 +1014,8 @@ CONTAINS
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
     IF ( ( Phase == 0 .or. PHASE == 1 ) .and. notDryRun ) THEN
-       CALL Get_Met_Fields( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            Phase,     RC )
+       CALL Get_Met_Fields( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                            State_Diag, Phase,     RC )
        IF ( RC /= HCO_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Get_Met_Fields"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -4300,7 +4302,7 @@ CONTAINS
 ! !INTERFACE:
 !
  SUBROUTINE Get_Met_Fields( Input_Opt, State_Chm, State_Grid, &
-                            State_Met, Phase, RC )
+                            State_Met, State_Diag, Phase, RC )
 !
 ! ! USES:
 !
@@ -4311,6 +4313,7 @@ CONTAINS
    USE Input_Opt_Mod,        ONLY : OptInput
    USE Pressure_Mod,         ONLY : Set_Floating_Pressures
    USE State_Chm_Mod,        ONLY : ChmState
+   USE State_Diag_Mod,       ONLY : DgnState
    USE State_Grid_Mod,       ONLY : GrdState
    USE State_Met_Mod,        ONLY : MetState
    USE Time_Mod
@@ -4325,6 +4328,7 @@ CONTAINS
 !
    TYPE(MetState),   INTENT(INOUT)          :: State_Met  ! Meteorology State
    TYPE(ChmState),   INTENT(INOUT)          :: State_Chm  ! Chemistry State
+   TYPE(DgnState),   INTENT(INOUT)          :: State_Diag ! Diagnostic State
    INTEGER,          INTENT(INOUT)          :: RC         ! Failure or success
 !
 ! !REMARKS:
@@ -4434,7 +4438,7 @@ CONTAINS
       ! Do not update initial tracer concentrations since not read
       ! from restart file yet (ewl, 10/28/15)
       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                   RC, update_mixing_ratio=.FALSE. )
+                   State_Diag, RC, update_mixing_ratio=.FALSE. )
 
    ENDIF
 
