@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated fullchem mechanism following JPL/IUPAC. See `KPP/fullchem/CHANGELOG_fullchem.md` for details.
+- Reorganized GCHP run directory creation prompts for GEOS-FP native meteorology input
 - Converted TOMAS bpch diagnostics to netCDF
 
 ### Fixed
@@ -22,6 +23,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added interface to Cloud-J package for computing photolysis rates
 - Added compile-time option FASTJX to use legacy Fast-JX photolysis instead of Cloud-J
 - Added new diagnostics OD600 and TCOD600 for 600 nm optical depths (per-level and total column) used for computing J-values in either Fast-JX or Cloud-J
+
+### Added
+- Added GEOS-IT as meteorology option and labeled as beta during run directory creation until full inventory and offline emissions are available.
+- Added support for running GEOS-Chem on the NASA discover cluster
+- Added inclusion of c30 restart file in GCHP run directories since c24 and c48 not supported when using GEOS-IT meteorology
+- Added automatic updating of GCHP lightning climatology in ExtData.rc based on settings in HEMCO_Config.rc
+
+### Removed
+- Removed references to unused met-fields RADLWG and LWGNT
+- Removed inclusion of c360 restart file in GCHP run directories
 
 ## [14.2.3] - 2023-12-01
 ### Added
