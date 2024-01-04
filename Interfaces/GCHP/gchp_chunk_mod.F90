@@ -985,7 +985,8 @@ CONTAINS
     ENDIF
 
     ! Call PBL quantities. Those are always needed
-    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
+    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
+                             State_Met, State_Diag, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
 
     ! Convert to dry mixing ratio

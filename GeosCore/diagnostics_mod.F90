@@ -227,6 +227,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Budget diagnostic adjustment for changes in PBL heigh†
+    ! (mixing budget in PBL only)
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
+       State_Diag%BudgetMixingPBL = State_Diag%BudgetMixingPBL              &
+            + State_Diag%BudgetMixingPBLHeight
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Diagnostics for the mercury and tagged mercury simulations
     !------------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN

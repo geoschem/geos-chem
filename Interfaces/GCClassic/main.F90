@@ -697,7 +697,8 @@ PROGRAM GEOS_Chem
      ENDIF
 
      ! Initialize PBL quantities from the initial met fields
-     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
+     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
+                              State_Met, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1257,7 +1258,8 @@ PROGRAM GEOS_Chem
           ! Move this call from the PBL mixing routines because the PBL
           ! height is used by drydep and some of the emissions routines.
           ! (ckeller, 3/5/15)
-          CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Met, RC )
+          CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Chm, &
+                                   State_Met, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
