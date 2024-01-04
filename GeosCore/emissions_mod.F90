@@ -180,8 +180,8 @@ CONTAINS
 
     ! Run HEMCO. Phase 1 will only update the HEMCO clock and the
     ! HEMCO data list, phase 2 will perform the emission calculations.
-    CALL HCOI_GC_Run( Input_Opt, State_Chm, State_Grid, &
-                      State_Met, EmisTime,  Phase,     RC          )
+    CALL HCOI_GC_Run( Input_Opt, State_Chm,  State_Grid, &
+                      State_Met, State_Diag, EmisTime, Phase, RC )
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "HCOI_GC_Run"!'

@@ -144,32 +144,36 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
-                     RC, Update_Mixing_Ratio )
+                     State_Diag, RC, Update_Mixing_Ratio, Update_Budget_TropHt )
 !
 ! !USES:
 !
+    USE Diagnostics_Mod, ONLY : Compute_Budget_Diagnostics
     USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Grid_Mod, ONLY : GrdState
-    USE State_Met_Mod,  ONLY : MetState
-    USE PhysConstants,  ONLY : AIRMW, AVO
+    USE Input_Opt_Mod,   ONLY : OptInput
+    USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Diag_Mod,  ONLY : DgnState
+    USE State_Grid_Mod,  ONLY : GrdState
+    USE State_Met_Mod,   ONLY : MetState
+    USE PhysConstants,   ONLY : AIRMW, AVO
     USE Pressure_Mod
-    USE Time_Mod,       ONLY : Get_LocalTime
-    USE Time_Mod,       ONLY : Get_LocalTime_In_Sec
-    USE Time_Mod,       ONLY : Get_Ts_Dyn
+    USE Time_Mod,        ONLY : Get_LocalTime
+    USE Time_Mod,        ONLY : Get_LocalTime_In_Sec
+    USE Time_Mod,        ONLY : Get_Ts_Dyn
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)           :: Input_Opt  ! Input Options object
     TYPE(GrdState), INTENT(IN)           :: State_Grid ! Grid State object
-    LOGICAL,        INTENT(IN), OPTIONAL :: Update_Mixing_Ratio ! Default is yes
+    LOGICAL,        INTENT(IN), OPTIONAL :: Update_Mixing_Ratio  ! Default is yes
+    LOGICAL,        INTENT(IN), OPTIONAL :: Update_Budget_TropHt ! Default is no
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(MetState), INTENT(INOUT)        :: State_Met ! Meteorology State obj
-    TYPE(ChmState), INTENT(INOUT)        :: State_Chm ! Chemistry State object
+    TYPE(MetState), INTENT(INOUT)        :: State_Met  ! Meteorology State obj
+    TYPE(ChmState), INTENT(INOUT)        :: State_Chm  ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT)        :: State_Diag ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -226,8 +230,9 @@ CONTAINS
     REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
     REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
-    LOGICAL             :: UpdtMR
+    LOGICAL             :: update_MR, update_budget
     REAL(fp)            :: FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW
+    REAL(f8)            :: DT_Dyn
 
     ! Arrays
     LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
@@ -272,8 +277,46 @@ CONTAINS
     Dt_Sec   = Get_Ts_Dyn()
 
     ! Shadow variable for mixing ratio update
-    UpdtMR = .TRUE.
-    IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
+    update_MR = .TRUE.
+    IF ( PRESENT(update_mixing_ratio) ) update_MR = update_mixing_ratio
+
+    ! Logical for budget computation due to tropopause level change
+    update_budget = .FALSE.
+    IF ( PRESENT(update_budget_tropHt) ) update_budget = update_budget_tropHt
+
+    !------------------------------------------------------------------------
+    ! Change in species mass within troposphere due to change in tropopause
+    ! height, for use with budget transport diagnostic - part 1 of 2
+    !------------------------------------------------------------------------
+    IF ( update_budget .AND. State_Diag%Archive_BudgetTransportTrop ) THEN
+
+       ! Get initial column masses (trop only)
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = .FALSE.,                                           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = NULL(),                                            &
+            isTrop      = .TRUE.,                                            &
+            diagTrop    = State_Diag%BudgetTransportTropHeight,              &
+            mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
+            isPBL       = .FALSE.,                                           &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = NULL(),                                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            before_op   = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Tropopause height budget diagnostics error 1'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
 
     ! Pre-compute local solar time = UTC + Lon/15
     !$OMP PARALLEL DO       &
@@ -672,7 +715,7 @@ CONTAINS
     ! NOTE: The only places where mixing ratio is not currently updated
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
-    IF ( UpdtMR ) THEN
+    IF ( update_MR ) THEN
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
@@ -702,6 +745,44 @@ CONTAINS
           ENDDO
        ENDDO
        !$OMP END PARALLEL DO
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Change in species mass within troposphere due to change in tropopause
+    ! height, for use with budget transport diagnostic - part 2 of 2
+    !------------------------------------------------------------------------
+    IF ( update_budget .AND. State_Diag%Archive_BudgetTransportTrop ) THEN
+
+       ! Dynamic timestep [s]
+       DT_Dyn = DBLE(Dt_Sec)
+
+       ! Compute change in column masses (after tropopause ht change minus before)
+       ! and store in diagnostic arrays.  Units are [kg/s].
+       CALL Compute_Budget_Diagnostics(                                      &
+            Input_Opt   = Input_Opt,                                         &
+            State_Chm   = State_Chm,                                         &
+            State_Grid  = State_Grid,                                        &
+            State_Met   = State_Met,                                         &
+            isFull      = .FALSE.,                                           &
+            diagFull    = NULL(),                                            &
+            mapDataFull = NULL(),                                            &
+            isTrop      = .TRUE.,                                            &
+            diagTrop    = State_Diag%BudgetTransportTropHeight,              &
+            mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
+            isPBL       = .FALSE.,                                           &
+            diagPBL     = NULL(),                                            &
+            mapDataPBL  = NULL(),                                            &
+            colMass     = State_Diag%BudgetColumnMass,                       &
+            timeStep    = DT_Dyn,                                            &
+            accum       = .TRUE.,                                            &
+            RC          = RC                                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Tropopause height budget diagnostics error 2'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE AIRQNT

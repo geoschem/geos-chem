@@ -481,7 +481,7 @@ CONTAINS
     ! Do not update tracer mixing ratio because after advection
     ! the mixing ratio values reflect the new air pressure (ewl, 3/31/15)
     CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
-                 RC, update_mixing_ratio=.FALSE. )
+                 State_Diag, RC, update_mixing_ratio=.FALSE. )
 
     !!### DEBUG: Print a few global species sums
     !IF ( Input_Opt%Verbose ) THEN
@@ -735,8 +735,8 @@ CONTAINS
     ! Update State_Met air quantities with new pressures.
     ! Do not update tracer mixing ratio because after advection
     ! the mixing ratio values reflect the new air pressure (ewl, 3/31/15)
-    CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, RC, &
-                 Update_Mixing_Ratio=.FALSE. )
+    CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
+         State_Diag, RC, Update_Mixing_Ratio=.FALSE.)
 
     !!### Debug
     !IF ( Input_Opt%Verbose ) THEN

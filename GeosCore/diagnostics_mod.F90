@@ -236,6 +236,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Budget diagnostic adjustment for changes in tropopause height
+    ! (transport budget in trop only)
+    !------------------------------------------------------------------------
+    IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
+       State_Diag%BudgetTransportTrop = State_Diag%BudgetTransportTrop      &
+            + State_Diag%BudgetTransportTropHeight
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Diagnostics for the mercury and tagged mercury simulations
     !------------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -413,6 +422,12 @@ CONTAINS
        IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
           State_Diag%DryDepMix = 0.0_f4
        ENDIF
+    ENDIF
+
+    ! Budget diagnostic adjustment for changes in tropopause height
+    ! (transport budget in trop only)
+    IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
+       State_Diag%BudgetTransportTropHeight = 0.0_f8
     ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep

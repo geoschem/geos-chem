@@ -948,7 +948,8 @@ CONTAINS
 
     ! Define airmass and related quantities
 #if defined( MODEL_GEOS )
-    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, .FALSE. )
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                 State_diag, RC, .FALSE. )
 #else
     ! Scale mixing ratio with changing met only if FV advection is off.
     ! Only do this the first timestep if DELP_DRY found in restart.
@@ -960,10 +961,12 @@ CONTAINS
        _VERIFY(STATUS)
        IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
                     RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    State_Diag, RC, scaleMR )
        scaleMR = .TRUE.
     ELSE
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    State_Diag, RC, scaleMR )
     ENDIF
 #endif
 
@@ -1015,7 +1018,7 @@ CONTAINS
           SetStratH2O = .TRUE.
        ENDIF
        CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, &
-                          State_Grid,  State_Met, RC )
+                          State_Grid,  State_Met, State_Diag, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_H2O_TRAC')
 
       ! Only force strat once
