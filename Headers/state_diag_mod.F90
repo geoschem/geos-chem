@@ -669,6 +669,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
 
+     REAL(f4),           POINTER :: KppNegatives(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives
+
+     REAL(f4),           POINTER :: KppNegatives0(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives0
+
      !%%%%% KPP auto-reduce solver diagnostics %%%%%
      REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
      LOGICAL                     :: Archive_KppAutoReducerNVAR
@@ -1894,6 +1900,12 @@ CONTAINS
 
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
+
+    State_Diag%KppNegatives                        => NULL()
+    State_Diag%Archive_KppNegatives                = .FALSE.
+
+    State_Diag%KppNegatives0                       => NULL()
+    State_Diag%Archive_KppNegatives0               = .FALSE.
 
     State_Diag%KppAutoReducerNVAR                  => NULL()
     State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
@@ -5997,6 +6009,50 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
+       ! Number of negative concentrations after KPP integration 
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives,                        &
+            archiveData    = State_Diag%Archive_KppNegatives,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of negative concentrations after first KPP integration try
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives0'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives0,                       &
+            archiveData    = State_Diag%Archive_KppNegatives0,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
        ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
        !-------------------------------------------------------------------
        diagID = 'KppAutoReducerNVAR'
@@ -6119,7 +6175,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 35
+       DO N = 1, 41
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6200,6 +6256,10 @@ CONTAINS
                 diagID = 'KppAutoReduceThres'
              CASE( 39 )
                 diagID = 'RxnConst'
+             CASE( 40 )
+                diagID = 'KppNegatives'
+             CASE( 41 )
+                diagID = 'KppNegatives0'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -10460,6 +10520,8 @@ CONTAINS
                                     State_Diag%Archive_KppLuDecomps       .or. &
                                     State_Diag%Archive_KppSubsts          .or. &
                                     State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppNegatives       .or. &
+                                    State_Diag%Archive_KppNegatives0      .or. &
                                     State_Diag%Archive_KppAutoReducerNVAR .or. &
                                     State_Diag%Archive_KppAutoReduceThres .or. &
                                     State_Diag%Archive_KppcNONZERO        .or. &
@@ -11893,6 +11955,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'KppNegatives',                                &
+                   Ptr2Data = State_Diag%KppNegatives,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppNegatives0',                               &
+                   Ptr2Data = State_Diag%KppNegatives0,                      &
+                   RC       = RC                                            )
+
+    IF ( RC /= GC_SUCCESS ) RETURN
     CALL Finalize( diagId   = 'AirMassColumnFull',                            &
                    Ptr2Data = State_Diag%AirMassColumnFull,                   &
                    RC       = RC                                            )
@@ -13559,6 +13631,16 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after KPP integration'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES0' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after first KPP integration attempt'
        IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
 

@@ -285,6 +285,8 @@ CONTAINS
        IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
                                       State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
     ENDIF
 
     ! Also zero satellite diagnostic archival arrays
@@ -999,12 +1001,29 @@ CONTAINS
           ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
-          ! Keep track of error boxes
+          ! Keep track of number of error boxes
           IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
           ENDIF
 #endif
        ENDIF
+
+#if defined( MODEL_GEOS )
+       ! Mark integration as erroneous if negative concentrations so that it will be
+       ! repeated below (cakelle2, 2023/10/26)
+       IF ( IERR >= 0 .AND. Input_Opt%KppCheckNegatives >= 0 ) THEN
+          IF ( ( Input_Opt%KppCheckNegatives==0 .AND. State_Met%InStratMeso(I,J,L) ) .OR. &
+               ( L > (  State_Grid%NZ - Input_Opt%KppCheckNegatives) ) ) THEN
+             IF ( ANY(C < 0.0_dp) ) THEN
+                IERR = -999
+                ! Include negative concentration boxes within error box diagnostic
+                IF ( State_Diag%Archive_KppError ) THEN
+                   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDIF
+#endif
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -1013,6 +1032,11 @@ CONTAINS
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
+          ! Check for negative concentrations after first integration
+          IF ( State_Diag%Archive_KppNegatives0 ) THEN
+             State_Diag%KppNegatives0(I,J,L) = REAL( COUNT( C < 0.0_dp ), KIND=4 )
+          ENDIF
+          
           ! # of integrator calls
           IF ( State_Diag%Archive_KppIntCounts ) THEN
              State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
@@ -1069,6 +1093,12 @@ CONTAINS
           ! C with concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
           C         = C_before_integrate
+
+#if defined( MODEL_GEOS )
+          ! In GEOS also inflate the error tolerances (cakelle2, 2023/10/26)
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
@@ -1234,6 +1264,13 @@ CONTAINS
 
           ! Skip if this is not a GEOS-Chem species
           IF ( SpcID <= 0 ) CYCLE
+
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(N) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_f4
+             ENDIF
+          ENDIF
 
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )

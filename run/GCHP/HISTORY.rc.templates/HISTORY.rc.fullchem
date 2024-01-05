@@ -4710,6 +4710,8 @@ COLLECTIONS: @#'DefaultCollection',
                           'KppLuDecomps                  ', 'GCHPchem',
                           'KppSubsts                     ', 'GCHPchem',
                           'KppSmDecomps                  ', 'GCHPchem',
+                          #'KppNegatives                  ', 'GCHPchem',
+                          #'KppNegatives0                 ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE KppARDiags COLLECTION %%%%%
