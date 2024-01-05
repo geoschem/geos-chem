@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Reduced timers saved out to essential list used for benchmarking model performance
 
+### Added
+- Added two new diagnostics to track number of negative concentrations after first and last KPP integration
+- Added capability of running GEOS-Chem transport tracer simulation within the GEOS model
+
 ## [14.2.3] - 2023-12-01
 ### Added
 - GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
