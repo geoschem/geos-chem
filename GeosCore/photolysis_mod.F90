@@ -958,19 +958,15 @@ CONTAINS
 
        ! Test if the file exists and define an output string
        IF ( FileExists ) THEN
-          FileMsg = '(RD_AOD): Opening'
+          FileMsg = 'PHOTOLYSIS (RD_AOD): Opening'
        ELSE
-          FileMsg = '(RD_AOD): REQUIRED FILE NOT FOUND'
+          FileMsg = 'PHOTOLYSIS (RD_AOD): REQUIRED FILE NOT FOUND'
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
        IF ( Input_Opt%amIRoot ) THEN
-#ifdef FASTJX
-          WRITE( 6, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( ThisFile )
-#else
-          WRITE( 6, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( ThisFile )
-#endif
-300       FORMAT( a, ' ', a, ' ', a )
+          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+300       FORMAT( a, ' ', a )
        ENDIF
 
        ! For dry-run simulations, cycle to next file.
@@ -979,11 +975,7 @@ CONTAINS
           CYCLE
        ELSE
           IF ( .not. FileExists ) THEN
-#ifdef FASTJX
-             WRITE( ErrMsg, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( ThisFile )
-#else
-             WRITE( ErrMsg, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( ThisFile )
-#endif
+             WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -1611,19 +1603,15 @@ CONTAINS
 
     ! Test if the file exists and define an output string
     IF ( FileExists ) THEN
-       FileMsg = '(RD_PROF_NC): Opening'
+       FileMsg = 'PHOTOLYSIS (RD_PROF_NC): Opening'
     ELSE
-       FileMsg = '(RD_PROF_NC): REQUIRED FILE NOT FOUND'
+       FileMsg = 'PHOTOLYSIS (RD_PROF_NC): REQUIRED FILE NOT FOUND'
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
     IF ( Input_Opt%amIRoot ) THEN
-#ifdef FASTJX
-       WRITE( 6, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( nc_path )
-#else
-       WRITE( 6, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( nc_path )
-#endif
-300    FORMAT( a, ' ', a, ' ', a )
+       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+300    FORMAT( a, ' ', a )
     ENDIF
 
     ! For dry-run simulations, return to calling program.
@@ -1632,11 +1620,7 @@ CONTAINS
        RETURN
     ELSE
        IF ( .not. FileExists ) THEN
-#ifdef FASTJX
-          WRITE( ErrMsg, 300 ) 'FAST-JX', TRIM( FileMsg ), TRIM( nc_path )
-#else
-          WRITE( ErrMsg, 300 ) 'CLOUD-J', TRIM( FileMsg ), TRIM( nc_path )
-#endif
+          WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

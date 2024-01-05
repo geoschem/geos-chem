@@ -1252,45 +1252,45 @@ CONTAINS
     LOGICAL            :: amIRoot
 
     ! Strings
-    CHARACTER(LEN=255) :: fileName
+    CHARACTER(LEN=255) :: filePath
 
     !========================================================================
     ! CloudJ_DryRun_Check begins here!
     !========================================================================
     amIRoot = Input_Opt%amIRoot
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'CJ77_inp.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'CJ77_inp.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_spec.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_spec.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-aer.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-aer.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-cld.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-cld.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-ssa.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-ssa.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-UMa.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-UMa.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-geo.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-geo.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_std.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_std.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_h2och4.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_h2och4.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_geomip.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_geomip.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
-    fileName = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_j2j.dat'
-    CALL Check_File_For_DryRun( fileName, amIRoot )
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_j2j.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
 
   END SUBROUTINE CloudJ_DryRun_Check
 !EOC
@@ -1306,7 +1306,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
- SUBROUTINE Check_File_for_DryRun( fileName, amIRoot )
+ SUBROUTINE Check_File_for_DryRun( filePath, amIRoot )
 !
 ! USES:
 !
@@ -1315,7 +1315,7 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    CHARACTER(LEN=*), INTENT(IN) :: fileName   ! Name of file to check
+    CHARACTER(LEN=*), INTENT(IN) :: filePath   ! Abs path of file to check
     LOGICAL,          INTENT(IN) :: amIRoot    ! Are we on the root core?
 !
 ! !REVISION HISTORY:
@@ -1336,21 +1336,21 @@ CONTAINS
     !========================================================================
 
     ! Test if the file exists
-    INQUIRE( FILE=TRIM( fileName ), EXIST=fileExists )
+    INQUIRE( FILE=TRIM( filePath ), EXIST=fileExists )
 
     ! Test if the file exists and define an output string
     IF ( fileExists ) THEN
-       fileMsg = 'CLOUD-J: Opening'
+       fileMsg = 'PHOTOLYSIS (dry-run): Opening'
     ELSE
-       fileMsg = 'CLOUD-J: REQUIRED FILE NOT FOUND'
+       fileMsg = 'PHOTOLYSIS (dry-run): REQUIRED FILE NOT FOUND'
     ENDIF
 
     ! Write to stdout for both regular and dry-run simulations
     IF ( amIRoot ) THEN
-       WRITE( 6, 10 ) TRIM( fileMsg ), TRIM( fileName )
+       WRITE( 6, 10 ) TRIM( fileMsg ), TRIM( filePath )
  10    FORMAT( a, ' ', a )
     ENDIF
 
   END SUBROUTINE Check_File_For_DryRun
-
+!EOC
 END MODULE CLDJ_INTERFACE_MOD
