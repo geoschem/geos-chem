@@ -412,7 +412,10 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
      ! Toggle for het rates. If true, turns off three Cl producing het reactions
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
-     LOGICAL                     :: TurnOffHetRates = .FALSE.
+     LOGICAL                     :: TurnOffHetRates    = .TRUE.
+     INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
+     REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
+     LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates

@@ -213,7 +213,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     # Remove LSF #BSUB tags
     sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -n 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie '/#BSUB -W 1:30/d'                "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#BSUB -W 2:30/d'                "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestCompile.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=8GB\] span\[ptile=1\] select\[mem < 1TB\]"/d' \
@@ -223,7 +223,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 	"${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#BSUB -q REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie '/#BSUB -W 3:30/d'                "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#BSUB -W 5:00/d'                "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#BSUB -o lsf-%J.txt/d'          "${scriptsDir}/integrationTestExecute.sh"
     sed_ie \
 	'/#BSUB -R "rusage\[mem=90GB\] span\[ptile=1\] select\[mem < 2TB\]"/d' \
@@ -259,14 +259,14 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     # Remove SLURM #SBATCH tags
     sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -t 0-1:30/d'              "${scriptsDir}/integrationTestCompile.sh"
+    sed_ie '/#SBATCH -t 0-2:30/d'              "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestExecute.sh"
-    sed_ie '/#SBATCH -t 0-3:30/d'              "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -t 0-5:00/d'              "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestExecute.sh"

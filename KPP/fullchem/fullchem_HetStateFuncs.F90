@@ -238,6 +238,9 @@ CONTAINS
     ! ... check if there is surface NAT at this grid box
     H%natSurface = ( H%pscBox .and. ( C(ind_NIT) > 0.0_dp )                 )
 
+    ! Flag to turn off heterogeneous reactions in stratosphere
+    H%TurnOffHetRates = Input_Opt%TurnOffHetRates
+
   END SUBROUTINE FullChem_SetStateHet
 !EOC
 !------------------------------------------------------------------------------

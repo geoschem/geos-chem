@@ -855,6 +855,10 @@ CONTAINS
 
     ! Assume BrNO3 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION BrNO3uptkByHCl
 
   !=========================================================================
@@ -1285,6 +1289,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByHBr
 
   FUNCTION ClNO3uptkByBrSALA( H ) RESULT( k )
@@ -1317,6 +1325,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByBrSALA
 
   FUNCTION ClNO3uptkByBrSALC( H ) RESULT( k )
@@ -1349,6 +1361,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByBrSALC
 
   FUNCTION ClNO3uptkBySALACL( H ) RESULT( k )
@@ -1373,6 +1389,7 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), k )
+
   END FUNCTION ClNO3uptkBySALACL
 
   FUNCTION ClNO3uptkBySALCCL( H ) RESULT( k )
@@ -2212,6 +2229,10 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION HOClUptkByHBr
 
   FUNCTION HOClUptkBySALACL( H ) RESULT( k )
