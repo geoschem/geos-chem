@@ -31,6 +31,8 @@ MODULE CLDJ_INTERFACE_MOD
 !
   PRIVATE :: Set_Clim_Profiles
   PRIVATE :: Get_RH_Index
+  PRIVATE :: CloudJ_DryRun_Check
+  PRIVATE :: Check_File_for_DryRun
 !
 ! !REVISION HISTORY:
 !  14 Dec 2022 - E. Lundgren - initial version, adapted from fast_jx_mod
@@ -38,7 +40,6 @@ MODULE CLDJ_INTERFACE_MOD
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -108,21 +109,23 @@ CONTAINS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_CloudJ (in module GeosCore/cldj_interface_mod.F90)'
 
-    ! Skip these operations when running in dry-run mode
-    IF ( .NOT. Input_Opt%DryRun ) THEN
+    ! If we are running a dry-run simulation, print out a list of 
+    ! Cloud-J configuration files that are found or missing, then exit.
+    IF ( Input_Opt%DryRun ) THEN
+       CALL CloudJ_DryRun_Check( Input_Opt )
+       RETURN
+    ENDIF
 
-       ! Print info
-       IF ( Input_Opt%amIRoot ) THEN
-          write(6,*) ' Initializing Cloud-J'
+    ! Print info
+    IF ( Input_Opt%amIRoot ) THEN
+       write(6,*) ' Initializing Cloud-J'
 
-          ! ewl: can this be put into the initialization???
-          if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
-             ErrMsg =  ' INIT_CLOUDJ: invalid no. wavelengths'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          endif
-       ENDIF
-
+       ! ewl: can this be put into the initialization???
+       if (W_.ne.8 .and. W_.ne.12 .and. W_.ne.18) then
+          ErrMsg =  ' INIT_CLOUDJ: invalid no. wavelengths'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       endif
     ENDIF
 
     ! Initialize Cloud-J. Includes reading input data files
@@ -1212,5 +1215,142 @@ CONTAINS
     index = 5
 
   END FUNCTION Get_RH_Index
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CldJ_Dryrun_Check
+!
+! !DESCRIPTION: Checks if the CLOUD-J configuration files are present
+!  on disk or if they need to be downloaded by dry-run.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CloudJ_DryRun_Check( Input_Opt )
+!
+! USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  19 Dec 2023 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! Scalars
+    LOGICAL            :: amIRoot
+
+    ! Strings
+    CHARACTER(LEN=255) :: filePath
+
+    !========================================================================
+    ! CloudJ_DryRun_Check begins here!
+    !========================================================================
+    amIRoot = Input_Opt%amIRoot
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'CJ77_inp.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_spec.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-aer.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-cld.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-ssa.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-UMa.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-geo.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_std.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_h2och4.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_geomip.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_j2j.dat'
+    CALL Check_File_For_DryRun( filePath, amIRoot )
+
+  END SUBROUTINE CloudJ_DryRun_Check
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Check_File_For_DryRun
+!
+! !DESCRIPTION: Checks the status of a single file in dry-run simulations.
+!\\
+!\\
+! !INTERFACE:
+!
+ SUBROUTINE Check_File_for_DryRun( filePath, amIRoot )
+!
+! USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN) :: filePath   ! Abs path of file to check
+    LOGICAL,          INTENT(IN) :: amIRoot    ! Are we on the root core?
+!
+! !REVISION HISTORY:
+!  19 Dec 2023 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    
+    ! Scalars
+    LOGICAL            :: fileExists
+
+    ! Strings
+    CHARACTER(LEN=512) :: fileMsg
+
+    !========================================================================
+    ! Check_File_for_DryRun begins here!
+    !========================================================================
+
+    ! Test if the file exists
+    INQUIRE( FILE=TRIM( filePath ), EXIST=fileExists )
+
+    ! Test if the file exists and define an output string
+    IF ( fileExists ) THEN
+       fileMsg = 'PHOTOLYSIS (dry-run): Opening'
+    ELSE
+       fileMsg = 'PHOTOLYSIS (dry-run): REQUIRED FILE NOT FOUND'
+    ENDIF
+
+    ! Write to stdout for both regular and dry-run simulations
+    IF ( amIRoot ) THEN
+       WRITE( 6, 10 ) TRIM( fileMsg ), TRIM( filePath )
+ 10    FORMAT( a, ' ', a )
+    ENDIF
+
+  END SUBROUTINE Check_File_For_DryRun
 !EOC
 END MODULE CLDJ_INTERFACE_MOD
