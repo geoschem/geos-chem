@@ -131,7 +131,8 @@ CONTAINS
     ! Initialize Cloud-J. Includes reading input data files
     ! FJX_spec.dat (RD_XXX), FJX_scat-aer.dat (RD_MIE), and 
     ! FJX_j2j.dat (RD_JS_JX)
-    CALL Init_CldJ(Input_Opt%CloudJ_Dir, State_Grid%NZ, TITLEJXX, JVN_, NJXX)
+    CALL Init_CldJ(Input_Opt%amIRoot, Input_Opt%CloudJ_Dir, &
+                   State_Grid%NZ, TITLEJXX, JVN_, NJXX)
 
     ! Store # of photolysis reactions in State_Chm object
     State_Chm%Phot%nPhotRxns = NRatJ
