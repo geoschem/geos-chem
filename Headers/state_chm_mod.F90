@@ -1020,7 +1020,7 @@ CONTAINS
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
-        !---------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Aerosol object
        ! NOTE: content is currently not registered
        !---------------------------------------------------------------------
@@ -3063,8 +3063,8 @@ CONTAINS
     !=======================================================================
     ! Deallocate and nullify pointer fields of State_Chm
     !=======================================================================
-    IF ( ASSOCIATED ( State_Chm%Phot ) ) THEN
-       CALL Cleanup_Phot_Container(State_Chm%Phot, RC )
+    IF ( ASSOCIATED( State_Chm%Phot ) ) THEN
+       CALL Cleanup_Phot_Container( State_Chm%Phot, RC )
        State_Chm%Phot => NULL()
     ENDIF
 
@@ -3212,6 +3212,7 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%AerMass ) ) THEN
        CALL Cleanup_AerMass_Container(State_Chm%AerMass, RC )
+       DEALLOCATE( State_Chm%AerMass )
        State_Chm%AerMass => NULL()
     ENDIF
 

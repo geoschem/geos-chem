@@ -28,9 +28,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
 - Restored consideration of both isSnow and isIce in dry deposition
-- Fixed calculation of FRLAND_NOSNO_NOICE in `calc_met_mod.F90`
+- Fixed calculation of `FRLAND_NOSNO_NOICE` in `calc_met_mod.F90`
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H`
 - Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
+- Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
 
 ### Removed
 - Removed references to unused met-fields RADLWG and LWGNT
