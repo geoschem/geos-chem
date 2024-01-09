@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
 - Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 - Fix issues that prevented single-species carbon simulations from running
+- Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
 
 ### Removed
 - Reduced timers saved out to essential list used for benchmarking model performance

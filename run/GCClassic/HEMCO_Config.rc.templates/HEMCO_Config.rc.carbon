@@ -223,8 +223,8 @@ Mask fractions:              false
 0 GHGI_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
 0 GHGI_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
 0 GHGI_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    4 1
-0 GHGI_COAST_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1009 4 1
+0 GHGI_COAST_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    4 1
+0 GHGI_COAST_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1009 4 1
 0 GHGI_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
 0 GHGI_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
 0 GHGI_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
@@ -269,8 +269,8 @@ Mask fractions:              false
 0 GHGI_EE_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
 
 ### Livestock ###
-0 GHGI_EE_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
-0 GHGI_EE_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_EE_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
+0 GHGI_EE_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
 
 ### Landfills ###
 0 GHGI_EE_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
@@ -305,8 +305,8 @@ Mask fractions:              false
 0 GHGI_EE_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
 0 GHGI_EE_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
 0 GHGI_EE_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    4 1
-0 GHGI_EE_COAST_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1009 4 1
+0 GHGI_EE_COAST_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    4 1
+0 GHGI_EE_COAST_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1009 4 1
 0 GHGI_EE_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
 0 GHGI_EE_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
 0 GHGI_EE_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
