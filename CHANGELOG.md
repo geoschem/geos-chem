@@ -4,9 +4,47 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - TBD
+### Changed
+- Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
+- Increse requested time limits in GCHP integration tests (compile 2h30m, run 5h)
+
 ### Fixed
+- Added missing units in comments of `KPP/fullchem/commonIncludeVars.H` 
+- Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 - Fix issues that prevented single-species carbon simulations from running
+
+### Removed
+- Reduced timers saved out to essential list used for benchmarking model performance
+
+### Added
+- Added two new diagnostics to track number of negative concentrations after first and last KPP integration
+- Added capability of running GEOS-Chem transport tracer simulation within the GEOS model
+
+## [14.2.3] - 2023-12-01
+### Added
+- GEOS-Chem Classic rundir script `run/GCClassic/setupForRestarts.sh`
+
+### Changed
+- Added the `-n` aka `--no-bootstrap` option to integration tests to disable bootstrapping missing species in restart files
+- Use integer parameters for species units instead of strings (for computational efficiency)
+- Update error message for missing surface CH4 emissions with instructions on how to resolve the problem
+- Change GCHP grid resolution threshold for lowering timesteps from C180 inclusive to C180 exclusive
+- Read GEOS-Chem Classic restart file paths from the relevant `download_data.yml` file
+
+### Fixed
+- Prevent `POAEMISS` from being assigned a value if not allocated (in `carbon_mod.F90`)
+- Changed incorrect comment about static H2O option in `GeosCore/input_mod.F90`
+- Fixed typos (`GCClassic` -> `GCHP`) written to GCHP integration test log files
+- Add fix to properly read GHGI v2 express extension emissions in CH4 and carbon simulations
+- Move OH perturbation scale factor to outside EMISSIONS logical bracket in HEMCO_Config.rc files for CH4 and carbon simulations
+
+### Removed
+- Remove definition of METDIR from primary HEMCO_Config.rc files to ensure use of the definition in the HEMCO_Config.rc.*_metfields files
+
+## [14.2.2] - 2023-10-23
+### Changed
+- Updated sample restart files for fullchem and TransportTracers simulations to files saved out from the 14.2.0 1-year benchmarks
 
 ## [14.2.1] - 2023-10-10
 ### Added
@@ -61,7 +99,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Remove references to the obsolete tagged Hg simulation
 
-## [Unreleased 14.2.0] - TBD
+## [14.2.0] - 2023-10-05
 ### Added
 - Added a printout of GEOS-Chem species and indices
 - Added `NcdfUtil/README.md` file directing users to look for netCDF utility scripts at https://github.com/geoschem/netcdf-scripts
@@ -147,6 +185,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed entries for CH4 emissions in `HEMCO_Config.rc.carbon`
+
+## [14.1.2] - 2023-10-20
+### Added
+- CESM-only update: Added option for correctConvUTLS for correcting buildup of soluble tracers in the UT/LS to match CAM-chem behavior
+
+### Changed
+- CESM-only update: extend existing KppError, KppStop to CESM for model stability
+- CESM-only update: Removed mpi_bcast in ucx_mod NOXCOEFF_INIT to be handled at coupler level to support spectral-element dynamical core
 
 ## [14.1.1] - 2023-03-03
 ### Added

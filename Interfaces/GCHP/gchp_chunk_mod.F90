@@ -90,7 +90,7 @@ CONTAINS
 !#endif
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
-    USE UnitConv_Mod,            ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 #ifdef ADJOINT
     USE Charpak_Mod,             ONLY : To_UpperCase
 #endif
@@ -435,7 +435,7 @@ CONTAINS
 
        _ASSERT(CF_LMIN * CF_IMIN > 0, 'If CF_I: is defined, please define CF_L')
        _ASSERT(CF_JMIN * CF_IMIN > 0, 'If CF_I: is defined, please define CF_J')
-       
+
        ! At this point, they should all be set or all be negative (probably -1)
        IF (CF_IMIN > 0) THEN
           Input_Opt%CF_IMIN = CF_IMIN
@@ -481,7 +481,7 @@ CONTAINS
           WRITE(*,1013) IL_PET, IU_PET
           WRITE(*,1014) JL_PET, JU_PET
 #endif
-          
+
          ENDIF
 
 1011   FORMAT('Found FD_SPOT on PET ', i5, ' ', f7.2, &
@@ -507,9 +507,9 @@ CONTAINS
     ! are all still zero at this point since internal state values are not
     ! copied to State_Chm%Species%Conc until Run (post-initialization).
 # if defined( MODEL_GEOS )
-    State_Chm%Spc_Units = 'kg/kg total'
+    State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
 #else
-    State_Chm%Spc_Units = 'v/v dry'
+    State_Chm%Spc_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 #endif
 
     ! Initialize photolysis, including reading files for optical properties
@@ -637,7 +637,7 @@ CONTAINS
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
     USE State_Chm_Mod,      ONLY : IND_
     USE Time_Mod,           ONLY : Accept_External_Date_Time
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units, Print_Global_Species_Kg
+    USE UnitConv_Mod
 
     ! Diagnostics
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
@@ -674,15 +674,15 @@ CONTAINS
     REAL*4,         INTENT(IN)    :: utc         ! UTC time [hrs]
     REAL*4,         INTENT(IN)    :: hElapsed    ! Elapsed hours
     INTEGER,        INTENT(IN)    :: Phase       ! Run phase (-1, 1 or 2)
-    LOGICAL,        INTENT(IN)    :: IsChemTime  ! Time for chemistry? 
-    LOGICAL,        INTENT(IN)    :: IsRadTime   ! Time for RRTMG? 
+    LOGICAL,        INTENT(IN)    :: IsChemTime  ! Time for chemistry?
+    LOGICAL,        INTENT(IN)    :: IsRadTime   ! Time for RRTMG?
 #if defined( MODEL_GEOS )
     LOGICAL,        INTENT(IN)    :: FrstRewind  ! Is it the first rewind?
 #endif
 #if defined ( ADJOINT )
     LOGICAL,        INTENT(IN)    :: IsStarttime ! Have we reached the start time
                                                  ! in an adjoint run
-#endif 
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -710,8 +710,8 @@ CONTAINS
     TYPE(ESMF_VM)                  :: VM            ! ESMF VM object
     TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
-    CHARACTER(LEN=ESMF_MAXSTR)     :: Iam, OrigUnit
-    INTEGER                        :: STATUS, HCO_PHASE, RST
+    CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
+    INTEGER                        :: STATUS, HCO_PHASE, RST, origUnit
 #if defined( MODEL_GEOS )
     INTEGER                        :: I, J, L
 #endif
@@ -835,7 +835,7 @@ CONTAINS
     DoTurb   = Input_Opt%LTURB                    ! dynamic time step
 #endif
     DoChem   = Input_Opt%LCHEM .AND. IsChemTime   ! chemistry time step
-    DoWetDep = Input_Opt%LWETD                    ! dynamic time step 
+    DoWetDep = Input_Opt%LWETD                    ! dynamic time step
     DoRad    = Input_Opt%LRAD  .AND. IsRadTime    ! radiation time step
 
     ! If Phase is not -1, only do selected processes for given phases:
@@ -880,7 +880,7 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     ! Zero out certain State_Diag arrays. This should not be done in a phase 2
-    ! call since this can erase diagnostics filled during phase 1 (e.g., drydep) 
+    ! call since this can erase diagnostics filled during phase 1 (e.g., drydep)
     ! (ckeller, 1/21/2022).
     IF ( Phase /= 2 ) THEN
        CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
@@ -968,32 +968,28 @@ CONTAINS
     _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
 
     ! Convert to dry mixing ratio
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
+    !=======================================================================
+    ! Always prescribe H2O in both the stratosphere and troposhere in GEOS.
+    ! This is now done right after passing the species from the internal
+    ! state to State_Chm (in Chem_GridCompMod.F90). It is important to do it 
+    ! there to make sure that any H2O tendencies are properly calculated
+    ! cakelle2, 2023/10/14 
+    !=======================================================================
+#if !defined( MODEL_GEOS )
     ! SDE 05/28/13: Set H2O to STT if relevant
     IF ( IND_('H2O','A') > 0 ) THEN
        SetStratH2O = .FALSE.
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Tropospheric H2O is always prescribed (using GEOS Q). For strat H2O
-       ! there are three options, controlled by toggles 'set initial global MR'
-       ! in geoschem_config.yml and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
-       ! (A) never prescribe strat H2O -> both toggles off
-       ! (B) prescribe strat H2O on init time step -> toggle in input.goes on
-       ! (C) always prescribe strat H2O -> toggle in GEOSCHEMchem_GridComp.rc on
-       !=======================================================================
-       IF ( FIRST ) THEN
-          LSETH2O_orig = Input_Opt%LSETH2O
-       ENDIF
-       IF ( FIRST .OR. FrstRewind ) THEN
-          Input_Opt%LSETH2O = LSETH2O_orig
-       ENDIF
-       IF ( Input_Opt%LSETH2O .OR. Input_Opt%AlwaysSetH2O ) THEN
-#else
        IF ( Input_Opt%LSETH2O ) THEN
-#endif
           SetStratH2O = .TRUE.
        ENDIF
        CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, &
@@ -1003,6 +999,7 @@ CONTAINS
       ! Only force strat once
        IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
+#endif
 
     ! Compute the cosine of the solar zenith angle array:
     !    State_Met%SUNCOS     => COS(SZA) at the current time
@@ -1020,7 +1017,7 @@ CONTAINS
                                        ' before first unit conversion', RC)
     CALL GCHP_PRINT_MET( I_DBG, J_DBG, L_DBG, Input_Opt,&
          State_Grid, State_Met, trim(Iam) // ' before first unit conversion.', RC)
-    
+
     IF (first .and. Input_Opt%IS_FD_SPOT_THIS_PET .and.  Input_Opt%IS_FD_SPOT) THEN
        FD_SPEC = transfer(state_chm%SpcData(Input_Opt%NFD)%Info%Name, FD_SPEC)
        IFD = Input_Opt%IFD
@@ -1557,8 +1554,13 @@ CONTAINS
     !=======================================================================
     ! Convert State_Chm%Species units
     !=======================================================================
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
@@ -1589,7 +1591,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
 
     !
-    ! !INPUT PARAMETERS: 
+    ! !INPUT PARAMETERS:
     !
     INTEGER,          INTENT(IN)    :: I         ! Grid cell lat index
     INTEGER,          INTENT(IN)    :: J         ! Grid cell lon index
@@ -1599,22 +1601,22 @@ CONTAINS
     TYPE(GrdState),   INTENT(IN)    :: State_Grid! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met ! Meteorology State object
     !
-    ! !INPUT/OUTPUT PARAMETERS: 
+    ! !INPUT/OUTPUT PARAMETERS:
     !
 
     !
     ! !OUTPUT PARAMETERS:
     !
-    INTEGER,          INTENT(OUT)   :: RC        ! Success or failure?! 
+    INTEGER,          INTENT(OUT)   :: RC        ! Success or failure?!
     ! !REMARKS:
     !
-    ! !REVISION HISTORY: 
+    ! !REVISION HISTORY:
     !EOP
     !------------------------------------------------------------------------------
     !BOC
     !
     ! !LOCAL VARIABLES:
-    !     
+    !
     CHARACTER(LEN=255) :: ErrorMsg, ThisLoc
 
 

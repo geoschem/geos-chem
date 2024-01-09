@@ -4562,7 +4562,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4605,7 +4605,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S
+    INTEGER                 :: S,       origUnit
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4613,7 +4613,6 @@ CONTAINS
     LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
-    CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
 
     ! Arrays
@@ -4659,10 +4658,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Convert units to v/v dry
+    ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -5114,8 +5119,13 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

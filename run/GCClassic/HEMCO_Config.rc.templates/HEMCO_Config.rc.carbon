@@ -27,7 +27,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      ${RUNDIR_MET_DIR}
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
@@ -249,7 +248,8 @@ Mask fractions:              false
 #   dataset to quickly incorporate more recent national methane emission estimates.
 # - Emissions for years after 2018 follow the 2018 spatial patterns.
 #=======================================================================================
-(((GHGI_v2_Express_Ext.and..not.GHGI_v2
+(((GHGI_v2_Express_Ext
+(((.not.GHGI_v2
 ### Oil ###
 0 GHGI_EE_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
 0 GHGI_EE_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
@@ -319,7 +319,8 @@ Mask fractions:              false
 0 GHGI_EE_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
 0 GHGI_EE_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1009 8 1
 0 GHGI_EE_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-)))GHGI_v2_Express_Ext.and..not.GHGI_v2
+))).not.GHGI_v2
+)))GHGI_v2_Express_Ext
 
 #==============================================================================
 # --- CH4: Mexico emissions (Scarpelli et. al, Environ. Res. Lett., 2020) ---
@@ -391,7 +392,8 @@ Mask fractions:              false
 #==============================================================================
 # --- CH4: EDGAR v6.0 emissions ---
 #==============================================================================
-(((EDGARv6.and..not.EDGARv7
+(((EDGARv6
+(((.not.EDGARv7
 0 EDGAR6_CH4_OIL__1B2a          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
 0 EDGAR6_CH4_OTHER__1A1_1B1_1B2 $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
 0 EDGAR6_CH4_OIL__1B2c          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 2 1
@@ -414,7 +416,8 @@ Mask fractions:              false
 0 EDGAR6_CH4_OTHER__2C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR6_CH4_OTHER__4F          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR6_CH4_OTHER__6C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-)))EDGARv6.and..not.EDGARv7
+))).not.EDGARv7
+)))EDGARv6
 
 #==============================================================================
 # --- EDGAR v7.0 emissions ---
@@ -702,10 +705,13 @@ Mask fractions:              false
 (((CEDS_GBDMAPS
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS.rc
 )))CEDS_GBDMAPS
+
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
@@ -1297,9 +1303,11 @@ Mask fractions:              false
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
-(((GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
+(((GLOBAL_OH_GC14
+(((.not.GLOBAL_OH_GCv5
 ${RUNDIR_GLOBAL_OH}
-)))GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
+))).not.GLOBAL_OH_GCv5
+)))GLOBAL_OH_GC14
 
 #------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
@@ -1366,8 +1374,6 @@ ${RUNDIR_CO2_COPROD}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-(((EMISSIONS
-
 #==============================================================================
 # --- Multiply by -1 to get a "negative" flux.
 #==============================================================================
@@ -1380,6 +1386,8 @@ ${RUNDIR_CO2_COPROD}
 # analytical inversions.
 #==============================================================================
 2 OH_pert_factor  1.0 - - - xy 1 1
+
+(((EMISSIONS
 
 #==============================================================================
 # --- Seasonal scaling factors ----

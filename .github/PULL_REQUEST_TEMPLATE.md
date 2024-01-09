@@ -5,7 +5,7 @@ Institution:
 
 ### Confirm you have reviewed the following documentation
 
-- [ ] [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/reference/CONTRIBUTING.html)
+- [ ] [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/help-and-reference/CONTRIBUTING.html)
 
 ### Describe the update
 

@@ -411,21 +411,30 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
      ! Toggle for het rates. If true, turns off three Cl producing het reactions
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
-     LOGICAL                     :: TurnOffHetRates = .FALSE.
+     LOGICAL                     :: TurnOffHetRates    = .TRUE.
+     INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
+     REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
+     LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
      LOGICAL                     :: KppStop            = .TRUE. ! Stop KPP if integration fails twice
 #endif
 
 #if defined( MODEL_CESM )
-     LOGICAL                     :: onlineAlbedo       = .TRUE. ! Use albedo from land model
-     LOGICAL                     :: onlineLandTypes    = .TRUE. ! Use land types from land model
-     LOGICAL                     :: ddVel_CLM          = .TRUE. ! Use dry deposition velocities as computed by the Community Land Model
-     LOGICAL                     :: applyQtend         = .TRUE. ! Apply water vapor tendency to specific humidity
+     ! Use albedo from land model
+     LOGICAL                     :: onlineAlbedo       = .TRUE.
+     ! Use land types from land model
+     LOGICAL                     :: onlineLandTypes    = .TRUE.
+     ! Use dry deposition velocities as computed by the Community Land Model
+     LOGICAL                     :: ddVel_CLM          = .TRUE.
+     ! Apply water vapor tendency to specific humidity
+     LOGICAL                     :: applyQtend         = .TRUE.
+     ! Apply photolytic correction for convective scavenging of soluble tracers?
+     LOGICAL                     :: correctConvUTLS    = .TRUE.
 #endif
 
 #ifdef ADJOINT
