@@ -483,9 +483,11 @@ CONTAINS
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
 
-       ! Set humidity from input meteorology field
-       ! Convert relative humidity [unitless] from percent to fraction
+       ! Set relative humidity from input meteorology field and convert
+       ! from percent to fraction
        RRR(1:State_Grid%NZ) = State_Met%RH(I,J,1:State_Grid%NZ) / 100.d0
+
+       ! Set top of atmosphere relative humidity to 10% of layer below
        RRR(State_Grid%NZ+1) = RRR(State_Grid%NZ) * 1.d-1
 
        ! Loop over # layers in cloud-j (layers with clouds)
