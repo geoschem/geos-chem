@@ -134,8 +134,8 @@ Mask fractions:              false
     --> RCP_60                 :       false    # 2005-2100
     --> RCP_85                 :       false    # 2005-2100
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
-    --> OLSON_LANDMAP          :       true     # 1985
-    --> YUAN_MODIS_LAI         :       true     # 2000-2020
+    --> OLSON_LANDMAP          :       false    # 1985
+    --> YUAN_MODIS_LAI         :       false    # 2000-2020
     --> GLOBAL_OH_GC14         :       false    # 2010-2019
     --> GLOBAL_OH_GCv5         :       true     # 1985 (recommended for CH4)
 # -----------------------------------------------------------------------------
@@ -1360,9 +1360,11 @@ ${RUNDIR_PCO_NMVOC}
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
 
+(((USE_CO2_DATA
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+)))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
 
@@ -1625,10 +1627,12 @@ ${RUNDIR_CO2_COPROD}
 #
 # These temporal scale factors are described in Nassar et al. (2013)
 #==============================================================================
+(((USE_CO2_DATA
 (((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
 440 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
 441 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0   C xy 1 1
 )))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+)))USE_CO2_DATA
 
 #==============================================================================
 # --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
@@ -1638,9 +1642,11 @@ ${RUNDIR_CO2_COPROD}
 # counted in the air as a 3D field. This scale factor should be applied to the
 # main/national fossil fuel emission field if using avaition emissions.
 #==============================================================================
+(((USE_CO2_DATA
 (((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
 480 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
 )))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+)))USE_CO2_DATA
 
 #==============================================================================
 # --- CO: HTAP Annual scale factors ---

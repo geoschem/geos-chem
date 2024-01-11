@@ -156,13 +156,13 @@ GHGI_EE_COAL_ABANDONED          molec/cm2/s N    Y - none none  emi_ch4_1B1a_Aba
 GHGI_EE_LIVESTOCK_ENT           molec/cm2/s N    Y - none none  emi_ch4_3A_Enteric_Fermentation             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_LIVESTOCK_MAN           molec/cm2/s N    Y - none none  emi_ch4_3B_Manure_Management                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_LANDFILLS_IND           molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_Industrial            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_LANDFILLS_MSQ           molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_LANDFILLS_MSW           molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_LANDFILLS_COMP          molec/cm2/s N    Y - none none  emi_ch4_5B1_Composting                      ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_WASTEWATER_DOM          molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_WASTEWATER_IND          molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_RICE                    molec/cm2/s N    Y - none none  emi_ch4_3C_Rice_Cultivation                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_OTHER__MCOM             molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_OTHER__SCOM             molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_OTHER__MCOMB            molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_OTHER__SCOMB            molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_OTHER__PIND             molec/cm2/s N    Y - none none  emi_ch4_2B8_Industry_Petrochemical          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_OTHER__FIND             molec/cm2/s N    Y - none none  emi_ch4_2C2_Industry_Ferroalloy             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_OTHER__BURN             molec/cm2/s N    Y - none none  emi_ch4_3F_Field_Burning                    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
@@ -182,13 +182,13 @@ GHGI_EE_COAST_COAL_ABANDONED    molec/cm2/s N    Y - none none  emi_ch4_1B1a_Aba
 GHGI_EE_COAST_LIVESTOCK_ENT     molec/cm2/s N    Y - none none  emi_ch4_3A_Enteric_Fermentation             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_LIVESTOCK_MAN     molec/cm2/s N    Y - none none  emi_ch4_3B_Manure_Management                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_LANDFILLS_IND     molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_Industrial            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_COAST_LANDFILLS_MSQ     molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_COAST_LANDFILLS_MSW     molec/cm2/s N    Y - none none  emi_ch4_5A1_Landfills_MSW                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_LANDFILLS_COMP    molec/cm2/s N    Y - none none  emi_ch4_5B1_Composting                      ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_WASTEWATER_DOM    molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Domestic    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_WASTEWATER_IND    molec/cm2/s N    Y - none none  emi_ch4_5D_Wastewater_Treatment_Industrial  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_RICE              molec/cm2/s N    Y - none none  emi_ch4_3C_Rice_Cultivation                 ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_COAST_OTHER__MCOM       molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
-GHGI_EE_COAST_OTHER__SCOM       molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_COAST_OTHER__MCOMB      molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Mobile                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_COAST_OTHER__SCOMB      molec/cm2/s N    Y - none none  emi_ch4_1A_Combustion_Stationary            ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_OTHER__PIND       molec/cm2/s N    Y - none none  emi_ch4_2B8_Industry_Petrochemical          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_OTHER__FIND       molec/cm2/s N    Y - none none  emi_ch4_2C2_Industry_Ferroalloy             ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_OTHER__BURN       molec/cm2/s N    Y - none none  emi_ch4_3F_Field_Burning                    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
@@ -290,8 +290,8 @@ CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_C
 #CH4_LAKES kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2022-11/Lakes/Maasakkers_Lakes_%y4.01x01.nc
 
 # --- Emissions from reservoirs (Delwich et al 2022) ---
-CH4_RES_DAM kg/m2/s N Y - CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Potential_Dam_Emissions.0.1x0.1.nc
-CH4_RES_SFC kg/m2/s N Y - CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc
+CH4_RES_DAM kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc
+CH4_RES_SFC kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc
 
 # --- Emissions from termites (Fung et al 1991) ---
 CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites.geos.4x5.nc
@@ -499,16 +499,16 @@ GMI_PROD_CO  v/v/s 2005 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022
 ###############################################################################
 
 # GHGI seasonal scale factors
-GHGI_OTH_STA_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1A_Combustion_Stationary           ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_OIL_EXP_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Exploration ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_OIL_PRD_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Production  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_OIL_REF_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Refining    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_OIL_TRA_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Transport   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc 
-GHGI_GAS_EXP_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2b_Natural_Gas_Exploration       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc 
-GHGI_GAS_PRD_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2b_Natural_Gas_Production        ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_LIV_MAN_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3B_Manure_Management               ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc 
-GHGI_RIC_CUL_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3C_Rice_Cultivation                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
-GHGI_OTH_BUR_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3F_Field_Burning                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc
+GHGI_OTH_STA_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1A_Combustion_Stationary           ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_OIL_EXP_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Exploration ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_OIL_PRD_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Production  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_OIL_REF_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Refining    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_OIL_TRA_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Transport   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc 
+GHGI_GAS_EXP_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2b_Natural_Gas_Exploration       ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc 
+GHGI_GAS_PRD_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2b_Natural_Gas_Production        ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_LIV_MAN_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3B_Manure_Management               ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc 
+GHGI_RIC_CUL_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3C_Rice_Cultivation                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
+GHGI_OTH_BUR_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3F_Field_Burning                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 
 # --- CO2 diurnal and weekly scale factors ---
 CO2_DIURNAL 1 N    Y F%y4-%m2-%d2T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
