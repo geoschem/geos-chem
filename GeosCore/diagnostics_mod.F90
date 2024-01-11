@@ -927,12 +927,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,   State_Chm, State_Grid, &
-                                         State_Met,   isFull,    diagFull,   &
-                                         mapDataFull, isTrop,    diagTrop,   &
-                                         mapDataTrop, isPBL,     diagPBL,    &
-                                         mapDataPBL,  colMass,   RC,         &
-                                         timeStep,    isWetDep,  before_op  )
+  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,  State_Chm,              &
+                                         State_Grid, State_Met,              &
+                                         isFull,     diagFull, mapDataFull,  &
+                                         isTrop,     diagTrop, mapDataTrop,  &
+                                         isPBL,      diagPBL,  mapDataPBL,   &
+                                         isLevs,     diagLevs, mapDataLevs,  &
+                                         colMass,    RC,       timeStep,     &
+                                         isWetDep,   before_op              )
 !
 ! !USES:
 !
@@ -955,6 +957,8 @@ CONTAINS
     TYPE(DgnMap),   POINTER       :: mapDataTrop      ! Map to species indexes
     LOGICAL,        INTENT(IN)    :: isPBL            ! T if PBL col diag on
     TYPE(DgnMap),   POINTER       :: mapDataPBL       ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: isLevs           ! T if fixed levels diag on
+    TYPE(DgnMap),   POINTER       :: mapDataLevs      ! Map to species indexes
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation
     REAL(f8),       OPTIONAL      :: timestep         ! F = after operation
@@ -965,6 +969,7 @@ CONTAINS
     REAL(f8),       POINTER       :: diagFull(:,:,:)  ! ptr to full col diag
     REAL(f8),       POINTER       :: diagTrop(:,:,:)  ! ptr to trop col diag
     REAL(f8),       POINTER       :: diagPBL(:,:,:)   ! ptr to pbl col diag
+    REAL(f8),       POINTER       :: diagLevs(:,:,:)  ! ptr to levs col diag
     REAL(f8),       POINTER       :: colMass(:,:,:,:) ! Initial column mass
                                                       ! (I,J,spc,col region)
                                                       ! 1:full, 2:trop, 3:pbl
@@ -1078,6 +1083,20 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Make sure mapDataLevs and diagLevs are not undefined
+    IF ( isLevs ) THEN
+       IF ( .not. ASSOCIATED( mapDataLevs ) ) THEN
+          errMsg = 'The mapDataLevs object is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       IF ( after .and. ( .not. ASSOCIATED( diagLevs ) ) ) THEN
+          errMsg = 'The diagLevs array is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Make sure the colMass array is not undefined
     IF ( .not. ASSOCIATED( colMass ) ) THEN
        errMsg = 'The colMass array is undefined!'
@@ -1086,7 +1105,7 @@ CONTAINS
     ENDIF
 
     !====================================================================
-    ! Before operation: Compute column masses (full, trop, PBL)
+    ! Before operation: Compute column masses (full, trop, PBL, levs)
     !
     ! After operation:  Compute column differences (final-initial)
     !                   and them update diagnostic arrays
@@ -1246,6 +1265,55 @@ CONTAINS
                                / State_Grid%AREA_M2(I,J)
 #else
                 diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+#endif
+             ENDIF
+          ENDDO
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Levs-only budget for each requested species
+       !---------------------------------------------------------------------
+       IF ( isLevs ) THEN
+         
+          ! Top and bottom levels of column
+          topLev = State_Diag%BudgetLevsTop
+          botLev = State_diag%BudgetLevsBot
+
+          ! Loop over # of diagnostic slots
+          DO S = 1, mapDataLevs%nSlots
+
+             ! Initialize column-specfic variables
+             colSum  = 0.0_f8
+             spcMass = 0.0_f8
+
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataLevs%slot2Id(S))
+             ELSE
+                N = mapDataLevs%slot2Id(S)
+             ENDIF
+
+             ! Compute mass at each grid box in the column [kg]
+             DO L = botLev, topLev
+                spcMass(L) = State_Chm%Species(N)%Conc(I,J,L) * &
+                             State_Met%AD(I,J,L)
+             ENDDO
+
+             ! Compute column mass in Levs region [kg]
+             colSum = SUM( spcMass(botLev:topLev) )
+
+             ! Before operation: Compute initial Levs-column mass
+             ! After operation: Compute change in column mass (final-initial),
+             ! convert to [kg/s], and store in the diagLevs array.
+             IF ( before ) THEN
+                colMass(I,J,N,3) = colSum
+             ELSE
+#ifdef MODEL_GEOS
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                               / State_Grid%AREA_M2(I,J)
+#else
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
 #endif
              ENDIF
           ENDDO
