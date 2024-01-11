@@ -151,6 +151,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepPBL
      LOGICAL                     :: Archive_BudgetEmisDryDepPBL
 
+     REAL(f8),           POINTER :: BudgetEmisDryDepLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepLevs
+     LOGICAL                     :: Archive_BudgetEmisDryDepLevs
+
      REAL(f8),           POINTER :: BudgetTransportFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetTransportFull
      LOGICAL                     :: Archive_BudgetTransportFull
@@ -162,6 +166,10 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetTransportPBL(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetTransportPBL
      LOGICAL                     :: Archive_BudgetTransportPBL
+
+     REAL(f8),           POINTER :: BudgetTransportLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportLevs
+     LOGICAL                     :: Archive_BudgetTransportLevs
 
      REAL(f8),           POINTER :: BudgetMixingFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetMixingFull
@@ -175,6 +183,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetMixingPBL
      LOGICAL                     :: Archive_BudgetMixingPBL
 
+     REAL(f8),           POINTER :: BudgetMixingLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingLevs
+     LOGICAL                     :: Archive_BudgetMixingLevs
+
      REAL(f8),           POINTER :: BudgetConvectionFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetConvectionFull
      LOGICAL                     :: Archive_BudgetConvectionFull
@@ -186,6 +198,10 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetConvectionPBL(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetConvectionPBL
      LOGICAL                     :: Archive_BudgetConvectionPBL
+
+     REAL(f8),           POINTER :: BudgetConvectionLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionLevs
+     LOGICAL                     :: Archive_BudgetConvectionLevs
 
      REAL(f8),           POINTER :: BudgetChemistryFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetChemistryFull
@@ -199,6 +215,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetChemistryPBL
      LOGICAL                     :: Archive_BudgetChemistryPBL
 
+     REAL(f8),           POINTER :: BudgetChemistryLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryLevs
+     LOGICAL                     :: Archive_BudgetChemistryLevs
+
      REAL(f8),           POINTER :: BudgetWetDepFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetWetDepFull
      LOGICAL                     :: Archive_BudgetWetDepFull
@@ -210,6 +230,10 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetWetDepPBL(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetWetDepPBL
      LOGICAL                     :: Archive_BudgetWetDepPBL
+
+     REAL(f8),           POINTER :: BudgetWetDepLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepLevs
+     LOGICAL                     :: Archive_BudgetWetDepLevs
 
      REAL(f8),           POINTER :: BudgetColumnMass(:,:,:,:)
      LOGICAL                     :: Archive_BudgetEmisDryDep
@@ -1567,6 +1591,10 @@ CONTAINS
     State_Diag%Map_BudgetEmisDryDepPBL             => NULL()
     State_Diag%Archive_BudgetEmisDryDepPBL         = .FALSE.
 
+    State_Diag%BudgetEmisDryDepLevs                => NULL()
+    State_Diag%Map_BudgetEmisDryDepLevs            => NULL()
+    State_Diag%Archive_BudgetEmisDryDepLevs        = .FALSE.
+
     State_Diag%BudgetTransportFull                 => NULL()
     State_Diag%Map_BudgetTransportFull             => NULL()
     State_Diag%Archive_BudgetTransportFull         = .FALSE.
@@ -1579,6 +1607,10 @@ CONTAINS
     State_Diag%BudgetTransportPBL                  => NULL()
     State_Diag%Map_BudgetTransportPBL              => NULL()
     State_Diag%Archive_BudgetTransportPBL          = .FALSE.
+
+    State_Diag%BudgetTransportLevs                 => NULL()
+    State_Diag%Map_BudgetTransportLevs             => NULL()
+    State_Diag%Archive_BudgetTransportLevs         = .FALSE.
 
     State_Diag%BudgetMixingFull                    => NULL()
     State_Diag%Map_BudgetMixingFull                => NULL()
@@ -1593,6 +1625,10 @@ CONTAINS
     State_Diag%Map_BudgetMixingPBL                 => NULL()
     State_Diag%Archive_BudgetMixingPBL             = .FALSE.
 
+    State_Diag%BudgetMixingLevs                    => NULL()
+    State_Diag%Map_BudgetMixingLevs                => NULL()
+    State_Diag%Archive_BudgetMixingLevs            = .FALSE.
+
     State_Diag%BudgetConvectionFull                => NULL()
     State_Diag%Map_BudgetConvectionFull            => NULL()
     State_Diag%Archive_BudgetConvectionFull        = .FALSE.
@@ -1605,6 +1641,10 @@ CONTAINS
     State_Diag%BudgetConvectionPBL                 => NULL()
     State_Diag%Map_BudgetConvectionPBL             => NULL()
     State_Diag%Archive_BudgetConvectionPBL         = .FALSE.
+
+    State_Diag%BudgetConvectionLevs                => NULL()
+    State_Diag%Map_BudgetConvectionLevs            => NULL()
+    State_Diag%Archive_BudgetConvectionLevs        = .FALSE.
 
     State_Diag%BudgetChemistryFull                 => NULL()
     State_Diag%Map_BudgetChemistryFull             => NULL()
@@ -1619,6 +1659,10 @@ CONTAINS
     State_Diag%Map_BudgetChemistryPBL              => NULL()
     State_Diag%Archive_BudgetChemistryPBL          = .FALSE.
 
+    State_Diag%BudgetChemistryLevs                 => NULL()
+    State_Diag%Map_BudgetChemistryLevs             => NULL()
+    State_Diag%Archive_BudgetChemistryLevs         = .FALSE.
+
     State_Diag%BudgetWetDepFull                    => NULL()
     State_Diag%Map_BudgetWetDepFull                => NULL()
     State_Diag%Archive_BudgetWetDepFull            = .FALSE.
@@ -1631,6 +1675,10 @@ CONTAINS
     State_Diag%BudgetWetDepPBL                     => NULL()
     State_Diag%Map_BudgetWetDepPBL                 => NULL()
     State_Diag%Archive_BudgetWetDepPBL             = .FALSE.
+
+    State_Diag%BudgetWetDepLevs                    => NULL()
+    State_Diag%Map_BudgetWetDepLevs                => NULL()
+    State_Diag%Archive_BudgetWetDepLevs            = .FALSE.
 
     State_Diag%BudgetColumnMass                    => NULL()
     State_Diag%Archive_Budget                      = .FALSE.
@@ -3032,7 +3080,7 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%ScaleICsAdj,                            &
          archiveData    = State_Diag%Archive_ScaleICsAdj,                    &
-         mapData        = State_Diag%Map_ScaleICsAdj,                            &
+         mapData        = State_Diag%Map_ScaleICsAdj,                        &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -3136,10 +3184,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only emissions
+    diagID  = 'BudgetEmisDryDepLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepLevs,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepLevs,           &
+         mapData        = State_Diag%Map_BudgetEmisDryDepLevs,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for emissions budget
     IF ( State_Diag%Archive_BudgetEmisDryDepFull .OR. &
          State_Diag%Archive_BudgetEmisDryDepTrop .OR. &
-         State_Diag%Archive_BudgetEmisDryDepPBL ) THEN
+         State_Diag%Archive_BudgetEmisDryDepLevs  .OR. &
+         State_Diag%Archive_BudgetEmisDryDepLevs ) THEN
        State_Diag%Archive_BudgetEmisDryDep = .TRUE.
     ENDIF
 
@@ -3211,10 +3282,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only transport
+    diagID  = 'BudgetTransportLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportLevs,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportLevs,            &
+         mapData        = State_Diag%Map_BudgetTransportLevs,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for transport budget
     IF ( State_Diag%Archive_BudgetTransportFull .OR. &
          State_Diag%Archive_BudgetTransportTrop .OR. &
-         State_Diag%Archive_BudgetTransportPBL ) THEN
+         State_Diag%Archive_BudgetTransportPBL  .OR. &
+         State_Diag%Archive_BudgetTransportLevs ) THEN
        State_Diag%Archive_BudgetTransport = .TRUE.
     ENDIF
 
@@ -3286,10 +3380,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only mixing
+    diagID  = 'BudgetMixingLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingLevs,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingLevs,               &
+         mapData        = State_Diag%Map_BudgetMixingLevs,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for mixing budget
     IF ( State_Diag%Archive_BudgetMixingFull .OR. &
          State_Diag%Archive_BudgetMixingTrop .OR. &
-         State_Diag%Archive_BudgetMixingPBL ) THEN
+         State_Diag%Archive_BudgetMixingPBL  .OR. &
+         State_Diag%Archive_BudgetMixingLevs ) THEN
        State_Diag%Archive_BudgetMixing = .TRUE.
     ENDIF
 
@@ -3361,10 +3478,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only convection
+    diagID  = 'BudgetConvectionLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionLevs,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionLevs,           &
+         mapData        = State_Diag%Map_BudgetConvectionLevs,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for convection budget
     IF ( State_Diag%Archive_BudgetConvectionFull .OR. &
          State_Diag%Archive_BudgetConvectionTrop .OR. &
-         State_Diag%Archive_BudgetConvectionPBL ) THEN
+         State_Diag%Archive_BudgetConvectionPBL  .OR. &
+         State_Diag%Archive_BudgetConvectionLevs ) THEN
        State_Diag%Archive_BudgetConvection = .TRUE.
     ENDIF
 
@@ -3436,10 +3576,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only chemistry
+    diagID  = 'BudgetChemistryLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryLevs,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryLevs,            &
+         mapData        = State_Diag%Map_BudgetChemistryLevs,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! Set high-level logical for archiving chemistry budget
     IF ( State_Diag%Archive_BudgetChemistryFull .OR. &
          State_Diag%Archive_BudgetChemistryTrop .OR. &
-         State_Diag%Archive_BudgetChemistryPBL ) THEN
+         State_Diag%Archive_BudgetChemistryPBL  .OR. &
+         State_Diag%Archive_BudgetChemistryLevs ) THEN
        State_Diag%Archive_BudgetChemistry = .TRUE.
     ENDIF
 
@@ -3511,10 +3674,33 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Levs-only wet deposition
+    diagID  = 'BudgetWetDepLevs'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepLevs,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepLevs,               &
+         mapData        = State_Diag%Map_BudgetWetDepLevs,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for wet deposition budget
     IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
          State_Diag%Archive_BudgetWetDepTrop .OR. &
-         State_Diag%Archive_BudgetWetDepPBL ) THEN
+         State_Diag%Archive_BudgetWetDepPBL  .OR. &
+         State_Diag%Archive_BudgetWetDepLevs ) THEN
        State_Diag%Archive_BudgetWetDep = .TRUE.
     ENDIF
 
@@ -11894,21 +12080,27 @@ CONTAINS
                            ( State_Diag%Archive_BudgetEmisDryDepFull    .or. &
                              State_Diag%Archive_BudgetEmisDryDepTrop    .or. &
                              State_Diag%Archive_BudgetEmisDryDepPBL     .or. &
+                             State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
                              State_Diag%Archive_BudgetTransportFull     .or. &
                              State_Diag%Archive_BudgetTransportTrop     .or. &
                              State_Diag%Archive_BudgetTransportPBL      .or. &
+                             State_Diag%Archive_BudgetTransportLevs     .or. &
                              State_Diag%Archive_BudgetMixingFull        .or. &
                              State_Diag%Archive_BudgetMixingTrop        .or. &
                              State_Diag%Archive_BudgetMixingPBL         .or. &
+                             State_Diag%Archive_BudgetMixingLevs        .or. &
                              State_Diag%Archive_BudgetConvectionFull    .or. &
                              State_Diag%Archive_BudgetConvectionTrop    .or. &
                              State_Diag%Archive_BudgetConvectionPBL     .or. &
+                             State_Diag%Archive_BudgetConvectionLevs    .or. &
                              State_Diag%Archive_BudgetChemistryFull     .or. &
                              State_Diag%Archive_BudgetChemistryTrop     .or. &
                              State_Diag%Archive_BudgetChemistryPBL      .or. &
+                             State_Diag%Archive_BudgetChemistryLevs     .or. &
                              State_Diag%Archive_BudgetWetDepFull        .or. &
                              State_Diag%Archive_BudgetWetDepTrop        .or. &
-                             State_Diag%Archive_BudgetWetDepPBL             )
+                             State_Diag%Archive_BudgetWetDepPBL         .or. &
+                             State_Diag%Archive_BudgetWetDepLevs            )
 
     State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA       .or. &
                                    State_Diag%Archive_AerMassBC         .or. &
@@ -12172,6 +12364,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetEmisDryDepLevs',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepLevs,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepLevs,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetTransportFull',                         &
                    Ptr2Data = State_Diag%BudgetTransportFull,                &
                    mapData  = State_Diag%Map_BudgetTransportFull,            &
@@ -12187,6 +12385,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetTransportPBL',                          &
                    Ptr2Data = State_Diag%BudgetTransportPBL,                 &
                    mapData  = State_Diag%Map_BudgetTransportPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetTransportLevs',                         &
+                   Ptr2Data = State_Diag%BudgetTransportLevs,                &
+                   mapData  = State_Diag%Map_BudgetTransportLevs,            &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -12208,6 +12412,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetMixingLevs',                            &
+                   Ptr2Data = State_Diag%BudgetMixingLevs,                   &
+                   mapData  = State_Diag%Map_BudgetMixingLevs,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetConvectionFull',                        &
                    Ptr2Data = State_Diag%BudgetConvectionFull,               &
                    mapData  = State_Diag%Map_BudgetConvectionFull,           &
@@ -12223,6 +12433,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetConvectionPBL',                         &
                    Ptr2Data = State_Diag%BudgetConvectionPBL,                &
                    mapData  = State_Diag%Map_BudgetConvectionPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetConvectionLevs',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionLevs,               &
+                   mapData  = State_Diag%Map_BudgetConvectionLevs,           &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -12244,6 +12460,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetChemistryLevs',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryLevs,                &
+                   mapData  = State_Diag%Map_BudgetChemistryLevs,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetWetDepFull',                            &
                    Ptr2Data = State_Diag%BudgetWetDepFull,                   &
                    mapData  = State_Diag%Map_BudgetWetDepFull,               &
@@ -12259,6 +12481,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetWetDepPBL',                             &
                    Ptr2Data = State_Diag%BudgetWetDepPBL,                    &
                    mapData  = State_Diag%Map_BudgetWetDepPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetWetDepLevs',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepLevs,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepLevs,               &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -14126,6 +14354,11 @@ CONTAINS
                                    'in column for emissions and dry '    // &
                                    'deposition'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
+                                   'in column for emissions and dry '    // &
+                                   'deposition'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for transport'
@@ -14136,6 +14369,10 @@ CONTAINS
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for transport'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
                                    ' in column for transport'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
@@ -14150,6 +14387,10 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for dry deposition'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
+                                   ' in column for dry deposition'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for mixing'
@@ -14160,6 +14401,10 @@ CONTAINS
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for mixing'
+       
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
                                    ' in column for mixing'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
@@ -14174,6 +14419,10 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for convection'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
+                                   ' in column for convection'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    ' for chemistry'
@@ -14186,6 +14435,10 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for chemistry'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
+                                   ' in column for chemistry'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for wet deposition'
@@ -14196,6 +14449,10 @@ CONTAINS
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
+                                   ' in column for wet deposition '
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPLEVS' ) THEN
+          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
                                    ' in column for wet deposition '
        ENDIF
 
