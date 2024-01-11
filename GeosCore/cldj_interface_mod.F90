@@ -484,6 +484,13 @@ CONTAINS
        CLDF(1:State_Grid%NZ) = State_Met%CLDF(I,J,1:State_Grid%NZ)
        CLDF(State_Grid%NZ+1) = CLDF(State_Grid%NZ)
 
+       ! Set relative humidity from input meteorology field and convert
+       ! from percent to fraction
+       RRR(1:State_Grid%NZ) = State_Met%RH(I,J,1:State_Grid%NZ) / 100.d0
+
+       ! Set top of atmosphere relative humidity to 10% of layer below
+       RRR(State_Grid%NZ+1) = RRR(State_Grid%NZ) * 1.d-1
+
        ! Loop over # layers in cloud-j (layers with clouds)
        DO L = 1, LWEPAR
 
@@ -523,13 +530,7 @@ CONTAINS
              REFFI(L) = IWP(L) * 0.75d0 * 2.06d0 / ( State_Met%TAUCLI(I,J,L) * 0.917d0 )
           ENDIF
 
-          ! Convert relative humidity [unitless] from percent to fraction
-          RRR(L) = State_Met%RH(I,J,L) / 100.d0
-
        ENDDO
-
-       ! Set top of atmosphere relative humidity to 10% of layer below
-       RRR(State_Grid%NZ+1) = RRR(State_Grid%NZ) * 1.d-1
 
        !-----------------------------------------------------------------
        ! Compute concentrations per aerosol [g/m2]
