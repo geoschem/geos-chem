@@ -91,7 +91,7 @@ CONTAINS
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
 
-    USE UnitConv_Mod,            ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     Use Error_Mod,               ONLY : Init_Error
 
 #ifdef ADJOINT
