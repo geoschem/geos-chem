@@ -179,6 +179,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -1112,6 +1115,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = State_Diag%BudgetChemistryPBL,                     &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
+            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Chem,                                           &
             RC          = RC                                                )
