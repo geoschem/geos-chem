@@ -571,6 +571,7 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((EDGARv7
 ### Oil ###
+#### NOTE: EDGARv7 has oil, gas, coal in the "PRO" sector file
 0 EDGAR7_CH4_OIL__1B2a_T          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OIL 32 1 1
 0 EDGAR7_CH4_OIL__1B2a            $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4     32 1 1
 0 EDGAR7_CH4_OTHER__1A1_1B1_1B2_T $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4_OTA 34 1 1
