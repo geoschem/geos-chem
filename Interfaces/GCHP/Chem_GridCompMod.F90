@@ -915,6 +915,7 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+#if defined( RRTMG )
     ! Stratospheric temperature adjustment accumulated when using RRTMG
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'TSTRAT_ADJ',&
@@ -927,6 +928,7 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+#endif
     ! Additional outputs useful for unit conversions and post-processing analysis
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AREA',  &
