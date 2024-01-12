@@ -1354,9 +1354,11 @@ ${RUNDIR_PCO_NMVOC}
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
 
+(((USE_CO2_DATA
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+)))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
 

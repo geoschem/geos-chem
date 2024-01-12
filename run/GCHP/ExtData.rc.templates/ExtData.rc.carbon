@@ -431,7 +431,7 @@ CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/
 CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
 
 # --- CO2 production from CO ---
-#CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.47L.nc
+#CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
 
 #==============================================================================
 # --- OCS flux data ----
