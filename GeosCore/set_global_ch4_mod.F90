@@ -137,19 +137,19 @@ CONTAINS
     FOUND   = .FALSE.
     SRCNAME = ''
 #if defined( MODEL_GEOS )
+    ! Check for CH4 offset first
+    ALLOCATE(CH4_OFFSET(State_Grid%NX,State_Grid%NY))
+    CH4_OFFSET(:,:) = 0.0
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4_OFFSET', &
+                         CH4_OFFSET, RC, FOUND=FOUND )
+    IF ( .NOT. FOUND ) CH4_OFFSET = 0.0
+    ! Now get CH4 concentrations
     ALLOCATE(GEOS_CH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
     GEOS_CH4(:,:,:) = 0.0
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4', &
                          GEOS_CH4, RC, FOUND=FOUND )
     USE_GEOS_CH4 = FOUND
     IF ( FOUND ) SRCNAME = 'GEOS_CH4'
-
-    ! CH4 offset
-    ALLOCATE(CH4_OFFSET(State_Grid%NX,State_Grid%NY)
-    CH4_OFFSET(:,:,:) = 0.0
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4_OFFSET', &
-                         CH4_OFFSET, RC, FOUND=FOUND )
-    IF ( .NOT. FOUND ) CH4_OFFSET = 0.0
 #endif
 
     ! Use the NOAA spatially resolved data where available
