@@ -208,6 +208,27 @@ CONTAINS
                    DIMS               = MAPL_DimsHorzVert,                                                 &
                    VLOCATION          = MAPL_VLocationCenter,                                              &
                                                              __RC__ )
+             CALL MAPL_AddExportSpec(GC,                                                                   &
+                   SHORT_NAME         = 'GCC_ANA_INCCOL_TOT_'//TRIM(SpecName),                             &
+                   LONG_NAME          = TRIM(SpecName)//'_analysis_increment_total_column',                &
+                   UNITS              = '1e15 molec cm-2',                                                 &
+                   DIMS               = MAPL_DimsHorzOnly,                                                 &
+                   VLOCATION          = MAPL_VLocationNone,                                                &
+                                                             __RC__ )
+             CALL MAPL_AddExportSpec(GC,                                                                   &
+                   SHORT_NAME         = 'GCC_ANA_INCCOL_TROP_'//TRIM(SpecName),                            &
+                   LONG_NAME          = TRIM(SpecName)//'_analysis_increment_tropospheric_column',         &
+                   UNITS              = '1e15 molec cm-2',                                                 &
+                   DIMS               = MAPL_DimsHorzOnly,                                                 &
+                   VLOCATION          = MAPL_VLocationNone,                                                &
+                                                             __RC__ )
+             CALL MAPL_AddExportSpec(GC,                                                                   &
+                   SHORT_NAME         = 'GCC_ANA_INCCOL_PBL_'//TRIM(SpecName),                             &
+                   LONG_NAME          = TRIM(SpecName)//'_analysis_increment_column_within_PBL',           &
+                   UNITS              = '1e15 molec cm-2',                                                 &
+                   DIMS               = MAPL_DimsHorzOnly,                                                 &
+                   VLOCATION          = MAPL_VLocationNone,                                                &
+                                                             __RC__ )
              IF ( I==1 ) THEN 
                 CALL MAPL_AddExportSpec(GC,                                        &
                       SHORT_NAME         = 'GCC_ANA_MASK_VSUM_'//TRIM(SpecName),   &
@@ -428,13 +449,14 @@ CONTAINS
     TYPE(ESMF_Grid)            :: grid
     LOGICAL                    :: am_I_Root
     TYPE(AnaOptions), POINTER  :: iopt => NULL() 
-    LOGICAL                    :: TimeForAna, HasBundle
+    LOGICAL                    :: TimeForAna, HasBundle, DoIncColDiag
     INTEGER                    :: yy, mm, dd, h, m, s
     INTEGER                    :: VarID
     INTEGER                    :: StratCount
     REAL                       :: ThisHour
     CHARACTER(LEN=ESMF_MAXSTR) :: SpecName, Spec2Name, FldName
     REAL, POINTER              :: DiagInc(:,:,:),  DiagIncFrac(:,:,:)
+    REAL, POINTER              :: DiagIncColTrop(:,:),  DiagIncColTot(:,:), DiagIncColPbl(:,:)
     REAL, ALLOCATABLE          :: DiagInc2(:,:,:,:), DiagIncFrac2(:,:,:,:), DiagSpcRatio(:,:,:,:)
     REAL, POINTER              :: DiagMsk2d(:,:),  DiagMsk3d(:,:,:)
     REAL, POINTER              :: AnaPtr(:,:,:), IncPtr(:,:,:), ObsHour(:,:)
@@ -448,13 +470,14 @@ CONTAINS
     INTEGER, ALLOCATABLE       :: indSpc2(:)
     INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
-    REAL                       :: wgt, tropwgt, stratwgt
+    REAL                       :: wgt, tropwgt, stratwgt, pblwgt
     REAL                       :: DilFact, tsChem
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc
     REAL, ALLOCATABLE          :: mwSpc2(:)
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
+    REAL                       :: IncConc, IncCol 
     LOGICAL                    :: UpdateSpec2
     TYPE(ESMF_Alarm)           :: PredictorAlarm
     LOGICAL                    :: PredictorActive
@@ -519,6 +542,18 @@ CONTAINS
     FldName = 'GCC_ANA_MASK_'//TRIM(SpecName)
     CALL MAPL_GetPointer ( Export, DiagMsk3d, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
     IF ( ASSOCIATED(DiagMsk3d) ) DiagMsk3d = 0.0 
+    FldName = 'GCC_ANA_INCCOL_TOT_'//TRIM(SpecName)
+    CALL MAPL_GetPointer ( Export, DiagIncColTot, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(DiagIncColTot) ) DiagIncColTot = 0.0 
+    FldName = 'GCC_ANA_INCCOL_TROP_'//TRIM(SpecName)
+    CALL MAPL_GetPointer ( Export, DiagIncColTrop, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(DiagIncColTrop) ) DiagIncColTrop = 0.0 
+    FldName = 'GCC_ANA_INCCOL_PBL_'//TRIM(SpecName)
+    CALL MAPL_GetPointer ( Export, DiagIncColPbl, TRIM(FldName), NotFoundOk=.TRUE., __RC__ )
+    IF ( ASSOCIATED(DiagIncColPbl) ) DiagIncColPbl = 0.0 
+    DoIncColDiag = ( ASSOCIATED(DiagIncColTot ) .OR. &
+                     ASSOCIATED(DiagIncColTrop) .OR. &
+                     ASSOCIATED(DiagIncColPbl )       )
 
     ! Fill species 2 diagnostics
     IF ( iopt%nSpec2 > 0 ) THEN
@@ -781,6 +816,25 @@ CONTAINS
              IF ( ASSOCIATED(DiagMsk2d      ) ) DiagMsk2d(I,J)      = DiagMsk2d(I,J) + 1.0
              IF ( ASSOCIATED(DiagMsk3d      ) ) DiagMsk3d(I,J,L)    = 1.0 
 
+             ! Update column diagnostics
+             IF ( DoIncColDiag ) THEN 
+
+                ! Increment (kg/kg total)
+                !IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-Q(I,J,L)) / MAPL_AIRMW * mwSpc
+                !const   = MAPL_AVOGAD / ( MAPL_GRAV * mwSpc )
+                !IncCol  = IncConc * ( PLE(I,J,L+LB) - PLE(I,J,L+LB-1) ) * const / 1.0e4 / 1.0e15
+                IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-Q(I,J,L)) / MAPL_AIRMW
+                IncCol  = IncConc * ( PLE(I,J,L+LB) - PLE(I,J,L+LB-1) ) * (MAPL_AVOGAD/MAPL_GRAV) / 1.0e19
+                IF ( ASSOCIATED(DiagIncColTot) ) DiagIncColTot(I,J)  = DiagIncColTot(I,J)  + IncCol
+                IF ( ASSOCIATED(DiagIncColTrop)) DiagIncColTrop(I,J) = DiagIncColTrop(I,J) + (IncCol*tropwgt)
+                IF ( ASSOCIATED(DiagIncColPbl) ) THEN
+                   !DiagIncColPbl(I,J) = DiagIncColPbl(I,J) + (IncCol*State_Met%F_UNDER_PBLTOP(I,J,LM-L+1))
+                   pblwgt = MAX(0.0,MIN(1.0,(PLE(I,J,L+LB)-(State_Met%PBL_TOP_hPa(I,J)*100.0)) &
+                          / (PLE(I,J,L+LB)-PLE(I,J,L+LB-1))))
+                   DiagIncColPbl(I,J) = DiagIncColPbl(I,J) + (IncCol*pblwgt)
+                ENDIF
+             ENDIF
+
              ! Eventually update dependent species to maintain concentration ratio of species 2 / species 1
              IF ( iopt%nSpec2>0 ) THEN
                 DO N=1,iopt%nSpec2
@@ -861,10 +915,13 @@ CONTAINS
     IF ( ALLOCATED(indSpc2     ) ) DEALLOCATE(indSpc2)
     IF ( ALLOCATED(mwSpc2      ) ) DEALLOCATE(mwSpc2)
 
-    IF ( ASSOCIATED(DiagInc     ) ) DiagInc      => NULL()
-    IF ( ASSOCIATED(DiagIncFrac ) ) DiagIncFrac  => NULL()
-    IF ( ASSOCIATED(DiagMsk2d   ) ) DiagMsk2d    => NULL()
-    IF ( ASSOCIATED(DiagMsk3d   ) ) DiagMsk3d    => NULL()
+    IF ( ASSOCIATED(DiagInc        )) DiagInc        => NULL()
+    IF ( ASSOCIATED(DiagIncFrac    )) DiagIncFrac    => NULL()
+    IF ( ASSOCIATED(DiagMsk2d      )) DiagMsk2d      => NULL()
+    IF ( ASSOCIATED(DiagMsk3d      )) DiagMsk3d      => NULL()
+    IF ( ASSOCIATED(DiagIncColTot  )) DiagIncColTot  => NULL()
+    IF ( ASSOCIATED(DiagIncColTrop )) DiagIncColTrop => NULL()
+    IF ( ASSOCIATED(DiagIncColPbl  )) DiagIncColPbl  => NULL()
 
     IF ( HasBundle ) THEN
        CALL MAPL_SimpleBundleDestroy ( VarBundle, __RC__ )
