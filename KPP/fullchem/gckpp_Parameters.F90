@@ -47,9 +47,9 @@ MODULE gckpp_Parameters
 ! NFIXST - Starting of fixed in conc. vect.
   INTEGER, PARAMETER :: NFIXST = 292 
 ! NONZERO - Number of nonzero entries in Jacobian
-  INTEGER, PARAMETER :: NONZERO = 3543 
+  INTEGER, PARAMETER :: NONZERO = 3542 
 ! LU_NONZERO - Number of nonzero entries in LU factoriz. of Jacobian
-  INTEGER, PARAMETER :: LU_NONZERO = 4632 
+  INTEGER, PARAMETER :: LU_NONZERO = 4631 
 ! CNVAR - (NVAR+1) Number of elements in compressed row format
   INTEGER, PARAMETER :: CNVAR = 292 
 ! NLOOKAT - Number of species to look at

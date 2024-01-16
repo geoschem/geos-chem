@@ -138,10 +138,10 @@ MODULE gckpp_Monitor
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_0 = (/ &
      'SALAAL + SO2 + O3 --> LOx + PSO4 + SO4 - SALAAL                                                     ', & ! index 1
      '     SALAAL + HCl --> SALACL                                                                        ', & ! index 2
-     '    SALAAL + HNO3 --> LOx + NIT                                                                     ', & ! index 3
+     '    SALAAL + HNO3 --> NIT                                                                           ', & ! index 3
      'SALCAL + SO2 + O3 --> SO4s + LOx - SALCAL                                                           ', & ! index 4
      '     SALCAL + HCl --> SALCCL                                                                        ', & ! index 5
-     '    SALCAL + HNO3 --> LOx + NITs                                                                    ', & ! index 6
+     '    SALCAL + HNO3 --> NITs                                                                          ', & ! index 6
      '       H2O2 + SO2 --> PSO4AQ + PSO4 + SO4                                                           ', & ! index 7
      '         SO2 + O3 --> PSO4AQ + LOx + PSO4 + SO4                                                     ', & ! index 8
      '              SO2 --> PSO4AQ + PSO4 + SO4                                                           ', & ! index 9
@@ -796,8 +796,8 @@ MODULE gckpp_Monitor
      '              HO2 --> H2O                                                                           ', & ! index 637
      '              NO2 --> 0.5 LOx + 0.5 HNO2 + 0.5 HNO3                                                 ', & ! index 638
      '              NO3 --> LOx + HNO3                                                                    ', & ! index 639
-     '              NO3 --> 2 LOx + NIT                                                                   ', & ! index 640
-     '              NO3 --> 2 LOx + NITs                                                                  ', & ! index 641
+     '              NO3 --> LOx + NIT                                                                     ', & ! index 640
+     '              NO3 --> LOx + NITs                                                                    ', & ! index 641
      '       N2O5 + H2O --> LOx + 2 HNO3                                                                  ', & ! index 642
      '       N2O5 + HCl --> LOx + ClNO2 + HNO3                                                            ', & ! index 643
      '             N2O5 --> LOx + 2 HNO3                                                                  ', & ! index 644
@@ -1005,10 +1005,10 @@ MODULE gckpp_Monitor
      '           MONITU --> RCHO + NO2                                                                    ' /) ! index up to 840
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_28 = (/ &
      '            HONIT --> HAC + NO2                                                                     ', & ! index 841
-     '             NITs --> HNO2                                                                          ', & ! index 842
-     '             NITs --> POx + NO2                                                                     ', & ! index 843
-     '              NIT --> HNO2                                                                          ', & ! index 844
-     '              NIT --> POx + NO2                                                                     ', & ! index 845
+     '             NITs --> LOx + HNO2                                                                    ', & ! index 842
+     '             NITs --> NO2                                                                           ', & ! index 843
+     '              NIT --> LOx + HNO2                                                                    ', & ! index 844
+     '              NIT --> NO2                                                                           ', & ! index 845
      '            MENO3 --> POx + CH2O + HO2 + NO2                                                        ', & ! index 846
      '            ETNO3 --> POx + ALD2 + HO2 + NO2                                                        ', & ! index 847
      '           IPRNO3 --> POx + ACET + HO2 + NO2                                                        ', & ! index 848
