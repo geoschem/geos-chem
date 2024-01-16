@@ -1293,7 +1293,7 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
