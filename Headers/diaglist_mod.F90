@@ -81,13 +81,15 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadOut(17)    ! Names of RRTMG outputs (tags)
-  INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
-  LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
-  LOGICAL,           PUBLIC  :: IsCarbon      ! Is it a carbon sim?
-  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
+  CHARACTER(LEN=3),  PUBLIC  :: budgetBotLev_str ! Budget diag level range bottom
+  CHARACTER(LEN=3),  PUBLIC  :: budgetTopLev_str ! Budget diag level range top
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)         ! Wavelengths in radiation menu
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(17)       ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut          ! # of selected RRTMG outputs
+  LOGICAL,           PUBLIC  :: IsFullChem       ! Is it a fullchem simulation?
+  LOGICAL,           PUBLIC  :: IsHg             ! Is it a Hg simulation?
+  LOGICAL,           PUBLIC  :: IsCarbon         ! Is it a carbon sim?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc      ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -188,7 +190,7 @@ CONTAINS
     INTEGER                      :: LineNum, LineLen, LineInd, LineInd2
     INTEGER                      :: fId, IOS, N, N1, N2, N3, I, J
     INTEGER                      :: WLIndMax, WLIndMaxLoc(1), WLInd(3)
-    INTEGER                      :: strIndMax, strInd(5)
+    INTEGER                      :: strIndMax, strIndMin, strInd(5)
     INTEGER                      :: numSpcWords, numIDWords
     INTEGER                      :: NFIELDS
 
@@ -225,6 +227,8 @@ CONTAINS
     EOF             = .FALSE.
     found           = .FALSE.
     NewDiagItem     => NULL()
+    budgetBotLev_str=  ''
+    budgetTopLev_str=  ''
     RadWL           =  ''
     RadOut          =  ''
     nRadOut         =  0
@@ -832,6 +836,21 @@ CONTAINS
           strInd(2) = INDEX( TRIM(metadataID), 'ALT1' )
           IF ( strInd(2) > 0 ) THEN
              metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
+          ENDIF
+
+          ! Special handling for the budget fixed level range diagnostic
+          strInd(1) = INDEX( TRIM(metadataID), 'BUDGET' )
+          strInd(2) = INDEX( TRIM(metadataID), 'LEVS' )
+          strInd(3) = INDEX( TRIM(metadataID), 'TO' )
+          strIndMin = MIN( strInd(1), strInd(2), strInd(3) )
+          ! Set budget diagnostic level range top and bottom if not already set
+          ! ewl TODO: only do this once. Beyond that check that consistent.
+          IF ( strIndMin > 0  ) THEN
+             ! Need to parse the metadataID name to set budget fixed level ranges
+             budgetBotLev_str = TRIM( metadataID( strInd(2)+4:strInd(3)-1 ) )
+             print *, "ewl: budgetBotLev is ", TRIM(budgetBotLev_str)
+             budgetTopLev_str = TRIM( metadataID( strInd(3)+2:LEN(TRIM(metadataID)) ) )
+             print *, "ewl: budgetTopLev is ", TRIM(budgetTopLev_str)
           ENDIF
 
           !====================================================================

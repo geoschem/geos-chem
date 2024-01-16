@@ -990,8 +990,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: after,  before, wetDep
-    INTEGER            :: I,      J,      L,       N
-    INTEGER            :: numSpc, region, topLev,  S
+    INTEGER            :: I,      J,      L,       N,      S
+    INTEGER            :: numSpc, region, topLev,  botLev
     REAL(f8)           :: colSum, dt
 
     ! Arrays
@@ -1119,9 +1119,10 @@ CONTAINS
     ENDIF
 
     ! Loop over NX and NY dimensions
-    !$OMP PARALLEL DO                                        &
-    !$OMP DEFAULT( SHARED                                  ) &
-    !$OMP PRIVATE( I, J, colSum, spcMass, topLev, S, N, L  )
+    !$OMP PARALLEL DO                               &
+    !$OMP DEFAULT( SHARED                          )&
+    !$OMP PRIVATE( I, J, S, N, L                   )&
+    !$OMP PRIVATE( colSum, spcMass, topLev, botLev )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1277,8 +1278,8 @@ CONTAINS
        IF ( isLevs ) THEN
          
           ! Top and bottom levels of column
-          topLev = State_Diag%BudgetLevsTop
-          botLev = State_diag%BudgetLevsBot
+          topLev = State_Diag%BudgetTopLev_int
+          botLev = State_Diag%BudgetBotLev_int
 
           ! Loop over # of diagnostic slots
           DO S = 1, mapDataLevs%nSlots

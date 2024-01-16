@@ -236,6 +236,8 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetWetDepLevs
 
      REAL(f8),           POINTER :: BudgetColumnMass(:,:,:,:)
+     INTEGER                     :: BudgetBotLev_int
+     INTEGER                     :: BudgetTopLev_int
      LOGICAL                     :: Archive_BudgetEmisDryDep
      LOGICAL                     :: Archive_BudgetTransport
      LOGICAL                     :: Archive_BudgetMixing
@@ -1683,6 +1685,9 @@ CONTAINS
     State_Diag%BudgetColumnMass                    => NULL()
     State_Diag%Archive_Budget                      = .FALSE.
 
+    State_Diag%BudgetTopLev_int = -999
+    State_Diag%BudgetBotLev_int = -999
+
     !%%%%% Drydep diagnostics %%%%%
 
     State_Diag%DryDepChm                           => NULL()
@@ -3115,7 +3120,6 @@ CONTAINS
        RETURN
     ENDIF
 
-
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
     !-----------------------------------------------------------------------
@@ -3184,8 +3188,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only emissions
-    diagID  = 'BudgetEmisDryDepLevs'
+    ! Fixed level range emissions
+    diagID  = 'BudgetEmisDryDepLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3282,8 +3287,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only transport
-    diagID  = 'BudgetTransportLevs'
+    ! Fixed level range transport
+    diagID  = 'BudgetTransportLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3380,8 +3386,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only mixing
-    diagID  = 'BudgetMixingLevs'
+    ! Fixed level range mixing
+    diagID  = 'BudgetMixingLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3478,8 +3485,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only convection
-    diagID  = 'BudgetConvectionLevs'
+    ! Fixed level range convection
+    diagID  = 'BudgetConvectionLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3576,8 +3584,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only chemistry
-    diagID  = 'BudgetChemistryLevs'
+    ! Fixed level range chemistry
+    diagID  = 'BudgetChemistryLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3674,8 +3683,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Levs-only wet deposition
-    diagID  = 'BudgetWetDepLevs'
+    ! Fixed level range wet deposition
+    diagID  = 'BudgetWetDepLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
     CALL Init_and_Register(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -3702,6 +3712,19 @@ CONTAINS
          State_Diag%Archive_BudgetWetDepPBL  .OR. &
          State_Diag%Archive_BudgetWetDepLevs ) THEN
        State_Diag%Archive_BudgetWetDep = .TRUE.
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Top and bottom levels for budget level range diagnostics
+    !------------------------------------------------------------------------
+    IF (State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
+        State_Diag%Archive_BudgetTransportLevs     .or. &
+        State_Diag%Archive_BudgetMixingLevs        .or. &
+        State_Diag%Archive_BudgetConvectionLevs    .or. &
+        State_Diag%Archive_BudgetChemistryLevs     .or. &
+        State_Diag%Archive_BudgetWetDepLevs            ) THEN
+       State_Diag%BudgetTopLev_int = 1 !READ((i3),BudgetTopLev_str)
+       State_Diag%BudgetBotLev_int = 32 !READ((i3),BudgetBotLev_str)
     ENDIF
 
     !------------------------------------------------------------------------
@@ -14186,6 +14209,7 @@ CONTAINS
 !
     USE Charpak_Mod,         ONLY : StrSplit,   To_UpperCase
     USE DiagList_Mod,        ONLY : IsFullChem, IsCarbon, IsHg
+    USE DiagList_Mod,        ONLY : budgetTopLev_str, budgetBotLev_str
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -14353,11 +14377,14 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    'in column for emissions and dry '    // &
                                    'deposition'
-       
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   'in column for emissions and dry '    // &
-                                   'deposition'
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPLEVS'            &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str)                     &
+                                   // ' for emissions and dry deposition'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
@@ -14371,9 +14398,12 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for transport'
        
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for transport'
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTLEVS'             &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column  levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '            &
+                                   // TRIM(budgetTopLev_str) // ' for transport'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
@@ -14387,9 +14417,12 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for dry deposition'
        
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for dry deposition'
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for dry deposition'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
@@ -14402,11 +14435,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for mixing'
-       
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for mixing'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for mixing'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for convection'
@@ -14418,11 +14454,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for convection'
-       
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for convection'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONLEVS'            &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for convection'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    ' for chemistry'
@@ -14434,11 +14473,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for chemistry'
-       
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for chemistry'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYLEVS'             &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for chemistry'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for wet deposition'
@@ -14451,9 +14493,13 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for wet deposition '
 
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPLEVS' ) THEN
-          IF ( isDesc    ) Desc  = 'Fixed levels total mass rate of change ' // &
-                                   ' in column for wet deposition '
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for wet deposition'
+
        ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
