@@ -1222,6 +1222,18 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWTOA
 
+     REAL(f4),           POINTER :: RadAllSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWTrop
+
+     REAL(f4),           POINTER :: RadAllSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWTrop
+
+     REAL(f4),           POINTER :: RadClrSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWTrop
+
+     REAL(f4),           POINTER :: RadClrSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWTrop
+
      REAL(f4),           POINTER :: RadAODWL1(:,:,:)
      LOGICAL                     :: Archive_RadAODWL1
 
@@ -1250,6 +1262,12 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_RadAsymWL3
 
      LOGICAL                     :: Archive_RadOptics
+
+     REAL(f8),           POINTER :: DynHeating(:,:,:)
+     LOGICAL                     :: Archive_DynHeating
+
+     REAL(f4),           POINTER :: DTRad(:,:,:)
+     LOGICAL                     :: Archive_DTRad
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -2387,6 +2405,18 @@ CONTAINS
     State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
 
+    State_Diag%RadAllSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkyLWTrop             = .FALSE.
+
+    State_Diag%RadAllSkySWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkySWTrop             = .FALSE.
+
+    State_Diag%RadClrSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkyLWTrop             = .FALSE.
+
+    State_Diag%RadClrSkySWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkySWTrop             = .FALSE.
+
     State_Diag%RadAODWL1                           => NULL()
     State_Diag%Archive_RadAODWL1                   = .FALSE.
 
@@ -2413,6 +2443,12 @@ CONTAINS
 
     State_Diag%RadAsymWL3                          => NULL()
     State_Diag%Archive_RadAsymWL3                  = .FALSE.
+
+    State_Diag%DynHeating                          => NULL()
+    State_Diag%Archive_DynHeating                  = .FALSE.
+
+    State_Diag%DTRad                               => NULL()
+    State_Diag%Archive_DTRad                       = .FALSE.
 
     State_Diag%Archive_RadOptics                   = .FALSE.
 
@@ -4950,6 +4986,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: All-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadAllSkySWSurf'
@@ -4985,6 +5044,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadAllSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadAllSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: All-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -5042,6 +5124,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadClrSkySWSurf'
@@ -5077,6 +5182,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadClrSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadClrSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -5276,6 +5404,42 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'DynHeating'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DynHeating,                          &
+            archiveData    = State_Diag%Archive_DynHeating,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'DTRad'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DTRad,                               &
+            archiveData    = State_Diag%Archive_DTRad,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -5287,7 +5451,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 17
+       DO N = 1, 23
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -5296,44 +5460,56 @@ CONTAINS
              CASE( 2 )
                 diagID = 'RadAllSkyLWTOA'
              CASE( 3 )
-                diagID = 'RadAllSkySWSurf'
+                diagID = 'RadAllSkyLWTrop'
              CASE( 4 )
-                diagID = 'RadAllSkySWTOA'
+                diagID = 'RadAllSkySWSurf'
              CASE( 5 )
-                diagID = 'RadClrSkyLWSurf'
+                diagID = 'RadAllSkySWTOA'
              CASE( 6 )
-                diagID = 'RadClrSkyLWTOA'
+                diagID = 'RadAllSkySWTrop'
              CASE( 7 )
-                diagID = 'RadClrSkySWSurf'
+                diagID = 'RadClrSkyLWSurf'
              CASE( 8 )
-                diagID = 'RadClrSkySWTOA'
+                diagID = 'RadClrSkyLWTOA'
              CASE( 9 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkyLWTrop'
              CASE( 10 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkySWSurf'
              CASE( 11 )
+                diagID = 'RadClrSkySWTOA'
+             CASE( 12 )
+                diagID = 'RadClrSkySWTrop'
+             CASE( 13 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 14 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 15 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
-             CASE( 12 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 13 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 14 )
-                TmpWL  = RadWL(3)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 15 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
              CASE( 16 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 17 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 18 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 19 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 20 )
                 TmpWL  = RadWL(2)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
-             CASE( 17 )
+             CASE( 21 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 22 )
+                diagID = 'DynHeating'
+             CASE( 23 )
+                diagID = 'DTRad'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -12482,6 +12658,26 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'RadAllSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadClrSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'RadAODWL1',                                   &
                    Ptr2Data = State_Diag%RadAODWL1,                          &
                    RC       = RC                                            )
@@ -14522,6 +14718,34 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
                                 TRIM(RadWL(1)) // ' nm'
@@ -14584,6 +14808,18 @@ CONTAINS
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DYNHEATING' ) THEN
+       IF ( isDesc    ) Desc  = 'Dynamical heating rate ' // &
+                                'in baseline simulation'
+       IF ( isUnits   ) Units = 'K day-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DTRAD' ) THEN
+       IF ( isDesc    ) Desc  = 'Temperature change due ' // &
+                                'to radiative heating'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
@@ -17949,8 +18185,10 @@ CONTAINS
     ! RRTMG outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
-    !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
-    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST
+    !   0=BASE and then...
+    !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS  14=DU
+    !  15=PM  16=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -17973,26 +18211,36 @@ CONTAINS
              State_Diag%RadOutInd(N) = 0
           CASE( 'O3' )
              State_Diag%RadOutInd(N) = 1
-          CASE( 'ME' )
+          CASE( 'O3T' )
              State_Diag%RadOutInd(N) = 2
-          CASE( 'SU' )
+          CASE( 'ME' )
              State_Diag%RadOutInd(N) = 3
-          CASE( 'NI' )
+          CASE( 'H2O' )
              State_Diag%RadOutInd(N) = 4
-          CASE( 'AM' )
+          CASE( 'CO2' )
              State_Diag%RadOutInd(N) = 5
-          CASE( 'BC' )
+          CASE( 'CFC' )
              State_Diag%RadOutInd(N) = 6
-          CASE( 'OA' )
+          CASE( 'N2O' )
              State_Diag%RadOutInd(N) = 7
-          CASE( 'SS' )
+          CASE( 'SU' )
              State_Diag%RadOutInd(N) = 8
-          CASE( 'DU' )
+          CASE( 'NI' )
              State_Diag%RadOutInd(N) = 9
-          CASE( 'PM' )
+          CASE( 'AM' )
              State_Diag%RadOutInd(N) = 10
-          CASE( 'ST' )
+          CASE( 'BC' )
              State_Diag%RadOutInd(N) = 11
+          CASE( 'OA' )
+             State_Diag%RadOutInd(N) = 12
+          CASE( 'SS' )
+             State_Diag%RadOutInd(N) = 13
+          CASE( 'DU' )
+             State_Diag%RadOutInd(N) = 14
+          CASE( 'PM' )
+             State_Diag%RadOutInd(N) = 15
+          CASE( 'ST' )
+             State_Diag%RadOutInd(N) = 16
           CASE DEFAULT
              ! Nothing
        END SELECT

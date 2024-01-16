@@ -227,6 +227,11 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
+     ! Fields read in from a previous GC run
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: DynHeating    (:,:,:) ! Dynamical heating (K/day)
+
+     !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG          (:,:  ) ! # of landtypes in box (I,J)
@@ -477,6 +482,7 @@ CONTAINS
     State_Met%AIRVOL         => NULL()
     State_Met%DP_DRY_PREV    => NULL()
     State_Met%SPHU_PREV      => NULL()
+    State_Met%DynHeating     => NULL()
     State_Met%IREG           => NULL()
     State_Met%ILAND          => NULL()
     State_Met%IUSE           => NULL()
@@ -2664,6 +2670,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%SPHU_PREV,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! DYNHEATING [K/day]
+    !------------------------------------------------------------------------
+    metId = 'DynHeating'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%DynHeating,                                  &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4977,6 +5001,12 @@ CONTAINS
        CASE ( 'SPHUPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%SPHU_PREV'
           IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'DYNHEATING' )
+          IF ( isDesc  ) Desc  = 'Dynamical heating rate'
+          IF ( isUnits ) Units = 'K day-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 

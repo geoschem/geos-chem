@@ -17,6 +17,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added automatic updating of GCHP lightning climatology in ExtData.rc based on settings in HEMCO_Config.rc
 - Added two new diagnostics to track number of negative concentrations after first and last KPP integration
 - Added capability of running GEOS-Chem transport tracer simulation within the GEOS model
+- Added radiative forcing contributions due to trop-only ozone, CFCs, water vapor, N2O, CO2 and changes in stratosphere to RRTMG
+- Added computation of radiative forcing at the tropopause to RRTMG
+- Added option to compute stratospherically-adjusted radiative forcing at the tropopause using RK4 time marching integration with fixed dynamical heating approximation (FDH)
+- Added experimental option to apply seasonally-evolving fixed dyanmical heating approximation in RRTMG
 
 ### Changed
 - Updated fullchem mechanism following JPL/IUPAC. See `KPP/fullchem/CHANGELOG_fullchem.md` for details.
@@ -24,6 +28,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Converted TOMAS bpch diagnostics to netCDF
 - Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
 - Increse requested time limits in GCHP integration tests (compile 2h30m, run 5h)
+- Changed CO2 concentration used in RRTMG to be modifiable in geoschem_config.yml
+- Changed water vapor used in RRTMG to match to tracer field at all altitudes
 
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
@@ -32,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added missing units in comments of `KPP/fullchem/commonIncludeVars.H`
 - Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 - Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
+- Fixed incorrect time-avaging in RRTMG diagnostics wheres zeros included prior to first RRTMG call
 
 ### Removed
 - Removed references to unused met-fields RADLWG and LWGNT
