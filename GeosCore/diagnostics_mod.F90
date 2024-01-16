@@ -927,7 +927,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,  State_Chm,              &
+  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,  State_Chm, State_Diag,  &
                                          State_Grid, State_Met,              &
                                          isFull,     diagFull, mapDataFull,  &
                                          isTrop,     diagTrop, mapDataTrop,  &
@@ -949,6 +949,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
+    TYPE(DgnState), INTENT(IN)    :: State_Diag       ! Diagnostic state object
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
     TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state obj
     LOGICAL,        INTENT(IN)    :: isFull           ! T if full col diag on
