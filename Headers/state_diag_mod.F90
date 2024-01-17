@@ -3723,8 +3723,8 @@ CONTAINS
         State_Diag%Archive_BudgetConvectionLevs    .or. &
         State_Diag%Archive_BudgetChemistryLevs     .or. &
         State_Diag%Archive_BudgetWetDepLevs            ) THEN
-       State_Diag%BudgetTopLev_int = 1 !READ((i3),BudgetTopLev_str)
-       State_Diag%BudgetBotLev_int = 32 !READ((i3),BudgetBotLev_str)
+        READ( BudgetTopLev_str, '(i3)') State_Diag%BudgetTopLev_int
+        READ( BudgetBotLev_str, '(i3)') State_Diag%BudgetBotLev_int
     ENDIF
 
     !------------------------------------------------------------------------
