@@ -1696,8 +1696,9 @@ ${RUNDIR_CO2_COPROD}
 2002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc            MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
 
+# Renamed to avoid a namespace collision w/ GHGI mask above!!!
 (((NEI2016_MONMEAN
-2007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
+2007 NEI_CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))NEI2016_MONMEAN
 
 (((DICE_Africa
