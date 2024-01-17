@@ -266,6 +266,7 @@ COLLECTIONS: 'Metrics',
   Budget.fields:       'BudgetChemistryFull_O3            ',
                        'BudgetChemistryTrop_O3            ',
                        'BudgetChemistryPBL_O3             ',
+                       'BudgetChemistryLevs1to35_O3       ',
 ::
 #==============================================================================
 # %%%%% THE ConcAboveSfc COLLECTION %%%%%
