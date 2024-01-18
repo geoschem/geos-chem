@@ -336,9 +336,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            isLevs      = State_Diag%Archive_BudgetEmisDryDepLevs,           &
             diagLevs    = NULL(),                                            &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            mapDataLevs = State_Diag%Map_BudgetEmisDryDepLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -999,9 +999,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetEmisDryDepPBL,            &
             diagPBL     = State_Diag%BudgetEmisDryDepPBL,                    &
             mapDataPBL  = State_Diag%Map_BudgetEmisDryDepPBL,                &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
-            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            isLevs      = State_Diag%Archive_BudgetEmisDryDepLevs,           &
+            diagLevs    = State_Diag%BudgetEmisDryDepLevs,                   &
+            mapDataLevs = State_Diag%Map_BudgetEmisDryDepLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Tend,                                           &
             RC          = RC                                                )

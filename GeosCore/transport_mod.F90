@@ -149,9 +149,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetTransportPBL,             &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetTransportPBL,                 &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            isLevs      = State_Diag%Archive_BudgetTransportLevs,            &
             diagLevs    = NULL(),                                            &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            mapDataLevs = State_Diag%Map_BudgetTransportLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -270,9 +270,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetTransportPBL,             &
             diagPBL     = State_Diag%BudgetTransportPBL,                     &
             mapDataPBL  = State_Diag%Map_BudgetTransportPBL,                 &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
-            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            isLevs      = State_Diag%Archive_BudgetTransportLevs,            &
+            diagLevs    = State_Diag%BudgetTransportLevs,                    &
+            mapDataLevs = State_Diag%Map_BudgetTransportLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )

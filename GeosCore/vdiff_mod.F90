@@ -2285,9 +2285,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
             diagLevs    = NULL(),                                            &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -2412,9 +2412,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = State_Diag%BudgetMixingPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
-            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = State_Diag%BudgetMixingLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )

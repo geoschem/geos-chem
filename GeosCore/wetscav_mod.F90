@@ -205,9 +205,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            isLevs      = State_Diag%Archive_BudgetWetDepLevs,               &
             diagLevs    = NULL(),                                            &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            mapDataLevs = State_Diag%Map_BudgetWetDepLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             isWetDep    = .TRUE.,                                            &
@@ -314,9 +314,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
             diagPBL     = State_Diag%BudgetWetDepPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
-            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
-            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
-            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
+            isLevs      = State_Diag%Archive_BudgetWetDepLevs,               &
+            diagLevs    = State_Diag%BudgetWetDepLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetWetDepLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             isWetDep    = .TRUE.,                                            &
