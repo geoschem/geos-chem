@@ -203,6 +203,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: collname, AttName, AttValue
     CHARACTER(LEN=255)           :: AttComp,  FieldName
     CHARACTER(LEN=2)             :: rrtmgOutputs(10)
+    CHARACTER(LEN=3)             :: topLev, botLev
     CHARACTER(LEN=255)           :: names(100)
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str, a_str(3)
@@ -227,6 +228,8 @@ CONTAINS
     EOF             = .FALSE.
     found           = .FALSE.
     NewDiagItem     => NULL()
+    topLev          =  ''
+    botLev          =  ''
     budgetBotLev_str=  ''
     budgetTopLev_str=  ''
     RadWL           =  ''
@@ -843,16 +846,29 @@ CONTAINS
           strInd(2) = INDEX( TRIM(metadataID), 'LEVS' )
           strInd(3) = INDEX( TRIM(metadataID), 'TO' )
           strIndMin = MIN( strInd(1), strInd(2), strInd(3) )
-          ! Set budget diagnostic level range top and bottom if not already set
-          ! ewl TODO: only do this once. Beyond that check that consistent.
+          ! Set budget diagnostic level range top and bottom from entry in HISTORY.rc
+          ! All budget level diagnostics must have the same range
           IF ( strIndMin > 0  ) THEN
-             ! Need to parse the metadataID name to set budget fixed level ranges
-             budgetBotLev_str = TRIM( metadataID( strInd(2)+4:strInd(3)-1 ) )
-             print *, "ewl: budgetBotLev is ", TRIM(budgetBotLev_str)
-             budgetTopLev_str = TRIM( metadataID( strInd(3)+2:LEN(TRIM(metadataID)) ) )
-             print *, "ewl: budgetTopLev is ", TRIM(budgetTopLev_str)
+             botLev = TRIM( metadataID( strInd(2)+4:strInd(3)-1 ) )
+             topLev = TRIM( metadataID( strInd(3)+2:LEN(TRIM(metadataID)) ) )
+             IF ( budgetBotLev_str == '' .AND. budgetTopLev_str == '' ) THEN
+                budgetBotLev_str = botLev
+                budgetTopLev_str = topLev
+             ELSE IF ( ( budgetBotLev_str == '' ) .OR. &
+                       ( budgetTopLev_str == '' ) ) THEN
+                ErrMsg = 'Missing level in budget diagnostic name: ' // TRIM(name)
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ELSE IF ( ( budgetBotLev_str /= botLev ) .OR. &
+                       ( budgetTopLev_str /= topLev ) ) THEN
+                ErrMsg = 'Budget diagnostic level ranges do not match: ' //      &
+                     TRIM(budgetBotLev_str) // ' and ' // TRIM(budgetTopLev_str) &
+                     // ' versus ' // TRIM(botLev) // ' and ' // TRIM(TopLev) // &
+                     '. Check budget diagnostic entries in HISTORY.rc'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
           ENDIF
-
           !====================================================================
           ! Create a new DiagItem object
           !====================================================================

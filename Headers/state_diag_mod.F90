@@ -3723,8 +3723,17 @@ CONTAINS
         State_Diag%Archive_BudgetConvectionLevs    .or. &
         State_Diag%Archive_BudgetChemistryLevs     .or. &
         State_Diag%Archive_BudgetWetDepLevs            ) THEN
-        READ( BudgetTopLev_str, '(i3)') State_Diag%BudgetTopLev_int
-        READ( BudgetBotLev_str, '(i3)') State_Diag%BudgetBotLev_int
+       READ( BudgetTopLev_str, '(i3)') State_Diag%BudgetTopLev_int
+       READ( BudgetBotLev_str, '(i3)') State_Diag%BudgetBotLev_int
+       IF ( ( State_Diag%BudgetBotLev_int <= 0 ) .OR. &
+            ( State_Diag%BudgetBotLev_int > State_Diag%BudgetTopLev_int ) .OR. &
+            ( State_Diag%BudgetTopLev_int > State_Grid%NZ ) ) THEN
+          errMsg = 'Budget diagnostic level range is not valid: ' // &
+               TRIM(BudgetBotLev_str) // ' to ' //                   &
+               TRIM(BudgetTopLev_str) // '. Check HISTORY.rc.'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !------------------------------------------------------------------------
