@@ -219,12 +219,9 @@ function updateHistory() {
     file="${2}/HISTORY.rc"
 
     # For GCHP: remove entries for species to be excluded
-    for spc in ${ALL_SPECIES[@]}; do
-        isItemInList "${spc}" "${1}"
-        if [[ $? == 0 ]]; then
-            sed -i "/\_${spc}/d"   "${file}"
-            sed -i "/Emis${spc}/d" "${file}"
-        fi
+    for spc in ${1}; do
+        sed -i "/\_${spc}/d"   "${file}"
+        sed -i "/Emis${spc}/d" "${file}"
     done
 }
 
@@ -265,8 +262,6 @@ function updateExtData() {
         sed -i "/RCP85_CH4/d"           "${file}"
 	sed -i "/^EMIS_SF/d"            "${file}"
         sed -i "/^OH_SF/d"              "${file}"
-        sed -i "/^CH4_LOSS/d"           "${file}"
-        sed -i "/^GLOBAL_Cl/d"          "${file}"
         sed -i "/^MANURE_SF/d"          "${file}"
         sed -i "/^RICE_SF/d"            "${file}"
         sed -i "/^EDGAR_SEASONAL_SF/d"  "${file}"
@@ -306,10 +301,6 @@ function updateExtData() {
         sed -i "/RCP45_CO/d"            "${file}"
         sed -i "/RCP60_CO/d"            "${file}"
         sed -i "/RCP85_CO/d"            "${file}"
-        sed -i "/PCO_CH4/d"             "${file}"
-        sed -i "/PCO_NMVOC/d"           "${file}"
-        sed -i "/GMI_LOSS_CO/d"         "${file}"
-        sed -i "/GMI_PROD_CO/d"         "${file}"
         sed -i "/NEI99_DOW_CO/d"        "${file}"
 	sed -i "/LIQFUEL_/d"            "${file}"
     fi
