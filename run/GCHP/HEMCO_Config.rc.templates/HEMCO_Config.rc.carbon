@@ -428,36 +428,36 @@ Mask fractions:              false
 #==============================================================================
 (((EDGARv7
 ### Oil. gas, coal ###
-0 EDGAR7_CH4_OILGASCOAL__1B1_1B2 $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 729 1 1
-0 EDGAR7_CH4_OTHER__1A1_1B1_1B2  $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 734 1 1
+0 EDGAR7_CH4_OILGASCOAL__1B1_1B2 $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 729 1 1
+0 EDGAR7_CH4_OTHER__1A1_1B1_1B2  $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 734 1 1
 
 ### Livestock ###
-0 EDGAR7_CH4_LIVESTOCK__4A       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 724 4 1
-0 EDGAR7_CH4_LIVESTOCK__4B       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 728 4 1
+0 EDGAR7_CH4_LIVESTOCK__4A       $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 724 4 1
+0 EDGAR7_CH4_LIVESTOCK__4B       $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 728 4 1
 
 ### Landfills ###
-0 EDGAR7_CH4_LANDFILLS__6A_6D    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_LDF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 736 5 1
+0 EDGAR7_CH4_LANDFILLS__6A_6D    $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_LDF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 736 5 1
 
 ### Wastewater ###
-0 EDGAR7_CH4_WASTEWATER__6B      $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_WWT.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 743 6 1
+0 EDGAR7_CH4_WASTEWATER__6B      $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_WWT.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 743 6 1
 
 ### Rice ###
-0 EDGAR7_CH4_RICE__4C_4D         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 720 7 1
+0 EDGAR7_CH4_RICE__4C_4D         $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 720 7 1
 
 ### Other Anthro ###
-0 EDGAR7_CH4_OTHER__1A1a         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 723 8 1
-0 EDGAR7_CH4_OTHER__1A2          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 726 8 1
-0 EDGAR7_CH4_OTHER__1A3a_CDS     $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CDS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 737 8 1
-0 EDGAR7_CH4_OTHER__1A3a_CRS     $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CRS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 738 8 1
-0 EDGAR7_CH4_OTHER__1A3a_LTO     $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_LTO.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 739 8 1
-0 EDGAR7_CH4_OTHER__1A3b         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TRO_noRES.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 742 8 1
-0 EDGAR7_CH4_OTHER__1A3c_1A3e    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Other.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 740 8 1
-0 EDGAR7_CH4_OTHER__1A3d_1C2     $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Ship.0.1x0.1.nc         emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 741 8 1
-0 EDGAR7_CH4_OTHER__1A4          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_RCO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 733 8 1
-0 EDGAR7_CH4_OTHER__2B           $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_CHE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 722 8 1
-0 EDGAR7_CH4_OTHER__2C           $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 727 8 1
-0 EDGAR7_CH4_OTHER__4F           $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 721 8 1
-0 EDGAR7_CH4_OTHER__6C           $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 735 8 1
+0 EDGAR7_CH4_OTHER__1A1a         $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 723 8 1
+0 EDGAR7_CH4_OTHER__1A2          $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 726 8 1
+0 EDGAR7_CH4_OTHER__1A3a_CDS     $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CDS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 737 8 1
+0 EDGAR7_CH4_OTHER__1A3a_CRS     $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CRS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 738 8 1
+0 EDGAR7_CH4_OTHER__1A3a_LTO     $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_LTO.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 739 8 1
+0 EDGAR7_CH4_OTHER__1A3b         $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TRO_noRES.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 742 8 1
+0 EDGAR7_CH4_OTHER__1A3c_1A3e    $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Other.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 740 8 1
+0 EDGAR7_CH4_OTHER__1A3d_1C2     $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Ship.0.1x0.1.nc         emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 741 8 1
+0 EDGAR7_CH4_OTHER__1A4          $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_RCO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 733 8 1
+0 EDGAR7_CH4_OTHER__2B           $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_CHE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 722 8 1
+0 EDGAR7_CH4_OTHER__2C           $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 727 8 1
+0 EDGAR7_CH4_OTHER__4F           $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 721 8 1
+0 EDGAR7_CH4_OTHER__6C           $ROOT/CH4/v2024-01/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 735 8 1
 )))EDGARv7
 
 #==============================================================================
@@ -497,7 +497,7 @@ Mask fractions:              false
 # --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4  $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -518,8 +518,8 @@ Mask fractions:              false
 # --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -1313,8 +1313,10 @@ ${RUNDIR_CH4_LOSS}
 )))CH4_LOSS_FREQ
 
 # --- Global Cl [mol/mol dry air] ---
+# NOTE: This file has all non-COARDS-compliant elements removed!
+# GCHP cannot read this data otherwise. (Bob Yantosca, 19 Jan 2024)
 (((GLOBAL_CL
-${RUNDIR_GLOBAL_Cl}
+* GLOBAL_Cl  $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4  SpeciesConc_Cl  2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))GLOBAL_CL
 
 #------------------------------------------------------------------------------
@@ -1322,11 +1324,13 @@ ${RUNDIR_GLOBAL_Cl}
 #------------------------------------------------------------------------------
 
 # -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [molec/cm3/s] ---
+# NOTE: These files has all non-COARDS-compliant elements removed!
+# GCHP cannot read this data otherwise. (Bob Yantosca, 19 Jan 2024)
 (((PROD_CO_CH4
-${RUNDIR_PCO_CH4}
+* PCO_CH4    $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4  ProdCOfromCH4    2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_CH4
 (((PROD_CO_NMVOC
-${RUNDIR_PCO_NMVOC}
+* PCO_NMVOC  $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4  ProdCOfromNMVOC  2010-2019/1-12/1/0 C xyz 1 * - 1 1
 )))PROD_CO_NMVOC
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
@@ -1370,24 +1374,29 @@ ${RUNDIR_CO2_COPROD}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- Multiply by -1 to get a "negative" flux.
-#==============================================================================
+#------------------------------------------------------------------------------
 1 NEGATIVE -1.0 - - - xy 1 1
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- Perturbation factors ---
 #
 # Add factors to perturb OH, emissions, and other fields here for
 # analytical inversions.
-#==============================================================================
+#------------------------------------------------------------------------------
 2 OH_pert_factor  1.0 - - - xy 1 1
 
 (((EMISSIONS
 
 #==============================================================================
-# --- Seasonal scaling factors ----
+# --- Scale factors for CH4 emissions ----
 #==============================================================================
+(((USE_CH4_DATA
+
+#------------------------------------------------------------------------------
+# --- GHGI monthly scaling factors ---
+#------------------------------------------------------------------------------
 (((GHGI_v2.or.GHGI_v2_Express_Ext
 50 GHGI_OTH_STA_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_1A_Combustion_Stationary           2012-2018/1-12/1/0 C xy 1 1
 51 GHGI_OIL_EXP_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_1B2a_Petroleum_Systems_Exploration 2012-2018/1-12/1/0 C xy 1 1
@@ -1401,11 +1410,17 @@ ${RUNDIR_CO2_COPROD}
 59 GHGI_OTH_BUR_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_3F_Field_Burning                   2012-2018/1-12/1/0 C xy 1 1
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
-(((Scarpelli_Mexico.or.Scarpelli_Canada
+#------------------------------------------------------------------------------
+# --- Scarpelli_Mexico manure & rice scale factors ---
+#------------------------------------------------------------------------------
+(((Scarpelli_Mexico
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
-11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0  C xy 1 1
-)))Scarpelli_Mexico.or.Scarpelli_Canada
+11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0      C xy 1 1
+)))Scarpelli_Mexico
 
+#------------------------------------------------------------------------------
+# --- EDGAR scale factors ---
+#------------------------------------------------------------------------------
 (((EDGARv7
 720 EDGAR_SEASONAL_SF_AGS        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AGS.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
 721 EDGAR_SEASONAL_SF_AWB        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AWB.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
@@ -1417,9 +1432,10 @@ ${RUNDIR_CO2_COPROD}
 727 EDGAR_SEASONAL_SF_IRO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_IRO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
 728 EDGAR_SEASONAL_SF_MNM        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
 729 EDGAR_SEASONAL_SF_PRO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1  
-730 EDGAR_SEASONAL_SF_PRO_COAL   $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_COAL.0.1x0.1.nc         sf_ch4 2018/1-12/1/0 C xy 1 1
-731 EDGAR_SEASONAL_SF_PRO_GAS    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_GAS.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-732 EDGAR_SEASONAL_SF_PRO_OIL    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_OIL.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
+# These 3 fields are only needed for EDGARv6 (Bob Yantosca, 19 Jan 2024)
+#730 EDGAR_SEASONAL_SF_PRO_COAL   $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_COAL.0.1x0.1.nc         sf_ch4 2018/1-12/1/0 C xy 1 1
+#731 EDGAR_SEASONAL_SF_PRO_GAS    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_GAS.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
+#732 EDGAR_SEASONAL_SF_PRO_OIL    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_OIL.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
 733 EDGAR_SEASONAL_SF_RCO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_RCO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1
 734 EDGAR_SEASONAL_SF_REF_TRF    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_REF_TRF.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
 735 EDGAR_SEASONAL_SF_SWD_INC    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_SWD_INC.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
@@ -1433,85 +1449,146 @@ ${RUNDIR_CO2_COPROD}
 743 EDGAR_SEASONAL_SF_WWT        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_WWT.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1
 )))EDGARv7
 
+)))USE_CH4_DATA
+
 #==============================================================================
-# --- Diurnal scale factors ---
+# --- Scale factors for CO emissions ---
 #==============================================================================
+(((USE_CO_DATA
+
+#------------------------------------------------------------------------------
+# --- Diurnal scale factors for CO ---
+#------------------------------------------------------------------------------
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy 1 1
 
-#==============================================================================
-# --- Seasonal scale factors ---
-#==============================================================================
-(((DICE_Africa
-# from GEIA:
-30 GEIA_SEASON_NOX  $ROOT/GEIA/v2014-07/GEIA_monthscal.generic.1x1.nc NOXrat 1985/1-12/1/0 C xy unitless 1
-31 GEIA_SEASON_SO2  $ROOT/GEIA/v2014-07/GEIA_monthscal.generic.1x1.nc SO2rat 1985/1-12/1/0 C xy unitless 1
-)))DICE_Africa
-
-#==============================================================================
-# Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
-#==============================================================================
-33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 2009
-34 PKU_pow_SO2              0.92/0.91/0.90/0.89/0.90/0.93/0.97/0.98/0.99/1.02/1.07/1.04/1.03/1.06/1.06/1.07/1.10/1.10/1.06/1.05/1.03/1.01/0.99/0.93 - - - xy unitless 1 2009
+#------------------------------------------------------------------------------
+# --- Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019) ---
+#
+# Also need to undo (Oper=-1) the global diurnal scale factors over China
+#------------------------------------------------------------------------------
 35 PKU_pow_PM_BC_POC_VOC_CO 0.95/0.93/0.92/0.91/0.90/0.93/0.97/0.97/0.99/1.03/1.04/1.03/1.02/1.03/1.05/1.07/1.07/1.07/1.06/1.04/1.03/1.02/1.00/0.97 - - - xy unitless 1 2009
-
-### These scale factors undo (Oper=-1) the global diurnal scale factors over China (Mask=2009)
-#36 EDGAR_TODNOX_UNDO $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless -1 2009
 37 GEIA_TOD_FOSSIL_UNDO 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless -1 2009
 
-#==============================================================================
-# --- Scale factors used for species conversions ---
-#==============================================================================
-
-# VOC speciations
+#------------------------------------------------------------------------------
+# --- Account for CO production by VOCs ---
+#------------------------------------------------------------------------------
 (((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
 54 COPROD_BIOMASS   1.05  - - - xy unitless 1
 )))APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 
-# S to OCS ratio
-70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1
+#------------------------------------------------------------------------------
+# --- DICE-Africa ---
+# Charcoal production scale factor to reduce charcoal production
+# by a factor of 5 after finding error in implementation of emission factors.
+#------------------------------------------------------------------------------
+(((DICE_Africa
+320 DICE_CP_SF    0.20 - - - xy 1 1
+)))DICE_Africa
 
-# km-2 to m-2
+#------------------------------------------------------------------------------
+# --- CO: HTAP Annual scale factors ---
+#------------------------------------------------------------------------------
+(((HTAP
+506 LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
+507 LIQFUEL_1985      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
+509 LIQFUEL_2006      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2006/1/1/0      C xy 1 -1
+510 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
+528 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
+)))HTAP
+
+)))USE_CO_DATA
+
+#==============================================================================
+# --- Scale factors for CO2 emissions ---
+#==============================================================================
+(((USE_CO2_DATA
+
+#------------------------------------------------------------------------------
+# --- FOSSIL FUEL CO2 SURFACE CORRECTION FACTOR ---
+#
+# Fossil fuel CO2 emissions must be scaled down to avoid counting emissions
+# already accounted for by CO and CH4 oxidation to CO2.
+#
+# The necssary annual reduction in emissions related to fossil fuels is
+# determined as:  global C mass from FF (CO+CH4) / global C mass from FF CO2
+#
+# Note: GEOS-Chem v8-03-02 to v9-02, assumed: 0.0489 for all years but that
+# value seems to correspond to mid-1980s fossil fuel combustion since CO
+# emissions have held constant (Granier et al., 2011) while CO2 has risen.
+#
+# All scale factors for years 2000-2013 lumped into a single entry
+#------------------------------------------------------------------------------
+(((CO2CORR
+#410 CO2_FOSSFUEL_CORR 0.0489 - - - xy 1 1
+
+## CO2 scale factors from CO oxidation by decade (comment out for now)
+##410 CO2_FOSSFUEL_CORR 0.052815/0.054486/0.054902/0.055107/0.053166/0.051611/0.050065/0.048803/0.047060/0.046041 - 1980-1989/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.045816/0.045153/0.045541/0.045556/0.044800/0.043875/0.042910/0.042206/0.042257/0.042468 - 1990-1999/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118 - 2000-2009/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.030622/0.029674/0.029029/0.028355                                                       - 2010-2013/1/1/0 C xy 1 1
+
+410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118/0.030622/0.029674/0.029029/0.028355 - 2000-2013/1/1/0 C xy 1 1
+)))CO2CORR
+
+# -----------------------------------------------------------------------------
+# --- CO2 conversion factors ---
+# -----------------------------------------------------------------------------
+420 CH4TOCO2  2.75   - - - xy 1 1
+421 CTOCO2    3.6667 - - - xy 1 1
+430 NMHCSCALE 0.3333 - - - xy 1 1
+
+#------------------------------------------------------------------------------
+# --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
+#------------------------------------------------------------------------------
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+440 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
+441 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0   C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+#------------------------------------------------------------------------------
+# --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
+#
+# Regional scale factors slightly less than 1 remove surface contribution from
+# domestic aviation in national fossil fuel emisisons, which should instead be
+# counted in the air as a 3D field. This scale factor should be applied to the
+# main/national fossil fuel emission field if using avaition emissions.
+#------------------------------------------------------------------------------
+
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+480 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+)))USE_CO2_DATA
+
+
+
+#==============================================================================
+# --- Scale factors for OCS emissions ---
+#==============================================================================
+(((USE_OCS_DATA
+
+#------------------------------------------------------------------------------
+# --- S to OCS ratio ---
+#------------------------------------------------------------------------------
+70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1 
+
+#------------------------------------------------------------------------------
+# --- km-2 to m-2 ---
+#------------------------------------------------------------------------------
 71 Km2ToM2 1.0e-6 - - - xy unitless 1
 
-#==============================================================================
-# --- QFED2 diurnal scale factors ---
-#
-# Fire diurnal scaling factors (% per hour) from WRAP Report to Project
-# No. 178-6, July 2005
-#==============================================================================
-(((QFED2.or.GFAS.or.BB4MIPS
-75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
-)))QFED2.or.GFAS.or.BB4MIPS
+)))USE_OCS_DATA
 
 #==============================================================================
-# --- EPA NEI day-of-week scale factors ---
+# --- Inventory-specific scale factors ---
 #==============================================================================
-(((NEI2016_MONMEAN
-211 NEI99_DOW_CO  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0 C xy 1 1
-)))NEI2016_MONMEAN
-#==============================================================================
-# --- EPA NEI2016 annual scale factors ---
-#
-# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
-# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
-# PM2.5 only had values for 2002-2020, while the remaining species had yearly
-# values for 1990-2020 (we include only 2002-2020 here).
-#
-# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
-#==============================================================================
-(((NEI2016_MONMEAN
-252 NEI2016_CO_YRSCALE 1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
-)))NEI2016_MONMEAN
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- AEIC2019 aircraft emissions scale factors ---
 #
 # See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
-#==============================================================================
-(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
-
-#------------------------------------------------------------------------------
+#
 # Scaling factors for 1990-2019 derived from Lee et al. (2021).  Lee et al.
 # (2021) only covers 1990 to 2018, so to get to 2019 it is assumed that the
 # growth from 2017 to 2018 is the same as that from 2018 to 2019.
@@ -1529,6 +1606,9 @@ ${RUNDIR_CO2_COPROD}
 #
 # All scaling factors are included in here in HEMCO_Config.rc.
 #------------------------------------------------------------------------------
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+
+# If applying 1990-2019 scale factors
 (((AEIC_SCALE_1990_2019
 241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
 )))AEIC_SCALE_1990_2019
@@ -1538,120 +1618,63 @@ ${RUNDIR_CO2_COPROD}
 241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
 ))).not.AEIC_SCALE_1990_2019
 
-#------------------------------------------------------------------------------
 # Assume 3.159 kg CO2 from every kg of fuel burned
 # cf Hileman, Stratton, & Donohoo, _J. Propul. Power_, 26(6), 1184–1196, 2010.
-#------------------------------------------------------------------------------
 260 AEIC19_FBtoCO2 3.159 - - - xy unitless 1
 
 )))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
-
-#==============================================================================
-# --- QFED vertical partitioning ---
-# Following Fischer et al. (2014) and Travis et al. (2016), emit 35% of QFED
-# emissions above the PBL.
-#==============================================================================
-(((QFED2
-311 QFED_PBL_FRAC 0.65 - - - xy 1 1
-312 QFED_FT_FRAC  0.35 - - - xy 1 1
-)))QFED2
-
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- CEDS vertical partitioning ---
-#==============================================================================
+#------------------------------------------------------------------------------
 (((CEDSv2.or.CEDS_GBDMAPS
 315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDSv2.or.CEDS_GBDMAPS
 
-#==============================================================================
-# --- DICE-Africa ---
-#==============================================================================
-(((DICE_Africa
-# Charcoal production scale factor to reduce charcoal production
-# by a factor of 5 after finding error in implementation of emission factors.
-320 DICE_CP_SF    0.20 - - - xy 1 1
-)))DICE_Africa
+#------------------------------------------------------------------------------
+# --- GFAS scale factors ---
+#------------------------------------------------------------------------------
+(((GFAS
+300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
+)))GFAS
 
-#==============================================================================
-# --- FOSSIL FUEL CO2 SURFACE CORRECTION FACTOR ---
-#
-# Fossil fuel CO2 emissions must be scaled down to avoid counting emissions
-# already accounted for by CO and CH4 oxidation to CO2.
-#
-# The necssary annual reduction in emissions related to fossil fuels is
-# determined as:  global C mass from FF (CO+CH4) / global C mass from FF CO2
-#
-# Note: GEOS-Chem v8-03-02 to v9-02, assumed: 0.0489 for all years but that
-# value seems to correspond to mid-1980s fossil fuel combustion since CO
-# emissions have held constant (Granier et al., 2011) while CO2 has risen.
-#
-# All scale factors for years 2000-2013 lumped into a single entry
-#==============================================================================
-(((CO2CORR
+#------------------------------------------------------------------------------
+# --- EPA NEI2016 (monthly-mean inventory) scale factors ---
+#------------------------------------------------------------------------------
+(((NEI2016_MONMEAN
 
-#410 CO2_FOSSFUEL_CORR 0.0489 - - - xy 1 1
+# Weekday/Weekend scale factors
+211 NEI99_DOW_CO $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0  C xy 1 1
 
-## CO2 scale factors from CO oxidation by decade (comment out for now)
-##410 CO2_FOSSFUEL_CORR 0.052815/0.054486/0.054902/0.055107/0.053166/0.051611/0.050065/0.048803/0.047060/0.046041 - 1980-1989/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.045816/0.045153/0.045541/0.045556/0.044800/0.043875/0.042910/0.042206/0.042257/0.042468 - 1990-1999/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118 - 2000-2009/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.030622/0.029674/0.029029/0.028355                                                       - 2010-2013/1/1/0 C xy 1 1
+# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
+# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
+# PM2.5 only had values for 2002-2020, while the remaining species had yearly
+# values for 1990-2020 (we include only 2002-2020 here).
+# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
+252 NEI2016_CO_YRSCALE 1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
 
-410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118/0.030622/0.029674/0.029029/0.028355 - 2000-2013/1/1/0 C xy 1 1
-)))CO2CORR
+)))NEI2016_MONMEAN
 
-#==============================================================================
-# --- CO2 CONVERSION FACTORS ---
-#==============================================================================
-420 CH4TOCO2  2.75   - - - xy 1 1
-421 CTOCO2    3.6667 - - - xy 1 1
-430 NMHCSCALE 0.3333 - - - xy 1 1
+#------------------------------------------------------------------------------
+# --- QFED2 diurnal scale factors ---
+# Fire diurnal scaling factors (% per hour) from WRAP Report to Project
+# No. 178-6, July 2005
+#------------------------------------------------------------------------------
+(((QFED2.or.GFAS.or.BB4MIPS
+75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
+)))QFED2.or.GFAS.or.BB4MIPS
 
-#==============================================================================
-# ---- TIMES diurnal and weekly scale factors for national fossil fuel CO2 ---
-#
-# These temporal scale factors are described in Nassar et al. (2013)
-#==============================================================================
-(((USE_CO2_DATA
-(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-440 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
-441 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0   C xy 1 1
-)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-)))USE_CO2_DATA
-
-#==============================================================================
-# --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
-#
-# Regional scale factors slightly less than 1 remove surface contribution from
-# domestic aviation in national fossil fuel emisisons, which should instead be
-# counted in the air as a 3D field. This scale factor should be applied to the
-# main/national fossil fuel emission field if using avaition emissions.
-#==============================================================================
-(((USE_CO2_DATA
-(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-480 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
-)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-)))USE_CO2_DATA
-
-#==============================================================================
-# --- CO: HTAP Annual scale factors ---
-#==============================================================================
-(((HTAP
-506 LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
-507 LIQFUEL_1985      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
-509 LIQFUEL_2006      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2006/1/1/0      C xy 1 -1
-510 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
-528 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
-)))HTAP
+#------------------------------------------------------------------------------
+# --- QFED vertical partitioning ---
+# Following Fischer et al. (2014) and Travis et al. (2016),
+# emit 35% of QFED emissions above the PBL.
+#------------------------------------------------------------------------------
+(((QFED2
+311 QFED_PBL_FRAC 0.65 - - - xy 1 1
+312 QFED_FT_FRAC  0.35 - - - xy 1 1
+)))QFED2
 
 )))EMISSIONS
 
