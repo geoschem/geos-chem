@@ -140,7 +140,7 @@ CONTAINS
     ! Check for CH4 offset first
     ALLOCATE(CH4_OFFSET(State_Grid%NX,State_Grid%NY))
     CH4_OFFSET(:,:) = 0.0
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4_OFFSET', &
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_OFFSET', &
                          CH4_OFFSET, RC, FOUND=FOUND )
     IF ( .NOT. FOUND ) CH4_OFFSET = 0.0
     ! Now get CH4 concentrations

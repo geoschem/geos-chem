@@ -1364,8 +1364,8 @@ Warnings:                    1
 # --- GEOS 3-hourly CH4 (within PBL) ---
 #==============================================================================
 (((GEOS_3HR_CH4
-* GEOS_CH4 /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1
-#* GEOS_CH4_OFFSET 0.0          -             -                     - xy  1 * - 1 1
+* GEOS_CH4   /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz v/v * - 1 1
+* CH4_OFFSET /see/extdata CH4_offset    2021-2024/1-12/1/0    C xy  v/v * - 1 1
 )))GEOS_3HR_CH4
 
 (((SfcVMR
