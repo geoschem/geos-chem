@@ -74,8 +74,8 @@ def main(args):
        arr  = dsi[args.varname].values[:,:,:] + offset 
     else:
        # Create from scratch 
-       lons = np.arange(-175.,180.,10)
-       lats = np.arange(-85.,90.,10) 
+       lons = np.arange(-180.,180.,2.5)
+       lats = np.arange(-90.,90.1,2.) 
        arr = np.zeros((1,len(lats),len(lons)))
        arr[:] = offset
 
@@ -104,7 +104,7 @@ def parse_args():
     p.add_argument('-v', '--value',type=float,help='CH4 offset, in mol/mol dry',default=None)
     p.add_argument('-r', '--refyear',type=int,help='reference year',default=2021)
     p.add_argument('-i', '--ifile',type=str,help='input file, will add offset to values in that file',default=None)
-    p.add_argument('-o', '--ofile',type=str,help='output file',default="ch4_offset_%Y%m.nc")
+    p.add_argument('-o', '--ofile',type=str,help='output file',default="ch4_offset_to_2021_x144_y91_%Y%m.nc")
     p.add_argument('-n', '--varname',type=str,help='variable name for offset',default="CH4_offset")
     return p.parse_args()
 
