@@ -252,33 +252,37 @@ GFEI_CH4_COAL kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Gl
 
 # --- EDGAR v7.0 ---
 #
+# Use updated files (v2024-01); these are COARDS-compliant.
+#
 # Comment these when "--> EDGARv7 : false" is in HEMCO_Config.rc
-EDGAR7_CH4_OILGASCOAL__1B1_1B2  kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A1_1B1_1B2   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_REF_TRF.0.1x0.1.nc
-EDGAR7_CH4_LIVESTOCK__4A        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
-EDGAR7_CH4_LIVESTOCK__4B        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
-EDGAR7_CH4_LANDFILLS__6A_6D     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_LDF.0.1x0.1.nc
-EDGAR7_CH4_WASTEWATER__6B       kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_WWT.0.1x0.1.nc
-EDGAR7_CH4_RICE__4C_4D          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AGS.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A1a          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENE.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A2           kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IND.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3a_CDS      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CDS.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3a_CRS      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CRS.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3a_LTO      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_LTO.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3b          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TRO_noRES.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3c_1A3e     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Other.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A3d_1C2      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Ship.0.1x0.1.nc
-EDGAR7_CH4_OTHER__1A4           kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_RCO.0.1x0.1.nc
-EDGAR7_CH4_OTHER__2B            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_CHE.0.1x0.1.nc
-EDGAR7_CH4_OTHER__2C            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IRO.0.1x0.1.nc
-EDGAR7_CH4_OTHER__4F            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AWB.0.1x0.1.nc
-EDGAR7_CH4_OTHER__6C            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_INC.0.1x0.1.nc
+EDGAR7_CH4_OILGASCOAL__1B1_1B2  kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A1_1B1_1B2   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_REF_TRF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4A        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4B        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
+EDGAR7_CH4_LANDFILLS__6A_6D     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_LDF.0.1x0.1.nc
+EDGAR7_CH4_WASTEWATER__6B       kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_WWT.0.1x0.1.nc
+EDGAR7_CH4_RICE__4C_4D          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AGS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A1a          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENE.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A2           kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IND.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_CDS      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CDS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_CRS      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_CRS.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3a_LTO      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Aviation_LTO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3b          kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TRO_noRES.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3c_1A3e     kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Other.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A3d_1C2      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_TNR_Ship.0.1x0.1.nc
+EDGAR7_CH4_OTHER__1A4           kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_RCO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__2B            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_CHE.0.1x0.1.nc
+EDGAR7_CH4_OTHER__2C            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_IRO.0.1x0.1.nc
+EDGAR7_CH4_OTHER__4F            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_AWB.0.1x0.1.nc
+EDGAR7_CH4_OTHER__6C            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_SWD_INC.0.1x0.1.nc
 
 
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 #
+# Use updated files (v2024-01); these are COARDS-compliant.
+#
 # Comment this when "--> JPL_WETCHARTS: false" is in HEMCO_Config.rc.
-JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
 
 
 # --- Geological seeps ---
@@ -289,9 +293,11 @@ CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_C
 
 # --- Emissions from reservoirs (Delwich et al 2022) ---
 #
+# Use updated files (v2024-01); these are COARDS-compliant.
+#
 # Comment these when "--> RESERVOIRS : false" is in HEMCO_Config.rc.
-CH4_RES_DAM kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc
-CH4_RES_SFC kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc
+CH4_RES_DAM kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc
+CH4_RES_SFC kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc
 
 
 # --- Emissions from termites (Fung et al 1991) ---
@@ -466,8 +472,10 @@ CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/
 
 # --- CO2 production from CO ---
 #
+# Use updated files (v2024-01); these are COARDS-compliant.
+#
 # Comment this when "--> CO2_COPROD : false" is in HEMCO_Config.rc.
-CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2022-11/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
+CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2024-01/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
 
 #==============================================================================
 # --- OCS emission fluxes ---
@@ -520,7 +528,7 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 # --- OH from the latest 10-year benchmark ---
 #
 # Comment this if "--> GLOBAL_OH_GC14 : false" is in HEMCO_Config.rc
-##GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m2%d2_0000z.nc4
+##GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
 
 # --- OH from GEOS-Chem v5-07-08 ---
@@ -530,16 +538,22 @@ TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones
 GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc
 
 
-# --- Global Cl concentrations
-GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
+# --- Global Cl concentrations ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
+GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/CH4/v2024-01/GCC_14_Output/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
+
 
 # --- Stratospheric L(CO) from GMI ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2023-04/GC_CH4_LOSS/GCC14_72LM.ch4loss.4x5.nc4
 
-
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
-PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
-PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
+PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
+PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
 #--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
 GMI_LOSS_CO  s-1   2005 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
@@ -641,13 +655,15 @@ OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoD
 ###
 ###############################################################################
 
-CAN_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/Canada_Mask.001x001.nc
-CAN_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc
+# Use updated files (v2024-01); these are COARDS-compliant.
+MEX_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Mexico_Mask.001x001.nc
+MEX_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Mexico_Mask_Mirror.001x001.nc
+CAN_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Canada_Mask.001x001.nc
+CAN_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc
+#
 CHINA_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/China_mask.generic.1x1.nc
 CONUS_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask.001x001.nc
 CONUS_MASK_MIRROR 1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc
-MEX_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/Mexico_Mask.001x001.nc
-MEX_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc
 #
 %%
 

@@ -425,6 +425,8 @@ Mask fractions:              false
 # NOTES:
 # - These are annual emissions. Seasonality is applied via scale factors
 #   computed from EDGARv6.0 monthly emissions.
+#
+# - Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((EDGARv7
 ### Oil. gas, coal ###
@@ -495,6 +497,8 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((JPL_WETCHARTS
 0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
@@ -516,6 +520,8 @@ Mask fractions:              false
 
 #==============================================================================
 # --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
 0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
@@ -1293,7 +1299,7 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc  OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
@@ -1313,10 +1319,8 @@ ${RUNDIR_CH4_LOSS}
 )))CH4_LOSS_FREQ
 
 # --- Global Cl [mol/mol dry air] ---
-# NOTE: This file has all non-COARDS-compliant elements removed!
-# GCHP cannot read this data otherwise. (Bob Yantosca, 19 Jan 2024)
 (((GLOBAL_CL
-* GLOBAL_Cl  $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.SpeciesConc.$YYYY$MM01_0000z.nc4  SpeciesConc_Cl  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
 
 #------------------------------------------------------------------------------
@@ -1324,13 +1328,11 @@ ${RUNDIR_CH4_LOSS}
 #------------------------------------------------------------------------------
 
 # -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [molec/cm3/s] ---
-# NOTE: These files has all non-COARDS-compliant elements removed!
-# GCHP cannot read this data otherwise. (Bob Yantosca, 19 Jan 2024)
 (((PROD_CO_CH4
-* PCO_CH4    $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4  ProdCOfromCH4    2010-2019/1-12/1/0 C xyz 1 * - 1 1
+${RUNDIR_PCO_CH4}
 )))PROD_CO_CH4
 (((PROD_CO_NMVOC
-* PCO_NMVOC  $ROOT/CH4/v2024-01/GCC_14_Output/$YYYY/GEOSChem.ProdLoss.$YYYY$MM01_0000z.nc4  ProdCOfromNMVOC  2010-2019/1-12/1/0 C xyz 1 * - 1 1
+${RUNDIR_PCO_NMVOC}
 )))PROD_CO_NMVOC
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
