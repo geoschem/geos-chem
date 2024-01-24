@@ -344,6 +344,11 @@ MODULE State_Chm_Mod
 #endif
 
      !-----------------------------------------------------------------------
+     ! Fields for RRTMG
+     !-----------------------------------------------------------------------
+     REAL(fp),          POINTER :: TStrat_Adj (:,:,:  ) ! Accumulated strat adjustment
+
+     !-----------------------------------------------------------------------
      ! Registry of variables contained within State_Chm
      !-----------------------------------------------------------------------
      CHARACTER(LEN=4)           :: State     = 'CHEM'   ! Name of this state
@@ -601,6 +606,9 @@ CONTAINS
     State_Chm%SnowHgLand        => NULL()
     State_Chm%SnowHgOceanStored => NULL()
     State_Chm%SnowHgLandStored  => NULL()
+
+    ! RRTMG quantities
+    State_Chm%TStrat_Adj        => NULL()
 
     ! Flags to toggle sulfate-mod computations or KPP computations
     ! TRUE  = use sulfate_mod
@@ -1020,7 +1028,7 @@ CONTAINS
        ! Save nAerosol to State_Chm
        State_Chm%nAeroType = nAerosol
 
-        !---------------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! Aerosol object
        ! NOTE: content is currently not registered
        !---------------------------------------------------------------------
@@ -2318,6 +2326,27 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !=======================================================================
+    ! Initialize State_Chm quantities pertinent to RRTMG simulations
+    !=======================================================================
+    If (Input_Opt%LRAD) Then
+       ! %%% TStrat_Adj %%%
+       chmId = 'TStrat_Adj'
+       CALL Init_and_Register(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            chmId      = chmId,                                              &
+            Ptr2Data   = State_Chm%TStrat_Adj,                               &
+            RC         = RC                                                 )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
 #ifdef APM
     !=======================================================================
     ! Initialize State_Chm quantities for APM microphysics simulations
@@ -3063,8 +3092,8 @@ CONTAINS
     !=======================================================================
     ! Deallocate and nullify pointer fields of State_Chm
     !=======================================================================
-    IF ( ASSOCIATED ( State_Chm%Phot ) ) THEN
-       CALL Cleanup_Phot_Container(State_Chm%Phot, RC )
+    IF ( ASSOCIATED( State_Chm%Phot ) ) THEN
+       CALL Cleanup_Phot_Container( State_Chm%Phot, RC )
        State_Chm%Phot => NULL()
     ENDIF
 
@@ -3212,6 +3241,7 @@ CONTAINS
 
     IF ( ASSOCIATED( State_Chm%AerMass ) ) THEN
        CALL Cleanup_AerMass_Container(State_Chm%AerMass, RC )
+       DEALLOCATE( State_Chm%AerMass )
        State_Chm%AerMass => NULL()
     ENDIF
 
@@ -3823,6 +3853,13 @@ CONTAINS
       State_Chm%PSO4_SO2APM2 => NULL()
     ENDIF
 #endif
+
+    IF ( ASSOCIATED( State_Chm%TStrat_Adj ) ) THEN
+       DEALLOCATE( State_Chm%TStrat_Adj, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%TStrat_Adj', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KRATE => NULL()
+    ENDIF
 
     !-----------------------------------------------------------------------
     ! Template for deallocating more arrays, replace xxx with field name
@@ -4793,6 +4830,11 @@ CONTAINS
           IF ( isUnits ) Units = 'mol mol-1'
           IF ( isRank  ) Rank  = 3
 #endif
+
+       CASE( 'TSTRAT_ADJ' )
+          IF ( isDesc  ) Desc  = 'Strat T adjustment'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 3
 
        CASE DEFAULT
           Found = .False.

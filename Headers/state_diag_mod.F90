@@ -288,6 +288,12 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_UvFluxNet
      LOGICAL                     :: Archive_UVFluxNet
 
+     REAL(f4),           POINTER :: OD600(:,:,:)
+     LOGICAL                     :: Archive_OD600
+
+     REAL(f4),           POINTER :: TCOD600(:,:)
+     LOGICAL                     :: Archive_TCOD600
+
      !%%%%% Chemistry %%%%%
 
      REAL(f4),           POINTER :: RxnRate(:,:,:,:)
@@ -819,6 +825,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
 
+     REAL(f4),           POINTER :: KppNegatives(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives
+
+     REAL(f4),           POINTER :: KppNegatives0(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives0
+
      !%%%%% KPP auto-reduce solver diagnostics %%%%%
      REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
      LOGICAL                     :: Archive_KppAutoReducerNVAR
@@ -1210,6 +1222,18 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWTOA
 
+     REAL(f4),           POINTER :: RadAllSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWTrop
+
+     REAL(f4),           POINTER :: RadAllSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWTrop
+
+     REAL(f4),           POINTER :: RadClrSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWTrop
+
+     REAL(f4),           POINTER :: RadClrSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWTrop
+
      REAL(f4),           POINTER :: RadAODWL1(:,:,:)
      LOGICAL                     :: Archive_RadAODWL1
 
@@ -1238,6 +1262,12 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_RadAsymWL3
 
      LOGICAL                     :: Archive_RadOptics
+
+     REAL(f8),           POINTER :: DynHeating(:,:,:)
+     LOGICAL                     :: Archive_DynHeating
+
+     REAL(f4),           POINTER :: DTRad(:,:,:)
+     LOGICAL                     :: Archive_DTRad
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -1690,6 +1720,12 @@ CONTAINS
     State_Diag%UVFluxNet                           => NULL()
     State_Diag%Map_UvFluxNet                       => NULL()
     State_Diag%Archive_UVFluxNet                   = .FALSE.
+
+    State_Diag%OD600                               => NULL()
+    State_Diag%Archive_OD600                       = .FALSE.
+
+    State_Diag%TCOD600                            => NULL()
+    State_Diag%Archive_TCOD600                    = .FALSE.
 
     State_Diag%OHconcAfterChem                     => NULL()
     State_Diag%Archive_OHconcAfterChem             = .FALSE.
@@ -2196,6 +2232,12 @@ CONTAINS
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
 
+    State_Diag%KppNegatives                        => NULL()
+    State_Diag%Archive_KppNegatives                = .FALSE.
+
+    State_Diag%KppNegatives0                       => NULL()
+    State_Diag%Archive_KppNegatives0               = .FALSE.
+
     State_Diag%KppAutoReducerNVAR                  => NULL()
     State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
 
@@ -2363,6 +2405,18 @@ CONTAINS
     State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
 
+    State_Diag%RadAllSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkyLWTrop             = .FALSE.
+
+    State_Diag%RadAllSkySWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkySWTrop             = .FALSE.
+
+    State_Diag%RadClrSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkyLWTrop             = .FALSE.
+
+    State_Diag%RadClrSkySWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkySWTrop             = .FALSE.
+
     State_Diag%RadAODWL1                           => NULL()
     State_Diag%Archive_RadAODWL1                   = .FALSE.
 
@@ -2389,6 +2443,12 @@ CONTAINS
 
     State_Diag%RadAsymWL3                          => NULL()
     State_Diag%Archive_RadAsymWL3                  = .FALSE.
+
+    State_Diag%DynHeating                          => NULL()
+    State_Diag%Archive_DynHeating                  = .FALSE.
+
+    State_Diag%DTRad                               => NULL()
+    State_Diag%Archive_DTRad                       = .FALSE.
 
     State_Diag%Archive_RadOptics                   = .FALSE.
 
@@ -4926,6 +4986,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: All-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadAllSkySWSurf'
@@ -4961,6 +5044,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadAllSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadAllSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: All-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -5018,6 +5124,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadClrSkySWSurf'
@@ -5053,6 +5182,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadClrSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadClrSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -5252,6 +5404,42 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'DynHeating'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DynHeating,                          &
+            archiveData    = State_Diag%Archive_DynHeating,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'DTRad'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DTRad,                               &
+            archiveData    = State_Diag%Archive_DTRad,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -5263,7 +5451,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 17
+       DO N = 1, 23
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -5272,44 +5460,56 @@ CONTAINS
              CASE( 2 )
                 diagID = 'RadAllSkyLWTOA'
              CASE( 3 )
-                diagID = 'RadAllSkySWSurf'
+                diagID = 'RadAllSkyLWTrop'
              CASE( 4 )
-                diagID = 'RadAllSkySWTOA'
+                diagID = 'RadAllSkySWSurf'
              CASE( 5 )
-                diagID = 'RadClrSkyLWSurf'
+                diagID = 'RadAllSkySWTOA'
              CASE( 6 )
-                diagID = 'RadClrSkyLWTOA'
+                diagID = 'RadAllSkySWTrop'
              CASE( 7 )
-                diagID = 'RadClrSkySWSurf'
+                diagID = 'RadClrSkyLWSurf'
              CASE( 8 )
-                diagID = 'RadClrSkySWTOA'
+                diagID = 'RadClrSkyLWTOA'
              CASE( 9 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkyLWTrop'
              CASE( 10 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkySWSurf'
              CASE( 11 )
+                diagID = 'RadClrSkySWTOA'
+             CASE( 12 )
+                diagID = 'RadClrSkySWTrop'
+             CASE( 13 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 14 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 15 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
-             CASE( 12 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 13 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 14 )
-                TmpWL  = RadWL(3)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 15 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
              CASE( 16 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 17 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 18 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 19 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 20 )
                 TmpWL  = RadWL(2)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
-             CASE( 17 )
+             CASE( 21 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 22 )
+                diagID = 'DynHeating'
+             CASE( 23 )
+                diagID = 'DTRad'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -5739,6 +5939,50 @@ CONTAINS
             mapData        = State_Diag%Map_UvFluxNet,                       &
             diagId         = diagId,                                         &
             diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Optical depth (3D) used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'OD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OD600,                               &
+            archiveData    = State_Diag%Archive_OD600,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Total column optical depth used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'TCOD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TCOD600,                             &
+            archiveData    = State_Diag%Archive_TCOD600,                     &
+            diagId         = diagId,                                         &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -6298,6 +6542,50 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
+       ! Number of negative concentrations after KPP integration 
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives,                        &
+            archiveData    = State_Diag%Archive_KppNegatives,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of negative concentrations after first KPP integration try
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives0'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives0,                       &
+            archiveData    = State_Diag%Archive_KppNegatives0,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
        ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
        !-------------------------------------------------------------------
        diagID = 'KppAutoReducerNVAR'
@@ -6420,7 +6708,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 35
+       DO N = 1, 41
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6501,6 +6789,10 @@ CONTAINS
                 diagID = 'KppAutoReduceThres'
              CASE( 39 )
                 diagID = 'RxnConst'
+             CASE( 40 )
+                diagID = 'KppNegatives'
+             CASE( 41 )
+                diagID = 'KppNegatives0'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -11714,6 +12006,8 @@ CONTAINS
                                     State_Diag%Archive_KppLuDecomps       .or. &
                                     State_Diag%Archive_KppSubsts          .or. &
                                     State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppNegatives       .or. &
+                                    State_Diag%Archive_KppNegatives0      .or. &
                                     State_Diag%Archive_KppAutoReducerNVAR .or. &
                                     State_Diag%Archive_KppAutoReduceThres .or. &
                                     State_Diag%Archive_KppcNONZERO        .or. &
@@ -12105,6 +12399,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'OD600',                                       &
+                   Ptr2Data = State_Diag%OD600,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TCOD600',                                     &
+                   Ptr2Data = State_Diag%TCOD600,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'AdvFluxZonal',                                &
                    Ptr2Data = State_Diag%AdvFluxZonal,                       &
                    mapData  = State_Diag%Map_AdvFluxZonal,                   &
@@ -12351,6 +12655,26 @@ CONTAINS
 
     CALL Finalize( diagId   = 'RadAllSkySWTOA',                              &
                    Ptr2Data = State_Diag%RadAllSkySWTOA,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadClrSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -13372,6 +13696,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'KppNegatives',                                &
+                   Ptr2Data = State_Diag%KppNegatives,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppNegatives0',                               &
+                   Ptr2Data = State_Diag%KppNegatives0,                      &
+                   RC       = RC                                            )
+
+    IF ( RC /= GC_SUCCESS ) RETURN
     CALL Finalize( diagId   = 'AirMassColumnFull',                            &
                    Ptr2Data = State_Diag%AirMassColumnFull,                   &
                    RC       = RC                                            )
@@ -14079,6 +14413,16 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'UVFLX'
 
+    ELSEIF ( TRIM( Name_AllCaps ) == 'OD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM( Name_AllCaps ) == 'TCOD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Total column optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXZONAL' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
        IF ( isUnits   ) Units = 'kg s-1'
@@ -14374,6 +14718,34 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
                                 TRIM(RadWL(1)) // ' nm'
@@ -14436,6 +14808,18 @@ CONTAINS
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DYNHEATING' ) THEN
+       IF ( isDesc    ) Desc  = 'Dynamical heating rate ' // &
+                                'in baseline simulation'
+       IF ( isUnits   ) Units = 'K day-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DTRAD' ) THEN
+       IF ( isDesc    ) Desc  = 'Temperature change due ' // &
+                                'to radiative heating'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
@@ -15261,6 +15645,16 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after KPP integration'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES0' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after first KPP integration attempt'
        IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
 
@@ -17791,8 +18185,10 @@ CONTAINS
     ! RRTMG outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
-    !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
-    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST
+    !   0=BASE and then...
+    !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS  14=DU
+    !  15=PM  16=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -17815,26 +18211,36 @@ CONTAINS
              State_Diag%RadOutInd(N) = 0
           CASE( 'O3' )
              State_Diag%RadOutInd(N) = 1
-          CASE( 'ME' )
+          CASE( 'O3T' )
              State_Diag%RadOutInd(N) = 2
-          CASE( 'SU' )
+          CASE( 'ME' )
              State_Diag%RadOutInd(N) = 3
-          CASE( 'NI' )
+          CASE( 'H2O' )
              State_Diag%RadOutInd(N) = 4
-          CASE( 'AM' )
+          CASE( 'CO2' )
              State_Diag%RadOutInd(N) = 5
-          CASE( 'BC' )
+          CASE( 'CFC' )
              State_Diag%RadOutInd(N) = 6
-          CASE( 'OA' )
+          CASE( 'N2O' )
              State_Diag%RadOutInd(N) = 7
-          CASE( 'SS' )
+          CASE( 'SU' )
              State_Diag%RadOutInd(N) = 8
-          CASE( 'DU' )
+          CASE( 'NI' )
              State_Diag%RadOutInd(N) = 9
-          CASE( 'PM' )
+          CASE( 'AM' )
              State_Diag%RadOutInd(N) = 10
-          CASE( 'ST' )
+          CASE( 'BC' )
              State_Diag%RadOutInd(N) = 11
+          CASE( 'OA' )
+             State_Diag%RadOutInd(N) = 12
+          CASE( 'SS' )
+             State_Diag%RadOutInd(N) = 13
+          CASE( 'DU' )
+             State_Diag%RadOutInd(N) = 14
+          CASE( 'PM' )
+             State_Diag%RadOutInd(N) = 15
+          CASE( 'ST' )
+             State_Diag%RadOutInd(N) = 16
           CASE DEFAULT
              ! Nothing
        END SELECT

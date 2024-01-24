@@ -115,7 +115,6 @@ RUNID:   ${RUNDIR_GCAP2_RUNID}
 # --- Not used by GEOS-Chem ---
 #* EVAP      $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 #* GRN       $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
-#* LWGNT     $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * SEAICE00   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * SEAICE10   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
 * SEAICE20   $METDIR/$YYYY/$MM/$YYYY$MM$DD.aijh2$RUNID.nc4     FRSEAICE    1851-2099/1-12/1-31/*/+30minute RFY xy  1  * -  1 1

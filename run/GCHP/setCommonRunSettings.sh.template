@@ -26,7 +26,10 @@ CS_RES=${RUNDIR_CS_RES}
 # Turn stretched grid ON/OFF. Follow these rules if ON:
 #    (1) Minimum STRETCH_FACTOR value is 1.0001
 #    (2) TARGET_LAT and TARGET_LON are floats containing decimal
-#    (3) TARGET_LON in range [0,360)
+#    (3) TARGET_LON in range [0,360) or [-180,180)
+#    (4) STRETCH_FACTOR, TARGET_LAT, and TARGET_LON exactly match
+#        the global attribute values of these parameters in the
+#        initial restart file
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
@@ -158,6 +161,8 @@ if [[ ${dustEntry} != "missing" ]]; then
         fi
         if [[ $CS_RES -eq 24 ]]; then
             Dust_SF=6.0e-4
+        elif [[ $CS_RES -eq 30 ]]; then
+            Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
         elif [[ $CS_RES -eq 48 ]]; then
             Dust_SF=5.0416e-4
         elif [[ $CS_RES -eq 90 ]]; then
@@ -402,6 +407,9 @@ function replace_val_yaml() {
 
 #### Define function to uncomment line in config file
 uncomment_line() {
+    if [[ ${verbose} = "1" ]]; then
+	echo "--> Uncommenting $1 in $2"
+    fi
     if [[ $(grep -c "^[\t ]*$1" $2) == "1" ]]; then
 	return
     fi
@@ -419,6 +427,9 @@ uncomment_line() {
 
 #### Define function to comment line in config file
 comment_line() {
+        if [[ ${verbose} = "1" ]]; then
+	echo "--> Commenting out $1 in $2"
+    fi
     if [[ $(grep -c "#.*$1" $2) == "1" ]]; then
 	return
     fi
@@ -648,4 +659,47 @@ else
     print_msg "Auto-update of diagnostic settings in HISTORY.rc is turned off"
 fi
 
+#### Auto-update ExtData.rc for lightning climatology based on HEMCO_Config.rc
+lightningClimEntry=$(grep "LightningClimatology" HEMCO_Config.rc || echo "missing")
+if [[ ${lightningClimEntry} != "missing" ]]; then
+
+    # Current file settings
+    lightningClimSetting=(${lightningClimEntry// / })
+    FlashYearlyEntry=$(grep "FLASH_DENS.*y4/FLASH" ExtData.rc)
+    ConvYearlyEntry=$(grep "CONV_DEPTH.*y4/FLASH"  ExtData.rc)
+    FlashClimEntry=$(grep "FLASH_DENS.*CLIM"       ExtData.rc)
+    ConvClimEntry=$(grep "CONV_DEPTH.*CLIM"        ExtData.rc)
+
+    # Strip leading comment character, if any
+    if [[ ${FlashYearlyEntry:0:1} == "#" ]];then FlashYearlyEntry=${FlashYearlyEntry:1}; fi
+    if [[ ${ConvYearlyEntry:0:1} == "#" ]];then ConvYearlyEntry=${ConvYearlyEntry:1}; fi
+    if [[ ${FlashClimEntry:0:1} == "#" ]];then FlashClimEntry=${FlashClimEntry:1}; fi
+    if [[ ${ConvClimEntry:0:1} == "#" ]];then ConvClimEntry=${ConvClimEntry:1}; fi
+
+    # Print to log if --verbose passed
+    if [[ ${verbose} = "1" ]]; then
+	print_msg " "
+	print_msg "Lightning climatology:"
+	print_msg "------------------------"
+	print_msg "Updating ExtData.rc for HEMCO_Config.rc lightning climatology set to ${lightningClimSetting[3]}"
+    fi
+
+    # Update ExtData.rc
+    if [[ ${lightningClimSetting[3]} = "true" ]]; then
+	comment_line   "${FlashYearlyEntry}" ExtData.rc
+	comment_line   "${ConvYearlyEntry}"  ExtData.rc
+	uncomment_line "${FlashClimEntry}"   ExtData.rc
+	uncomment_line "${ConvClimEntry}"    ExtData.rc
+    elif [[ ${lightningClimSetting[3]} = "false" ]]; then
+	comment_line   "${FlashClimEntry}"   ExtData.rc
+	comment_line   "${ConvClimEntry}"    ExtData.rc
+	uncomment_line "${FlashYearlyEntry}" ExtData.rc
+	uncomment_line "${ConvYearlyEntry}"  ExtData.rc
+    else
+        "ERROR: LightningClimatology must be set to true or false in HEMCO_Config.rc."
+	exit 1
+    fi
+fi
+
+#### Done
 print_msg " "

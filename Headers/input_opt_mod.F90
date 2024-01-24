@@ -16,6 +16,9 @@ MODULE Input_Opt_Mod
 ! !USES:
 !
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
+#if defined( ESMF_ )
+    USE pFlogger
+#endif
 
   IMPLICIT NONE
   PRIVATE
@@ -200,6 +203,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
+     CHARACTER(LEN=255)          :: CloudJ_Dir
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -214,6 +218,11 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=5),   POINTER :: STRWVSELECT(:)
      INTEGER                     :: NSPECRADMENU
      INTEGER,            POINTER :: LSPECRADMENU(:)
+     REAL(8)                     :: RRTMG_CO2_ppmv
+     LOGICAL                     :: RRTMG_FDH
+     LOGICAL                     :: RRTMG_SEFDH
+     LOGICAL                     :: RRTMG_SA_TOA
+     LOGICAL                     :: Read_Dyn_Heating
 
      !----------------------------------------
      ! TRANSPORT MENU fields
@@ -411,7 +420,10 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: FJX_EXTRAL_ERR     = .TRUE.
      ! Toggle for het rates. If true, turns off three Cl producing het reactions
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
-     LOGICAL                     :: TurnOffHetRates = .FALSE.
+     LOGICAL                     :: TurnOffHetRates    = .TRUE.
+     INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
+     REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
+     LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
@@ -456,6 +468,12 @@ MODULE Input_Opt_Mod
      INTEGER                     :: LINOZ_NMONTHS
      INTEGER                     :: LINOZ_NFIELDS
      REAL(fp),           POINTER :: LINOZ_TPARM(:,:,:,:)
+
+#if defined( ESMF_ )
+     ! ESMF logger
+     class(Logger), pointer      :: lgr
+     Character(Len=255)          :: compname
+#endif
 
   END TYPE OptInput
 !
@@ -713,6 +731,7 @@ CONTAINS
     !----------------------------------------
     Input_Opt%Do_Photolysis         = .FALSE.
     Input_Opt%FAST_JX_DIR           = ''
+    Input_Opt%CloudJ_Dir            = ''
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)
@@ -733,7 +752,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     ! Number of RRTMG outputs (change as necessary)
-    Input_Opt%NSpecRadMenu           = 11
+    Input_Opt%NSpecRadMenu           = 17
 
     arrayId = 'Input_Opt%LSPECRADMENU'
     ALLOCATE( Input_Opt%LSPECRADMENU( Input_Opt%NSpecRadMenu ), STAT=RC )
@@ -749,6 +768,11 @@ CONTAINS
     Input_Opt%NWVSELECT              = 0
     Input_Opt%WVSELECT               = 0.0_fp
     Input_Opt%STRWVSELECT            = ''
+    Input_Opt%RRTMG_CO2_ppmv         = 3.90e-4_fp
+    Input_Opt%RRTMG_FDH              = .FALSE.
+    Input_Opt%RRTMG_SEFDH            = .FALSE.
+    Input_Opt%RRTMG_SA_TOA           = .FALSE.
+    Input_Opt%Read_Dyn_Heating       = .FALSE.
 
     !----------------------------------------
     ! TRANSPORT MENU fields
@@ -989,6 +1013,13 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     Input_Opt%LINOZ_TPARM            = 0.0_fp
+
+#if defined( ESMF_ )
+    ! Logger handle is set up by Chem_GridCompMod
+    Input_Opt%lgr => NULL()
+    ! Component name is acquired externally - this is a placeholder
+    Input_Opt%compname = 'GC'
+#endif
 
   END SUBROUTINE Set_Input_Opt
 !EOC
@@ -1244,6 +1275,10 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%Jval_Ids => NULL()
     ENDIF
+#endif
+
+#if defined( ESMF_ )
+    If (Associated(Input_Opt%lgr)) Input_Opt%lgr => NULL()
 #endif
 
   END SUBROUTINE Cleanup_Input_Opt
