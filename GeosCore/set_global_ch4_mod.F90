@@ -108,6 +108,7 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
     REAL(hp), ALLOCATABLE :: GEOS_CH4(:,:,:)
+    REAL(hp), ALLOCATABLE :: CH4_OFFSET(:,:)
     LOGICAL               :: USE_GEOS_CH4
 #endif
     LOGICAL, SAVE         :: FIRST = .TRUE.
@@ -136,6 +137,13 @@ CONTAINS
     FOUND   = .FALSE.
     SRCNAME = ''
 #if defined( MODEL_GEOS )
+    ! Check for CH4 offset first
+    ALLOCATE(CH4_OFFSET(State_Grid%NX,State_Grid%NY))
+    CH4_OFFSET(:,:) = 0.0
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CH4_OFFSET', &
+                         CH4_OFFSET, RC, FOUND=FOUND )
+    IF ( .NOT. FOUND ) CH4_OFFSET = 0.0
+    ! Now get CH4 concentrations
     ALLOCATE(GEOS_CH4(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
     GEOS_CH4(:,:,:) = 0.0
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'GEOS_CH4', &
@@ -215,7 +223,7 @@ CONTAINS
 
        ! In GEOS, we may be getting CH4 from a 3D field 
 #if defined( MODEL_GEOS )
-          IF ( USE_GEOS_CH4 ) CH4 = GEOS_CH4(I,J,L)
+          IF ( USE_GEOS_CH4 ) CH4 = GEOS_CH4(I,J,L) + CH4_OFFSET(I,J)
 #endif
 
           ! Compute implied CH4 flux if diagnostic is on
@@ -241,6 +249,12 @@ CONTAINS
     ! Convert species back to original unit
     CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
                             OrigUnit, RC )
+
+    ! Cleanup
+#if defined( MODEL_GEOS )
+    IF(ALLOCATED(GEOS_CH4))   DEALLOCATE(GEOS_CH4)
+    IF(ALLOCATED(CH4_OFFSET)) DEALLOCATE(CH4_OFFSET)
+#endif
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
