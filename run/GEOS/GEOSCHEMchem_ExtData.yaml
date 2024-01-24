@@ -265,6 +265,11 @@ Collections:
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
+  Jason_10.18.0_carbon_c90_2023:
+    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90_2023/holding/methane_tags/Jason_10.18.0_carbon_c90_2023.methane_tags.%y4%m2%d2_%h200z.nc
+    ref_time: "2001-01-01T00:00"
+    freq: "PT3H"
+    valid_range: "2001-01-01T00:00/2021-12-31T21:00"
   GEOSCHEMchem_CH4_scaling:
     template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CH4/v0.0.0/ch4_offset_to_2021_x144_y91_%y4%m2.nc
     valid_range: "2021-01-01T00:00/2022-12-01T00:00"
@@ -2682,7 +2687,7 @@ Exports:
     sample: gcc_persist 
     variable: s_mn
   GEOS_CH4:
-    collection: Jason_10.18.0_carbon_c90
+    collection: Jason_10.18.0_carbon_c90_2023
     regrid: BILINEAR
     sample: gcc_3hr
     variable: CH4_total_dry
