@@ -445,12 +445,11 @@ CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_te
 # --- CO2 Ship Emissions ---
 #
 # Comment this when "--> CEDS_v2_SHIP : false" is in HEMCO_Config.rc.
-CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2018-08/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2021-06/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
 
 
 # --- CO2: AEIC 2019 aircraft emissions ---
-#
-# Comment this when "--> AEIC2019_DAILY :  false" is in HEMCO_Config.rc.
+## Comment this when "--> AEIC2019_DAILY :  false" is in HEMCO_Config.rc.
 ##AEIC19_DAILY_CO2   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 #
 # Comment this when "--> AEIC2019_MONMEAN :  false" is in HEMCO_Config.rc.
@@ -541,13 +540,13 @@ GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5
 # --- Global Cl concentrations ---
 #
 # Use updated files (v2024-01); these are COARDS-compliant.
-GLOBAL_Cl mol/mol N Y F%y4-%m2-%d2T00:00:00  none none SpeciesConc_Cl ./HcoDir/CH4/v2024-01/GCC_14_Output/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
+GLOBAL_Cl mol/mol N Y F%y4-%m2-01T00:00:00  none none SpeciesConc_Cl ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
 
 # --- Stratospheric L(CO) from GMI ---
 #
 # Use updated files (v2024-01); these are COARDS-compliant.
-CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2023-04/GC_CH4_LOSS/GCC14_72LM.ch4loss.4x5.nc4
+CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2024-01/GC_CH4_LOSS/GCC14_72LM.ch4loss.4x5.nc4
 
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
 #

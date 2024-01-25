@@ -937,7 +937,7 @@ Mask fractions:              false
 )))ICOADS_SHIP
 
 (((CEDSv2_SHIP
-0 CEDS_CO2_SHP  $ROOT/CEDS/v2018-08/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc  CO2_shp  1750-2014/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+0 CEDS_CO2_SHP  $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc  CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDSv2_SHIP
 
 )))SHIP
