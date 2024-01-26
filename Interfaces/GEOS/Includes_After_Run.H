@@ -55,7 +55,7 @@
      ! testing only
   !if(MAPL_am_I_Root()) write(*,*) 'Copied to internal: ',I,Int2Spc(I)%ID,trim(Int2Spc(I)%Name),MINVAL(State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1)),MAXVAL(State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1)),SUM(State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1))/IM/JM/LM
   ENDDO
-  State_Chm%Spc_Units = 'kg/kg total'
+  State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
 
   !=========================================================================
   ! Various other archived variables needed in internal state. 

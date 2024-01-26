@@ -11,6 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
+- Changed exponent 'e' to 'd' for one entry in KPP to prevent precision error in external models
+
+### Fixed
+- Fixed unit conversions in GEOS-only code
 
 ## [14.3.0] - 2024-02-07
 ### Added
