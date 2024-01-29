@@ -652,16 +652,16 @@ ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     start_date='20190701'
-    restart_dir='GC_14.2.0'
+    restart_dir='GC_14.3.0'
     restart_name="${sim_name}"
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.2.0'
+    restart_dir='GC_14.3.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_14.2.0'
+    restart_dir='GC_14.3.0'
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'

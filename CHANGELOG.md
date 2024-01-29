@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Increse requested time limits in GCHP integration tests (compile 2h30m, run 5h)
 - Changed CO2 concentration used in RRTMG to be modifiable in geoschem_config.yml
 - Changed water vapor used in RRTMG to match to tracer field at all altitudes
+- Look for fullchem and TransportTracers restarts in the `GEOSCHEM_RESTARTS/GC_4.3.0` folder
 
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
