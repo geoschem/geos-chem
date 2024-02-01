@@ -4,6 +4,12 @@
 #PBS -l walltime=1:00:00
 #PBS -j oe
 
+# Run script is for use with PBS Pro
+# To modify your resource request, change the "-l select..." line to:
+# #PBS -l select=X:ncpus=Y:mem=Zgb
+# This requests X nodes, EACH of which has Y CPUs and Z GB of memory
+# Change the total run time request using the walltime line (H:MM:SS)
+
 cd $PBS_O_WORKDIR
 
 # Unlimit resources (to prevent OS killing GCHP due to resource usage)
