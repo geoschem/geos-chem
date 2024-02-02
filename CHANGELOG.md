@@ -5,6 +5,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+
 ### Added
 - Set `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
 - Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
@@ -14,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
+- Activate the `DryDep` collection for GCClassic & GCHP fullchem benchmarks
+- Reduce the GCHP `DryDep` collection to only the necessary species for benchmarks
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
@@ -184,7 +187,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
 - Removed State_Chm%CH4_EMIS
 
-## [14.3.0] - 2024-02-07
 ### Added
 - Added capability for TOMAS simulations in GCHP
 - Added State_Chm%nTomasBins to replace hardcoded bins in TOMAS diagnostics
