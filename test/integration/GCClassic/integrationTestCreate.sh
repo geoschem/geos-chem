@@ -212,9 +212,6 @@ create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 # 4x5 merra2 fullchem_TOMAS15_47L
 create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
-# 4x5 merra2 fullchem_TOMAS40_47L
-create_rundir "1\n6\n2\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
-
 # 4x5 merra2 Hg
 create_rundir "5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 

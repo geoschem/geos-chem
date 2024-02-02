@@ -1367,7 +1367,14 @@ CONTAINS
        IF ( IS_FULLCHEM .and. id_HMS > 0 ) THEN
           K_CLD(4) = KaqHCHO * FC * CNVFAC
           K_CLD(5) = KaqHMS  * FC
-          K_CLD(6) = KaqHMS2 * FC
+          ! HMS reaction changed to include SO2 as a reactant. This is a  
+          ! temporary fix as the formulation HMS + OH -> 2SO4 + CH2O - SO2
+          ! was resulting in a negative concentraiton of SO2. We instead
+          ! redefine the reaction as HMS + OH + SO2 -> 2SO4 + CH2O but
+          ! divide the reaction rate by [SO2] to compensate, as long as
+          ! it is safe to do so (NB requirement at entry that SO2 > MINDAT)
+          ! SDE 2023-10-21
+          K_CLD(6) = KaqHMS2 * FC / Spc(id_SO2)%Conc(I,J,L)
           ! Leave comments here (bmy, 18 Jan 2022)
           !          CloudHet2R( Spc(id_HMS)%Conc(I,J,L), &
           !                      Spc(id_CH2O)%Conc(I,J,L), FC, KaqHCHO*CNVFAC )

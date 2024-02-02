@@ -8,7 +8,7 @@
 !
 ! !DESCRIPTION: Subroutine AERO\_DRYDEP removes size-resolved aerosol number
 !  and mass by dry deposition.  The deposition velocities are calcualted from
-!  drydep_mod.f and only aerosol number NK1-NK30 are really treated as dry
+!  drydep_mod.f and only aerosol number NK01-NK30 are really treated as dry
 !  depositing species while each of the mass species are depositing accordingly
 !  with number.
 !\\
@@ -72,11 +72,11 @@
     LOGICAL,  SAVE     :: FIRST      = .TRUE.
     INTEGER,  SAVE     :: H2SO4ID
     INTEGER,  SAVE     :: id_H2SO4
-    INTEGER,  SAVE     :: id_NK1
+    INTEGER,  SAVE     :: id_NK01
 
     ! Scalars
-    INTEGER            :: nDryDep
-    INTEGER            :: I,      J,        L
+    INTEGER            :: nDryDep, IBINS
+    INTEGER            :: I,      J,        L,     AS
     INTEGER            :: N,      JC,       BIN,   ID
     REAL(fp)           :: DTCHEM, AREA_CM2, FLUX,  X,    Y
     REAL(fp)           :: Y0,     RKT,      DEN,   DP,   PDP
@@ -90,20 +90,20 @@
     REAL(fp)           :: TC(State_Grid%NZ)
     REAL(fp)           :: TC0(State_Grid%NZ)
     REAL(fp)           :: VTS(State_Grid%NZ) ! Settling V [m/s]
-    REAL(fp)           :: NU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
-    REAL(fp)           :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,IBINS)
-    REAL(fp)           :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(fp)           :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(fp)           :: X0(IBINS,ICOMP-IDIAG+1    )
+    REAL(fp)           :: NU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)           :: DU0(State_Grid%NX,State_Grid%NY,State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)           :: SIZ_DIA(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(fp)           :: SIZ_DEN(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(fp)           :: X0(State_Chm%nTomasBins,ICOMP-IDIAG+1    )
 
     ! Pointers
     TYPE(SpcConc), POINTER  :: Spc     (:      )
     REAL(fp),      POINTER  :: BXHEIGHT(:,:,:  )
     REAL(fp),      POINTER  :: T       (:,:,:  )
-    REAL(fp),      POINTER  :: DepFreq (:,:,:  )                ! IM, JM, nDryDep
+    REAL(fp),      POINTER  :: DepFreq (:,:,:  )  ! IM, JM, nDryDep
 
     ! SAVEd arrays
-    INTEGER,  SAVE     :: DRYD(IBINS)
+    INTEGER, SAVE, ALLOCATABLE :: DRYD(:)
 
     ! Debug
     !integer   :: ii, jj , ix, jx, bb, ll
@@ -118,6 +118,9 @@
 
     ! Number of dry-deposited species
     nDryDep   = State_Chm%nDryDep
+
+    ! Number of bins
+    IBINS     = State_Chm%nTomasBins
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
     IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
@@ -140,7 +143,7 @@
 
        ! Define species ID flags
        id_H2SO4 = Ind_('H2SO4')
-       id_NK1   = Ind_('NK1'  )
+       id_NK01  = Ind_('NK01'  )
 
        ! Make sure species are defined
        IF ( id_H2SO4 < 0 ) THEN
@@ -148,18 +151,21 @@
           LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
           CALL ERROR_STOP( MSG, LOC )
        ENDIF
-       IF ( id_NK1 < 0 ) THEN
-          MSG = 'NK1 is not a defined species!'
+       IF ( id_NK01 < 0 ) THEN
+          MSG = 'NK01 is not a defined species!'
           LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
           CALL ERROR_STOP( MSG, LOC )
        ENDIF
+
+       ALLOCATE( DRYD( State_Chm%nTomasBins ), STAT=AS )
+       IF ( AS /= 0 ) CALL ALLOC_ERR( 'DRYD (aero_drydep.F90)' )
+       DRYD = 0
 
        ! First identify if the size-resolved aerosol species have their
        ! deposition velocity calculated.
        ! dryd is an array that keeps the drydep species ID.  So if the
        ! aerosol component has dryd = 0, that means it was not included
        ! as a dry depositting species.
-       DRYD = 0
        DO BIN = 1, IBINS
           DO N   = 1, nDryDep
              !just want to match only once (win, 5/24/06)
@@ -169,9 +175,9 @@
                 ! Debug
                 !print *, 'DRYDEP Species:',N
              ENDIF
-             IF ( State_Chm%Map_DryDep(N) == ( id_NK1-1+BIN ) )THEN
+             IF ( State_Chm%Map_DryDep(N) == ( id_NK01-1+BIN ) )THEN
                 ! Debug
-                !print *,'Match species:',IDTNK1-1+bin,'Bin',bin
+                !print *,'Match species:',IDTNK01-1+bin,'Bin',bin
                 DRYD( BIN ) = N
                 GOTO 100
              ENDIF
@@ -213,7 +219,7 @@
 
        ! SIZ_DIA [=] m  and SIZ_DEN [=] kg/m3
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
-                         SIZ_DIA, SIZ_DEN, RC )
+                         State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           CALL ERROR_STOP('CALL AERO_DIADEN', 'AERO_DRYDEP in aero_drydep.F')
        ENDIF
@@ -286,7 +292,7 @@
           ENDDO  ! L-loop
 
           DO JC = 1, ICOMP-IDIAG+1
-             ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
+             ID = id_NK01 - 1 + BIN + ( IBINS * (JC-1) )
 
              ! Debug
              !IF (i==ix .and. j==jx .and. l==ll) THEN
@@ -408,7 +414,7 @@
        ! Save the initial 30-bin number and icomp-1 mass component
        DO JC = 1, ICOMP-IDIAG+1
           DO BIN = 1, IBINS
-             ID = id_NK1 - 1 + BIN + ( IBINS * (JC-1) )
+             ID = id_NK01 - 1 + BIN + ( IBINS * (JC-1) )
              X0(BIN,JC) = Spc(ID)%Conc(I,J,L)
           ENDDO
        ENDDO
@@ -425,7 +431,7 @@
        DO JC = 1, ICOMP-IDIAG+1
        DO BIN = 1, IBINS
           X = 0d0
-          ID = id_NK1 - 1 + BIN + (( JC-1 )* IBINS)
+          ID = id_NK01 - 1 + BIN + (( JC-1 )* IBINS)
 
           ! *******************************************************************
           ! NOTE: I'm not sure if this is now covered by dry-deposition in

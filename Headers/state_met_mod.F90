@@ -170,9 +170,9 @@ MODULE State_Met_Mod
                                                 !  [kg/m2/s]
      REAL(fp), POINTER :: PFLLSAN       (:,:,:) ! Dwn flux ice prec:LS+anv
                                                 !  [kg/m2/s]
-     REAL(fp), POINTER :: QI            (:,:,:) ! Ice mixing ratio
+     REAL(fp), POINTER :: QI            (:,:,:) ! Mass fraction of cloud ice water
                                                 !  [kg/kg dry air]
-     REAL(fp), POINTER :: QL            (:,:,:) ! Water mixing ratio
+     REAL(fp), POINTER :: QL            (:,:,:) ! Mass fraction of cloud liquid water
                                                 !  [kg/kg dry air]
      REAL(fp), POINTER :: REEVAPCN      (:,:,:) ! Evap of precip conv [kg/kg/s]
                                                 !  (assume per dry air)
@@ -227,6 +227,11 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: SPHU_PREV     (:,:,:) ! Previous State_Met%SPHU
 
      !----------------------------------------------------------------------
+     ! Fields read in from a previous GC run
+     !----------------------------------------------------------------------
+     REAL(fp), POINTER :: DynHeating    (:,:,:) ! Dynamical heating (K/day)
+
+     !----------------------------------------------------------------------
      ! Offline land type, leaf area index, and chlorophyll fields
      !----------------------------------------------------------------------
      INTEGER,  POINTER :: IREG          (:,:  ) ! # of landtypes in box (I,J)
@@ -262,11 +267,15 @@ MODULE State_Met_Mod
      ! Fields for wet scavenging module
      !----------------------------------------------------------------------
      REAL(fp), POINTER :: C_H2O         (:,:,:) ! Mix ratio of H2O [v/v]
-     REAL(fp), POINTER :: CLDICE        (:,:,:) ! Cloud ice mixing ratio [cm3 ice/cm3 air]
-     REAL(fp), POINTER :: CLDLIQ        (:,:,:) ! Cloud liquid water mixing ratio [cm3 H2O/cm3 air]
-     REAL(fp), POINTER :: PDOWN         (:,:,:) ! Precipitation thru the bottom of the grid box
+     REAL(fp), POINTER :: CLDICE        (:,:,:) ! Precipitable cloud ice mixing
+                                                ! ratio [cm3 ice/cm3 air]
+     REAL(fp), POINTER :: CLDLIQ        (:,:,:) ! Precipitable cloud liquid H2O
+                                                ! mixing ratio [cm3 H2O/cm3 air]
+     REAL(fp), POINTER :: PDOWN         (:,:,:) ! Precipitation thru the bottom
+                                                ! of the grid box
                                                 ! [cm3 H2O/cm2 area/s]
-     REAL(fp), POINTER :: QQ            (:,:,:) ! Rate of new precip formation [cm3 H2O/cm3 air/s]
+     REAL(fp), POINTER :: QQ            (:,:,:) ! Rate of new precip formation
+                                                ! [cm3 H2O/cm3 air/s]
      REAL(fp), POINTER :: REEVAP        (:,:,:) ! Rate of precip reevaporation
 
      !----------------------------------------------------------------------
@@ -473,6 +482,7 @@ CONTAINS
     State_Met%AIRVOL         => NULL()
     State_Met%DP_DRY_PREV    => NULL()
     State_Met%SPHU_PREV      => NULL()
+    State_Met%DynHeating     => NULL()
     State_Met%IREG           => NULL()
     State_Met%ILAND          => NULL()
     State_Met%IUSE           => NULL()
@@ -2660,6 +2670,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%SPHU_PREV,                                   &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! DYNHEATING [K/day]
+    !------------------------------------------------------------------------
+    metId = 'DynHeating'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%DynHeating,                                  &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4973,6 +5001,12 @@ CONTAINS
        CASE ( 'SPHUPREV' )
           IF ( isDesc  ) Desc  = 'Previous State_Met%SPHU_PREV'
           IF ( isUnits ) Units = 'g kg-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+
+       CASE ( 'DYNHEATING' )
+          IF ( isDesc  ) Desc  = 'Dynamical heating rate'
+          IF ( isUnits ) Units = 'K day-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
 

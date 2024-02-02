@@ -78,7 +78,7 @@ MODULE GAMAP_MOD
   CHARACTER(LEN=40)              :: SIM_NAME
 
   ! Species ID flags
-  INTEGER :: id_NK1
+  INTEGER :: id_NK01
 
 CONTAINS
 !EOC
@@ -1043,7 +1043,11 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : W_
+#else
+    USE Cldj_Cmn_Mod,    ONLY : W_
+#endif
     USE CMN_SIZE_MOD,    ONLY : NRHAER, NDUST, NSTRATAER
     USE ErrCode_Mod
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -1051,7 +1055,7 @@ CONTAINS
     USE State_Chm_Mod,   ONLY : ChmState
     USE State_Chm_Mod,   ONLY : Ind_
 #ifdef TOMAS
-    USE TOMAS_MOD,       ONLY : IBINS, ICOMP,   IDIAG  !(win, 7/14/09)
+    USE TOMAS_MOD,       ONLY : ICOMP,   IDIAG
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -1505,7 +1509,7 @@ CONTAINS
     IF ( ND44 > 0 ) THEN
 
        ! Loop over # of dry depositing species
-       DO N = 1, nDryDep + (ICOMP-IDIAG)* IBINS
+       DO N = 1, nDryDep + (ICOMP-IDIAG)* State_Chm%nTomasBins
 
           IF ( N <= nDryDep ) THEN
 
@@ -1531,7 +1535,7 @@ CONTAINS
              !-----------------------------------------------
              ! Drydep velocity
              !-----------------------------------------------
-             NN            = N + nDryDep  +(ICOMP-IDIAG)*IBINS
+             NN            = N + nDryDep  +(ICOMP-IDIAG)*State_Chm%nTomasBins
              NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'
              FNAME(NN,44)  = TRIM( SpcInfo%Name ) // ' drydep velocity'
              MWT  (NN,44)  = SpcInfo%MW_g * 1.e-3_fp
@@ -1545,7 +1549,7 @@ CONTAINS
              !-----------------------------------------------
              ! Drydep flux: TOMAS aerosol tracers
              !-----------------------------------------------
-             T = id_NK1 + IBINS - 1 + ( N - nDryDep )
+             T = id_NK01 + State_Chm%nTomasBins - 1 + ( N - nDryDep )
              SpcInfo       => State_Chm%SpcData(T)%Info
 
              ! Drydep flux (extended deposited species)
@@ -1560,7 +1564,7 @@ CONTAINS
              !-----------------------------------------------
              ! Drydep velocity all other G-C tracers
              !-----------------------------------------------
-             NN            = N + nDryDep + (ICOMP-IDIAG)* IBINS
+             NN            = N + nDryDep + (ICOMP-IDIAG)* State_Chm%nTomasBins
              NAME (NN,44)  = TRIM( SpcInfo%Name ) // 'dv'
              FNAME(NN,44)  = TRIM( SpcInfo%Name ) // ' drydep velocity'
              MWT  (NN,44)  = SpcInfo%MW_g * 1.e-3_fp
@@ -1689,8 +1693,8 @@ CONTAINS
           ! NOTE: requires 1:1 tracer index to species index mapping
           SpcInfo => State_Chm%SpcData(T)%Info
 
-          IF ( ( T .ge. id_NK1       ) .and. &
-               ( T .lt. id_NK1+IBINS ) ) THEN
+          IF ( ( T .ge. id_NK01       ) .and. &
+               ( T .lt. id_NK01+State_Chm%nTomasBins ) ) THEN
              UNIT(T,60) = 'no.'
           ELSE
              UNIT(T,60) = 'kg'
@@ -2050,7 +2054,7 @@ CONTAINS
     !=================================================================
     ! Define species ID flags
     !=================================================================
-    id_NK1   = Ind_('NK1'  )
+    id_NK01   = Ind_('NK01'  )
 
     !=================================================================
     ! Allocate module arrays

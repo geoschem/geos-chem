@@ -15,7 +15,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
 ! !USES:
 !
-  USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
   USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
@@ -127,7 +126,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   !=================================================================
   ! Call cleanup routines from individual F90 modules
   !=================================================================
-  CALL CLEANUP_AEROSOL()
   CALL CLEANUP_CARBON()
   CALL CLEANUP_CO2()
   CALL CLEANUP_DRYDEP()

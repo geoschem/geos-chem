@@ -50,7 +50,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   USE APM_INIT_MOD, ONLY : IFRADF
 #endif
 #ifdef TOMAS
-  USE TOMAS_MOD, ONLY : ICOMP, IDIAG, IBINS  !(win, 1/25/10)
+  USE TOMAS_MOD, ONLY : ICOMP, IDIAG
 #endif
 
   IMPLICIT NONE
@@ -160,8 +160,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
   INTEGER, SAVE            :: id_ACET,  id_MEK,   id_ALD2,  id_PRPE
   INTEGER, SAVE            :: id_C3H8,  id_CH2O,  id_C2H6,  id_CH4
   INTEGER, SAVE            :: id_ISOP,  id_C2H4,  id_CHBR3, id_BR2
-  INTEGER, SAVE            :: id_DUST1, id_NK1,   id_SF1,   id_SS1
-  INTEGER, SAVE            :: id_ECIL1, id_ECOB1, id_OCIL1, id_OCOB1
+  INTEGER, SAVE            :: id_DUST01, id_NK01,   id_SF01,   id_SS01
+  INTEGER, SAVE            :: id_ECIL01, id_ECOB01, id_OCIL01, id_OCOB01
   INTEGER, SAVE            :: id_CH2BR2
   INTEGER, SAVE            :: id_PAN,   id_HNO3,  id_EOH,   id_MGLY
   INTEGER, SAVE            :: id_BENZ,  id_TOLU,  id_XYLE,  id_MOH
@@ -255,14 +255,14 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      id_CHBR3     = Ind_('CHBR3'   )
      id_CH2BR2    = Ind_('CH2BR2'  )
      id_BR2       = Ind_('BR2'     )
-     id_DUST1     = Ind_('DUST1'   )
-     id_NK1       = Ind_('NK1'     )
-     id_SF1       = Ind_('SF1'     )
-     id_SS1       = Ind_('SS1'     )
-     id_ECIL1     = Ind_('ECIL1'   )
-     id_ECOB1     = Ind_('ECOB1'   )
-     id_OCIL1     = Ind_('OCIL1'   )
-     id_OCOB1     = Ind_('OCOB1'   )
+     id_DUST01    = Ind_('DUST01'  )
+     id_NK01      = Ind_('NK01'    )
+     id_SF01      = Ind_('SF01'    )
+     id_SS01      = Ind_('SS01'    )
+     id_ECIL01    = Ind_('ECIL01'  )
+     id_ECOB01    = Ind_('ECOB01'  )
+     id_OCIL01    = Ind_('OCIL01'  )
+     id_OCOB01    = Ind_('OCOB01'  )
      id_PAN       = Ind_('PAN'     )
      id_HNO3      = Ind_('HNO3'    )
      id_MOH       = Ind_('MOH'     )
@@ -334,8 +334,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         M = nAdvect
      ELSE
         ! Extend dry dep tracers if TOMAS aerosol is turned on
-        IF ( id_NK1 > 0 ) THEN
-           M = nDryDep + ( ( ICOMP - IDIAG )* IBINS )
+        IF ( id_NK01 > 0 ) THEN
+           M = nDryDep + ( ( ICOMP - IDIAG )* State_Chm%nTomasBins )
         ELSE
            M = nDryDep
         ENDIF
@@ -364,10 +364,10 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
            ELSE
               ! To calculate the id_xxx of the associated
               ! tracer. (ccc, 3/11/10)
-              NN  = MOD( N - nDryDep-1, IBINS ) + id_NK1
+              NN  = MOD( N - nDryDep-1, State_Chm%nTomasBins ) + id_NK01
 
               ! Tracer number for bpch file
-              NN1  = ( N - nDryDep ) + ( id_NK1 + IBINS - 1 )
+              NN1  = ( N - nDryDep ) + ( id_NK01 + State_Chm%nTomasBins - 1 )
            ENDIF
 
         ENDIF
@@ -458,7 +458,7 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
         !----------------------------------------------------
 
         ! Tracer number
-        NN = id_DUST1 + ( N - 1 )
+        NN = id_DUST01 + ( N - 1 )
 
         ! Get TOMAS dust string
         IF ( N < 10 )  THEN
@@ -524,8 +524,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'No.'
      CATEGORY = 'NK-EMISS'
-     DO NBIN = 1,IBINS
-        N = id_NK1 + NBIN - 1
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_NK01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_NUMB(:,:,L,NBIN)
         ENDDO
@@ -542,8 +542,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg S'
      CATEGORY = 'SF-EMISS'
-     DO NBIN = 1,IBINS
-        N = id_SF1 + NBIN - 1
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_SF01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_SULF(:,:,L,NBIN)
         ENDDO
@@ -560,8 +560,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'SS-EMISS'
-     DO NBIN = 1,IBINS
-        N = id_SS1 + NBIN - 1
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_SS01 + NBIN - 1
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_SALT(:,:,L,NBIN)
         ENDDO
@@ -578,8 +578,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'ECIL-SRC'
-     DO NBIN = 1,IBINS
-        N = id_ECIL1 - 1 + NBIN
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_ECIL01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_ECIL(:,:,L,NBIN)
         ENDDO
@@ -596,8 +596,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'ECOB-SRC'
-     DO NBIN = 1,IBINS
-        N = id_ECOB1 - 1 + NBIN
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_ECOB01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_ECOB(:,:,L,NBIN)
         ENDDO
@@ -614,8 +614,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'OCIL-SRC'
-     DO NBIN = 1,IBINS
-        N = id_OCIL1 - 1 + NBIN
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_OCIL01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_OCIL(:,:,L,NBIN)
         ENDDO
@@ -632,8 +632,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'OCOB-SRC'
-     DO NBIN = 1,IBINS
-        N = id_OCOB1 - 1 + NBIN
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_OCOB01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_OCOB(:,:,L,NBIN)
         ENDDO
@@ -650,8 +650,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
      !==============================================================
      UNIT     = 'kg'
      CATEGORY = 'DUST-SRC'
-     DO NBIN = 1,IBINS
-        N = id_DUST1 - 1 + NBIN
+     DO NBIN = 1,State_Chm%nTomasBins
+        N = id_DUST01 - 1 + NBIN
         DO L = 1, 2
            ARRAY(:,:,L) = AD59_DUST(:,:,L,NBIN)
         ENDDO
@@ -692,8 +692,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -721,8 +721,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -750,8 +750,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -779,8 +779,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -808,8 +808,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'
@@ -837,8 +837,8 @@ SUBROUTINE DIAG3( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
         SCALEX = 1.e+0_fp
 
-        IF ( ( NN .ge. id_NK1 ) .and. &
-             ( NN .lt. id_NK1+IBINS )      ) THEN
+        IF ( ( NN .ge. id_NK01 ) .and. &
+             ( NN .lt. id_NK01+State_Chm%nTomasBins )      ) THEN
            UNIT = 'no.'
         ELSE
            UNIT = 'kg'

@@ -12,31 +12,31 @@ AW_PROP: &AWproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-AW1:
+AW01:
   << : *AWproperties
   FullName: Aerosol water, size bin = 1
-AW2:
+AW02:
   << : *AWproperties
   FullName: Aerosol water, size bin = 2
-AW3:
+AW03:
   << : *AWproperties
   FullName: Aerosol water, size bin = 3
-AW4:
+AW04:
   << : *AWproperties
   FullName: Aerosol water, size bin = 4
-AW5:
+AW05:
   << : *AWproperties
   FullName: Aerosol water, size bin = 5
-AW6:
+AW06:
   << : *AWproperties
   FullName: Aerosol water, size bin = 6
-AW7:
+AW07:
   << : *AWproperties
   FullName: Aerosol water, size bin = 7
-AW8:
+AW08:
   << : *AWproperties
   FullName: Aerosol water, size bin = 8
-AW9:
+AW09:
   << : *AWproperties
   FullName: Aerosol water, size bin = 9
 AW10:
@@ -144,31 +144,31 @@ DUST_PROP: &DUSTproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-DUST1:
+DUST01:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 1
-DUST2:
+DUST02:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 2
-DUST3:
+DUST03:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 3
-DUST4:
+DUST04:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 4
-DUST5:
+DUST05:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 5
-DUST6:
+DUST06:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 6
-DUST7:
+DUST07:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 7
-DUST8:
+DUST08:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 8
-DUST9:
+DUST09:
   << : *DUSTproperties
   FullName: Mineral dust, size bin = 9
 DUST10:
@@ -276,31 +276,31 @@ ECIL_PROP: &ECILproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-ECIL1:
+ECIL01:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 1
-ECIL2:
+ECIL02:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 2
-ECIL3:
+ECIL03:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 3
-ECIL4:
+ECIL04:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 4
-ECIL5:
+ECIL05:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 5
-ECIL6:
+ECIL06:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 6
-ECIL7:
+ECIL07:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 7
-ECIL8:
+ECIL08:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 8
-ECIL9:
+ECIL09:
   << : *ECILproperties
   FullName: Hydrophilic elemental carbon, size bin = 9
 ECIL10:
@@ -407,31 +407,31 @@ ECOB_PROP: &ECOBproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-ECOB1:
+ECOB01:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 1
-ECOB2:
+ECOB02:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 2
-ECOB3:
+ECOB03:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 3
-ECOB4:
+ECOB04:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 4
-ECOB5:
+ECOB05:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 5
-ECOB6:
+ECOB06:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 6
-ECOB7:
+ECOB07:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 7
-ECOB8:
+ECOB08:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 8
-ECOB9:
+ECOB09:
   << : *ECOBproperties
   FullName: Hydrophobic elemental carbon, size bin = 9
 ECOB10:
@@ -557,31 +557,31 @@ NK_PROP: &NKproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-NK1:
+NK01:
   << : *NKproperties
   FullName: Aerosol number, size bin = 1
-NK2:
+NK02:
   << : *NKproperties
   FullName: Aerosol number, size bin = 2
-NK3:
+NK03:
   << : *NKproperties
   FullName: Aerosol number, size bin = 3
-NK4:
+NK04:
   << : *NKproperties
   FullName: Aerosol number, size bin = 4
-NK5:
+NK05:
   << : *NKproperties
   FullName: Aerosol number, size bin = 5
-NK6:
+NK06:
   << : *NKproperties
   FullName: Aerosol number, size bin = 6
-NK7:
+NK07:
   << : *NKproperties
   FullName: Aerosol number, size bin = 7
-NK8:
+NK08:
   << : *NKproperties
   FullName: Aerosol number, size bin = 8
-NK9:
+NK09:
   << : *NKproperties
   FullName: Aerosol number, size bin = 9
 NK10:
@@ -689,31 +689,31 @@ OCIL_PROP: &OCILproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-OCIL1:
+OCIL01:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 1
-OCIL2:
+OCIL02:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 2
-OCIL3:
+OCIL03:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 3
-OCIL4:
+OCIL04:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 4
-OCIL5:
+OCIL05:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 5
-OCIL6:
+OCIL06:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 6
-OCIL7:
+OCIL07:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 7
-OCIL8:
+OCIL08:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 8
-OCIL9:
+OCIL09:
   << : *OCILproperties
   FullName: Hydrophilic organic carbon, size bin = 9
 OCIL10:
@@ -821,31 +821,31 @@ OCOB_PROP: &OCOBproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-OCOB1:
+OCOB01:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 1
-OCOB2:
+OCOB02:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 2
-OCOB3:
+OCOB03:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 3
-OCOB4:
+OCOB04:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 4
-OCOB5:
+OCOB05:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 5
-OCOB6:
+OCOB06:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 6
-OCOB7:
+OCOB07:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 7
-OCOB8:
+OCOB08:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 8
-OCOB9:
+OCOB09:
   << : *OCOBproperties
   FullName: Hydrophobic organic carbon, size bin = 9
 OCOB10:
@@ -953,31 +953,31 @@ SF_PROP: &SFproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-SF1:
+SF01:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 1
-SF2:
+SF02:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 2
-SF3:
+SF03:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 3
-SF4:
+SF04:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 4
-SF5:
+SF05:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 5
-SF6:
+SF06:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 6
-SF7:
+SF07:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 7
-SF8:
+SF08:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 8
-SF9:
+SF09:
   << : *SFproperties
   FullName: Sulfate aerosol, size bin = 9
 SF10:
@@ -1085,31 +1085,31 @@ SS_PROP: &SSproperties
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
-SS1:
+SS01:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 1
-SS2:
+SS02:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 2
-SS3:
+SS03:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 3
-SS4:
+SS04:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 4
-SS5:
+SS05:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 5
-SS6:
+SS06:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 6
-SS7:
+SS07:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 7
-SS8:
+SS08:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 8
-SS9:
+SS09:
   << : *SSproperties
   FullName: Sea salt aerosol, size bin = 9
 SS10:

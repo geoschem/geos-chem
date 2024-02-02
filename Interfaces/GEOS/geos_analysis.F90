@@ -89,6 +89,7 @@ MODULE GEOS_Analysis
      INTEGER                      :: nSpec2
      TYPE(Spec2Opt), POINTER      :: Spec2(:) => NULL()
      INTEGER                      :: ErrorMode
+     INTEGER                      :: PrintNeg 
   END TYPE AnaOptions
 
   ! List holding all analysis information
@@ -817,7 +818,7 @@ CONTAINS
        ENDDO
 
        ! Print warning if at least one negative cell
-       IF ( NNEG > 0 ) THEN
+       IF ( NNEG > 0 .and. iopt%PrintNeg==1 ) THEN
           WRITE(*,*) '*** DoAnalysis_ warning: encountered concentration below threshold, set to minimum: ',TRIM(SpecName),NNEG,MinConc,' ***'
        ENDIF
 
@@ -1219,6 +1220,7 @@ CONTAINS
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ObsHourName,    Label='ObsHourName:'   , Default='ana_hour', __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%MinConc,        Label='MinConc:'       , Default=1.0e-20, __RC__ )
     CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%ErrorMode,      Label='ErrorMode:'     , Default=1   ,  __RC__ )
+    CALL ESMF_ConfigGetAttribute( CF, AnaConfig(ispec)%PrintNeg,       Label='PrintNeg:'      , Default=1   ,  __RC__ )
 
     ! Check for "dependent" species
     CALL ESMF_ConfigGetAttribute( CF, nSpec2,                          Label='HasSpec2:'      , Default=0,     __RC__ )
@@ -1314,6 +1316,7 @@ CONTAINS
              ENDDO
           ENDIF
           WRITE(*,*) '- Error mode                    : ', AnaConfig(ispec)%ErrorMode
+          WRITE(*,*) '- Print # negative cocentrations: ', AnaConfig(ispec)%PrintNeg
        ENDIF ! Active 
     ENDIF
 

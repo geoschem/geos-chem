@@ -168,7 +168,7 @@ MODULE SULFATE_MOD
   REAL(fp)               :: TS_EMIS
 
   ! Species ID flags
-  INTEGER                :: id_AS,     id_AHS,    id_AW1
+  INTEGER                :: id_AS,     id_AHS,    id_AW01
   INTEGER                :: id_DAL1,   id_DAL2,   id_DAL3
   INTEGER                :: id_DAL4,   id_DMS,    id_DST1
   INTEGER                :: id_DST2,   id_DST3,   id_DST4
@@ -176,10 +176,10 @@ MODULE SULFATE_MOD
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
   INTEGER                :: id_NH4aq,  id_NIT,    id_NITd1
   INTEGER                :: id_NITd2,  id_NITd3,  id_NITd4
-  INTEGER                :: id_NITs,   id_NK1,    id_NK5
-  INTEGER                :: id_NK8,    id_NK10,   id_NK20
+  INTEGER                :: id_NITs,   id_NK01,   id_NK05
+  INTEGER                :: id_NK08,   id_NK10,   id_NK20
   INTEGER                :: id_NO3,    id_O3,     id_OH
-  INTEGER                :: id_SALA,   id_SALC,   id_SF1
+  INTEGER                :: id_SALA,   id_SALC,   id_SF01
   INTEGER                :: id_SO2,    id_SO4,    id_SO4aq
   INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3
   INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
@@ -411,8 +411,8 @@ CONTAINS
     PACL       = 0e+0_fp
     PCCL       = 0e+0_fp
 #ifdef APM
-    PSO4_SO2APM = 0d0
-    PSO4_SO2SEA = 0d0
+    PSO4_SO2APM = 0e+0_fp
+    PSO4_SO2SEA = 0e+0_fp
 #endif
 #ifdef TOMAS
     PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
@@ -639,7 +639,8 @@ CONTAINS
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
        !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       CALL CHEM_SO4_AQ( Input_Opt,  State_Chm, State_Grid, State_Met, &
+                         State_Diag, RC )
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
        ENDIF
@@ -757,7 +758,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+    USE TOMAS_MOD,          ONLY : ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
     USE UnitConv_Mod
@@ -786,7 +787,8 @@ CONTAINS
 !
     ! Fields for TOMAS simulation
     REAL*8           :: BINMASS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                IBINS*ICOMP)
+                                State_Chm%nTomasBins*ICOMP)
+    INTEGER          :: IBINS
     INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
@@ -796,8 +798,8 @@ CONTAINS
     TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
-    REAL(fp)         :: tempnh4(ibins)
-    REAL(fp)         :: MK_TEMP2(IBINS)
+    REAL(fp)         :: tempnh4(State_Chm%nTomasBins)
+    REAL(fp)         :: MK_TEMP2(State_Chm%nTomasBins)
 
     !=================================================================
     ! EMISSSULFATETOMAS begins here!
@@ -823,11 +825,14 @@ CONTAINS
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
-    IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
+
+    IF (id_SF01 > 0 .and. id_NK01 > 0 ) THEN
 
        ! Get NH4 and aerosol water into the same array
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          BINMASS(:,:,:,M) = Spc(id_SF1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,M) = Spc(id_SF01+M-1)%Conc(:,:,:)
        ENDDO
 
        IF ( SRTNH4 > 0 ) THEN
@@ -844,7 +849,7 @@ CONTAINS
              ! Change pointer to a variable to avoid array temporary
              ! (bmy, 7/7/17)
              DO M = 1, IBINS
-                MK_TEMP2(M) = Spc(id_SF1+M-1)%Conc(I,J,L)
+                MK_TEMP2(M) = Spc(id_SF01+M-1)%Conc(I,J,L)
              ENDDO
              NH4_CONC = Spc(id_NH4)%Conc(I,J,L)
              CALL NH4BULKTOBIN( MK_TEMP2, NH4_CONC, TEMPNH4 )
@@ -860,17 +865,17 @@ CONTAINS
 
        TID = IBINS*(ICOMP-1) +1
        DO M = 1, IBINS
-          BINMASS(:,:,:,TID+M-1) = Spc(id_AW1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,TID+M-1) = Spc(id_AW01+M-1)%Conc(:,:,:)
        ENDDO
 
-       !IF ( id_SF1 > 0 ) THEN
+       !IF ( id_SF01 > 0 ) THEN
        CALL SRCSF30( Input_Opt, State_Grid, State_Met, &
                      State_Chm, BINMASS(:,:,:,:), RC )
 
        ! Return the aerosol mass after emission subroutine to Spc
        ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          Spc(id_SF1+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
+          Spc(id_SF01+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
        ENDDO
     ENDIF
 
@@ -922,7 +927,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE State_Chm_Mod,        ONLY : ChmState
-    USE TOMAS_MOD,            ONLY : IBINS, AVGMASS, ICOMP
+    USE TOMAS_MOD,            ONLY : AVGMASS, ICOMP
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
     USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
@@ -938,9 +943,11 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    REAL(fp), INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                   IBINS*ICOMP)
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    REAL(fp),       INTENT(INOUT) :: TC2(State_Grid%NX, &
+                                         State_Grid%NY, &
+                                         State_Grid%NZ, &
+                                         State_Chm%nTomasBins*ICOMP)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -963,45 +970,25 @@ CONTAINS
     REAL*8                 :: SO4an(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL*8                 :: SO4bf(State_Grid%NX,State_Grid%NY)
     REAL*8                 :: SO4anbf(State_Grid%NX,State_Grid%NY,2)
-    REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+    REAL*8                 :: BFRAC(State_Chm%nTomasBins)
 
-#if  defined( TOMAS12) || defined( TOMAS15)
-    DATA BFRAC/ &
-# if  defined( TOMAS15)
-         0.0d0     , 0.0d0     , 0.0d0, &
-# endif
-         4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02, &
-         4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01, &
-         1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
-
-#else
-
-    DATA BFRAC/ &
-# if  defined( TOMAS40)
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-# endif
-         1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02, &
-         1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02, &
-         4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01, &
-         1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02, &
-         1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04, &
-         1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
-#endif
-
-    REAL(fp)               :: NDISTINIT(IBINS)
-    REAL(fp)               :: NDISTFINAL(IBINS)
-    REAL(fp)               :: MADDFINAL(IBINS)
-    REAL(fp)               :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
-    REAL(fp)               :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+    REAL(fp)               :: NDISTINIT(State_Chm%nTomasBins)
+    REAL(fp)               :: NDISTFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: MADDFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: NDIST(State_Chm%nTomasBins)
+    Real(fp)               :: MDIST(State_Chm%nTomasBins,ICOMP)
+    REAL(fp)               :: NDIST2(State_Chm%nTomasBins)
+    REAL(fp)               :: MDIST2(State_Chm%nTomasBins,ICOMP)
     REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
-    !REAL(fp)              :: N0(State_Grid%NZ,IBINS)
-    !REAL(fp)              :: M0(State_Grid%NZ,IBINS)
-    REAL(fp)               :: Ndiag(IBINS), Mdiag(IBINS)
+    !REAL(fp)              :: N0(State_Grid%NZ,State_Chm%nTomasBins)
+    !REAL(fp)              :: M0(State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)               :: Ndiag(State_Chm%nTomasBins)
+    REAL(fp)               :: Mdiag(State_Chm%nTomasBins)
     REAL(fp)               :: MADDTOTAL !optimization variable for diag
-    !REAL(fp)              :: Avginit(IBINS), Avgfinal(IBINS)
-    !REAL(fp)              :: Avginner(IBINS)
+    !REAL(fp)              :: Avginit(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avgfinal(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avginner(State_Chm%nTomasBins)
 
     REAL(fp)               :: AREA(State_Grid%NX, State_Grid%NY)
     !REAL(fp)              :: AREA3D(State_Grid%NX, State_Grid%NY,2)
@@ -1012,7 +999,7 @@ CONTAINS
     TYPE(SpcConc), POINTER :: TC1(:)
 
     INTEGER                :: N_TRACERS
-
+    INTEGER                :: IBINS
     LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
     INTEGER                :: FLAG, ERR
     logical                :: pdbug !(temporary) win, 10/24/07
@@ -1072,6 +1059,33 @@ CONTAINS
 
     ! Point to species array
     TC1 => State_Chm%Species
+
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
+
+    ! Mass fraction emitted to each bin
+#if  defined( TOMAS12) || defined( TOMAS15)
+    BFRAC = [ &
+# if  defined( TOMAS15)
+         0.0e+0,     0.0e+0,     0.0e+0,                    &
+# endif
+         4.3760e-02, 6.2140e-02, 3.6990e-02, 1.8270e-02, &
+         4.2720e-02, 1.1251e-01, 1.9552e-01, 2.2060e-01, &
+         1.6158e-01, 7.6810e-02, 2.8884e-02, 2.0027e-04 ]
+
+#else(
+    BFRAC = [ &
+# if  defined( TOMAS40)
+         0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    &
+         0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    &
+# endif
+         1.728e-02, 2.648e-02, 3.190e-02, 3.024e-02, 2.277e-02, &
+         1.422e-02, 9.029e-03, 9.241e-03, 1.531e-02, 2.741e-02, &
+         4.529e-02, 6.722e-02, 8.932e-02, 1.062e-01, 1.130e-01, &
+         1.076e-01, 9.168e-02, 6.990e-02, 4.769e-02, 2.912e-02, &
+         1.591e-02, 7.776e-03, 3.401e-03, 1.331e-03, 4.664e-04, &
+         1.462e-04, 4.100e-05, 1.029e-05, 2.311e-06, 4.645e-07 ]
+#endif
 
     !================================================================
     ! READ IN HEMCO EMISSIONS
@@ -1191,11 +1205,11 @@ CONTAINS
        !=============================================================
        IF ( SGCOAG ) THEN
 
-! ewl: TC1 = Spc(:,:,:,id_NK1:id_NK1+IBINS-1)
+! ewl: TC1 = Spc(:,:,:,id_NK01:id_NK01+IBINS-1)
 
           !save number and mass before emission
           !DO M = 1, IBINS
-          !   N0(:,M) = TC1(id_NK1+M-1)%Conc(I,J,:)
+          !   N0(:,M) = TC1(id_NK01+M-1)%Conc(I,J,:)
           !ENDDO
           !M0(:,:) = TC2(I,J,:,1:IBINS)
 
@@ -1211,7 +1225,7 @@ CONTAINS
                 !sfarina - sqrt is expensive.
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
-                NDIST(K) = TC1(id_NK1+K-1)%Conc(I,J,L)
+                NDIST(K) = TC1(id_NK01+K-1)%Conc(I,J,L)
                 !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
@@ -1308,7 +1322,7 @@ CONTAINS
                                        'after SUBGRIDCOAG at ',I,J,L
 
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = NDIST2(K)
+                TC1(id_NK01+K-1)%Conc(I,J,L) = NDIST2(K)
                 DO C=1,ICOMP
                    TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                 ENDDO
@@ -1321,7 +1335,7 @@ CONTAINS
              !
              !DO K = 1, IBINS
              !!sfarina debug
-             !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+             !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
              ! write(*,*) '"Negative NK emis" details:'
              ! write(*,*) 'NTOP       ', NTOP
              ! write(*,*) 'S_SO4:     ', S_SO4
@@ -1329,7 +1343,7 @@ CONTAINS
              ! write(*,*) 'EFRAC(L):  ', EFRAC(L)
              ! DO Bi=1,IBINS
              !  write(*,*) 'Bin        ',Bi
-             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi-1)%Conc(I,J,L)
+             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK01+Bi-1)%Conc(I,J,L)
              !  write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
              !  write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
              !  write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
@@ -1362,10 +1376,10 @@ CONTAINS
                 !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
                 !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
                 !     'at',I,J,L,K
-                !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K), &
+                !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+                !   print *,'Negative NK emis ',TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K), &
                 !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK1+K-1)%Conc(I,J,L),N0(L,K)
+                !   print *,'tc1, N0 ',TC1(id_NK01+K-1)%Conc(I,J,L),N0(L,K)
                 !end if
 
                 !sfarina - I have studied this extensively and determined that
@@ -1383,7 +1397,7 @@ CONTAINS
                 !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
                 !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
                 !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) &
+                !                      TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) &
                 AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
                 AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
              ENDDO
@@ -1400,7 +1414,7 @@ CONTAINS
           DO L = 1, State_Grid%NZ
              SO4(L) = TSO4 * EFRAC(L)
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = TC1(id_NK1+K-1)%Conc(I,J,L) + &
+                TC1(id_NK01+K-1)%Conc(I,J,L) = TC1(id_NK01+K-1)%Conc(I,J,L) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
                TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
@@ -7822,7 +7836,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            State_Diag, RC )
 !
 ! !USES:
 !
@@ -7832,6 +7847,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
     USE UnitConv_Mod
 !
@@ -7844,6 +7860,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7906,18 +7923,17 @@ CONTAINS
 
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
                  / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
-
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
 #if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK5,  .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK5,  .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK8,  .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK8,  .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS30 )
           CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
 
@@ -7931,7 +7947,8 @@ CONTAINS
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
           CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, RC )
+                       State_Chm, State_Grid, State_Met, &
+                       State_Diag, RC )
        ENDIF
     ENDDO
     ENDDO
@@ -9117,7 +9134,7 @@ CONTAINS
     ! Define flags for species ID's
     id_AS    = Ind_('AS'       )
     id_AHS   = Ind_('AHS'      )
-    id_AW1   = Ind_('AW1'      )
+    id_AW01  = Ind_('AW01'     )
     id_DAL1  = Ind_('DSTAL1'   )
     id_DAL2  = Ind_('DSTAL2'   )
     id_DAL3  = Ind_('DSTAL3'   )
@@ -9142,9 +9159,9 @@ CONTAINS
     id_NITd3 = Ind_('NITD3'    )
     id_NITd4 = Ind_('NITD4'    )
     id_NITs  = Ind_('NITs'     )
-    id_NK1   = Ind_('NK1'      )
-    id_NK5   = Ind_('NK5'      )
-    id_NK8   = Ind_('NK8'      )
+    id_NK01  = Ind_('NK01'     )
+    id_NK05  = Ind_('NK05'     )
+    id_NK08  = Ind_('NK08'     )
     id_NK10  = Ind_('NK10'     )
     id_NK20  = Ind_('NK20'     )
     id_NO3   = Ind_('NO3'      )
@@ -9154,7 +9171,7 @@ CONTAINS
     id_PSO4  = Ind_('PSO4'     )
     id_SALA  = Ind_('SALA'     )
     id_SALC  = Ind_('SALC'     )
-    id_SF1   = Ind_('SF1'      )
+    id_SF01  = Ind_('SF01'     )
     id_SO2   = Ind_('SO2'      )
     id_SO4   = Ind_('SO4'      )
     id_SO4aq = Ind_('SO4aq'    )

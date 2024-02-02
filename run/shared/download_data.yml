@@ -45,7 +45,7 @@ restarts:
     remote: v2021-06/GEOSChem.Restart.metals.20110101_0000z.nc4
     local:  GEOSChem.Restart.20110101_0000z.nc4
   mercury:
-    remote: v2021-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
+    remote: v2023-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
   pops:
     remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4

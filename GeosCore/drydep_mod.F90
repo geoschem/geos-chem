@@ -160,7 +160,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
   INTEGER                        :: id_ACET,  id_ALD2,  id_O3
   INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
-  INTEGER                        :: id_NK1,   id_Hg0
+  INTEGER                        :: id_NK01,  id_Hg0
   INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
   INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
 
@@ -477,9 +477,9 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------------------
-          ! Special treatment for snow vs. ice
+          ! Special treatment for snow and ice
           !-----------------------------------------------------------
-          IF ( State_Met%isSnow(I,J) ) THEN
+          IF ( (State_Met%isSnow(I,J)) .OR. (State_Met%isIce(I,J))) THEN
 
              !-------------------------------------
              ! %%% SURFACE IS SNOW OR ICE %%%
@@ -1179,8 +1179,8 @@ CONTAINS
 #ifdef TOMAS
     ! For TOMAS aerosol (win, 7/15/09)
     INTEGER  :: BIN
-    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
+    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
 #endif
 
     ! Loop indices (bmy, 3/29/12)
@@ -1315,9 +1315,9 @@ CONTAINS
     ! depending on the internally-mixed composition (win, 7/15/09)
     !=================================================================
 
-    IF ( id_NK1 > 0 ) THEN
+    IF ( id_NK01 > 0 ) THEN
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
-                         SIZ_DIA, SIZ_DEN, RC )
+                         State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1465,7 +1465,7 @@ CONTAINS
           !** If the surface to be snow or ice;
           !** set II to 1 instead.
           !
-          IF(State_Met%isSnow(I,J)) II=1
+          IF((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
           !* Read the internal resistance RI (minimum stomatal resistance for
           !* water vapor,per unit area of leaf) from the IRI array; a '9999'
@@ -1610,9 +1610,9 @@ CONTAINS
 
                 ENDIF
 
-             ! currently messy test for if surface is snow/ice to change O3
-             ! surface resistance to an updated value
-             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
+             ! Test for if surface is snow/ice to change O3
+             ! surface resistance to an observation derived value
+             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 1)) THEN
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
                 ! Check latitude and longitude, alter F0 only for Amazon
@@ -1752,7 +1752,7 @@ CONTAINS
                    ! evolves with time.  We have to save these in the
                    ! DIAM and DEN variables so that we can hold these
                    ! PRIVATE for the parallel loop.
-                   BIN  = NTRAIND(K) - id_NK1 + 1
+                   BIN  = NTRAIND(K) - id_NK01 + 1
                    DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                    DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 
@@ -4815,7 +4815,7 @@ CONTAINS
     ENDDO
 
     ! For TOMAS
-    id_NK1   = Ind_('NK1'  )
+    id_NK01   = Ind_('NK01'  )
 
     !=================================================================
     ! Allocate arrays

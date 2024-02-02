@@ -47,8 +47,8 @@ EXE_PASS_STR='Execute Simulation....PASS'
 EXE_FAIL_STR='Execute Simulation....FAIL'
 EXE_TBD_STR='Execute Simulation....TBD'
 EXE_GCC_BUILD_LIST=("default" "apm"   "carbon"  "hg"       \
-                    "luowd"   "rrtmg" "tomas15" "tomas40" )
-EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg")
+                    "luowd"   "rrtmg" "tomas15" )
+EXE_GCHP_BUILD_LIST=("default" "carbon" "rrtmg" "tomas15")
 END_hhmm_1h="0100z.nc4"
 END_hhmm_20m="0020z.nc4"
 PAR_TEST_SUFFIX="threads"
@@ -441,15 +441,13 @@ function config_options() {
     elif [[ ${dir} =~ "carbon" ]]; then
         options="${baseOptions} -DMECH=carbon -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "hg" ]]; then
-        options="${baseOptions} -DMECH=Hg -DEXE_FILE_NAME=${exeFileName}"
+        options="${baseOptions} -DMECH=Hg -DFASTJX=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "luowd" ]]; then
         options="${baseOptions} -DLUO_WETDEP=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "rrtmg" ]]; then
         options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
         options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
-    elif [[ ${dir} =~ "tomas40" ]]; then
-        options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=40 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
     else
         options="${baseOptions}"
     fi
@@ -492,8 +490,6 @@ function compiletest_name() {
         result="${displayName} with RRTMG"
     elif [[ "${buildDir}" =~ "tomas15" ]]; then
         result="${displayName} with TOMAS15"
-    elif [[ "${buildDir}" =~ "tomas40" ]]; then
-        result="${displayName} with TOMAS40"
     else
         result="${displayName}"
     fi

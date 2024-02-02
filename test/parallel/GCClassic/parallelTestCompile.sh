@@ -111,9 +111,8 @@ fi
 # Load common variables and functions for tesets
 #============================================================================
 
-# Count the number of tests to be done (exclude TOMAS40)
+# Count the number of tests to be done
 parallelTests=("${EXE_GCC_BUILD_LIST[@]}")
-unset parallelTests[6]
 numTests=${#parallelTests[@]}
 
 #============================================================================
