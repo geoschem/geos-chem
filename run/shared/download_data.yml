@@ -66,6 +66,6 @@ restarts:
     remote: v2021-12/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
   transporttracers:
-    remote: GC_14.3.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    remote: GC_14.2.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
   

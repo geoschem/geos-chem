@@ -661,7 +661,7 @@ elif [[ "x${sim_name}" == "xtagO3" ]]; then
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_14.3.0'
+    restart_dir='GC_14.2.0'
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
