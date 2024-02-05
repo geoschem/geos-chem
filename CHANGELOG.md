@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Diel and day-of-week scale factors for CEDS global base emissions
 
+### Changed
+- Now use updated timezones for HEMCO, which treat daylight savings time more accurately
+
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
 
