@@ -31,6 +31,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed CO2 concentration used in RRTMG to be modifiable in geoschem_config.yml
 - Changed water vapor used in RRTMG to match to tracer field at all altitudes
 - Updated restart file path for GCHP TOMAS simulations
+- Look for fullchem restarts in the `GEOSCHEM_RESTARTS/GC_14.3.0` folder
+- Look for fullchem/aerosol boundary conditions in the `HEMCO/SAMPLE_BCs/GC_14.3.0/fullchem` folder
 
 ### Fixed
 - Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
