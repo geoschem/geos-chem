@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Fixed
+- Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
+
 ## [14.3.0] - 2024-02-07
 ### Added
 - Added capability for TOMAS simulations in GCHP
@@ -42,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 - Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
 - Fixed incorrect time-avaging in RRTMG diagnostics wheres zeros included prior to first RRTMG call
+- Added fix for runaway HMS chemistry. See `KPP/fullchem/CHANGELOG_fullchem.md` for details.
 
 ### Removed
 - Removed references to unused met-fields RADLWG and LWGNT
