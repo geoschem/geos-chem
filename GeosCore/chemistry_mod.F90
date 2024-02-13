@@ -168,6 +168,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
@@ -179,6 +180,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetChemistryLevs,            &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetChemistryLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -1101,6 +1105,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
@@ -1112,6 +1117,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = State_Diag%BudgetChemistryPBL,                     &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetChemistryLevs,            &
+            diagLevs    = State_Diag%BudgetChemistryLevs,                    &
+            mapDataLevs = State_Diag%Map_BudgetChemistryLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Chem,                                           &
             RC          = RC                                                )
