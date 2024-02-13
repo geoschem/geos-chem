@@ -94,17 +94,18 @@ CONTAINS
     INTEGER                      :: STATUS
 
     ! Methane field from GEOS.
-    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
-    IF ( DoIt == 1 ) THEN
-       call MAPL_AddImportSpec(GC,                               &
-               SHORT_NAME         = 'GEOS_CH4',                  &
-               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
-               UNITS              = 'v/v',                       &
-               DIMS               = MAPL_DimsHorzVert,           &
-               VLOCATION          = MAPL_VLocationCenter,        &
-               RC=STATUS  )
-       _VERIFY(STATUS)
-    ENDIF
+    ! This is not yet fully implemented. Need corresponding connectivity in Chem_GridComp.
+!    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
+!    IF ( DoIt == 1 ) THEN
+!       call MAPL_AddImportSpec(GC,                               &
+!               SHORT_NAME         = 'GEOS_CH4',                  &
+!               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
+!               UNITS              = 'v/v',                       &
+!               DIMS               = MAPL_DimsHorzVert,           &
+!               VLOCATION          = MAPL_VLocationCenter,        &
+!               RC=STATUS  )
+!       _VERIFY(STATUS)
+!    ENDIF
 
     ! If enabled, create import field 
     CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Import_CO2_from_GOCART:", Default=0, __RC__ )
@@ -478,7 +479,7 @@ CONTAINS
 !
 ! !USES:
 !
-  USE UnitConv_Mod,          ONLY : Convert_Spc_Units
+  USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -503,7 +504,7 @@ CONTAINS
 !
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
-    CHARACTER(LEN=63)            :: OrigUnit
+    INTEGER                      :: OrigUnit
     INTEGER                      :: I, LM, indCO2, indCO, STATUS
     REAL, POINTER                :: CO2(:,:,:)  => null()
     REAL, POINTER                :: COmeso(:,:) => null()
@@ -516,10 +517,16 @@ CONTAINS
 
     IF ( State_Chm%CO2fromGOCART .OR. State_Chm%COmesosphere ) THEN
 
-       ! Make sure concentrations are in kg/kg total (this should already be the case) 
-       CALL Convert_Spc_Units( Input_Opt,         State_Chm,     State_Grid, &
-                               State_Met,         'kg/kg total', RC,        &
-                               OrigUnit=OrigUnit                             )
+       ! Make sure concentrations are in kg/kg total
+       ! (this should already be the case) 
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            outUnit    = KG_SPECIES_PER_KG_TOTAL_AIR,                        &
+            origUnit   = origUnit,                                           &
+            RC         = RC                                                 )
        ASSERT_(RC==GC_SUCCESS)
 
        ! Get index
@@ -559,8 +566,13 @@ CONTAINS
        ENDIF
 
        ! Convert species back to original units
-       CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
-                               OrigUnit,  RC )
+       CALL Convert_Spc_Units(                                               &
+          Input_Opt  = Input_Opt,                                            &
+          State_Chm  = State_Chm,                                            &
+          State_Grid = State_Grid,                                           &
+          State_Met  = State_Met,                                            &
+          outUnit    = origUnit,                                             &
+          RC         = RC                                                   )
        ASSERT_( RC == GC_SUCCESS )
 
     ENDIF
@@ -586,7 +598,7 @@ CONTAINS
 ! !USES:
 !
   USE TIME_MOD,              ONLY : GET_TS_CHEM
-  USE UnitConv_Mod,          ONLY : Convert_Spc_Units
+  USE UnitConv_Mod
   USE ERROR_MOD,             ONLY : SAFE_DIV
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -612,7 +624,7 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonRunPhoto'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
 
-    CHARACTER(LEN=63)            :: OrigUnit
+    INTEGER                      :: origUnit
     REAL, ALLOCATABLE            :: aj(:)
     INTEGER                      :: I, J, L, LM, STATUS
     INTEGER                      :: indCO, indCO2, indO3
@@ -628,9 +640,14 @@ CONTAINS
     IF ( State_Chm%numphoto > 0) THEN
 
        ! Convert to molec/cm3 units are molec/cm3 
-       CALL Convert_Spc_Units( Input_Opt,         State_Chm,    State_Grid, &
-                               State_Met,         'molec/cm3'  , RC,        &
-                               OrigUnit=OrigUnit                             )
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            outUnit    = MOLECULES_SPECIES_PER_CM3,                          &
+            origUnit   = origUnit,                                           &
+            RC         = RC                                                 )
        ASSERT_(RC==GC_SUCCESS)
 
        ! Chemistry time step in secods
@@ -703,8 +720,13 @@ CONTAINS
        ENDDO
 
        ! Convert species back to original units
-       CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
-                               OrigUnit,  RC )
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            outUnit    = origUnit,                                           &
+            RC         = RC                                                 )
        ASSERT_( RC == GC_SUCCESS )
 
        ! Cleanup

@@ -1,3 +1,4 @@
+#ifdef FASTJX
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -105,7 +106,7 @@ CONTAINS
     REAL(fp), INTENT(IN), DIMENSION(L1_     )  :: T_COL
     LOGICAL,  INTENT(IN)                       :: AOD999
     INTEGER,  INTENT(IN)                       :: ILON, ILAT
-    REAL(fp), INTENT(IN), DIMENSION(A_,L1_)    :: AERX_COL ! Aerosol column
+    REAL(fp), INTENT(IN), DIMENSION(AN_,L1_)   :: AERX_COL ! Aerosol column
     REAL(fp), INTENT(IN), DIMENSION(L1_   )    :: T_CLIM   ! Clim. temps (K)
     REAL(fp), INTENT(IN), DIMENSION(L1_   )    :: OOJ      ! O3 col depth (#/cm2)
     REAL(fp), INTENT(IN), DIMENSION(L1_+1 )    :: ZZJ      ! Edge alts (cm)
@@ -168,6 +169,7 @@ CONTAINS
     integer  :: L2EDGE, I,J,K,L,M,KMIE,IDXAER,IM,LU
     INTEGER  :: KMIE2, IR
     real(fp) :: XQO3,XQO2,WAVE, TTTX
+
     ! --------------------------------------------------------------------
     ! For compatibility with GEOS-Chem (SDE 03/30/13)
     REAL(fp) :: QSCALING,LOCALOD,LOCALSSA
@@ -250,6 +252,7 @@ CONTAINS
           DO M=1,3
              IF (AERX_COL(M,L).gt.0e+0_fp) THEN
                 IDXAER=State_Chm%Phot%MIEDX(M)
+
                 ! Cloud (600 nm scaling)
                 QSCALING = QAA(KMIE,IDXAER)/QAA(4,IDXAER)
                 LOCALOD = QSCALING*AERX_COL(M,L)
@@ -269,8 +272,7 @@ CONTAINS
           ! Stratospheric aerosols
           IM=10+(NRHAER*NRH)+1
           DO M=IM,IM+1
-             IDXAER=M-IM+6 !6-STS, 7-NAT
-
+             IDXAER=M-IM+6 !6=SSA/LBS/STS, 7-NAT/ice PSCs
              IF (AERX_COL(M,L).gt.0d0) THEN
                 IF (AOD999) THEN
                    ! Aerosol/dust (999 nm scaling)
@@ -318,6 +320,7 @@ CONTAINS
 
           ! Other aerosol (from new optics LUT)
           DO M=1,5
+
              DO IR=1,5
                 IDXAER=10+(M-1)*NRH+IR
                 IF (AERX_COL(IDXAER,L).gt.0d0) THEN
@@ -423,6 +426,14 @@ CONTAINS
 
     ! Calculate photolysis rates
     call JRATET(PPJ,T_INPUT,FFF, VALJXX,L_,maxChemLev,NJX)
+
+    ! Set diagnostics for 600 nm optical depth
+    IF ( State_Diag%Archive_OD600 ) THEN
+       State_Diag%OD600(ILON,ILAT,1:L_) = OD600(1:L_)
+    ENDIF
+    IF ( State_Diag%Archive_TCOD600 ) THEN
+       State_Diag%TCOD600(ILON,ILAT) = SUM(OD600(1:L_))
+    ENDIF
 
     ! Free pointers
     QQAA  => NULL()
@@ -2968,3 +2979,4 @@ CONTAINS
 !EOC
 
 END MODULE FJX_MOD
+#endif

@@ -26,7 +26,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      ${RUNDIR_MET_DIR}
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
@@ -171,7 +170,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> LUT data format        :       nc
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : on    NO
-    --> LightningClimatology   :       false
+    --> LightningClimatology   :       ${RUNDIR_LIGHTNOX_CLIM}
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> Use fertilizer NOx     :       true
@@ -231,8 +230,19 @@ VerboseOnCores:              root       # Accepted values: root all
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
-130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS1/SS2/SS3/SS4/SS5/SS6/SS7/SS8/SS9/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
-131     TOMAS_DustDead         : ${RUNDIR_TOMAS_DUSTDEAD}   DUST1/DUST2/DUST3/DUST4/DUST5/DUST6/DUST7/DUST8/DUST9/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
+130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
+    --> Reduce SS cold water   :       true
+    --> Blowing Snow SS        :       true
+    --> NH FYI snow salinity   :       0.1
+    --> NH MYI snow salinity   :       0.05
+    --> SH FYI snow salinity   :       0.03
+    --> SH MYI snow salinity   :       0.015
+    --> NH snow age            :       3.0
+    --> SH snow age            :       1.5
+    --> N per snowflake        :       1.0
+    --> Model sea salt Br-     :       false
+    --> Br- mass ratio         :       2.11e-3
+131     TOMAS_DustDead         : ${RUNDIR_TOMAS_DUSTDEAD}   DUST01/DUST02/DUST03/DUST04/DUST05/DUST06/DUST07/DUST08/DUST09/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -1634,10 +1644,13 @@ VerboseOnCores:              root       # Accepted values: root all
 (((CEDS_GBDMAPS
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS.rc
 )))CEDS_GBDMAPS
+
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
@@ -2650,9 +2663,11 @@ VerboseOnCores:              root       # Accepted values: root all
 )))CEDS_GBDMAPS_SHIP
 
 (((CEDS_SHIP_byFuelType
-(((.not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+(((.not.CEDS_GBDMAPS_SHIP
+(((.not.CEDSv2_SHIP
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_SHIP_byFuelType.rc
-))).not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+))).not.CEDSv2_SHIP
+))).not.CEDS_GBDMAPS_SHIP
 )))CEDS_SHIP_byFuelType
 
 #==============================================================================
@@ -3289,6 +3304,7 @@ VerboseOnCores:              root       # Accepted values: root all
 )))SeaSalt
 (((TOMAS_Jeagle
 130 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.$YYYY.nc MODIS 2005-2014/1-12/1/0 C xy 1 * - 1 1
+130 MULTISEAICE $ROOT/MULTI_ICE/v2021-07/multiyearice.merra2.05x0625.$YYYY.nc     FRSEAICE 1984-2017/1-12/1-31/0 C xy 1 * - 1 1
 
 # Climatology CHLR
 #130 MODIS_CHLR $ROOT/MODIS_CHLR/v2019-11/MODIS.CHLRv.V5.generic.025x025.Clim.nc MODIS 2007/1-12/1/0 C xy 1 * - 1 1

@@ -2,13 +2,13 @@
 
 #SBATCH -c 8
 #SBATCH -N 1
-#SBATCH -t 0-1:30
+#SBATCH -t 0-2:30
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=6000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 8
-#BSUB -W 1:30
+#BSUB -W 2:30
 #BSUB -R "rusage[mem=8GB] span[ptile=1] select[mem < 1TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
@@ -124,7 +124,7 @@ rm -f "${results}"
 print_to_log "${SEP_MAJOR}"                               "${results}"
 print_to_log "GCHP: Compilation Test Results"             "${results}"
 print_to_log ""                                           "${results}"
-print_to_log "GCClassic #${head_gchp}"                    "${results}"
+print_to_log "GCHP      #${head_gchp}"                    "${results}"
 print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
 print_to_log "HEMCO     #${head_hco}"                     "${results}"
 print_to_log ""                                           "${results}"

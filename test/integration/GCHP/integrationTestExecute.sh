@@ -2,13 +2,13 @@
 
 #SBATCH -n 24
 #SBATCH -N 1
-#SBATCH -t 0-3:30
+#SBATCH -t 0-5:00
 #SBATCH -p REQUESTED_PARTITION
 #SBATCH --mem=90000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
-#BSUB -W 3:30
+#BSUB -W 5:00
 #BSUB -R "rusage[mem=90GB] span[ptile=1] select[mem < 2TB]"
 #BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
 #BSUB -o lsf-%J.txt
@@ -125,7 +125,7 @@ rm -f "${results}"
 print_to_log "${SEP_MAJOR}"                               "${results}"
 print_to_log "GCHP: Execution Test Results"               "${results}"
 print_to_log ""                                           "${results}"
-print_to_log "GCClassic #${head_gchp}"                    "${results}"
+print_to_log "GCHP      #${head_gchp}"                    "${results}"
 print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
 print_to_log "HEMCO     #${head_hco}"                     "${results}"
 print_to_log ""                                           "${results}"
@@ -174,7 +174,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gchp" "${runAbsPath}")
+        exeFile=$(exe_name "gchp" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
