@@ -86,6 +86,11 @@ MODULE State_Grid_Mod
      REAL(fp),  POINTER :: YSIN       (:,:) ! SIN( lat edges )
      REAL(fp),  POINTER :: Area_M2    (:,:) ! Grid box area [m2]
 
+#if defined( MODEL_GEOS )
+     ! Are we in the predictor step?
+     LOGICAL            :: PredictorIsActive
+#endif
+
   END TYPE GrdState
 !
 ! !REMARKS:
@@ -114,7 +119,6 @@ CONTAINS
 !
   SUBROUTINE Init_State_Grid( Input_Opt, State_Grid, RC )
 !
-! !USES:
 !
     USE Input_Opt_Mod, ONLY : OptInput
 !
@@ -195,6 +199,10 @@ CONTAINS
     State_Grid%YEdge_R      => NULL()
     State_Grid%YSIN         => NULL()
     State_Grid%Area_M2      => NULL()
+
+#if defined( MODEL_GEOS )
+    State_Grid%PredictorIsActive = .FALSE.
+#endif
 
    END SUBROUTINE Init_State_Grid
 !EOC

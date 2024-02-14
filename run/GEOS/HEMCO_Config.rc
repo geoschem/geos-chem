@@ -1421,6 +1421,12 @@ Warnings:                    1
 * surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
 )))OCEAN_O3_DRYDEP
 
+# GEOS analysis fields
+##* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1
+* CDAS_O3  /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1
+* CDAS_NO2 /see/extdata NO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1
+* CDAS_SO2 /see/extdata SO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1
+
 ### END SECTION BASE EMISSIONS 
 
 ####################################################################################
