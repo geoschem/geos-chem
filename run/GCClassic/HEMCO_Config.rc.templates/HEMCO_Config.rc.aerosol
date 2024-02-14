@@ -1713,10 +1713,10 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST1 - 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST2 - 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST3 - 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST4 - 3 2
+0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST1 - 3 2
+0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST2 - 3 2
+0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST3 - 3 2
+0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
 )))OFFLINE_DUST
 
@@ -1724,25 +1724,25 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- Offline biogenic VOC emissions ---
 #==============================================================================
 (((OFFLINE_BIOGENICVOC
-0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ACET -   4 2
-0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ALD2 -   4 2
-0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s C2H4 -   4 2
-0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s EOH  -   4 2
-0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ISOP -   4 2
+0 BIOGENIC_ACET      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc ACET_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ACET -   4 2
+0 BIOGENIC_ALD2      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc ALD2_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ALD2 -   4 2
+0 BIOGENIC_C2H4      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc C2H4_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s C2H4 -   4 2
+0 BIOGENIC_EOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s EOH  -   4 2
+0 BIOGENIC_ISOP      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc ISOP_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s ISOP -   4 2
 0 BIOGENIC_ISOP_SOAP -                                                                                                            -             -                     -   -  -       SOAP 610 4 2
 0 BIOGENIC_ISOP_SOAS -                                                                                                            -             -                     -   -  -       SOAS 610 4 2
-0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s LIMO -   4 2
+0 BIOGENIC_LIMO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc LIMO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s LIMO -   4 2
 0 BIOGENIC_LIMO_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
 0 BIOGENIC_LIMO_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
-0 BIOGENIC_MOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s MOH  -   4 2
-0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPA -   4 2
+0 BIOGENIC_MOH       $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc MOH_MEGAN     1980-2022/1-12/1-31/* EFY xy kg/m2/s MOH  -   4 2
+0 BIOGENIC_MTPA      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc MTPA_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPA -   4 2
 0 BIOGENIC_MTPA_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
 0 BIOGENIC_MTPA_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
-0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPO -   4 2
+0 BIOGENIC_MTPO      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc MTPO_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s MTPO -   4 2
 0 BIOGENIC_MTPO_SOAP -                                                                                                            -             -                     -   -  -       SOAP 611 4 2
 0 BIOGENIC_MTPO_SOAS -                                                                                                            -             -                     -   -  -       SOAS 611 4 2
-0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s PRPE -   4 2
-0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/biovoc_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s SESQ -   4 2
+0 BIOGENIC_PRPE      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc PRPE_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s PRPE -   4 2
+0 BIOGENIC_SESQ      $ROOT/OFFLINE_BIOVOC/v2021-12/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/biovoc_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc SESQ_MEGAN    1980-2022/1-12/1-31/* EFY xy kg/m2/s SESQ -   4 2
 0 BIOGENIC_SESQ_SOAP -                                                                                                            -             -                     -   -  -       SOAP 612 4 2
 0 BIOGENIC_SESQ_SOAS -                                                                                                            -             -                     -   -  -       SOAS 612 4 2
 )))OFFLINE_BIOGENICVOC
@@ -1752,13 +1752,13 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((OFFLINE_SEASALT
 (((.not.SeaSalt
-0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALA    -   3 2
+0 SEASALT_SALA    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/seasalt_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc SALA_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALA    -   3 2
 0 SEASALT_SALAAL  -                                                                                                              -            -                     -   -  -       SALAAL  615 3 2
 0 SEASALT_SALACL  -                                                                                                              -            -                     -   -  -       SALACL  616 3 2
 (((CalcBrSeasalt
 0 SEASALT_BrSALA  -                                                                                                              -            -                     -   -  -       BrSALA  617 3 2
 )))CalcBrSeasalt
-0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_MET_NATIVE_RES}/$YYYY/$MM/seasalt_${RUNDIR_MET_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALC    -   3 2
+0 SEASALT_SALC    $ROOT/OFFLINE_SEASALT/v2019-01/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/seasalt_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc SALC_TOTAL   1980-2022/1-12/1-31/* EFY xy kg/m2/s SALC    -   3 2
 0 SEASALT_SALCAL  -                                                                                                              -            -                     -   -  -       SALCAL  615 3 2
 0 SEASALT_SALCCL  -                                                                                                              -            -                     -   -  -       SALCCL  616 3 2
 (((CalcBrSeasalt
