@@ -1851,11 +1851,15 @@ CONTAINS
     DAERSL      => State_Chm%AerMass%DAERSL
     WAERSL      => State_Chm%AerMass%WAERSL
 
-    ! Check that species units are kg/kg dry air
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    CALL Check_Units(                                                        &
+         State_Chm = State_Chm,                                              &
+         mapping   = State_Chm%Map_All,                                      &
+         units     = KG_SPECIES_PER_KG_DRY_AIR,                              &
+         RC        = RC                                                     )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
