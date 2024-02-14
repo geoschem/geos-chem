@@ -254,7 +254,7 @@ Collections:
     template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/UV_ALBEDO/uvalbedo.geos.2x25.nc
   GEOSCHEMchem_Condensed_Yuan_proc_MODIS_XLAI:
      template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-     valid_range: "2000-01-01T00:00/2020-12-31T00:00"
+     valid_range: "2000-01-01T00:00/2030-12-31T00:00"
   GEOSCHEMchem_Oi_prj_predicted_iodide:
     template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
   GEOSCHEMchem_WOA_2013_salinity:
