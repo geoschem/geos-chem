@@ -54,6 +54,7 @@ MODULE GEOS_Analysis
   TYPE AnaOptions
      CHARACTER(LEN=63)            :: SpecName
      LOGICAL                      :: Active
+     LOGICAL                      :: DryRun
      INTEGER                      :: AnalysisFreq
      INTEGER                      :: AnalysisHour
      INTEGER                      :: AnalysisMinute
@@ -297,10 +298,13 @@ CONTAINS
     ENDIF  
 
     ! Reset diagnostics
-    IF ( State_Diag%Archive_AnaInc     ) State_Diag%AnaInc(:,:,:,:)     = 0.0
-    IF ( State_Diag%Archive_AnaIncFrac ) State_Diag%AnaIncFrac(:,:,:,:) = 0.0
-    IF ( State_Diag%Archive_AnaMask    ) State_Diag%AnaMask(:,:,:,:)    = 0.0
-    IF ( State_Diag%Archive_AnaMaskSum ) State_Diag%AnaMaskSum(:,:,:)   = 0.0
+    IF ( State_Diag%Archive_AnaInc        ) State_Diag%AnaInc(:,:,:,:)      = 0.0
+    IF ( State_Diag%Archive_AnaIncFrac    ) State_Diag%AnaIncFrac(:,:,:,:)  = 0.0
+    IF ( State_Diag%Archive_AnaMask       ) State_Diag%AnaMask(:,:,:,:)     = 0.0
+    IF ( State_Diag%Archive_AnaMaskSum    ) State_Diag%AnaMaskSum(:,:,:)    = 0.0
+    IF ( State_Diag%Archive_AnaIncCol     ) State_Diag%AnaIncCol(:,:,:)     = 0.0
+    IF ( State_Diag%Archive_AnaIncColTrop ) State_Diag%AnaIncColTrop(:,:,:) = 0.0
+    IF ( State_Diag%Archive_AnaIncColPbl  ) State_Diag%AnaIncColPbl(:,:,:)  = 0.0
 
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
@@ -401,7 +405,7 @@ CONTAINS
   USE State_Diag_Mod,        ONLY : DgnState, DgnMap ! Diagnostics State obj
   USE HCO_Utilities_GC_Mod,  ONLY : HCO_GC_EvalFld
   USE TIME_MOD,              ONLY : GET_TS_CHEM
-  Use PhysConstants,         ONLY : AIRMW
+  Use PhysConstants,         ONLY : AIRMW, AVO, g0
   USE HCOIO_Util_Mod,        ONLY : HCOIO_IsValid 
   USE HCO_State_GC_Mod,      ONLY : HcoState
 !
@@ -440,18 +444,20 @@ CONTAINS
     REAL, ALLOCATABLE          :: AnaMask2d(:,:),  AnaMask3d(:,:,:)
     REAL, ALLOCATABLE          :: SpcBkg(:,:,:), SpcAsm(:,:,:)
     REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:,:), Spc2Asm(:,:,:,:)
+    REAL, ALLOCATABLE          :: AnaIncCol(:,:), AnaIncColTrop(:,:), AnaIncColPbl(:,:) 
     INTEGER                    :: I, J, L, N, IM, JM, LM, indSpc
     INTEGER, ALLOCATABLE       :: indSpc2(:)
     INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
-    REAL                       :: wgt, tropwgt, stratwgt
+    REAL                       :: wgt, tropwgt, stratwgt, pblwgt
     REAL                       :: DilFact, tsChem
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc
     REAL, ALLOCATABLE          :: mwSpc2(:)
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
-    LOGICAL                    :: UpdateSpec2
+    REAL                       :: IncConc, IncCol 
+    LOGICAL                    :: UpdateSpec2, DoIncColDiag
     CHARACTER(LEN=255)         :: Iam
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc 
 
@@ -561,8 +567,13 @@ CONTAINS
 
        ! Verbose
        IF ( am_I_Root .AND. (iopt%Verbose>0) ) THEN
-          WRITE(*,100) SpecName,yy,mm,dd,h,m
-100       FORMAT( "GEOS-Chem: apply analysis for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          IF ( .NOT. iopt%DryRun ) THEN
+             WRITE(*,100) SpecName,yy,mm,dd,h,m
+100          FORMAT( "GEOS-Chem: apply analysis for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          ELSE
+             WRITE(*,110) SpecName,yy,mm,dd,h,m
+110          FORMAT( "GEOS-Chem: do analysis dry-run for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          ENDIF
        ENDIF
 
        ! Select GEOS-Chem index and molecular weight for analysis species. Also get the same for 2nd species (if used) 
@@ -648,6 +659,22 @@ CONTAINS
        IF ( State_Diag%Archive_AnaMaskSum ) THEN
           ALLOCATE(AnaMask2d(IM,JM)) 
           AnaMask2d = 0.0
+       ENDIF
+       DoIncColDiag = .FALSE.
+       IF ( State_Diag%Archive_AnaIncCol ) THEN
+          ALLOCATE(AnaIncCol(IM,JM)) 
+          AnaIncCol = 0.0
+          DoIncColDiag = .TRUE.
+       ENDIF
+       IF ( State_Diag%Archive_AnaIncColTrop ) THEN
+          ALLOCATE(AnaIncColTrop(IM,JM)) 
+          AnaIncColTrop = 0.0
+          DoIncColDiag = .TRUE.
+       ENDIF
+       IF ( State_Diag%Archive_AnaIncColPbl ) THEN
+          ALLOCATE(AnaIncColPbl(IM,JM)) 
+          AnaIncColPbl = 0.0
+          DoIncColDiag = .TRUE.
        ENDIF
  
        ! Number of negative cells
@@ -762,6 +789,23 @@ CONTAINS
              IF ( ALLOCATED(AnaMask2d ) ) AnaMask2d(I,J)   = AnaMask2d(I,J) + 1.0
              IF ( ALLOCATED(AnaMask3d ) ) AnaMask3d(I,J,L) = 1.0 
 
+             ! Update column diagnostics
+             IF ( DoIncColDiag ) THEN 
+                ! Increment (kg/kg total)
+                !IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-Q(I,J,L)) / MAPL_AIRMW * mwSpc
+                !const   = MAPL_AVOGAD / ( MAPL_GRAV * mwSpc )
+                !IncCol  = IncConc * ( PLE(I,J,L+LB) - PLE(I,J,L+LB-1) ) * const / 1.0e4 / 1.0e15
+                IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-State_Met%SPHU(I,J,L)/1000.) / AIRMW
+                IncCol  = IncConc * 100.*(State_Met%PEDGE(I,J,L)-State_Met%PEDGE(I,J,L+1)) * (AVO*1000./g0) / 1.0e19
+                IF ( ALLOCATED(AnaIncCol    ) ) AnaIncCol(I,J)     = AnaIncCol(I,J)     + IncCol
+                IF ( ALLOCATED(AnaIncColTrop) ) AnaIncColTrop(I,J) = AnaIncColTrop(I,J) + (IncCol*tropwgt)
+                IF ( ALLOCATED(AnaIncColPbl) ) THEN
+                   pblwgt = MAX(0.0,MIN(1.0,(State_Met%PEDGE(I,J,L)-(State_Met%PBL_TOP_hPa(I,J))) &
+                          / (State_Met%PEDGE(I,J,L)-State_Met%PEDGE(I,J,L+1))))
+                   AnaIncColPbl(I,J) = AnaIncColPbl(I,J) + (IncCol*pblwgt)
+                ENDIF
+             ENDIF
+
              ! Eventually update dependent species to maintain concentration ratio of species 2 / species 1
              IF ( iopt%nSpec2>0 ) THEN
                 DO N=1,iopt%nSpec2
@@ -799,11 +843,13 @@ CONTAINS
 
        ! Pass back to State_Chm%Species array: convert v/v dry to kg/kg total
        ! -------------------------------------------------------------------------------------------
-       State_Chm%Species(indSpc)%Conc(:,:,:) = SpcAsm(:,:,:) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc
-       IF ( iopt%nSpec2 > 0 ) THEN
-          DO N=1,iopt%nSpec2 
-             State_Chm%Species(indSpc2(N))%Conc(:,:,:) = Spc2Asm(:,:,:,N) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc2(N)
-          ENDDO
+       IF ( .NOT. iopt%DryRun ) THEN
+          State_Chm%Species(indSpc)%Conc(:,:,:) = SpcAsm(:,:,:) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc
+          IF ( iopt%nSpec2 > 0 ) THEN
+             DO N=1,iopt%nSpec2 
+                State_Chm%Species(indSpc2(N))%Conc(:,:,:) = Spc2Asm(:,:,:,N) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc2(N)
+             ENDDO
+          ENDIF
        ENDIF
 
        ! Write out diagnostics as needed
@@ -857,20 +903,41 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! IncCol 
+       IF ( State_Diag%Archive_AnaIncCol ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncCol, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncCol(:,:,DgnID) = AnaIncCol(:,:)
+       ENDIF
+
+       ! IncColTrop 
+       IF ( State_Diag%Archive_AnaIncColTrop ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncColTrop, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncColTrop(:,:,DgnID) = AnaIncColTrop(:,:)
+       ENDIF
+
+       ! IncColPbl 
+       IF ( State_Diag%Archive_AnaIncColPbl ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncColPbl, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncColPbl(:,:,DgnID) = AnaIncColPbl(:,:)
+       ENDIF
+
     ENDIF ! HasField
 
     ! Cleanup
     ! -------
-    IF ( ALLOCATED(SpcBkg    ) ) DEALLOCATE(SpcBkg)
-    IF ( ALLOCATED(SpcAsm    ) ) DEALLOCATE(SpcAsm)
-    IF ( ALLOCATED(Spc2Bkg   ) ) DEALLOCATE(Spc2Bkg)
-    IF ( ALLOCATED(Spc2Asm   ) ) DEALLOCATE(Spc2Asm)
-    IF ( ALLOCATED(indSpc2   ) ) DEALLOCATE(indSpc2)
-    IF ( ALLOCATED(mwSpc2    ) ) DEALLOCATE(mwSpc2)
-    IF ( ASSOCIATED(AnaPtr   ) ) DEALLOCATE(AnaPtr)
-    IF ( ASSOCIATED(MskPtr   ) ) DEALLOCATE(MskPtr)
-    IF ( ALLOCATED(AnaMask2d ) ) DEALLOCATE(AnaMask2d)
-    IF ( ALLOCATED(AnaMask3d ) ) DEALLOCATE(AnaMask3d) 
+    IF ( ALLOCATED(SpcBkg        ) ) DEALLOCATE(SpcBkg)
+    IF ( ALLOCATED(SpcAsm        ) ) DEALLOCATE(SpcAsm)
+    IF ( ALLOCATED(Spc2Bkg       ) ) DEALLOCATE(Spc2Bkg)
+    IF ( ALLOCATED(Spc2Asm       ) ) DEALLOCATE(Spc2Asm)
+    IF ( ALLOCATED(indSpc2       ) ) DEALLOCATE(indSpc2)
+    IF ( ALLOCATED(mwSpc2        ) ) DEALLOCATE(mwSpc2)
+    IF ( ASSOCIATED(AnaPtr       ) ) DEALLOCATE(AnaPtr)
+    IF ( ASSOCIATED(MskPtr       ) ) DEALLOCATE(MskPtr)
+    IF ( ALLOCATED(AnaMask2d     ) ) DEALLOCATE(AnaMask2d)
+    IF ( ALLOCATED(AnaMask3d     ) ) DEALLOCATE(AnaMask3d) 
+    IF ( ALLOCATED(AnaIncCol     ) ) DEALLOCATE(AnaIncCol) 
+    IF ( ALLOCATED(AnaIncColTrop ) ) DEALLOCATE(AnaIncColTrop) 
+    IF ( ALLOCATED(AnaIncColPbl  ) ) DEALLOCATE(AnaIncColPbl) 
 
     iopt => NULL()
 
@@ -1026,6 +1093,11 @@ CONTAINS
     CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
     AnaConfig(ispec)%Active = v_bool
+
+    key = TRIM(pkey)//"%DryRun"
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%DryRun = v_bool
 
     ! Analysis frequency
     key = TRIM(pkey)//"%AnalysisFreq"
@@ -1197,7 +1269,8 @@ CONTAINS
     key = TRIM(pkey)//"%MinConc"
     CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='1.0e-20' )
     IF ( RC /= GC_SUCCESS ) RETURN
-    AnaConfig(ispec)%MinConc = Cast_and_RoundOff( v_str, places=2 )
+    READ( v_str, * ) AnaConfig(ispec)%MinConc 
+    !AnaConfig(ispec)%MinConc = Cast_and_RoundOff( v_str, places=2 )
 
     ! Error mode 
     key = TRIM(pkey)//"%ErrorMode"
@@ -1269,6 +1342,7 @@ CONTAINS
        WRITE(6,*) 'Analysis settings for GEOS-Chem species ',TRIM(AnaConfig(ispec)%SpecName),':'
        WRITE(6,*) 'Active: ',AnaConfig(ispec)%Active
        IF ( AnaConfig(ispec)%Active ) THEN
+          WRITE(6,*) '- Dry run mode                  : ',AnaConfig(ispec)%DryRun
           WRITE(6,*) '- Analysis frequency            : ',AnaConfig(ispec)%AnalysisFreq
           WRITE(6,*) '- Analysis hour                 : ',AnaConfig(ispec)%AnalysisHour
           WRITE(6,*) '- Analysis minute               : ',AnaConfig(ispec)%AnalysisMinute

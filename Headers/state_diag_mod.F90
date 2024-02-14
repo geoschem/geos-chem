@@ -1265,6 +1265,18 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_AnaMaskSum
      LOGICAL                     :: Archive_AnaMaskSum
 
+     REAL(f4),           POINTER :: AnaIncCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaIncCol
+     LOGICAL                     :: Archive_AnaIncCol
+
+     REAL(f4),           POINTER :: AnaIncColTrop(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaIncColTrop
+     LOGICAL                     :: Archive_AnaIncColTrop
+
+     REAL(f4),           POINTER :: AnaIncColPbl(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_AnaIncColPbl
+     LOGICAL                     :: Archive_AnaIncColPbl
+
      !----------------------------------------------------------------------
      ! Registry of variables contained within State_Diag
      !----------------------------------------------------------------------
@@ -2435,6 +2447,18 @@ CONTAINS
     State_Diag%AnaMaskSum                          => NULL()
     State_Diag%Map_AnaMaskSum                      => NULL()
     State_Diag%Archive_AnaMaskSum                  = .FALSE. 
+
+    State_Diag%AnaIncCol                           => NULL()
+    State_Diag%Map_AnaIncCol                       => NULL()
+    State_Diag%Archive_AnaIncCol                   = .FALSE. 
+
+    State_Diag%AnaIncColTrop                       => NULL()
+    State_Diag%Map_AnaIncColTrop                   => NULL()
+    State_Diag%Archive_AnaIncColTrop               = .FALSE. 
+
+    State_Diag%AnaIncColPbl                        => NULL()
+    State_Diag%Map_AnaIncColPbl                    => NULL()
+    State_Diag%Archive_AnaIncColPbl                = .FALSE. 
 
   END SUBROUTINE Zero_State_Diag
 !EOC
@@ -8045,6 +8069,66 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'AnaIncCol' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaIncCol,                           &
+            archiveData    = State_Diag%Archive_AnaIncCol,                   &
+            mapData        = State_Diag%Map_AnaIncCol,                       &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'AnaIncColTrop' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaIncColTrop,                       &
+            archiveData    = State_Diag%Archive_AnaIncColTrop,               &
+            mapData        = State_Diag%Map_AnaIncColTrop,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'AnaIncColPbl' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%AnaIncColPbl,                        &
+            archiveData    = State_Diag%Archive_AnaIncColPbl,                &
+            mapData        = State_Diag%Map_AnaIncColPbl,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        !-------------------------------------------------------------------
        ! Total organic aerosol mass [ug/m3]
        !-------------------------------------------------------------------
@@ -12233,6 +12317,24 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'AnaIncCol',                                   &
+                   Ptr2Data = State_Diag%AnaIncCol,                          &
+                   mapData  = State_Diag%Map_AnaIncCol,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AnaIncColTrop',                               &
+                   Ptr2Data = State_Diag%AnaIncColTrop,                      &
+                   mapData  = State_Diag%Map_AnaIncColTrop,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'AnaIncColPbl',                                &
+                   Ptr2Data = State_Diag%AnaIncColPbl,                       &
+                   mapData  = State_Diag%Map_AnaIncColPbl,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 #if defined(MODEL_GEOS) || defined(MODEL_WRF)
     !=======================================================================
     ! These fields are only used when GEOS-Chem
@@ -13418,6 +13520,24 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'ANAMASKSUM' ) THEN
        IF ( isDesc    ) Desc  = 'Analysis vertical counts'
        IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAINCCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'Vertically integrated analysis increments'
+       IF ( isUnits   ) Units = '1e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAINCCOLTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Vertically integrated analysis increments in troposphere'
+       IF ( isUnits   ) Units = '1e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ANAINCCOLPBL' ) THEN
+       IF ( isDesc    ) Desc  = 'Vertically integrated analysis increments in PBL'
+       IF ( isUnits   ) Units = '1e15 molec cm-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ALL'
 
