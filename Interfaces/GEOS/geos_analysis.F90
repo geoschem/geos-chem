@@ -54,6 +54,7 @@ MODULE GEOS_Analysis
   TYPE AnaOptions
      CHARACTER(LEN=63)            :: SpecName
      LOGICAL                      :: Active
+     LOGICAL                      :: DryRun
      INTEGER                      :: AnalysisFreq
      INTEGER                      :: AnalysisHour
      INTEGER                      :: AnalysisMinute
@@ -561,8 +562,13 @@ CONTAINS
 
        ! Verbose
        IF ( am_I_Root .AND. (iopt%Verbose>0) ) THEN
-          WRITE(*,100) SpecName,yy,mm,dd,h,m
-100       FORMAT( "GEOS-Chem: apply analysis for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          IF ( .NOT. iopt%DryRun ) THEN
+             WRITE(*,100) SpecName,yy,mm,dd,h,m
+100          FORMAT( "GEOS-Chem: apply analysis for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          ELSE
+             WRITE(*,110) SpecName,yy,mm,dd,h,m
+110          FORMAT( "GEOS-Chem: do analysis dry-run for species ",A5," for ",I4.4,"-",I2.2,"-",I2.2," ",I2.2,":",I2.2)
+          ENDIF
        ENDIF
 
        ! Select GEOS-Chem index and molecular weight for analysis species. Also get the same for 2nd species (if used) 
@@ -799,11 +805,13 @@ CONTAINS
 
        ! Pass back to State_Chm%Species array: convert v/v dry to kg/kg total
        ! -------------------------------------------------------------------------------------------
-       State_Chm%Species(indSpc)%Conc(:,:,:) = SpcAsm(:,:,:) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc
-       IF ( iopt%nSpec2 > 0 ) THEN
-          DO N=1,iopt%nSpec2 
-             State_Chm%Species(indSpc2(N))%Conc(:,:,:) = Spc2Asm(:,:,:,N) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc2(N)
-          ENDDO
+       IF ( .NOT. iopt%DryRun ) THEN
+          State_Chm%Species(indSpc)%Conc(:,:,:) = SpcAsm(:,:,:) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc
+          IF ( iopt%nSpec2 > 0 ) THEN
+             DO N=1,iopt%nSpec2 
+                State_Chm%Species(indSpc2(N))%Conc(:,:,:) = Spc2Asm(:,:,:,N) * (1.-State_Met%SPHU/1000.) / AIRMW * mwSpc2(N)
+             ENDDO
+          ENDIF
        ENDIF
 
        ! Write out diagnostics as needed
@@ -1026,6 +1034,11 @@ CONTAINS
     CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
     IF ( RC /= GC_SUCCESS ) RETURN
     AnaConfig(ispec)%Active = v_bool
+
+    key = TRIM(pkey)//"%DryRun"
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%DryRun = v_bool
 
     ! Analysis frequency
     key = TRIM(pkey)//"%AnalysisFreq"
@@ -1270,6 +1283,7 @@ CONTAINS
        WRITE(6,*) 'Analysis settings for GEOS-Chem species ',TRIM(AnaConfig(ispec)%SpecName),':'
        WRITE(6,*) 'Active: ',AnaConfig(ispec)%Active
        IF ( AnaConfig(ispec)%Active ) THEN
+          WRITE(6,*) '- Dry run mode                  : ',AnaConfig(ispec)%DryRun
           WRITE(6,*) '- Analysis frequency            : ',AnaConfig(ispec)%AnalysisFreq
           WRITE(6,*) '- Analysis hour                 : ',AnaConfig(ispec)%AnalysisHour
           WRITE(6,*) '- Analysis minute               : ',AnaConfig(ispec)%AnalysisMinute
