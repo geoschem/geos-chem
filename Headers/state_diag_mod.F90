@@ -13291,9 +13291,15 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
-    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SOA' ) THEN
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NIT' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Particulate matter with radii < 2.5 um, SOA'
+            'Particulate matter with radii < 2.5 um, nitrate'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, ammonium'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
