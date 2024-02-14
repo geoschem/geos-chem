@@ -1095,6 +1095,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM25soa(:,:,:)    ! PM25 SOA
      LOGICAL                     :: Archive_PM25soa
 
+     REAL(f4),           POINTER :: PM25nit(:,:,:)     ! PM25 nitrate
+     LOGICAL                     :: Archive_PM25nit
+
+     REAL(f4),           POINTER :: PM25nh4(:,:,:)     ! PM25 ammonium 
+     LOGICAL                     :: Archive_PM25nh4
+
      !%%%%% Species diagnostics %%%%%
      REAL(f4),           POINTER :: PblCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_PblCol
@@ -2158,6 +2164,12 @@ CONTAINS
 
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
+
+    State_Diag%PM25nit                             => NULL()
+    State_Diag%Archive_PM25nit                     = .FALSE.
+
+    State_Diag%PM25nh4                             => NULL()
+    State_Diag%Archive_PM25nh4                     = .FALSE.
 
     State_Diag%PblCol                              => NULL()
     State_Diag%Map_PblCol                          => NULL()
@@ -6871,6 +6883,50 @@ CONTAINS
           RETURN
        ENDIF
 
+       !--------------------------------------------------------------------
+       ! PM25 Nitrate 
+       !--------------------------------------------------------------------
+       diagID = 'PM25nit'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nit,                             &
+            archiveData    = State_Diag%Archive_PM25nit,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 Ammonium 
+       !--------------------------------------------------------------------
+       diagID = 'PM25nh4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nh4,                             &
+            archiveData    = State_Diag%Archive_PM25nh4,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        diagID  = 'TotCol'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -11021,6 +11077,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'PM25nit',                                     &
+                   Ptr2Data = State_Diag%PM25nit,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PM25nh4',                                     &
+                   Ptr2Data = State_Diag%PM25nh4,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'TotCol',                                      &
                    Ptr2Data = State_Diag%TotCol,                             &
                    mapData  = State_Diag%Map_TotCol,                         &
@@ -12044,6 +12110,18 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25SOA' ) THEN
        IF ( isDesc    ) Desc  = &
             'Particulate matter with radii < 2.5 um, SOA'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NIT' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, nitrate'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, ammonium'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
