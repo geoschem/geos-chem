@@ -33,12 +33,21 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
+#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_%y4_%m2.nc4
+#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_%y4_%m2.nc4
+
+# Climatology option (if using make sure two lines below are uncommented and
+# two lines above are commented)
+FLASH_DENS 1 N N F1980-%m2-01T00:00:00 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+CONV_DEPTH 1 N N F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
 #
-# To utilize climatology lightning fields, comment the two lines above and uncomment these lines
-#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
-#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#==============================================================================
+# --- Fields for RRTMG ---
+# Dynamical heating data is only read in when RRTMG FDH/SEFDH is used and
+# must be generated in a reference (companion) run. The time after P at
+# the end should be the RRTMG time step (3 hours by default)
+#==============================================================================
+DynHeating 1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./DynHeating/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 ###############################################################################
 ###
@@ -2107,6 +2116,9 @@ TES_CLIM_CFC12 ppbv N Y - none none CFC12 ./HcoDir/RRTMG/v2018-11/species_clim_p
 TES_CLIM_CFC22 ppbv N Y - none none CFC22 ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_CH4   ppbv N Y - none none CH4   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_N2O   ppbv N Y - none none N2O   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+#
+# Dynamical heating rates from a previous reference (baseline) simulation
+DynHeating Kday-1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./Heating_Baseline/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---

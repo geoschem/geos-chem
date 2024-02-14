@@ -39,6 +39,10 @@ MODULE FullChem_Mod
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
   INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
   INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
+  INTEGER               :: id_PSO4
+#ifdef TOMAS
+  INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
+#endif
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -137,9 +141,8 @@ CONTAINS
     USE UCX_MOD,                  ONLY : UCX_NOX
     USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
-#ifdef BPCH_DIAG
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
-#endif
+    USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -285,6 +288,8 @@ CONTAINS
        IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
                                       State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
     ENDIF
 
     ! Also zero satellite diagnostic archival arrays
@@ -321,12 +326,7 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Zero out certain species
     !========================================================================
     DO N = 1, State_Chm%nSpecies
 
@@ -346,6 +346,12 @@ CONTAINS
                     'LXRO2H', 'LXRO2N', 'LNRO2H', 'LNRO2N' )
                 State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
           END SELECT
+       ENDIF
+
+       ! Sulfate gas/cloud prod diagnostic species
+       IF ( TRIM( SpcInfo%Name ) == 'PH2SO4' .or. &
+            TRIM( SpcInfo%Name ) == 'PSO4AQ' ) THEN
+          State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
        ! Free pointer
@@ -1007,12 +1013,29 @@ CONTAINS
           ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
-          ! Keep track of error boxes
+          ! Keep track of number of error boxes
           IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
           ENDIF
 #endif
        ENDIF
+
+#if defined( MODEL_GEOS )
+       ! Mark integration as erroneous if negative concentrations so that it will be
+       ! repeated below (cakelle2, 2023/10/26)
+       IF ( IERR >= 0 .AND. Input_Opt%KppCheckNegatives >= 0 ) THEN
+          IF ( ( Input_Opt%KppCheckNegatives==0 .AND. State_Met%InStratMeso(I,J,L) ) .OR. &
+               ( L > (  State_Grid%NZ - Input_Opt%KppCheckNegatives) ) ) THEN
+             IF ( ANY(C < 0.0_dp) ) THEN
+                IERR = -999
+                ! Include negative concentration boxes within error box diagnostic
+                IF ( State_Diag%Archive_KppError ) THEN
+                   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDIF
+#endif
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -1021,6 +1044,11 @@ CONTAINS
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
+          ! Check for negative concentrations after first integration
+          IF ( State_Diag%Archive_KppNegatives0 ) THEN
+             State_Diag%KppNegatives0(I,J,L) = REAL( COUNT( C < 0.0_dp ), KIND=4 )
+          ENDIF
+          
           ! # of integrator calls
           IF ( State_Diag%Archive_KppIntCounts ) THEN
              State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
@@ -1077,6 +1105,12 @@ CONTAINS
           ! C with concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
           C         = C_before_integrate
+
+#if defined( MODEL_GEOS )
+          ! In GEOS also inflate the error tolerances (cakelle2, 2023/10/26)
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
@@ -1243,6 +1277,13 @@ CONTAINS
           ! Skip if this is not a GEOS-Chem species
           IF ( SpcID <= 0 ) CYCLE
 
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(N) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_f4
+             ENDIF
+          ENDIF
+
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )
 
@@ -1251,39 +1292,36 @@ CONTAINS
 
        ENDDO
 
-#ifdef BPCH_DIAG
 #ifdef TOMAS
-       !always calculate rate for TOMAS
-       DO F = 1, NFAM
+       !-----------------------------------------------------------------
+       ! FOR TOMAS MICROPHYSICS:
+       !
+       ! Obtain P/L with a unit [kg S] for tracing
+       ! gas-phase sulfur species production (SO2, SO4, MSA)
+       ! (win, 8/4/09)
+       !-----------------------------------------------------------------
 
-          ! Determine dummy species index in KPP
-          KppID =  PL_Kpp_Id(F)
+       ! Calculate H2SO4 production rate [kg s-1] in each
+       ! time step (win, 8/4/09)
+       H2SO4_RATE(I,J,L) = C(ind_PH2SO4) / AVO * 98.e-3_fp * &
+                           State_Met%AIRVOL(I,J,L)    * &
+                           1.0e+6_fp / DT  ! kg s-1 box-1
 
-          !-----------------------------------------------------------------
-          ! FOR TOMAS MICROPHYSICS:
-          !
-          ! Obtain P/L with a unit [kg S] for tracing
-          ! gas-phase sulfur species production (SO2, SO4, MSA)
-          ! (win, 8/4/09)
-          !-----------------------------------------------------------------
+       IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+          H2SO4_RATE(I,J,L) = 0.0d0
+       ENDIF
 
-          ! Calculate H2SO4 production rate [kg s-1] in each
-          ! time step (win, 8/4/09)
-          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
-             ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
-                                 State_Met%AIRVOL(I,J,L)    * &
-                                 1.0e+6_fp / DT
+       PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
+                            State_Met%AIRVOL(I,J,L)    * &
+                            1.0e+6_fp ! kg per timestep box-1
 
-            IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
-              write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
-                 I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
-              H2SO4_RATE(I,J,L) = 0.0d0
-            ENDIF
-          ENDIF
-       ENDDO
-
-#endif
+       IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
+               I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
+          PSO4AQ_RATE(I,J,L) = 0.0d0
+       ENDIF
 #endif
 
 #ifdef MODEL_CESM
@@ -1291,26 +1329,16 @@ CONTAINS
        ! Calculate H2SO4 production rate for coupling to CESM 
        ! (interface to MAM4 nucleation)
        !---------------------------------------------------------------------
-       DO F = 1, NFAM
 
-          ! Determine dummy species index in KPP
-          KppID =  PL_Kpp_Id(F)
+       ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3) = mol/molAir
+       State_Chm%H2SO4_PRDR(I,J,L) = C(id_PSO4) * AIRMW * 1e-3_fp * 1.0e+6_fp /&
+                                     (AVO * State_Met%AIRDEN(I,J,L))
 
-          ! Calculate H2SO4 production rate [mol mol-1] in this timestep 
-          ! (hplin, 1/25/23)
-          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
-             ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3)
-             !         = mol/molAir
-             State_Chm%H2SO4_PRDR(I,J,L) = C(KppID) * AIRMW * 1e-3_fp * 1.0e+6_fp / &
-                                 (AVO * State_Met%AIRDEN(I,J,L))
-
-             IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
-               write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
-                  I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
-               State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
-             ENDIF
-          ENDIF
-       ENDDO
+       IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
+          State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
+       ENDIF
 #endif
 
 #ifdef MODEL_GEOS
@@ -1475,6 +1503,24 @@ CONTAINS
     ENDIF
 #endif
 
+
+#ifdef TOMAS
+       !-----------------------------------------------------------------
+       ! For TOMAS microphysics:
+       !
+       ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
+       !
+       ! SO4 produced via aqueous chemistry is distributed onto 30-bin
+       ! aerosol by TOMAS subroutine AQOXID.
+       !-----------------------------------------------------------------
+
+       CALL TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                          State_Met, State_Diag, RC )
+       IF ( Input_Opt%Verbose ) THEN
+          CALL DEBUG_MSG( '### CHEMSULFATE: a TOMAS_SO4_AQ' )
+       ENDIF
+#endif
+
     !=======================================================================
     ! Archive OH, HO2, O1D, O3P concentrations after solver
     !=======================================================================
@@ -1593,6 +1639,160 @@ CONTAINS
 
   END SUBROUTINE Do_FullChem
 !EOC
+#ifdef TOMAS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: tomas_so4_aq
+!
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and
+!  sulfate mass as a part of the TOMAS aerosol microphysics module
+!  (win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                           State_Met, State_Diag, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE ERROR_MOD
+    USE Input_Opt_Mod,      ONLY : OptINput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN,PSO4AQ_RATE
+    USE UnitConv_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER           :: I, J, L
+    INTEGER           :: k, binact1, binact2
+    INTEGER           :: KMIN
+    INTEGER           :: OrigUnit
+    REAL(fp)          :: SO4OXID
+
+    !=================================================================
+    ! TOMAS_SO4_AQ begins here!
+    !=================================================================
+
+    ! Assume success
+    RC  = GC_SUCCESS
+
+    ! Convert species from to [kg]
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Start of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED )  &
+    !$OMP PRIVATE( I, J, L ) &
+    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
+    !$OMP SCHEDULE( DYNAMIC )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Skip non-chemistry boxes
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+        SO4OXID = PSO4AQ_RATE(I,J,L)
+
+!        print*, 'Here is SO4OXID ',SO4OXID, I,J,L 
+
+!       SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
+!                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g ) ! convert v/v to kg/box
+
+       IF ( SO4OXID > 0e+0_fp ) THEN
+          ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
+          !length being used)
+#if defined( TOMAS12 )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS15 )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS30 )
+          CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK10, .FALSE., BINACT2, State_Chm, RC )
+#else
+          CALL GETACTBIN( I, J, L, id_NK20, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK20, .FALSE., BINACT2, State_Chm, RC )
+#endif
+
+          KMIN = ( BINACT1 + BINACT2 )/ 2.
+
+          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
+                       State_Chm, State_Grid, State_Met, State_Diag, RC )
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Convert species back to original units
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'End of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+  END SUBROUTINE TOMAS_SO4_AQ
+!EOC 
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1654,7 +1854,11 @@ CONTAINS
           ! Print the status of photolysis: on or off
        IF ( Input_Opt%Do_Photolysis ) THEN
           WRITE( 6, 150 )
+#ifdef FASTJX
  150      FORMAT(  '* Photolysis is activated -- rates computed by FAST-JX' )
+#else
+ 150      FORMAT(  '* Photolysis is activated -- rates computed by Cloud-J' )
+#endif
        ELSE
           WRITE( 6, 160 )
  160      FORMAT(  '* Photolysis is off for testing -- using zero J-values'  )
@@ -2521,6 +2725,12 @@ CONTAINS
     id_SALAAL   = Ind_( 'SALAAL'       )
     id_SALC     = Ind_( 'SALC'         )
     id_SALCAL   = Ind_( 'SALCAL'       )
+#ifdef TOMAS
+    id_NK05     = Ind_( 'NK5'          )
+    id_NK08     = Ind_( 'NK8'          )
+    id_NK10     = Ind_( 'NK10'         )
+    id_NK20     = Ind_( 'NK20'         )
+#endif
 
 #ifdef MODEL_GEOS
     ! ckeller
@@ -2622,12 +2832,14 @@ CONTAINS
     !=======================================================================
 
     ! Initialize
-    id_PCO =  -1
+    id_PSO4 = -1
+    id_PCO  = -1
     id_LCH4 = -1
 
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
+
     IF ( nFam > 0 ) THEN
 
        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
@@ -2648,6 +2860,10 @@ CONTAINS
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
+          ! Find the KPP Id corresponding to PSO4
+          ! so that we can save output for TOMAS simulations
+          IF ( TRIM( Fam_Names(N) ) == 'PSO4'  ) id_PSO4  = KppId
+
           ! Exit if an invalid ID is encountered
           IF ( KppId <= 0 ) THEN
              ErrMsg = 'Invalid KPP ID for prod/loss species: '            // &
@@ -2661,6 +2877,20 @@ CONTAINS
        ENDDO
 
     ENDIF
+
+#ifdef MODEL_CESM
+    !--------------------------------------------------------------------
+    ! If we are finding H2SO4_RATE from a fullchem
+    ! simulation for the CESM, throw an error if we cannot find
+    ! the PSO4 prod family in this KPP mechanism.
+    !--------------------------------------------------------------------
+    IF ( id_PSO4 < 1 ) THEN
+       ErrMsg = 'Could not find PSO4 in list of KPP families!  This   ' // &
+                'is needed for State_Chm%H2SO4_PRDR and coupling to CESM!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
 
     !--------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem

@@ -90,7 +90,10 @@ CONTAINS
 !#endif
     USE Time_Mod,                ONLY : Set_Timesteps
     USE UCX_MOD,                 ONLY : INIT_UCX
+
     USE UnitConv_Mod
+    Use Error_Mod,               ONLY : Init_Error
+
 #ifdef ADJOINT
     USE Charpak_Mod,             ONLY : To_UpperCase
 #endif
@@ -517,7 +520,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM .or. &
          Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-       CALL Init_Photolysis ( Input_Opt, State_Chm, State_Diag, RC )
+       CALL Init_Photolysis ( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Init_Photolysis')
     ENDIF
 
@@ -549,6 +552,10 @@ CONTAINS
        CALL INIT_LINEAR_CHEM( Input_Opt, State_Chm, State_Met, State_Grid, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_LINEAR_CHEM')
     ENDIF
+
+    ! Error handling and logging
+    CALL Init_Error(Input_Opt, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling INIT_ERROR')
 
     !-------------------------------------------------------------------------
     ! Diagnostics and tendencies
@@ -633,6 +640,7 @@ CONTAINS
 
     ! Utilities
     USE ErrCode_Mod
+    USE Error_Mod
     USE HCO_Error_Mod
     USE MAPL_MemUtilsMod
     USE Pressure_Mod,       ONLY : Accept_External_Pedge
@@ -643,11 +651,11 @@ CONTAINS
     ! Diagnostics
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
+    USE Diagnostics_Mod,    ONLY : Set_AerMass_Diagnostic
 #ifdef ADJOINT
     USE PhysConstants,      ONLY : AIRMW
     USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
 #endif
-    USE Aerosol_Mod,        ONLY : Set_AerMass_Diagnostic
 
 #if defined( RRTMG )
     USE RRTMG_RAD_TRANSFER_MOD,  ONLY : Do_RRTMG_Rad_Transfer
@@ -761,6 +769,14 @@ CONTAINS
     TYPE(Species),       POINTER   :: ThisSpc
 #endif
 
+    ! For stratospheric adjustment
+    REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
+    REAL(f8), ALLOCATABLE          :: DT_3D_UPDATE(:,:,:)
+    REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
+
+    ! For logging
+    CHARACTER(len=ESMF_MAXSTR)     :: MSG
+
     !=======================================================================
     ! GCHP_CHUNK_RUN begins here
     !=======================================================================
@@ -865,16 +881,16 @@ CONTAINS
     DoTend = ( DoEmis .OR. DoDryDep ) .AND. .NOT. Input_Opt%LTURB
 
     ! testing only
-    IF ( Input_Opt%AmIRoot .and. NCALLS < 10 ) THEN
-       write(*,*) 'GEOS-Chem phase ', Phase, ':'
-       write(*,*) 'DoConv   : ', DoConv
-       write(*,*) 'DoDryDep : ', DoDryDep
-       write(*,*) 'DoEmis   : ', DoEmis
-       write(*,*) 'DoTend   : ', DoTend
-       write(*,*) 'DoTurb   : ', DoTurb
-       write(*,*) 'DoChem   : ', DoChem
-       write(*,*) 'DoWetDep : ', DoWetDep
-       write(*,*) ' '
+    IF ( NCALLS < 10 ) THEN
+       ! Use pfLogger
+       Call Input_Opt%lgr%info('GEOS-Chem phase %i2~:', Phase)
+       Call Input_Opt%lgr%info('DoConv   : %l1', DoConv)
+       Call Input_Opt%lgr%info('DoDryDep : %l1', DoDryDep)
+       Call Input_Opt%lgr%info('DoEmis   : %l1', DoEmis)
+       Call Input_Opt%lgr%info('DoTend   : %l1', DoTend)
+       Call Input_Opt%lgr%info('DoTurb   : %l1', DoTurb)
+       Call Input_Opt%lgr%info('DoChem   : %l1', DoChem)
+       Call Input_Opt%lgr%info('DoWetDep : %l1', DoWetDep)
     ENDIF
 
     !-------------------------------------------------------------------------
@@ -981,28 +997,18 @@ CONTAINS
          RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
+    !=======================================================================
+    ! Always prescribe H2O in both the stratosphere and troposhere in GEOS.
+    ! This is now done right after passing the species from the internal
+    ! state to State_Chm (in Chem_GridCompMod.F90). It is important to do it 
+    ! there to make sure that any H2O tendencies are properly calculated
+    ! cakelle2, 2023/10/14 
+    !=======================================================================
+#if !defined( MODEL_GEOS )
     ! SDE 05/28/13: Set H2O to STT if relevant
     IF ( IND_('H2O','A') > 0 ) THEN
        SetStratH2O = .FALSE.
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Tropospheric H2O is always prescribed (using GEOS Q). For strat H2O
-       ! there are three options, controlled by toggles 'set initial global MR'
-       ! in geoschem_config.yml and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
-       ! (A) never prescribe strat H2O -> both toggles off
-       ! (B) prescribe strat H2O on init time step -> toggle in input.goes on
-       ! (C) always prescribe strat H2O -> toggle in GEOSCHEMchem_GridComp.rc on
-       !=======================================================================
-       IF ( FIRST ) THEN
-          LSETH2O_orig = Input_Opt%LSETH2O
-       ENDIF
-       IF ( FIRST .OR. FrstRewind ) THEN
-          Input_Opt%LSETH2O = LSETH2O_orig
-       ENDIF
-       IF ( Input_Opt%LSETH2O .OR. Input_Opt%AlwaysSetH2O ) THEN
-#else
        IF ( Input_Opt%LSETH2O ) THEN
-#endif
           SetStratH2O = .TRUE.
        ENDIF
        CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, &
@@ -1012,6 +1018,7 @@ CONTAINS
       ! Only force strat once
        IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
+#endif
 
     ! Compute the cosine of the solar zenith angle array:
     !    State_Met%SUNCOS     => COS(SZA) at the current time
@@ -1401,12 +1408,47 @@ CONTAINS
 
        CALL MAPL_TimerOn( STATE, 'GC_RAD' )
 
-       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
-             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-             WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
-500          FORMAT( '#####', 12x, a, 12x, '#####' )
-             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
-       ENDIF
+       If (First_RT) Call Log_Msg('First RRTMG run starting','Info','GCHP_Chunk')
+!       IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
+!             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+!             WRITE( 6, 500 ) 'R R T M G : Radiative Transfer Model (by AER)'
+!500          FORMAT( '#####', 12x, a, 12x, '#####' )
+!             WRITE( 6, '(a)' ) REPEAT( '#', 79 )
+!       ENDIF
+
+       ! Allocate temperature difference arrays
+       If ( Input_Opt%RRTMG_FDH ) Then
+          Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+          _ASSERT(RC==0, 'Error allocating DT_3D')
+
+          ! If using seasonally evolving FDH, need to grab the internal
+          ! state temperature adjustment array
+          If (Input_Opt%RRTMG_SEFDH) Then
+             ! DT_3D will be updated by the first call to RRTMG; also need to
+             ! store the "current" value
+             Allocate(DT_3D_UPDATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+             _ASSERT(RC==0, 'Error allocating DT_3D_UPDATE')
+             ! Store the adjustment as previously projected to this time point
+             DT_3D(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
+             ! This will just hold the end-of-step value
+             DT_3D_UPDATE(:,:,:) = 0.0e+0_fp
+          Else
+             DT_3D(:,:,:) = 0.0e+0_fp
+          End If
+          Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+          _ASSERT(RC==0, 'Error allocating HR_3D')
+          HR_3D(:,:,:) = 0.0e+0_fp
+          ! Read in dynamical heating rates if necessary
+          If (Input_Opt%Read_Dyn_Heating) Then
+             HR_3D(:,:,:) = State_Met%DynHeating(:,:,:)
+          End If
+       Else
+          ! Safer
+          Allocate(DT_3D(0,0,0),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating DT_3D')
+          Allocate(HR_3D(0,0,0),Stat=RC)
+          _ASSERT(RC==0, 'Error deallocating HR_3D')
+       End If
 
        State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
 
@@ -1427,8 +1469,10 @@ CONTAINS
        ! See: wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG
        !
        ! RRTMG outputs (scheduled in HISTORY.rc):
-       !  0-BA  1=O3  2=ME  3=SU   4=NI  5=AM
-       !  6=BC  7=OA  8=SS  9=DU  10=PM  11=ST
+       !   0=BASE and then...
+       !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+       !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS 14=DU
+       !  15=PM  16=ST
        !
        ! State_Diag%RadOutInd(1) will ALWAYS correspond to BASE due
        ! to how it is populated from HISTORY.rc diaglist_mod.F90.
@@ -1440,17 +1484,17 @@ CONTAINS
        N = 1
 
        ! Echo info
-       IF ( Input_Opt%amIRoot ) THEN
-          PRINT *, 'Calling RRTMG to compute fluxes and optics'
-          IF ( FIRST_RT ) THEN
-             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-          ENDIF
-       ENDIF
+       If (First_RT) Then
+          Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+          Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
+       End If
 
        ! Generate mask for species in RT
        CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
 
        ! Compute radiative fluxes for the given output
+       ! If FDH is used, this step will be used to calculate DT and
+       ! fill out DT_3D. The same will be true for HR_3D
        CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                     &
                                    ThisMonth  = Month,                   &
                                    iCld       = State_Chm%RRTMG_iCld,    &
@@ -1462,17 +1506,29 @@ CONTAINS
                                    State_Diag = State_Diag,              &
                                    State_Grid = State_Grid,              &
                                    State_Met  = State_Met,               &
+                                   DT_3D      = DT_3D,                   &
+                                   HR_3D      = HR_3D,                   &
                                    RC         = RC                     )
 
        ! Trap potential errors
        _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer' )
 
+       If (Input_Opt%RRTMG_SEFDH) Then
+          ! Store the calculated update to DT
+          DT_3D_UPDATE(:,:,:) = DT_3D(:,:,:)
+          ! Reset the adjustment to the start of the time step
+          DT_3D(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
+       End If
+
        ! Calculate for rest of outputs, if any
        DO N = 2, State_Diag%nRadOut
-          IF ( Input_Opt%amIRoot .AND. FIRST_RT ) THEN
-             WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
-          ENDIF
+          ! This time around, DT_3D is read in but not overwritten
+          If (First_RT) Then
+             Write(Msg,520) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
+             Call Log_Msg(Trim(Msg),'Info','GCHP_Chunk')
+          End If
           CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
+          ! This call will NOT update DT_3D, so we can just reuse the array
           CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                       ThisMonth  = Month,                  &
                                       iCld       = State_Chm%RRTMG_iCld,   &
@@ -1484,6 +1540,8 @@ CONTAINS
                                       State_Diag = State_Diag,             &
                                       State_Grid = State_Grid,             &
                                       State_Met  = State_Met,              &
+                                      DT_3D      = DT_3D,                  &
+                                      HR_3D      = HR_3D,                  &
                                       RC         = RC          )
           _ASSERT(RC==GC_SUCCESS, 'Error encounted in Do_RRTMG_Rad_Transfer')
        ENDDO
@@ -1491,11 +1549,59 @@ CONTAINS
 520    FORMAT( 5x, '- ', &
                   a4, ' (Index = ', i2.2, ')' )
 
+       ! Copy the adjustment back to DT_3D as calculated in the baseline calculation
+       If (Input_Opt%RRTMG_SEFDH) Then
+           DT_3D(:,:,:) = DT_3D_UPDATE(:,:,:)
+       End If
+
+       ! Store temperature change and heating rate from RRTMG in diagnostics
+       If (Input_Opt%RRTMG_FDH) Then
+           If (State_Diag%Archive_DynHeating) State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
+           ! NB: DT_3D is the temperature adjustment either after equilibration (pure FDH)
+           ! or at the start of the NEXT radiation time step (SEFDH)
+           If (State_Diag%Archive_DTRad     ) State_Diag%DTRad(:,:,:)      = DT_3D(:,:,:)
+           If (Input_Opt%RRTMG_SEFDH) Then
+              State_Chm%TStrat_Adj(:,:,:) = DT_3D(:,:,:)
+           End If
+           RC = 0
+           If (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating DT_3D')
+           If (Allocated(HR_3D)) Deallocate(HR_3D, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating HR_3D')
+           If (Allocated(DT_3D_UPDATE)) Deallocate(DT_3D_UPDATE, STAT=RC)
+           _ASSERT(RC==0, 'Error deallocating DT_3D_UPDATE')
+       End If
+
        IF ( FIRST_RT ) THEN
           FIRST_RT = .FALSE.
        ENDIF
 
        CALL MAPL_TimerOff( STATE, 'GC_RAD' )
+    ELSE
+       ! Set diagnostics to be undefined
+       If (State_Diag%Archive_DTRad            ) State_Diag%DTRad(:,:,:)           = MAPL_UNDEF 
+       If (State_Diag%Archive_DynHeating       ) State_Diag%DynHeating(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWTOA   ) State_Diag%RadAllSkySWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWSurf  ) State_Diag%RadAllSkySWSurf(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkySWTrop  ) State_Diag%RadAllSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWTOA   ) State_Diag%RadAllSkyLWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWSurf  ) State_Diag%RadAllSkyLWSurf(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAllSkyLWTrop  ) State_Diag%RadAllSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWTOA   ) State_Diag%RadClrSkySWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWSurf  ) State_Diag%RadClrSkySWSurf(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkySWTrop  ) State_Diag%RadClrSkySWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWTOA   ) State_Diag%RadClrSkyLWTOA(:,:,:)  = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWSurf  ) State_Diag%RadClrSkyLWSurf(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadClrSkyLWTrop  ) State_Diag%RadClrSkyLWTrop(:,:,:) = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL1        ) State_Diag%RadAODWL1(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL1        ) State_Diag%RadSSAWL1(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL1       ) State_Diag%RadAsymWL1(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL2        ) State_Diag%RadAODWL2(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL2        ) State_Diag%RadSSAWL2(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL2       ) State_Diag%RadAsymWL2(:,:,:)      = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAODWL3        ) State_Diag%RadAODWL3(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadSSAWL3        ) State_Diag%RadSSAWL3(:,:,:)       = MAPL_UNDEF 
+       If (State_Diag%Archive_RadAsymWL3       ) State_Diag%RadAsymWL3(:,:,:)      = MAPL_UNDEF 
     ENDIF
 #endif
 

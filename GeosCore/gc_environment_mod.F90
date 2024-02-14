@@ -79,7 +79,9 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : Init_CMN_FJX
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Grid_Mod,  ONLY : GrdState
@@ -143,6 +145,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
+#ifdef FASTJX
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
@@ -152,6 +155,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
 #ifdef BPCH_DIAG
     !=======================================================================
@@ -903,14 +907,14 @@ CONTAINS
     ENDIF
 
     ! Halt with error if none of the TOMAS aerosol species are defined
-    I = MAX( Ind_('NK1'  ,'A'), 0 ) &
-      + MAX( Ind_('SF1'  ,'A'), 0 ) &
-      + MAX( Ind_('SS1'  ,'A'), 0 ) &
-      + MAX( Ind_('ECOB1','A'), 0 ) &
-      + MAX( Ind_('ECIL1','A'), 0 ) &
-      + MAX( Ind_('OCOB1','A'), 0 ) &
-      + MAX( Ind_('OCIL1','A'), 0 ) &
-      + MAX( Ind_('DUST1','A'), 0 )
+    I = MAX( Ind_('NK01'  ,'A'), 0 ) &
+      + MAX( Ind_('SF01'  ,'A'), 0 ) &
+      + MAX( Ind_('SS01'  ,'A'), 0 ) &
+      + MAX( Ind_('ECOB01','A'), 0 ) &
+      + MAX( Ind_('ECIL01','A'), 0 ) &
+      + MAX( Ind_('OCOB01','A'), 0 ) &
+      + MAX( Ind_('OCIL01','A'), 0 ) &
+      + MAX( Ind_('DUST01','A'), 0 )
 
     IF ( I == 0 ) THEN
        ErrMsg = 'None of the TOMAS aerosols are defined!'
@@ -919,30 +923,23 @@ CONTAINS
     ENDIF
 
     ! Halt with error if sulfate aerosols are not defined
-    IF( Ind_('SF1') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+    IF( Ind_('SF01') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
        ErrMsg = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Halt with error if carbonaceous aerosols are not defined
-    I = MAX( Ind_('ECOB1','A'), 0 ) &
-      + MAX( Ind_('ECIL1','A'), 0 ) &
-      + MAX( Ind_('OCOB1','A'), 0 ) &
-      + MAX( Ind_('OCIL1','A'), 0 )
+    I = MAX( Ind_('ECOB01','A'), 0 ) &
+      + MAX( Ind_('ECIL01','A'), 0 ) &
+      + MAX( Ind_('OCOB01','A'), 0 ) &
+      + MAX( Ind_('OCIL01','A'), 0 )
 
     IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
        ErrMsg = 'Need LCARB on for TOMAS-carb to work (for now)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Halt with error if dust aerosols are turned on.
-    ! TOMAS defines its own dust aerosol species.
-!    IF ( Ind_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
-!       MSG = 'Need to turn off LDUST for TOMAS Dust to work'
-!       CALL ERROR_STOP( MSG, LOCATION )
-!    ENDIF
 
     !=================================================================
     ! All error checks are satisfied, so initialize TOMAS
