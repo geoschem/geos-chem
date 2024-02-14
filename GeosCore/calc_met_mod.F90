@@ -218,6 +218,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL             :: t1,        t2
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
     INTEGER             :: L_CG,      L_TP,       N,         units
@@ -671,8 +672,18 @@ CONTAINS
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
     IF ( UpdtMR ) THEN
+
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
+       t1 = ALL( State_Chm%Species(State_Chm%Map_All)%Units ==               &
+                 KG_SPECIES_PER_KG_DRY_AIR                                  )
+       t2 = ALL( State_Chm%Species(State_Chm%Map_All)%Units ==               &
+                 MOLES_SPECIES_PER_MOLES_DRY_AIR                            )
+       IF ( .not. ( t1 .or. t2 ) ) THEN
+          ErrMsg = 'Incorrect species units found in AIRQNT!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -681,19 +692,16 @@ CONTAINS
 
           units = State_Chm%Species(N)%Units
 
-          IF ( units == KG_SPECIES_PER_KG_DRY_AIR         .or.               &
-               units == MOLES_SPECIES_PER_MOLES_DRY_AIR ) THEN
-             DO L = 1, State_Grid%NZ
-             DO J = 1, State_Grid%NY
-             DO I = 1, State_Grid%NX
-                State_Chm%Species(N)%Conc(I,J,L) =                           &
-                                      State_Chm%Species(n)%Conc(I,J,L) *     &
-                                      State_Met%DP_DRY_PREV(I,J,L)        /  &
-                                      State_Met%DELP_DRY(I,J,L)
-             ENDDO
-             ENDDO
-             ENDDO
-          ENDIF
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             State_Chm%Species(N)%Conc(I,J,L) =                              &
+                                   State_Chm%Species(n)%Conc(I,J,L) *        &
+                                   State_Met%DP_DRY_PREV(I,J,L)     /        &
+                                   State_Met%DELP_DRY(I,J,L)
+          ENDDO
+          ENDDO
+          ENDDO
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
