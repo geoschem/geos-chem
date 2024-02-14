@@ -389,7 +389,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	printf "  1. Native C180 (recommended)\n"
 	printf "  2. Native 0.5x0.625 \n"
 	printf "  3. Pre-processed C180 (not yet available)\n"
-	printf "  4. Pre-processed 0.5x0.625 (not yet available) \n"
+	printf "  4. Pre-processed 0.5x0.625 \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -406,8 +406,7 @@ while [ "${valid_met}" -eq 0 ]; do
 		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
 	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
-		valid_response=0
-		printf "Pre-processed lat-lon GEOS-IT data is not yet available. Try again.\n"
+		met_desc="processed_ll"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
@@ -457,7 +456,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	
 	# Set text files containing settings for met data. Different settings based options aboves.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.preprocessed_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
 	    
 	else
 	    if [[ ${use_discover} = "y" ]]; then
