@@ -298,10 +298,13 @@ CONTAINS
     ENDIF  
 
     ! Reset diagnostics
-    IF ( State_Diag%Archive_AnaInc     ) State_Diag%AnaInc(:,:,:,:)     = 0.0
-    IF ( State_Diag%Archive_AnaIncFrac ) State_Diag%AnaIncFrac(:,:,:,:) = 0.0
-    IF ( State_Diag%Archive_AnaMask    ) State_Diag%AnaMask(:,:,:,:)    = 0.0
-    IF ( State_Diag%Archive_AnaMaskSum ) State_Diag%AnaMaskSum(:,:,:)   = 0.0
+    IF ( State_Diag%Archive_AnaInc        ) State_Diag%AnaInc(:,:,:,:)      = 0.0
+    IF ( State_Diag%Archive_AnaIncFrac    ) State_Diag%AnaIncFrac(:,:,:,:)  = 0.0
+    IF ( State_Diag%Archive_AnaMask       ) State_Diag%AnaMask(:,:,:,:)     = 0.0
+    IF ( State_Diag%Archive_AnaMaskSum    ) State_Diag%AnaMaskSum(:,:,:)    = 0.0
+    IF ( State_Diag%Archive_AnaIncCol     ) State_Diag%AnaIncCol(:,:,:)     = 0.0
+    IF ( State_Diag%Archive_AnaIncColTrop ) State_Diag%AnaIncColTrop(:,:,:) = 0.0
+    IF ( State_Diag%Archive_AnaIncColPbl  ) State_Diag%AnaIncColPbl(:,:,:)  = 0.0
 
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
@@ -402,7 +405,7 @@ CONTAINS
   USE State_Diag_Mod,        ONLY : DgnState, DgnMap ! Diagnostics State obj
   USE HCO_Utilities_GC_Mod,  ONLY : HCO_GC_EvalFld
   USE TIME_MOD,              ONLY : GET_TS_CHEM
-  Use PhysConstants,         ONLY : AIRMW
+  Use PhysConstants,         ONLY : AIRMW, AVO, g0
   USE HCOIO_Util_Mod,        ONLY : HCOIO_IsValid 
   USE HCO_State_GC_Mod,      ONLY : HcoState
 !
@@ -441,18 +444,20 @@ CONTAINS
     REAL, ALLOCATABLE          :: AnaMask2d(:,:),  AnaMask3d(:,:,:)
     REAL, ALLOCATABLE          :: SpcBkg(:,:,:), SpcAsm(:,:,:)
     REAL, ALLOCATABLE          :: Spc2Bkg(:,:,:,:), Spc2Asm(:,:,:,:)
+    REAL, ALLOCATABLE          :: AnaIncCol(:,:), AnaIncColTrop(:,:), AnaIncColPbl(:,:) 
     INTEGER                    :: I, J, L, N, IM, JM, LM, indSpc
     INTEGER, ALLOCATABLE       :: indSpc2(:)
     INTEGER                    :: UnitFlag, DryFlag, NNEG
     REAL                       :: OldRatio, NewRatio 
-    REAL                       :: wgt, tropwgt, stratwgt
+    REAL                       :: wgt, tropwgt, stratwgt, pblwgt
     REAL                       :: DilFact, tsChem
     REAL                       :: frac, diff, maxChange, maxRatio, minRatio
     REAL                       :: mwSpc
     REAL, ALLOCATABLE          :: mwSpc2(:)
     REAL                       :: SpcAna, SpcNew
     REAL                       :: MinConc
-    LOGICAL                    :: UpdateSpec2
+    REAL                       :: IncConc, IncCol 
+    LOGICAL                    :: UpdateSpec2, DoIncColDiag
     CHARACTER(LEN=255)         :: Iam
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc 
 
@@ -655,6 +660,22 @@ CONTAINS
           ALLOCATE(AnaMask2d(IM,JM)) 
           AnaMask2d = 0.0
        ENDIF
+       DoIncColDiag = .FALSE.
+       IF ( State_Diag%Archive_AnaIncCol ) THEN
+          ALLOCATE(AnaIncCol(IM,JM)) 
+          AnaIncCol = 0.0
+          DoIncColDiag = .TRUE.
+       ENDIF
+       IF ( State_Diag%Archive_AnaIncColTrop ) THEN
+          ALLOCATE(AnaIncColTrop(IM,JM)) 
+          AnaIncColTrop = 0.0
+          DoIncColDiag = .TRUE.
+       ENDIF
+       IF ( State_Diag%Archive_AnaIncColPbl ) THEN
+          ALLOCATE(AnaIncColPbl(IM,JM)) 
+          AnaIncColPbl = 0.0
+          DoIncColDiag = .TRUE.
+       ENDIF
  
        ! Number of negative cells
        NNEG = 0
@@ -768,6 +789,23 @@ CONTAINS
              IF ( ALLOCATED(AnaMask2d ) ) AnaMask2d(I,J)   = AnaMask2d(I,J) + 1.0
              IF ( ALLOCATED(AnaMask3d ) ) AnaMask3d(I,J,L) = 1.0 
 
+             ! Update column diagnostics
+             IF ( DoIncColDiag ) THEN 
+                ! Increment (kg/kg total)
+                !IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-Q(I,J,L)) / MAPL_AIRMW * mwSpc
+                !const   = MAPL_AVOGAD / ( MAPL_GRAV * mwSpc )
+                !IncCol  = IncConc * ( PLE(I,J,L+LB) - PLE(I,J,L+LB-1) ) * const / 1.0e4 / 1.0e15
+                IncConc = (SpcAsm(I,J,L) - SpcBkg(I,J,L)) * (1.-State_Met%SPHU(I,J,L)/1000.) / AIRMW
+                IncCol  = IncConc * 100.*(State_Met%PEDGE(I,J,L)-State_Met%PEDGE(I,J,L+1)) * (AVO*1000./g0) / 1.0e19
+                IF ( ALLOCATED(AnaIncCol    ) ) AnaIncCol(I,J)     = AnaIncCol(I,J)     + IncCol
+                IF ( ALLOCATED(AnaIncColTrop) ) AnaIncColTrop(I,J) = AnaIncColTrop(I,J) + (IncCol*tropwgt)
+                IF ( ALLOCATED(AnaIncColPbl) ) THEN
+                   pblwgt = MAX(0.0,MIN(1.0,(State_Met%PEDGE(I,J,L)-(State_Met%PBL_TOP_hPa(I,J))) &
+                          / (State_Met%PEDGE(I,J,L)-State_Met%PEDGE(I,J,L+1))))
+                   AnaIncColPbl(I,J) = AnaIncColPbl(I,J) + (IncCol*pblwgt)
+                ENDIF
+             ENDIF
+
              ! Eventually update dependent species to maintain concentration ratio of species 2 / species 1
              IF ( iopt%nSpec2>0 ) THEN
                 DO N=1,iopt%nSpec2
@@ -865,20 +903,41 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! IncCol 
+       IF ( State_Diag%Archive_AnaIncCol ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncCol, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncCol(:,:,DgnID) = AnaIncCol(:,:)
+       ENDIF
+
+       ! IncColTrop 
+       IF ( State_Diag%Archive_AnaIncColTrop ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncColTrop, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncColTrop(:,:,DgnID) = AnaIncColTrop(:,:)
+       ENDIF
+
+       ! IncColPbl 
+       IF ( State_Diag%Archive_AnaIncColPbl ) THEN
+          DgnID = GetDiagnID ( State_Diag%Map_AnaIncColPbl, indSpc )
+          IF ( DgnID > 0 ) State_Diag%AnaIncColPbl(:,:,DgnID) = AnaIncColPbl(:,:)
+       ENDIF
+
     ENDIF ! HasField
 
     ! Cleanup
     ! -------
-    IF ( ALLOCATED(SpcBkg    ) ) DEALLOCATE(SpcBkg)
-    IF ( ALLOCATED(SpcAsm    ) ) DEALLOCATE(SpcAsm)
-    IF ( ALLOCATED(Spc2Bkg   ) ) DEALLOCATE(Spc2Bkg)
-    IF ( ALLOCATED(Spc2Asm   ) ) DEALLOCATE(Spc2Asm)
-    IF ( ALLOCATED(indSpc2   ) ) DEALLOCATE(indSpc2)
-    IF ( ALLOCATED(mwSpc2    ) ) DEALLOCATE(mwSpc2)
-    IF ( ASSOCIATED(AnaPtr   ) ) DEALLOCATE(AnaPtr)
-    IF ( ASSOCIATED(MskPtr   ) ) DEALLOCATE(MskPtr)
-    IF ( ALLOCATED(AnaMask2d ) ) DEALLOCATE(AnaMask2d)
-    IF ( ALLOCATED(AnaMask3d ) ) DEALLOCATE(AnaMask3d) 
+    IF ( ALLOCATED(SpcBkg        ) ) DEALLOCATE(SpcBkg)
+    IF ( ALLOCATED(SpcAsm        ) ) DEALLOCATE(SpcAsm)
+    IF ( ALLOCATED(Spc2Bkg       ) ) DEALLOCATE(Spc2Bkg)
+    IF ( ALLOCATED(Spc2Asm       ) ) DEALLOCATE(Spc2Asm)
+    IF ( ALLOCATED(indSpc2       ) ) DEALLOCATE(indSpc2)
+    IF ( ALLOCATED(mwSpc2        ) ) DEALLOCATE(mwSpc2)
+    IF ( ASSOCIATED(AnaPtr       ) ) DEALLOCATE(AnaPtr)
+    IF ( ASSOCIATED(MskPtr       ) ) DEALLOCATE(MskPtr)
+    IF ( ALLOCATED(AnaMask2d     ) ) DEALLOCATE(AnaMask2d)
+    IF ( ALLOCATED(AnaMask3d     ) ) DEALLOCATE(AnaMask3d) 
+    IF ( ALLOCATED(AnaIncCol     ) ) DEALLOCATE(AnaIncCol) 
+    IF ( ALLOCATED(AnaIncColTrop ) ) DEALLOCATE(AnaIncColTrop) 
+    IF ( ALLOCATED(AnaIncColPbl  ) ) DEALLOCATE(AnaIncColPbl) 
 
     iopt => NULL()
 
