@@ -2075,6 +2075,7 @@ CONTAINS
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
     USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonSetConc,        &
                                         GEOS_CarbonRunPhoto
+    USE UnitConv_Mod,            ONLY : KG_SPECIES_PER_KG_TOTAL_AIR
 #endif
 
 !

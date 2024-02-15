@@ -504,7 +504,7 @@ CONTAINS
 !
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
-    CHARACTER(LEN=63)            :: OrigUnit
+    INTEGER                      :: OrigUnit
     INTEGER                      :: I, LM, indCO2, indCO, STATUS
     REAL, POINTER                :: CO2(:,:,:)  => null()
     REAL, POINTER                :: COmeso(:,:) => null()
