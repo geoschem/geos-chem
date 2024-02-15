@@ -460,8 +460,15 @@ CONTAINS
     END SELECT
 
     !========================================================================
-    ! Additional error checks
+    ! Additional checks
     !========================================================================
+
+    ! Test if all species have mixing ratio units (needed for AIRQNT)
+    State_Chm%allSpeciesInDryMixingRatio = (                                   &
+         ALL( State_Chm%Species(:)%Units == KG_SPECIES_PER_KG_DRY_AIR         )&
+         .or.                                                                  &
+         ALL( State_Chm%Species(:)%Units == MOLES_SPECIES_PER_MOLES_DRY_AIR   )&
+    )
 
     ! Make sure that all species have consistent "previous_units" values
     IF ( PRESENT( previous_units ) ) THEN

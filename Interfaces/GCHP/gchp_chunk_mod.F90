@@ -510,9 +510,11 @@ CONTAINS
     ! are all still zero at this point since internal state values are not
     ! copied to State_Chm%Species%Conc until Run (post-initialization).
 # if defined( MODEL_GEOS )
-    State_Chm%Species(:)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
+    State_Chm%Species(:)%Units           = KG_SPECIES_PER_KG_TOTAL_AIR
+    State_Chm%allSpeciesInDryMixingRatio = .FALSE.
 #else
-    State_Chm%Species(:)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
+    State_Chm%Species(:)%Units           = MOLES_SPECIES_PER_MOLES_DRY_AIR
+    State_Chm%allSpeciesInDryMixingRatio = .TRUE.
 #endif
     State_Chm%Species(:)%Previous_Units = -1
 

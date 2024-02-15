@@ -675,12 +675,9 @@ CONTAINS
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
-       t1 = ALL( State_Chm%Species(State_Chm%Map_All)%Units ==               &
-                 KG_SPECIES_PER_KG_DRY_AIR                                  )
-       t2 = ALL( State_Chm%Species(State_Chm%Map_All)%Units ==               &
-                 MOLES_SPECIES_PER_MOLES_DRY_AIR                            )
-       IF ( .not. ( t1 .or. t2 ) ) THEN
-          ErrMsg = 'Incorrect species units found in AIRQNT!'
+       IF ( .not. State_Chm%allSpeciesInDryMixingRatio ) THEN
+          ErrMsg = 'All species must be in dry mixing ratio when '      // &
+                   'update_mixing_ratio=.TRUE.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF

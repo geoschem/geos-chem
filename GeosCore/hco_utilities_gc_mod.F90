@@ -1905,6 +1905,9 @@ CONTAINS
 
    ENDDO
 
+   ! At this point all species are in dry mixing ratio
+   State_Chm%allSpeciesInDryMixingRatio = .TRUE.
+
    ! If in debug mode, print out species min and max in [molec/cm3]
    IF ( Input_Opt%Verbose ) THEN
 

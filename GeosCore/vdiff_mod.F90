@@ -2307,12 +2307,16 @@ CONTAINS
     ENDIF
 
     ! Convert species concentration to [v/v dry] aka [mol/mol dry]
+    ! NOTE: Convert units for all all species because we will later
+    ! update mixing ratios after recomputing air quantities with AIRQNT.
+    ! This is needed in order to ensure mass conservation.
+    !   -- Bob Yantosca, Lizzie Lundgren (15 Feb 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
+         mapping        = State_Chm%Map_All,                                 &
          new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -2355,10 +2359,6 @@ CONTAINS
 
     ! Update air quantities and species concentrations with updated
     ! specific humidity (ewl, 10/28/15)
-    !
-    ! NOTE: Prior to October 2015, air quantities were not updated
-    ! with specific humidity modified in VDIFFDR at this point in
-    ! the model
     CALL AirQnt( Input_Opt, State_Chm, State_Grid,                           &
                  State_Met, RC,        Update_Mixing_Ratio=.TRUE.           )
 
@@ -2389,7 +2389,7 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_Advect,                                  &
+         mapping    = State_Chm%Map_All,                                     &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
