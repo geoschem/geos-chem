@@ -32,24 +32,23 @@ operations:
       activate: true
       use_static_bnd_cond: true
     gamma_HO2: 0.2
-
-  convection:
-    activate: false
-
-  dry_deposition:
-    activate: true
-    CO2_effect:
+    autoreduce_solver:
       activate: false
-      CO2_level: 600.0
-      reference_CO2_level: 380.0
-    diag_alt_above_sfc_in_m: 10
-
-  pbl_mixing:
-     activate: true
-     use_non_local_pbl: true
+      use_target_threshold:
+        activate: true
+        oh_tuning_factor: 0.00005
+        no2_tuning_factor: 0.0001
+      use_absolute_threshold:
+        scale_by_pressure: true
+        absolute_threshold: 100.0
+      keep_halogens_active: false
+      append_in_internal_timestep: false
 
   photolysis:
-    input_dir: {DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2020-10/
+    activate: true
+    input_directories:
+      fastjx_input_dir: /see/namelist/file
+      cloudj_input_dir: /see/namelist/file
     overhead_O3:
       use_online_O3_from_model: true
       use_column_O3_from_met: true
@@ -61,6 +60,24 @@ operations:
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 
+  dry_deposition:
+    activate: true
+    CO2_effect:
+      activate: false
+      CO2_level: 600.0
+      reference_CO2_level: 380.0
+    diag_alt_above_sfc_in_m: 10
+
+  wet_deposition:
+    activate: true
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: true
+
+  convection:
+    activate: false
+
   rrtmg_rad_transfer_model:
     activate: false
     aod_wavelengths_in_nm:
@@ -71,7 +88,6 @@ operations:
     all_sky_flux: false
 
   transport:
-    activate: true
     transported_species:
       - ACET
       - ACTA
@@ -102,6 +118,7 @@ operations:
       - BrO
       - BrSALA
       - BrSALC
+      - BUTDI
       - BZCO3H
       - BZPAN
       - C2H2
@@ -148,6 +165,7 @@ operations:
       - ETHP
       - ETNO3
       - ETP
+      - FURA
       - GLYC
       - GLYX
       - H1211
@@ -306,9 +324,6 @@ operations:
       - TSOG2
       - TSOG3
       - XYLE
-
-  wet_deposition:
-    activate: true
 
 #============================================================================
 # Settings for GEOS-Chem aerosols
