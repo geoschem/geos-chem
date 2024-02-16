@@ -8,13 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added operational run scripts for the Imperial College London (ICL) cluster
 - Added new vertical region option to budget diagnostic for fixed bottom and top levels
+- Added GEOS-IT processed lat-lon fields as a valid option when creating GCHP run directories
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
 - Changed exponent 'e' to 'd' for one entry in KPP to prevent precision error in external models
+- Changed GCHP sample run scripts to not print script execution commands to log
+- Changed offline emissions grid resolution templates in config files to be more descriptive
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
+- Fixed GEOS-IT native lat-lon filenames used for clusters other than discover
+- Fixed offline emission paths set when using GEOS-IT meteorology
 
 ## [14.3.0] - 2024-02-07
 ### Added
