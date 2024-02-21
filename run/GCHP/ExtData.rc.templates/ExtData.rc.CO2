@@ -152,7 +152,7 @@ CMSF_CO2_BN     kgC/km2/s N Y F%y4-%m2-01T00:00:00   none   1e-6 CO2_Flux /nobac
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-TIMEZONES count Y Y 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
+TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 #
 ###############################################################################
 ###
