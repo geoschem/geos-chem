@@ -197,7 +197,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: isAdjoint
-    INTEGER            :: in_units
+    INTEGER            :: current_units
 
     ! Pointers
     INTEGER, POINTER   :: theMapping(:)
@@ -225,29 +225,30 @@ CONTAINS
     ENDIF
 
     ! Initialize
-    RC        = GC_SUCCESS
-    in_units  = State_Chm%Species(mapping(1))%Units
-    isAdjoint = .FALSE.
-    thisLoc   = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
-    errNoOut  = 'Conversion to '            // TRIM( UNIT_STR(new_units)) // &
-                ' not defined!'
-    errNoIn   = 'Conversion from '          // TRIM( UNIT_STR(in_units )) // &
-                ' not defined!'
-    errMsg    = 'Error in conversion from ' // TRIM( UNIT_STR(in_units )) // &
-                ' to '                      // TRIM( UNIT_STR(new_units)) // &
-                '!'
+    RC             = GC_SUCCESS
+    current_units  = State_Chm%Species(theMapping(1))%Units
+    isAdjoint      = .FALSE.
+    thisLoc        = ' -> at Convert_Spc_Units (in GeosUtil/unitconv_mod.F90)'
+
+    ! Error messages
+    errNoOut  = 'Conversion to ' // TRIM( UNIT_STR( new_units ) )         // &
+                ' is not defined!'
+    errNoIn   = 'Conversion from ' // TRIM( UNIT_STR( current_units ) )   // &
+                ' is not defined!'
+    errMsg    = 'Error in conversion from ' // &
+                 TRIM( UNIT_STR( current_units ) ) // ' to '              // &
+                 TRIM( UNIT_STR( new_units     ) ) //  '!'
     errUnits  = ''
 
-    ! TODO: Re-enable debug print
     ! Debugging print
     IF ( Input_Opt%Verbose ) THEN
-       WRITE(6,'(a)') '     ### Species Unit Conversion: ' //                &
-                      TRIM( UNIT_STR(in_units ) )          // ' -> ' //      &
-                      TRIM( UNIT_STR(new_units) )          // ' ###'
+       WRITE( 6, 100 ) TRIM( UNIT_STR( current_units ) ),                    &
+                       TRIM( UNIT_STR( new_units     ) )
+ 100   FORMAT( '     ### Species Unit Conversion: ', a, ' -> ', a )
     ENDIF
 
     ! Exit if in and out units are the same
-    IF ( new_units == in_units ) THEN
+    IF ( new_units == current_units ) THEN
        IF ( PRESENT( previous_units ) ) previous_units = new_units
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_End( "Unit conversions", RC )
@@ -256,7 +257,7 @@ CONTAINS
     ENDIF
 
     ! Make sure all species have consistent starting units
-    IF ( .not. Check_Units( State_Chm, in_units, theMapping ) ) THEN
+    IF ( .not. Check_Units( State_Chm, current_units, theMapping ) ) THEN
        errMsg = 'All species do not have consistent starting units!'
        theMapping => NULL()
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -269,7 +270,7 @@ CONTAINS
 #endif
 
     ! Convert based on input and output units
-    SELECT CASE ( in_units )
+    SELECT CASE ( current_units )
 
        !================================================================
        ! Convert from kg/kg dry
@@ -471,7 +472,7 @@ CONTAINS
     !========================================================================
 
     ! Return the previous units (if necessary)
-    IF ( PRESENT( previous_units ) ) previous_units = in_units
+    IF ( PRESENT( previous_units ) ) previous_units = current_units
 
     ! Free pointer
     theMapping => NULL()
