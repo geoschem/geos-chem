@@ -175,16 +175,30 @@ CONTAINS
     INTEGER,        INTENT(OUT)       :: RC             ! Success or failure?
     INTEGER,        OPTIONAL          :: previous_units ! Previous units
 !
-! !REMARKS:
-!  The purpose of optional output argument origUnit is to enable conversion
-!  back to the original units in a second call to Convert_Spc_Units.
-!  For example:
+! !CALLING SEQUENCE:
 !
-!      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,       &
-!                              State_Met, unit,      mapping,     RC  )
-!      ...computation...
-!      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,       &
-!                              State_Met, mapping,   RC               )
+!    ! Convert units from mol/mol dry to kg
+!    CALL Convert_Spc_Units(                    &
+!         Input_Opt      = Input_Opt,           &
+!         State_Chm      = State_Chm,           &
+!         State_Grid     = State_Grid,          &
+!         State_Met      = State_Met,           &
+!         mapping        = State_Chm%Map_XXXXX, & ! Uses Map_All if omitted
+!         new_units      = KG_SPECIES,          &
+!         previous_units = previous_units,      &
+!         RC             = RC                  )
+!
+!    ...computation...
+!
+!    ! Convert back to original units
+!    CALL Convert_Spc_Units(                    &
+!         Input_Opt  = Input_Opt,               &
+!         State_Chm  = State_Chm,               &
+!         State_Grid = State_Grid,              &
+!         State_Met  = State_Met,               &
+!         mapping    = State_Chm%Map_XXXXX,     & ! Uses Map_All if omitted
+!         new_units  = previous_units,          &
+!         RC         = RC                      )
 !
 ! !REVISION HISTORY:
 !  14 Apr 2016 - C. Keller    - Initial version
