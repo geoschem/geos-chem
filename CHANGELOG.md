@@ -9,7 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added`SpcConc%Units` and `SpcConc%Previous_Units` for species-specific unit conversion
 - Diel and day-of-week scale factors for CEDS global base emissions
 `State_Chm%all
-- SpeciesInDryMixingRatio` logical flag, needed to check if all species are in dry mixing ratio before calling AIRQNT with `update_mixing_ratio=.TRUE.`
+- allSpeciesInDryMixingRatio` routine in `calc_met_mod.F90`, to check if all species are in dry MR units before calling AIRQNT with `update_mixing_ratio=.TRUE.`
 
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion

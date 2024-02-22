@@ -381,11 +381,6 @@ MODULE State_Chm_Mod
      REAL, POINTER      :: rlam(:)
 #endif
 
-     !-----------------------------------------------------------------------
-     ! Flag to denote if all species are in mixing ratio units (so that
-     ! AIRQNT can update mixing ratios after updating airmass, etc.)
-     !-----------------------------------------------------------------------
-     LOGICAL            :: allSpeciesInDryMixingRatio
   END TYPE ChmState
 !
 ! !REMARKS:
@@ -651,8 +646,6 @@ CONTAINS
     ! Add fields for APM microphysics
     State_Chm%PSO4_SO2APM2      => NULL()
 #endif
-
-    State_Chm%allSpeciesInDryMixingRatio = .FALSE.
 
   END SUBROUTINE Zero_State_Chm
 !EOC

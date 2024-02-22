@@ -675,7 +675,7 @@ CONTAINS
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
-       IF ( .not. State_Chm%allSpeciesInDryMixingRatio ) THEN
+       IF ( .not. allSpeciesInDryMixingRatio( State_Chm ) ) THEN
           ErrMsg = 'All species must be in dry mixing ratio when '      // &
                    'update_mixing_ratio=.TRUE.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1619,5 +1619,52 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE Set_Clock_Tracer
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: allSpeciesinDryMixingRatio
+!
+! !DESCRIPTION: Returns a logical value to indicate if all species are
+!  in dry 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION allSpeciesInDryMixingRatio( State_Chm ) RESULT( isDryMixRatio )
+!
+! !USES:
+!
+    USE State_Chm_Mod, ONLY : ChmState
+    USE UnitConv_Mod,  ONLY : KG_SPECIES_PER_KG_DRY_AIR 
+    USE UnitConv_Mod,  ONLY : MOLES_SPECIES_PER_MOLES_DRY_AIR
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(IN) :: State_Chm      ! Chemistry state object
+!
+! !RETURN VALUE:
+!
+    LOGICAL                    :: isDryMixRatio  ! All species are in dry MR
+!
+! !REVISION HISTORY:
+!  21 Feb 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! allSpeciesInDryMixingRatio begins here!
+    !=================================================================
+    isDryMixRatio = (                                                        &
+       ALL( State_Chm%Species(:)%Units == KG_SPECIES_PER_KG_DRY_AIR         )&
+       .or.                                                                  &
+       ALL( State_Chm%Species(:)%Units == MOLES_SPECIES_PER_MOLES_DRY_AIR   )&
+    )
+
+  END FUNCTION allSpeciesInDryMixingRatio
 !EOC
 END MODULE CALC_MET_MOD
