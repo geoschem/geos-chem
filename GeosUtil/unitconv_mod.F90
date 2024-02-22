@@ -743,7 +743,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 
     ENDDO
@@ -857,7 +856,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -952,7 +950,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
     ENDDO
     !$OMP END PARALLEL DO
@@ -1046,7 +1043,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -1149,7 +1145,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
 
     ENDDO
@@ -1253,7 +1248,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -1374,7 +1368,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = MOLECULES_SPECIES_PER_CM3
 
     ENDDO
@@ -1499,7 +1492,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -1620,7 +1612,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES
 
     ENDDO
@@ -1740,7 +1731,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 
     ENDDO
@@ -1849,7 +1839,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES
 
     ENDDO
@@ -1958,7 +1947,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -2083,7 +2071,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES
 
     ENDDO
@@ -2200,7 +2187,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = MOLECULES_SPECIES_PER_CM3
 
     ENDDO
@@ -2297,7 +2283,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES
 
     ENDDO
@@ -2394,7 +2379,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
     ENDDO
@@ -2489,7 +2473,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES
 
     ENDDO
@@ -2584,7 +2567,6 @@ CONTAINS
 #endif
 
        ! Update units metadata
-       State_Chm%Species(N)%Previous_Units = State_Chm%Species(N)%Units
        State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
 
     ENDDO

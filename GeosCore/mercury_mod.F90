@@ -903,7 +903,6 @@ CONTAINS
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_All,                                 &
          new_units      = MOLECULES_SPECIES_PER_CM3,                         &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -1433,7 +1432,6 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_All,                                     &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
 

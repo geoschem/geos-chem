@@ -516,7 +516,6 @@ CONTAINS
     State_Chm%Species(:)%Units           = MOLES_SPECIES_PER_MOLES_DRY_AIR
     State_Chm%allSpeciesInDryMixingRatio = .TRUE.
 #endif
-    State_Chm%Species(:)%Previous_Units = -1
 
     ! Initialize photolysis, including reading files for optical properties
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
@@ -993,7 +992,6 @@ CONTAINS
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_All,                                 &
          new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -1679,7 +1677,6 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_All,                                     &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')

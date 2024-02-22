@@ -1897,8 +1897,7 @@ CONTAINS
       ENDIF
 
       ! Set the initial unit flags
-      State_Chm%Species(N)%Previous_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
-      State_Chm%Species(N)%Units          = KG_SPECIES_PER_KG_DRY_AIR
+      State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
       ! Free pointer
       SpcInfo => NULL()
@@ -1923,7 +1922,6 @@ CONTAINS
            State_Chm      = State_Chm,                                       &
            State_Grid     = State_Grid,                                      &
            State_Met      = State_Met,                                       &
-           mapping        = State_Chm%Map_All,                               &
            new_units      = MOLECULES_SPECIES_PER_CM3,                       &
            previous_units = previous_units,                                  &
            RC             = RC                                              )
@@ -1962,7 +1960,6 @@ CONTAINS
            State_Chm  = State_Chm,                                           &
            State_Grid = State_Grid,                                          &
            State_Met  = State_Met,                                           &
-           mapping    = State_Chm%Map_All,                                   &
            new_units  = previous_units,                                      &
            RC         = RC                                                  )
 

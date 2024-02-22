@@ -524,7 +524,6 @@ CONTAINS
             State_Chm      = State_Chm,                                      &
             State_Grid     = State_Grid,                                     &
             State_Met      = State_Met,                                      &
-            mapping        = State_Chm%Map_All,                              &
             new_units      = KG_SPECIES_PER_KG_TOTAL_AIR,                    &
             previous_units = previous_units,                                 &
             RC             = RC                                             )

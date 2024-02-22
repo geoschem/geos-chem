@@ -958,7 +958,6 @@ CONTAINS
        State_Chm%Species(N)%Conc = 0.0_f8
 #endif
        State_Chm%Species(N)%Units = 0
-       State_Chm%Species(N)%Previous_Units = 0
     ENDDO
 
 #ifdef ADJOINT
