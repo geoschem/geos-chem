@@ -151,9 +151,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Convert_Spc_Units( Input_Opt, State_Chm,     State_Grid,        &
-                                State_Met, mapping,       new_units,         &
-                                RC,        previous_units                   )
+  SUBROUTINE Convert_Spc_Units( Input_Opt, State_Chm,      State_Grid,       &
+                                State_Met, new_units,      RC,               &
+                                mapping,   previous_units                   )
 !
 ! !USES:
 !
@@ -161,20 +161,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput),   INTENT(IN)    :: Input_Opt      ! Input Options object
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid     ! Grid state object
-    TYPE(MetState),   INTENT(IN)    :: State_Met      ! Meteorology state object
-    INTEGER,          INTENT(IN)    :: mapping(:)     ! Species map to modelId
-    INTEGER,          INTENT(IN)    :: new_units      ! Units to convert to
+    TYPE(OptInput), INTENT(IN)        :: Input_Opt      ! Input Options object
+    TYPE(GrdState), INTENT(IN)        :: State_Grid     ! Grid state object
+    TYPE(MetState), INTENT(IN)        :: State_Met      ! Met State object
+    INTEGER,        INTENT(IN)        :: new_units      ! Units to convert to
+    INTEGER,        OPTIONAL, POINTER :: mapping(:)     ! Spc ID -> modelId
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState),   INTENT(INOUT) :: State_Chm      ! Chemistry state object
+    TYPE(ChmState), INTENT(INOUT)     :: State_Chm      ! Chem State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(OUT)   :: RC             ! Success or failure?
-    INTEGER,          OPTIONAL      :: previous_units ! Previous units
+    INTEGER,        INTENT(OUT)       :: RC             ! Success or failure?
+    INTEGER,        OPTIONAL          :: previous_units ! Previous units
 !
 ! !REMARKS:
 !  The purpose of optional output argument origUnit is to enable conversion
@@ -200,6 +200,9 @@ CONTAINS
     LOGICAL            :: isAdjoint
     INTEGER            :: in_units
 
+    ! Pointers
+    INTEGER, POINTER   :: theMapping(:)
+
     ! Strings
     CHARACTER(LEN=255) :: errNoIn, errNoOut, errMsg, errUnits, thisLoc
 
@@ -210,8 +213,13 @@ CONTAINS
        CALL Timer_Start( "Unit conversions", RC )
     ENDIF
 
+    ! Convert units for all species unless mapping is passed
+    ! NOTE: Avoid an ELSE statement here, which can be a bottleneck.
+    theMapping => State_Chm%Map_All
+    IF ( PRESENT( mapping ) ) theMapping => mapping
+
     ! Error check the mapping argument
-    IF ( SIZE(mapping) < 1 ) THEN
+    IF ( SIZE(theMapping) < 1 ) THEN
        errMsg = 'The "mapping" argument has zero elements!'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -252,6 +260,7 @@ CONTAINS
     CALL Check_Units( State_Chm, mapping, in_units, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in routine "Check_Units"!'
+       theMapping => NULL()
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -273,28 +282,28 @@ CONTAINS
 
              CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
                 CALL ConvertSpc_KgKgDry_to_VVDry(                            &
-                     State_Chm,  State_Grid,  mapping,                       &
+                     State_Chm,  State_Grid, theMapping,                     &
                      isAdjoint,  RC                                         )
 
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
                 CALL ConvertSpc_KgKgDry_to_KgKgTotal(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                              )
 
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_KgKgDry_to_Kg(                               &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES_PER_M2 )
                 CALL ConvertSpc_KgKgDry_to_Kgm2(                             &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( MOLECULES_SPECIES_PER_CM3 )
                 CALL ConvertSpc_KgKgDry_to_MND(                              &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -310,24 +319,24 @@ CONTAINS
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_KgKgTotal_to_KgKgDry(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_KgKgTotal_to_KgKgDry(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
                 CALL ConvertSpc_KgKgDry_to_Kg(                               &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( MOLECULES_SPECIES_PER_CM3 )
                 CALL ConvertSpc_KgKgTotal_to_KgKgDry(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
                 CALL ConvertSpc_KgKgDry_to_MND(                              &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -341,22 +350,22 @@ CONTAINS
           SELECT CASE ( new_units )
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
-                CALL ConvertSpc_VVDry_to_KgKgDry(                           &
-                     State_Chm, State_Grid,                                 &
-                     mapping,   isAdjoint,  RC                             )
+                CALL ConvertSpc_VVDry_to_KgKgDry(                            &
+                     State_Chm,  State_Grid,                                 &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES )
-                CALL ConvertSpc_VVDry_to_Kg(                                &
-                     State_Chm, State_Grid, State_Met,                      &
-                     mapping,   isAdjoint,  RC                             )
+                CALL ConvertSpc_VVDry_to_Kg(                                 &
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES_PER_M2 )
-                CALL ConvertSpc_VVDry_to_KgKgDry(                           &
-                     State_Chm, State_Grid,                                 &
-                     mapping,   isAdjoint,  RC                             )
-                CALL ConvertSpc_KgKgDry_to_Kgm2(                            &
-                     State_Chm, State_Grid, State_Met,                      &
-                     mapping,   isAdjoint,  RC                             )
+                CALL ConvertSpc_VVDry_to_KgKgDry(                            &
+                     State_Chm,  State_Grid,                                 &
+                     theMapping, isAdjoint,  RC                             )
+                CALL ConvertSpc_KgKgDry_to_Kgm2(                             &
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -372,26 +381,26 @@ CONTAINS
 
             CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_Kg_to_KgKgDry(                               &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
                 CALL ConvertSpc_Kg_to_KgKgDry(                               &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
                 CALL ConvertSpc_KgKgDry_to_KgKgTotal(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
                 CALL ConvertSpc_Kg_to_VVDry(                                 &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( MOLECULES_SPECIES_PER_CM3 )
                 CALL ConvertSpc_Kg_to_MND(                                   &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -407,16 +416,16 @@ CONTAINS
 
              CASE( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_Kgm2_to_KgKgDry(                             &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( MOLES_SPECIES_PER_MOLES_DRY_AIR )
                 CALL ConvertSpc_Kgm2_to_KgKgDry(                             &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
                 CALL ConvertSpc_KgKgDry_to_VVDry(                            &
-                     State_Chm, State_Grid,                                  &
-                     mapping,   isAdjoint,  RC )
+                     State_Chm,  State_Grid,                                 &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -432,21 +441,21 @@ CONTAINS
 
              CASE ( KG_SPECIES )
                 CALL ConvertSpc_MND_to_Kg(                                   &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES_PER_KG_DRY_AIR )
                 CALL ConvertSpc_MND_to_KgKgDry(                              &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE ( KG_SPECIES_PER_KG_TOTAL_AIR )
                 CALL ConvertSpc_MND_to_KgKgDry(                              &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
                 CALL ConvertSpc_KgKgDry_to_KgKgTotal(                        &
-                     State_Chm, State_Grid, State_Met,                       &
-                     mapping,   isAdjoint,  RC                              )
+                     State_Chm,  State_Grid, State_Met,                      &
+                     theMapping, isAdjoint,  RC                             )
 
              CASE DEFAULT
                 CALL GC_Error( errNoOut, RC, thisLoc )
@@ -463,23 +472,20 @@ CONTAINS
     ! Additional checks
     !========================================================================
 
-    ! Test if all species have mixing ratio units (needed for AIRQNT)
-    State_Chm%allSpeciesInDryMixingRatio = (                                   &
-         ALL( State_Chm%Species(:)%Units == KG_SPECIES_PER_KG_DRY_AIR         )&
-         .or.                                                                  &
-         ALL( State_Chm%Species(:)%Units == MOLES_SPECIES_PER_MOLES_DRY_AIR   )&
-    )
-
     ! Make sure that all species have consistent "previous_units" values
     IF ( PRESENT( previous_units ) ) THEN
        CALL Check_Previous_Units( State_Chm, mapping, in_units, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errUnits = 'Error encountered in "Check_Previous_Units!"'
+          theMapping => NULL()
           CALL GC_Error( errUnits, RC, thisLoc )
           RETURN
        ENDIF
        previous_units = in_units
     ENDIF
+
+    ! Free pointer
+    theMapping => NULL()
 
     ! Error if problem within called conversion routine
     IF ( RC /= GC_SUCCESS ) THEN
@@ -545,9 +551,18 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! Scalars
     INTEGER            :: N
     INTEGER            :: previous_units
     REAL(fp)           :: SpcTotal
+
+    ! Arrays
+    INTEGER, TARGET    :: mapping(1)
+
+    ! Pointers
+    INTEGER, POINTER   :: theMapping(:)
+
+    ! Strings
     CHARACTER(LEN=12)  :: SpcName
     CHARACTER(LEN=255) :: errMsg, errLoc
 
@@ -563,13 +578,17 @@ CONTAINS
     ! Get species index
     N = Ind_(spc)
 
+    ! Create a pointer for the mapping indices
+    mapping(1) =  N
+    theMapping => mapping
+
     ! Convert species conc units to kg
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = (/ N /),                                           &
+         mapping        = theMapping,                                        &
          new_units      = KG_SPECIES,                                        &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -612,9 +631,12 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = (/ N /),                                               &
+         mapping    = theMapping,                                            &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
+
+    ! Free pointer
+    theMapping => NULL()
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

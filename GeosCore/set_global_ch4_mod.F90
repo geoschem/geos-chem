@@ -99,9 +99,14 @@ CONTAINS
     ! Scalars
     INTEGER             :: I, J, L, PBL_TOP, id_CH4, DT
     INTEGER             :: previous_units
-    INTEGER             :: mapping(1)
     REAL(fp)            :: CH4, dCH4
     LOGICAL             :: FOUND
+
+    ! Arrays
+    INTEGER, TARGET     :: mapping(1)
+
+    ! Pointers
+    INTEGER, POINTER    :: theMapping(:)
 
     ! Strings
     CHARACTER(LEN=255)  :: ErrMsg
@@ -131,6 +136,7 @@ CONTAINS
     ! Get species ID
     id_CH4     = Ind_( 'CH4' )
     mapping(1) = id_CH4
+    theMapping => mapping
 
     ! Get dynamic timestep
     DT = GET_TS_DYN()
@@ -184,7 +190,7 @@ CONTAINS
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = mapping,                                           &
+         mapping        = theMapping,                                        &
          new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -254,9 +260,12 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = mapping,                                               &
+         mapping    = theMapping,                                            &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
+
+    ! Free pointer
+    theMapping => NULL()
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
