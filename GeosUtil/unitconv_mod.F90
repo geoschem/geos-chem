@@ -55,7 +55,6 @@ MODULE UnitConv_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Check_Units
-  PUBLIC :: Check_Previous_Units
   PUBLIC :: Convert_Spc_Units
   PUBLIC :: Print_Global_Species_Kg
 
@@ -257,9 +256,8 @@ CONTAINS
     ENDIF
 
     ! Make sure all species have consistent starting units
-    CALL Check_Units( State_Chm, mapping, in_units, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error encountered in routine "Check_Units"!'
+    IF ( .not. Check_Units( State_Chm, in_units, theMapping ) ) THEN
+       errMsg = 'All species do not have consistent starting units!'
        theMapping => NULL()
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
@@ -469,20 +467,11 @@ CONTAINS
     END SELECT
 
     !========================================================================
-    ! Additional checks
+    ! Cleanup and quit
     !========================================================================
 
-    ! Make sure that all species have consistent "previous_units" values
-    IF ( PRESENT( previous_units ) ) THEN
-       CALL Check_Previous_Units( State_Chm, mapping, in_units, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errUnits = 'Error encountered in "Check_Previous_Units!"'
-          theMapping => NULL()
-          CALL GC_Error( errUnits, RC, thisLoc )
-          RETURN
-       ENDIF
-       previous_units = in_units
-    ENDIF
+    ! Return the previous units (if necessary)
+    IF ( PRESENT( previous_units ) ) previous_units = in_units
 
     ! Free pointer
     theMapping => NULL()
@@ -2610,25 +2599,26 @@ CONTAINS
 !
 ! !IROUTINE: Check_Units
 !
-! !DESCRIPTION: Ensures that all species have the same Units value before
-!  unit conversion is done.
+! !DESCRIPTION: Returns .TRUE. if all species have the same units, or
+!  .FALSE. if not.
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Check_Units( State_Chm, mapping, units, RC )
+  FUNCTION Check_Units( State_Chm, units, mapping ) RESULT( same )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Mapping to species Id
-    INTEGER,        INTENT(IN)    :: units       ! Input units flag
+    INTEGER,           INTENT(IN) :: units      ! Input units flag
+    INTEGER, OPTIONAL, POINTER    :: mapping(:) ! species ID -> model ID
+
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(ChmState),    INTENT(IN) :: State_Chm  ! Chemistry State object
 !
-! !OUTPUT PARAMETERS:
+! !RETURN VALUE:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    LOGICAL                       :: same       ! All species in same units?
 !
 ! !REVISION HISTORY:
 !  30 Nov 2023 - R. Yantosca - Initial version
@@ -2639,92 +2629,22 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    INTEGER            :: N,      S
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
+    INTEGER, POINTER :: theMapping(:)
 
     !========================================================================
     ! Check_Units begins here!
     !========================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Check_Units (in module GeosUtil/unitconv_mod.F90)'
+    ! Point to the mapping array (or use all species if not passed)
+    theMapping => State_Chm%Map_All
+    IF ( PRESENT( mapping ) ) theMapping => mapping
 
-    ! Make sure all species start with the proper unit, or throw an error
-    IF ( .not. ALL( State_Chm%Species(mapping)%Units == units ) ) THEN
-       errMsg = 'All species do not have Units = '                        // &
-                 TRIM( UNIT_STR( units ) )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Are all species in the same units?
+    same = ALL( State_Chm%Species(theMapping)%Units == units )
 
-  END SUBROUTINE Check_Units
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Check_Previous_Units
-!
-! !DESCRIPTION:  Ensures that all species have the same Previous_Units value
-!  before unit conversion is done.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Check_Previous_Units( State_Chm, mapping, units, RC )
-!
-! !INPUT PARAMETERS:
-!
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Mapping to species Id
-    INTEGER,        INTENT(IN)    :: units       ! Input unit flag
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  30 Nov 2023 - R. Yantosca - Initial version
-!  See the subsequent Git history with the gitk browser!
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N,      S
+    ! Free pointer
+    theMapping => NULL()
 
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
-    !========================================================================
-    ! Check_Previous_Units begins here!
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at Check_PreviousUnits (in module GeosUtil/unitconv_mod.F90)'
-
-    ! Make sure all species start with the proper unit, or throw an error
-    IF ( .not. ALL( State_Chm%Species(mapping)%Previous_Units == units ) ) THEN
-       errMsg = 'All species do not have Previous_Units = '               // &
-                TRIM( UNIT_STR( units ) )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Check_Previous_Units
+  END FUNCTION Check_Units
 !EOC
 END MODULE UnitConv_Mod

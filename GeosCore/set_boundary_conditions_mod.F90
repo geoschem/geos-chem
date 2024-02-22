@@ -117,13 +117,8 @@ CONTAINS
    ! simulation.  Otherwise the BoundaryCond field won't be allocated.
    IF ( .not. State_Grid%NestedGrid ) RETURN
 
-    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    CALL Check_Units(                                                        &
-         State_Chm = State_Chm,                                              &
-         mapping   = State_Chm%Map_All,                                      &
-         units     = KG_SPECIES_PER_KG_DRY_AIR,                              &
-         RC        = RC                                                     )
-    IF ( RC /= GC_SUCCESS ) THEN
+   ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+   IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
        IF ( Input_Opt%amIRoot ) THEN
           WRITE(6, '(a)') 'Unit check failure: Current units are '        // &
                UNIT_STR(State_Chm%Species(1)%Units)                       // &
