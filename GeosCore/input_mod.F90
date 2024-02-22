@@ -5100,6 +5100,11 @@ CONTAINS
        WRITE(6,100) 'Use OH scale factors?    : ', Input_Opt%UseOHSF
     ENDIF
 
+    ! Flag to denote if any AIRS, GOSAT, TCCON columns will be used
+    Input_Opt%Satellite_CH4_Columns = ( Input_Opt%AIRS_CH4_OBS          .or. &
+                                        Input_Opt%GOSAT_CH4_OBS         .or. &
+                                        Input_Opt%TCCON_CH4_OBS             )
+
     ! FORMAT statements
 90  FORMAT( /, A    )
 95  FORMAT( A       )

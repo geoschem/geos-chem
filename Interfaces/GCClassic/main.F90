@@ -1886,49 +1886,32 @@ PROGRAM GEOS_Chem
 
           !------------------------------------------------------------------
           !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
+          !
+          ! Get CH4 columns by applying satellite observational operators
           !------------------------------------------------------------------
-
-          ! CH4 columns from the GOSAT instrument
-          IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+          IF ( Input_Opt%Satellite_CH4_Columns ) THEN
              IF ( ITS_A_NEW_HOUR() ) THEN
                 IF ( Input_Opt%useTimers ) THEN
                    CALL Timer_Start( "Diagnostics", RC)
                 ENDIF
 
-                CALL CALC_GOSAT_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                           State_Met )
-
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_End( "Diagnostics", RC )
-                ENDIF
-             ENDIF
-          ENDIF
-
-          ! CH4 columns from the AIRS instrument
-          IF ( Input_Opt%AIRS_CH4_OBS ) THEN
-             IF ( ITS_A_NEW_HOUR() ) THEN
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_Start( "Diagnostics", RC)
+                ! CH4 columns from the GOSAT instrument
+                IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+                   CALL CALC_GOSAT_CH4_FORCE( Input_Opt,  State_Chm,         &
+                                              State_Grid, State_Met         )
                 ENDIF
 
-                CALL CALC_AIRS_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                          State_Met )
-
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_End( "Diagnostics", RC )
-                ENDIF
-             ENDIF
-          ENDIF
-
-          ! CH4 columns from the TCCON instrument
-          IF ( Input_Opt%TCCON_CH4_OBS ) THEN
-             IF ( ITS_A_NEW_HOUR() ) THEN
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_Start( "Diagnostics", RC)
+                ! CH4 columns from the AIRS instrument
+                IF ( Input_Opt%AIRS_CH4_OBS ) THEN
+                   CALL CALC_AIRS_CH4_FORCE( Input_Opt,  State_Chm,          &
+                                             State_Grid, State_Met          )
                 ENDIF
 
-                CALL CALC_TCCON_CH4_FORCE( Input_Opt, State_Chm, State_Grid, &
-                                           State_Met )
+                ! CH4 columns from the TCCON instrument
+                IF ( Input_Opt%TCCON_CH4_OBS ) THEN
+                   CALL CALC_TCCON_CH4_FORCE( Input_Opt,  State_Chm,         &
+                                              State_Grid, State_Met         )
+                ENDIF
 
                 IF ( Input_Opt%useTimers ) THEN
                    CALL Timer_End( "Diagnostics", RC )

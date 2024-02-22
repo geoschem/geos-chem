@@ -9,10 +9,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `SpcConc%Units` for species-specific unit conversion
 - Diel and day-of-week scale factors for CEDS global base emissions
 - `allSpeciesInDryMixingRatio` routine in `calc_met_mod.F90`, to check if all species are in dry MR units before calling AIRQNT with `update_mixing_ratio=.TRUE.`
+- `Input_Opt%Satellite_CH4_Columns` logical flag; Set this to true if any of AIRS, GOSAT, TCCON observational operators are selected
 
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
 - Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
+- Streamline `IF` statements for CH4 observational operators in `Interfaces/GCClassic/main.F90`
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
