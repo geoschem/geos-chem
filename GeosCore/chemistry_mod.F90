@@ -457,11 +457,19 @@ CONTAINS
                                   State_Met  = State_Met,                    &
                                   errCode    = RC                           )
 
-             ! Check units (ewl, 10/5/15)
-             !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-             !   ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
-             !   CALL GC_Error( ErrMsg, RC, ThisLoc )
-             !ENDIF
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountred in "Do_LinearChem"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Make sure all units are still in kg
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Incorrect species after calling "Do_Linear_Chem"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
 
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_End( "=> Linearized chem", RC )
@@ -544,15 +552,16 @@ CONTAINS
                                FullRun    = .TRUE.,                          &
                                RC         = RC                              )
 
-             !! Check units (ewl, 10/5/15)
-             !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-             !   ErrMsg =  'Incorrect species units after CHEMSULFATE!'
-             !   CALL GC_Error( ErrMsg, RC, ThisLoc )
-             !ENDIF
-
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "ChemSulfate"!'
+                ErrMsg = 'Error encountered after calling "ChemSulfate"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Make sure all units are still in kg
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Incorrect species after calling "ChemSulfate"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
