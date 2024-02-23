@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
+- Updated NOAA GMD surface CH4 boundary conditions through 2022
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
