@@ -18,7 +18,6 @@ MODULE GEOS_Analysis
 !
 ! !USES:
 !
-
 #ifdef MODEL_GEOS
   USE ESMF     
   USE MAPL_Mod 
@@ -111,6 +110,20 @@ MODULE GEOS_Analysis
   ! Main configuration file for analysis options
   CHARACTER(LEN=127), PARAMETER :: AnaConfigFile = './geoschem_analysis.yml'
 
+#ifdef MODEL_GEOS
+  ! For GEOS runs, we have the option to read the analysis fields from file
+  ! using the MAPL bundle functionalities. This can be advantageous over the
+  ! default option that uses HEMCO(/ExtData) in cases where the analysis 
+  ! fields are generated in runtime and ExtData might not have seen them in
+  ! time. To avoid excessive reading of the same file, the VarBundle is
+  ! defined here so that it can 'carry over' from one species to the next
+  ! in the DoAnalysis_ loop in GEOS_AnaRun. Variable CurrentFile carries
+  ! the file name that is loaded into VarBundle. This could also be queried
+  ! from the bundle directly but having a dedicated variable is easier, in
+  ! my opinion (cakelle2, 2/24/24). 
+  type (ESMF_FieldBundle)                 :: VarBundle
+  CHARACTER(LEN=ESMF_MAXSTR)              :: CurrentFile
+#endif
 !
 ! !REVISION HISTORY:
 !  25 May 2022 - C. Keller - initial version (refactored Chem_GridCompMod)
@@ -323,6 +336,18 @@ CONTAINS
 
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
+
+#ifdef MODEL_GEOS
+       ! Create VarBundle
+       CALL CreateVarBundle_( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg =  'Error creating VarBundle'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN              
+       ENDIF  
+       CurrentFile = 'N/A'
+#endif
+
        DO ispec=1,nAnaSpec
           IF ( AnaConfig(ispec)%Active ) THEN
              CALL DoAnalysis_( ispec, Input_Opt, State_Met, State_Chm, &
@@ -334,6 +359,16 @@ CONTAINS
              ENDIF  
           ENDIF
        ENDDO
+
+#ifdef MODEL_GEOS
+       ! Destroy VarBundle 
+       CALL DestroyVarBundle_( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg =  'Error destroying VarBundle'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN              
+       ENDIF  
+#endif
     ENDIF
 
     ! Convert species back to original unit 
@@ -1108,14 +1143,7 @@ CONTAINS
     TYPE(ESMF_TimeInterval)    :: tsInt
     LOGICAL                    :: HasFile,  anatime_
     INTEGER                    :: I, errmode_
-
-    ! FieldBundle stuff
-    TYPE(ESMF_Grid)                         :: grid
-    type (ESMF_FieldBundle)                 :: VarBundle
-    Integer                                 :: fieldcount
-    Type(esmf_field)                        :: bundle_field
-    Character(len=ESMF_MAXSTR), allocatable :: fieldnames(:)
-    REAL, POINTER                           :: DtaPtr(:,:,:) => NULL()
+    REAL, POINTER              :: DtaPtr(:,:,:) => NULL()
 
     ! Begins here
     __Iam__('GetAnaBundle_')
@@ -1170,58 +1198,64 @@ CONTAINS
     s_ = 0
     CALL ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
 
-    ! Check if file exists
-    INQUIRE( FILE=TRIM(ifile_), EXIST=HasFile )
-    ! Try reading current time stamp on file 
-    IF ( HasFile ) THEN
+    ! Check if requested file is already in memory (in the VarBundle)
+    IF ( TRIM(ifile_) == TRIM(CurrentFile) ) THEN
+       IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Accessing previously read file: '//TRIM(ifile_)
+       CALL ESMFL_BundleGetPointerToData( VarBundle, TRIM(only_vars), DtaPtr, __RC__ )
+       ! Cast to local field, flip vertical axis
+       Ptr3D(:,:,:) = DtaPtr(:,:,State_Grid%NZ:1:-1)
+       HasField = .TRUE.
 
-       ! Create bundle 
-       CALL ESMF_GridCompGet( HcoState%GridComp, grid=grid, RC=STATUS )
-       VERIFY_(STATUS)
-       VarBundle = ESMF_FieldBundleCreate(name='AnaBundle', RC=STATUS )
-       VERIFY_(STATUS)
-       CALL ESMF_FieldBundleSet( VarBundle, grid=grid, RC=STATUS )
-       VERIFY_(STATUS)
-
-       IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Reading '//TRIM(ifile_)
-       CALL MAPL_read_bundle( VarBundle, TRIM(FileTmpl), fileTime_, only_vars=only_vars, file_override=TRIM(ifile_), RC=STATUS )
-       IF ( STATUS == ESMF_SUCCESS ) HasField = .TRUE.
-
-       ! Get analysis field       
-       IF ( HasField ) THEN
-          CALL ESMFL_BundleGetPointerToData( VarBundle, TRIM(only_vars), DtaPtr, __RC__ )
-          ! Cast to local field, flip vertical axis
-          Ptr3D(:,:,:) = DtaPtr(:,:,State_Grid%NZ:1:-1)
-       ENDIF
-
-       ! Clean up
-       DtaPtr => NULL()
- 
-       ! Destroy the bundle
-       CALL ESMF_FieldBundleGet(VarBundle,fieldcount=fieldcount, __RC__ )
-       Allocate(fieldnames(fieldcount))
-       CALL ESMF_FieldBundleGet(VarBundle,fieldNameList=fieldnames, __RC__ )
-       Do I = 1,fieldCount
-          CALL ESMF_FieldBundleGet(VarBundle,trim(fieldnames(i)),field=bundle_field, __RC__ )
-          CALL ESMF_FieldDestroy(bundle_field,noGarbage=.true., __RC__ )
-       Enddo
-       Deallocate(fieldnames)
-       CALL ESMF_FieldBundleDestroy(VarBundle,noGarbage=.true., __RC__ )
-
-    ! error handling if file not found 
+    ! If file is not already in memory, attempt to read from source
     ELSE
-       ! If file not found and error mode is zero, stop with error
-       IF ( errmode_ == 0 ) THEN
-          IF ( am_I_Root ) THEN
-             WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile_)
-             WRITE(*,*) 'You can get past this error setting the error mode to > 0'
+
+       ! Check if file exists
+       INQUIRE( FILE=TRIM(ifile_), EXIST=HasFile )
+       ! Try reading current time stamp on file 
+       IF ( HasFile ) THEN
+   
+          ! Destroy old bundle first
+          CALL DestroyVarBundle_( RC ) 
+          ASSERT_(RC==GC_SUCCESS) 
+   
+          ! Recreate bundle
+          CALL CreateVarBundle_( RC )
+          ASSERT_(RC==GC_SUCCESS) 
+  
+          ! Read bundle. Read all variables as we might want them later on. 
+          IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Reading '//TRIM(ifile_)
+          CALL MAPL_read_bundle( VarBundle, TRIM(FileTmpl), fileTime_, file_override=TRIM(ifile_), RC=STATUS )
+          IF ( STATUS == ESMF_SUCCESS ) THEN
+             HasField = .TRUE.
+             CurrentFile = TRIM(ifile_)
           ENDIF
-          ASSERT_(.FALSE.)
-       ! If file not found and error mode is not zero, just skip nudging 
+   
+          ! Get analysis field       
+          IF ( HasField ) THEN
+             CALL ESMFL_BundleGetPointerToData( VarBundle, TRIM(only_vars), DtaPtr, __RC__ )
+             ! Cast to local field, flip vertical axis
+             Ptr3D(:,:,:) = DtaPtr(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+   
+          ! Clean up
+          DtaPtr => NULL()
+ 
+       ! error handling if file not found 
        ELSE
-          IF ( am_I_Root ) WRITE(*,*) '*** GCC warning in GetAnaBundle_, file not found: '//TRIM(ifile_)
+          ! If file not found and error mode is zero, stop with error
+          IF ( errmode_ == 0 ) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile_)
+                WRITE(*,*) 'You can get past this error setting the error mode to > 0'
+             ENDIF
+             ASSERT_(.FALSE.)
+          ! If file not found and error mode is not zero, just skip nudging 
+          ELSE
+             IF ( am_I_Root ) WRITE(*,*) '*** GCC warning in GetAnaBundle_, file not found: '//TRIM(ifile_)
+          ENDIF
        ENDIF
-    ENDIF
+
+    ENDIF ! File already in memory
 
     ! Return
     RETURN_(ESMF_SUCCESS)
@@ -1894,4 +1928,107 @@ CONTAINS
        
   END SUBROUTINE GetKey_ 
 !EOC
+#ifdef MODEL_GEOS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CreateVarBundle_ 
+!
+! !DESCRIPTION: Helper routine to create the VarBundle (GEOS only). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CreateVarBundle_( RC ) 
+!
+! !USES:
+!
+  USE HCO_State_GC_Mod,      ONLY : HcoState
+!
+! !INPUT/OUTPUT PARAMETERS:                                         
+!              
+  INTEGER                                 :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_Grid)                         :: grid
+
+    ! starts here    
+    __Iam__('CreateVarBundle_')
+
+    ! Create bundle and attach grid to it 
+    CALL ESMF_GridCompGet( HcoState%GridComp, grid=grid, __RC__ )
+    VarBundle = ESMF_FieldBundleCreate(name='AnaBundle', __RC__ )
+    CALL ESMF_FieldBundleSet( VarBundle, grid=grid, __RC__ )
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+    RC = GC_SUCCESS
+
+  END SUBROUTINE CreateVarBundle_ 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DestroyVarBundle_ 
+!
+! !DESCRIPTION: Helper routine to destroy the VarBundle (GEOS only). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DestroyVarBundle_( RC ) 
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:                                         
+!              
+  INTEGER                                 :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    Integer                                 :: I, fieldcount
+    Type(esmf_field)                        :: bundle_field
+    Character(len=ESMF_MAXSTR), allocatable :: fieldnames(:)
+
+    ! starts here    
+    __Iam__('DestroyVarBundle_')
+
+    ! Destroy the bundle
+    CALL ESMF_FieldBundleGet(VarBundle,fieldcount=fieldcount, __RC__ )
+    Allocate(fieldnames(fieldcount))
+    CALL ESMF_FieldBundleGet(VarBundle,fieldNameList=fieldnames, __RC__ )
+    Do I = 1,fieldCount
+       CALL ESMF_FieldBundleGet(VarBundle,trim(fieldnames(i)),field=bundle_field, __RC__ )
+       CALL ESMF_FieldDestroy(bundle_field,noGarbage=.true., __RC__ )
+    Enddo
+    Deallocate(fieldnames)
+    CALL ESMF_FieldBundleDestroy(VarBundle,noGarbage=.true., __RC__ )
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+    RC = GC_SUCCESS
+
+  END SUBROUTINE DestroyVarBundle_ 
+!EOC
+#endif
 END MODULE GEOS_Analysis 

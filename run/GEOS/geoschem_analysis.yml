@@ -17,7 +17,7 @@ species:
     AnalysisFreq: 6
     AnalysisHour: 0
     AnalysisMinute: 0
-    ForwardLooking: true 
+    ForwardLooking: false
     FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: ozone
     FileVarUnit: ppmv
@@ -42,7 +42,7 @@ species:
     AnalysisFreq: 6
     AnalysisHour: 0
     AnalysisMinute: 0
-    ForwardLooking: true
+    ForwardLooking: false
     FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: NO2 
     FileVarUnit: v/v 
@@ -72,7 +72,7 @@ species:
     AnalysisFreq: 6
     AnalysisHour: 0
     AnalysisMinute: 0
-    ForwardLooking: true 
+    ForwardLooking: false 
     FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: SO2g
     FileVarUnit: v/v 
