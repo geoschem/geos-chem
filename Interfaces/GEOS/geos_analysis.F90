@@ -1,3 +1,7 @@
+#ifdef MODEL_GEOS
+#include "MAPL_Generic.h"
+#endif
+
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -14,6 +18,11 @@ MODULE GEOS_Analysis
 !
 ! !USES:
 !
+#ifdef MODEL_GEOS
+  USE ESMF     
+  USE MAPL_Mod 
+#endif
+
   ! GEOS-Chem
   USE Error_Mod
   USE ErrCode_Mod
@@ -35,6 +44,7 @@ MODULE GEOS_Analysis
   PRIVATE  :: DoAnalysis_
   PRIVATE  :: GetAnaTime_
   PRIVATE  :: ReplaceChar_ 
+  PRIVATE  :: GetAnaBundle_
 !
 ! !PRIVATE TYPES:
 !
@@ -60,6 +70,10 @@ MODULE GEOS_Analysis
      INTEGER                      :: AnalysisMinute
      LOGICAL                      :: ForwardLooking
      LOGICAL                      :: SkipPredictor
+     LOGICAL                      :: ReadFromBundle
+     LOGICAL                      :: ReadAnaTime
+     CHARACTER(LEN=1023)          :: FileTemplate
+     CHARACTER(LEN=63)            :: FileVarName
      CHARACTER(LEN=127)           :: FldNameHco
      CHARACTER(LEN=63)            :: FileVarUnit
      INTEGER                      :: DryFlag 
@@ -96,6 +110,20 @@ MODULE GEOS_Analysis
   ! Main configuration file for analysis options
   CHARACTER(LEN=127), PARAMETER :: AnaConfigFile = './geoschem_analysis.yml'
 
+#ifdef MODEL_GEOS
+  ! For GEOS runs, we have the option to read the analysis fields from file
+  ! using the MAPL bundle functionalities. This can be advantageous over the
+  ! default option that uses HEMCO(/ExtData) in cases where the analysis 
+  ! fields are generated in runtime and ExtData might not have seen them in
+  ! time. To avoid excessive reading of the same file, the VarBundle is
+  ! defined here so that it can 'carry over' from one species to the next
+  ! in the DoAnalysis_ loop in GEOS_AnaRun. Variable CurrentFile carries
+  ! the file name that is loaded into VarBundle. This could also be queried
+  ! from the bundle directly but having a dedicated variable is easier, in
+  ! my opinion (cakelle2, 2/24/24). 
+  type (ESMF_FieldBundle)                 :: VarBundle
+  CHARACTER(LEN=ESMF_MAXSTR)              :: CurrentFile
+#endif
 !
 ! !REVISION HISTORY:
 !  25 May 2022 - C. Keller - initial version (refactored Chem_GridCompMod)
@@ -308,6 +336,18 @@ CONTAINS
 
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
+
+#ifdef MODEL_GEOS
+       ! Create VarBundle
+       CALL CreateVarBundle_( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg =  'Error creating VarBundle'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN              
+       ENDIF  
+       CurrentFile = 'N/A'
+#endif
+
        DO ispec=1,nAnaSpec
           IF ( AnaConfig(ispec)%Active ) THEN
              CALL DoAnalysis_( ispec, Input_Opt, State_Met, State_Chm, &
@@ -319,6 +359,16 @@ CONTAINS
              ENDIF  
           ENDIF
        ENDDO
+
+#ifdef MODEL_GEOS
+       ! Destroy VarBundle 
+       CALL DestroyVarBundle_( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg =  'Error destroying VarBundle'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN              
+       ENDIF  
+#endif
     ENDIF
 
     ! Convert species back to original unit 
@@ -458,15 +508,14 @@ CONTAINS
     REAL                       :: MinConc
     REAL                       :: IncConc, IncCol 
     LOGICAL                    :: UpdateSpec2, DoIncColDiag
-    CHARACTER(LEN=255)         :: Iam
+    LOGICAL                    :: HasMask
     CHARACTER(LEN=255)         :: ErrMsg, ThisLoc 
+    CHARACTER(LEN=255)         :: only_vars 
 
     ! Diagnostics
     INTEGER                    :: DgnId
 
-    ! temporary arrays
-    REAL, ALLOCATABLE          :: Qtmp(:,:,:)
-
+    ! field arrays
     REAL(hp), POINTER          :: AnaPtr(:,:,:), MskPtr(:,:,:)
 
     !=======================================================================
@@ -474,7 +523,7 @@ CONTAINS
     !=======================================================================
 
     ! Callback
-    Iam     = 'GEOS_Analysis::DoAnalysis_'
+
     ThisLoc = 'GEOS_Analysis::DoAnalysis_'
     RC      = GC_SUCCESS
 
@@ -516,38 +565,67 @@ CONTAINS
 
     ! Check if file exists (only if it's time to do the analysis)
     HasField = .FALSE.
-    AnaPtr => NULL()
+    ALLOCATE(AnaPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+    AnaPtr(:,:,:) = 0.0_hp
     IF ( TimeForAna ) THEN
 
-       ! HEMCO field name 
-       FldName = iopt%FldNameHco
+       ! Attempt to read field from bundle if specified so 
+       IF ( iopt%ReadFromBundle ) THEN 
+          only_vars = TRIM(iopt%FileVarName) 
+          CALL GetAnaBundle_( am_I_Root, State_Grid, AnaPtr, iopt%FileTemplate,      &
+                              yy, mm, dd, h, m, HasField, only_vars=only_vars, & 
+                              err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, RC=RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error getting variable from file: '//TRIM(iopt%FileTemplate)
+             CALL GC_Error( ErrMsg, RC, ThisLoc)
+             RETURN
+          ENDIF
 
-       ! Check first if the field exists / is valid (in ESMF, fields can become invalid)
-       CALL HCOIO_IsValid( HcoState, FldName, HasField, RC )
-       IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
-
-       ! Evaluate field if it is valid to do so
-       IF ( HasField ) THEN
-
-          ALLOCATE(AnaPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-          CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, AnaPtr, RC )
-          IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
-
-          ! Eventually read mask field
-          IF ( iopt%HasMask ) THEN
-             FldName = iopt%MskNameHco
+          ! Get mask
+          IF ( HasField .AND. iopt%HasMask ) THEN
+             only_vars = TRIM(iopt%MskNameHco) 
              ALLOCATE(MskPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
-             CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, MskPtr, RC )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error getting mask: '//TRIM(FldName)
+             CALL GetAnaBundle_( am_I_Root, State_Grid, MskPtr, iopt%FileTemplate,     &
+                                 yy, mm, dd, h, m, HasMask, only_vars=only_vars, & 
+                                 err_mode=iopt%ErrorMode, anatime=iopt%ReadAnaTime, RC=RC )
+             IF ( (RC/=GC_SUCCESS) .OR. .NOT. HasMask ) THEN
+                ErrMsg = 'Error getting mask from file: '//TRIM(iopt%FileTemplate)
                 CALL GC_Error( ErrMsg, RC, ThisLoc)
                 RETURN
              ENDIF
           ENDIF
 
+       ! Read field via HEMCO otherwise 
+       ELSE
+          FldName = iopt%FldNameHco
+
+          ! Check first if the field exists / is valid (in ESMF, fields can become invalid)
+          CALL HCOIO_IsValid( HcoState, FldName, HasField, RC )
+          IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
+   
+          ! Evaluate field if it is valid to do so
+          IF ( HasField ) THEN
+   
+             CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, AnaPtr, RC )
+             IF ( RC /= GC_SUCCESS ) HasField = .FALSE. 
+   
+             ! Eventually read mask field
+             IF ( iopt%HasMask ) THEN
+                FldName = iopt%MskNameHco
+                ALLOCATE(MskPtr(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
+                CALL HCO_GC_EvalFld ( Input_Opt, State_Grid, FldName, MskPtr, RC )
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error getting mask: '//TRIM(FldName)
+                   CALL GC_Error( ErrMsg, RC, ThisLoc)
+                   RETURN
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDIF
+
        ! Handle cases where field is not found. If error mode is set to 0, stop with error.
        ! Print a warning otherwise.
-       ELSE
+       IF ( .NOT. HasField ) THEN 
           IF ( iopt%ErrorMode == 0 ) THEN 
              ErrMsg = 'Field not found: '//TRIM(iopt%FldNameHco)//'; to get past this error, set error mode to > 0'
              CALL GC_Error( ErrMsg, RC, ThisLoc)
@@ -1013,6 +1091,189 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: GetAnaBundle_ 
+!                          
+! !DESCRIPTION: Get analysis field from a bundle using MAPL_read_bundle. This
+!  only work in an ESMF/MAPL environment. For other environments, this routine
+!  simply sets the output array Ptr3D to zero. 
+!\\
+!\\    
+! !INTERFACE:
+!         
+  SUBROUTINE GetAnaBundle_( am_I_Root, State_Grid, Ptr3D, FileTmpl, yy, mm, dd, h, m, &
+                            HasField,  only_vars, err_mode, anatime, RC )
+!   
+! !USES:
+!   
+  USE HCO_State_GC_Mod,      ONLY : HcoState
+  USE State_Grid_Mod,        ONLY : GrdState
+!   
+! !INPUT/OUTPUT PARAMETERS:       
+!
+    LOGICAL,             INTENT(IN)            :: am_I_Root  ! Root CPU?
+    TYPE(GrdState)                             :: State_Grid
+    REAL(hp),            POINTER               :: Ptr3D(:,:,:)
+    CHARACTER(LEN=*),    INTENT(IN)            :: FileTmpl   ! file template
+    INTEGER,             INTENT(IN)            :: yy, mm, dd ! year, month, day
+    INTEGER,             INTENT(IN)            :: h,  m      ! hour, minute, second
+    LOGICAL,             INTENT(INOUT)         :: HasField   ! Was field found?
+    CHARACTER(LEN=*),    INTENT(IN),  OPTIONAL :: only_vars  ! variables to read
+    INTEGER,             INTENT(IN),  OPTIONAL :: err_mode   ! error mode
+    LOGICAL,             INTENT(IN),  OPTIONAL :: anatime    ! round time to analysis time? 
+    INTEGER,             INTENT(OUT), OPTIONAL :: RC         ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:              
+!  01 Mar 2022 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+#ifdef MODEL_GEOS
+    CHARACTER(LEN=ESMF_MAXSTR) :: ifile_
+    CHARACTER(LEN=4)           :: syy
+    CHARACTER(LEN=2)           :: smm, sdd, sh, sm
+    INTEGER                    :: nymd, nhms, incSecs
+    INTEGER                    :: yy_, mm_, dd_, h_, m_, s_, fid
+    TYPE(ESMF_TIME)            :: currTime, fileTime_
+    TYPE(ESMF_TimeInterval)    :: tsInt
+    LOGICAL                    :: HasFile,  anatime_
+    INTEGER                    :: I, errmode_
+    REAL, POINTER              :: DtaPtr(:,:,:) => NULL()
+
+    ! Begins here
+    __Iam__('GetAnaBundle_')
+
+    ! Initialize
+    HasField = .FALSE.
+    errmode_ = 2
+    anatime_ = .FALSE.
+    if ( present(err_mode) ) errmode_ = err_mode
+    if ( present(anatime ) ) anatime_ = anatime
+
+   ! Get date & time of file. These are the passed values by default 
+    yy_ = yy
+    mm_ = mm
+    dd_ = dd
+    h_  = h
+    m_  = m
+    ! If anatime is true, set time to closest analysis hour (0z, 6z, 12z, 18z)
+    IF ( anatime_ ) THEN
+       m_ = 0
+       IF (     h < 3  ) THEN
+          h_ = 0
+       ELSEIF ( h < 9  ) THEN
+          h_ = 6
+       ELSEIF ( h < 15 ) THEN
+          h_ = 12
+       ELSEIF ( h < 21 ) THEN
+          h_ = 18
+       ! If 21z, get next day (but keep minutes)
+       ELSE
+          call ESMF_TimeSet(currTime, yy=yy_, mm=mm_, dd=dd_, h=23, m=m_, s=0)
+          call ESMF_TimeIntervalSet(tsInt, s_r8=real(7200.0,8), __RC__ )
+          call ESMF_TimeGet( currTime+tsInt, yy=yy_, mm=mm_, dd=dd_)
+          h_ = 0
+       ENDIF
+    ENDIF
+
+    ! Parse file name
+    ifile_ = FileTmpl
+    write(syy,'(I4.4)') yy_
+    CALL ReplaceChar_ ( ifile_, '%y4', syy )
+    write(smm,'(I2.2)') mm_
+    CALL ReplaceChar_ ( ifile_, '%m2', smm )
+    write(sdd,'(I2.2)') dd_
+    CALL ReplaceChar_ ( ifile_, '%d2', sdd )
+    write(sh,'(I2.2)') h_
+    CALL ReplaceChar_ ( ifile_, '%h2', sh  )
+    write(sm,'(I2.2)') m_
+    CALL ReplaceChar_ ( ifile_, '%n2', sm  )
+
+    ! set default file time 
+    s_ = 0
+    CALL ESMF_TimeSet(fileTime_, yy=yy_, mm=mm_, dd=dd_, h=h_, m=m_, s=s_)
+
+    ! Check if requested file is already in memory (in the VarBundle)
+    IF ( TRIM(ifile_) == TRIM(CurrentFile) ) THEN
+       IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Accessing previously read file: '//TRIM(ifile_)
+       CALL ESMFL_BundleGetPointerToData( VarBundle, TRIM(only_vars), DtaPtr, __RC__ )
+       ! Cast to local field, flip vertical axis
+       Ptr3D(:,:,:) = DtaPtr(:,:,State_Grid%NZ:1:-1)
+       HasField = .TRUE.
+
+    ! If file is not already in memory, attempt to read from source
+    ELSE
+
+       ! Check if file exists
+       INQUIRE( FILE=TRIM(ifile_), EXIST=HasFile )
+       ! Try reading current time stamp on file 
+       IF ( HasFile ) THEN
+   
+          ! Destroy old bundle first
+          CALL DestroyVarBundle_( RC ) 
+          ASSERT_(RC==GC_SUCCESS) 
+   
+          ! Recreate bundle
+          CALL CreateVarBundle_( RC )
+          ASSERT_(RC==GC_SUCCESS) 
+  
+          ! Read bundle. Read all variables as we might want them later on. 
+          IF ( am_I_Root ) WRITE(*,*) 'GCC GetAnaBundle_: Reading '//TRIM(ifile_)
+          CALL MAPL_read_bundle( VarBundle, TRIM(FileTmpl), fileTime_, file_override=TRIM(ifile_), RC=STATUS )
+          IF ( STATUS == ESMF_SUCCESS ) THEN
+             HasField = .TRUE.
+             CurrentFile = TRIM(ifile_)
+          ENDIF
+   
+          ! Get analysis field       
+          IF ( HasField ) THEN
+             CALL ESMFL_BundleGetPointerToData( VarBundle, TRIM(only_vars), DtaPtr, __RC__ )
+             ! Cast to local field, flip vertical axis
+             Ptr3D(:,:,:) = DtaPtr(:,:,State_Grid%NZ:1:-1)
+          ENDIF
+   
+          ! Clean up
+          DtaPtr => NULL()
+ 
+       ! error handling if file not found 
+       ELSE
+          ! If file not found and error mode is zero, stop with error
+          IF ( errmode_ == 0 ) THEN
+             IF ( am_I_Root ) THEN
+                WRITE(*,*) 'ERROR: file not found: '//TRIM(ifile_)
+                WRITE(*,*) 'You can get past this error setting the error mode to > 0'
+             ENDIF
+             ASSERT_(.FALSE.)
+          ! If file not found and error mode is not zero, just skip nudging 
+          ELSE
+             IF ( am_I_Root ) WRITE(*,*) '*** GCC warning in GetAnaBundle_, file not found: '//TRIM(ifile_)
+          ENDIF
+       ENDIF
+
+    ENDIF ! File already in memory
+
+    ! Return
+    RETURN_(ESMF_SUCCESS)
+    RC = GC_SUCCESS
+
+    ! Dummy routine for non-GEOS environment
+#else
+    Ptr3D(:,:,:) = 0.0_hp 
+    RC = GC_SUCCESS
+#endif
+
+  END SUBROUTINE GetAnaBundle_
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: ReadSettings_ 
 !
 ! !DESCRIPTION: Reads the analysis settings from a given configuration file
@@ -1051,7 +1312,6 @@ CONTAINS
 ! 
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)            :: Iam
     CHARACTER(LEN=63)             :: pkey, SpecName
     CHARACTER(LEN=3)              :: intStr
     INTEGER                       :: C, ix
@@ -1068,7 +1328,6 @@ CONTAINS
     !=======================================================================
     ! ReadSettings_ begins here 
     !=======================================================================
-    Iam = 'GEOS_Analysis:: ReadSettings_'
 
     ! Prefix for this entry
     WRITE( intStr, '(I3.3)' ) ispec
@@ -1126,6 +1385,34 @@ CONTAINS
     CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
     AnaConfig(ispec)%SkipPredictor = v_bool
+
+    ! Read from bundle (GEOS only)? 
+#ifdef MODEL_GEOS
+    key = TRIM(pkey)//"%ReadFromBundle"
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
+    IF ( RC /= GC_SUCCESS ) RETURN
+#else
+    v_bool = .FALSE.
+#endif
+    AnaConfig(ispec)%ReadFromBundle = v_bool
+
+    ! Read analysis time? 
+    key = TRIM(pkey)//"%ReadAnaTime"
+    CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.FALSE. )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%ReadAnaTime = v_bool
+
+    ! File template 
+    key = TRIM(pkey)//"%FileTemplate"
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='N/A' )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%FileTemplate = v_str
+
+    ! Variable name 
+    key = TRIM(pkey)//"%FileVarName"
+    CALL GetKey_( Config, key, RC, vstr=v_str, vstr_default='unknown' )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    AnaConfig(ispec)%FileVarName = v_str
 
     ! HEMCO field name 
     key = TRIM(pkey)//"%FldNameHco"
@@ -1336,6 +1623,11 @@ CONTAINS
        AnaConfig(ispec)%Spec2 => NULL()
     ENDIF
 
+    ! Force some flags if spreading increments across observation window
+    IF ( AnaConfig(ispec)%IAU ) THEN
+        AnaConfig(ispec)%ReadAnaTime = .TRUE.
+    ENDIF
+
     ! Verbose
     IF ( am_I_Root ) THEN
        WRITE(6,*) '----------------------------------------'
@@ -1348,7 +1640,14 @@ CONTAINS
           WRITE(6,*) '- Analysis minute               : ',AnaConfig(ispec)%AnalysisMinute
           WRITE(6,*) '- Forward looking file read     : ', AnaConfig(ispec)%ForwardLooking
           WRITE(6,*) '- Ignore during predictor step  : ', AnaConfig(ispec)%SkipPredictor
-          WRITE(6,*) '- HEMCO field name              : ', TRIM(AnaConfig(ispec)%FldNameHco)   
+          WRITE(6,*) '- Read data from bundle         : ', AnaConfig(ispec)%ReadFromBundle
+          IF ( AnaConfig(ispec)%ReadFromBundle ) THEN
+             WRITE(6,*) '- File template                 : ', TRIM(AnaConfig(ispec)%FileTemplate)
+             WRITE(6,*) '- File variable name            : ', TRIM(AnaConfig(ispec)%FileVarName)
+             WRITE(6,*) '- Read file at analysis time    : ', AnaConfig(ispec)%ReadAnaTime
+          ELSE
+             WRITE(6,*) '- HEMCO field name              : ', TRIM(AnaConfig(ispec)%FldNameHco)
+          ENDIF 
           WRITE(6,*) '- Input variable unit           : ', TRIM(AnaConfig(ispec)%FileVarUnit)
           WRITE(6,*) '- Dry air flag (0=dry, 1=total) : ', AnaConfig(ispec)%DryFlag
           WRITE(6,*) '- Field are increments          : ', AnaConfig(ispec)%IsIncrement
@@ -1629,4 +1928,107 @@ CONTAINS
        
   END SUBROUTINE GetKey_ 
 !EOC
+#ifdef MODEL_GEOS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: CreateVarBundle_ 
+!
+! !DESCRIPTION: Helper routine to create the VarBundle (GEOS only). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CreateVarBundle_( RC ) 
+!
+! !USES:
+!
+  USE HCO_State_GC_Mod,      ONLY : HcoState
+!
+! !INPUT/OUTPUT PARAMETERS:                                         
+!              
+  INTEGER                                 :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    TYPE(ESMF_Grid)                         :: grid
+
+    ! starts here    
+    __Iam__('CreateVarBundle_')
+
+    ! Create bundle and attach grid to it 
+    CALL ESMF_GridCompGet( HcoState%GridComp, grid=grid, __RC__ )
+    VarBundle = ESMF_FieldBundleCreate(name='AnaBundle', __RC__ )
+    CALL ESMF_FieldBundleSet( VarBundle, grid=grid, __RC__ )
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+    RC = GC_SUCCESS
+
+  END SUBROUTINE CreateVarBundle_ 
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DestroyVarBundle_ 
+!
+! !DESCRIPTION: Helper routine to destroy the VarBundle (GEOS only). 
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DestroyVarBundle_( RC ) 
+!
+! !USES:
+!
+!
+! !INPUT/OUTPUT PARAMETERS:                                         
+!              
+  INTEGER                                 :: RC
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    Integer                                 :: I, fieldcount
+    Type(esmf_field)                        :: bundle_field
+    Character(len=ESMF_MAXSTR), allocatable :: fieldnames(:)
+
+    ! starts here    
+    __Iam__('DestroyVarBundle_')
+
+    ! Destroy the bundle
+    CALL ESMF_FieldBundleGet(VarBundle,fieldcount=fieldcount, __RC__ )
+    Allocate(fieldnames(fieldcount))
+    CALL ESMF_FieldBundleGet(VarBundle,fieldNameList=fieldnames, __RC__ )
+    Do I = 1,fieldCount
+       CALL ESMF_FieldBundleGet(VarBundle,trim(fieldnames(i)),field=bundle_field, __RC__ )
+       CALL ESMF_FieldDestroy(bundle_field,noGarbage=.true., __RC__ )
+    Enddo
+    Deallocate(fieldnames)
+    CALL ESMF_FieldBundleDestroy(VarBundle,noGarbage=.true., __RC__ )
+
+    ! Exit w/ success
+    RETURN_(ESMF_SUCCESS)
+    RC = GC_SUCCESS
+
+  END SUBROUTINE DestroyVarBundle_ 
+!EOC
+#endif
 END MODULE GEOS_Analysis 

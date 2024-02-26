@@ -1423,9 +1423,7 @@ VerboseOnCores:              root       # Accepted values: root all
 )))GEOS_3HR_CH4
 
 # GEOS analysis fields 
-* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1 
-* CDAS_NO2 /see/extdata NO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1 
-* CDAS_SO2 /see/extdata SO2 1979-2099/1-12/1-31/0 C xyz v/v * - 1 1 
+#* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1 
 
 ### END SECTION BASE EMISSIONS 
 
