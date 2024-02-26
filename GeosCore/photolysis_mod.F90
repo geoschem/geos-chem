@@ -657,8 +657,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  NOTE: The netCDF diagnostics are attached in DO_FLEXCHEM so that we have
-!  access to the adjusted rates.  Only the bpch diagnostics are updated
-!  here.
+!  access to the adjusted rates.
 !    -- Bob Yantosca, 19 Dec 2017
 !
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%

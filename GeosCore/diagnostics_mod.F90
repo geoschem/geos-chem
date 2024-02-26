@@ -1672,8 +1672,7 @@ CONTAINS
 !
 ! !IROUTINE: set_aermass_diagnostic
 !
-! !DESCRIPTION: Computes the aerosol mass diagnostic (formerly ND42 bpch
-!  diagnostic).
+! !DESCRIPTION: Computes the aerosol mass diagnostic.
 !\\
 !\\
 ! !INTERFACE:
@@ -1709,9 +1708,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  NOTE: This diagnostic mimics the bpch diagnostic routine "DIAG42".
 !
 ! !REVISION HISTORY:
 !  05 Feb 2018 - R. Yantosca - Initial version
@@ -1926,8 +1922,7 @@ CONTAINS
 
     !=======================================================================
     ! Compute Aerosol mass and PM2.5 diagnostics using concentrations
-    ! from the end of the chemistry timestep, which should be more
-    ! consistent with the legacy ND42 bpch diagnostics
+    ! from the end of the chemistry timestep.
     !=======================================================================
 
     ! Point to fields of State_Chm and State_Met
