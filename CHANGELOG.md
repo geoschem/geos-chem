@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed exponent 'e' to 'd' for one entry in KPP to prevent precision error in external models
 - Changed GCHP sample run scripts to not print script execution commands to log
 - Changed offline emissions grid resolution templates in config files to be more descriptive
+- Updated CH4 global anthropogenic emission inventory from EDGARv7 to EDGARv8
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
