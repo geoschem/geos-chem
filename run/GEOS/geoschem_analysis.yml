@@ -18,7 +18,7 @@ species:
     AnalysisHour: 0
     AnalysisMinute: 0
     ForwardLooking: false
-    FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: ozone
     FileVarUnit: ppmv
     DryFlag: 0 
@@ -43,7 +43,7 @@ species:
     AnalysisHour: 0
     AnalysisMinute: 0
     ForwardLooking: false
-    FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: NO2 
     FileVarUnit: v/v 
     DryFlag: 1
@@ -73,7 +73,7 @@ species:
     AnalysisHour: 0
     AnalysisMinute: 0
     ForwardLooking: false 
-    FileTemplate: <<<EXPID>>>.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
     FileVarName: SO2g
     FileVarUnit: v/v 
     DryFlag: 1
