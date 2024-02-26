@@ -33,10 +33,6 @@ MODULE HCOI_GC_Diagn_Mod
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-  USE CMN_DIAG_Mod
-  USE DIAG_Mod
-#endif
   USE HCO_Diagn_Mod
   USE HCO_Error_Mod
 
@@ -137,9 +133,7 @@ CONTAINS
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%%%  NOTE: Emissions for CH4 specialty simulations are passed to  %%%%
     !%%%%  global_ch4_mod.F90 via HEMCO diagnostics, and not directly   %%%%
-    !%%%%  from the HEMCO state pointer.  Therefore, we need to make    %%%%
-    !%%%%  sure that routine DIAGN_CH4 is outside the BPCH_DIAG #if     %%%%
-    !%%%%  block.  -- Bob Yantosca (25 Jan 2018)                        %%%%
+    !%%%%  from the HEMCO state pointer. -- Bob Yantosca (25 Jan 2018)  %%%%
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     CALL Diagn_CH4( Input_Opt, HcoState, ExtState, RC )
 
@@ -150,14 +144,8 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=======================================================================
-    ! Define manual diagnostics
-    !=======================================================================
-    CALL Diagn_Dust    ( Input_Opt, HcoState, ExtState, RC )
-    IF ( RC /= HCO_SUCCESS ) RETURN
-
 #ifdef TOMAS
-    CALL Diagn_TOMAS   ( Input_Opt, HcoState, ExtState, RC )
+    CALL Diagn_TOMAS( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 
@@ -677,7 +665,7 @@ CONTAINS
 
     IF ( HcoID > 0 ) THEN
 
-       ! Create diagnostic container
+       ! Create diagnostic container<
        DiagnName = 'CH4_RESERVOIRS'
        CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &
@@ -695,186 +683,6 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Diagn_CH4
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: Diagn_Dust
-!
-! !DESCRIPTION: Subroutine Diagn\_Dust initializes diagnostics for the
-!  mineral dust aerosols (ND06).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Diagn_Dust( Input_Opt, HcoState, ExtState, RC )
-!
-! !USES:
-!
-    USE CMN_SIZE_Mod,       ONLY : NDSTBIN
-    USE HCO_ExtList_Mod,    ONLY : GetExtNr
-    USE HCO_State_Mod,      ONLY : HCO_State
-    USE HCOX_State_Mod,     ONLY : Ext_State
-    USE Input_Opt_Mod,      ONLY : OptInput
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
-    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
-    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object
-    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
-!
-! !REMARKS:
-!  Split off code from HCOI_GC_Diagn_Init into smaller routines in order to
-!  make the code more manageable.
-!
-! !REVISION HISTORY:
-!  20 Aug 2014 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    LOGICAL            :: Is_DustDead
-    LOGICAL            :: Is_DustGinoux
-    INTEGER            :: ExtNr, Cat, HcoID, I, N
-    CHARACTER(LEN=1)   :: ISTR1
-    CHARACTER(LEN=2)   :: ISTR2
-    CHARACTER(LEN=15)  :: SpcName
-    CHARACTER(LEN=31)  :: DiagnName
-    CHARACTER(LEN=255) :: MSG
-    CHARACTER(LEN=255) :: LOC = 'DIAGN_DUST (hcoi_gc_diagn_mod.F90)'
-
-    !=======================================================================
-    ! DIAGN_DUST begins here!
-    !=======================================================================
-
-    ! Assume success
-    RC = HCO_SUCCESS
-
-#ifdef BPCH_DIAG
-
-    ! Exit if we are doing a specialty simulation w/o dust
-    IF ( ( .not. Input_Opt%ITS_A_FULLCHEM_SIM )   .and. &
-         ( .not. Input_Opt%ITS_AN_AEROSOL_SIM ) ) THEN
-       RETURN
-    ENDIF
-
-    ! Now use local LOGICAL variables to save ExtState%DustDead and
-    ! ExtState%DustGinoux.  This will make sure these variables are
-    ! cast to LOGICAL, so that we can compare them in the same IF
-    ! statement.  Otherwise GNU Fortran will choke. (bmy, 10/25/16)
-    Is_DustDead   = ( ExtState%DustDead   > 0 )
-    Is_DustGinoux = ( ExtState%DustGinoux > 0 )
-
-    ! Define diagnostics if dust is used
-    IF ( Input_Opt%ND06 > 0 ) THEN
-
-       ! Get Ext. Nr
-       IF ( Is_DustDead ) THEN
-          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustDead' )
-          Cat   = -1
-       ELSEIF ( Is_DustGinoux ) THEN
-          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustGinoux' )
-          Cat   = -1
-       ELSE
-          ! Use offline dust emissions
-          ExtNr = 0
-          Cat   = CATEGORY_NATURAL
-       ENDIF
-
-       ! Do for each dust bin
-       DO I = 1, NDSTBIN
-
-#ifdef TOMAS
-
-          ! Get species name (i.e. DUST01 .. DUST40) for TOMAS simulatiosn
-          IF ( I < 10 )  THEN
-             WRITE( ISTR1,'(i1)' ) I
-             SpcName = 'DUST'   // ISTR1
-          ELSE
-             WRITE( ISTR2,'(i2)' ) I
-             SpcName = 'DUST'   // ISTR2
-          ENDIF
-#else
-
-          ! Get species name (i.e. DST1 .. DST4) for non TOMAS simualtions
-          WRITE( ISTR1,'(i1)' ) I
-          SpcName   = 'DST'   // ISTR1
-
-#endif
-
-          DiagnName = 'AD06_' // TRIM( SpcName )
-
-          ! HEMCO species ID
-          HcoID = GetHemcoId( TRIM( SpcName ), HcoState, LOC, RC )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-          ! Create diagnostic container
-          CALL Diagn_Create( HcoState  = HcoState,          &
-                             cName     = TRIM( DiagnName ), &
-                             ExtNr     = ExtNr,             &
-                             Cat       = Cat,               &
-                             Hier      = -1,                &
-                             HcoID     = HcoID,             &
-                             SpaceDim  = 2,                 &
-                             LevIDx    = -1,                &
-                             OutUnit   = 'kg',              &
-                             COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                             AutoFill  = 1,                 &
-                             RC        = RC                  )
-          IF ( RC /= HCO_SUCCESS ) RETURN
-
-       ENDDO
-
-       ! Add diagnostics for dust alkalinity
-       IF ( Input_Opt%LDSTUP ) THEN
-
-          ! Get Ext. Nr of used extension
-          ExtNr = GetExtNr( HcoState%Config%ExtList, 'DustAlk' )
-          IF ( ExtNr <= 0 ) THEN
-             CALL HCO_Error( 'Cannot find dust alk extension', RC, &
-                              THISLOC=LOC )
-             RETURN
-          ENDIF
-
-          ! Do for each dust bin
-          DO I = 1, NDSTBIN
-
-             ! Get species name (i.e. DSTAL1 .. DSTAL4)
-             WRITE( ISTR1,'(i1)' ) I
-             SpcName   = 'DSTAL' // ISTR1
-             DiagnName = 'AD06_' // TRIM( SpcName )
-
-             ! HEMCO species ID
-             HcoID = GetHemcoId( TRIM( SpcName ), HcoState, LOC, RC )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-
-             ! Create diagnostic container
-             CALL Diagn_Create( HcoState  = HcoState,          &
-                                cName     = TRIM( DiagnName ), &
-                                ExtNr     = ExtNr,             &
-                                Cat       = -1,                &
-                                Hier      = -1,                &
-                                HcoID     = HcoID,             &
-                                SpaceDim  = 2,                 &
-                                LevIDx    = -1,                &
-                                OutUnit   = 'kg',              &
-                                COL       = HcoState%Diagn%HcoDiagnIDManual,  &
-                                AutoFill  = 1,                 &
-                                RC        = RC                  )
-             IF ( RC /= HCO_SUCCESS ) RETURN
-          ENDDO
-       ENDIF
-
-    ENDIF
-#endif
-
-  END SUBROUTINE Diagn_Dust
 !EOC
 #ifdef TOMAS
 !------------------------------------------------------------------------------

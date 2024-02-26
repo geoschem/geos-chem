@@ -1041,7 +1041,7 @@ CONTAINS
           ENDIF
 
        !=====================================================================
-       ! POPs (only used when compiled with BPCH_DIAG=y)
+       ! POPs
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_POPS_SIM ) THEN
 

@@ -917,10 +917,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND13 (for now)
-    USE DIAG_MOD,             ONLY : AD59_SULF,     AD59_NUMB
-#endif
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
@@ -1370,40 +1366,6 @@ CONTAINS
           !                 [kg S/box/timestep] and the corresponding
           !                  number emission [no./box/timestep]
           !==============================================================
-#ifdef BPCH_DIAG
-          IF ( ND59 > 0 ) THEN
-             !print*, 'JACK IN ND59 SULFATE'
-             DO K = 1, IBINS
-                !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
-                !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
-                !     'at',I,J,L,K
-                !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K), &
-                !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK01+K-1)%Conc(I,J,L),N0(L,K)
-                !end if
-
-                !sfarina - I have studied this extensively and determined that
-                !negative NK emis as defined here is not an accurate statement.
-                !The particle number in a given bin IS reduced by this
-                !subroutine, but it is not reduced by emission. Particle
-                !number is reduced by mnfix.
-                !if the bin is just about to boil over, that added sulfate mass
-                !will trigger a big particle shift in mnfix and it will look
-                !like a 'negative number emission' event as defined by this
-                !inequality
-
-                !sfarina - changing the definition of this diagnostic to ignore
-                ! changes to the distribution by mnfix
-                !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
-                !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
-                !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) &
-                AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
-                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
-             ENDDO
-          ENDIF
-#endif
 
        ELSE
           ! Distributing primary emission without sub-grid coagulation
@@ -1421,28 +1383,6 @@ CONTAINS
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
-
-#ifdef BPCH_DIAG
-          !==============================================================
-          ! ND59 Diagnostic: Size-resolved primary sulfate emission in
-          !                 [kg S/box/timestep] and the corresponding
-          !                  number emission [no./box/timestep]
-          !==============================================================
-          IF ( ND59 > 0 ) THEN
-             SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
-             SO4anbf(:,:,2) = SO4an(:,:,2)
-
-             DO L = 1, 2
-             DO K = 1, IBINS
-                AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) * S_SO4 * DTSRCE        )
-                AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) / AVGMASS(K) * DTSRCE   )
-             ENDDO
-             ENDDO
-
-          ENDIF
-#endif
 
        ENDIF !SGCOAG
 
@@ -1484,12 +1424,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,           ONLY : AD44
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1780,44 +1714,6 @@ CONTAINS
                       * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1 &
                       *  TC(I,J,L+1) )
        ENDDO
-
-       !==============================================================
-       ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
-       ! (specifically sea salt loss diagnostics)
-       !==============================================================
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-       !-----------------------------------------------------------
-       ! ND44 DIAGNOSTIC (bpch)
-       ! Dry deposition flux loss [molec/cm2/s]
-       !
-       ! NOTE: Bpch diagnostics are being phased out.
-       !-----------------------------------------------------------
-       IF ( ND44 > 0 ) THEN
-
-          ! Initialize
-          TOT1 = 0e+0_fp
-          TOT2 = 0e+0_fp
-
-          ! Compute column totals of TCO(:) and TC(I,J,:,N)
-          DO L = 1, State_Grid%NZ
-             TOT1 = TOT1 + TC0(L)
-             TOT2 = TOT2 + TC(I,J,L)
-          ENDDO
-
-          ! Surface area [cm2]
-          AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-          ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
-          FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( MW_g * 1.e-3_fp ) / AREA_CM2
-
-          ! Store in global AD44 array for bpch diagnostic output
-          AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
-
-       ENDIF
-#endif
-#endif
 
        !-----------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
@@ -8246,15 +8142,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE CHEM_CL( Input_Opt, &
-           State_Met, State_Chm, State_Grid, RC )
-
+  SUBROUTINE CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
+!
 ! !USES:
-
-#ifdef BPCH_DIAG
-        USE CMN_DIAG_MOD
-#endif
-
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -8262,15 +8153,15 @@ CONTAINS
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Grid_Mod,     ONLY : GrdState
+!
 ! !INPUT PARAMETERS:
-
-      !LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid
-
+!
 ! !INPUT/OUTPUT PARAMETERS:
-
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
