@@ -1583,7 +1583,7 @@ CONTAINS
    USE State_Grid_Mod,    ONLY : GrdState
    USE State_Met_Mod,     ONLY : MetState
    USE Time_Mod,          ONLY : Expand_Date
-   USE UnitConv_Mod,      ONLY : Convert_Spc_Units
+   USE UnitConv_Mod
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
@@ -1613,6 +1613,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
+   INTEGER                   :: origUnit
    LOGICAL                   :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
@@ -1620,7 +1621,6 @@ CONTAINS
    CHARACTER(LEN=255)        :: v_name             ! variable name
    REAL(fp)                  :: MW_g               ! species molecular weight
    REAL(fp)                  :: SMALL_NUM          ! small number threshold
-   CHARACTER(LEN=63)         :: OrigUnit
 
    ! Temporary arrays and pointers
    REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY)
@@ -1901,7 +1901,7 @@ CONTAINS
    ENDDO
 
    ! Set species units
-   State_Chm%Spc_Units = 'kg/kg dry'
+   State_Chm%Spc_Units = KG_SPECIES_PER_KG_DRY_AIR
 
    ! If in debug mode, print out species min and max in [molec/cm3]
    IF ( Input_Opt%Verbose ) THEN
@@ -1909,8 +1909,15 @@ CONTAINS
       ! Convert units
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
-      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                              'molec/cm3', RC, OrigUnit=OrigUnit )
+
+      CALL Convert_Spc_Units(                                                &
+           Input_Opt  = Input_Opt,                                           &
+           State_Chm  = State_Chm,                                           &
+           State_Grid = State_Grid,                                          &
+           State_Met  = State_Met,                                           &
+           outUnit    = MOLECULES_SPECIES_PER_CM3,                           &
+           origUnit   = origUnit,                                            &
+           RC         = RC                                                  )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1931,8 +1938,13 @@ CONTAINS
       ENDDO
 
       ! Convert units back
-      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                              OrigUnit,  RC )
+      CALL Convert_Spc_Units(                                                &
+           Input_Opt  = Input_Opt,                                           &
+           State_Chm  = State_Chm,                                           &
+           State_Grid = State_Grid,                                          &
+           State_Met  = State_Met,                                           &
+           outUnit    = origUnit,                                            &
+           RC         = RC                                                  )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN

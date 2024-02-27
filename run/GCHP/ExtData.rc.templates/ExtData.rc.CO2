@@ -28,20 +28,20 @@ PrimaryExports%%
 ###
 ###############################################################################
 ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
-#
+
 #==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
-# These fields are stored in State_Met, along with the other met fields
+# Not used but included in Chem_Registry.rc import list
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS /dev/null
-CONV_DEPTH 1 N Y F0;013000 none none CTH   /dev/null
-#
+FLASH_DENS 1 N N - none none LDENS /dev/null
+CONV_DEPTH 1 N N - none none CTH   /dev/null
+
 ###############################################################################
 ###
 ### Land data (not handled by HEMCO)
 ###
 ###############################################################################
-#
+
 #==============================================================================
 # Olson land types
 #==============================================================================
@@ -152,7 +152,7 @@ CMSF_CO2_BN     kgC/km2/s N Y F%y4-%m2-01T00:00:00   none   1e-6 CO2_Flux /nobac
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
+TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 #
 ###############################################################################
 ###

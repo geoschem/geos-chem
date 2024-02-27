@@ -27,7 +27,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      not_used
 GCAPSCENARIO:                not_used
 GCAPVERTRES:                 not_used
 Logfile:                     *
@@ -249,7 +248,8 @@ Mask fractions:              false
 #   dataset to quickly incorporate more recent national methane emission estimates.
 # - Emissions for years after 2018 follow the 2018 spatial patterns.
 #=======================================================================================
-(((GHGI_v2_Express_Ext.and..not.GHGI_v2
+(((GHGI_v2_Express_Ext
+(((.not.GHGI_v2
 ### Oil ###
 0 GHGI_EE_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
 0 GHGI_EE_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
@@ -319,7 +319,8 @@ Mask fractions:              false
 0 GHGI_EE_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
 0 GHGI_EE_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1009 8 1
 0 GHGI_EE_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-)))GHGI_v2_Express_Ext.and..not.GHGI_v2
+))).not.GHGI_v2
+)))GHGI_v2_Express_Ext
 
 #==============================================================================
 # --- CH4: Mexico emissions (Scarpelli et. al, Environ. Res. Lett., 2020) ---
@@ -391,7 +392,8 @@ Mask fractions:              false
 #==============================================================================
 # --- CH4: EDGAR v6.0 emissions ---
 #==============================================================================
-(((EDGARv6.and..not.EDGARv7
+(((EDGARv6
+(((.not.EDGARv7
 0 EDGAR6_CH4_OIL__1B2a          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
 0 EDGAR6_CH4_OTHER__1A1_1B1_1B2 $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
 0 EDGAR6_CH4_OIL__1B2c          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 2 1
@@ -414,7 +416,8 @@ Mask fractions:              false
 0 EDGAR6_CH4_OTHER__2C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR6_CH4_OTHER__4F          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR6_CH4_OTHER__6C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-)))EDGARv6.and..not.EDGARv7
+))).not.EDGARv7
+)))EDGARv6
 
 #==============================================================================
 # --- EDGAR v7.0 emissions ---
@@ -678,13 +681,13 @@ Mask fractions:              false
 # EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
 #==============================================================================
 (((CEDSv2
-0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/37/35/315 1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/316       1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDSv2
 
 #==============================================================================
@@ -702,10 +705,13 @@ Mask fractions:              false
 (((CEDS_GBDMAPS
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS.rc
 )))CEDS_GBDMAPS
+
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
@@ -1052,7 +1058,7 @@ Mask fractions:              false
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-* TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
+* TIMEZONES $ROOT/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc UTC_OFFSET 2017/1-12/1/0 C xy count * - 1 1
 
 #==============================================================================
 # --- Meteorology fields ---
@@ -1300,9 +1306,11 @@ Mask fractions:              false
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry air] ---
-(((GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
+(((GLOBAL_OH_GC14
+(((.not.GLOBAL_OH_GCv5
 ${RUNDIR_GLOBAL_OH}
-)))GLOBAL_OH_GC14.and..not.GLOBAL_OH_GCv5
+))).not.GLOBAL_OH_GCv5
+)))GLOBAL_OH_GC14
 
 #------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
@@ -1369,8 +1377,6 @@ ${RUNDIR_CO2_COPROD}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-(((EMISSIONS
-
 #==============================================================================
 # --- Multiply by -1 to get a "negative" flux.
 #==============================================================================
@@ -1383,6 +1389,8 @@ ${RUNDIR_CO2_COPROD}
 # analytical inversions.
 #==============================================================================
 2 OH_pert_factor  1.0 - - - xy 1 1
+
+(((EMISSIONS
 
 #==============================================================================
 # --- Seasonal scaling factors ----
@@ -1647,6 +1655,27 @@ ${RUNDIR_CO2_COPROD}
 510 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
 528 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
 )))HTAP
+
+(((CEDSv2
+#=========================================================================
+# --- Sector-wise diel scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+2401 TOD_AGRICULTURE 0.599/0.599/0.599/0.599/0.599/0.649/0.748/0.898/1.098/1.247/1.447/1.597/1.796/1.746/1.696/1.547/1.347/1.098/0.898/0.748/0.649/0.599/0.599/0.599 - - - xy unitless 1
+2406 TOD_ENERGY      0.790/0.720/0.720/0.710/0.740/0.800/0.920/1.080/1.190/1.220/1.210/1.210/1.170/1.150/1.140/1.130/1.100/1.070/1.040/1.020/1.020/1.010/0.960/0.880 - - - xy unitless 1
+2407 TOD_INDUSTRY    0.750/0.750/0.780/0.820/0.880/0.950/1.020/1.090/1.160/1.220/1.280/1.300/1.220/1.240/1.250/1.160/1.080/1.010/0.950/0.900/0.850/0.810/0.780/0.750 - - - xy unitless 1
+2409 TOD_RESIDENTIAL 0.393/0.393/0.393/0.393/0.393/0.492/1.180/1.475/1.574/1.574/1.377/1.180/1.082/1.082/0.984/0.984/0.984/1.082/1.377/1.475/1.377/1.377/0.984/0.393 - - - xy unitless 1
+2411 TOD_TRANSPORT   0.190/0.090/0.060/0.050/0.090/0.220/0.860/1.840/1.860/1.410/1.240/1.200/1.320/1.440/1.450/1.590/2.030/2.080/1.510/1.060/0.740/0.620/0.610/0.440 - - - xy unitless 1
+
+#=========================================================================
+# --- Sector-wise day-of-week scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+706 DOW_ENERGY      0.850/1.060/1.060/1.060/1.060/1.060/0.850 - - - xy unitless 1
+707 DOW_INDUSTRY    0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+709 DOW_RESIDENTIAL 0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+711 DOW_TRANSPORT   0.790/1.020/1.060/1.080/1.100/1.140/0.810 - - - xy unitless 1
+)))CEDSv2
 
 )))EMISSIONS
 

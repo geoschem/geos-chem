@@ -2466,7 +2466,7 @@ CONTAINS
     Input_Opt%LACTIVEH2O = v_bool
 
     !------------------------------------------------------------------------
-    ! Turn on online stratospheric H2O?
+    ! Use a more conservative boundary condition for strat. H2O?
     !------------------------------------------------------------------------
     key    = "operations%chemistry%active_strat_H2O%use_static_bnd_cond"
     v_bool = MISSING_BOOL
@@ -2681,6 +2681,7 @@ CONTAINS
     CHARACTER(LEN=512)           :: errMsg
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_NamLen) :: a_str(3)
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
     ! Config_RRTMG begins here!
@@ -2779,6 +2780,71 @@ CONTAINS
     ENDIF
     Input_Opt%LSKYRAD(2) = v_bool
 
+    !------------------------------------------------------------------------
+    ! Value to use (in ppmv) for CO2?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%co2_ppmv"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_CO2_ppmv = Cast_and_Roundoff( v_str, places=2 )
+
+    !------------------------------------------------------------------------
+    ! Use the fixed dynamical heating assumption?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fixed_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_FDH = v_bool
+
+    !------------------------------------------------------------------------
+    ! Allow seasonal adjustment?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%seasonal_fdh"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SEFDH = v_bool
+
+    !------------------------------------------------------------------------
+    ! Extend dynamical heating adjustment to TOA?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fdh_to_toa"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SA_TOA = v_bool
+
+    !------------------------------------------------------------------------
+    ! Read in dynamical heating data?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%read_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Read_Dyn_Heating = v_bool
+
     !========================================================================
     ! Error check settings
     !========================================================================
@@ -2818,6 +2884,18 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifndef MODEL_GCHPCTM
+    If (Input_Opt%RRTMG_FDH) Then
+       errMsg = 'Fixed dynamical heating in RRTMG is currently only available in GCHP'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+#endif
+
+    If (Input_Opt%RRTMG_SEFDH.and.(.not.Input_Opt%RRTMG_FDH)) Then
+       errMsg = 'Cannot have seasonally evolving FDH without enabling FDH!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+
     !========================================================================
     ! Print to screen
     !========================================================================
@@ -2833,6 +2911,11 @@ CONTAINS
        WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
+       WRITE( 6, 100 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
+       WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
+       WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
+       WRITE( 6, 100 ) ' --> Extend to TOA?         : ', Input_Opt%RRTMG_SA_TOA
+       WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating
     ENDIF
 
     ! FORMAT statements
@@ -2926,6 +3009,16 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%FAST_JX_DIR = TRIM( v_str )
+
+    key   = "operations%photolysis%input_directories%cloudj_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CloudJ_DIR = TRIM( v_str )
 
     !------------------------------------------------------------------------
     ! Use online ozone in extinction calculations for FAST-JX?
@@ -3112,10 +3205,12 @@ CONTAINS
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
-       WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
-       WRITE( 6,100 ) 'Ozone from met for FAST-JX? : ',                      &
+       WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
+                       TRIM( Input_Opt%CloudJ_Dir )
+       WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
+       WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET
-       WRITE( 6,100 ) 'TOMS/SBUV ozone for FAST-JX?: ', Input_Opt%USE_TOMS_O3
+       WRITE( 6,100 ) 'Use TOMS/SBUV ozone?        : ', Input_Opt%USE_TOMS_O3
        WRITE( 6,100 ) 'Photolyse nitrate aerosol?  : ', Input_Opt%hvAerNIT
        WRITE( 6,105 ) 'JNITs scaling of JHNO3      : ', Input_Opt%hvAerNIT_JNITs
        WRITE( 6,105 ) 'JNIT scaling of JHNO3       : ', Input_Opt%hvAerNIT_JNIT
@@ -5955,8 +6050,8 @@ CONTAINS
     !=================================================================
 
 #ifdef TOMAS
-    ! For TOMAS only: If DUST1 is present, the other dust species are too
-    I = MAX( Ind_('DUST1','A'), 0 )
+    ! For TOMAS only: If DUST01 is present, the other dust species are too
+    I = MAX( Ind_('DUST01','A'), 0 )
 #else
     ! Non-TOMAS simulations: Need all DST1-DST4 species
     I = MAX( Ind_('DST1','A'), 0 ) + &

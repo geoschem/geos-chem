@@ -3836,6 +3836,10 @@ PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
   MW_g: 34.02
+PH2SO4:
+  FullName: SO4 from gas-phase chemistry
+  Is_Gas: true
+  MW_g: 96.06
 PHEN:
   DD_F0: 1.0
   DD_Hstar: 2.8e+3
@@ -4204,6 +4208,10 @@ PRPN:
   WD_RetFactor: 2.0e-2
 PSO4:
   FullName: Dummy species to track production of SO4
+  Is_Gas: true
+  MW_g: 96.06
+PSO4AQ:
+  FullName: SO4 from cloud chemistry
   Is_Gas: true
   MW_g: 96.06
 PYAC:
