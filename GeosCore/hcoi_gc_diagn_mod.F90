@@ -665,7 +665,7 @@ CONTAINS
 
     IF ( HcoID > 0 ) THEN
 
-       ! Create diagnostic container<
+       ! Create diagnostic container
        DiagnName = 'CH4_RESERVOIRS'
        CALL Diagn_Create( HcoState  = HcoState,          &
                           cName     = TRIM( DiagnName ), &

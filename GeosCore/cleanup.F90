@@ -197,6 +197,15 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
+#ifdef RRTMG
+  CALL Cleanup_RRTMG_Rad_Transfer( RC )
+  IF ( RC /= GC_SUCCESS ) THEN
+     ErrMsg = 'Error encountered in "Cleanup_RRTMG_Rad_Transfer"!'
+     CALL GC_Error( ErrMsg, RC, ThisLoc )
+     RETURN
+  ENDIF
+#endif
+
 #ifdef TOMAS
   CALL CLEANUP_TOMAS()
 #endif
