@@ -57,6 +57,7 @@ MODULE UnitConv_Mod
   PUBLIC :: Check_Units
   PUBLIC :: Convert_Spc_Units
   PUBLIC :: Print_Global_Species_Kg
+  PUBLIC :: Print_Species_Units
 
   ! kg/kg dry air <-> kg/grid box (single box only)
   ! Used for TOMAS compatibility in WASHOUT
@@ -2224,24 +2225,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_KgKgDry_to_Kg( I,         J,         L,             &
-                                       State_Met, State_Chm, mapping,       &
-                                       isAdjoint, RC                       )
+  SUBROUTINE ConvertBox_KgKgDry_to_Kg( I,         J,         L,              &
+                                       N,         State_Met, State_Chm,      &
+                                       isAdjoint                            )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Species map to modelId
-    LOGICAL,        INTENT(IN)    :: isAdjoint   ! Is this reverse integration?
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
+    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology state object
+    LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !REMARKS:
 !  This routine is temporary and is only used for local conversion of species
@@ -2258,50 +2255,25 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N,      S
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
     !========================================================================
     ! ConvertBox_KgKgDry_to_Kg begins here!
     !========================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at ConvertBox_KgKgDry_to_Kg (in GeosUtil/unitconv_mod.F90)'
-
-    ! Loop over species
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
-    DO S = 1, SIZE( mapping )
-
-       ! Get the modelId from the mapping array
-       N = mapping(S)
-
-       ! Convert species concentration units
-       State_Chm%Species(N)%Conc(I,J,L) =                                    &
-       State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
+    ! Convert species concentration units
+    State_Chm%Species(N)%Conc(I,J,L) =                                    &
+    State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
 
 #ifdef ADJOINT
-       IF ( isAdjoint ) THEN
-          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-          State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)
-       ENDIF
+    IF ( isAdjoint ) THEN
+       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+       State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)
+    ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES
-
-    ENDDO
-    !$OMP END PARALLEL DO
+    ! Update units metadata
+    print*, '###! here2 ', i,j,l,n, State_Chm%Species(N)%Units
+    State_Chm%Species(N)%Units = KG_SPECIES
+    print*, '###! here3 ', i,j,l,n, State_Chm%Species(N)%Units
 
   END SUBROUTINE ConvertBox_KgKgDry_to_Kg
 !EOC
@@ -2321,28 +2293,24 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kg_to_KgKgDry( I,        J,         L,               &
-                                      State_Met, State_Chm, mapping,         &
-                                      isAdjoint, RC                         )
+  SUBROUTINE ConvertBox_Kg_to_KgKgDry( I,         J,         L,              &
+                                       N,         State_Met, State_Chm,      &
+                                       isAdjoint                            )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
-    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology state object
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Species map to modelId
-    LOGICAL,        INTENT(IN)    :: isAdjoint   ! Is this reverse integration?
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
+    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology state object
+    LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !REMARKS:
 !  This routine is temporary and is only used for local conversion of species
- !  concentrations for use in TOMAS within wetscav_mod routine WASHOUT.
+!  concentrations for use in TOMAS within wetscav_mod routine WASHOUT.
 !  That routine is called within a parallel do loop and therefore units can
 !  only be converted per grid box to avoid excessive computation time. Also,
 !  State_Chm%Spc_Units cannot be changed within the parallel do loop without
@@ -2355,49 +2323,23 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N,      S
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
     !========================================================================
     ! ConvertBox_Kg_to_KgKgDry begins here!
     !========================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at ConvertBox_Kg_to_KgKgDry (in GeosUtil/unitconv_mod.F90)'
-
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
-    DO S = 1, SIZE( mapping )
-
-       ! Get the modelId from the mapping array
-       N = mapping(S)
-
-       ! Convert species concentration units
-       State_Chm%Species(N)%Conc(I,J,L) =                                    &
-       State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
+    ! Convert species concentration units
+    State_Chm%Species(N)%Conc(I,J,L) =                                    &
+    State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
 
 #ifdef ADJOINT
-       IF ( isAdjoint ) THEN
-          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-          State_Chm%SpeciesAdj(I,J,L,N) / State_Met%AD(I,J,L)
-       ENDIF
+    IF ( isAdjoint ) THEN
+       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+       State_Chm%SpeciesAdj(I,J,L,N) / State_Met%AD(I,J,L)
+    ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
-
-    ENDDO
-    !$OMP END PARALLEL DO
+    ! Update units metadata
+    State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
 
   END SUBROUTINE ConvertBox_Kg_to_KgKgDry
 !EOC
@@ -2415,24 +2357,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kgm2_to_Kg( I,         J,          L,                &
-                                    State_Chm, State_Grid, mapping,          &
-                                    isAdjoint, RC                           )
+  SUBROUTINE ConvertBox_Kgm2_to_Kg( I,         J,         L,                 &
+                                    N,         State_Chm, State_Grid,        &
+                                    isAdjoint                               )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Species map to modelId
-    LOGICAL,        INTENT(IN)    :: isAdjoint   ! Is this reverse integration?
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indices
+    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
+    LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !REMARKS:
 !  This routine is temporary and is only used for local conversion of species
@@ -2448,50 +2386,23 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N,      S
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
     !========================================================================
     ! ConvertBox_Kgm2_to_Kg begins here!
     !========================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at ConvertBox_Kgm2_to_Kg (in GeosUtil/unitconv_mod.F90)'
-
-    ! Loop over species
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
-    DO S = 1, SIZE( mapping )
-
-       ! Get the modelId from the mapping array
-       N = mapping(S)
-
-       ! Convert species concentration units
-       State_Chm%Species(N)%Conc(I,J,L) =                                    &
-       State_Chm%Species(N)%Conc(I,J,L) * State_Grid%Area_M2(I,J)
+    ! Convert species concentration units
+    State_Chm%Species(N)%Conc(I,J,L) =                                    &
+    State_Chm%Species(N)%Conc(I,J,L) * State_Grid%Area_M2(I,J)
 
 #ifdef ADJOINT
-       IF ( isAdjoint ) THEN
-          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-          State_Chm%SpeciesAdj(I,J,L,N) * State_Grid%Area_M2(I,J)
-       ENDIF
+    IF ( isAdjoint ) THEN
+       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+       State_Chm%SpeciesAdj(I,J,L,N) * State_Grid%Area_M2(I,J)
+    ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES
-
-    ENDDO
-    !$OMP END PARALLEL DO
+    ! Update units metadata
+    State_Chm%Species(N)%Units = KG_SPECIES
 
   END SUBROUTINE ConvertBox_Kgm2_to_Kg
 !EOC
@@ -2509,24 +2420,20 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kg_to_Kgm2( I,         J,          L,                &
-                                    State_Chm, State_Grid, mapping,          &
-                                    isAdjoint, RC                           )
+  SUBROUTINE ConvertBox_Kg_to_Kgm2( I,         J,         L,                 &
+                                    N,         State_Chm, State_Grid,        &
+                                    isAdjoint                               )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN)    :: I, J, L     ! Grid box indexes
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
-    INTEGER,        INTENT(IN)    :: mapping(:)  ! Species map to modelId
-    LOGICAL,        INTENT(IN)    :: isAdjoint   ! Is this reverse integration?
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
+    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
+    LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+    TYPE(ChmState),    INTENT(INOUT) :: State_Chm   ! Chemistry state object
 !
 ! !REMARKS:
 !  This routine is temporary and is only used for local conversion of species
@@ -2542,50 +2449,23 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER            :: N,      S
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
     !========================================================================
     ! ConvertBox_Kg_to_Kgm2 begins here!
     !========================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-     ' -> at ConvertBox_Kg_to_Kgm2 (in GeosUtil/unitconv_mod.F90)'
-
-    ! Loop over species
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( S, N                                                     )
-    DO S = 1, SIZE( mapping )
-
-       ! Get the modelId from the mapping array
-       N = mapping(S)
-
-       ! Convert species concentration units
-       State_Chm%Species(N)%Conc(I,J,L) =                                    &
-       State_Chm%Species(N)%Conc(I,J,L) / State_Grid%Area_M2(I,J)
+    ! Convert species concentration units
+    State_Chm%Species(N)%Conc(I,J,L) =                                    &
+    State_Chm%Species(N)%Conc(I,J,L) / State_Grid%Area_M2(I,J)
 
 #ifdef ADJOINT
-       IF ( isAdjoint ) THEN
-          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-          State_Chm%SpeciesAdj(I,J,L,N) / State_Grid%Area_M2(I,J)
-       ENDIF
+    IF ( isAdjoint ) THEN
+       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+       State_Chm%SpeciesAdj(I,J,L,N) / State_Grid%Area_M2(I,J)
+    ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
-
-    ENDDO
-    !$OMP END PARALLEL DO
+    ! Update units metadata
+    State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
 
   END SUBROUTINE ConvertBox_Kg_to_Kgm2
 !EOC
@@ -2606,7 +2486,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,           INTENT(IN) :: units      ! Input units flag
-    INTEGER, OPTIONAL, POINTER    :: mapping(:) ! species ID -> model ID
+    INTEGER, OPTIONAL, POINTER    :: mapping(:) ! Species ID -> modelId
 
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2643,5 +2523,67 @@ CONTAINS
     theMapping => NULL()
 
   END FUNCTION Check_Units
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Species_Units
+!
+! !DESCRIPTION: Prints each species name and its units.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_Species_Units( State_Chm, mapping )
+!
+! !USES:
+!
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(IN) :: State_Chm    ! Chemistry state object
+    INTEGER, OPTIONAL, POINTER :: mapping(:)   ! Species Id -> modelId
+!
+! !REVISION HISTORY:
+!  23 Feb 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER :: N, S
+
+    ! Pointers
+    INTEGER, POINTER :: theMapping(:)
+
+    !========================================================================
+    ! Print_Species_Units begins here!
+    !========================================================================
+
+    ! Assume all species will be printed if mapping is not passed
+    theMapping => State_Chm%Map_All
+    IF ( PRESENT( mapping ) ) theMapping => mapping
+
+    ! Loop over species
+    DO S = 1, SIZE( theMapping )
+
+       ! Get the modelId for each species
+       N = theMapping(S)
+
+       WRITE( 6, 100 ) N, ADJUSTL( State_Chm%SpcData(N)%Info%Name ),         &
+                          UNIT_STR( State_Chm%Species(N)%Units )
+ 100   FORMAT( i5, 1x, a20, 1x, a )
+    ENDDO
+
+    ! Free pointer
+    theMapping => NULL()
+
+  END SUBROUTINE Print_Species_Units
 !EOC
 END MODULE UnitConv_Mod

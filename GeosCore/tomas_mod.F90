@@ -249,12 +249,14 @@ CONTAINS
     ! Assume success
     RC    = GC_SUCCESS
 
-    !! Check that species units are in [kg] (ewl, 8/13/15)
-    !IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-    !   MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-    !   LOC = 'Routine DO_TOMAS in tomas_mod.F90'
-    !   CALL GC_Error( MSG, RC, LOC )
-    !ENDIF
+    ! Check that species units are in [kg] (ewl, 8/13/15)
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units "kg"!'
+       LOC = 'Routine DO_TOMAS in tomas_mod.F90'
+       CALL GC_Error( MSG, RC, LOC )
+    ENDIF
 
     ! Do TOMAS aerosol microphysics
     CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
@@ -3543,7 +3545,9 @@ CONTAINS
     REAL*4                   :: BOXMASS
     REAL*4                   :: thresh
     CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
-    LOGICAL                  :: UNITCHANGE_KGM2
+    INTEGER                  :: previous_units(State_Chm%nAdvect)
+
+    LOGICAL, SAVE            :: doPrintErr = .TRUE.
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -3555,7 +3559,6 @@ CONTAINS
     ! Assume success
     RC                =  GC_SUCCESS
 
-    ! TODO: Update since Spc_Units are no longer included
     ! Check that species units are in [kg] (ewl, 8/13/15)
     ! Convert species concentration units to [kg] if not necessary.
     ! Units are [kg/m2] if AQOXID is called from wet deposition
@@ -3563,14 +3566,36 @@ CONTAINS
     ! still in [kg]. Since AQOXID is called within an (I,J,L) loop,
     ! only convert units for a single grid box. Otherwise, run will
     ! take too long (ewl, 9/30/15)
-    UNITCHANGE_KGM2 = .FALSE.
-    IF ( State_Chm%Spc_Units  == KG_SPECIES_PER_M2 ) THEN
-       UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L,  State_Chm, State_Grid, .FALSE., RC )
-    ELSE IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect initial species units: ' // &
-              TRIM( UNIT_STR(State_Chm%Spc_Units) )
+
+    ! Loop over advected species
+    DO K = 1, State_Chm%nAdvect
+
+       ! Save incoming units for reverse conversion
+       previous_units(K) = State_Chm%Species(K)%Units
+
+       ! Convert any units in kg/m2 to kg
+       IF ( State_Chm%Species(K)%Units == KG_SPECIES_PER_M2 ) THEN
+          CALL ConvertBox_Kgm2_to_Kg(                                        &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               N          = K,                                               &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               isAdjoint  = .FALSE.                                         )
+       ENDIF
+    ENDDO
+
+    ! All advected species should now be in kg, throw an error if not
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species species have units of "kg"!'
        LOC = 'Routine AQOXID in tomas_mod.F90'
+       IF ( doPrintErr ) THEN
+          CALL Print_Species_Units( State_Chm, State_Chm%Map_WetDep )
+          doPrintErr = .FALSE.
+       ENDIF
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
@@ -3799,17 +3824,18 @@ CONTAINS
 
     ! Convert State_Chm%Species units back to original units
     ! if conversion occurred at start of AQOXID (ewl, 9/30/15)
-    IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
-    ENDIF
-
-    ! Check that species units are as expected (ewl, 9/29/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES          .AND. &
-         State_Chm%Spc_Units /= KG_SPECIES_PER_M2 )  THEN
-       MSG = 'Incorrect final species units:' // &
-              TRIM( UNIT_STR( State_Chm%Spc_Units ) )
-       CALL ERROR_STOP( MSG, 'Routine AQOXID in tomas_mod.F90' )
-    ENDIF
+    DO K = 1, State_Chm%nAdvect
+       IF ( previous_units(K) == KG_SPECIES_PER_M2 ) THEN
+          CALL ConvertBox_Kg_to_Kgm2(                                        &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               N          = K,                                               &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               isAdjoint  = .FALSE.                                         )
+       ENDIF
+    ENDDO
 
   END SUBROUTINE AQOXID
 !EOC
@@ -3911,8 +3937,10 @@ CONTAINS
     SOACOND_WARNING_CT = 0
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units of "kg"!'
        LOC = 'Routine SOACOND in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -6978,15 +7006,18 @@ CONTAINS
 
     ! Determine factor used to convert Spc to units of [kg] locally
     ! (ewl, 9/29/15)
-    IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
+    IF ( Check_Units( State_Chm,                                             &
+                      KG_SPECIES_PER_M2,                                     & 
+                      mapping=State_Chm%Map_Advect ) ) THEN
        UNITFACTOR = State_Grid%AREA_M2(I,J)
 
-    ELSE IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
+    ELSE IF ( Check_Units( State_Chm,                                        &
+                           KG_SPECIES_PER_KG_DRY_AIR,                        &
+                           mapping=State_Chm%Map_Advect ) ) THEN
        UNITFACTOR = State_Met%AD(I,J,L)
 
     ELSE
-       MSG = 'Unexpected species units: ' // &
-              TRIM(UNIT_STR(State_Chm%Spc_Units))
+       MSG = 'Unexpected species units (not "kg/m2" or "kg/kg dry")!'
        LOC = 'Routine GETFRACTION in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -7138,8 +7169,10 @@ CONTAINS
     RC                =  GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      & 
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units of "kg"!'
        LOC = 'Routine GETACTBIN in tomas_mod.F90'
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
@@ -7544,7 +7577,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER             :: I,J, BIN, JC, TRACID, WID
-    INTEGER             :: N, NA, nAdvect, origUnit
+    INTEGER             :: N, NA, nAdvect, previous_units
     REAL(fp)            :: MSO4, MNACL, MH2O
     REAL(fp)            :: MECIL, MECOB, MOCIL, MOCOB, MDUST
     CHARACTER(LEN=255)  :: MSG, LOC
@@ -7566,13 +7599,13 @@ CONTAINS
     ! NOTE: For complete area-independence, species units will need to be
     !       mixing ratio or mass per unit area in TOMAS
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -7581,9 +7614,10 @@ CONTAINS
     ENDIF
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // &
-              TRIM(UNIT_STR(State_Chm%Spc_Units))
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all species have units "kg"!'
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -7646,9 +7680,10 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units at end of AERO_DIADEN: ' &
-             // TRIM(UNIT_STR(State_Chm%Spc_Units))
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units of "kg"!'
        LOC = 'Routine AERO_DIADEN in tomas_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
@@ -7659,7 +7694,7 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -7767,9 +7802,11 @@ CONTAINS
     ERRORSWITCH = .FALSE.
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine CHECKMN in tomas_mod.F90'
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units "kg"!'
+       LOC = 'Routine CHECKMN in tomas_mod.F90: ' // TRIM( LOCATION )
        CALL ERROR_STOP( MSG, LOC )
     ENDIF
 

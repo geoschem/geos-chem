@@ -637,18 +637,17 @@ CONTAINS
                             State_Met  = State_Met,                          &
                             RC         = RC                                 )
 
-
-             ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg = 'Incorrect species units after DO_TOMAS!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
-
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_TOMAS"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
+             ENDIF
+
+             ! Check units (ewl, 10/5/15)
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Not all species have units "kg"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
           ENDIF
 #endif

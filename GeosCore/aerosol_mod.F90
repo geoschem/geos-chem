@@ -134,9 +134,6 @@ CONTAINS
     USE UnitConv_Mod
     USE TIME_MOD,          ONLY : GET_MONTH
     USE Timers_Mod,        ONLY : Timer_End, Timer_Start
-#ifdef TOMAS
-    USE TOMAS_MOD,        ONLY : IBINS
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -166,7 +163,7 @@ CONTAINS
     LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     ! Non-SAVEd variables
-    INTEGER             :: I, J, L, N, NA, ND, K
+    INTEGER             :: I, J, L, N, NA, ND, K, IBINS
     INTEGER             :: k_SO4
     INTEGER             :: k_ORG
     INTEGER             :: k_SSA
@@ -217,6 +214,10 @@ CONTAINS
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
 
+#ifdef TOMAS
+    ! Number of size bins for TOMAS microphysics
+    IBINS   = State_Chm%nTomasBins
+#endif
     ! Set pointers
     REAA => State_Chm%Phot%REAA
 

@@ -123,9 +123,11 @@
     IBINS     = State_Chm%nTomasBins
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units of "kg"!'
+       LOC = 'Routine AERO_DRYDEP in GeosCore/aero_drydep.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
@@ -537,10 +539,11 @@
     DepFreq  => NULL()
 
     ! Check that species units are still in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units at end of routine: ' &
-             // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine AERO_DRYDEP in aero_drydep.F'
+    IF ( .not. Check_Units( State_Chm,                                       &
+                            KG_SPECIES,                                      &
+                            mapping=State_Chm%Map_Advect ) ) THEN
+       MSG = 'Not all advected species have units "kg"!'
+       LOC = 'Routine AERO_DRYDEP in GeosCore/aero_drydep.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 

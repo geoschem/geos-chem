@@ -795,7 +795,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Timers_Mod,         ONLY : Timer_End,  Timer_Start
-    USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
@@ -7957,7 +7956,7 @@ CONTAINS
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
          mapping        = State_Chm%Map_Advect,                              &
-         new_unit       = KG_SPECIES,                                        &
+         new_units      = KG_SPECIES,                                        &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
 

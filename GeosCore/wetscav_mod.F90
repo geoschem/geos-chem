@@ -1604,7 +1604,7 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I          ! Longitude index
     INTEGER,        INTENT(IN)    :: J          ! Latitude index
     INTEGER,        INTENT(IN)    :: L          ! Level index
-    INTEGER,        INTENT(IN)    :: N          ! Species number
+    INTEGER,        INTENT(IN)    :: N          ! Species number (modelId)
     REAL(fp),       INTENT(IN)    :: BXHEIGHT   ! Grid box height [m]
     REAL(fp),       INTENT(IN)    :: TK         ! Temperature [K]
     REAL(fp),       INTENT(IN)    :: PP         ! Precip rate thru bottom
@@ -1650,15 +1650,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    REAL(fp)               :: L2G, DZ, SO2LOSS
+    REAL(f8)               :: K0,  CR, pKa
 #ifdef APM
     REAL(fp)               :: RIN
 #endif
 #ifdef TOMAS
-    LOGICAL                :: UNITCHANGE_KGKG ! flag for STT units kg/kg
-    LOGICAL                :: UNITCHANGE_KGM2 ! flag for STT units kg/m2
+    INTEGER                :: previous_units
 #endif
-    REAL(fp)               :: L2G, DZ, SO2LOSS
-    REAL(f8)               :: K0,  CR, pKa
 #ifdef LUO_WETDEP
     REAL(f8)               :: Hplus, HCSO2, HCNH3, Ks1, Ks2, T_Term
 #endif
@@ -1682,6 +1681,12 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at Washout (in module GeosCore/wetscav_mod.F90)'
 
+    ! DZ is the height of the grid box in cm
+    DZ      =  BXHEIGHT * 1e+2_fp
+
+    ! Get info about Nth species from the species database
+    SpcInfo => State_Chm%SpcData(N)%Info
+
 #ifdef TOMAS
     !-----------------------------------------------------------------
     ! TOMAS MICROPHYSICS ONLY
@@ -1691,58 +1696,64 @@ CONTAINS
     ! kg/kg total air if WASHOUT is called from convection and are
     ! kg/m2 is called from DO_WASHOUT_ONLY. Since WASHOUT is called
     ! within an (I,J,L) loop, only convert units for a single grid
-    ! box. Otherwise, run will take too long (ewl, 9/22/15)
+    ! box.  Otherwise, run will take too long.
+    !  -- Lizzie Lundgren (22 Sep 2015) 
+    !
+    ! Now only convert units for the current species N. 
+    !  -- Bob Yantosca (23 Feb 2024)
     !-----------------------------------------------------------------
-    UNITCHANGE_KGKG = .FALSE.
-    UNITCHANGE_KGM2 = .FALSE.
+    
+    ! Save original units for reverse unit conversion
+    previous_units = State_Chm%Species(N)%Units
 
-    ! TODO: Fix this since Spc_Units are no longer supported
-    IF ( State_Chm%Spc_Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       UNITCHANGE_KGKG = .TRUE.
-       CALL ConvertBox_KgKgDry_to_Kg( I,         J,          L,              &
-                                      State_Met, State_Chm, .FALSE., RC     )
+    IF ( State_Chm%Species(N)%Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       print*, '###! here  ', i,j,l,n
+       !------------------------------------------
+       ! WASHOUT is being called from convection, 
+       ! so convert from "kg/kg dry" to "kg"
+       !------------------------------------------
+       CALL ConvertBox_KgKgDry_to_Kg(                                        &
+            I         = I,                                                   &
+            J         = J,                                                   &
+            L         = L,                                                   &
+            N         = N,                                                   &
+            State_Chm = State_Chm,                                           &
+            State_Met = State_Met,                                           &
+            isAdjoint = .FALSE.                                             )
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "ConvertBox_KgKgDry_to_Kg"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
+    ELSE IF ( State_Chm%Species(N)%Units == KG_SPECIES_PER_M2 ) THEN
+       !-----------------------------------------
+       ! WASHOUT is being called from wetdep 
+       ! so convert from "kg/m2" to "kg".
+       !-----------------------------------------
+       CALL ConvertBox_Kgm2_to_Kg(                                           &
+            I          = I,                                                  &
+            J          = J,                                                  &
+            L          = L,                                                  &
+            N          = N,                                                  &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            isAdjoint  = .FALSE.                                            )
 
-    ELSE IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
-       UNITCHANGE_KGM2 = .TRUE.
-       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, .FALSE., RC )
+    ENDIF
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "ConvertBox_KgM2_to_Kg"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ELSE
-
-       ! Exit if units are not as expected
-       ErrMsg = 'Incorrect initial species units:' // &
-                TRIM( UNIT_STR( State_Chm%Spc_Units ) )
+    ! The species should be in kg at this point for TOMAS
+    IF ( State_Chm%Species(N)%Units /= KG_SPECIES ) THEN
+       ErrMsg = TRIM( SpcInfo%Name ) // ' is in '                         // &
+                TRIM( UNIT_STR( State_Chm%Species(N)%Units ) )            // &
+                ', but needs to be in kg for TOMAS!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-
     ENDIF
 #endif
 
-    ! DZ is the height of the grid box in cm
-    DZ      =  BXHEIGHT * 1e+2_fp
-
-    ! Get info about Nth species from the species database
-    SpcInfo => State_Chm%SpcData(N)%Info
-
+#ifdef LUO_WETDEP
     !=================================================================
-    ! %%% SPECIAL CASE %%%
+    ! %%% LUO WETDEP ONLY %%%
+    ! %%% SPECIAL CASE    %%%
     ! HNO3 scavenges like an aerosol although it is considered
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
-#ifdef LUO_WETDEP
 
     ! Initialize
     Hplus  = 0.0_f8
@@ -1759,8 +1770,10 @@ CONTAINS
 
        ! Get washout fraction
        WASHFRAC = WASHFRAC_HNO3LUO( DT, F, PP, TK )
+
     !=================================================================
-    ! %%% SPECIAL CASE %%%
+    ! %%% LUO WETDEP ONLY %%%
+    ! %%% SPECIAL CASE    %%%
     ! SO2 scavenges like an aerosol although it is considered
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
@@ -1789,6 +1802,13 @@ CONTAINS
        CALL WASHFRAC_LIQ_GAS( K0, CR, pKa, PP, pHRain, DT, &
                               F,  DZ, TK,  WASHFRAC, KIN )
 #else
+    !=================================================================
+    ! %%% DEFAULT WETDEP SCHEME %%%
+    ! %%% SPECIAL CASE          %%%
+    ! HNO3 scavenges like an aerosol although it is considered
+    ! to be a gas-phase species elsewhere (e.g. dry deposition)
+    !=================================================================
+
     IF ( SpcInfo%WD_Is_HNO3 ) THEN
 
        ! Washout is a kinetic process
@@ -1798,7 +1818,8 @@ CONTAINS
        WASHFRAC = WASHFRAC_HNO3( DT, F, PP, TK )
 
     !=================================================================
-    ! %%% SPECIAL CASE %%%
+    ! %%% DEFAULT WETDEP SCHEME %%%
+    ! %%% SPECIAL CASE          %%%
     ! SO2 scavenges like an aerosol although it is considered
     ! to be a gas-phase species elsewhere (e.g. dry deposition)
     !=================================================================
@@ -1967,40 +1988,42 @@ CONTAINS
 #endif
 
 #ifdef TOMAS
-    !-----------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! TOMAS MICROPHYSICS ONLY
-    ! Convert State_Chm%Species%Conc units back to original units
+    ! Convert State_Chm%Species%Conc units from kg back to original units
     ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
-    !-----------------------------------------------------------------
-    IF ( UNITCHANGE_KGKG ) THEN
-       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, .FALSE., RC )
+    !------------------------------------------------------------------------
+    IF ( State_Chm%Species(N)%Units == KG_SPECIES ) THEN
 
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "ConvertBox_Kg_to_KgKgDry"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
+       !------------------------------------------
+       ! WASHOUT is being called from convection, 
+       ! so convert "kg" back to "kg/kg dry".
+       !------------------------------------------
+       IF ( previous_units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
+          CALL ConvertBox_Kg_to_KgKgDry(                                     &
+               I         = I,                                                &
+               J         = J,                                                &
+               L         = L,                                                &
+               N         = N,                                                &
+               State_Chm = State_Chm,                                        &
+               State_Met = State_Met,                                        &
+               isAdjoint = .FALSE.                                          )
+
+       ELSE IF ( previous_units == KG_SPECIES_PER_M2 ) THEN
+
+          !------------------------------------------
+          ! WASHOUT is being called from wetdep, 
+          ! so convert "kg" back to "kg/m2".
+          !-----------------------------------------
+          CALL ConvertBox_Kg_to_Kgm2(                                        &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               N          = N,                                               &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               isAdjoint  = .FALSE.                                         )
        ENDIF
-
-    ELSE IF ( UNITCHANGE_KGM2 ) THEN
-       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE., RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "ConvertBox_Kg_to_KgM2"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
-
-    ! Check that species units are as expected (ewl, 9/29/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR  .AND.              &
-         State_Chm%Spc_Units /= KG_SPECIES_PER_M2         ) THEN
-       ErrMsg = 'Incorrect final species units:' // &
-                TRIM( UNIT_STR(State_Chm%Spc_Units) )
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 #endif
 
@@ -4623,13 +4646,13 @@ CONTAINS
                 ! therefore converted to [kg] locally within AQOXID.
                 ! GAINED is now [kg/m2] ans so is multiplied
                 ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-                IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
+                IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                    REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
                                * State_Grid%Area_M2(I,J)
                 ELSE
                    IF ( errPrint ) THEN
-                      ErrorMsg= 'Unexpected species units: ' // &
-                                 TRIM( UNIT_STR(State_Chm%Spc_Units) )
+                      ErrorMsg = 'Unexpected species units: '             // &
+                                 TRIM( UNIT_STR( Spc(id_SO2)%Units ) )
                       CALL GC_Error( ErrorMsg, RC, ThisLoc )
                    ENDIF
                    RETURN
@@ -4971,20 +4994,20 @@ CONTAINS
              ! therefore converted to [kg] locally within AQOXID.
              ! WETLOSS is now [kg/m2] and so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-             IF ( State_Chm%Spc_Units == KG_SPECIES_PER_M2 ) THEN
+             IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
                             * State_Grid%Area_M2(I,J)
              ELSE
                 IF ( errPrint ) THEN
                    ErrorMsg = 'Unexpected species units: '                   &
-                               // TRIM( UNIT_STR(State_Chm%Spc_Units) )
+                               // TRIM( UNIT_STR( Spc(id_SO2)%Units ) )
                    CALL GC_Error( ErrorMsg, RC, ThisLoc )
                 ENDIF
                 Spc => NULL()
                 RETURN
              ENDIF
              CALL AQOXID( REEVAPSO2, KMIN, I, J, L,                          &
-                          Input_Opt, State_Chm, State_Grid, State_Met, &
+                          Input_Opt, State_Chm, State_Grid, State_Met,       &
                           State_Diag, RC )
           ENDIF
           !end- added for TOMAS (win, 7/16/09)

@@ -4930,6 +4930,7 @@ CONTAINS
    USE State_Met_Mod,        ONLY : MetState
    USE UnitConv_Mod
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
+   USE Timers_Mod,           ONLY : Timer_End, Timer_Start
    USE TOMAS_MOD,            ONLY : AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
    USE TOMAS_MOD,            ONLY : CHECKMN
@@ -5042,8 +5043,8 @@ CONTAINS
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
          new_units      = KG_SPECIES,                                        &
+         mapping        = State_Chm%Map_Advect,                              &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
 
