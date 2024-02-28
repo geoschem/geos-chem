@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
 - Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
 - Streamline `IF` statements for CH4 observational operators in `Interfaces/GCClassic/main.F90`
+- Disable parallel loop in `Do_Convection` when using TOMAS; it causes unit conversion issues.  Revisit later.
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero

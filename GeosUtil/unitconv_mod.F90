@@ -2271,9 +2271,7 @@ CONTAINS
 #endif
 
     ! Update units metadata
-    print*, '###! here2 ', i,j,l,n, State_Chm%Species(N)%Units
     State_Chm%Species(N)%Units = KG_SPECIES
-    print*, '###! here3 ', i,j,l,n, State_Chm%Species(N)%Units
 
   END SUBROUTINE ConvertBox_KgKgDry_to_Kg
 !EOC

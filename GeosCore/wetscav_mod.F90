@@ -1707,7 +1707,6 @@ CONTAINS
     previous_units = State_Chm%Species(N)%Units
 
     IF ( State_Chm%Species(N)%Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       print*, '###! here  ', i,j,l,n
        !------------------------------------------
        ! WASHOUT is being called from convection, 
        ! so convert from "kg/kg dry" to "kg"
