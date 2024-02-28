@@ -257,7 +257,6 @@ CONTAINS
        ENDIF
     ENDIF
 
-
     ! CO2/carbon simulation settings
     IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO2( Config, Input_Opt, RC )
@@ -3768,7 +3767,6 @@ CONTAINS
 
   END SUBROUTINE Config_ObsPack
 !EOC
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4394,7 +4392,6 @@ CONTAINS
     RC = GC_SUCCESS
 
   END SUBROUTINE Config_POPs
-#endif
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
