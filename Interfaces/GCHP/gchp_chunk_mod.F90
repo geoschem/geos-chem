@@ -236,6 +236,8 @@ CONTAINS
     _ASSERT(RC==GC_SUCCESS, 'Error calling "SetGridFromCtr"')
 
     ! Set GEOS-Chem timesteps on all CPUs
+    ! NOTE: Diagnos is only used for GCClassic, so set to TS_CHEM here
+    ! for the sake of completeness (Bob Yantosca, 28 Feb 2024)
     CALL Set_Timesteps( Input_Opt  = Input_Opt,                              &
                         Chemistry  = Input_Opt%TS_CHEM,                      &
                         Convection = Input_Opt%TS_CONV,                      &
@@ -244,7 +246,7 @@ CONTAINS
                         Radiation  = Input_Opt%TS_RAD,                       &
                         Unit_Conv  = MAX( Input_Opt%TS_DYN,                  &
                                           Input_Opt%TS_CONV ),               &
-                        Diagnos    = Input_Opt%TS_DIAG         )
+                        Diagnos    = Input_Opt%TS_CHEM                      )
 
     ! Initialize derived-type objects for met, chem, and diag
     CALL GC_Init_StateObj( HistoryConfig%DiagList,                           &

@@ -16,6 +16,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
 
+### Removed
+- Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
+- `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
+
 ## [14.3.0] - 2024-02-07
 ### Added
 - Added capability for TOMAS simulations in GCHP

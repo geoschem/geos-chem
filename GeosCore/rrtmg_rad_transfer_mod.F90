@@ -2371,11 +2371,6 @@ CONTAINS
     !  15=PM  16=ST
     !
     ! NB: "O3" is all ozone; "O3T" is tropospheric ozone only.
-    !
-    ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
-    ! the bpch code is removed from GEOS-Chem.  This array is still
-    ! used in diag3.F90, so we need to keep it for the time being.
-    ! (bmy, 11/9/18)
     !=================================================================
 
     ! Loop over all of the flux outputs requested in HISTORY.rc

@@ -45,10 +45,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
-#ifdef BPCH_DIAG
-  USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
-  USE DIAG_MOD,                ONLY : CLEANUP_DIAG
-#endif
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
@@ -200,16 +196,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
-
-#ifdef BPCH_DIAG
-
-  CALL Cleanup_CMN_O3( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_CMN_O3"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-#endif
 
 #ifdef RRTMG
   CALL Cleanup_RRTMG_Rad_Transfer( RC )

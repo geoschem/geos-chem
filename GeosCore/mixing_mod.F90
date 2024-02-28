@@ -720,21 +720,7 @@ CONTAINS
                    ! NOTE: we don't need to multiply by the ratio of
                    ! TS_CONV / TS_CHEM, as the updating frequency for
                    ! HISTORY is determined by the "frequency" setting in
-                   ! the "HISTORY.rc"input file.  The old bpch diagnostics
-                   ! archived the drydep due to chemistry every chemistry
-                   ! timestep = 2X the dynamic timestep.  So in order to
-                   ! avoid double-counting the drydep flux from mixing,
-                   ! you had to multiply by TS_CONV / TS_CHEM.
-                   !
-                   ! ALSO NOTE: When comparing History output to bpch
-                   ! output, you must use an updating frequency equal to
-                   ! the dynamic timestep so that the drydep fluxes due to
-                   ! mixing will be equivalent w/ the bpch output.  It is
-                   ! also recommended to turn off chemistry so as to be
-                   ! able to compare the drydep fluxes due to mixing in
-                   ! bpch vs. History as an "apples-to-apples" comparison.
-                   !
-                   !    -- Bob Yantosca (yantosca@seas.harvard.edu)
+                   ! the "HISTORY.rc" input file.
                    !--------------------------------------------------------
                    IF ( ( State_Diag%Archive_DryDepMix .or.                  &
                           State_Diag%Archive_DryDep        )   .and.         &
