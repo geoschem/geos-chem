@@ -20,11 +20,6 @@ MODULE FJX_MOD
 ! !USES:
 !
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-#if defined( MODEL_CESM )
-  USE cam_abortutils, ONLY : endrun
-  USE spmd_utils,     ONLY : mpicom, masterprocid, mpi_success
-  USE spmd_utils,     ONLY : mpi_character, mpi_integer, mpi_real8
-#endif
 
   IMPLICIT NONE
 
@@ -557,16 +552,10 @@ CONTAINS
     ! Scalars
     LOGICAL            :: FileExists
     INTEGER            :: I, J, K, NK
-#if defined( MODEL_CESM )
-    INTEGER            :: ierr
-#endif
 
     ! Strings
     CHARACTER(LEN=78 ) :: TITLE0
     CHARACTER(LEN=255) :: FileMsg, ErrMsg, ThisLoc
-#if defined( MODEL_CESM )
-    CHARACTER(LEN=*), PARAMETER :: subname = 'rd_mie'
-#endif
 
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and exit.
@@ -610,11 +599,6 @@ CONTAINS
     ! RD_MIE begins here -- read data from file
     !=================================================================
 
-#if defined( MODEL_CESM )
-    ! Only read file on root thread if using CESM
-    IF ( amIRoot ) THEN
-#endif
-
     ! Open file
     open (NUN,FILE=NAMFIL,status='old',form='formatted')
 
@@ -652,24 +636,6 @@ CONTAINS
 
     close(NUN)
 
-#if defined( MODEL_CESM )
-    ENDIF
-
-    CALL MPI_BCAST( QAA,    Size(QAA),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QAA')
-    CALL MPI_BCAST( WAA,    Size(WAA),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WAA')
-    CALL MPI_BCAST( PAA,    Size(PAA),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: PAA')
-    CALL MPI_BCAST( RAA,    Size(RAA),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: RAA')
-    CALL MPI_BCAST( SAA,    Size(SAA),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: SAA')
-    CALL MPI_BCAST( NAA,    1,          mpi_integer,   masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NAA')
-    CALL MPI_BCAST( TITLAA, 80*A_,      mpi_character, masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TITLAA')
-#endif
 
     IF ( amIRoot ) THEN
        write(6,'(a,9f8.1)') ' Aerosol optical: r-eff/rho/Q(@wavel):', &
@@ -758,9 +724,6 @@ CONTAINS
     ! Scalars
     LOGICAL            :: FileExists
     INTEGER            :: I, J, JJ, K, IW, NQRD, NWWW, LQ
-#if defined( MODEL_CESM )
-    INTEGER            :: ierr
-#endif
     REAL(fp)           :: TQQ2
 
     ! Arrays
@@ -772,9 +735,6 @@ CONTAINS
     CHARACTER(LEN=78)  :: TITLE0
     CHARACTER(LEN=6 )  :: TITLEJ2, TITLEJ3
     CHARACTER(LEN=1 )  :: TSTRAT
-#if defined( MODEL_CESM )
-    CHARACTER(LEN=*), PARAMETER :: subname = 'rd_xxx'
-#endif
 
     !=================================================================
     ! In dry-run mode, print file path to dryrun log and exit.
@@ -826,11 +786,6 @@ CONTAINS
     !                   NJX = # fast-JX J-values derived from this (.le. X_)
 
     ! >>>> W_ = 12 <<<< means trop-only, discard WL #1-4 and #9-10, some X-sects
-
-#if defined( MODEL_CESM )
-    ! Only read file on root thread if using CESM
-    IF ( amIRoot ) THEN
-#endif
 
     ! Open file
     open (NUN,FILE=NAMFIL,status='old',form='formatted')
@@ -1019,41 +974,6 @@ CONTAINS
 
     close(NUN)
 
-#if defined( MODEL_CESM )
-    ENDIF
-
-    CALL MPI_BCAST( NJX,       1,            mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NJX')com
-    CALL MPI_BCAST( NW1,       1,            mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW1')com
-    CALL MPI_BCAST( NW2,       1,            mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NW2')com
-    CALL MPI_BCAST( WBIN,      Size(WBIN),   mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WBIN'com
-    CALL MPI_BCAST( WL,        Size(WL),     mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: WL') com
-    CALL MPI_BCAST( FL,        Size(FL),     mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: FL') com
-    CALL MPI_BCAST( QO2,       Size(QO2),    mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO2')com
-    CALL MPI_BCAST( QO3,       Size(QO3),    mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QO3')com
-    CALL MPI_BCAST( Q1D,       Size(Q1D),    mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: Q1D')com
-    CALL MPI_BCAST( QQQ,       Size(QQQ),    mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QQQ')com
-    CALL MPI_BCAST( QRAYL,     Size(QRAYL),  mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: QRAYLcom
-    CALL MPI_BCAST( TQQ,       Size(TQQ),    mpi_real8,     masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TQQ')com
-    CALL MPI_BCAST( LQQ,       Size(LQQ),    mpi_integer,   masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: LQQ')com
-    CALL MPI_BCAST( TITLEJX,   X_*6,         mpi_character, masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: TITLEcom)
-    CALL MPI_BCAST( SQQ,       X_*1,         mpi_character, masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: SQQ')
-#endif
-
 100 format(a)
 101 format(10x,5i5)
 102 format(10x,    6e10.3/(10x,6e10.3)/(10x,6e10.3))
@@ -1118,9 +1038,6 @@ CONTAINS
     ! Scalars
     LOGICAL            :: FileExists
     INTEGER            :: J, JJ, K
-#if defined( MODEL_CESM )
-    INTEGER            :: ierr
-#endif
     REAL(fp)           :: F_FJX
 
     ! Strings
@@ -1132,9 +1049,6 @@ CONTAINS
 
     ! String arrays
     CHARACTER(LEN=6)   :: JMAP(JVN_)
-#if defined( MODEL_CESM )
-    CHARACTER(LEN=*), PARAMETER :: subname = 'rd_js_jx'
-#endif
 
     !========================================================================
     ! RD_JS_JX begins here!
@@ -1190,11 +1104,6 @@ CONTAINS
     JMAP(:)   = '------'
     JFACTA(:) = 0.e+0_fp
 
-#if defined( MODEL_CESM )
-    ! Only read file on root thread if using CESM
-    IF ( amIRoot ) THEN
-#endif
-
     ! Open file
     open (NUNIT,file=NAMFIL,status='old',form='formatted')
 
@@ -1236,22 +1145,6 @@ CONTAINS
 
 20  close(NUNIT)
 
-#if defined( MODEL_CESM )
-    ENDIF
-
-    CALL MPI_BCAST( JLABEL, JVN_*50, mpi_character, masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: JLABEL')
-    CALL MPI_BCAST( JFACTA, JVN_,    mpi_real8,     masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: JFACTA')
-    CALL MPI_BCAST( JMAP,   JVN_*6,  mpi_character, masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: JMAP')
-    CALL MPI_BCAST( NRATJ,  1,       mpi_integer,   masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NRATJ')
-    CALL MPI_BCAST( RNAMES, JVN_*10, mpi_character, masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: RNAMES')
-    CALL MPI_BCAST( BRANCH, JVN_,    mpi_integer,   masterprocid, mpirun )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: BRANCH')
-#endif
 
     ! Zero / Set index arrays that map Jvalue(j) onto rates
     do K = 1,NRATJ
