@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
 - ALK4N1 and ALK4N2 to Ox family in KPP
+- CEDS 0.1 x 0.1 degree emissions, see issue #1717 and PR #2171 for details
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
@@ -94,6 +95,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
+<<<<<<< HEAD
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
@@ -107,6 +109,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use new mask files at 0.1 x 0.1 degree resoluiton for CH4/tagCH4/carbon simulations to avoid I/O bottlenecks
 - Update config files for CH4/carbon simulations to avoid reading the same variable multiple times
 - Converted Github issue templates to issue forms using YAML definition files
+=======
+- CEDS 0.1 x 0.1 degree emissions are now the default instead of CEDSv2
+>>>>>>> f8c9e3535 (Edit HEMCO_Config.rc.fullchem for CEDS 0.1 degree emisisons)
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
