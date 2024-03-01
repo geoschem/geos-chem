@@ -1421,6 +1421,18 @@ VerboseOnCores:              root       # Accepted values: root all
 * surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
 )))OCEAN_O3_DRYDEP
 
+
+#==============================================================================
+# --- Imports for GEOS handled through HEMCO ---
+#==============================================================================
+# CH4 boundary conditions
+(((GEOS_3HR_CH4
+* GEOS_CH4 /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1 
+)))GEOS_3HR_CH4
+
+# GEOS analysis fields 
+#* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1 
+
 ### END SECTION BASE EMISSIONS 
 
 ####################################################################################
