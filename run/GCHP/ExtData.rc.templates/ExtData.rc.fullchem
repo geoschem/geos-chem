@@ -1006,189 +1006,376 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 #
 #==============================================================================
 # --- CEDS (CEDSv2) ---
+# CEDSv2 is off by default in HEMCO_Config.rc
 #==============================================================================
 #
-CEDS_NO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_agr  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ene  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ind  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_tra  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_rco  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_slv  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_wst  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_agr  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ene  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ind  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_tra  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_rco  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_slv  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_wst  ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_SO2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_agr  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ene  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ind  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_tra  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_rco  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_slv  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_wst  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_NH3_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_agr  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ene  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ind  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_tra  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_rco  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_slv  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_wst  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_BCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_agr  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ene  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ind  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_tra  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_rco  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_slv  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_wst  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_OCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_agr  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ene  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ind  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_tra  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_rco  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_slv  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_wst  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_MOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_agr  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ene  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ind  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_tra  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_rco  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_slv  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_wst  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C2H6_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C3H8_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_agr  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ene  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ind  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_tra  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_rco  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_slv  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_wst  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C4H10_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C5H12_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C6H14_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C2H4_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_PRPE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_agr  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ene  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ind  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_tra  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_rco  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_slv  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_wst  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_C2H2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ind  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_tra  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_rco  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_slv  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_wst  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ind  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_tra  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_rco  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_slv  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_wst  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ind  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_tra  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_rco  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_slv  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_wst  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_CH2O_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_agr  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ene  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ind  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_tra  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_rco  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_slv  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_wst  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_ALD2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_agr  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ene  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ind  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_tra  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_rco  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_slv  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_wst  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_MEK_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_agr  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ene  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ind  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_tra  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_rco  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_slv  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_wst  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+##
+#CEDS_HCOOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_agr  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ene  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ind  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_tra  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_rco  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 #
-CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#==============================================================================
+# --- CEDS01 ---
+#==============================================================================
 #
-CEDS_SO2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_agr  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ene  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ind  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_tra  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_rco  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_slv  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_wst  ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_NO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_NO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
 #
-CEDS_NH3_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_agr  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ene  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ind  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_tra  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_rco  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_slv  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_wst  ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
 #
-CEDS_BCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_agr  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ene  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ind  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_tra  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_rco  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_slv  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_wst  ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_SO2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_SO2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
 #
-CEDS_OCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_agr  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ene  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ind  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_tra  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_rco  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_slv  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_wst  ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_NH3_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_NH3_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
 #
-CEDS_MOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_agr  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ene  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ind  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_tra  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_rco  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_slv  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_wst  ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_BCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_BCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
 #
-CEDS_C2H6_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_OCPI_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_OCPI_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
 #
-CEDS_C3H8_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_agr  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ene  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ind  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_tra  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_rco  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_slv  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_wst  ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_MOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_MOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
 #
-CEDS_C4H10_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C2H6_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C2H6_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
 #
-CEDS_C5H12_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C3H8_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C3H8_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
 #
-CEDS_C6H14_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_agr  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ene  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ind  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_tra  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_rco  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_slv  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_wst  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C4H10_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C4H10_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
 #
-CEDS_C2H4_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C5H12_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
 #
-CEDS_PRPE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_agr  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ene  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ind  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_tra  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_rco  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_slv  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_wst  ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C6H14_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
 #
-CEDS_C2H2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_agr  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ene  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ind  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_tra  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_rco  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_slv  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_wst  ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C2H4_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_C2H4_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
 #
-CEDS_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ind  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_tra  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_rco  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_slv  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_wst  ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_PRPE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_PRPE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
 #
-CEDS_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ind  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_tra  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_rco  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_slv  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_wst  ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_C2H2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_C2H2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
 #
-CEDS_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ind  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_tra  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_rco  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_slv  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_wst  ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_BENZ_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
 #
-CEDS_CH2O_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_agr  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ene  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ind  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_tra  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_rco  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_slv  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_wst  ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_TOLU_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
 #
-CEDS_ALD2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_agr  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ene  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ind  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_tra  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_rco  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_slv  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_wst  ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_XYLE_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
 #
-CEDS_MEK_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_agr  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ene  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ind  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_tra  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_rco  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_slv  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_wst  ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_CH2O_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_CH2O_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
 #
-CEDS_HCOOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_agr  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ene  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ind  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_tra  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_rco  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_ALD2_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_ALD2_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+#
+CEDS01_MEK_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_MEK_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+#
+CEDS01_HCOOH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
+CEDS01_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
 #
 #==============================================================================
 # --- EDGAR v4.3 (EDGARv43) ---
@@ -1390,29 +1577,54 @@ PCL_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_agri  ./HcoDir/GT_Chlori
 #
 #==============================================================================
 # --- Ship emissions (SHIP) ---
+#
+# CEDSv2 is off by default in HEMCO_Config.rc
 #==============================================================================
-CEDS_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_shp            ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_SO2_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_shp           ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_NH3_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_shp           ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_shp            ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_shp            ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MOH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_shp           ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H6_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C3H8_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_shp          ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C4H10_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_shp  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C5H12_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_shp ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C6H14_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_shp  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H4_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_PRPE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_shp          ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_C2H2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_BENZ_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_shp          ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_TOLU_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_shp          ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_XYLE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_shp          ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CH2O_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_shp          ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_ALD2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_shp          ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_MEK_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_HCOOH_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_shp            ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_SO2_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_shp           ./HcoDir/CEDS/v2021-06/%y4/SO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_NH3_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_shp           ./HcoDir/CEDS/v2021-06/%y4/NH3-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_shp            ./HcoDir/CEDS/v2021-06/%y4/BC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_OCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_shp            ./HcoDir/CEDS/v2021-06/%y4/OC-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MOH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_shp           ./HcoDir/CEDS/v2021-06/%y4/EOH-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H6_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H6-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C3H8_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_shp          ./HcoDir/CEDS/v2021-06/%y4/C3H8-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C4H10_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_shp  ./HcoDir/CEDS/v2021-06/%y4/ALK4_butanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C5H12_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_shp ./HcoDir/CEDS/v2021-06/%y4/ALK4_pentanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C6H14_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_shp  ./HcoDir/CEDS/v2021-06/%y4/ALK4_hexanes-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H4_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H4-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_PRPE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_shp          ./HcoDir/CEDS/v2021-06/%y4/PRPE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_C2H2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_shp          ./HcoDir/CEDS/v2021-06/%y4/C2H2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_BENZ_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_shp          ./HcoDir/CEDS/v2021-06/%y4/BENZ-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_TOLU_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_shp          ./HcoDir/CEDS/v2021-06/%y4/TOLU-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_XYLE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_shp          ./HcoDir/CEDS/v2021-06/%y4/XYLE-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CH2O_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_shp          ./HcoDir/CEDS/v2021-06/%y4/CH2O-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_ALD2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_shp          ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_MEK_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_HCOOH_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+#
+CEDS01_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_shp            ./HcoDir/CEDS/v2023-04/%y4/CEDS_NO_0.1x0.1_%y4.nc
+CEDS01_CO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS01_SO2_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none SO2_shp           ./HcoDir/CEDS/v2023-04/%y4/CEDS_SO2_0.1x0.1_%y4.nc
+CEDS01_NH3_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NH3_shp           ./HcoDir/CEDS/v2023-04/%y4/CEDS_NH3_0.1x0.1_%y4.nc
+CEDS01_BCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BC_shp            ./HcoDir/CEDS/v2023-04/%y4/CEDS_BC_0.1x0.1_%y4.nc
+CEDS01_OCPI_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OC_shp            ./HcoDir/CEDS/v2023-04/%y4/CEDS_OC_0.1x0.1_%y4.nc
+CEDS01_MOH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none EOH_shp           ./HcoDir/CEDS/v2023-04/%y4/CEDS_EOH_0.1x0.1_%y4.nc
+CEDS01_C2H6_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H6_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H6_0.1x0.1_%y4.nc
+CEDS01_C3H8_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C3H8_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_C3H8_0.1x0.1_%y4.nc
+CEDS01_C4H10_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_butanes_shp  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_butanes_0.1x0.1_%y4.nc
+CEDS01_C5H12_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_pentanes_shp ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_pentanes_0.1x0.1_%y4.nc
+CEDS01_C6H14_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALK4_hexanes_shp  ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALK4_hexanes_0.1x0.1_%y4.nc
+CEDS01_C2H4_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H4_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H4_0.1x0.1_%y4.nc
+CEDS01_PRPE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none PRPE_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_PRPE_0.1x0.1_%y4.nc
+CEDS01_C2H2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none C2H2_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_C2H2_0.1x0.1_%y4.nc
+CEDS01_BENZ_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none BENZ_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_BENZ_0.1x0.1_%y4.nc
+CEDS01_TOLU_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TOLU_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_TOLU_0.1x0.1_%y4.nc
+CEDS01_XYLE_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none XYLE_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_XYLE_0.1x0.1_%y4.nc
+CEDS01_CH2O_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_CH2O_0.1x0.1_%y4.nc
+CEDS01_ALD2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_shp          ./HcoDir/CEDS/v2023-04/%y4/CEDS_ALD2_0.1x0.1_%y4.nc
+CEDS01_MEK_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./HcoDir/CEDS/v2023-04/%y4/CEDS_MEK_0.1x0.1_%y4.nc
+CEDS01_HCOOH_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./HcoDir/CEDS/v2023-04/%y4/CEDS_HCOOH_0.1x0.1_%y4.nc
 #
 # --- if not ParaNOx ---
 # --- if EMEP_SHIP and not ParaNOx ---

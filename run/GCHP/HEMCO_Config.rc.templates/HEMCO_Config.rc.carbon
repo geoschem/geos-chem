@@ -90,7 +90,8 @@ Mask fractions:              false
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
     --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
     --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
-    --> CEDSv2                 :       true     # 1750-2019
+    --> CEDS_01x01             :       ${RUNDIR_USE_CEDS}    # 1980-2019
+    --> CEDSv2                 :       false    # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
     --> HTAP                   :       false    # 2008-2010
@@ -114,7 +115,8 @@ Mask fractions:              false
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
-    --> CEDSv2_SHIP            :       true     # 1750-2017
+    --> CEDS_01x01_SHIP        :       ${RUNDIR_USE_CEDS}    # 1980-2019
+    --> CEDSv2_SHIP            :       false    # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
     --> ICOADS_SHIP            :       false    # 2004
@@ -666,8 +668,8 @@ Mask fractions:              false
 #==============================================================================
 # --- CO: CEDS v2 ---
 #
-# %%% This is the default global inventory. You may select either CEDS,
-# EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
+# %%% You may select either CEDS, EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO %%%
+# %%% for the global base emissions.                                   %%%
 #==============================================================================
 (((CEDSv2
 0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
@@ -678,6 +680,23 @@ Mask fractions:              false
 0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
 0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDSv2
+
+#==============================================================================
+# --- CO: CEDS_01x01 ---
+#
+# %%% This is the default global inventory.                            %%%
+# %%% You may select either CEDS, EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO %%%
+# %%% for the global base emissions.                                    %%%
+#==============================================================================
+(((CEDS_01x01
+0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
+)))CEDS_01x01
 
 #==============================================================================
 # --- CO: CEDS GBD-MAPS ---
@@ -698,7 +717,9 @@ Mask fractions:              false
 (((CEDS_GBDMAPS_byFuelType
 (((.not.CEDS_GBDMAPS
 (((.not.CEDSv2
+(((.not.CEDS_01x01
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_byFuelType.rc
+))).not.CEDS_01x01
 ))).not.CEDSv2
 ))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
@@ -771,6 +792,10 @@ Mask fractions:              false
 (((CEDSv2_SHIP
 0 CEDS_CO_SHP   $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc CO_shp 1750-2019/1-12/1/0 C xy kg/m2/s CO 26 10 5
 )))CEDSv2_SHIP
+
+(((CEDS_01x01_SHIP
+0 CEDS01_CO_SHP $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc CO_shp 1980-2019/1-12/1/0 C xy kg/m2/s CO 26 10 5
+)))CEDS_01x01_SHIP
 
 #==============================================================================
 # --- CO: CMIP6_SHIP ---
@@ -929,6 +954,9 @@ Mask fractions:              false
 0 CEDS_CO2_SHP  $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc  CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDSv2_SHIP
 
+(((CEDS_01x01_SHIP
+0 CEDS01_CO2_SHP  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+)))CEDS_01x01_SHIP
 )))SHIP
 
 #==============================================================================
@@ -1593,11 +1621,11 @@ ${RUNDIR_CO2_COPROD}
 #------------------------------------------------------------------------------
 # --- CEDS vertical partitioning ---
 #------------------------------------------------------------------------------
-(((CEDSv2.or.CEDS_GBDMAPS
+(((CEDS_01x01.or.CEDSv2.or.CEDS_GBDMAPS
 315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
-)))CEDSv2.or.CEDS_GBDMAPS
+)))CEDS_01x01.or.CEDSv2.or.CEDS_GBDMAPS
 
 #------------------------------------------------------------------------------
 # --- GFAS scale factors ---
@@ -1642,7 +1670,7 @@ ${RUNDIR_CO2_COPROD}
 312 QFED_FT_FRAC  0.35 - - - xy 1 1
 )))QFED2
 
-(((CEDSv2
+(((CEDSv2.or.CEDS_01x01
 #=========================================================================
 # --- Sector-wise diel scale factors for CEDSv2 ---
 # These scale factors could potentially be used for other global base emissions if modified accordingly.
@@ -1661,7 +1689,7 @@ ${RUNDIR_CO2_COPROD}
 707 DOW_INDUSTRY    0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
 709 DOW_RESIDENTIAL 0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
 711 DOW_TRANSPORT   0.790/1.020/1.060/1.080/1.100/1.140/0.810 - - - xy unitless 1
-)))CEDSv2
+)))CEDSv2.or.CEDS_01x01
 
 )))EMISSIONS
 
@@ -1720,9 +1748,9 @@ ${RUNDIR_CO2_COPROD}
 #==============================================================================
 # --- Masks used for CH4, CO and CO2 simulation emissions ---
 #==============================================================================
-(((CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
+(((CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType.or.CEDS_01x01
 2009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc          MASK     2000/1/1/0 C xy 1 1  70/10/150/60
-)))CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
+)))CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType.or.CEDS_01x01
 
 )))EMISSIONS
 

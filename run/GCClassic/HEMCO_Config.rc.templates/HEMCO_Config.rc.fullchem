@@ -61,7 +61,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> NEI2016_MONMEAN        :       false    # 2002-2020
     --> DICE_Africa            :       false    # 2013
 # ----- GLOBAL INVENTORIES ----------------------------------------------------
-    --> CEDS_01x01             :       ${RUNDIR_USE_CEDS}    # 1750-2019
+    --> CEDS_01x01             :       ${RUNDIR_USE_CEDS}    # 1980-2019
     --> CEDSv2                 :       false    # 1750-2019
     --> CEDS_GBDMAPS           :       false    # 1970-2017
     --> CEDS_GBDMAPS_byFuelType:       false    # 1970-2017
@@ -1368,8 +1368,8 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 # --- CEDS v2 ---
 #
-# %%% This is the default global inventory. You may select either CEDS,
-# EDGAR, HTAPv3 or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
+# %%% You may select either CEDS, EDGAR, HTAPv3 or CMIP6_SFC_LAND_ANTHRO %%%
+# %%% for the global base emissions                                      %%%
 #==============================================================================
 (((CEDSv2
 0 CEDS_NO_AGR     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_agr            1750-2019/1-12/1/0 C xy   kg/m2/s NO    2401                1 5
@@ -1633,10 +1633,11 @@ VerboseOnCores:              root       # Accepted values: root all
 )))CEDSv2
 
 #==============================================================================
-# --- CEDS01 ---
+# --- CEDS_01x01 ---
 #
-# %%% This is the default global inventory. You may select either CEDS,
-# EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
+# %%% This is the default global inventory.                           %%%
+# %%% You may select either CEDS EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO %%%
+# %%% for the global base emissions.                                  %%%
 #==============================================================================
 (((CEDS_01x01
 0 CEDS01_NO_AGR     $ROOT/CEDS/v2023-04/$YYYY/CEDS_NO_0.1x0.1_$YYYY.nc            NO_agr            1980-2019/1-12/1/0 C xy   kg/m2/s NO    2401                 1 5
