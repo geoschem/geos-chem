@@ -1855,7 +1855,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS01_TOLU_TRA   $ROOT/CEDS/v2023-04/$YYYY/CEDS_TOLU_0.1x0.1_$YYYY.nc          TOLU_tra          1980-2019/1-12/1/0 C xy   kg/m2/s TOLU  2411/711                1 5
 0 CEDS01_TOLU_RCO   $ROOT/CEDS/v2023-04/$YYYY/CEDS_TOLU_0.1x0.1_$YYYY.nc          TOLU_rco          1980-2019/1-12/1/0 C xy   kg/m2/s TOLU  2409/709                1 5
 0 CEDS01_TOLU_SLV   $ROOT/CEDS/v2023-04/$YYYY/CEDS_TOLU_0.1x0.1_$YYYY.nc          TOLU_slv          1980-2019/1-12/1/0 C xy   kg/m2/s TOLU  2407/707                1 5
-0 CEDS01_TOLU_WST   $ROOT/CEDS/v2023-04/$YYYY/CEDS_TOLU_0.1x0.1_$YYYY.nc          TOLU_wst          1980-2019/1-12/1/0 C xy   kg/m2/s TOLU  
+0 CEDS01_TOLU_WST   $ROOT/CEDS/v2023-04/$YYYY/CEDS_TOLU_0.1x0.1_$YYYY.nc          TOLU_wst          1980-2019/1-12/1/0 C xy   kg/m2/s TOLU  26                      1 5
 
 0 CEDS01_XYLE_AGR   $ROOT/CEDS/v2023-04/$YYYY/CEDS_XYLE_0.1x0.1_$YYYY.nc          XYLE_agr          1980-2019/1-12/1/0 C xy   kg/m2/s XYLE  2401                    1 5
 0 CEDS01_XYLE_ENE   $ROOT/CEDS/v2023-04/$YYYY/CEDS_XYLE_0.1x0.1_$YYYY.nc          XYLE_ene          1980-2019/1-12/1/0 C xyL* kg/m2/s XYLE  2406/706/315            1 5
