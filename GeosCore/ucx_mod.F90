@@ -921,8 +921,6 @@ CONTAINS
           IF (RUNCALC) THEN
              ! Need to translate for BC radii
              IF ( State_Met%InChemGrid(I,J,L) ) THEN
-                ! NOTE: Replace 2 with 2+NDUST
-                ! See: https://github.com/geoschem/geos-chem/issues/2169
                 RWET(IBC) = WERADIUS(I,J,L,2+NDUST)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
@@ -933,8 +931,6 @@ CONTAINS
 #endif
              ENDIF
 
-             ! Now use the density of BCPI from the species database.
-             ! See: https://github.com/geoschem/geos-chem/issues/2169
              RHO(IBC) = State_Chm%SpcData(id_BCPI)%Info%Density
 
              ! Get aerosol properties
