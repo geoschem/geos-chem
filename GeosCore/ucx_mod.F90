@@ -809,9 +809,6 @@ CONTAINS
     ! Used for old Seinfeld & Pandis slip factor calc
     REAL(fp)               :: sp_Lambda, sp_Num
 
-    ! Parameters
-    REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
-
     ! Indexing
     INTEGER, PARAMETER     :: IBC  = 1
     INTEGER, PARAMETER     :: ILIQ = 2
@@ -924,7 +921,9 @@ CONTAINS
           IF (RUNCALC) THEN
              ! Need to translate for BC radii
              IF ( State_Met%InChemGrid(I,J,L) ) THEN
-                RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
+                ! NOTE: Replace 2 with 2+NDUST
+                ! See: https://github.com/geoschem/geos-chem/issues/2169
+                RWET(IBC) = WERADIUS(I,J,L,2+NDUST)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
 #ifdef FASTJX
@@ -934,8 +933,9 @@ CONTAINS
 #endif
              ENDIF
 
-             ! Taken from aerosol_mod (MSDENS(2))
-             RHO(IBC) = BCDEN
+             ! Now use the density of BCPI from the species database.
+             ! See: https://github.com/geoschem/geos-chem/issues/2169
+             RHO(IBC) = State_Chm%SpcData(id_BCPI)%Info%Density
 
              ! Get aerosol properties
              RWET(ILIQ) = State_Chm%RAD_AER(I,J,L,I_SLA)*1.e-2_fp
