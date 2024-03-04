@@ -8,7 +8,7 @@ PrimaryExports%%
 #
 # Notes:
 # Units should be in single quotes if they contain whitespace
-# Climatology shou`ld be Y if the file contains monthly climatology; otherwise it should be N
+# Climatology should be Y if the file contains monthly climatology; otherwise it should be N
 # Conservative should be Y if units imply mass conservation dependency on regrid method (e.g. value per area)
 # Refresh Time Template should be:
 #    1. - if the file contains time-invariant constants
