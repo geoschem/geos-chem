@@ -761,6 +761,7 @@ CONTAINS
 #else
     USE Cldj_Cmn_Mod,    ONLY : RAA
 #endif
+    USE CMN_SIZE_Mod,    ONLY : NDUST
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput

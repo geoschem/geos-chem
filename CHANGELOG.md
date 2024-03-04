@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
+- Now use correct index `WEAEROSOL(I,J,L,2+NDUST)` in routine `Settle_Strat_Aer` of `GeosCore/ucx_mod.F90`
+- Now get density of BCPI species from the species database in `ucx_mod.F90`
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
