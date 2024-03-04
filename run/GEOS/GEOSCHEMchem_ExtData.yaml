@@ -268,7 +268,7 @@ Collections:
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
   GEOSCHEMchem_CH4_scaling:
     template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CH4/v0.0.0/ch4_offset_to_2021_x144_y91_%y4%m2.nc
-    valid_range: "2021-01-01T00:00/2022-12-01T00:00"
+    valid_range: "2021-01-01T00:00/2050-12-01T00:00"
     ref_time: "2021-01-01T00:00"
     freq: "P1M"
   GCC_CMAM_CO:
