@@ -3893,7 +3893,7 @@ CONTAINS
     !========================================================================
     ! Initialize photolysis
     !========================================================================
-    CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
+    CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Init_Photolysis"!'
        CALL GC_Error( errMsg, RC, thisLoc )
