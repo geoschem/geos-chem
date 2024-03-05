@@ -1309,6 +1309,7 @@ MODULE State_Diag_Mod
 
      ! ObsPack Inputs
      INTEGER                     :: ObsPack_nObs
+     CHARACTER(LEN=1),   POINTER :: ObsPack_CharArray    (:,:)
      CHARACTER(LEN=200), POINTER :: ObsPack_Id           (:  )
      INTEGER,            POINTER :: ObsPack_nSamples     (:  )
      INTEGER,            POINTER :: ObsPack_Strategy     (:  )

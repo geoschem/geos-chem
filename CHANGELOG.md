@@ -9,12 +9,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added operational run scripts for the Imperial College London (ICL) cluster
 - Added new vertical region option to budget diagnostic for fixed bottom and top levels
 - Added GEOS-IT processed lat-lon fields as a valid option when creating GCHP run directories
+- Functions `charArr2str` and `str2CharArr` in `Headers/charpak_mod.F90`
+- Field `State_Diag%Obspack_CharArray` as a 2-D character array
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
 - Changed exponent 'e' to 'd' for one entry in KPP to prevent precision error in external models
 - Changed GCHP sample run scripts to not print script execution commands to log
 - Changed offline emissions grid resolution templates in config files to be more descriptive
+- Read `obspack_id` from netCDF files into a character array, then convert to string
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
