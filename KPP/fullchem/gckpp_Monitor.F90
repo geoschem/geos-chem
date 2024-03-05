@@ -365,25 +365,25 @@ MODULE gckpp_Monitor
      '          N + NO2 --> N2O + O                                                                       ', & ! index 221
      '          BrO + O --> 2 LOx + Br + O2                                                               ', & ! index 222
      '         CH2O + O --> LOx + PCO + CO + HO2 + OH                                                     ', & ! index 223
-     '        O1D + HCl --> 0.67 LOx + 0.24 H + 0.67 Cl + 0.24 ClO + 0.09 HCl + 0.09 O + 0.67 OH          ', & ! index 224
-     '        O1D + HBr --> 0.65 LOx + 0.15 H + 0.65 Br + 0.15 BrO + 0.2 HBr + 0.2 O + 0.65 OH            ', & ! index 225
+     '        O1D + HCl --> 0.64 LOx + 0.22 H + 0.66 Cl + 0.24 ClO + 0.12 HCl + 0.12 O + 0.67 OH          ', & ! index 224
+     '        O1D + HBr --> 0.6 LOx + 0.2 H + 0.6 Br + 0.2 BrO + 0.2 HBr + 0.2 O + 0.6 OH                 ', & ! index 225
      '        Cl2 + O1D --> 0.25 Cl2 + 0.75 Cl + 0.75 ClO + 0.25 O                                        ', & ! index 226
-     '       CCl4 + O1D --> 0.14 CCl4 + 2.58 Cl + 0.86 ClO + 0.14 O                                       ', & ! index 227
+     '       CCl4 + O1D --> 0.21 CCl4 + 2.37 Cl + 0.79 ClO + 0.21 O                                       ', & ! index 227
      '      CH3Br + O1D --> 0.56 LOx + MO2 + 0.56 Br + 0.44 BrO                                           ', & ! index 228
      '     CH2Br2 + O1D --> 0.05 CH2Br2 + 0.95 Br + 0.95 BrO + 0.05 O                                     ', & ! index 229
-     '      CHBr3 + O1D --> 0.32 CHBr3 + 1.36 Br + 0.68 BrO + 0.32 O                                      ', & ! index 230
-     '     HCFC22 + O1D --> 0.17 LOx + 0.28 HCFC22 + 0.17 Cl + 0.55 ClO + 0.28 O                          ', & ! index 231
-     '      CFC11 + O1D --> 0.12 CFC11 + 1.76 Cl + 0.88 ClO + 0.12 O                                      ', & ! index 232
+     '      CHBr3 + O1D --> 0.3 CHBr3 + 1.4 Br + 0.7 BrO + 0.3 O                                          ', & ! index 230
+     '     HCFC22 + O1D --> 0.19 LOx + 0.25 HCFC22 + 0.19 Cl + 0.56 ClO + 0.25 O                          ', & ! index 231
+     '      CFC11 + O1D --> 0.1 CFC11 + 1.8 Cl + 0.9 ClO + 0.1 O                                          ', & ! index 232
      '      CFC12 + O1D --> 0.14 CFC12 + 0.86 Cl + 0.86 ClO + 0.14 O                                      ', & ! index 233
-     '      H1211 + O1D --> 0.36 H1211 + 0.33 Br + 0.31 BrO + 0.31 Cl + 0.33 ClO + 0.36 O                 ', & ! index 234
+     '      H1211 + O1D --> 0.35 H1211 + 0.34 Br + 0.31 BrO + 0.31 Cl + 0.34 ClO + 0.35 O                 ', & ! index 234
      '      H1301 + O1D --> 0.59 H1301 + 0.41 BrO + 0.59 O                                                ', & ! index 235
      '   HCFC141b + O1D --> 0.31 HCFC141b + 0.69 Cl + 0.69 ClO + 0.31 O                                   ', & ! index 236
-     '   HCFC142b + O1D --> 0.26 HCFC142b + 0.74 ClO + 0.26 O                                             ', & ! index 237
+     '   HCFC142b + O1D --> 0.35 HCFC142b + 0.65 ClO + 0.35 O                                             ', & ! index 237
      '    HCFC123 + O1D --> 0.21 HCFC123 + 0.79 Cl + 0.79 ClO + 0.21 O                                    ', & ! index 238
-     '     CFC113 + O1D --> 0.25 CFC113 + 1.5 Cl + 0.75 ClO + 0.25 O                                      ', & ! index 239
-     '     CFC114 + O1D --> 0.25 CFC114 + 0.75 Cl + 0.75 ClO + 0.25 O                                     ' /) ! index up to 240
+     '     CFC113 + O1D --> 0.1 CFC113 + 1.8 Cl + 0.9 ClO + 0.1 O                                         ', & ! index 239
+     '     CFC114 + O1D --> 0.1 CFC114 + 0.9 Cl + 0.9 ClO + 0.1 O                                         ' /) ! index up to 240
   CHARACTER(LEN=100), PARAMETER, DIMENSION(30) :: EQN_NAMES_8 = (/ &
-     '     CFC115 + O1D --> 0.7 CFC115 + 0.3 ClO + 0.7 O                                                  ', & ! index 241
+     '     CFC115 + O1D --> 0.14 CFC115 + 0.86 ClO + 0.14 O                                               ', & ! index 241
      '      H2402 + O1D --> 0.25 H2402 + 0.75 Br + 0.75 BrO + 0.25 O                                      ', & ! index 242
      '         Cl2 + OH --> POx + HOCl + Cl                                                               ', & ! index 243
      '        MO2 + ClO --> LOx + ClOO + CH2O + HO2                                                       ', & ! index 244
@@ -995,7 +995,7 @@ MODULE gckpp_Monitor
      '           CFC114 --> 2 Cl                                                                          ', & ! index 831
      '           CFC115 --> Cl                                                                            ', & ! index 832
      '          HCFC123 --> 2 Cl                                                                          ', & ! index 833
-     '         HCFC141b --> 2 Cl                                                                          ', & ! index 834
+     '         HCFC141b --> Cl                                                                            ', & ! index 834
      '         HCFC142b --> Cl                                                                            ', & ! index 835
      '           HCFC22 --> Cl                                                                            ', & ! index 836
      '            H1301 --> Br                                                                            ', & ! index 837
