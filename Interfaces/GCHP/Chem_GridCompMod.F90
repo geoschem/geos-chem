@@ -145,6 +145,10 @@ MODULE Chem_GridCompMod
   ! When to do the analysis
   INTEGER                          :: ANAPHASE
   INTEGER, PARAMETER               :: CHEMPHASE = 2
+  INTEGER, PARAMETER               :: RATSPHASE = 2
+#else
+  LOGICAL                          :: isProvider ! provider to AERO, RATS, ANOX?
+  LOGICAL                          :: calcOzone  ! if PTR_GCCTO3 is associated
 #endif
 
   ! Number of run phases, 1 or 2. Set in the rc file; else default is 2.
@@ -923,7 +927,6 @@ CONTAINS
 
 #if defined( MODEL_GEOS )
 !-- Add two exra advected species for use in family transport  (Manyin)
-
           CALL MAPL_AddInternalSpec(GC,                                    &
              SHORT_NAME         = 'SPC_Bry',                               &
              LONG_NAME          = 'Bromine group for use in transport',    &
@@ -947,31 +950,6 @@ CONTAINS
              VLOCATION          = MAPL_VLocationCenter,                    &
                                                   __RC__ )
           if(MAPL_am_I_Root()) write(*,*) 'GCC added to internal: SPC_Cly; Friendly to: DYNAMICS'
-!
-        ! Add additional RATs/ANOX exports
-!        call MAPL_AddExportSpec(GC,                                  &
-!           SHORT_NAME         = 'OX_TEND',                           &
-!           LONG_NAME          = 'tendency_of_odd_oxygen_mixing_ratio_due_to_chemistry', &
-!           UNITS              = 'mol mol-1 s-1',                     &
-!           DIMS               = MAPL_DimsHorzVert,                   &
-!           VLOCATION          = MAPL_VLocationCenter,                &
-!                                                     __RC__ )
-
-     call MAPL_AddExportSpec(GC,                                     &
-           SHORT_NAME         = 'GCC_O3',                            &
-           LONG_NAME          = 'ozone_mass_mixing_ratio_total_air', &
-           UNITS              = 'kg kg-1',                           &
-           DIMS               = MAPL_DimsHorzVert,                   &
-           VLOCATION          = MAPL_VLocationCenter,                &
-                                                     __RC__ )
-
-     call MAPL_AddExportSpec(GC,                                       &
-           SHORT_NAME         = 'GCC_O3PPMV',                          &
-           LONG_NAME          = 'ozone_volume_mixing_ratio_total_air', &
-           UNITS              = 'ppmv',                                &
-           DIMS               = MAPL_DimsHorzVert,                     &
-           VLOCATION          = MAPL_VLocationCenter,                  &
-                                                 __RC__  )
 #endif
 
 !
@@ -2001,7 +1979,8 @@ CONTAINS
                                         GEOS_CalcTotOzone,         &
                                         GEOS_InitFromFile,         &
                                         GEOS_RATSandOxDiags,       &
-                                        GEOS_PreRunChecks
+                                        GEOS_PreRunChecks,         &
+                                        GEOS_SetH2O
     USE GEOS_AeroCoupler,        ONLY : GEOS_FillAeroBundle
     USE GEOS_CarbonInterface,    ONLY : GEOS_CarbonSetConc,        &
                                         GEOS_CarbonRunPhoto
@@ -2641,6 +2620,11 @@ CONTAINS
 #endif
 
 #if defined( MODEL_GEOS )
+       ! Set H2O from Q (=SPHU)
+       CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, __RC__ ) 
+   
+
+       ! Set appropriate met fields for lightning
        CALL MetVars_For_Lightning_Run( GC, Import=IMPORT, Export=EXPORT, &
              State_Met=State_Met, State_Grid=State_Grid, __RC__ )
 
@@ -2660,7 +2644,7 @@ CONTAINS
        ENDIF
 
        ! Initialize RATS and OX tendency diagnostics
-       IF ( PHASE == ANAPHASE ) THEN
+       IF ( PHASE == RATSPHASE ) THEN
           CALL GEOS_RATSandOxDiags( GC, INTSTATE, Export, Input_Opt, State_Met, &
                                     State_Chm, State_Grid, Q, 1, tsChem, __RC__ ) 
        ENDIF
@@ -2906,8 +2890,10 @@ CONTAINS
           ! GEOS Diagnostics. This includes the 'default' GEOS-Chem diagnostics.
           CALL GEOS_Diagnostics( GC, IMPORT, EXPORT, Clock, Phase, Input_Opt, &
                                  State_Met, State_Chm, State_Diag, State_Grid, __RC__ )
+       ENDIF
 
-          ! Fill RATS and OX diagnostics
+       ! Fill RATS and OX diagnostics
+       IF ( PHASE == RATSPHASE ) THEN
           CALL GEOS_RATSandOxDiags( GC, INTSTATE, Export, Input_Opt, State_Met, &
                                     State_Chm, State_Grid, Q, 2, tsChem, __RC__ ) 
        ENDIF
