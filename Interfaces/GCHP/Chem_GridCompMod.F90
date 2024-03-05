@@ -2909,7 +2909,7 @@ CONTAINS
                                     State_Chm, State_Grid, Q, 2, tsChem, __RC__ ) 
        ENDIF
 
-       ! Set H2O from Q (=SPHU)
+       ! Set Q from H2O 
        IF ( Input_Opt%applyQtend ) THEN
           CALL GEOS_SetH2O( GC, Input_Opt, State_Met, State_Chm, State_Grid, Q, -1, __RC__ ) 
        ENDIF
