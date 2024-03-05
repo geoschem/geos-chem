@@ -220,7 +220,7 @@ CONTAINS
 !
     ! Defines the slot in which the H-value from the KPP integrator is stored
     ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
-    ! (assuming Rosenbrock solver).  Define this locally in order to break
+    
     ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
     INTEGER,     PARAMETER :: Nhnew = 3
 
@@ -274,6 +274,8 @@ CONTAINS
        IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
                                       State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
     ENDIF
     
     ! Also zero satellite diagnostic archival arrays
@@ -1067,6 +1069,30 @@ CONTAINS
 #endif
        ENDIF
 
+#if defined( MODEL_GEOS )
+       ! Check for negative concentrations after first integration and 
+       ! eventually mark integration as errorenous so that it will be
+       ! repeated below. cakelle2, 2023/10/26.
+       IF ( Input_Opt%KppCheckNegatives >= 0 ) THEN
+          IF ( ( Input_Opt%KppCheckNegatives==0 .AND. State_Met%InStratMeso(I,J,L) ) .OR. &
+               ( L > (State_Grid%NZ-Input_Opt%KppCheckNegatives) ) ) THEN
+             IF ( ANY(C < 0.0_dp) ) THEN
+                IERR = -999
+                IF ( State_Diag%Archive_KppError ) THEN
+                   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0 
+                ENDIF
+             ENDIF
+          ENDIF
+       ENDIF
+       IF ( State_Diag%Archive_KppNegatives0 ) THEN
+          S = 0
+          DO N=1,NSPEC
+             IF ( C(N) < 0.0_dp ) S=S+1
+          ENDDO 
+          State_Diag%KppNegatives0(I,J,L) = REAL(S,KIND=f4)
+       ENDIF
+#endif
+
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
        !
@@ -1126,10 +1152,19 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
-          ! C with concentrations prior to the 1st call to "Integrate".
+          ! Reset first time step and start concentrations
+          ! Retry the integration with non-optimized settings
           RCNTRL(3) = 0.0_dp
           C         = C_before_integrate
+
+          ! In GEOS, restore C to initial concentrations. Just setting it to zeros
+          ! will lead to all zeros, I don't see how this is useful.
+          ! Also inflate the error tolerances. 
+          ! cakelle2, 2023/10/26.
+#if defined( MODEL_GEOS )
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
@@ -1311,6 +1346,13 @@ CONTAINS
 
           ! Skip if this is not a GEOS-Chem species
           IF ( SpcID <= 0 ) CYCLE
+
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(N) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_dp 
+             ENDIF
+          ENDIF
 
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )

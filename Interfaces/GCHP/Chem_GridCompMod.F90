@@ -1347,12 +1347,30 @@ CONTAINS
     ENDIF
 
     ! Turn off three heterogenous reactions in stratosphere
-    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = 0, &
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = 1, &
                                   Label = "TurnOffHetRates:", __RC__ )
     Input_Opt%TurnOffHetRates = ( DoIt == 1 )
     IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'Disable selected het. reactions in stratosphere: ', &
                   Input_Opt%TurnOffHetRates
+    ENDIF
+
+    ! Check for negatives after KPP integration
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = -1, &
+                                  Label = "KppCheckNegatives:", __RC__ )
+    Input_Opt%KppCheckNegatives = DoIt 
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE(*,*) 'Check for negative concentrations after KPP integration: ', &
+                  Input_Opt%KppCheckNegatives
+    ENDIF
+
+    ! KPP tolerance inflation factor for second attempt
+    CALL ESMF_ConfigGetAttribute( GeosCF, Val, Default = 1.0, &
+                                  Label = "KppTolScale:", __RC__ )
+    Input_Opt%KppTolScale = Val 
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE(*,*) 'Scale KPP tolerances in second integration attempt: ', &
+                  Input_Opt%KppTolScale
     ENDIF
 #endif
 

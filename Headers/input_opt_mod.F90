@@ -413,6 +413,8 @@ MODULE Input_Opt_Mod
      ! in the stratosphere. In MODEL_GEOS, this flag is set in GEOSCHEMchem_GridComp.rc
      LOGICAL                     :: TurnOffHetRates    = .TRUE.
      LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
+     INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
+     REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
