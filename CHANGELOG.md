@@ -18,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed GCHP sample run scripts to not print script execution commands to log
 - Changed offline emissions grid resolution templates in config files to be more descriptive
 - Read `obspack_id` from netCDF files into a character array, then convert to string
+- Add `#SBATCH -c 1` to GCHP integration test scripts and sample run scripts for Harvard Cannon
+- In GCC/GCHP integration test, passing `-s none` will run compile-only tests.  Query user to proceed or to exit.
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code

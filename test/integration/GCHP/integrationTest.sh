@@ -41,7 +41,7 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]"
+usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s SLURM|LSF|none]"
 itRoot="none"
 envFile="none"
 scheduler="none"
@@ -148,6 +148,16 @@ if [[ "x${scheduler}" == "xLSF" && "x${sedPartitionCmd}" == "xnone" ]]; then
     exit 1
 fi
 
+# If "none" is specified for the scheduler, then run compile-only tests.
+if [[ "x${scheduler}" == "xNONE" ]]; then
+    echo "Scheduler is 'none', so compile-only tests will be performed."
+    read -p "Press y to accept or n to exit: " answer
+    if [[ "${answer}" =~ [Nn] ]]; then
+	echo "Exiting ... "
+	exit 0
+    fi
+fi
+
 #=============================================================================
 # Load file with utility functions to setup configuration files
 #=============================================================================
@@ -240,7 +250,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     output=$(sbatch ${scriptsDir}/integrationTestCompile.sh)
     output=($output)
     cmpId=${output[3]}
-
+    
     # Submit execution tests script as a job dependency
     output=$(sbatch --dependency=afterok:${cmpId} ${scriptsDir}/integrationTestExecute.sh)
     output=($output)
@@ -264,8 +274,9 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     sed_ie '/#SBATCH --mem=8000/d'             "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/integrationTestCompile.sh"
-    sed_ie '/#SBATCH -c 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -n 24/d'                  "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestExecute.sh"
+    sed_ie '/#SBATCH -c 1/d'                  "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -t 0-5:00/d'              "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH -p REQUESTED_PARTITION/d' "${scriptsDir}/integrationTestExecute.sh"
     sed_ie '/#SBATCH --mem=90000/d'            "${scriptsDir}/integrationTestExecute.sh"
@@ -292,7 +303,7 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     echo ""
     echo "Compilation tests submitted as LSF job ${cmpId}"
     echo "Execution   tests submitted as LSF job ${exeId}"
-
+	
 else
 
     #-------------------------------------------------------------------------

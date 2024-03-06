@@ -41,7 +41,7 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]"
+usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s SLURM|LSF|none]"
 itRoot="none"
 envFile="none"
 scheduler="none"
@@ -146,6 +146,16 @@ if [[ "x${scheduler}" == "xLSF" && "x${sedPartitionCmd}" == "xnone" ]]; then
     echo "ERROR: You must specify a partition for LSF."
     echo "${usage}"
     exit 1
+fi
+
+# If "none" is specified for the scheduler, then run compile-only tests.
+if [[ "x${scheduler}" == "xNONE" ]]; then
+    echo "Scheduler is 'none', so compile-only tests will be performed."
+    read -p "Press y to accept or n to exit: " answer
+    if [[ "${answer}" =~ [Nn] ]]; then
+	echo "Exiting ... "
+	exit 0
+    fi
 fi
 
 #=============================================================================
