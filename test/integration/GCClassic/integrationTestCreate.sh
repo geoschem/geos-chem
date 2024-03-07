@@ -40,8 +40,11 @@ if [[ ! -f ${envFile} ]]; then
     exit 1
 fi
 
+# Run a compile-only integration test?
+compileOnly="${3}"
+
 # Run a short integration test?
-quick="${3}"
+quick="${4}"
 
 #=============================================================================
 # Global variable and function definitions
@@ -152,10 +155,9 @@ chmod 755 -R ${scriptsDir}
 log="${logsDir}/createIntegrationTests.log"
 
 #=============================================================================
-# Only create run directories if we are not in a GitHub action,
-# because we'll do compiilation-only tests instead.
+# Don't create run directories for compile-only tests.
 #=============================================================================
-if [[ "x${GITHUB_RUN_ID}" != "x" ]]; then
+if [[ "x${compileOnly}" == "xno" ]]; then
 
     # Switch to folder where rundir creation scripts live
     cd "${geosChemDir}/run/GCClassic"

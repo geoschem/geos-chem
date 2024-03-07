@@ -47,6 +47,7 @@ envFile="none"
 sedPartitionCmd="none"
 quick="no"
 bootStrap="yes"
+compileOnly="no"
 
 #=============================================================================
 # Parse command-line arguments
@@ -163,6 +164,7 @@ if [[ "x${scheduler}" == "xNONE" ]]; then
 	echo "Exiting ... "
 	exit 0
     fi
+    compileOnly="yes"
 fi
 
 #=============================================================================
@@ -193,7 +195,7 @@ if [[ "$(absolute_path ${thisDir})" =~ "${itRoot}" ]]; then
 fi
 
 # Create GEOS-Chem run directories in the integration test root folder
-./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
+./integrationTestCreate.sh "${itRoot}" "${envFile}" "${compileOnly}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create integration test run directories!"
    exit 1
@@ -214,8 +216,10 @@ rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
 # Edit HEMCO_Config.rc files to enable or disable bootstrapping
 # (i.e. to allow missing species in restart files or not)
-gcc_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
-
+if [[ "x${compileOnly}" == "xno" ]]; then
+   gcc_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
+fi
+   
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
 

@@ -71,11 +71,9 @@ The integration test scripts accept the following command-line arguments
 
 `-e /path/to/env-file` specifies the file that is used to initialize the software environment.  This file will typically contain either `module load` or `spack load` commands.
 
-`-s scheduler` specifies the choice of scheduler (case-insensitive). SLURM and LSF schedulers are currently supported.  You may omit this for running interactively.
-
 `-p partition` specifies the partition for the scheduler.  You may omit this for running interactively.
 
-`-s` specifies that the SLURM scheduler will be used to run the integration test scripts.
+`-s scheduler` specifies that scheduler (`SLURM|LSF|none`) that will be used to run the integration test scripts.  Choosing `-s none` will run compilation-only tests.
 
 `-n` specifies that missing species in restart files will not be bootstrapped to a missing value.  This can be used to test if "out-of-the-box" simulations will fail before a version release.
 

@@ -40,8 +40,11 @@ if [[ ! -f "${envFile}" ]]; then
     exit 1
 fi
 
+# Run a compile-only integration test?
+compileOnly="${3}"
+
 # Run a short integration test?
-quick="${3}"
+quick="${4}"
 
 #=============================================================================
 # Global variable and function definitions
@@ -62,11 +65,11 @@ hemcoDir="${superProjectDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO"
 
 # Get the Git commit of the superproject and submodules
 head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	    git -C "${superProjectDir}" log --oneline --no-decorate -1)
+            git -C "${superProjectDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "${geosChemDir}" log --oneline --no-decorate -1)
+          git -C "${geosChemDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
+           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Source the script containing utility functions and variables
 commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
@@ -152,10 +155,9 @@ chmod 755 -R ${scriptsDir}
 log="${logsDir}/createIntegrationTests.log"
 
 #=============================================================================
-# Only create run directories if we are not in a GitHub action,
-# because we'll do compiilation-only tests instead.
+# Don't create run directories for compile-only tests.
 #=============================================================================
-if [[ "x${GITHUB_RUN_ID}" != "x" ]]; then
+if [[ "x${compileOnly}" == "xno" ]]; then
 
     # Switch to folder where rundir creation scripts live
     cd "${geosChemDir}/run/GCHP"
@@ -177,8 +179,8 @@ if [[ "x${GITHUB_RUN_ID}" != "x" ]]; then
 
     # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
     if [[ "x${quick}" == "xyes" ]]; then
-	cd ${thisDir}
-	exit 0
+        cd ${thisDir}
+        exit 0
     fi
 
     # c24 merra2 fullchem_standard

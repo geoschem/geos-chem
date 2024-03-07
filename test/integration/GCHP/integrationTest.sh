@@ -47,6 +47,7 @@ envFile="none"
 sedPartitionCmd="none"
 quick="no"
 bootStrap="yes"
+compileOnly="no"
 
 #=============================================================================
 # Parse command-line arguments
@@ -163,6 +164,7 @@ if [[ "x${scheduler}" == "xNONE" ]]; then
 	echo "Exiting ... "
 	exit 0
     fi
+    compileOnly="yes"
 fi
 
 #=============================================================================
@@ -192,7 +194,7 @@ if [[ "$(absolute_path ${thisDir})" =~ "${itRoot}" ]]; then
     exit 1
 fi
 # Create GEOS-Chem run directories in the integration test root folder
-./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
+./integrationTestCreate.sh "${itRoot}" "${envFile}" "${compileOnly}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create integration test run directories!"
    exit 1
@@ -211,9 +213,11 @@ logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
-# Edit setCommonRunSettingss.sh scripts to enable or disable bootstrapping
+# Edit setCommonRunSettings.sh scripts to enable or disable bootstrapping
 # (i.e. to allow missing species in restart files or not)
-gchp_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
+if [[ "x${compileOnly}" == "xno" ]]; then
+   gchp_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
+fi
 
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
@@ -222,6 +226,8 @@ cd "${logsDir}"
 # Compile the code and run the integration tests
 #=============================================================================
 if [[ "x${scheduler}" == "xSLURM" ]]; then
+
+
 
     #-------------------------------------------------------------------------
     # Integration tests will run via SLURM
