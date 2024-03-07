@@ -151,48 +151,55 @@ chmod 755 -R ${scriptsDir}
 # Log file with echoback from rundir creation
 log="${logsDir}/createIntegrationTests.log"
 
-# Switch to folder where rundir creation scripts live
-cd "${geosChemDir}/run/GCHP"
-
 #=============================================================================
-# Create the GCHP run directories
+# Only create run directories if we are not in a GitHub action,
+# because we'll do compiilation-only tests instead.
 #=============================================================================
-printf "\nCreating new run directories:\n"
+if [[ "x${GITHUB_RUN_ID}" != "x" ]]; then
 
-# c24 geosfp TransportTracers
-create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # Switch to folder where rundir creation scripts live
+    cd "${geosChemDir}/run/GCHP"
 
-# c24 merra2 fullchem tagO3
-create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
+    #=========================================================================
+    # Create the GCHP run directories
+    #=========================================================================
+    printf "\nCreating new run directories:\n"
 
-# Placeholder for carbon simulation
-# c24 merra2 carbon
-#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # c24 geosfp TransportTracers
+    create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
-if [[ "x${quick}" == "xyes" ]]; then
-    cd ${thisDir}
-    exit 0
+    # c24 merra2 fullchem tagO3
+    create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # Placeholder for carbon simulation
+    # c24 merra2 carbon
+    #create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
+    if [[ "x${quick}" == "xyes" ]]; then
+	cd ${thisDir}
+	exit 0
+    fi
+
+    # c24 merra2 fullchem_standard
+    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_benchmark
+    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_RRTMG
+    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_TOMAS15
+    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
-
-# c24 merra2 fullchem_standard
-create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# c24 merra2 fullchem_benchmark
-create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# c24 merra2 fullchem_RRTMG
-create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# c24 merra2 fullchem_TOMAS15
-create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
+    
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
-
-# Switch back to the present directory
-cd "${thisDir}"
 
 # Free local variables
 unset binDir

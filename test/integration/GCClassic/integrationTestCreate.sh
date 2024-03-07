@@ -62,11 +62,11 @@ hemcoDir="${superProjectDir}/src/HEMCO"
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "${superProjectDir}" log --oneline --no-decorate -1)
+           git -C "${superProjectDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "${geosChemDir}" log --oneline --no-decorate -1)
+          git -C "${geosChemDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
+           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Source the script containing utility functions and variables
 commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
@@ -151,115 +151,122 @@ chmod 755 -R ${scriptsDir}
 # Log file with echoback from rundir creation
 log="${logsDir}/createIntegrationTests.log"
 
-# Switch to folder where rundir creation scripts live
-cd "${geosChemDir}/run/GCClassic"
-
 #=============================================================================
-# Create individual run directories: 4x5 - MERRA2 - 72L
+# Only create run directories if we are not in a GitHub action,
+# because we'll do compiilation-only tests instead.
 #=============================================================================
-printf "\nCreating new run directories:\n"
+if [[ "x${GITHUB_RUN_ID}" != "x" ]]; then
 
-# 4x5 merra2 CH4
-create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # Switch to folder where rundir creation scripts live
+    cd "${geosChemDir}/run/GCClassic"
 
-# 4x5 merra2 CO2
-create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    #=========================================================================
+    # Create individual run directories: 4x5 - MERRA2 - 72L
+    #=========================================================================
+    printf "\nCreating new run directories:\n"
 
-# 4x5 merra2 aerosol
-create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # 4x5 merra2 CH4
+    create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# 4x5 merra2 carbon
-create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # 4x5 merra2 CO2
+    create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# 4x5 merra2 carbon CH4 only
-dir="gc_4x5_merra2_carbon_CH4only"
-create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+    # 4x5 merra2 aerosol
+    create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# 4x5 merra2 fullchem
-create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # 4x5 merra2 carbon
+    create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# DEBUG: Exit after creating a couple of rundirsDirs if $quick is "yes"
-if [[ "x${quick}" == "xyes" ]]; then
-    cd ${thisDir}
-    exit 0
+    # 4x5 merra2 carbon CH4 only
+    dir="gc_4x5_merra2_carbon_CH4only"
+    create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem
+    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # DEBUG: Exit after creating a couple of rundirsDirs if $quick is "yes"
+    if [[ "x${quick}" == "xyes" ]]; then
+        cd ${thisDir}
+        exit 0
+    fi
+
+    # 4x5 merra2 fullchem_LuoWd
+    dir="gc_4x5_merra2_fullchem_LuoWd"
+    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_aciduptake
+    create_rundir "1\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_APM
+    create_rundir "1\n7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_benchmark
+    create_rundir "1\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_complexSOA
+    create_rundir "1\n3\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_complexSOA_SVPOA
+    create_rundir "1\n3\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_marinePOA
+    create_rundir "1\n4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_RRTMG
+    create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 fullchem_TOMAS15_47L
+    create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 Hg
+    create_rundir "5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 POPs_BaP
+    create_rundir "6\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 tagCH4
+    create_rundir "7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 tagCO
+    create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 tagO3
+    create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 TransportTracers
+    create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 TransportTracers_LuoWd
+    dir="gc_4x5_merra2_TransportTracers_LuoWd"
+    create_rundir "10\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+
+    # 4x5 merra2 metals
+    create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    #=========================================================================
+    # Create individual run directories: 4x5 and 47L (MERRA2)
+    #=========================================================================
+
+    # 4x5 merra2 fullchem_47L
+    create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
+
+    #=========================================================================
+    # Nested-grid simulations
+    #=========================================================================
+
+    # 05x0625 merra2 CH4_47L_na
+    create_rundir "3\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 05x0625 merra2 fullchem_47L_na
+    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
-
-# 4x5 merra2 fullchem_LuoWd
-dir="gc_4x5_merra2_fullchem_LuoWd"
-create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_aciduptake
-create_rundir "1\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_APM
-create_rundir "1\n7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_benchmark
-create_rundir "1\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_complexSOA
-create_rundir "1\n3\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_complexSOA_SVPOA
-create_rundir "1\n3\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_marinePOA
-create_rundir "1\n4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_RRTMG
-create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 fullchem_TOMAS15_47L
-create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 Hg
-create_rundir "5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 POPs_BaP
-create_rundir "6\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 tagCH4
-create_rundir "7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 tagCO
-create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 tagO3
-create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 TransportTracers
-create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# 4x5 merra2 TransportTracers_LuoWd
-dir="gc_4x5_merra2_TransportTracers_LuoWd"
-create_rundir "10\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
-
-# 4x5 merra2 metals
-create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-#=============================================================================
-# Create individual run directories: 4x5 and 47L (MERRA2)
-#=============================================================================
-
-# 4x5 merra2 fullchem_47L
-create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
-
-#=============================================================================
-# Nested-grid simulations
-#=============================================================================
-
-# 05x0625 merra2 CH4_47L_na
-create_rundir "3\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
-
-# 05x0625 merra2 fullchem_47L_na
-create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
-
-# Switch back to the present directory
-cd "${thisDir}"
 
 # Free local variables
 unset binDir
