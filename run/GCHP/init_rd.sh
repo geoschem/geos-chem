@@ -86,4 +86,4 @@ done
 [[ -L MetDir  ]] && unlink MetDir
 ln -s ${RUNDIR_DATA_ROOT}/CHEM_INPUTS ChemDir
 ln -s ${RUNDIR_DATA_ROOT}/HEMCO HcoDir
-ln -s ${RUNDIR_MET_DIR_NATIVE} MetDir
+ln -s ${RUNDIR_MET_DIR_RAW} MetDir

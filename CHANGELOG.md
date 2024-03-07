@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - In GCC/GCHP integration tests, passing `-s none` will run compile-only tests.  Query user to proceed or to exit.
 - GCC/GCHP integration tests will exit immediately if `scheduler` is omitted.
 - Now use `raw` instead of `native` in GCHP run directory scripts & templates
+- Rename env var `RUNDIR_METLIGHTNING_DIR_NATIVE` to `RUNDIR_METLIGHTNING_DIR`
+- Rename env var `RUNDIR_METLIGHTNING_NATIVE_RES` to `RUNDIR_METLIGHTNING_RES`
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
