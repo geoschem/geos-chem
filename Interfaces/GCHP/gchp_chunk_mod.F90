@@ -972,28 +972,18 @@ CONTAINS
                              'kg/kg dry', RC, OrigUnit=OrigUnit )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
+    !=======================================================================
+    ! Always prescribe H2O in both the stratosphere and troposhere in GEOS.
+    ! This is now done right after passing the species from the internal
+    ! state to State_Chm (in Chem_GridCompMod.F90). It is important to do it 
+    ! there to make sure that any H2O tendencies are properly calculated
+    ! cakelle2, 2023/10/14 
+    !=======================================================================
+#if !defined( MODEL_GEOS )
     ! SDE 05/28/13: Set H2O to STT if relevant
     IF ( IND_('H2O','A') > 0 ) THEN
        SetStratH2O = .FALSE.
-#if defined( MODEL_GEOS )
-       !=======================================================================
-       ! Tropospheric H2O is always prescribed (using GEOS Q). For strat H2O
-       ! there are three options, controlled by toggles 'set initial global MR'
-       ! in geoschem_config.yml and 'Prescribe_strat_H2O' in GEOSCHEMchem_GridComp.rc:
-       ! (A) never prescribe strat H2O -> both toggles off
-       ! (B) prescribe strat H2O on init time step -> toggle in input.goes on
-       ! (C) always prescribe strat H2O -> toggle in GEOSCHEMchem_GridComp.rc on
-       !=======================================================================
-       IF ( FIRST ) THEN
-          LSETH2O_orig = Input_Opt%LSETH2O
-       ENDIF
-       IF ( FIRST .OR. FrstRewind ) THEN
-          Input_Opt%LSETH2O = LSETH2O_orig
-       ENDIF
-       IF ( Input_Opt%LSETH2O .OR. Input_Opt%AlwaysSetH2O ) THEN
-#else
        IF ( Input_Opt%LSETH2O ) THEN
-#endif
           SetStratH2O = .TRUE.
        ENDIF
        CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, &
@@ -1003,6 +993,7 @@ CONTAINS
       ! Only force strat once
        IF ( Input_Opt%LSETH2O ) Input_Opt%LSETH2O = .FALSE.
     ENDIF
+#endif
 
     ! Compute the cosine of the solar zenith angle array:
     !    State_Met%SUNCOS     => COS(SZA) at the current time

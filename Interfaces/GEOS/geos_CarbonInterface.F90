@@ -94,17 +94,19 @@ CONTAINS
     INTEGER                      :: STATUS
 
     ! Methane field from GEOS.
-    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
-    IF ( DoIt == 1 ) THEN
-       call MAPL_AddImportSpec(GC,                               &
-               SHORT_NAME         = 'GEOS_CH4',                  &
-               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
-               UNITS              = 'v/v',                       &
-               DIMS               = MAPL_DimsHorzVert,           &
-               VLOCATION          = MAPL_VLocationCenter,        &
-               RC=STATUS  )
-       _VERIFY(STATUS)
-    ENDIF
+    ! This is not yet implemented. Placeholder for getting CH4 directly from carbon 
+    ! gridcomp. Need corresponding connectivity in Chem_GridComp for this.
+!    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
+!    IF ( DoIt == 1 ) THEN
+!       call MAPL_AddImportSpec(GC,                               &
+!               SHORT_NAME         = 'GEOS_CH4',                  &
+!               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
+!               UNITS              = 'v/v',                       &
+!               DIMS               = MAPL_DimsHorzVert,           &
+!               VLOCATION          = MAPL_VLocationCenter,        &
+!               RC=STATUS  )
+!       _VERIFY(STATUS)
+!    ENDIF
 
     ! If enabled, create import field 
     CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Import_CO2_from_GOCART:", Default=0, __RC__ )
