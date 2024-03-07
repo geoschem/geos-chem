@@ -44,7 +44,6 @@ this="$(basename ${0})"
 usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s SLURM|LSF|none]"
 itRoot="none"
 envFile="none"
-scheduler="none"
 sedPartitionCmd="none"
 quick="no"
 bootStrap="yes"
@@ -106,6 +105,7 @@ while [ : ]; do
             ;;
 
 	# -s or --scheduler selects the scheduler (case-insensitive)
+	# NOTE: Will be converted to uppercase!
 	-s | --scheduler)
             scheduler="${2^^}"
             shift 2
@@ -120,6 +120,13 @@ done
 # Error check integration tests root path
 if [[ "x${itRoot}" == "xnone" ]]; then
     echo "ERROR: The integration test root directory has not been specified!"
+    echo "${usage}"
+    exit 1
+fi
+
+# Exit if no scheduler has been specified
+if [[ "X${scheduler}" == "X" ]]; then
+    echo "You must specify a scheduler! (SLURM, LSF, none)!"
     echo "${usage}"
     exit 1
 fi
@@ -308,14 +315,14 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
 else
 
     #-------------------------------------------------------------------------
-    # Integration tests will run interactively
+    # Compile tests only will run if scheduler = none
     #-------------------------------------------------------------------------
 
     # Run compilation tests
     echo ""
     echo "Compiliation tests are running..."
     ${scriptsDir}/integrationTestCompile.sh &
-
+    
 fi
 
 # Change back to this directory
