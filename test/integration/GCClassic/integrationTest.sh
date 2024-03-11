@@ -12,18 +12,17 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTest.sh -d root-dir -t compile|all -s cannon|compute1 \
-#   [-e env-file] [-h] [-q]
+#  ./integrationTest.sh -d root-dir -t compile|all [-e env-file] [-h] [-q]
 #
 #  Required arguments
-#    -d root-dir        : Specify the root folder for integration tests
-#    -t compile|all     : Specify the tests to run (compile-only or all)
+#    -d root-dir     : Specify the root folder for integration tests
+#    -t compile|all  : Specify the tests to run (compile-only or all)
 #
-#  Optional arguments:
-#    -e env-file        : Software environment file for Harvard Cannon
-#    -h                 : Display a help message
-#    -n                 : Do not bootstrap missing restart file variables
-#    -q                 : Run a quick set of integration tests (for testing)
+#  Optional arguments
+#    -e env-file     : Software environment file for Harvard Cannon
+#    -h              : Display a help message
+#    -n              : Do not bootstrap missing restart file variables
+#    -q              : Run a quick set of integration tests (for testing)
 #
 #  NOTE: you can also use the following long name options:
 #
@@ -32,7 +31,6 @@
 #    --help          (instead of -h)
 #    --no-bootstrap  (instead of -n)
 #    --quick         (instead of -q)
-#    --site          (instead of -s)
 #    --tests-to-run  (instead of -t)
 #EOP
 #------------------------------------------------------------------------------
@@ -50,20 +48,8 @@ bootStrap="YES"
 thisDir=$(pwd -P)
 cd "${thisDir}"
 
-# GCClassic superproject directory (absolute paths)
-cd ../../../../../
-superProjectDir=$(pwd -P)
-cd ${superProjectDir}
-
-# GEOS-Chem and HEMCO submodule directories
-geosChemDir="${superProjectDir}/src/GEOS-Chem"
-
-# Source the script containing utility functions and variables
-commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
-. "${commonFuncs}"
-
-# Change back to the integration test directory
-cd "${thisDir}"
+# Load common functions
+. "${thisDir}/../../shared/commonFunctionsForTests.sh"
 
 #=============================================================================
 # Parse command-line arguments
@@ -73,7 +59,7 @@ cd "${thisDir}"
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
 validArgs=$(getopt --options d:e:hnqs:t: \
---long directory:,env-file:,help,no-bootstrap,quick,site:,tests-to-run: -- "$@")
+  --long directory:,env-file:,help,no-bootstrap,quick,tests-to-run: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
@@ -222,7 +208,7 @@ if [[ "X${testsToRun}" == "XCOMPILE" ]]; then
 elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCANNON" ]]; then
 
     #-------------------------------------------------------------------------
-    # Compile and run on Harvard Cannon (using SLURM scheduler)
+    # Compile execution tests on Harvard Cannon (using SLURM scheduler)
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
@@ -269,7 +255,7 @@ elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCANNON" ]]; then
 elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCOMPUTE1" ]]; then
 
     #-------------------------------------------------------------------------
-    # Integration tests will run via LSF
+    # Compile and execution tests on WashU Compute1 (via LSF)
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags

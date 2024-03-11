@@ -12,8 +12,8 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/root /path/to/env-file tests-to-run
+#  ./integrationTestCreate.sh /path/to/root /path/to/env-file tests-to-run quick=1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -29,19 +29,19 @@ if [[ "x${itRoot}" == "x" ]]; then
     exit 1
 fi
 
-# Environment file
+# Environment file (for Harvard Cannon only)
+site=$(get_site_name)
 envFile="${2}"
-if [[ "x${envFile}" == "x" ]]; then
-    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
-    exit 1
-fi
-if [[ ! -f "${envFile}" ]]; then
-    echo "ERROR: The enviroment file is not a valid file!"
-    exit 1
+if [[ "X${site}" == "XCANNON" ]]; then
+    [[ "X${envFile}" == "X" ]] && envFile=$(get_default_gcc_env_file)
+    if [[ ! -f ${envFile} ]]; then
+	echo "ERROR: The enviroment file is not a valid file!"
+	exit 1
+    fi
 fi
 
-# Run a compile-only integration test?
-compileOnly="${3}"
+# Type of tests to run?
+testsToRun="${3}"
 
 # Run a short integration test?
 quick="${4}"
@@ -130,9 +130,11 @@ printf "Creating scripts directory   ${scriptsDir}\n"
 mkdir -p "${scriptsDir}"
 
 # Subdir for run directories
-printf "Creating rundirs directory   ${rundirsDir}\n"
-mkdir -p "${rundirsDir}"
-
+if [[ "x${testsToRun}" == "xALL" ]]; then
+    printf "Creating rundirs directory   ${rundirsDir}\n"
+    mkdir -p "${rundirsDir}"
+fi
+    
 # Create a symbolic link to the code from the Integration Test root folder
 printf "Linking to superproject      ${itRoot}/CodeDir\n"
 ln -s "${superProjectDir}" ${itRoot}/CodeDir
@@ -157,7 +159,7 @@ log="${logsDir}/createIntegrationTests.log"
 #=============================================================================
 # Don't create run directories for compile-only tests.
 #=============================================================================
-if [[ "x${compileOnly}" == "xno" ]]; then
+if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Switch to folder where rundir creation scripts live
     cd "${geosChemDir}/run/GCHP"
@@ -178,7 +180,7 @@ if [[ "x${compileOnly}" == "xno" ]]; then
     #create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
-    if [[ "x${quick}" == "xyes" ]]; then
+    if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
         exit 0
     fi

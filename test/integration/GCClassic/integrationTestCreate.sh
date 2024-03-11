@@ -29,14 +29,15 @@ if [[ "X${itRoot}" == "X" ]]; then
     exit 1
 fi
 
-# Environment file
+# Environment file (for Harvard Cannon only)
+site=$(get_site_name)
 envFile="${2}"
-if [[ "X${envFile}" == "X" ]]; then
-    envFile=$(get_default_gcc_env_file)
-fi
-if [[ ! -f ${envFile} ]]; then
-    echo "ERROR: The enviroment file is not a valid file!"
-    exit 1
+if [[ "X${site}" == "XCANNON" ]]; then
+    [[ "X${envFile}" == "X" ]] && envFile=$(get_default_gcc_env_file)
+    if [[ ! -f ${envFile} ]]; then
+	echo "ERROR: The enviroment file is not a valid file!"
+	exit 1
+    fi
 fi
 
 # Run a compile-only integration test?
@@ -129,8 +130,10 @@ printf "Creating scripts directory   ${scriptsDir}\n"
 mkdir -p "${scriptsDir}"
 
 # Subdir for run directories
-printf "Creating rundirs directory   ${rundirsDir}\n"
-mkdir -p "${rundirsDir}"
+if [[ "x${testsToRun}" == "xALL" ]]; then
+    printf "Creating rundirs directory   ${rundirsDir}\n"
+    mkdir -p "${rundirsDir}"
+fi
 
 # Create a symbolic link to the code from the Integration Test root folder
 printf "Linking to superproject      ${itRoot}/CodeDir\n"
