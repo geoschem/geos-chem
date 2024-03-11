@@ -53,7 +53,7 @@ site=$(get_site_name)
 
 # Load the environment and the software environment
 . ~/.bashrc > /dev/null 2>&1
-[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gchp.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \

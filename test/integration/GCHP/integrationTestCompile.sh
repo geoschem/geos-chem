@@ -53,7 +53,7 @@ site=$(get_site_name)
 
 # Load the user-environment and the software environment
 . ~/.bashrc > /dev/null 2>&1
-[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gchp.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"

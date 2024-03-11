@@ -153,7 +153,7 @@ cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
 
-# Only copy the environment file for Harvard CannonO
+# Only copy the environment file for Harvard Cannon
 [[ "X${site}" == "XCANNON" ]] && cp -f ${envFile} ${envDir}/gchp.env
 
 # This is necessary on Compute1 to make all scripts executable
