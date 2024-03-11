@@ -24,16 +24,15 @@
 
 # Integration test root folder
 itRoot="${1}"
-if [[ "x${itRoot}" == "x" ]]; then
+if [[ "X${itRoot}" == "X" ]]; then
     echo "ERROR: The root-level directory for tests has not been specified!"
     exit 1
 fi
 
 # Environment file
 envFile="${2}"
-if [[ "x${envFile}" == "x" ]]; then
-    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
-    exit 1
+if [[ "X${envFile}" == "X" ]]; then
+    envFile=$(get_default_gcc_env_file)
 fi
 if [[ ! -f ${envFile} ]]; then
     echo "ERROR: The enviroment file is not a valid file!"
@@ -41,7 +40,7 @@ if [[ ! -f ${envFile} ]]; then
 fi
 
 # Run a compile-only integration test?
-compileOnly="${3}"
+testsToRun="${3}"
 
 # Run a short integration test?
 quick="${4}"
@@ -157,7 +156,7 @@ log="${logsDir}/createIntegrationTests.log"
 #=============================================================================
 # Don't create run directories for compile-only tests.
 #=============================================================================
-if [[ "x${compileOnly}" == "xno" ]]; then
+if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Switch to folder where rundir creation scripts live
     cd "${geosChemDir}/run/GCClassic"
@@ -187,7 +186,7 @@ if [[ "x${compileOnly}" == "xno" ]]; then
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # DEBUG: Exit after creating a couple of rundirsDirs if $quick is "yes"
-    if [[ "x${quick}" == "xyes" ]]; then
+    if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
         exit 0
     fi

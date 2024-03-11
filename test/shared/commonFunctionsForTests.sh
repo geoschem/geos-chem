@@ -69,7 +69,7 @@ function sed_ie() {
     #========================================================================
     regex="${1}"
     file="${2}"
-    if [[ "x$(uname -s)" == "xDarwin" ]]; then
+    if [[ "X$(uname -s)" == "XDarwin" ]]; then
         sed -i '' -e "${regex}" "${file}"          # MacOS/Darwin
     else
         sed -i -e "${regex}" "${file}"             # GNU/Linux
@@ -133,7 +133,7 @@ function is_gchp_rundir() {
     # 1st argument: Directory to be tested
     #========================================================================
     expr=$(is_valid_rundir "${1}")
-    if [[ "x${expr}" == "xTRUE" ]]; then
+    if [[ "X${expr}" == "XTRUE" ]]; then
         if [[ -f "${1}/CAP.rc" ]]; then
             echo "TRUE"
             return
@@ -157,7 +157,7 @@ function count_rundirs() {
     declare -i x=0
     for runDir in *; do
         expr=$(is_valid_rundir "${runDir}")
-        if [[ "x${expr}" == "xTRUE" ]]; then
+        if [[ "X${expr}" == "XTRUE" ]]; then
             let x++
         fi
     done
@@ -317,7 +317,7 @@ function create_rundir() {
     # If this is a GCHP run directory, then also replace text in
     # GCHP-specific rundir configuration files etc.
     expr=$(is_gchp_rundir "${runPath}")
-    if [[ "x${expr}" == "xTRUE" ]]; then
+    if [[ "X${expr}" == "XTRUE" ]]; then
         update_gchp_config_files "${runPath}"
     fi
 
@@ -333,7 +333,7 @@ function cleanup_files() {
     # 1st argument = root folder for tests (w/ many rundirs etc)
     #========================================================================
     itRoot="${1}"
-    if [[ "x${itRoot}" != "x" ]]; then
+    if [[ "X${itRoot}" != "X" ]]; then
 
     # Exit if directory is already empty
     if [[ ! $(ls -A "${itRoot}") ]]; then
@@ -387,18 +387,18 @@ function exe_name() {
 
     # Default executable name
     exeFileName="none"
-    [[ "x${model}" == "xgcclassic" ]] && exeFileName="${model}"
-    [[ "x${model}" == "xgchp"      ]] && exeFileName="${model}"
+    [[ "X${model}" == "Xgcclassic" ]] && exeFileName="${model}"
+    [[ "X${model}" == "Xgchp"      ]] && exeFileName="${model}"
 
     # Append a suffix to the executable file name for specific directories
-    if [[ "x${model}" == "xgcclassic" ]]; then
+    if [[ "X${model}" == "Xgcclassic" ]]; then
     for suffix in ${EXE_GCC_BUILD_LIST[@]}; do
         if [[ "${buildDir}" =~ "${suffix}" ]]; then
         exeFileName+=".${suffix}"
         break
         fi
     done
-    elif [[ "x${model}" == "xgchp" ]]; then
+    elif [[ "X${model}" == "Xgchp" ]]; then
     for suffix in ${EXE_GCHP_BUILD_LIST[@]}; do
         if [[ "${buildDir}" =~ "${suffix}" ]]; then
         exeFileName+=".${suffix}"
@@ -471,8 +471,8 @@ function compiletest_name() {
     buildDir=$(basename "${2}")   # Only take last part of path
 
     # Display the proper model name
-    [[ "x${model}" == "xgcclassic" ]] && displayName="GCClassic"
-    [[ "x${model}" == "xgchp"      ]] && displayName="GCHP"
+    [[ "X${model}" == "Xgcclassic" ]] && displayName="GCClassic"
+    [[ "X${model}" == "Xgchp"      ]] && displayName="GCHP"
 
     # Turn on case-insensitivity
     shopt -s nocasematch
@@ -524,7 +524,7 @@ function build_model() {
     results="${6}"
 
     # Stop with error if the model name is invalid
-    if [[ "x${model}" != "xgcclassic" && "x${model}" != "xgchp" ]]; then
+    if [[ "X${model}" != "Xgcclassic" && "X${model}" != "Xgchp" ]]; then
         echo "ERROR: '${model}' is an invalid model name!"
         echo "Exiting in 'build_model' (in 'commonFunctionsForTests.sh')"
         exit 1
@@ -624,7 +624,7 @@ function print_bootstrap_info_message() {
     #
     # 1st argument: Enable ("yes") or disable ("no") bootstrapping
     #========================================================================
-    if [[ "x${1}" == "xyes" ]]; then
+    if [[ "X${1}" == "XYES" ]]; then
         echo ""
         echo "%%%%% Species not found in the restart file will   %%%%%"
         echo "%%%%% be bootstrapped (i.e. set to default values) %%%%%"
@@ -657,7 +657,7 @@ function change_time_cycle_flags() {
     unset -f
 
     # Replace the time cycle flag for the container
-    if [[ "x${text}" != "x" ]]; then
+    if [[ "X${text}" != "X" ]]; then
 	sedCmd=$(sed_string "${text}" "${oldFlag}" "${newFlag}")
 	sed_ie "${sedCmd}" "${hcoCfg}"
     fi
@@ -682,12 +682,12 @@ function gcc_enable_or_disable_bootstrap() {
 
         # Do the following if for only valid GEOS-Chem run dirs
         expr=$(is_valid_rundir "${runDir}")
-        if [[ "x${expr}" == "xTRUE" ]]; then
+        if [[ "X${expr}" == "XTRUE" ]]; then
 
             # Specify path HEMCO_Config.rc
             hcoCfg="${runDir}/HEMCO_Config.rc"
 
-            if [[ "x${bootStrap}" == "xyes" ]]; then
+            if [[ "X${bootStrap}" == "XYES" ]]; then
 		# Set missing species in restarts & BC files to defaults
 		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EFYO" "CYS"
 		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EY"   "CYS"
@@ -721,12 +721,12 @@ function gchp_enable_or_disable_bootstrap() {
 
         # Do the following if for only valid GEOS-Chem run dirs
         expr=$(is_gchp_rundir "${runDir}")
-        if [[ "x${expr}" == "xTRUE" ]]; then
+        if [[ "X${expr}" == "XTRUE" ]]; then
 
             # Specify path HEMCO_Config.rc
             script="${runDir}/setCommonRunSettings.sh"
 
-            if [[ "x${bootStrap}" == "xyes" ]]; then
+            if [[ "X${bootStrap}" == "XYES" ]]; then
                 # Set missing restart file variables to defaults
                 sed_ie "s/Require_Species_in_Restart=./Require_Species_in_Restart=0/" "${script}"
             else
@@ -735,4 +735,46 @@ function gchp_enable_or_disable_bootstrap() {
             fi
         fi
     done
+}
+
+
+function get_site_name() {
+    #========================================================================
+    # Returns the site name based on the node name (i.e. uname -n)
+    #========================================================================
+    nodeName=$(uname -n)
+    [[ "${nodeName}" =~ 'harvard.edu' ]] && echo "CANNON"
+    [[ "${nodeName}" =~ 'wustl.edu'   ]] && echo "COMPUTE1"
+    return 0
+}
+
+
+function get_sed_partition_cmd_from_site() {
+    #========================================================================
+    # Returns the sed command to replace the partition name in scripts
+    #
+    # 1st argument: Site name (cannon|compute1)
+    #========================================================================
+    [[ "X${1}" == "XCANNON"   ]] && p="sapphire,huce_cascade,seas_compute,shared"
+    [[ "X${1}" == "XCOMPUTE1" ]] && p="rvmartin"
+    echo "s/REQUESTED_PARTITION/${p}/"
+    return 0
+}
+
+
+function get_default_gcc_env_file() {
+    #========================================================================
+    # Returns the default environment file for GEOS-Chem Classic
+    #========================================================================
+    echo "/n/home09/ryantosca/repos/cannon-env/envs/gnu10/gcclassic.rocky+gnu10.minimal.env"
+    return 0
+}
+
+
+function get_default_gchp_env_file() {
+    #========================================================================
+    # Returns the default environment file for GCHP
+    #========================================================================
+    echo "/n/home09/ryantosca/repos/cannon-env/envs/gnu10/gchp.rocky+gnu10.minimal.env"
+    return 0
 }
