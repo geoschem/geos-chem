@@ -27,7 +27,7 @@ thisDir=$(pwd -P)
 cd "${thisDir}"
 
 # Source the script containing utility functions and variables
-. "${thisDir}../../shared/commonFunctionsForTests.sh"
+. "${thisDir}/../../shared/commonFunctionsForTests.sh"
 
 #=============================================================================
 # Parse input arguments
