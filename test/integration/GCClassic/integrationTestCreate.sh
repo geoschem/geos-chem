@@ -27,7 +27,8 @@ thisDir=$(pwd -P)
 cd "${thisDir}"
 
 # Source the script containing utility functions and variables
-. "${thisDir}/../../shared/commonFunctionsForTests.sh"
+commonFuncs="${thisDir}/../../shared/commonFunctionsForTests.sh"
+. "${commonFuncs}"
 
 #=============================================================================
 # Parse input arguments
@@ -147,11 +148,13 @@ ln -s "${superProjectDir}" ${itRoot}/CodeDir
 #=============================================================================
 
 printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
-cp -f ${envFile}                     ${envDir}/gcclassic.env
 cp -f ${thisDir}/integration*.sh     ${scriptsDir}
 cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
+
+# Only copy the environment file for Harvard Cannon
+[[ "X${site}" == "XCANNON" ]] && cp -f ${envFile} ${envDir}/gcclassic.env
 
 # This is necessary on Compute1 to make all scripts executable
 chmod 755 -R ${scriptsDir}
