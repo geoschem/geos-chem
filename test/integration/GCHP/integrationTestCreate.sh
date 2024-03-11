@@ -45,7 +45,7 @@ fi
 site=$(get_site_name)
 envFile="${2}"
 if [[ "X${site}" == "XCANNON" ]]; then
-    [[ "X${envFile}" == "X" ]] && envFile=$(get_default_gcc_env_file)
+    [[ "X${envFile}" == "X" ]] && envFile=$(get_default_gchp_env_file)
     if [[ ! -f ${envFile} ]]; then
 	echo "ERROR: The enviroment file is not a valid file!"
 	exit 1

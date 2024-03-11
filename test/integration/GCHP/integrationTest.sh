@@ -40,7 +40,7 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-dir -t compile|all -s cannon|compute1 [-e env-file] [-h] [-q]"
+usage="Usage: ${this} -d root-dir -t compile|all [-e env-file] [-h] [-n] [-q]"
 quick="NO"
 bootStrap="YES"
 
@@ -101,7 +101,7 @@ while [ : ]; do
             shift
             ;;
 
-	# -s or --tests-to-run specifies the type of tests to run
+	# -t or --tests-to-run specifies the type of tests to run
 	-t | --tests-to-run)
             testsToRun="${2^^}"
             shift 2
@@ -206,7 +206,7 @@ if [[ "x${testsToRun}" == "xCOMPILE" ]]; then
 elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
 
     #-------------------------------------------------------------------------
-    # Compile and execution tests on Harvard Cannon (via SLURM)
+    # Compilation & execution tests on Harvard Cannon (via SLURM)
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
@@ -252,7 +252,7 @@ elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
 elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCOMPUTE1" ]]; then
 
     #-------------------------------------------------------------------------
-    # Compile and execution tests on WashU Compute1 (via LSF)
+    # Compilation and execution tests on WashU Compute1 (via LSF)
     #-------------------------------------------------------------------------
     
     # Remove SLURM #SBATCH tags

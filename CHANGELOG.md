@@ -21,8 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add `#SBATCH -c 1` to GCHP integration test scripts and sample run scripts for Harvard Cannon
 - In GCC/GCHP integration tests, passing `-s none` will run compile-only tests.  Query user to proceed or to exit.
 - GCC/GCHP integration tests will exit immediately if `scheduler` is omitted.
-- Don't create integration test run directories for compile-only tests
-- Refactor integration test scripts to reduce the number of input arguments
+- Don't create run directories for integration/parallel tests if invoked with `-t compile`
+- Refactor integration and parallel test scripts to reduce the number of input arguments
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code

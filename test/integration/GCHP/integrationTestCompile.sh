@@ -68,12 +68,8 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
            log --oneline --no-decorate -1)
 
-# Determine the scheduler from the job ID (or lack of one)
-scheduler="none"
-[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
-[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
-
-if [[ "X${SLURM_JOBID}" != "X" ]]; then
+# Site-specific settings
+if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
     #----------------------------------
     # SLURM settings (Harvard Cannon)
@@ -82,7 +78,7 @@ if [[ "X${SLURM_JOBID}" != "X" ]]; then
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "X${LSB_JOBID}" != "X" ]]; then
+elif [[ "X${site}" == "XCOMPUTE1" && "X${LSB_JOBID}" != "X" ]]; then
 
     #----------------------------------
     # LSF settings (WashU Compute1)

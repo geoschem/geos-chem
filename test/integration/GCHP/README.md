@@ -64,7 +64,7 @@ You can also use long names for the option switches:
 - `--env-file` instead of `-e`
 - `--help` instead of `h`
 - `--no-bootstrap` instead of `n`
-- `--tests-to-run partition` instead of `-t`
+- `--tests-to-run` instead of `-t`
 
 ## Examples
 
