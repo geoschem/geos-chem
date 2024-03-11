@@ -19,7 +19,18 @@
 #BOC
 
 #=============================================================================
-# Arguments
+# Load common functions
+#=============================================================================
+
+# Current directory
+thisDir=$(pwd -P)
+cd "${thisDir}"
+
+# Source the script containing utility functions and variables
+. "${thisDir}../../shared/commonFunctionsForTests.sh"
+
+#=============================================================================
+# Parse input arguments
 #=============================================================================
 
 # Integration test root folder
@@ -50,10 +61,6 @@ quick="${4}"
 # Global variable and function definitions
 #=============================================================================
 
-# Current directory
-thisDir=$(pwd -P)
-cd "${thisDir}"
-
 # GCClassic superproject directory (absolute paths)
 cd ../../../../../
 superProjectDir=$(pwd -P)
@@ -70,10 +77,6 @@ head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
           git -C "${geosChemDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${hemcoDir}" log --oneline --no-decorate -1)
-
-# Source the script containing utility functions and variables
-commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
-. "${commonFuncs}"
 
 # Echo header
 printf "${SEP_MAJOR}\n"

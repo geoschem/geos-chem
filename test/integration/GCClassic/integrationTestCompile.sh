@@ -206,7 +206,7 @@ else
     #---------------------------
     # Unsuccessful compilation
     #---------------------------
-    if [[  "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
        echo ""
        echo "Compilation tests failed!  Exiting..."
     fi
