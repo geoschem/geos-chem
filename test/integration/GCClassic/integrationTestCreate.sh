@@ -121,9 +121,11 @@ done
 printf "\nCreating exe files directory ${binDir}\n"
 mkdir -p "${binDir}"
 
-# Subdir for env files
-printf "Creating env files directory ${envDir}\n"
-mkdir -p "${envDir}"
+# Subdir for env files (for Harvard Cannon only)
+if [[ "X${site}" == "XCANNON" ]]; then
+    printf "Creating env files directory ${envDir}\n"
+    mkdir -p "${envDir}"
+fi
 
 # Subdir for log files
 printf "Creating logs directory      ${logsDir}\n"

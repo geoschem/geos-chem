@@ -89,7 +89,7 @@ while [ : ]; do
 
 	# -q or --quick runs a quick set of parallelization tests (for testing)
 	-q | --quick)
-	    quick="yes"
+	    quick="YES"
             shift
 	    ;;
 	
@@ -219,8 +219,8 @@ elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCANNON" ]]; then
 	"${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
     output=$(sbatch ${scriptsDir}/parallelTestCompile.sh)
@@ -258,8 +258,8 @@ elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCOMPUTE1" ]]; then
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
     output=$(bsub $scriptsDir}/parallelTestCompile.sh)

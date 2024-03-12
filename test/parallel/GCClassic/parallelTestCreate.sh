@@ -56,7 +56,7 @@ fi
 testsToRun="${3}"
 
 # Run a short parallelization test?
-quick="${3}"
+quick="${4}"
 
 #=============================================================================
 # Global variable and function definitions
@@ -118,9 +118,11 @@ done
 printf "\nCreating exe files directory ${binDir}\n"
 mkdir -p "${binDir}"
 
-# Subdir for env files
-printf "Creating env files directory ${envDir}\n"
-mkdir -p "${envDir}"
+# Subdir for env files (for Harvard Cannon only)
+if [[ "X${site}" == "XCANNON" ]]; then
+    printf "Creating env files directory ${envDir}\n"
+    mkdir -p "${envDir}"
+fi
 
 # Subdir for log files
 printf "Creating logs directory      ${logsDir}\n"
@@ -176,7 +178,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     #4x5 merra2 carbon
-    create_rundir "12\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 CH4
     create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
@@ -185,7 +187,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
-    if [[ "x${quick}" == "xyes" ]]; then
+    if [[ "X${quick}" == "XYES" ]]; then
 	cd ${thisDir}
 	exit 0
     fi
@@ -243,16 +245,16 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 metals"
     create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    #=============================================================================
+    #=========================================================================
     # Create individual run directories: 4x5 and 47L (MERRA2)
-    #=============================================================================
+    #=========================================================================
 
     # 4x5 merra2 fullchem_47L"
     create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
-    #=============================================================================
+    #=========================================================================
     # Nested-grid simulations
-    #=============================================================================
+    #=========================================================================
 
     # 05x0625 merra2 CH4_47L_na"
     create_rundir "3\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
