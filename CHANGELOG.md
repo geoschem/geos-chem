@@ -7,11 +7,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Diel and day-of-week scale factors for CEDS global base emissions
+- CEDS 0.1 x 0.1 degree emissions, see issue #1717 for details
 
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
+- CEDS 0.1 x 0.1 degree emissions are now the default instead of CEDSv2
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
@@ -21,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
 - `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 
 ## [14.3.0] - 2024-02-07
 ### Added

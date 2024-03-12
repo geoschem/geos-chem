@@ -312,18 +312,16 @@ CH4_SOILABSORB kg/m2/s  2009 Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoD
 # %%%%% CO emissions %%%%%
 #==============================================================================
 
-# --- CEDSv2 emissions         ---
-# --- Default global inventory ---
-CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-
-# --- CEDSv2 ship emisisons ---
-CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+# --- CEDS_01x01 anthro + ship emissions ---
+# --- This is the default inventory      ---
+CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp            ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
 
 # --- APEI Canada (APEI) ---
 #APEI_CO kg/m2/s N Y F%y4-01-01T00:00:00 none none CO  ./HcoDir/APEI/v2016-11/APEI.0.1x0.1.nc
@@ -410,7 +408,8 @@ CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_te
 
 # --- CO2 Ship Emissions ---
 #ICOADS_CO2_SHIP kg/m2/s N Y F2004-%m2-01T00:00:00 none none CO2 ./HcoDir/ICOADS_SHIP/v2014-07/ICOADS_ship_CO2_2004.generic.1x1.nc
-CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2018-08/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
+#CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2018-08/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS01_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO2_0.1x0.1_%y4.nc
 
 # --- CO2: AEIC 2019 aircraft emissions ---
 #AEIC19_DAILY_CO2 kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019/AEIC_2019%m2%d2.0.5x0.625.36L.nc
