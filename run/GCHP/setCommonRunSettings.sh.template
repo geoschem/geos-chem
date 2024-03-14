@@ -81,6 +81,9 @@ Diag_Collections=(SpeciesConc    \
                   DryDep         \
                   DefaultCollection \
                   Emissions      \
+                  FV3Dynamics    \
+                  GCHPctmEnvLevCenter \
+                  GCHPctmEnvLevEdge \
                   JValues        \
                   KppDiags       \
                   KppARDiags     \

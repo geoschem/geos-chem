@@ -58,6 +58,9 @@ COLLECTIONS: 'Emissions',
              #'Budget',
              'CloudConvFlux',
              'DryDep',
+             #'FV3Dynamics',
+             #'GCHPctmEnvLevCenter',
+             #'GCHPctmEnvLevEdge',
              'LevelEdgeDiags',      
              'RadioNuclide',
              'SpeciesConc',
@@ -520,6 +523,46 @@ COLLECTIONS: 'Emissions',
                            'DryDepVel_Be7s   ', 'GCHPchem',
                            'DryDepVel_Be10   ', 'GCHPchem',
                            'DryDepVel_Be10s  ', 'GCHPchem',
+::
+#==============================================================================
+  FV3Dynamics.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  FV3Dynamics.format:         'CFIO',
+  FV3Dynamics.timestampStart: .true.
+  FV3Dynamics.monthly:        1
+  FV3Dynamics.frequency:      010000
+  FV3Dynamics.duration:       010000
+  FV3Dynamics.mode:           'time-averaged'
+  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
+                              'DryPLE ', 'DYNAMICS',
+                              'PLEadv ', 'DYNAMICS',
+::
+#==============================================================================
+  GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  GCHPctmEnvLevEdge.format:         'CFIO',
+  GCHPctmEnvLevEdge.timestampStart: .true.
+  GCHPctmEnvLevEdge.monthly:        1
+  GCHPctmEnvLevEdge.frequency:      010000
+  GCHPctmEnvLevEdge.duration:       010000
+  GCHPctmEnvLevEdge.mode:           'time-averaged'
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
+                                    'PLE0               ', 'GCHPctmEnv',
+                                    'PLE1               ', 'GCHPctmEnv',
+                                    'DryPLE0            ', 'GCHPctmEnv',
+                                    'DryPLE1            ', 'GCHPctmEnv',
+::
+#==============================================================================
+  GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  GCHPctmEnvLevCenter.format:         'CFIO',
+  GCHPctmEnvLevCenter.timestampStart: .true.
+  GCHPctmEnvLevCenter.monthly:        1
+  GCHPctmEnvLevCenter.frequency:      010000
+  GCHPctmEnvLevCenter.duration:       010000
+  GCHPctmEnvLevCenter.mode:           'time-averaged'
+  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
+                                      'CX       ', 'GCHPctmEnv',
+                                      'CY       ', 'GCHPctmEnv',
+                                      'MFX      ', 'GCHPctmEnv',
+                                      'MFY      ', 'GCHPctmEnv',
 ::
 #==============================================================================
   LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
