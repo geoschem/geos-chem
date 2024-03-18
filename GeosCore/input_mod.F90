@@ -2911,7 +2911,7 @@ CONTAINS
        WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
-       WRITE( 6, 100 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
+       WRITE( 6, 115 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
        WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
        WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
        WRITE( 6, 100 ) ' --> Extend to TOA?         : ', Input_Opt%RRTMG_SA_TOA

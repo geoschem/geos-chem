@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GEOS-IT processed lat-lon fields as a valid option when creating GCHP run directories
 - Functions `charArr2str` and `str2CharArr` in `Headers/charpak_mod.F90`
 - Field `State_Diag%Obspack_CharArray` as a 2-D character array
+- Added util folder in run/CESM to include .cdl file used to generate CESM NetCDF input file for deposition
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
@@ -24,11 +25,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Now use `raw` instead of `native` in GCHP run directory scripts & templates
 - Rename env var `RUNDIR_METLIGHTNING_DIR_NATIVE` to `RUNDIR_METLIGHTNING_DIR`
 - Rename env var `RUNDIR_METLIGHTNING_NATIVE_RES` to `RUNDIR_METLIGHTNING_RES`
+- Updated config files used in CESM from GEOS-Chem 14.1 to 14.3
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
 - Fixed GEOS-IT native lat-lon filenames used for clusters other than discover
 - Fixed offline emission paths set when using GEOS-IT meteorology
+- Fixed format issue in input_mod RRTMG print statement caught by some compilers
+
+### Removed
+- Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
 
 ## [14.3.0] - 2024-02-07
 ### Added
