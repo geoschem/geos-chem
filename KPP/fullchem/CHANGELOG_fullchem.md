@@ -4,6 +4,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
+### Added
+- Added new monoterpene mechanism, RCOOH oxidation, chemistry for new PNs (PHAN, AROMPN, MEKPN, APAN, LIMPAN, PINPAN) and aromatic AN (RNO3) per Travis et al., 2024
+
 ## [14.3.0] - 2024-02-07
 ### Added
 - Added PH2SO2 and PSO4AQ to track production of SO4 for use in TOMAS
