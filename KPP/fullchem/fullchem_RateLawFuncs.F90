@@ -3050,7 +3050,7 @@ CONTAINS
     ! Uptake by stratospheric sulfate liquid aerosol
     ! and by irregular ice cloud
     gamma = 0.1_dp
-    k = k + Arw_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO3 in cloud (liquid and ice branches)
