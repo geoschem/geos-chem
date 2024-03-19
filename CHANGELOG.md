@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Diel and day-of-week scale factors for CEDS global base emissions
+- Parameterized effective radius for SNA and OM aerosols
 
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions

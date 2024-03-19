@@ -628,6 +628,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'AODDustWL1_bin5               ', 'GCHPchem',
                           'AODDustWL1_bin6               ', 'GCHPchem',
                           'AODDustWL1_bin7               ', 'GCHPchem',
+                          #'PDER                          ', 'GCHPchem',
                           'AODSOAfromAqIsopreneWL1       ', 'GCHPchem',
                           'AODStratLiquidAerWL1          ', 'GCHPchem',
                           'AODPolarStratCloudWL1         ', 'GCHPchem',
@@ -4778,7 +4779,6 @@ COLLECTIONS: @#'DefaultCollection',
                                  'Met_PFLCU                     ', 'GCHPchem',
                                  'Met_PFLLSAN                   ', 'GCHPchem',
                                  'UpwardsMassFlux               ', 'GCHPctmEnv',
-
 ::
 #==============================================================================
 # %%%%% THE ProdLoss COLLECTION %%%%%

@@ -45,6 +45,8 @@ MODULE Phot_Container_Mod
      INTEGER :: NEMISS    ! ??                     
      INTEGER :: NASPECRAD ! # RRTMG aerosol species
      INTEGER :: NSPECRAD  ! # RRTMG aerosol+gas species
+     INTEGER :: NRG       ! # of dry radius, only for SNA/OM aerosols
+     INTEGER :: DRG       ! DRG = 6 pointing to 0.06um (approximation)
 
      ! Scalars
      INTEGER  :: JTAUMX      ! max # divisions
@@ -94,42 +96,43 @@ MODULE Phot_Container_Mod
      REAL(fp), ALLOCATABLE :: ZPJ      (:,:,:,:)   ! J-values
 
      ! RRTMG allocatable arrays
-     INTEGER, ALLOCATABLE :: SPECMASK     (:)     ! binary switches for spc flux
-     INTEGER, ALLOCATABLE :: IWVREQUIRED  (:)     ! WL indexes for interpolation
-     INTEGER, ALLOCATABLE :: IRTWVREQUIRED(:)     ! WL indexes for RT interp
-     INTEGER, ALLOCATABLE :: IWVSELECT    (:,:)   ! Indexes of requested WLs
-     INTEGER, ALLOCATABLE :: IRTWVSELECT  (:,:)   ! Indexes of requested RT WLs
-     INTEGER, ALLOCATABLE :: IRHARR       (:,:,:) ! Relative humidity indices
+     INTEGER,  ALLOCATABLE :: SPECMASK     (:)     ! binary switches for spc flux
+     INTEGER,  ALLOCATABLE :: IWVREQUIRED  (:)     ! WL indexes for interpolation
+     INTEGER,  ALLOCATABLE :: IRTWVREQUIRED(:)     ! WL indexes for RT interp
+     INTEGER,  ALLOCATABLE :: IWVSELECT    (:,:)   ! Indexes of requested WLs
+     INTEGER,  ALLOCATABLE :: IRTWVSELECT  (:,:)   ! Indexes of requested RT WLs
+     INTEGER,  ALLOCATABLE :: IRHARR       (:,:,:) ! Relative humidity indices
 
-     REAL*8,  ALLOCATABLE :: ACOEF_WV  (:)   ! Coeffs for WL interpolation
-     REAL*8,  ALLOCATABLE :: BCOEF_WV  (:)   ! Coeffs for WL interpolation
-     REAL*8,  ALLOCATABLE :: CCOEF_WV  (:)   ! Coeffs for WL interpolation
-     REAL*8,  ALLOCATABLE :: ACOEF_RTWV(:)   ! Coeffs for RT WL interpolation
-     REAL*8,  ALLOCATABLE :: BCOEF_RTWV(:)   ! Coeffs for RT WL interpolation
-     REAL*8,  ALLOCATABLE :: CCOEF_RTWV(:)   ! Coeffs for RT WL interpolation
-     REAL*8,  ALLOCATABLE :: WVAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: RHAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: RDAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: RWAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: SGAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: REAA      (:,:)     ! ??
-     REAL*8,  ALLOCATABLE :: NRLAA     (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: NCMAA     (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: QQAA      (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: ALPHAA    (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: SSAA      (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: ASYMAA    (:,:,:)   ! ??
-     REAL*8,  ALLOCATABLE :: PHAA      (:,:,:,:) ! ??
+     REAL*8,   ALLOCATABLE :: ACOEF_WV  (:)   ! Coeffs for WL interpolation
+     REAL*8,   ALLOCATABLE :: BCOEF_WV  (:)   ! Coeffs for WL interpolation
+     REAL*8,   ALLOCATABLE :: CCOEF_WV  (:)   ! Coeffs for WL interpolation
+     REAL*8,   ALLOCATABLE :: ACOEF_RTWV(:)   ! Coeffs for RT WL interpolation
+     REAL*8,   ALLOCATABLE :: BCOEF_RTWV(:)   ! Coeffs for RT WL interpolation
+     REAL*8,   ALLOCATABLE :: CCOEF_RTWV(:)   ! Coeffs for RT WL interpolation
+     REAL*8,   ALLOCATABLE :: WVAA      (:,:)       ! ??
+     REAL*8,   ALLOCATABLE :: RHAA      (:,:)       ! ??
+     REAL*8,   ALLOCATABLE :: SGAA      (:,:)       ! ??
+     REAL*8,   ALLOCATABLE :: REAA      (:,:)       ! ??
+     REAL*8,   ALLOCATABLE :: REAA      (:,:,:)     ! ?? 
+     REAL*8,   ALLOCATABLE :: NRLAA     (:,:,:)     ! ??
+     REAL*8,   ALLOCATABLE :: NCMAA     (:,:,:)     ! ??
+     REAL*8,   ALLOCATABLE :: RDAA      (:,:,:)     ! ??
+     REAL*8,   ALLOCATABLE :: RWAA      (:,:,:)     ! ??
+     REAL*8,   ALLOCATABLE :: QQAA      (:,:,:,:)   ! ??
+     REAL*8,   ALLOCATABLE :: ALPHAA    (:,:,:,:)   ! ??
+     REAL*8,   ALLOCATABLE :: SSAA      (:,:,:,:)   ! ??
+     REAL*8,   ALLOCATABLE :: ASYMAA    (:,:,:,:)   ! ??
+     REAL*8,   ALLOCATABLE :: PHAA      (:,:,:,:,:) ! ??
 
      ! For optical depth diagnostics
-     REAL(fp), ALLOCATABLE :: ISOPOD   (:,:,:,:)   ! Isoprene optical depth
-     REAL(fp), ALLOCATABLE :: ODMDUST  (:,:,:,:,:) ! Dust optical depth
-     REAL(fp), ALLOCATABLE :: ODAER    (:,:,:,:,:) ! Aerosol optical depth
+     REAL(fp), ALLOCATABLE :: ISOPOD    (:,:,:,:)   ! Isoprene optical depth
+     REAL(fp), ALLOCATABLE :: ODMDUST   (:,:,:,:,:) ! Dust optical depth
+     REAL(fp), ALLOCATABLE :: ODAER     (:,:,:,:,:) ! Aerosol optical depth
 
 #ifdef RRTMG
-     REAL*8,  ALLOCATABLE :: RTODAER   (:,:,:,:,:) ! Optical dust
-     REAL*8,  ALLOCATABLE :: RTSSAER   (:,:,:,:,:) ! ??
-     REAL*8,  ALLOCATABLE :: RTASYMAER (:,:,:,:,:) ! ??
+     REAL*8,   ALLOCATABLE :: RTODAER   (:,:,:,:,:) ! Optical dust
+     REAL*8,   ALLOCATABLE :: RTSSAER   (:,:,:,:,:) ! ??
+     REAL*8,   ALLOCATABLE :: RTASYMAER (:,:,:,:,:) ! ??
 #endif
 
   END TYPE PhotContainer
@@ -194,7 +197,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)   :: errMsg, thisLoc
+    CHARACTER(LEN=255)   :: errMsg, thisLoc, arrayId
 
     !======================================================================
     ! Allocate and initialize module variables
@@ -205,15 +208,17 @@ CONTAINS
     thisLoc = ' -> at Init_Phot_Container (in module Headers/phot_container_mod.F90)'
 
     ! Constants
-    Phot%IND999 = 5     ! Index in RAA & QAA of 999 nm
-    Phot%NWVAA  = 41    ! # LUT wavelengths   (RRTMG)
-    Phot%NSPAA  = 8     ! # LUT species       (RRTMG)
-    Phot%NRAA   = 7     ! # LUT aerosol sizes (RRTMG)   
-    Phot%NWVAA0 = 11    ! # non-RRTMG wavelengths
-    Phot%NALBD  = 2     ! ??                     
-    Phot%NEMISS = 16    ! ??                     
+    Phot%IND999    = 5  ! Index in RAA & QAA of 999 nm
+    Phot%NWVAA     = 41 ! # LUT wavelengths   (RRTMG)
+    Phot%NSPAA     = 8  ! # LUT species       (RRTMG)
+    Phot%NRAA      = 7  ! # LUT aerosol sizes (RRTMG)   
+    Phot%NWVAA0    = 11 ! # non-RRTMG wavelengths
+    Phot%NALBD     = 2  ! ??                     
+    Phot%NEMISS    = 16 ! ??                     
     Phot%NASPECRAD = 16 ! # RRTMG aerosol species
     Phot%NSPECRAD  = 23 ! # RRTMG aerosol+gas species
+    Phot%NRG       = 40 ! # dry radius (only for SNA/OM aerosols)
+    Phot%DRG       = 6  ! Pointing to Rg=0.06 um (for approximation)
 
     ! Store certain values from Fast-JX with more intuitive name
     Phot%nWLbins      = W_
@@ -243,116 +248,79 @@ CONTAINS
     IF ( .not. Input_Opt%DryRun ) THEN
 
        ! Integer arrays
-
-       ! Phot%RINDEX      (:)
-       ALLOCATE( Phot%RINDEX( Phot%nMaxPhotRxns ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RINDEX!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RINDEX"
+       ALLOCATE( Phot%RINDEX( Phot%nMaxPhotRxns                  ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RINDEX = 0
 
-       ! Phot%GC_Photo_Id (:)
-       ALLOCATE( Phot%GC_Photo_Id( Phot%nMaxPhotRxns ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array GC_Photo_Id!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
+       arrayId = "Phot%GC_Photo_Id"
+       ALLOCATE( Phot%GC_Photo_Id( Phot%nMaxPhotRxns             ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        ENDIF
        Phot%GC_Photo_Id = 0
 
-       ! Phot%MIEDX       (:)
-       ALLOCATE( Phot%MIEDX( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array MIEDX!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%MIEDX"
+       ALLOCATE( Phot%MIEDX( AN_                                 ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%MIEDX = 0
 
        ! Real(fp) arrays
-
-       ! Phot%UVXFACTOR(:)
-       ALLOCATE( Phot%UVXFACTOR( WX_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array UVXFACTOR!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%UVXFACTOR"
+       ALLOCATE( Phot%UVXFACTOR( WX_                             ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%UVXFACTOR = 0e+0_fp
 
-       ! Phot%QAA_AOD  (:)
-       ALLOCATE( Phot%QAA_AOD( A_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array QAA_AOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%QAA_AOD"
+       ALLOCATE( Phot%QAA_AOD( A_                                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%QAA_AOD = 0e+0_fp
 
-       ! Phot%WAA_AOD  (:)
-       ALLOCATE( Phot%WAA_AOD( A_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array WAA_AOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%WAA_AOD"
+       ALLOCATE( Phot%WAA_AOD( A_                                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%WAA_AOD = 0e+0_fp
 
-       ! Phot%PAA_AOD  (:)
-       ALLOCATE( Phot%PAA_AOD( A_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array PAA_AOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%PAA_AOD"
+       ALLOCATE( Phot%PAA_AOD( A_                                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%PAA_AOD = 0e+0_fp
 
-       ! Phot%RAA_AOD  (:)
-       ALLOCATE( Phot%RAA_AOD( A_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RAA_AOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RAA_AOD"
+       ALLOCATE( Phot%RAA_AOD( A_                                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RAA_AOD = 0e+0_fp
 
-       ! Phot%SAA_AOD  (:)
-       ALLOCATE( Phot%SAA_AOD( A_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array SAA_AOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%SAA_AOD"
+       ALLOCATE( Phot%SAA_AOD( A_                                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN       
        Phot%SAA_AOD = 0e+0_fp
 
-       ! Phot%TREF     (:,:,:)
-       ALLOCATE( Phot%TREF( 51, 18, 12 ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array TREF!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%TREF"
+       ALLOCATE( Phot%TREF( 51, 18, 12                           ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%TREF = 0e+0_fp
 
-       ! Phot%OREF     (:,:,:)
-       ALLOCATE( Phot%OREF( 51, 18, 12 ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array OREF!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%OREF"
+       ALLOCATE( Phot%OREF( 51, 18, 12                           ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%OREF = 0e+0_fp
 
-       ! Phot%ZPJ      (:,:,:,:)
-       ALLOCATE( Phot%ZPJ( State_Grid%NZ, Phot%nMaxPhotRxns, State_Grid%NX, &
-                 State_Grid%NY ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ZPJ!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ZPJ"
+       ALLOCATE( Phot%ZPJ( State_Grid%NZ, Phot%nMaxPhotRxns,                 &
+                           State_Grid%NX, State_Grid%NY          ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ZPJ = 0e+0_fp
 
     ENDIF
@@ -375,298 +343,221 @@ CONTAINS
     IF ( .not. Input_Opt%DryRun ) THEN
     
        ! RRTMG integer arrays
-
-       ! Phot%SPECMASK     (:)
-       ALLOCATE( Phot%SPECMASK( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array SPECMASK!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%SPECMASK"
+       ALLOCATE( Phot%SPECMASK( AN_                              ), STAT=RC )
+       CALL GC_CheckVar( "Phot%SpecMask", 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%SPECMASK = 0
     
-       ! Phot%IWVREQUIRED  (:)
-       ALLOCATE( Phot%IWVREQUIRED( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array IWVREQUIRED!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%IWVREQUIRED"
+       ALLOCATE( Phot%IWVREQUIRED( AN_                           ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%IWVREQUIRED = 0
     
-       ! Phot%IRTWVREQUIRED(:)
-       ALLOCATE( Phot%IRTWVREQUIRED( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array IRTWVREQUIRED!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF 
+       arrayId = "Phot%IRTWVREQUIRED"
+       ALLOCATE( Phot%IRTWVREQUIRED( AN_                         ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%IRTWVREQUIRED = 0
     
-       ! Phot%IWVSELECT    (:,:)
-       ALLOCATE( Phot%IWVSELECT( 2, 3 ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array IWVSELECT!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%IWVSELECT"
+       ALLOCATE( Phot%IWVSELECT( 2, 3                            ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%IWVSELECT = 0
     
-       ! Phot%IRTWVSELECT  (:,:)
-       ALLOCATE( Phot%IRTWVSELECT( 2, 3 ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array IRTWVSELECT!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%IRTWVSELECT"
+       ALLOCATE( Phot%IRTWVSELECT( 2, 3                          ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%IRTWVSELECT = 0
     
-       ! Phot%IRHARR    (:,:,:)
-       ALLOCATE( Phot%IRHARR( State_Grid%NX, State_Grid%NY, &
-                              State_Grid%NZ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array IRHARR!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%IRHARR"
+       ALLOCATE( Phot%IRHARR( State_Grid%NX, State_Grid%NY,                  &
+                              State_Grid%NZ                      ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%IRHARR = 0d0
     
        ! RRTMG real*8 arrays
-    
-       ! Phot%ACOEF_WV  (:)
-       ALLOCATE( Phot%ACOEF_WV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ACOEF_WV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ACOEF_WV"
+       ALLOCATE( Phot%ACOEF_WV( AN_                              ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ACOEF_WV = 0d0
     
-       ! Phot%BCOEF_WV  (:)
-       ALLOCATE( Phot%BCOEF_WV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array BCOEF_WV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%BCOEF_WV"
+       ALLOCATE( Phot%BCOEF_WV( AN_                              ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%BCOEF_WV = 0d0
     
-       ! Phot%CCOEF_WV  (:)
-       ALLOCATE( Phot%CCOEF_WV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array CCOEF_WV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%CCOEF_WV"
+       ALLOCATE( Phot%CCOEF_WV( AN_                              ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%CCOEF_WV = 0d0
     
-       ! Phot%ACOEF_RTWV(:)
-       ALLOCATE( Phot%ACOEF_RTWV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ACOEF_RTWV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ACOEF_RTWV"
+       ALLOCATE( Phot%ACOEF_RTWV( AN_                            ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ACOEF_RTWV = 0d0
     
-       ! Phot%BCOEF_RTWV(:)
-       ALLOCATE( Phot%BCOEF_RTWV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array BCOEF_RTWV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%BCOEF_RTWV"
+       ALLOCATE( Phot%BCOEF_RTWV( AN_                            ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%BCOEF_RTWV = 0d0
     
-       ! Phot%CCOEF_RTWV(:)
-       ALLOCATE( Phot%CCOEF_RTWV( AN_ ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array CCOEF_RTWV!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%CCOEF_RTWV"
+       ALLOCATE( Phot%CCOEF_RTWV( AN_                            ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%CCOEF_RTWV = 0d0
     
-       ! Phot%WVAA      (:,:)
-       ALLOCATE( Phot%WVAA( Phot%NWVAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array WVAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%WVAA"
+       ALLOCATE( Phot%WVAA( Phot%NWVAA, Phot%NSPAA               ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%WVAA = 0d0
     
-       ! Phot%RHAA      (:,:)
-       ALLOCATE( Phot%RHAA( Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RHAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RHAA"
+       ALLOCATE( Phot%RHAA( Phot%NRAA, Phot%NSPAA                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RHAA = 0d0
     
-       ! Phot%RDAA      (:,:)!
-       ALLOCATE( Phot%RDAA( Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RDAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RDAA"
+       ALLOCATE( Phot%RDAA( Phot%NRAA, Phot%NSPAA                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RDAA = 0d0
     
-       ! Phot%RWAA      (:,:)
-       ALLOCATE( Phot%RWAA( Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RWAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RWAA"
+       ALLOCATE( Phot%RWAA( Phot%NRAA, Phot%NSPAA                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RWAA = 0d0
     
-       ! Phot%SGAA      (:,:)
-       ALLOCATE( Phot%SGAA( Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array SGAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%SGAA"
+       ALLOCATE( Phot%SGAA( Phot%NRAA, Phot%NSPAA                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%SGAA = 0d0
     
-       ! Phot%REAA      (:,:)
-       ALLOCATE( Phot%REAA( Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array REAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%REAA"
+       ALLOCATE( Phot%REAA( Phot%NRAA, Phot%NSPAA                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%REAA = 0d0
     
-       ! Phot%NRLAA     (:,:,:)
-       ALLOCATE( Phot%NRLAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array NRLAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%NRLAA"
+       ALLOCATE( Phot%NRLAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA   ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%NRLAA = 0d0
     
-       ! Phot%NCMAA     (:,:,:)
-       ALLOCATE( Phot%NCMAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array NCMAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%NCMAA"
+       ALLOCATE( Phot%NCMAA( Phot%NWVAA, Phot%NRAA,                          &
+                             Phot%NSPAA, Phot%NRG                ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%NCMAA = 0d0
-    
-       ! Phot%QQAA      (:,:,:)
-       ALLOCATE( Phot%QQAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array QQAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       
+       arrayId = "Phot%RDAA"
+       ALLOCATE( Phot%RDAA( Phot%NRAA, Phot%NSPAA, Phot%NRG      ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Phot%RDAA = 0e+0_fp
+
+       arrayId = "Phot%RWAA"
+       ALLOCATE( Phot%RWAA( Phot%NRAA, Phot%NSPAA, Phot%NRG      ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Phot%RWAA = 0e+0_fp
+
+       arrayId = "Phot%QQAA"
+       ALLOCATE( Phot%QQAA( Phot%NWVAA, Phot%NRAA,                           &
+                            Phot%NSPAA, Phot%NRG                 ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%QQAA = 0d0
-    
-       ! Phot%ALPHAA    (:,:,:)
-       ALLOCATE( Phot%ALPHAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), &
-                 STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ALPHAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+
+       arrayId = "Phot%ALPHAA"
+       ALLOCATE( Phot%ALPHAA( Phot%NWVAA, Phot%NRAA,                         &
+                              Phot%NSPAA, Phot%NRG               ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ALPHAA = 0d0
     
-       ! Phot%SSAA      (:,:,:)
-       ALLOCATE( Phot%SSAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array SSAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%SSAA"
+       ALLOCATE( Phot%SSAA( Phot%NWVAA, Phot%NRAA,                           &
+                            Phot%NSPAA, Phot%NRG                 ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%SSAA = 0d0
     
-       ! Phot%ASYMAA    (:,:,:)
-       ALLOCATE( Phot%ASYMAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA ), &
-                 STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ASYMAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ASYMAA"
+       ALLOCATE( Phot%ASYMAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA  ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ASYMAA = 0d0
     
-       ! Phot%PHAA      (:,:,:,:)
-       ALLOCATE( Phot%PHAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA, 8 ), &
-                 STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array PHAA!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%PHAA"
+       ALLOCATE( Phot%PHAA( Phot%NWVAA, Phot%NRAA, Phot%NSPAA,               &
+                            8,          Phot%NRG                 ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%PHAA = 0d0
 
-       ! Phot%ISOPOD   (:,:,:,:)
-       ALLOCATE( Phot%ISOPOD( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                              Phot%NWVAA ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ISOPOD!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ISOPOD"
+       ALLOCATE( Phot%ISOPOD( State_Grid%NX, State_Grid%NY,                  &
+                              State_Grid%NZ, Phot%NWVAA          ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ISOPOD = 0e+0_fp
        
-       ! Phot%ODMDUST  (:,:,:,:,:)
-       ALLOCATE( Phot%ODMDUST( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                               Phot%NWVAA, NDUST ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ODMDUST!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ODMDUST"
+       ALLOCATE( Phot%ODMDUST( State_Grid%NX, State_Grid%NY,                 &
+                               State_Grid%NZ, Phot%NWVAA,                    &
+                               NDUST                             ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ODMDUST = 0e+0_fp
        
-       ! Phot%ODAER    (:,:,:,:,:)
-       ALLOCATE( Phot%ODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                             Phot%NWVAA, NAER ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array ODAER!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%ODAER"
+       ALLOCATE( Phot%ODAER( State_Grid%NX, State_Grid%NY,                   &
+                             State_Grid%NZ, Phot%NWVAA,    NAER  ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%ODAER = 0e+0_fp
 
 #ifdef RRTMG
-       ! Phot%RTODAER   (:,:,:,:,:)
+       arrayId = "Phot%RTODAER"
        ! +2 to split SNA into SU, NI and AM
-       ALLOCATE( Phot%RTODAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                               Phot%NWVAA, NAER+2+NDUST ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RTODAER!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       ALLOCATE( Phot%RTODAER( State_Grid%NX, State_Grid%NY,                 &
+                               State_Grid%NZ, Phot%NWVAA,                    &
+                               NAER+2+NDUST                      ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RTODAER = 0d0
 
-       ! Phot%RTSSAER   (:,:,:,:,:)
-       ALLOCATE( Phot%RTSSAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                               Phot%NWVAA, NAER+2+NDUST ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RTSSAER!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RTSSAER"
+       ALLOCATE( Phot%RTSSAER( State_Grid%NX, State_Grid%NY,                 &
+                               State_Grid%NZ, Phot%NWVAA,                    &
+                               NAER+2+NDUST                      ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RTSSAER = 0d0
        
-       ! Phot%RTASYMAER (:,:,:,:,:)
-       ALLOCATE( Phot%RTASYMAER( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                                 Phot%NWVAA, NAER+2+NDUST ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error allocating array RTASYMAER!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
+       arrayId = "Phot%RTASYMAER"
+       ALLOCATE( Phot%RTASYMAER( State_Grid%NX, State_Grid%NY,               &
+                                 State_Grid%NZ, Phot%NWVAA,                  &
+                                 NAER+2+NDUST                    ), STAT=RC )
+       CALL GC_CheckVar( arrayId, 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
        Phot%RTASYMAER = 0d0
 #endif
      
@@ -712,50 +603,50 @@ CONTAINS
     !=======================================================================
     ! Will need to change this to just do arrays etc
     IF ( ASSOCIATED( Phot ) ) THEN
-       IF (ALLOCATED(Phot%RINDEX        )) DEALLOCATE(Phot%RINDEX        )
-       IF (ALLOCATED(Phot%GC_Photo_Id   )) DEALLOCATE(Phot%GC_Photo_Id   )
-       IF (ALLOCATED(Phot%MIEDX         )) DEALLOCATE(Phot%MIEDX         )
-       IF (ALLOCATED(Phot%UVXFACTOR     )) DEALLOCATE(Phot%UVXFACTOR     )
-       IF (ALLOCATED(Phot%QAA_AOD       )) DEALLOCATE(Phot%QAA_AOD       )
-       IF (ALLOCATED(Phot%WAA_AOD       )) DEALLOCATE(Phot%WAA_AOD       )
-       IF (ALLOCATED(Phot%PAA_AOD       )) DEALLOCATE(Phot%PAA_AOD       )
-       IF (ALLOCATED(Phot%RAA_AOD       )) DEALLOCATE(Phot%RAA_AOD       )
-       IF (ALLOCATED(Phot%SAA_AOD       )) DEALLOCATE(Phot%SAA_AOD       )
-       IF (ALLOCATED(Phot%TREF          )) DEALLOCATE(Phot%TREF          )
-       IF (ALLOCATED(Phot%OREF          )) DEALLOCATE(Phot%OREF          )
-       IF (ALLOCATED(Phot%ISOPOD        )) DEALLOCATE(Phot%ISOPOD        )
-       IF (ALLOCATED(Phot%ZPJ           )) DEALLOCATE(Phot%ZPJ           )
-       IF (ALLOCATED(Phot%ODMDUST       )) DEALLOCATE(Phot%ODMDUST       )
-       IF (ALLOCATED(Phot%ODAER         )) DEALLOCATE(Phot%ODAER         )
-       IF (ALLOCATED(Phot%SPECMASK      )) DEALLOCATE(Phot%SPECMASK      )
-       IF (ALLOCATED(Phot%IWVREQUIRED   )) DEALLOCATE(Phot%IWVREQUIRED   )
-       IF (ALLOCATED(Phot%IRTWVREQUIRED )) DEALLOCATE(Phot%IRTWVREQUIRED )
-       IF (ALLOCATED(Phot%IWVSELECT     )) DEALLOCATE(Phot%IWVSELECT     )
-       IF (ALLOCATED(Phot%IRTWVSELECT   )) DEALLOCATE(Phot%IRTWVSELECT   )
-       IF (ALLOCATED(Phot%IRHARR        )) DEALLOCATE(Phot%IRHARR        )
-       IF (ALLOCATED(Phot%ACOEF_WV      )) DEALLOCATE(Phot%ACOEF_WV      )
-       IF (ALLOCATED(Phot%BCOEF_WV      )) DEALLOCATE(Phot%BCOEF_WV      )
-       IF (ALLOCATED(Phot%CCOEF_WV      )) DEALLOCATE(Phot%CCOEF_WV      )
-       IF (ALLOCATED(Phot%ACOEF_RTWV    )) DEALLOCATE(Phot%ACOEF_RTWV    )
-       IF (ALLOCATED(Phot%BCOEF_RTWV    )) DEALLOCATE(Phot%BCOEF_RTWV    )
-       IF (ALLOCATED(Phot%CCOEF_RTWV    )) DEALLOCATE(Phot%CCOEF_RTWV    )
-       IF (ALLOCATED(Phot%WVAA          )) DEALLOCATE(Phot%WVAA          )
-       IF (ALLOCATED(Phot%RHAA          )) DEALLOCATE(Phot%RHAA          )
-       IF (ALLOCATED(Phot%RDAA          )) DEALLOCATE(Phot%RDAA          )
-       IF (ALLOCATED(Phot%RWAA          )) DEALLOCATE(Phot%RWAA          )
-       IF (ALLOCATED(Phot%SGAA          )) DEALLOCATE(Phot%SGAA          )
-       IF (ALLOCATED(Phot%REAA          )) DEALLOCATE(Phot%REAA          )
-       IF (ALLOCATED(Phot%NRLAA         )) DEALLOCATE(Phot%NRLAA         )
-       IF (ALLOCATED(Phot%NCMAA         )) DEALLOCATE(Phot%NCMAA         )
-       IF (ALLOCATED(Phot%QQAA          )) DEALLOCATE(Phot%QQAA          )
-       IF (ALLOCATED(Phot%ALPHAA        )) DEALLOCATE(Phot%ALPHAA        )
-       IF (ALLOCATED(Phot%SSAA          )) DEALLOCATE(Phot%SSAA          )
-       IF (ALLOCATED(Phot%ASYMAA        )) DEALLOCATE(Phot%ASYMAA        )
-       IF (ALLOCATED(Phot%PHAA          )) DEALLOCATE(Phot%PHAA          )
-#ifdef RRTMG 
-       IF (ALLOCATED(Phot%RTODAER       )) DEALLOCATE(Phot%RTODAER   )
-       IF (ALLOCATED(Phot%RTSSAER       )) DEALLOCATE(Phot%RTSSAER   )
-       IF (ALLOCATED(Phot%RTASYMAER     )) DEALLOCATE(Phot%RTASYMAER )
+       IF ( ALLOCATED( Phot%RINDEX        ) ) DEALLOCATE( Phot%RINDEX        )
+       IF ( ALLOCATED( Phot%GC_Photo_Id   ) ) DEALLOCATE( Phot%GC_Photo_Id   )
+       IF ( ALLOCATED( Phot%MIEDX         ) ) DEALLOCATE( Phot%MIEDX         )
+       IF ( ALLOCATED( Phot%UVXFACTOR     ) ) DEALLOCATE( Phot%UVXFACTOR     )
+       IF ( ALLOCATED( Phot%QAA_AOD       ) ) DEALLOCATE( Phot%QAA_AOD       )
+       IF ( ALLOCATED( Phot%WAA_AOD       ) ) DEALLOCATE( Phot%WAA_AOD       )
+       IF ( ALLOCATED( Phot%PAA_AOD       ) ) DEALLOCATE( Phot%PAA_AOD       )
+       IF ( ALLOCATED( Phot%RAA_AOD       ) ) DEALLOCATE( Phot%RAA_AOD       )
+       IF ( ALLOCATED( Phot%SAA_AOD       ) ) DEALLOCATE( Phot%SAA_AOD       )
+       IF ( ALLOCATED( Phot%TREF          ) ) DEALLOCATE( Phot%TREF          )
+       IF ( ALLOCATED( Phot%OREF          ) ) DEALLOCATE( Phot%OREF          )
+       IF ( ALLOCATED( Phot%ISOPOD        ) ) DEALLOCATE( Phot%ISOPOD        )
+       IF ( ALLOCATED( Phot%ZPJ           ) ) DEALLOCATE( Phot%ZPJ           )
+       IF ( ALLOCATED( Phot%ODMDUST       ) ) DEALLOCATE( Phot%ODMDUST       )
+       IF ( ALLOCATED( Phot%ODAER         ) ) DEALLOCATE( Phot%ODAER         )
+       IF ( ALLOCATED( Phot%SPECMASK      ) ) DEALLOCATE( Phot%SPECMASK      )
+       IF ( ALLOCATED( Phot%IWVREQUIRED   ) ) DEALLOCATE( Phot%IWVREQUIRED   )
+       IF ( ALLOCATED( Phot%IRTWVREQUIRED ) ) DEALLOCATE( Phot%IRTWVREQUIRED )
+       IF ( ALLOCATED( Phot%IWVSELECT     ) ) DEALLOCATE( Phot%IWVSELECT     )
+       IF ( ALLOCATED( Phot%IRTWVSELECT   ) ) DEALLOCATE( Phot%IRTWVSELECT   )
+       IF ( ALLOCATED( Phot%IRHARR        ) ) DEALLOCATE( Phot%IRHARR        )
+       IF ( ALLOCATED( Phot%ACOEF_WV      ) ) DEALLOCATE( Phot%ACOEF_WV      )
+       IF ( ALLOCATED( Phot%BCOEF_WV      ) ) DEALLOCATE( Phot%BCOEF_WV      )
+       IF ( ALLOCATED( Phot%CCOEF_WV      ) ) DEALLOCATE( Phot%CCOEF_WV      )
+       IF ( ALLOCATED( Phot%ACOEF_RTWV    ) ) DEALLOCATE( Phot%ACOEF_RTWV    )
+       IF ( ALLOCATED( Phot%BCOEF_RTWV    ) ) DEALLOCATE( Phot%BCOEF_RTWV    )
+       IF ( ALLOCATED( Phot%CCOEF_RTWV    ) ) DEALLOCATE( Phot%CCOEF_RTWV    )
+       IF ( ALLOCATED( Phot%WVAA          ) ) DEALLOCATE( Phot%WVAA          )
+       IF ( ALLOCATED( Phot%RHAA          ) ) DEALLOCATE( Phot%RHAA          )
+       IF ( ALLOCATED( Phot%RDAA          ) ) DEALLOCATE( Phot%RDAA          )
+       IF ( ALLOCATED( Phot%RWAA          ) ) DEALLOCATE( Phot%RWAA          )
+       IF ( ALLOCATED( Phot%SGAA          ) ) DEALLOCATE( Phot%SGAA          )
+       IF ( ALLOCATED( Phot%REAA          ) ) DEALLOCATE( Phot%REAA          )
+       IF ( ALLOCATED( Phot%NRLAA         ) ) DEALLOCATE( Phot%NRLAA         )
+       IF ( ALLOCATED( Phot%NCMAA         ) ) DEALLOCATE( Phot%NCMAA         )
+       IF ( ALLOCATED( Phot%QQAA          ) ) DEALLOCATE( Phot%QQAA          )
+       IF ( ALLOCATED( Phot%ALPHAA        ) ) DEALLOCATE( Phot%ALPHAA        )
+       IF ( ALLOCATED( Phot%SSAA          ) ) DEALLOCATE( Phot%SSAA          )
+       IF ( ALLOCATED( Phot%ASYMAA        ) ) DEALLOCATE( Phot%ASYMAA        )
+       IF ( ALLOCATED( Phot%PHAA          ) ) DEALLOCATE( Phot%PHAA          )
+#ifdef RRTMG                                
+       IF ( ALLOCATED( Phot%RTODAER       ) ) DEALLOCATE( Phot%RTODAER       )
+       IF ( ALLOCATED( Phot%RTSSAER       ) ) DEALLOCATE( Phot%RTSSAER       )
+       IF ( ALLOCATED( Phot%RTASYMAER     ) ) DEALLOCATE( Phot%RTASYMAER     )
 #endif
 
        DEALLOCATE( Phot )
