@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
 - Updated volcano emissions from GMAO v202005 product to v202302 which extends to the end of 2022
+- Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
