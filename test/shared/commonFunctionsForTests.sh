@@ -58,6 +58,7 @@ ENV_DIR="env"
 LOGS_DIR="logs"
 RUNDIRS_DIR="rundirs"
 SCRIPTS_DIR="scripts"
+UTILS_DIR="utils"
 
 
 function sed_ie() {

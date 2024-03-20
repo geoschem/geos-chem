@@ -26,8 +26,11 @@
 thisDir=$(pwd -P)
 cd "${thisDir}"
 
+# Path to the test/shared folder in source code
+sharedDir=$(realpath "${thisDir}/../../shared")
+
 # Source the script containing utility functions and variables
-commonFuncs="${thisDir}/../../shared/commonFunctionsForTests.sh"
+commonFuncs="${sharedDir}/commonFunctionsForTests.sh"
 . "${commonFuncs}"
 
 #=============================================================================
@@ -103,6 +106,7 @@ execDir="${ptRoot}/${EXEC_DIR}"
 logsDir="${ptRoot}/${LOGS_DIR}"
 scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
 rundirsDir="${ptRoot}/${RUNDIRS_DIR}"
+utilsDir="${ptRoot}/${UTILS_DIR}"
 
 # Remove everything in the parallelization test root folder
 cleanup_files "${ptRoot}"
@@ -146,17 +150,32 @@ ln -s "${superProjectDir}" ${ptRoot}/CodeDir
 # Copy files to the proper folders
 #=============================================================================
 
-printf "\nCopying run scripts to: ${ptRoot}\n"
+printf "\nCopying run scripts to:       ${ptRoot}\n"
 cp -f ${thisDir}/parallelTest*.sh    ${scriptsDir}
 cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md  ${ptRoot}/README.md
 
-# Only copy the environment file for Harvard Cannon
-[[ "X${site}" == "XCANNON" ]] && cp -f ${envFile} ${envDir}/gcclassic.env
+if [[ "X${site}" == "XCANNON" ]]; then
 
-# This is necessary on Compute1 to make all scripts executable
-chmod 755 -R ${scriptsDir}
+    # Copy Cannon environment file
+    cp -f  ${envFile} ${envDir}/gcclassic.env
+
+    # Copy Cannon utility scripts
+    printf "Copying utility scripts to   ${utilsDir}\n"
+    cp -fR ${sharedDir}/utils/cannon/parallelTest  ${utilsDir}
+
+elif [[ "X${site}" == "XCOMPUTE1" ]]; then
+
+    # Copy Compute1 utility scripts
+    printf "Copying utility scripts to   ${utilsDir}\n"
+    cp -fR ${sharedDir}/utils/compute1/parallelTest  ${utilsDir}
+
+    # Force scripts to be executable (Compute1 resets permissions)
+    chmod 755 -R ${scriptsDir}
+    chmod 755 -R ${utilsDir}
+
+fi
 
 # Log file with echoback from rundir creation
 log="${logsDir}/createParallelTests.log"
@@ -279,8 +298,11 @@ unset log
 unset logsDir
 unset ptRoot
 unset rundirsDir
+unset scriptsDir
+unset sharedDir
 unset superProjectDir
 unset thisDir
+unset utilsDir
 
 # Free imported variables
 unset FILL
