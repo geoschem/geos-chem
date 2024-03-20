@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed GEOS-IT native lat-lon filenames used for clusters other than discover
 - Fixed offline emission paths set when using GEOS-IT meteorology
 - Fixed format issue in input_mod RRTMG print statement caught by some compilers
+- Fixed GEOS-IT SLP and TROPP scaling in pre-processed files used in GCHP
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
