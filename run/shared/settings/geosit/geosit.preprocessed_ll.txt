@@ -70,9 +70,9 @@ SEAICE70 1  N Y F0;003000 none none SEAICE70 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A
 SEAICE80 1  N Y F0;003000 none none SEAICE80 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 SEAICE90 1  N Y F0;003000 none none SEAICE90 ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 SLP    hPa  N Y F0;003000 none none SLP      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-SNODP    1 N Y F0;003000 none none SNODP    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-SNOMAS   1 N Y F0;003000 none none SNOMAS   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
-RADSWG   1 N Y F0;003000 none none SWGDN    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
+SNODP    1  N Y F0;003000 none none SNODP    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
+SNOMAS   1  N Y F0;003000 none none SNOMAS   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
+RADSWG   1  N Y F0;003000 none none SWGDN    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 TO3 dobson  N Y F0;003000 none none TO3      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 TROPP  hPa  N Y F0;003000 none none TROPPT   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
 TSKIN    1  N Y F0;003000 none none TS       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.05x0625.nc
