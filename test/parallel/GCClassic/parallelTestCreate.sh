@@ -150,7 +150,7 @@ ln -s "${superProjectDir}" ${ptRoot}/CodeDir
 # Copy files to the proper folders
 #=============================================================================
 
-printf "\nCopying run scripts to:       ${ptRoot}\n"
+printf "\nCopying run scripts to       ${ptRoot}\n"
 cp -f ${thisDir}/parallelTest*.sh    ${scriptsDir}
 cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}

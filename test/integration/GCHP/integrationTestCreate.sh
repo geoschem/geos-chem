@@ -153,7 +153,7 @@ ln -s "${superProjectDir}" ${itRoot}/CodeDir
 # Copy files to the proper folders
 #=============================================================================
 
-printf "\nCopying run scripts to:      ${scriptsDir}\n"
+printf "\nCopying run scripts to       ${scriptsDir}\n"
 cp -f ${thisDir}/integration*.sh     ${scriptsDir}
 cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
@@ -162,7 +162,7 @@ cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
 if [[ "X${site}" == "XCANNON" ]]; then
 
     # Copy Cannon environment file
-    cp -f  ${envFile} ${envDir}/gcclassic.env
+    cp -f  ${envFile} ${envDir}/gchp.env
 
     # Copy Cannon utility scripts
     printf "Copying utility scripts to   ${utilsDir}\n"
