@@ -12,27 +12,26 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTest.sh -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]
+#  ./integrationTest.sh -d root-dir -t compile|all [-e env-file] [-h] [-q]
 #
-#  Where the command-line arguments are as follows:
+#  Required arguments
+#    -d root-dir     : Specify the root folder for integration tests
+#    -t compile|all  : Specify the tests to run (compile-only or all)
 #
-#    -d root-dir  : Specify the root folder for integration tests
-#    -e env-file  : Specify the environment file (w/ module loads)
-#    -h           : Display a help message
-#    -n           : Do not bootstrap missing restart file variables
-#    -p partition : Select partition for SLURM or LSF schedulers
-#    -q           : Run a quick set of integration tests (for testing)
-#    -s scheduler : Specify the scheduler (SLURM or LSF)
+#  Optional arguments
+#    -e env-file     : Software environment file for Harvard Cannon
+#    -h              : Display a help message
+#    -n              : Do not bootstrap missing restart file variables
+#    -q              : Run a quick set of integration tests (for testing)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-dir  (instead of -d root-dir )
-#    --env-file  env-file  (instead of -e env-file )
-#    --help                (instead of -h          )
-#    --no-bootstrap        (instead of -n          )
-#    --partition partition (instead of -p partition)
-#    --quick               (instead of -q          )
-#    --scheduler scheduler (instead of -s scheduler)
+#    --directory     (instead of -d)
+#    --env-file      (instead of -e)
+#    --help          (instead of -h)
+#    --no-bootstrap  (instead of -n)
+#    --quick         (instead of -q)
+#    --tests-to-run  (instead of -t)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -41,12 +40,16 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s SLURM|LSF|none]"
-itRoot="none"
-envFile="none"
-sedPartitionCmd="none"
-quick="no"
-bootStrap="yes"
+usage="Usage: ${this} -d root-dir -t compile|all [-e env-file] [-h] [-n] [-q]"
+quick="NO"
+bootStrap="YES"
+
+# Current directory
+thisDir=$(pwd -P)
+cd "${thisDir}"
+
+# Load common functions
+. "${thisDir}/../../shared/commonFunctionsForTests.sh"
 
 #=============================================================================
 # Parse command-line arguments
@@ -55,14 +58,14 @@ bootStrap="yes"
 
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
-validArgs=$(getopt --options d:e:hnp:qs: \
-  --long directory:,env-file:,help,no-bootstrap,partition:,quick,scheduler: -- "$@")
+validArgs=$(getopt --options d:e:hnqt: \
+  --long directory:,env-file:,help,no-bootstrap,quick,tests-to-run: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
 
 # Parse arguments and set variables accordingly
-# TODO: replace "scheduler" with "site" argument; set scheduler from site.
+# NOTE: Convert some inputs to uppercase to facilitate comparisons
 eval set -- "${validArgs}"
 while [ : ]; do
     case "${1}" in
@@ -88,95 +91,63 @@ while [ : ]; do
 	# -n or --no-bootstrap prevents bootstrapping missing variables in
         # restart files (i.e. do not change EFYO -> CYS in HEMCO_Config.rc)
 	-n | --no-bootstrap)
-            bootStrap="no"
+            bootStrap="NO"
 	    shift
-            ;;
-
-	# -p or --partition replaces REQUESTED_PARTITION with the user's choice
-	-p | --partition)
-            sedPartitionCmd="s/REQUESTED_PARTITION/${2}/"
-            shift 2
             ;;
 
 	# -q or --quick runs a quick set of integration tests (for testing)
 	-q | --quick)
-            quick="yes"
+            quick="YES"
             shift
-	    ;;
-
-	# -s or --scheduler selects the scheduler (case-insensitive)
-	# NOTE: Will be converted to uppercase!
-	-s | --scheduler)
-	    scheduler="${2^^}"
-            shift 2
             ;;
 
+	# -t or --tests-to-run specifies the type of tests to run
+	-t | --tests-to-run)
+            testsToRun="${2^^}"
+            shift 2
+            ;;
+	
 	--) shift;
             break
             ;;
     esac
 done
+#=============================================================================
+# Sanity-check user input
+#=============================================================================
+
+# Get the site name from the node name
+site=$(get_site_name)
 
 # Error check integration tests root path
-if [[ "x${itRoot}" == "xnone" ]]; then
+if [[ "X${itRoot}" == "X" ]]; then
     echo "ERROR: The integration test root directory has not been specified!"
     echo "${usage}"
     exit 1
 fi
 
-# Exit if no scheduler has been specified
-if [[ "X${scheduler}" == "X" ]]; then
-    echo "You must specify a scheduler! (SLURM, LSF, none)!"
+# Error check the type of tests to run
+if [[ "X${testsToRun}" == "X" ]]; then
+    echo "ERROR: You must specify the test type: compile|all"
+    echo "${usage}"
+    exit 1
+fi
+if [[ "X${testsToRun}" != "XCOMPILE" && "X${testsToRun}" != "XALL" ]]; then
+    echo "ERROR: Invalid selction for tests-to-run, must be: compile|all"
     echo "${usage}"
     exit 1
 fi
 
-# Error check environment file
-# TODO: Add a test on site name rather than scheduler
-if [[ "x${scheduler}" != "xLSF" ]]; then
-    if [[ "x${envFile}" == "xnone" ]]; then
-        echo "ERROR: The enviroment file (module loads) has not been specified!"
-        echo "${usage}"
-        exit 1
+# Error checks for tests that include compile & run phases
+if [[ "X${testsToRun}" == "XALL" ]]; then
+    
+    # Use the default environment file for Cannon if not specified
+    if [[ "X${site}" == "XCANNON" && "X${envFile}" == "X" ]]; then
+	envFile=$(get_default_gchp_env_file)
     fi
-fi
 
-# Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xSLURM" && "x${sedPartitionCmd}" == "xnone" ]]; then
-    echo "ERROR: You must specify a partition for SLURM."
-    echo "${usage}"
-    exit 1
-fi
-
-# Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xLSF" && "x${sedPartitionCmd}" == "xnone" ]]; then
-    echo "ERROR: You must specify a partition for LSF."
-    echo "${usage}"
-    exit 1
-fi
-
-# If "none" is specified for the scheduler, then run compile-only tests.
-if [[ "x${scheduler}" == "xNONE" ]]; then
-    echo "Scheduler is 'none', so compile-only tests will be performed."
-    read -p "Press y to accept or n to exit: " answer
-    if [[ "${answer}" =~ [Nn] ]]; then
-	echo "Exiting ... "
-	exit 0
-    fi
-fi
-
-#=============================================================================
-# Load file with utility functions to setup configuration files
-#=============================================================================
-
-# Current directory
-thisDir=$(pwd -P)
-
-# Load common functions
-if [[ -f "../../shared/commonFunctionsForTests.sh" ]]; then
-    . "${thisDir}/../../shared/commonFunctionsForTests.sh"
-elif [[ -f "${thisDir}/commonFunctionsForTests.sh" ]]; then
-    . "${thisDir}/commonFunctionsForTests.sh"
+    # Get the sed command that will replace the partition name
+    sedPartitionCmd=$(get_sed_partition_cmd_from_site "${site}")
 fi
 
 #=============================================================================
@@ -192,7 +163,7 @@ if [[ "$(absolute_path ${thisDir})" =~ "${itRoot}" ]]; then
     exit 1
 fi
 # Create GEOS-Chem run directories in the integration test root folder
-./integrationTestCreate.sh "${itRoot}" "${envFile}" "${quick}"
+./integrationTestCreate.sh "${itRoot}" "${envFile}" "${testsToRun}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create integration test run directories!"
    exit 1
@@ -211,20 +182,31 @@ logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 rundirsDir="${itRoot}/${RUNDIRS_DIR}"
 
-# Edit setCommonRunSettingss.sh scripts to enable or disable bootstrapping
+# Edit setCommonRunSettings.sh scripts to enable or disable bootstrapping
 # (i.e. to allow missing species in restart files or not)
-gchp_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
+if [[ "x${testsToRun}" == "xALL" ]]; then
+   gchp_enable_or_disable_bootstrap "${bootStrap}" "${rundirsDir}"
+fi
 
 # Navigate to the logs directory (so all output will be placed there)
 cd "${logsDir}"
 
 #=============================================================================
-# Compile the code and run the integration tests
+# Run the tests
 #=============================================================================
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "x${testsToRun}" == "xCOMPILE" ]]; then
 
     #-------------------------------------------------------------------------
-    # Integration tests will run via SLURM
+    # Compilation-only tests (scheduler is not used)
+    #-------------------------------------------------------------------------
+    echo ""
+    echo "Compiliation tests are running..."
+    ${scriptsDir}/integrationTestCompile.sh &
+    
+elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
+
+    #-------------------------------------------------------------------------
+    # Compilation & execution tests on Harvard Cannon (via SLURM)
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
@@ -267,12 +249,12 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     echo "Compilation tests submitted as SLURM job ${cmpId}"
     echo "Execution   tests submitted as SLURM job ${exeId}"
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCOMPUTE1" ]]; then
 
     #-------------------------------------------------------------------------
-    # Integration tests will run via LSF
+    # Compilation and execution tests on WashU Compute1 (via LSF)
     #-------------------------------------------------------------------------
-
+    
     # Remove SLURM #SBATCH tags
     sed_ie '/#SBATCH -c 8/d'                   "${scriptsDir}/integrationTestCompile.sh"
     sed_ie '/#SBATCH -N 1/d'                   "${scriptsDir}/integrationTestCompile.sh"
@@ -310,17 +292,16 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     echo ""
     echo "Compilation tests submitted as LSF job ${cmpId}"
     echo "Execution   tests submitted as LSF job ${exeId}"
-	
+
 else
 
     #-------------------------------------------------------------------------
-    # Compile tests only will run if scheduler = none
+    # Exit with error
     #-------------------------------------------------------------------------
-
-    # Run compilation tests
     echo ""
-    echo "Compiliation tests are running..."
-    ${scriptsDir}/integrationTestCompile.sh &
+    echo "ERROR! Invalid choice of arguments!"
+    echo "${usage}"
+    exit 1
 
 fi
 

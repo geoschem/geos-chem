@@ -49,10 +49,11 @@ envDir="${itRoot}/${ENV_DIR}"
 codeDir="${itRoot}/CodeDir"
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
+site=$(get_site_name)
 
 # Load the user-environment and the software environment
-. ~/.bashrc          > /dev/null 2>&1
-. ${envDir}/gchp.env > /dev/null 2>&1
+. ~/.bashrc > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gchp.env > /dev/null 2>&1
 
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
@@ -67,38 +68,34 @@ head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
            log --oneline --no-decorate -1)
 
-# Determine the scheduler from the job ID (or lack of one)
-scheduler="none"
-[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
-[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
+# Site-specific settings
+if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
-if [[ "x${scheduler}" == "xSLURM" ]]; then
-
-    #-----------------------
-    # SLURM settings
-    #-----------------------
+    #----------------------------------
+    # SLURM settings (Harvard Cannon)
+    #----------------------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "X${site}" == "XCOMPUTE1" && "X${LSB_JOBID}" != "X" ]]; then
 
-    #-----------------------
-    # LSF settings
-    #-----------------------
+    #----------------------------------
+    # LSF settings (WashU Compute1)
+    #----------------------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
-    export OMP_NUM_THREADS=${$LSB_DJOB_NUMPROC}
+    export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 
-    #-----------------------
+    #----------------------------------
     # Interactive settings
-    #-----------------------
+    #----------------------------------
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
-    [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
+    [[ "X${kernel}" == "Xaws" ]] && export OMP_NUM_THREADS=$(nproc)
 
 fi
 
@@ -130,9 +127,9 @@ print_to_log "HEMCO     #${head_hco}"                     "${results}"
 print_to_log ""                                           "${results}"
 print_to_log "Number of compilation tests: ${numTests}"   "${results}"
 print_to_log ""                                           "${results}"
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "X${SLURM_JOBID}" != "X" ]]; then
     print_to_log "Submitted as SLURM job: ${SLURM_JOBID}" "${results}"
-elif  [[ "x${scheduler}" == "xLSF" ]]; then
+elif  [[ "X${LSB_JOBID}" != "X" ]]; then
     print_to_log "Submitted as LSF job: ${LSB_JOBID}"     "${results}"
 else
     print_to_log "Submitted as interactive job"           "${results}"
@@ -202,7 +199,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
 
     # Run execution tests interactively
     # (This job has already been submitted as a dependency in SLURM/LSF)
-    if [[ "x${scheduler}" == "xnone" ]]; then
+    if [[  "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Compilation tests finished!"
         ${scriptsDir}/integrationTestExecute.sh &
@@ -213,7 +210,7 @@ else
     #---------------------------
     # Unsuccessful compilation
     #---------------------------
-    if [[ "x${scheduler}" == "xnone" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
        echo ""
        echo "Compilation tests failed!  Exiting..."
     fi

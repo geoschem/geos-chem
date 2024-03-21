@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Functions `charArr2str` and `str2CharArr` in `Headers/charpak_mod.F90`
 - Field `State_Diag%Obspack_CharArray` as a 2-D character array
 - Added util folder in run/CESM to include .cdl file used to generate CESM NetCDF input file for deposition
+- Add GCClassic operational example environment files for Harvard Cannon
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
@@ -26,6 +27,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Rename env var `RUNDIR_METLIGHTNING_DIR_NATIVE` to `RUNDIR_METLIGHTNING_DIR`
 - Rename env var `RUNDIR_METLIGHTNING_NATIVE_RES` to `RUNDIR_METLIGHTNING_RES`
 - Updated config files used in CESM from GEOS-Chem 14.1 to 14.3
+- Don't create run directories for integration/parallel tests if invoked with `-t compile`
+- Refactor integration and parallel test scripts to reduce the number of input arguments
+- Copy utility scripts that allow you to resubmit failed to integration and parallel test root directories
+- Update GCHP operational example environment files for Harvard Cannon
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
