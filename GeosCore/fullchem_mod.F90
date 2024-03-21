@@ -134,6 +134,9 @@ CONTAINS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
 #endif
 #endif
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,       ONLY : Run_TaggedSpecies
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -191,8 +194,8 @@ CONTAINS
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
     REAL(dp)               :: C_before_integrate(NSPEC)
-    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-                                     State_Grid%NZ, State_Chm%nAdvect       )
+!    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
+!                                     State_Grid%NZ, State_Chm%nAdvect       )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -1332,6 +1335,14 @@ CONTAINS
           call cpu_time(TimeEnd)
           State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
        ENDIF
+
+       !=====================================================================
+       ! Check for tagged tracers and adjust those before updating the
+       ! Species arrays
+       !=====================================================================
+#if defined( MODEL_GEOS )
+       CALL Run_TaggedSpecies( I, J, L, C, PRESS, TEMP, State_Chm, RC )
+#endif
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
@@ -2603,6 +2614,9 @@ CONTAINS
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,       ONLY : Init_TaggedSpecies
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2834,6 +2848,18 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifdef MODEL_GEOS
+    !--------------------------------------------------------------------
+    ! Initialize tagged tracer chemistry
+    !--------------------------------------------------------------------
+    CALL Init_TaggedSpecies( Input_Opt, State_Chm, State_Diag, RC ) 
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_TaggedSpecies"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
+
   END SUBROUTINE Init_FullChem
 !EOC
 !------------------------------------------------------------------------------
@@ -2853,6 +2879,10 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,        ONLY : Finalize_TaggedSpecies
+#endif
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2901,6 +2931,11 @@ CONTAINS
        CALL GC_CheckVar( 'fullchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+#ifdef MODEL_GEOS
+    ! Clean up tagged species
+    CALL Finalize_TaggedSpecies( RC )
+#endif 
 
   END SUBROUTINE Cleanup_FullChem
 !EOC
