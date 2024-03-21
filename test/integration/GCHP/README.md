@@ -17,13 +17,13 @@ Integration tests are short GCHP simulations.  Executables are compiled with all
 ### Integration Test Scripts
 
 - `integrationTest.sh`
-  - Driver script to run GEOS-Chem Classic integration tests
+  - Driver script to run GCHP integration tests
 - `integrationTestCreate.sh`
-  - Script to create GEOS-Chem Classic run directories for integration tests
+  - Script to create GCHP run directories for integration tests
 - `integrationTestCompile.sh`
-  - Script to compile GEOS-Chem Classic executables
+  - Script to compile GCHP executables
 - `integrationTestExecute.sh`
-   - Script to run GEOS-Chem Classic integration test simulations
+   - Script to run GCHP integration test simulations
 
 ### Shared Scripts
 
