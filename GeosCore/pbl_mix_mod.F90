@@ -301,9 +301,11 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC              = GC_SUCCESS
-    Bad_Sum         = .FALSE.
-    State_Met%InPbl = .FALSE.
+    RC      = GC_SUCCESS
+    Bad_Sum = .FALSE.
+    State_Met%InPbl          = .FALSE.
+    State_Met%F_of_PBL       = 0.0_fp
+    State_Met%F_Under_PBLTop = 0.0_fp
 
     !$OMP PARALLEL DO                                      &
     !$OMP DEFAULT( SHARED                                ) &
@@ -373,7 +375,7 @@ CONTAINS
        ! Error check
        IF ( ABS( SUM( State_Met%F_OF_PBL(I,J,:) ) - 1.0_fp) > 1.0e-3_fp) THEN
           !$OMP CRITICAL
-          PRINT*, 'bad sum at: ', I, J
+          PRINT*, 'bad sum at: ', I, J, SUM( State_Met%F_OF_PBL(I,J,:) )
           Bad_Sum = .TRUE.
           !$OMP END CRITICAL
        ENDIF
