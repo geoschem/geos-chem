@@ -301,76 +301,96 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    Bad_Sum = .FALSE.
+    RC                       = GC_SUCCESS
+    Bad_Sum                  = .FALSE.
     State_Met%InPbl          = .FALSE.
     State_Met%F_of_PBL       = 0.0_fp
     State_Met%F_Under_PBLTop = 0.0_fp
 
-    !$OMP PARALLEL DO                                      &
-    !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( I, J, L, P, LTOP, Lower_Edge_Height   )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, LTOP, Lower_Edge_Height                         )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! PBL height above surface, m 
-       State_Met%PBL_Top_m(I,J) = State_Met%PBLH(I,J)
-
-       ! Height of lower edge above surface, m
-       Lower_Edge_Height = 0.0_fp
+       ! Initialize variables
+       State_Met%PBL_Top_m(I,J) = State_Met%PBLH(I,J) ! Pbl ht [m] above sfc
+       LTOP                     = 0                   ! Level w/ PBL top
+       Lower_Edge_Height        = 0.0_fp              ! Lower edge height
+                                                      !  above sfc [m]
 
        ! Find PBL top level (L) and pressure (hPa)
-       Do L=1, State_Grid%NZ
+       DO L = 1, State_Grid%NZ
 
-         If ( Lower_Edge_Height + State_Met%BXHEIGHT(I,J,L) >= State_Met%PBLH(I,J) ) then
+         !-------------------------------------------------------------------
+         ! The PBL top occurs in this level if the condition is true
+         !-------------------------------------------------------------------
+         IF ( Lower_Edge_Height + State_Met%BXHEIGHT(I,J,L) >=               &
+              State_Met%PBLH(I,J)                                ) THEN
 
             ! PBL top is in this level
             LTOP = L
 
             ! Pressure at the PBL top altitude, hPa
-            ! Use pressure lapse equation: p(PBLH) = p(z1) * exp( -(PBLH-z1) / Scale_Height )
-            ! p(z1) = State_Met%PEDGE(I,J,L) = Pressure at the lower level edge
-            ! PBLH - z1 = (State_Met%PBLH(I,J,L) - Lower_Edge_Height) = Height above the lower level edge
+            ! Use pressure lapse equation:
+            !    p(PBLH) = p(z1) * exp( -(PBLH-z1) / Scale_Height )
+            !
+            ! p(z1) = State_Met%PEDGE(I,J,L) = Pressure @ lower level edge
+            !
+            ! PBLH - z1 = (State_Met%PBLH(I,J,L) - Lower_Edge_Height) =
+            !   Height above the lower level edge
+            !
             ! Scale_Height = Rd * Tv / g0
-            State_Met%PBL_Top_hPa(I,J) = State_Met%PEdge(I,J,L) * &
-                  EXP( -(State_Met%PBLH(I,J) - Lower_Edge_Height) * g0 / ( Rd * State_Met%Tv(I,J,L) ) )
+            State_Met%PBL_Top_hPa(I,J) = State_Met%PEdge(I,J,L)     *        &
+                  EXP( -( State_Met%PBLH(I,J) - Lower_Edge_Height ) *        &
+                        g0 / ( Rd * State_Met%TV(I,J,L) )            )
 
             ! Fraction of PBL mass in layer L, will be normalized below
-            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L) - State_Met%PBL_Top_hPa(I,J)
+            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L)               &
+                                      - State_Met%PBL_Top_hPa(I,J)
       
             ! Fraction of the grid cell mass under PBL top
-            State_Met%F_Under_PBLTop(I,J,L) =   State_Met%F_of_PBL(I,J,L) / &
-                                              ( State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1) )
+            State_Met%F_Under_PBLTop(I,J,L) = State_Met%F_of_PBL(I,J,L) /    &
+                 ( State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1) )
 
-            ! Model level of PBL top (integer+fraction). The top is within level CEILING(PBL_Top_L) 
-            State_Met%PBL_Top_L(I,J) = (LTOP-1) + State_Met%F_Under_PBLTop(I,J,L)
+            ! Model level of PBL top (integer+fraction).
+            ! The top is within level CEILING(PBL_Top_L)
+            State_Met%PBL_Top_L(I,J) = ( LTOP - 1 )                          &
+                                     + State_Met%F_Under_PBLTop(I,J,L)
 
             ! PBL Thickness from surface to top, hPa
-            State_Met%PBL_Thick(I,J) = State_Met%PEdge(I,J,1) - State_Met%PBL_Top_hPa(I,J)
+            State_Met%PBL_Thick(I,J) = State_Met%PEdge(I,J,1)                &
+                                     - State_Met%PBL_Top_hPa(I,J)
 
-            !! Exit Do loop after we found PBL top level
-            Exit
+            ! Exit Do loop after we found PBL top level
+            EXIT
+         ENDIF
 
-         Else 
+         !-------------------------------------------------------------------
+         ! The PBL top does not occur in this level.
+         ! Update variables and go to next level.
+         !-------------------------------------------------------------------
 
-            ! Grid cell fully within PBL
-            State_Met%inPBL(I,J,L) = .True.
+         ! Grid cell fully within PBL
+         State_Met%inPBL(I,J,L) = .True.
 
-            ! Fraction of the grid cell mass under PBL top
-            State_Met%F_Under_PBLTop(I,J,L) = 1.0_fp
+         ! Fraction of the grid cell mass under PBL top
+         State_Met%F_Under_PBLTop(I,J,L) = 1.0_fp
 
-            ! Fraction of PBL mass in layer L, will be normalized below
-            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1)
+         ! Fraction of PBL mass in layer L, will be normalized below
+         State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L)                  &
+                                   - State_Met%PEdge(I,J,L+1)
 
-            ! Update lower edge height, m
-            Lower_Edge_Height = Lower_Edge_Height + State_Met%BXHeight(I,J,L)
+         ! Update lower edge height, m
+         Lower_Edge_Height = Lower_Edge_Height + State_Met%BXHeight(I,J,L)
 
-         EndIf
-         
-       EndDo
+       ENDDO
 
        ! Fraction of PBL mass in layer L, now normalize to sum of 1
-       State_Met%F_of_PBL(I,J,:) = State_Met%F_of_PBL(I,J,:) / State_Met%PBL_Thick(I,J)
+       State_Met%F_of_PBL(I,J,:) = State_Met%F_of_PBL(I,J,:)                 &
+                                 / State_Met%PBL_Thick(I,J)
 
        ! Error check
        IF ( ABS( SUM( State_Met%F_OF_PBL(I,J,:) ) - 1.0_fp) > 1.0e-3_fp) THEN
@@ -392,7 +412,7 @@ CONTAINS
     ENDIF
 
     ! Model level where PBL top occurs
-    State_Met%PBL_MAX_L = MAXVAL( ceiling( State_Met%PBL_Top_L ) )
+    State_Met%PBL_MAX_L = MAXVAL( CEILING( State_Met%PBL_Top_L ) )
 
   END SUBROUTINE Compute_Pbl_Height
 !EOC
