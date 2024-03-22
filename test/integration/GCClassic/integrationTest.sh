@@ -203,7 +203,7 @@ if [[ "X${testsToRun}" == "XCOMPILE" ]]; then
     #-------------------------------------------------------------------------
     echo ""
     echo "Compiliation tests are running..."
-    ${scriptsDir}/integrationTestCompile.sh &    
+    ${scriptsDir}/integrationTestCompile.sh
 
 elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCANNON" ]]; then
 

@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Refactor integration and parallel test scripts to reduce the number of input arguments
 - Copy utility scripts that allow you to resubmit failed to integration and parallel test root directories
 - Update GCHP operational example environment files for Harvard Cannon
+- Do not run GCClassic integration test compile jobs in the background
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
