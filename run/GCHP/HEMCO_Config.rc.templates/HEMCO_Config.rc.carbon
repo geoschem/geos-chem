@@ -610,22 +610,22 @@ Mask fractions:              false
 #      aren't included in the Tier 1 CAPS file/
 #==============================================================================
 (((NEI2016_MONMEAN
-0 EPA16_CO__airportsCO   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonroadCO    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__npogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroadCO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_caCO  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__railCO       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__airportsCO   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__nonptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__nonroadCO    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__npogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroadCO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_caCO  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__railCO       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__c1c2CO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__c3CO         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__pteguCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__ptogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__ptnonipmCO   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_canCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_mexCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__otharCO      $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__othptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_canCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_mexCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__otharCO      $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__othptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
 )))NEI2016_MONMEAN
 
 #==============================================================================
