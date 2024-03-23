@@ -1052,10 +1052,11 @@ CONTAINS
     LOGICAL            :: after,  before, wetDep
     INTEGER            :: I,      J,      L,       N
     INTEGER            :: numSpc, region, topLev,  S
-    REAL(f8)           :: colSum, dt
+    REAL(f8)           :: colSum, dt,     rtol
 
     ! Arrays
     REAL(f8)           :: spcMass(State_Grid%NZ)
+    REAL(f8)           :: rerr(3),  PriorGlobalMass(3)
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1171,10 +1172,13 @@ CONTAINS
     !                   and then update diagnostic arrays
     !====================================================================
 
-    ! Zero out the column mass array if we are calling this routine
-    ! before the desired operation.  This will let us compute initial mass.
     IF ( before ) THEN
-       colMass = 0.0_f8
+       ! Prior global tracer mass, summed over all tracers
+       ! This isn't physically meaningful, 
+       ! but can be used to check if the budget diagnostic is working correctly
+       PriorGlobalMass(1) = sum( colMass(:,:,:,1) )
+       PriorGlobalMass(2) = sum( colMass(:,:,:,2) )
+       PriorGlobalMass(3) = sum( colMass(:,:,:,3) )
     ENDIF
 
     ! Loop over NX and NY dimensions
@@ -1232,6 +1236,8 @@ CONTAINS
                 diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
                                   / timeStep )
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,1) = colSum
              ENDIF
           ENDDO
 
@@ -1282,6 +1288,8 @@ CONTAINS
                 diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
                                   / timeStep )
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,2) = colSum
              ENDIF
           ENDDO
        ENDIF
@@ -1331,6 +1339,8 @@ CONTAINS
                 diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
                                  / timeStep )
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,3) = colSum
              ENDIF
           ENDDO
        ENDIF
@@ -1387,6 +1397,37 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Budget consistency check
+    ! The global total tracer mass should *not* change between an "after" call and the next "before" call
+    if ( before .and. (.not. any( PriorGlobalMass == 0. )) ) then
+       
+       ! Relative error, change since prior "after" call
+       rerr(1) = abs( sum( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
+       rerr(2) = abs( sum( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
+       rerr(3) = abs( sum( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
+       
+       ! Relative error tolarance, errors larger than this will halt the model
+       rtol = 0.001
+
+       IF ( rerr(1) > rtol ) THEN
+         print*,'Budget Diagnostic Error: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
+       ENDIF
+       IF ( rerr(2) > rtol ) THEN
+         print*,'Budget Diagnostic Error: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
+       ENDIF
+       IF ( rerr(3) > rtol ) THEN
+         print*,'Budget Diagnostic Error: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
+       ENDIF
+
+       IF ( any( rerr > rtol ) ) THEN
+         print*,'If H2O or CLOCK are included, Budget Diagnostic Errors are expected for these species'
+         ! errMsg = 'Tracer mass changed outside locations expected by Compute_Budget_Diagnostics!!! ' &
+         !    //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+         ! CALL GC_Error( errMsg, RC, thisLoc )
+         ! RETURN
+       ENDIF
+    endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
