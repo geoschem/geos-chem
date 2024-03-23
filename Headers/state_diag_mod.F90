@@ -156,7 +156,6 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetTransportFull
 
      REAL(f8),           POINTER :: BudgetTransportTrop(:,:,:)
-     REAL(f8),           POINTER :: BudgetTransportTropHeight(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetTransportTrop
      LOGICAL                     :: Archive_BudgetTransportTrop
 
@@ -173,7 +172,6 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_BudgetMixingTrop
 
      REAL(f8),           POINTER :: BudgetMixingPBL(:,:,:)
-     REAL(f8),           POINTER :: BudgetMixingPBLHeight(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetMixingPBL
      LOGICAL                     :: Archive_BudgetMixingPBL
 
@@ -1395,7 +1393,6 @@ CONTAINS
     State_Diag%Archive_BudgetTransport             = .FALSE.
 
     State_Diag%BudgetTransportTrop                 => NULL()
-    State_Diag%BudgetTransportTropHeight           => NULL()
     State_Diag%Map_BudgetTransportTrop             => NULL()
     State_Diag%Archive_BudgetTransportTrop         = .FALSE.
 
@@ -1413,7 +1410,6 @@ CONTAINS
     State_Diag%Archive_BudgetMixingTrop            = .FALSE.
 
     State_Diag%BudgetMixingPBL                     => NULL()
-    State_Diag%BudgetMixingPBLHeight               => NULL()
     State_Diag%Map_BudgetMixingPBL                 => NULL()
     State_Diag%Archive_BudgetMixingPBL             = .FALSE.
 
@@ -2832,17 +2828,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Mass change due to change in tropopause height, for transport in trop only
-    IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
-       diagID  = 'BudgetTransportTropHeight'
-       ALLOCATE( State_Diag%BudgetTransportTropHeight(                       &
-            State_Grid%NX, State_Grid%NY,                                    &
-            SIZE(State_Diag%BudgetTransportTrop,3)), STAT=RC                )
-       CALL GC_CheckVar( diagID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_diag%BudgetTransportTropHeight = 0.0_f8
-    ENDIF
-
     ! PBL-only transport
     diagID  = 'BudgetTransportPBL'
     CALL Init_and_Register(                                                  &
@@ -2938,17 +2923,6 @@ CONTAINS
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
-    ENDIF
-
-    ! Mass change due to change in PBL top level, for PBL mixing only
-    IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
-       diagID  = 'BudgetMixingPBLHeight'
-       ALLOCATE( State_Diag%BudgetMixingPBLHeight(                           &
-            State_Grid%NX, State_Grid%NY,                                    &
-            SIZE(State_Diag%BudgetMixingPBL,3)), STAT=RC                    )
-       CALL GC_CheckVar( diagID, 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_diag%BudgetMixingPBLHeight = 0.0_f8
     ENDIF
 
     ! High-level logical for mixing budget
@@ -10662,11 +10636,6 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    CALL Finalize( diagId   = 'BudgetTransportTropHeight',                   &
-                   Ptr2Data = State_Diag%BudgetTransportTropHeight,          &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
     CALL Finalize( diagId   = 'BudgetTransportPBL',                          &
                    Ptr2Data = State_Diag%BudgetTransportPBL,                 &
                    mapData  = State_Diag%Map_BudgetTransportPBL,             &
@@ -10688,11 +10657,6 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetMixingPBL',                             &
                    Ptr2Data = State_Diag%BudgetMixingPBL,                    &
                    mapData  = State_Diag%Map_BudgetMixingPBL,                &
-                   RC       = RC                                            )
-    IF ( RC /= GC_SUCCESS ) RETURN
-
-    CALL Finalize( diagId   = 'BudgetMixingPBLHeight',                       &
-                   Ptr2Data = State_Diag%BudgetMixingPBLHeight,              &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -12357,10 +12321,6 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                    'change in column for transport'
 
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROPHEIGHT' ) THEN
-          IF ( isDesc    ) Desc  = 'Troposphere-only mass change due to ' // &
-                                   'change in tropopause level'
-
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for transport'
@@ -12388,10 +12348,6 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    'in column for mixing'
-
-       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBLHEIGHT' ) THEN
-          IF ( isDesc    ) Desc  = 'PBL-only mass change due to ' // &
-                                   'change in PBL top level'
 
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &

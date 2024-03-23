@@ -226,24 +226,6 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Budget diagnostic adjustment for changes in PBL heigh†
-    ! (mixing budget in PBL only)
-    !------------------------------------------------------------------------
-    IF ( State_Diag%Archive_BudgetMixingPBL ) THEN
-       State_Diag%BudgetMixingPBL = State_Diag%BudgetMixingPBL              &
-            + State_Diag%BudgetMixingPBLHeight
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! Budget diagnostic adjustment for changes in tropopause height
-    ! (transport budget in trop only)
-    !------------------------------------------------------------------------
-    IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
-       State_Diag%BudgetTransportTrop = State_Diag%BudgetTransportTrop      &
-            + State_Diag%BudgetTransportTropHeight
-    ENDIF
-
-    !------------------------------------------------------------------------
     ! Diagnostics for the mercury and tagged mercury simulations
     !------------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
@@ -405,11 +387,48 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Budget diagnostic adjustment for changes in tropopause height
-    ! (transport budget in trop only)
-    IF ( State_Diag%Archive_BudgetTransportTrop ) THEN
-       State_Diag%BudgetTransportTropHeight = 0.0_f8
-    ENDIF
+    ! Budget Diagnostics
+    IF ( State_Diag%Archive_BudgetTransportFull ) &
+         State_Diag%BudgetTransportFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetTransportTrop ) &
+         State_Diag%BudgetTransportTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetTransportPBL ) &
+         State_Diag%BudgetTransportPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetMixingFull ) &
+         State_Diag%BudgetMixingFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetMixingTrop ) &
+         State_Diag%BudgetMixingTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetMixingPBL ) &
+         State_Diag%BudgetMixingPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetConvectionFull ) &
+         State_Diag%BudgetConvectionFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetConvectionTrop ) &
+         State_Diag%BudgetConvectionTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetConvectionPBL ) &
+         State_Diag%BudgetConvectionPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetChemistryFull ) &
+         State_Diag%BudgetChemistryFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetChemistryTrop ) &
+         State_Diag%BudgetChemistryTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetChemistryPBL ) &
+         State_Diag%BudgetChemistryPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetEmisDryDepFull ) &
+         State_Diag%BudgetEmisDryDepFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetEmisDryDepTrop ) &
+         State_Diag%BudgetEmisDryDepTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetEmisDryDepPBL ) &
+         State_Diag%BudgetEmisDryDepPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetWetDepFull ) &
+         State_Diag%BudgetWetDepFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetWetDepTrop ) &
+         State_Diag%BudgetWetDepTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetWetDepPBL ) &
+         State_Diag%BudgetWetDepPBL = 0.0_f8
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
 !EOC
@@ -955,9 +974,7 @@ CONTAINS
                                          mapDataFull, isTrop,    diagTrop,   &
                                          mapDataTrop, isPBL,     diagPBL,    &
                                          mapDataPBL,  colMass,   RC,         &
-                                         timeStep,    isWetDep,  before_op,  &
-                                         accum                              )
-
+                                         timeStep,    isWetDep,  before_op   )
 !
 ! !USES:
 !
@@ -983,7 +1000,6 @@ CONTAINS
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation; F = after
     REAL(f8),       OPTIONAL      :: timestep         ! Timestep of the operation
-    LOGICAL,        OPTIONAL      :: accum            ! Accumulate diagnostic?
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1009,7 +1025,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: after,  before, wetDep, accumulate_array
+    LOGICAL            :: after,  before, wetDep
     INTEGER            :: I,      J,      L,       N
     INTEGER            :: numSpc, region, topLev,  S
     REAL(f8)           :: colSum, dt
@@ -1019,6 +1035,11 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
+
+    ! cdholmes, devel
+    real(f8) :: finalMass(300,3)
+    real(f8) :: finalDiff(300,3)
+    real(f8) :: finalMass4(72,46,100,3)
 
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
@@ -1030,6 +1051,9 @@ CONTAINS
     ThisLoc = ' -> at Compute_Budget_Diagnostics (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
+    finalMass = 0.0_f8
+    finalDiff = 0.0_f8
+    finalMass4 = 0.0_f8
 
     ! Exit if concentrations are not in [kg/kg dry]
     IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
@@ -1111,14 +1135,6 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Determine if diagnostics will be accumulated or reset. Default
-    ! is to overwrite arrays (ac
-    IF ( PRESENT( accum ) ) THEN
-       accumulate_array = accum
-    ELSE
-       accumulate_array = .FALSE.
-    ENDIF
-
     !====================================================================
     ! Before operation: Compute column masses (full, trop, PBL)
     !
@@ -1128,16 +1144,8 @@ CONTAINS
 
     ! Zero out the column mass array if we are calling this routine
     ! before the desired operation.  This will let us compute initial mass.
-    ! If calling this routine after the desired operation then zero out
-    ! the diagnostic arrays if not accumulating.
     IF ( before ) THEN
        colMass = 0.0_f8
-    ELSE
-       IF ( .NOT. accumulate_array ) THEN
-          IF ( isFull ) diagFull(:,:,:) = 0.0_f8
-          IF ( isTrop ) diagTrop(:,:,:) = 0.0_f8
-          IF ( isPBL  ) diagPBL(:,:,:)  = 0.0_f8
-       ENDIF
     ENDIF
 
     ! Loop over NX and NY dimensions
@@ -1187,6 +1195,9 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
+                finalMass4(I,J,N,1) = colSum
+                finalMass(N,1) = finalMass(N,1) + colSum
+                finalDiff(N,1) = finalDiff(N,1) + (colSum - colMass(I,J,N,1)) / timeStep
 #ifdef MODEL_GEOS
                 diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
                                   / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1237,6 +1248,9 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
+               finalMass4(I,J,N,2) = colSum
+               finalMass(N,2) = finalMass(N,2) + colSum
+               finalDiff(N,2) = finalDiff(N,2) + (colSum - colMass(I,J,N,2)) / timeStep
 #ifdef MODEL_GEOS
                 diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
                                   / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1286,6 +1300,9 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
              ELSE
+               finalMass4(I,J,N,3) = colSum
+               finalMass(N,3) = finalMass(N,3) + colSum
+               finalDiff(N,3) = finalDiff(N,3) + (colSum - colMass(I,J,N,3)) / timeStep              
 #ifdef MODEL_GEOS
                 diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
                                  / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1300,6 +1317,27 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    if (after .and. isTrop) then
+      ! Print initial, final, and change of mass for tracer N
+      ! For development only (cdholmes)
+      N=2; S=1
+      ! print*,shape(diagTrop),',',shape(State_Grid%Area_M2)
+      ! print'(A10,4(F20.6),L4)','**BUDGET',&
+      !    sum(colMass(:,:,N,2)), &
+      !    finalMass(N,2), &
+      !    finalMass(N,2) - sum(colMass(:,:,N,2)), &
+      !    sum(diagTrop(:,:,N)*State_Grid%AREA_M2(:,:))*timeStep,&
+      !    WetDep
+      print'(A10,5(F20.6))','**BUDGET',&
+         sum(colMass(:,:,N,2)), &
+         sum(finalMass4(:,:,N,2)), &
+         sum(finalMass4(:,:,N,2)) - sum(colMass(:,:,N,2)), &
+         sum(diagTrop(:,:,S))*timeStep, &
+         finalDiff(N,2)*timeStep
+      ! ** To Be Determined ** Should we be concerned that finalDiff differs from sum(diagTrop)?
+      ! print*,finalDiff(N,2)
+    endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
