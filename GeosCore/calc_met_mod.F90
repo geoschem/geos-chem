@@ -300,7 +300,7 @@ CONTAINS
             diagFull    = NULL(),                                            &
             mapDataFull = NULL(),                                            &
             isTrop      = .TRUE.,                                            &
-            diagTrop    = State_Diag%BudgetTransportTropHeight,              &
+            diagTrop    = State_Diag%BudgetTransportTrop,                    &
             mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
             isPBL       = .FALSE.,                                           &
             diagPBL     = NULL(),                                            &
@@ -767,14 +767,13 @@ CONTAINS
             diagFull    = NULL(),                                            &
             mapDataFull = NULL(),                                            &
             isTrop      = .TRUE.,                                            &
-            diagTrop    = State_Diag%BudgetTransportTropHeight,              &
+            diagTrop    = State_Diag%BudgetTransportTrop,                    &
             mapDataTrop = State_Diag%Map_BudgetTransportTrop,                &
             isPBL       = .FALSE.,                                           &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = NULL(),                                            &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
-            accum       = .TRUE.,                                            &
             RC          = RC                                                )
 
        ! Trap potential errors
