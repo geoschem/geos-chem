@@ -1060,11 +1060,6 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
-    ! cdholmes, devel
-    real(f8) :: finalMass(300,3)
-    real(f8) :: finalDiff(300,3)
-    real(f8) :: finalMass4(72,46,100,3)
-
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
     !====================================================================
@@ -1075,9 +1070,6 @@ CONTAINS
     ThisLoc = ' -> at Compute_Budget_Diagnostics (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
-    finalMass = 0.0_f8
-    finalDiff = 0.0_f8
-    finalMass4 = 0.0_f8
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
@@ -1233,9 +1225,6 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,1) = colSum
              ELSE
-                finalMass4(I,J,N,1) = colSum
-                finalMass(N,1) = finalMass(N,1) + colSum
-                finalDiff(N,1) = finalDiff(N,1) + (colSum - colMass(I,J,N,1)) / timeStep
 #ifdef MODEL_GEOS
                 diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
                                   / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1286,9 +1275,6 @@ CONTAINS
              IF ( before ) THEN
                 colMass(I,J,N,2) = colSum
              ELSE
-               finalMass4(I,J,N,2) = colSum
-               finalMass(N,2) = finalMass(N,2) + colSum
-               finalDiff(N,2) = finalDiff(N,2) + (colSum - colMass(I,J,N,2)) / timeStep
 #ifdef MODEL_GEOS
                 diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
                                   / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1337,10 +1323,7 @@ CONTAINS
              ! convert to [kg/s], and store in the diagPBL array.
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
-             ELSE
-               finalMass4(I,J,N,3) = colSum
-               finalMass(N,3) = finalMass(N,3) + colSum
-               finalDiff(N,3) = finalDiff(N,3) + (colSum - colMass(I,J,N,3)) / timeStep              
+             ELSE     
 #ifdef MODEL_GEOS
                 diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
                                  / timeStep / State_Grid%AREA_M2(I,J) )
@@ -1404,27 +1387,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    if (after .and. isTrop) then
-      ! Print initial, final, and change of mass for tracer N
-      ! For development only (cdholmes)
-      N=2; S=1
-      ! print*,shape(diagTrop),',',shape(State_Grid%Area_M2)
-      ! print'(A10,4(F20.6),L4)','**BUDGET',&
-      !    sum(colMass(:,:,N,2)), &
-      !    finalMass(N,2), &
-      !    finalMass(N,2) - sum(colMass(:,:,N,2)), &
-      !    sum(diagTrop(:,:,N)*State_Grid%AREA_M2(:,:))*timeStep,&
-      !    WetDep
-      print'(A10,5(F20.6))','**BUDGET',&
-         sum(colMass(:,:,N,2)), &
-         sum(finalMass4(:,:,N,2)), &
-         sum(finalMass4(:,:,N,2)) - sum(colMass(:,:,N,2)), &
-         sum(diagTrop(:,:,S))*timeStep, &
-         finalDiff(N,2)*timeStep
-      ! ** To Be Determined ** Should we be concerned that finalDiff differs from sum(diagTrop)?
-      ! print*,finalDiff(N,2)
-    endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
