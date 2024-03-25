@@ -612,7 +612,7 @@ CONTAINS
                State_Chm      = State_Chm,                                   &
                State_Grid     = State_Grid,                                  &
                State_Met      = State_Met,                                   &
-               mapping        = State_Chm%Map_Advect,                        &
+!               mapping        = State_Chm%Map_Advect,                        &
                new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,             &
                previous_units = previous_units,                              &
                RC             = errCode                                     )
@@ -649,7 +649,7 @@ CONTAINS
                State_Chm  = State_Chm,                                       &
                State_Grid = State_Grid,                                      &
                State_Met  = State_Met,                                       &
-               mapping    = State_Chm%Map_Advect,                            &
+!               mapping    = State_Chm%Map_Advect,                            &
                new_units  = previous_units,                                  &
                RC         = errCode                                         )
 
