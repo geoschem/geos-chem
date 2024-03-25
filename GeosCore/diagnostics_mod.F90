@@ -1411,22 +1411,22 @@ CONTAINS
        rtol = 0.001
 
        IF ( rerr(1) > rtol ) THEN
-         print*,'Budget Diagnostic Error: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
+         print*,'Budget Diagnostic Warning: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
        ENDIF
        IF ( rerr(2) > rtol ) THEN
-         print*,'Budget Diagnostic Error: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
+         print*,'Budget Diagnostic Warning: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
        ENDIF
        IF ( rerr(3) > rtol ) THEN
-         print*,'Budget Diagnostic Error: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
+         print*,'Budget Diagnostic Warning: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
        ENDIF
 
        IF ( any( rerr > rtol ) ) THEN
-         print*,'If H2O or CLOCK are included, Budget Diagnostic Errors are expected for these species'
-         ! errMsg = 'Tracer mass changed outside locations expected by Compute_Budget_Diagnostics!!! ' &
-         !    //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+         errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
+            //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+         print*,errMsg
+         print*,'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
          ! CALL GC_Error( errMsg, RC, thisLoc )
          ! RETURN
-       ENDIF
     endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
