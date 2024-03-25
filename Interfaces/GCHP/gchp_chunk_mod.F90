@@ -904,7 +904,7 @@ CONTAINS
     ! call since this can erase diagnostics filled during phase 1 (e.g., drydep)
     ! (ckeller, 1/21/2022).
     IF ( Phase /= 2 ) THEN
-       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, isChemTime, State_Diag, RC )
     ENDIF
 
     ! Pass time values obtained from the ESMF environment to GEOS-Chem
