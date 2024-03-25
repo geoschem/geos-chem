@@ -1056,8 +1056,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: after,  before, wetDep, budgetCheck
-    INTEGER            :: I,      J,      L,       N
-    INTEGER            :: numSpc, region, topLev,  S
+    INTEGER            :: I,      J,      L,       N,    S
+    INTEGER            :: numSpc, region, topLev,  botLev
     REAL(f8)           :: colSum, dt,     rtol
 
     ! Arrays
@@ -1414,37 +1414,41 @@ CONTAINS
 
     ! Budget consistency check
     ! The global total tracer mass should *not* change between an "after" call and the next "before" call
-    if ( budget_check .and. before ) then
-       if (.not. any( PriorGlobalMass == 0. ) ) then
+    IF ( budgetCheck .AND. before ) THEN
+       IF (.NOT. ANY( PriorGlobalMass == 0. ) ) THEN
 
           ! Relative error, change since prior "after" call
-          rerr(1) = abs( sum( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
-          rerr(2) = abs( sum( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
-          rerr(3) = abs( sum( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
+          rerr(1) = ABS( SUM( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
+          rerr(2) = ABS( SUM( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
+          rerr(3) = ABS( SUM( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
 
           ! Relative error tolarance, errors larger than this will halt the model
           rtol = 0.001
 
           IF ( rerr(1) > rtol .and. Input_Opt%amIRoot ) THEN
-             print*,'Budget Diagnostic Warning: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
+             PRINT *, 'Budget Diagnostic Warning: FULL-column tracer mass changed ', &
+                      'unexpectedly, rerr=', rerr(1)
           ENDIF
           IF ( rerr(2) > rtol .and. Input_Opt%amIRoot ) THEN
-             print*,'Budget Diagnostic Warning: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
+             PRINT *, 'Budget Diagnostic Warning: TROP-column tracer mass changed ', &
+                      'unexpectedly, rerr=', rerr(2)
           ENDIF
           IF ( rerr(3) > rtol .and. Input_Opt%amIRoot) THEN
-             print*,'Budget Diagnostic Warning: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
+             PRINT *, 'Budget Diagnostic Warning: PBL-column tracer mass changed ', &
+                      ' unexpectedly, rerr=', rerr(3)
           ENDIF
 
-          IF ( any( rerr > rtol ) ) THEN
+          IF ( ANY( rerr > rtol ) ) THEN
              errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
                   //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
-             print*,errMsg
-             print*,'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
+             PRINT *, errMsg
+             PRINT *, 'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
              ! Optional code to exit with error if warning criteria is met:
              ! CALL GC_Error( errMsg, RC, thisLoc )
              ! RETURN
-          endif
-      endif
+          ENDIF
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
@@ -1883,8 +1887,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : Is_POA, Is_OPOA, Is_OCPO, Is_OCPI
-    USE Aerosol_Mod,    ONLY : Is_ComplexSOA, Is_SimpleSOA
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species, SpcConc
@@ -2201,7 +2203,7 @@ CONTAINS
        ! AerMassPOA [ug/m3], OA:OC=2.1
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassPOA ) THEN
-          IF ( Is_POA ) THEN
+          IF ( State_Diag%isPOA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
           ELSEIF ( Is_OCPO ) THEN
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
@@ -2304,11 +2306,12 @@ CONTAINS
        IF ( State_Diag%Archive_TotalOC ) THEN
 
          ! Hydrophobic OC
-          IF ( Is_POA ) THEN
+          IF ( State_Diag%isPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
-          ELSE IF ( Is_OCPO ) THEN
+
+          ELSE IF ( State_Diag%isOPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPO(I,J,L) ) / OCFOPOA(I,J) ) * kgm3_to_ugm3

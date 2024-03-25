@@ -2467,6 +2467,10 @@ CONTAINS
     Is_SimpleSOA  = ( id_SOAS > 0 )
     Is_ComplexSOA = Input_Opt%LSOA
 
+    ! Set logicals also used for diagnostics
+    IF ( IS_POA  .AND. State_Diag%Archive_AerMassPOA  ) State_Diag%isPOA  = .TRUE.
+    IF ( IS_OPOA .AND. State_Diag%Archive_AerMassOPOA ) State_Diag%isOPOA = .TRUE.
+
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
     DO N = 1, NRHAER

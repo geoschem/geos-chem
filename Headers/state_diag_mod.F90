@@ -644,9 +644,11 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: AerMassOPOA(:,:,:)
      LOGICAL                     :: Archive_AerMassOPOA
+     LOGICAL                     :: isOPOA
 
      REAL(f4),           POINTER :: AerMassPOA(:,:,:)
      LOGICAL                     :: Archive_AerMassPOA
+     LOGICAL                     :: isPOA
 
      REAL(f4),           POINTER :: AerMassSAL(:,:,:)
      LOGICAL                     :: Archive_AerMassSAL
@@ -2104,9 +2106,11 @@ CONTAINS
 
     State_Diag%AerMassOPOA                         => NULL()
     State_Diag%Archive_AerMassOPOA                 = .FALSE.
+    State_Diag%isOPOA                              = .FALSE.
 
     State_Diag%AerMassPOA                          => NULL()
     State_Diag%Archive_AerMassPOA                  = .FALSE.
+    State_Diag%isPOA                               = .FALSE.
 
     State_Diag%AerMassSAL                          => NULL()
     State_Diag%Archive_AerMassSAL                  = .FALSE.
@@ -3446,6 +3450,7 @@ CONTAINS
        errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
+    ENDIF
 
     ! High-level logical for mixing budget
     IF ( State_Diag%Archive_BudgetMixingFull .OR. &
@@ -12653,7 +12658,7 @@ CONTAINS
                    mapData  = State_Diag%Map_BudgetMixingPBL,                &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
-    
+
     CALL Finalize( diagId   = 'BudgetMixingLevs',                            &
                    Ptr2Data = State_Diag%BudgetMixingLevs,                   &
                    mapData  = State_Diag%Map_BudgetMixingLevs,               &
@@ -14702,7 +14707,6 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
                                    // TRIM(budgetBotLev_str) // ' to '           &
                                    // TRIM(budgetTopLev_str) // ' for mixing'
-                                   'in column for mixing'
 
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
