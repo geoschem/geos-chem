@@ -18,7 +18,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disable parallel loop in `Do_Convection` when using TOMAS; it causes unit conversion issues.  Revisit later.
 
 ### Fixed
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+
+### Changed
+- Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
+- Updated NOAA GMD surface CH4 boundary conditions through 2022
+- Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
+- Updated volcano emissions from GMAO v202005 product to v202302 which extends to the end of 2022
+- Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
+
+### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
+- Now use correct index `WEAEROSOL(I,J,L,2+NDUST)` in routine `Settle_Strat_Aer` of `GeosCore/ucx_mod.F90`
+- Now get density of BCPI species from the species database in `ucx_mod.F90`
+
+### Removed
+- Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
+- `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
 
 ## [14.3.0] - 2024-02-07
 ### Added

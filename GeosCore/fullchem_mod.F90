@@ -2840,7 +2840,7 @@ CONTAINS
 
     IF ( nFam > 0 ) THEN
 
-       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids for prod/loss diagnostic
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN

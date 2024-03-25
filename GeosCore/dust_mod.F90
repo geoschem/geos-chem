@@ -339,10 +339,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND44
-    USE DIAG_MOD,           ONLY : AD44
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -483,27 +479,6 @@ CONTAINS
                      DT_SETTL * AVO / &
                      ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
           ENDDO
-
-#ifdef BPCH_DIAG
-          !===========================================================
-          !  Dry deposition diagnostic [#/cm2/s] (bpch)
-          !===========================================================
-          IF ( ND44 > 0 ) THEN
-
-             !--------------------------------------------------------
-             ! ND44 DIAGNOSTIC (bpch)
-             ! Dry deposition flux loss [#/cm2/s]
-             !
-             ! NOTE: Bpch diagnostics are being phased out.
-             !--------------------------------------------------------
-             !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
-             !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
-             AD44(I,J,TOMAS_IDDEP(BIN),1) = AD44(I,J,TOMAS_IDDEP(BIN),1) +  &
-                                            FLUXN
-             AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
-          ENDIF
-#endif
-
        ENDDO
        ENDDO
 
@@ -536,10 +511,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND59
-    USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -646,26 +617,6 @@ CONTAINS
           ENDIF
        ENDIF
 
-#ifdef BPCH_DIAG
-       IF ( ND59 > 0 ) THEN
-          DO K = 1, State_Chm%nTomasBins
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             MEMIS = Spc(id_DUST01-1+K)%Conc(I,J,1) - MINIT(I,J,1,K)
-             IF ( MEMIS == 0.e+0_fp ) GOTO 10
-
-             AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-             Spc(id_NK01-1+K)%Conc(I,J,1) = Spc(id_NK01-1+K)%Conc(I,J,1) + &
-                                     MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-
-             AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + &
-                                  MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-10           CONTINUE
-          ENDDO
-          ENDDO
-          ENDDO
-       ENDIF
-#endif
     ENDIF
 
     ! Free pointers

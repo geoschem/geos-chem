@@ -300,10 +300,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,           ONLY : AD61,  AD61_INST
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -499,14 +495,6 @@ CONTAINS
     DO I = 1, State_Grid%NX
     DO J = 1, State_Grid%NY
     DO L = 1, State_Grid%NZ
-
-#ifdef BPCH_DIAG
-       ! Reset the AD61_INST array used for tracking instantaneous
-       ! certain rates.  As of now, tracking nucleation (win, 10/7/08)
-       IF ( Input_Opt%ND61 > 0 ) THEN
-          AD61_INST(I,J,L,:) = 0e0
-       ENDIF
-#endif
 
        ! Skip non-chemgrid boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -805,15 +793,6 @@ CONTAINS
           IF ( State_Diag%Archive_TomasNUCRATEFN ) THEN
              State_Diag%TomasNUCRATEFN(I,J,L) = fn
           ENDIF
-
-#ifdef BPCH_DIAG
-          IF ( ND61 > 0 ) THEN
-             IF ( L <= LD61 ) AD61(I,J,L,2) = AD61(I,J,L,2) + fn
-
-             ! Tracks nucleation rates instantaneously for planeflight
-             AD61_INST(I,J,L,2) = fn
-          ENDIF
-#endif
 
           DO N = 1, IBINS
              NK(N) = NKout(N)
@@ -3488,9 +3467,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND60
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -3861,9 +3837,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Species_Mod,        ONLY : SpcConc
@@ -6007,12 +5980,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,       ONLY : AD60_COND, AD60_COAG, AD60_NUCL
-    USE DIAG_MOD,       ONLY : AD60_AQOX, AD60_ERROR, AD60_SOA
-    USE DIAG_MOD,       ONLY : AD61,      AD61_INST
-#endif
     USE ERROR_MOD,      ONLY : IT_IS_NAN
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Diag_Mod, ONLY : DgnState
@@ -7730,9 +7697,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND60
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput

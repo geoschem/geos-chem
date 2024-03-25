@@ -543,9 +543,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_A3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -604,11 +601,6 @@ CONTAINS
     !======================================================================
     ! Cleanup and quit
     !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times that A3 fields have been read
-    CALL Set_Ct_A3( INCREMENT=.TRUE. )
-#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -1165,9 +1157,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_I3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1295,15 +1284,6 @@ CONTAINS
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
 
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times I3 fields have been read
-    CALL Set_Ct_I3( INCREMENT=.TRUE. )
-#endif
-
   END SUBROUTINE FlexGrid_Read_I3_1
 !EOC
 !------------------------------------------------------------------------------
@@ -1328,9 +1308,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_I3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1465,15 +1442,6 @@ CONTAINS
        ! Convert PS2_WET from [Pa] to [hPa]
        State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
     ENDIF
-
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times I3 fields have been read
-    CALL Set_Ct_I3( INCREMENT=.TRUE. )
-#endif
 
   END SUBROUTINE FlexGrid_Read_I3_2
 !EOC

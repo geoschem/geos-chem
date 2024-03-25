@@ -35,10 +35,6 @@
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TOMAS_MOD
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,           ONLY : AD44
-#endif
     USE UnitConv_Mod
 
     IMPLICIT NONE
@@ -329,41 +325,6 @@
                 !     print *, BIN, TC0(L), TC(L), VTS(L)
              ENDDO
 
-#ifdef BPCH_DIAG
-             !========================================================
-             ! ND44: Dry deposition diagnostic [#/cm2/s]
-             !========================================================
-             IF ( ND44 > 0 ) THEN
-
-                ! Surface area [cm2]
-                AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-                ! Initialize
-                TOT1 = 0d0
-                TOT2 = 0d0
-
-                ! Compute column totals of TCO(:) and TC(:)
-                DO L = 1, State_Grid%NZ
-                   TOT1 = TOT1 + TC0(L)
-                   TOT2 = TOT2 + TC(L)
-                ENDDO
-
-                ! Convert dust flux from [kg/s] to [#/cm2/s]
-                FLUX = ( TOT1 - TOT2 ) / DTCHEM
-                FLUX = FLUX * State_Chm%SpcData(ID)%Info%MW_g * &
-                       1.e-3_fp / AREA_CM2
-
-                ! Save in AD44
-                IF( JC == 1 ) THEN
-                   AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1) + FLUX
-                ELSE
-                   AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) = &
-                   AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
-                ENDIF
-
-             ENDIF
-#endif
-
           ENDDO ! JC-loop
 
        ENDDO  ! I-loop
@@ -452,41 +413,6 @@
              X = X0(BIN,JC)
           ENDIF
 
-#ifdef BPCH_DIAG
-          !==============================================================
-          ! ND44 Diagnostic: Drydep flux of bin1,..,bin30 [molec/cm2/s]
-          !==============================================================
-          IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
-
-             ! Surface area [cm2]
-             AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-             ! Convert from [kg/timestep] to [molec/cm2/s]
-             ! Store in AD44
-             FLUX = X0(BIN,JC) - X
-             FLUX = FLUX / (State_Chm%SpcData(ID)%Info%MW_g * &
-                    1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
-
-             IF ( JC == 1 ) THEN
-                AD44(I,J,DRYD(BIN),1) = AD44(I,J,DRYD(BIN),1)+ FLUX
-             ELSE
-                AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) = &
-                AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1) + FLUX
-             ENDIF
-
-          ENDIF
-          ! Debug
-          !if(i==ii .and. j==jj .and. bin==bb .and. JC==1) &
-          !     print *,'>',L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX, &
-          !             AD44(I,J,DRYD(BIN),1)
-          !if(i==ii .and. j==jj .and. bin==bb .and. JC==2) &
-          !     print *,'>',L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX, &
-          !             AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
-          !if(i==ix .and. j==jx .and. bin==bb .and. JC==ICOMP) &
-          !     print *, L, Spc(ID)%Conc(I,J,L), X0(BIN,JC) - X, FLUX,
-          !             AD44(I,J,nDryDep+BIN+(JC-2)*IBINS,1)
-#endif
-
           ! Swap X back into Spc array
           Spc(ID)%Conc(I,J,L) = X
 
@@ -501,26 +427,6 @@
        Y0 = Spc(id_H2SO4)%Conc(I,J,L)
        RKT = DepFreq(I,J,H2SO4ID) * State_Met%F_UNDER_PBLTOP(I,J,L)
        Y = Y0 * EXP(-RKT)
-
-#ifdef BPCH_DIAG
-       !==============================================================
-       ! ND44 Diagnostic: Drydep flux of H2SO4 [molec/cm2/s]
-       !==============================================================
-       IF ( ND44 > 0 .AND. RKT > 0d0 ) THEN
-
-          ! Surface area [cm2]
-          AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-          ! Convert from [kg/timestep] to [molec/cm2/s]
-          ! Store in AD44
-          FLUX = Y0 - Y
-          FLUX = FLUX / (State_Chm%SpcData(id_H2SO4)%Info%MW_g * &
-                 1.e-3_fp) / AREA_CM2 / DTCHEM * AVO
-
-          AD44(I,J,H2SO4ID,1) = AD44(I,J,H2SO4ID,1) + FLUX
-
-       ENDIF
-#endif
 
        !Swap final H2SO4 back into Spc array
        Spc(id_H2SO4)%Conc(I,J,L) = Y
