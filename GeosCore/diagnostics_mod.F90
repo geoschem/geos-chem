@@ -1055,7 +1055,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: after,  before, wetDep
+    LOGICAL            :: after,  before, wetDep, budgetCheck
     INTEGER            :: I,      J,      L,       N
     INTEGER            :: numSpc, region, topLev,  S
     REAL(f8)           :: colSum, dt,     rtol
@@ -1084,6 +1084,14 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Use budgetCheck if debugging / sanity checking diagnostics.
+    ! This will print a warning if global mass sum changes between end of one
+    ! budget calculation and beginning of the next. This should never happen if
+    ! the budget diagnostics capture all species mass change across the model.
+    !
+    ! NOTE for GCHP: Warnings will only be generated if criteria met on root thread.
+    budgetCheck = Input_Opt%Verbose
 
     ! Set logicals to denote if we are calling this routine
     ! before the operation or after the operation
@@ -1178,7 +1186,7 @@ CONTAINS
     !                   and then update diagnostic arrays
     !====================================================================
 
-    IF ( before ) THEN
+    IF ( before .and. budgetCheck ) THEN
        ! Prior global tracer mass, summed over all tracers
        ! This isn't physically meaningful, 
        ! but can be used to check if the budget diagnostic is working correctly
@@ -1294,7 +1302,7 @@ CONTAINS
                 diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
                                   / timeStep )
 #endif
-                ! Save to enable budget consistency check
+                ! Update column mass for budget consistency check at next budget call
                 colMass(I,J,N,2) = colSum
              ENDIF
           ENDDO
@@ -1406,34 +1414,37 @@ CONTAINS
 
     ! Budget consistency check
     ! The global total tracer mass should *not* change between an "after" call and the next "before" call
-    if ( before .and. (.not. any( PriorGlobalMass == 0. )) ) then
-       
-       ! Relative error, change since prior "after" call
-       rerr(1) = abs( sum( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
-       rerr(2) = abs( sum( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
-       rerr(3) = abs( sum( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
-       
-       ! Relative error tolarance, errors larger than this will halt the model
-       rtol = 0.001
+    if ( budget_check .and. before ) then
+       if (.not. any( PriorGlobalMass == 0. ) ) then
 
-       IF ( rerr(1) > rtol ) THEN
-         print*,'Budget Diagnostic Warning: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
-       ENDIF
-       IF ( rerr(2) > rtol ) THEN
-         print*,'Budget Diagnostic Warning: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
-       ENDIF
-       IF ( rerr(3) > rtol ) THEN
-         print*,'Budget Diagnostic Warning: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
-       ENDIF
+          ! Relative error, change since prior "after" call
+          rerr(1) = abs( sum( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
+          rerr(2) = abs( sum( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
+          rerr(3) = abs( sum( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
 
-       IF ( any( rerr > rtol ) ) THEN
-         errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
-            //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
-         print*,errMsg
-         print*,'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
-         ! CALL GC_Error( errMsg, RC, thisLoc )
-         ! RETURN
-    endif
+          ! Relative error tolarance, errors larger than this will halt the model
+          rtol = 0.001
+
+          IF ( rerr(1) > rtol .and. Input_Opt%amIRoot ) THEN
+             print*,'Budget Diagnostic Warning: FULL-column tracer mass changed unexpectedly, rerr=',rerr(1)
+          ENDIF
+          IF ( rerr(2) > rtol .and. Input_Opt%amIRoot ) THEN
+             print*,'Budget Diagnostic Warning: TROP-column tracer mass changed unexpectedly, rerr=', rerr(2)
+          ENDIF
+          IF ( rerr(3) > rtol .and. Input_Opt%amIRoot) THEN
+             print*,'Budget Diagnostic Warning: PBL-column tracer mass changed unexpectedly, rerr=', rerr(3)
+          ENDIF
+
+          IF ( any( rerr > rtol ) ) THEN
+             errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
+                  //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+             print*,errMsg
+             print*,'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
+             ! Optional code to exit with error if warning criteria is met:
+             ! CALL GC_Error( errMsg, RC, thisLoc )
+             ! RETURN
+          endif
+      endif
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
