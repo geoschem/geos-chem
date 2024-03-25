@@ -6,7 +6,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
+- Added `SpcConc%Units` for species-specific unit conversion
 - Diel and day-of-week scale factors for CEDS global base emissions
+- `allSpeciesInDryMixingRatio` routine in `calc_met_mod.F90`, to check if all species are in dry MR units before calling AIRQNT with `update_mixing_ratio=.TRUE.`
+- `Input_Opt%Satellite_CH4_Columns` logical flag; Set this to true if any of AIRS, GOSAT, TCCON observational operators are selected
+
+### Changed
+- Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
+- Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
+- Streamline `IF` statements for CH4 observational operators in `Interfaces/GCClassic/main.F90`
+- Disable parallel loop in `Do_Convection` when using TOMAS; it causes unit conversion issues.  Revisit later.
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -71,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed references to unused met-fields RADLWG and LWGNT
 - Removed inclusion of c360 restart file in GCHP run directories
 - Reduced timers saved out to essential list used for benchmarking model performance
+- Removed `State_Chm%Spc_Units`; this is now superseded by `State_Chm%Species(:)%Units`
 
 ## [14.2.3] - 2023-12-01
 ### Added
@@ -92,7 +102,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Move OH perturbation scale factor to outside EMISSIONS logical bracket in HEMCO_Config.rc files for CH4 and carbon simulations
 
 ### Removed
-- Remove definition of METDIR from primary HEMCO_Config.rc files to ensure use of the definition in the HEMCO_Config.rc.*_metfields files
+- Remove definition of METDIR from primary `HEMCO_Config.rc` files to ensure use of the definition in the `HEMCO_Config.rc.*_metfields` files
+- Removed `State_Chm%Spc_Units`
 
 ## [14.2.2] - 2023-10-23
 ### Changed

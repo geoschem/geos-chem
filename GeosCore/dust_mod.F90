@@ -404,9 +404,9 @@ CONTAINS
     RC      = GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine SETTLEDUST in dust_mod.F'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+       MSG = 'Not all species have units "kg"!'
+       LOC = 'Routine SETTLEDUST in GeosCore/dust_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 

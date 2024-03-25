@@ -66,6 +66,7 @@ CONTAINS
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
     USE Time_Mod,         ONLY : Get_Ts_Chem
+    USE Timers_Mod,       ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
 #if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
@@ -100,7 +101,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                :: I, J, L, N, DT
-    INTEGER                :: origUnit
+    INTEGER                :: previous_units
     REAL(fp)               :: Local_Tally
     REAL(fp)               :: Total_Area
     REAL(fp)               :: Total_Spc
@@ -146,18 +147,32 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
+
+    ! Halt "All chem" timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "All chem" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     !========================================================================
@@ -417,18 +432,31 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
+
+    ! Halt "all chem" timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "all chem" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     ! Reset after the first time

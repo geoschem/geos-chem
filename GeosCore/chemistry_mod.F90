@@ -140,7 +140,7 @@ CONTAINS
     LOGICAL, SAVE      :: FIRST = .TRUE.
 
     ! Strings
-    INTEGER            :: OrigUnit
+    INTEGER            :: previous_units
     CHARACTER(LEN=255) :: ErrMsg,  ThisLoc
 
     !=======================================================================
@@ -203,21 +203,31 @@ CONTAINS
        State_Chm%Species(id_CO2)%Conc = 421.0e-6_fp
     ENDIF
 
+    ! Halt "All chemistry" timer (so that diags can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
     ! Convert units from mol/mol dry to kg
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> kg)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "All chemistry" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     !========================================================================
@@ -420,13 +430,6 @@ CONTAINS
                             State_Met  = State_Met,                          &
                             RC         = RC                                 )
 
-          ! Check units (ewl, 10/5/15)
-          IF (  State_Chm%Spc_Units /= KG_SPECIES ) THEN
-             ErrMsg = 'Incorrect species units after Do_FullChem!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Do_FullChem"!'
@@ -454,15 +457,16 @@ CONTAINS
                                   State_Met  = State_Met,                    &
                                   errCode    = RC                           )
 
-             ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg = 'Incorrect species units after DO_LINEARCHEM!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
-
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in ""!'
+                ErrMsg = 'Error encountred in "Do_LinearChem"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Make sure all units are still in kg
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Incorrect species after calling "Do_Linear_Chem"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -548,15 +552,16 @@ CONTAINS
                                FullRun    = .TRUE.,                          &
                                RC         = RC                              )
 
-             ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg =  'Incorrect species units after CHEMSULFATE!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
-
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "ChemSulfate"!'
+                ErrMsg = 'Error encountered after calling "ChemSulfate"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+
+             ! Make sure all units are still in kg
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Incorrect species after calling "ChemSulfate"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
              ENDIF
@@ -632,18 +637,17 @@ CONTAINS
                             State_Met  = State_Met,                          &
                             RC         = RC                                 )
 
-
-             ! Check units (ewl, 10/5/15)
-             IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-                ErrMsg = 'Incorrect species units after DO_TOMAS!'
-                CALL GC_Error( ErrMsg, RC, ThisLoc )
-             ENDIF
-
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_TOMAS"!'
                 CALL GC_Error( ErrMsg, RC, ThisLoc )
                 RETURN
+             ENDIF
+
+             ! Check units (ewl, 10/5/15)
+             IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+                ErrMsg = 'Not all species have units "kg"!'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
              ENDIF
           ENDIF
 #endif
@@ -671,12 +675,6 @@ CONTAINS
                              State_Grid = State_Grid,                        &
                              State_Met  = State_Met,                         &
                              RC         = RC                                )
-
-          ! Check units (ewl, 10/5/15)
-          IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-             ErrMsg = 'Incorrect species units after AEROSOL_CONC'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-          ENDIF
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1072,12 +1070,19 @@ CONTAINS
     !========================================================================
     ! Convert species units back to original unit (ewl, 8/12/15)
     !========================================================================
+
+    ! Halt "All chemistry" timer (so unitconv+diags can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "All chemistry", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -1085,6 +1090,11 @@ CONTAINS
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start "All chemistry" timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "All chemistry", RC )
     ENDIF
 
     !========================================================================

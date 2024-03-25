@@ -67,10 +67,12 @@ MODULE Species_Mod
   !=========================================================================
   TYPE, PUBLIC :: SpcConc
 #if defined( MODEL_GCHPCTM )
-     REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:)
+     REAL(ESMF_KIND_R8), POINTER :: Conc(:,:,:) ! Concentration array
 #else
-     REAL(fp), POINTER :: Conc(:,:,:)
+     REAL(fp), POINTER :: Conc(:,:,:)           ! Concentration array
 #endif
+     INTEGER :: Units                           ! Species units
+     INTEGER :: Previous_Units                  ! Previous species units
   END TYPE SpcConc
 
   !=========================================================================

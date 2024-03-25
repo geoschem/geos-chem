@@ -149,7 +149,7 @@ CONTAINS
     USE ERROR_MOD
     USE Input_Opt_Mod,       ONLY : OptInput
     USE PhysConstants,       ONLY : AIRMW, PI, AVO
-    USE PRESSURE_MOD,        ONLY : GET_PCENTER,      GET_PEDGE
+    USE PRESSURE_MOD,        ONLY : GET_PCENTER, GET_PEDGE
     USE Species_Mod,         ONLY : SpcConc
     USE State_Chm_Mod,       ONLY : ChmState
     USE State_Chm_Mod,       ONLY : Ind_
@@ -157,6 +157,7 @@ CONTAINS
     USE State_Grid_Mod,      ONLY : GrdState
     USE State_Met_Mod,       ONLY : MetState
     USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
+    USE Timers_Mod,          ONLY : Timer_End, Timer_Start
     USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
     USE UnitConv_Mod
 !
@@ -208,7 +209,7 @@ CONTAINS
     LOGICAL            :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
     INTEGER            :: ITIMEVALS(8)
     INTEGER            :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     REAL*8             :: OLDSECS, NEWSECS
 
     ! SAVEd scalars
@@ -564,21 +565,32 @@ CONTAINS
     RTSSAER     => State_Chm%Phot%RTSSAER
     RTASYMAER   => State_Chm%Phot%RTASYMAER
 
+    ! Halt RRTMG timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "RRTMG", RC )
+    ENDIF
+
     ! Convert species units to [kg/kg dry] for RRTMG
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt       = Input_Opt,                                        &
+         State_Chm       = State_Chm,                                        &
+         State_Grid      = State_Grid,                                       &
+         State_Met       = State_Met,                                        &
+         mapping         = State_Chm%Map_Advect,                             &
+         new_units       = KG_SPECIES_PER_KG_DRY_AIR,                        &
+         previous_units  = previous_units,                                   &
+         RC              = RC                                               )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error in DO_RRTMG_RAD_TRANSFER!"'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start RRTMG timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "RRTMG", RC )
     ENDIF
 
     ! Also make sure that the ncDiag arguement is valid,
@@ -2102,18 +2114,29 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Halt RRTMG timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "RRTMG", RC )
+    ENDIF
+
     ! Convert species units back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN
+    ENDIF
+
+    ! Start RRTMG timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "RRTMG", RC )
     ENDIF
 
     ! Nullify pointers
