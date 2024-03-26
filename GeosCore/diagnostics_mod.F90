@@ -1029,7 +1029,7 @@ CONTAINS
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation; F = after
     REAL(f8),       OPTIONAL      :: timestep         ! Timestep of the operation
-    CHARACTER(LEN=*) OPTIONAL     :: msg              ! message to print to log if verbose
+    CHARACTER(LEN=*),OPTIONAL     :: msg              ! message to print to log if verbose
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !

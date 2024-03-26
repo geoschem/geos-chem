@@ -1342,8 +1342,8 @@ CONTAINS
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
        IF ( IND_('H2O','A') > 0 ) THEN
-          CALL SET_H2O_TRAC( .FALSE., Input_Opt, &
-                             State_Chm, State_Grid, State_Met, RC )
+          CALL SET_H2O_TRAC( .FALSE., Input_Opt, State_Chm, &
+                             State_Grid, State_Met, State_Diag, RC )
        ENDIF
 #endif
 
