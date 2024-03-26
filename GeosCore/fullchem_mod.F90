@@ -140,6 +140,7 @@ CONTAINS
     USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
     USE UCX_MOD,                  ONLY : UCX_NOX
     USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
+    USE KPP_Standalone_Interface
 #ifdef TOMAS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
     USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
@@ -178,7 +179,7 @@ CONTAINS
     INTEGER                :: errorCount, previous_units
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
-
+    REAL(dp)               :: KPPH_before_integrate
     ! Strings
     CHARACTER(LEN=255)     :: errMsg,     thisLoc
 
@@ -200,6 +201,7 @@ CONTAINS
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
     REAL(dp)               :: C_before_integrate(NSPEC)
+    REAL(dp)               :: local_RCONST(NREACT)
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -438,6 +440,13 @@ CONTAINS
        mapData => NULL()
     ENDIF
 
+    !=======================================================================
+    ! Should we print the full chemical state for any grid cell on this CPU?
+    ! for use with the KPP Standalone
+    ! (psturm, 03/22/24)
+    !=======================================================================
+    CALL Check_Domain( RC )
+
     !========================================================================
     ! Set up integration convergence conditions and timesteps
     ! (cf. M. J. Evans)
@@ -514,6 +523,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,        J,        L,       N                           )&
     !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
+    !$OMP PRIVATE( KPPH_before_integrate,       local_RCONST                )&
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
@@ -568,6 +578,12 @@ CONTAINS
        ! Per discussions for Lin et al., force keepActive throughout the
        ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
+
+       ! Check if the current grid cell in this loop should have its
+       ! full chemical state printed (concentrations, rates, constants)
+       ! for use with the KPP Standalone
+       ! (psturm, 03/22/24)
+       CALL Check_ActiveCell( I, J, L, State_Grid )
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
@@ -990,6 +1006,11 @@ CONTAINS
        ! let us reset concentrations before calling "Integrate" a 2nd time.
        C_before_integrate = C
 
+       ! Do the same for the KPP initial timestep
+       ! Save local rate constants too
+       KPPH_before_integrate = State_Chm%KPPHvalue(I,J,L)
+       local_RCONST          = RCONST
+
        ! Call the Rosenbrock integrator
        ! (with optional auto-reduce functionality)
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
@@ -1259,6 +1280,16 @@ CONTAINS
           call cpu_time(TimeEnd)
           State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
        ENDIF
+
+       ! Write chemical state to file for the kpp standalone interface
+       ! No external logic needed, this subroutine exits early if the
+       ! chemical state should not be printed (psturm, 03/23/24)
+#ifdef MODEL_GEOS
+       CALL Write_Samples( I, J, L,      C_before_integrate,     &
+                           local_RCONST, KPPH_before_integrate,  &
+                           State_Grid,   State_Chm,  State_Met,  &
+                           Input_Opt,    ISTATUS(3), RC )
+#endif
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
@@ -2667,6 +2698,7 @@ CONTAINS
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
+    USE KPP_Standalone_Interface, ONLY : Config_KPP_Standalone
 !
 ! !INPUT PARAMETERS:
 !
@@ -2959,6 +2991,16 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !--------------------------------------------------------------------
+    ! Initialize grid cells for input to KPP Standalone (Obin Sturm)
+    !--------------------------------------------------------------------
+    CALL Config_KPP_Standalone( Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "KPP_Standalone"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE Init_FullChem
 !EOC
 !------------------------------------------------------------------------------
@@ -2978,6 +3020,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE KPP_Standalone_Interface,   ONLY : Cleanup_KPP_Standalone
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3026,6 +3069,10 @@ CONTAINS
        CALL GC_CheckVar( 'fullchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
+
+    ! Deallocate variables from kpp standalone module
+    ! psturm, 03/22/2024
+    CALL Cleanup_KPP_Standalone( RC )
 
   END SUBROUTINE Cleanup_FullChem
 !EOC
