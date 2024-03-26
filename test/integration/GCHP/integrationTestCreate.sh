@@ -12,14 +12,29 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/root /path/to/env-file tests-to-run
+#  ./integrationTestCreate.sh /path/to/root /path/to/env-file tests-to-run quick=1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
 
 #=============================================================================
-# Arguments
+# Load common functions
+#=============================================================================
+
+# Current directory
+thisDir=$(pwd -P)
+cd "${thisDir}"
+
+# Path to the test/shared folder in source code
+sharedDir=$(realpath "${thisDir}/../../shared")
+
+# Source the script containing utility functions and variables
+commonFuncs="${sharedDir}/commonFunctionsForTests.sh"
+. "${commonFuncs}"
+
+#=============================================================================
+# Parse input arguments
 #=============================================================================
 
 # Integration test root folder
@@ -29,27 +44,26 @@ if [[ "x${itRoot}" == "x" ]]; then
     exit 1
 fi
 
-# Environment file
+# Environment file (for Harvard Cannon only)
+site=$(get_site_name)
 envFile="${2}"
-if [[ "x${envFile}" == "x" ]]; then
-    echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
-    exit 1
-fi
-if [[ ! -f "${envFile}" ]]; then
-    echo "ERROR: The enviroment file is not a valid file!"
-    exit 1
+if [[ "X${site}" == "XCANNON" ]]; then
+    [[ "X${envFile}" == "X" ]] && envFile=$(get_default_gchp_env_file)
+    if [[ ! -f ${envFile} ]]; then
+	echo "ERROR: The enviroment file is not a valid file!"
+	exit 1
+    fi
 fi
 
+# Type of tests to run?
+testsToRun="${3}"
+
 # Run a short integration test?
-quick="${3}"
+quick="${4}"
 
 #=============================================================================
 # Global variable and function definitions
 #=============================================================================
-
-# Current directory
-thisDir=$(pwd -P)
-cd ${thisDir}
 
 # GCClassic superproject directory
 cd ../../../../../../../
@@ -62,15 +76,11 @@ hemcoDir="${superProjectDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO"
 
 # Get the Git commit of the superproject and submodules
 head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	    git -C "${superProjectDir}" log --oneline --no-decorate -1)
+            git -C "${superProjectDir}" log --oneline --no-decorate -1)
 head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	  git -C "${geosChemDir}" log --oneline --no-decorate -1)
+          git -C "${geosChemDir}" log --oneline --no-decorate -1)
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-	   git -C "${hemcoDir}" log --oneline --no-decorate -1)
-
-# Source the script containing utility functions and variables
-commonFuncs="${geosChemDir}/test/shared/commonFunctionsForTests.sh"
-. "${commonFuncs}"
+           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
@@ -81,7 +91,7 @@ printf "HEMCO     #${head_hco}\n"
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
-# Initial setup of integration test directory
+# Create integration test folder and subdirectories
 #=============================================================================
 
 # Create integration test root folder if it doesn't exist
@@ -96,6 +106,7 @@ execDir="${itRoot}/${EXEC_DIR}"
 logsDir="${itRoot}/${LOGS_DIR}"
 scriptsDir="${itRoot}/${SCRIPTS_DIR}"
 rundirsDir="${itRoot}/${RUNDIRS_DIR}"
+utilsDir="${itRoot}/${UTILS_DIR}"
 
 # Get absolute path of the environment file
 envFile=$(absolute_path "${envFile}")
@@ -114,9 +125,11 @@ done
 printf "\nCreating exe files directory ${binDir}\n"
 mkdir -p "${binDir}"
 
-# Subdir for env files
-printf "Creating env files directory ${envDir}\n"
-mkdir -p "${envDir}"
+# Subdir for env files (for Harvard Cannon only)
+if [[ "X${site}" == "XCANNON" ]]; then
+    printf "Creating env files directory ${envDir}\n"
+    mkdir -p "${envDir}"
+fi
 
 # Subdir for log files
 printf "Creating logs directory      ${logsDir}\n"
@@ -127,9 +140,11 @@ printf "Creating scripts directory   ${scriptsDir}\n"
 mkdir -p "${scriptsDir}"
 
 # Subdir for run directories
-printf "Creating rundirs directory   ${rundirsDir}\n"
-mkdir -p "${rundirsDir}"
-
+if [[ "x${testsToRun}" == "xALL" ]]; then
+    printf "Creating rundirs directory   ${rundirsDir}\n"
+    mkdir -p "${rundirsDir}"
+fi
+    
 # Create a symbolic link to the code from the Integration Test root folder
 printf "Linking to superproject      ${itRoot}/CodeDir\n"
 ln -s "${superProjectDir}" ${itRoot}/CodeDir
@@ -138,58 +153,84 @@ ln -s "${superProjectDir}" ${itRoot}/CodeDir
 # Copy files to the proper folders
 #=============================================================================
 
-printf "\nCopying run scripts to: ${itRoot}/${SCRIPTS_DIR}\n"
-cp -f ${envFile}                     ${envDir}/gchp.env
+printf "\nCopying run scripts to       ${scriptsDir}\n"
 cp -f ${thisDir}/integration*.sh     ${scriptsDir}
 cp -f ${commonFuncs}                 ${scriptsDir}
 cp -f ${thisDir}/README.md           ${scriptsDir}
 cp -f ${thisDir}/README.testroot.md  ${itRoot}/README.md
 
-# This is necessary on Compute1 to make all scripts executable
-chmod 755 -R ${scriptsDir}
+if [[ "X${site}" == "XCANNON" ]]; then
+
+    # Copy Cannon environment file
+    cp -f  ${envFile} ${envDir}/gchp.env
+
+    # Copy Cannon utility scripts
+    printf "Copying utility scripts to   ${utilsDir}\n"
+    cp -fR ${sharedDir}/utils/cannon/integrationTest  ${utilsDir}
+
+elif [[ "X${site}" == "XCOMPUTE1" ]]; then
+
+    # Copy Compute1 utility scripts
+    printf "Copying utility scripts to   ${utilsDir}\n"
+    cp -fR ${sharedDir}/utils/compute1/integrationTest  ${utilsDir}
+
+    # Force scripts to be executable (Compute1 resets permissions)
+    chmod 755 -R ${scriptsDir}
+    chmod 755 -R ${utilsDir}
+
+fi
 
 # Log file with echoback from rundir creation
 log="${logsDir}/createIntegrationTests.log"
 
-# Switch to folder where rundir creation scripts live
-cd "${geosChemDir}/run/GCHP"
-
 #=============================================================================
-# Create the GCHP run directories
+# Don't create run directories for compile-only tests.
 #=============================================================================
-printf "\nCreating new run directories:\n"
+if [[ "X${testsToRun}" == "XALL" ]]; then
 
-# c24 geosfp TransportTracers
-create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # Switch to folder where rundir creation scripts live
+    cd "${geosChemDir}/run/GCHP"
 
-# c24 merra2 fullchem tagO3
-create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
+    #=========================================================================
+    # Create the GCHP run directories
+    #=========================================================================
+    printf "\nCreating new run directories:\n"
 
-# DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
-if [[ "x${quick}" == "xyes" ]]; then
-    cd ${thisDir}
-    exit 0
+    # c24 geosfp TransportTracers
+    create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem tagO3
+    create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # Placeholder for carbon simulation
+    # c24 merra2 carbon
+    #create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
+    if [[ "X${quick}" == "XYES" ]]; then
+        cd ${thisDir}
+        exit 0
+    fi
+
+    # c24 merra2 fullchem_standard
+    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_benchmark
+    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_RRTMG
+    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 fullchem_TOMAS15
+    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
-
-# c24 merra2 fullchem_standard
-create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# c24 merra2 fullchem_benchmark
-create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# c24 merra2 fullchem_RRTMG
-create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-# Placeholder for carbon simulation
-# c24 merra2 carbon
-#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
-
+    
 #=============================================================================
 # Cleanup and quit
 #=============================================================================
-
-# Switch back to the present directory
-cd "${thisDir}"
 
 # Free local variables
 unset binDir
@@ -204,7 +245,9 @@ unset logsDir
 unset rundirsDir
 unset superProjectDir
 unset scriptsDir
+unset sharedDir
 unset thisDir
+unset utilsDir
 
 # Free imported variables
 unset FILL

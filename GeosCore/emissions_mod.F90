@@ -210,7 +210,8 @@ CONTAINS
 
 #ifdef TOMAS
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, &
+               State_Diag,  RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

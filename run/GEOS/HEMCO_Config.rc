@@ -80,8 +80,9 @@ VerboseOnCores:              root       # Accepted values: root all
     --> GMI_PROD_LOSS          :       false
     --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
-    --> GMD_SFC_CH4            :       true
+    --> GMD_SFC_CH4            :       false
     --> CMIP6_SFC_CH4          :       false
+    --> GEOS_3HR_CH4           :       true
 # OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
     --> YUAN_MODIS_LAI         :       false
@@ -1358,6 +1359,13 @@ VerboseOnCores:              root       # Accepted values: root all
 (((GMD_SFC_CH4
 * NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 C xy ppbv * - 1 1 
 )))GMD_SFC_CH4
+
+#==============================================================================
+# --- GEOS 3-hourly CH4 (within PBL) ---
+#==============================================================================
+(((GEOS_3HR_CH4
+* GEOS_CH4 /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1
+)))GEOS_3HR_CH4
 
 (((SfcVMR
 #==============================================================================

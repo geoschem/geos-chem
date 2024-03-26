@@ -35,9 +35,8 @@ MODULE Charpak_Mod
   PUBLIC  :: Txtext
   PUBLIC  :: WordWrapPrint
   PUBLIC  :: Unique
-!
-! !PRIVATE MEMBER FUNCTIONS
-!
+  PUBLIC  :: charArr2Str
+  PUBLIC  :: str2CharArr
 !
 ! !REMARKS:
 !  CHARPAK routines by Robert D. Stewart, 1992.  Subsequent modifications
@@ -1022,6 +1021,10 @@ CONTAINS
 
     mask = .false.
 
+    !=======================================================================
+    ! Unique begins here!
+    !=======================================================================
+
     ! Loop over all elements
     do i = 1, SIZE( vec )
 
@@ -1053,5 +1056,108 @@ CONTAINS
     !call ISORT (vec_unique, [0], size(vec_unique), 1)
 
   END SUBROUTINE Unique
+!
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: charArr2Str
+!
+! !DESCRIPTION: Converts a character array of dimension N to a string of
+!  length N.  Useful for writing character strings to netCDF files.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION charArr2Str( charArray, N ) RESULT( string )
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN) :: N              ! Dimension of charArray
+    CHARACTER(LEN=1), INTENT(IN) :: charArray(N)   ! Character array
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=N)             :: string         ! Output string
+!
+! !REVISION HISTORY:
+!  05 Mar 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: C
+    
+    !=======================================================================
+    ! charArray2str begins here!
+    !=======================================================================
+
+    ! Initialize the string
+    string = ""
+
+
+    ! Copy as much of the charArray to the string, until we hit the 
+    ! null byte (ASCII character 0), which denotes the end of characters
+    DO C = 1, N
+       IF ( chararray(C) == ACHAR(0) ) EXIT
+       string(C:C) = chararray(C)
+    ENDDO
+
+  END FUNCTION charArr2Str
+!EOC
+!
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: str2CharArr
+!
+! !DESCRIPTION: Converts a string of length N to a character array of 
+!  dimension N.  Useful for writing character strings to netCDF files.
+
+! !DESCRIPTION: 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION str2CharArr( string, N ) RESULT( charArray )
+!
+! !INPUT PARAMETERS: 
+!
+    INTEGER,          INTENT(IN) :: N              ! Length of string
+    CHARACTER(LEN=N), INTENT(IN) :: string         ! Input string
+!
+! !RETURN VALUE:
+!
+    CHARACTER(LEN=1)             :: charArray(N)   ! Output character array
+!
+! !REVISION HISTORY:
+!  05 Mar 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+   INTEGER :: C,  L
+
+   ! Length of the string without trailing whitespace
+   L = LEN_TRIM( string )
+   
+   ! Copy the non-whitespace characters to chararray
+   DO C = 1, L
+      chararray(C) = string(C:C)
+   ENDDO
+   
+   ! Pad the remaining elements with the null byte
+   charArray(L+1:) = ACHAR(0)
+
+ END FUNCTION str2CharArr
 !EOC
 END MODULE CharPak_Mod

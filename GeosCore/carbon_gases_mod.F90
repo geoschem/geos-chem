@@ -284,7 +284,6 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Chem
-    USE Timers_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -335,7 +334,7 @@ CONTAINS
     INTEGER                :: HcoID,    I
     INTEGER                :: J,        L
     INTEGER                :: NA,       N
-    INTEGER                :: IERR,     threadNum
+    INTEGER                :: IERR
     REAL(fp)               :: dtChem,   facDiurnal
     REAL(fp)               :: tsPerDay
 
@@ -367,14 +366,6 @@ CONTAINS
     !@@@ PrevCH4 stores CH4 before chemistry, for later distribution
     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     REAL(fp) :: PREVCH4(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-#endif
-
-
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    ! For GEOS-Chem Classic timers
-    INTEGER,     EXTERNAL  :: OMP_GET_THREAD_NUM
-#endif
 #endif
 
     !========================================================================
@@ -515,11 +506,6 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, N                                               )&
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    !$OMP PRIVATE( threadNum                                                )&
-#endif
-#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -538,22 +524,6 @@ CONTAINS
        TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
        K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
        SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-       threadNum      = OMP_GET_THREAD_NUM() + 1   ! OpenMP thread number
-#endif
-#endif
-
-       !=====================================================================
-       ! Start KPP main timer
-       !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        !=====================================================================
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
@@ -577,24 +547,6 @@ CONTAINS
        ! Update reaction rates
        !===================================================================
 
-       ! Stop KPP timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
-
-       ! Start RCONST timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        ! Compute the rate constants that will be used
        CALL carbon_ComputeRateConstants(                                     &
             I                = I,                                            &
@@ -617,27 +569,9 @@ CONTAINS
        ! Update the array of rate constants for the KPP solver
        CALL Update_RCONST()
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        !=====================================================================
        ! Call the KPP integrator
        !=====================================================================
-
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     Integrate 1",                               &
-               inLoop    =  .TRUE.,                                          &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        ! Integrate the mechanism forward in time
        CALL Integrate(                                                       &
@@ -646,26 +580,8 @@ CONTAINS
             ICNTRL_U = ICNTRL,                                               &
             IERR_U   = IERR                                                 )
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     Integrate 1",                               &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
-
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
-
-       ! Start KPP timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -728,24 +644,6 @@ CONTAINS
             xnumol_CO2   = xnumol_CO2,                                       &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met                                        )
-
-       IF ( Input_Opt%useTimers ) THEN
-
-          ! Stop main KPP timer
-          CALL Timer_End(                                                    &
-               timerName  = "  -> KPP",                                      &
-               inLoop     = .TRUE.,                                          &
-               threadNum  = threadNum,                                        &
-               RC         = RC                                              )
-
-          ! Start Prod/Loss timer
-          CALL Timer_Start(                                                  &
-               timerName = "  -> Prod/loss diags",                           &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-
-       ENDIF
 
 #ifdef ACTIVATE_TAGGED_SPECIES
        !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -837,15 +735,6 @@ CONTAINS
           State_Diag%Loss(I,J,L,16) = ( COfrom_OH / STTCO / DTCHEM )
        ENDIF
 #endif
-
-       ! Stop Prod/Loss timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName =  "  -> Prod/loss diags",                          &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
     ENDDO
     ENDDO

@@ -756,7 +756,11 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : RAA
+#else
+    USE Cldj_Cmn_Mod,    ONLY : RAA
+#endif
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -923,7 +927,11 @@ CONTAINS
                 RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
+#ifdef FASTJX
                 RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
+#else
+                RWET(IBC) = RAA(29) * 1.0e-6_fp
+#endif
              ENDIF
 
              ! Taken from aerosol_mod (MSDENS(2))
@@ -3897,7 +3905,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
     USE CAM_ABORTUTILS,     ONLY : endrun
-    USE SPMD_UTILS,         ONLY : mpirun, masterprocid, mpi_success, mpi_real8
+    USE SPMD_UTILS,         ONLY : mpicom, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -4050,6 +4058,7 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
+    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
@@ -4131,7 +4140,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom )
+    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom, ierr )
     IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 

@@ -48,10 +48,11 @@ envDir="${itRoot}/${ENV_DIR}"
 codeDir="${itRoot}/CodeDir"
 logsDir="${itRoot}/${LOGS_DIR}"
 rundirsDir="${itRoot}/${RUNDIRS_DIR}"
+site=$(get_site_name)
 
 # Load the environment and the software environment
-. ~/.bashrc               > /dev/null 2>&1
-. ${envDir}/gcclassic.env > /dev/null 2>&1
+. ~/.bashrc > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -61,49 +62,45 @@ head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
-# Determine the scheduler from the job ID (or lack of one)
-scheduler="none"
-[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
-[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
+# Site-specific settings
+if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
-if [[ "x${scheduler}" == "xSLURM" ]]; then
-
-    #-----------------------
-    # SLURM settings
-    #-----------------------
+    #----------------------------------
+    # SLURM settings (Harvard Cannon)
+    #----------------------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "X${site}" == "XCOMPUTE1" && "X${LSB_JOBID}" != "X" ]]; then
 
-    #-----------------------
-    # LSF settings
-    #-----------------------
+    #---------------------------------
+    # LSF settings (WashU Compute1)
+    #---------------------------------
 
     # Set OMP_NUM_THREADS to the same # of cores requested with #BSUB -n
     export OMP_NUM_THREADS=${LSB_DJOB_NUMPROC}
 
 else
 
-    #-----------------------
+    #---------------------------------
     # Interactive settings
-    #-----------------------
+    #---------------------------------
     echo ""
     echo "Execution tests running..."
 
     # For AWS, set $OMP_NUM_THREADS to the available cores
     kernel=$(uname -r)
-    [[ "x${kernel}" == "xaws" ]] && export OMP_NUM_THREADS=$(nproc)
+    [[ "X${kernel}" == "Xaws" ]] && export OMP_NUM_THREADS=$(nproc)
 
 fi
 
 # Sanity check: Set OMP_NUM_THREADS to 8 if it is not set
 # (this may happen when running interactively)
-[[ "x${OMP_NUM_THREADS}" == "x" ]] && export OMP_NUM_THREADS=8
+[[ "X${OMP_NUM_THREADS}" == "X" ]] && export OMP_NUM_THREADS=8
 
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
-[[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
+[[ "X${OMP_STACKSIZE}" == "X" ]] && export OMP_STACKSIZE=500m
 
 # Count the number of tests to be run (same as the # of run directories)
 numTests=$(count_rundirs "${rundirsDir}")
@@ -127,9 +124,9 @@ print_to_log ""                                            "${results}"
 print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
 print_to_log "Number of execution tests: ${numTests}"      "${results}"
 print_to_log ""                                            "${results}"
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "X${SLURM_JOBID}" != "X" ]]; then
     print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"  "${results}"
-elif  [[ "x${scheduler}" == "xLSF" ]]; then
+elif  [[ "X${LSB_JOBID}" == "XCOMPUTE1" ]]; then
     print_to_log "Submitted as LSF job: ${LSB_JOBID}"      "${results}"
 else
     print_to_log "Submitted as interactive job"            "${results}"
@@ -159,7 +156,7 @@ for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
     expr=$(is_valid_rundir "${runAbsPath}")
-    if [[ "x${expr}" == "xTRUE" ]]; then
+    if [[ "X${expr}" == "XTRUE" ]]; then
 
         # Define log file
         log="${logsDir}/execute.${runDir}.log"
@@ -170,7 +167,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gcclassic" "${runAbsPath}")
+        exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
@@ -185,11 +182,8 @@ for runDir in *; do
             # Copy the executable file here
             cp -f "${binDir}/${exeFile}" .
 
-            # Update to make sure the run directory is executable
-            # on Compute1.  We will later replace this test with
-            # a test on the site name instead of on the scheduler.
-            # TODO: Test on name rather than scheduler.
-            if [[ "x${scheduler}" == "xLSF" ]]; then
+            # Update to make sure the run directory is executable on Compute1
+            if [[ "X${site}" == "XCOMPUTE1" ]]; then
                 chmod 755 -R "${runAbsPath}"
             fi
 
@@ -198,7 +192,7 @@ for runDir in *; do
 
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
-            if [[ "x${scheduler}" == "xSLURM" ]]; then
+            if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
                 srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
             else
                 ./${exeFile} >> "${log}" 2>&1
@@ -246,7 +240,7 @@ print_to_log "Execution tests failed: ${failed}"            "${results}"
 print_to_log "Execution tests not yet completed: ${remain}" "${results}"
 
 # Check for success
-if [[ "x${passed}" == "x${numTests}" ]]; then
+if [[ "X${passed}" == "X${numTests}" ]]; then
 
     #--------------------------
     # Successful execution
@@ -257,7 +251,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
 
     # Print success (if interactive)
-    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Execution tests finished!"
     fi
@@ -267,7 +261,7 @@ else
     #--------------------------
     # Unsuccessful execution
     #--------------------------
-    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "X${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Execution tests failed!  Exiting ..."
     fi

@@ -634,7 +634,6 @@ CONTAINS
     USE GcKpp_Model
     USE Gckpp_Global
     USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
-    USE Timers_Mod
     USE Photolysis_Mod,     ONLY : Do_Photolysis
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
@@ -3894,7 +3893,7 @@ CONTAINS
     !========================================================================
     ! Initialize photolysis
     !========================================================================
-    CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
+    CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Init_Photolysis"!'
        CALL GC_Error( errMsg, RC, thisLoc )

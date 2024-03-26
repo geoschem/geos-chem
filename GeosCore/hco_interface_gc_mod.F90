@@ -205,7 +205,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
@@ -630,7 +629,7 @@ CONTAINS
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
-    HcoState%MicroPhys%nBins           =  IBINS
+    HcoState%MicroPhys%nBins           =  State_Chm%nTomasBins
 
     ! Point to TOMAS bin boundaries array (Xk) in HcoState
     HcoState%MicroPhys%BinBound        => Xk

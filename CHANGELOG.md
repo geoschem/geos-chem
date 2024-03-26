@@ -4,13 +4,92 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [Unreleased] - TBD
+### Added
+- Added operational run scripts for the Imperial College London (ICL) cluster
+- Added new vertical region option to budget diagnostic for fixed bottom and top levels
+- Added GEOS-IT processed lat-lon fields as a valid option when creating GCHP run directories
+- Functions `charArr2str` and `str2CharArr` in `Headers/charpak_mod.F90`
+- Field `State_Diag%Obspack_CharArray` as a 2-D character array
+- Added util folder in run/CESM to include .cdl file used to generate CESM NetCDF input file for deposition
+- Add GCClassic operational example environment files for Harvard Cannon
+
 ### Changed
+- Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
+- Changed exponent 'e' to 'd' for one entry in KPP to prevent precision error in external models
+- Changed GCHP sample run scripts to not print script execution commands to log
+- Changed offline emissions grid resolution templates in config files to be more descriptive
+- Read `obspack_id` from netCDF files into a character array, then convert to string
+- Add `#SBATCH -c 1` to GCHP integration test scripts and sample run scripts for Harvard Cannon
+- In GCC/GCHP integration tests, passing `-s none` will run compile-only tests.  Query user to proceed or to exit.
+- GCC/GCHP integration tests will exit immediately if `scheduler` is omitted.
+- Now use `raw` instead of `native` in GCHP run directory scripts & templates
+- Rename env var `RUNDIR_METLIGHTNING_DIR_NATIVE` to `RUNDIR_METLIGHTNING_DIR`
+- Rename env var `RUNDIR_METLIGHTNING_NATIVE_RES` to `RUNDIR_METLIGHTNING_RES`
+- Updated config files used in CESM from GEOS-Chem 14.1 to 14.3
+- Don't create run directories for integration/parallel tests if invoked with `-t compile`
+- Refactor integration and parallel test scripts to reduce the number of input arguments
+- Copy utility scripts that allow you to resubmit failed to integration and parallel test root directories
+- Update GCHP operational example environment files for Harvard Cannon
+- Do not run GCClassic integration test compile jobs in the background
 - Removed emissions handling from `global_ch4_mod.F90` and `carbon_mod.F90` and instead apply scale factors to emissions directly in `HEMCO_Config.rc`
 - Loop over advected species CH4 chemistry routines to allow for multiple CH4 tracers within analytical inversion framework
 
+### Fixed
+- Fixed unit conversions in GEOS-only code
+- Fixed GEOS-IT native lat-lon filenames used for clusters other than discover
+- Fixed offline emission paths set when using GEOS-IT meteorology
+- Fixed format issue in input_mod RRTMG print statement caught by some compilers
+- Fixed GEOS-IT SLP and TROPP scaling in pre-processed files used in GCHP
+- Fixed reading of NEI emissions through HEMCO
+
 ### Removed
+- Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
 - Removed State_Chm%CH4_EMIS
+
+## [14.3.0] - 2024-02-07
+### Added
+- Added capability for TOMAS simulations in GCHP
+- Added State_Chm%nTomasBins to replace hardcoded bins in TOMAS diagnostics
+- Added interface to Cloud-J package for computing photolysis rates
+- Added compile-time option FASTJX to use legacy Fast-JX photolysis instead of Cloud-J
+- Added new diagnostics OD600 and TCOD600 for 600 nm optical depths (per-level and total column) used for computing J-values in either Fast-JX or Cloud-J
+- Added GEOS-IT as meteorology option and labeled as beta during run directory creation until full inventory and offline emissions are available.
+- Added support for running GEOS-Chem on the NASA discover cluster
+- Added inclusion of c30 restart file in GCHP run directories since c24 and c48 not supported when using GEOS-IT meteorology
+- Added automatic updating of GCHP lightning climatology in ExtData.rc based on settings in HEMCO_Config.rc
+- Added two new diagnostics to track number of negative concentrations after first and last KPP integration
+- Added capability of running GEOS-Chem transport tracer simulation within the GEOS model
+- Added radiative forcing contributions due to trop-only ozone, CFCs, water vapor, N2O, CO2 and changes in stratosphere to RRTMG
+- Added computation of radiative forcing at the tropopause to RRTMG
+- Added option to compute stratospherically-adjusted radiative forcing at the tropopause using RK4 time marching integration with fixed dynamical heating approximation (FDH)
+- Added experimental option to apply seasonally-evolving fixed dyanmical heating approximation in RRTMG
+
+### Changed
+- Updated fullchem mechanism following JPL/IUPAC. See `KPP/fullchem/CHANGELOG_fullchem.md` for details.
+- Reorganized GCHP run directory creation prompts for GEOS-FP native meteorology input
+- Converted TOMAS bpch diagnostics to netCDF
+- Now read the Hg restart file from `ExtData/GEOSCHEM_RESTARTS/v2023-12`
+- Increse requested time limits in GCHP integration tests (compile 2h30m, run 5h)
+- Changed CO2 concentration used in RRTMG to be modifiable in geoschem_config.yml
+- Changed water vapor used in RRTMG to match to tracer field at all altitudes
+- Updated restart file path for GCHP TOMAS simulations
+- Look for fullchem restarts in the `GEOSCHEM_RESTARTS/GC_14.3.0` folder
+- Look for fullchem/aerosol boundary conditions in the `HEMCO/SAMPLE_BCs/GC_14.3.0/fullchem` folder
+
+### Fixed
+- Fixed bug in stratospheric aerosols optical depths passed to Fast-JX
+- Restored consideration of both isSnow and isIce in dry deposition
+- Fixed calculation of `FRLAND_NOSNO_NOICE` in `calc_met_mod.F90`
+- Added missing units in comments of `KPP/fullchem/commonIncludeVars.H`
+- Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
+- Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
+- Fixed incorrect time-avaging in RRTMG diagnostics wheres zeros included prior to first RRTMG call
+
+### Removed
+- Removed references to unused met-fields RADLWG and LWGNT
+- Removed inclusion of c360 restart file in GCHP run directories
+- Reduced timers saved out to essential list used for benchmarking model performance
 
 ## [14.2.3] - 2023-12-01
 ### Added
@@ -22,6 +101,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update error message for missing surface CH4 emissions with instructions on how to resolve the problem
 - Change GCHP grid resolution threshold for lowering timesteps from C180 inclusive to C180 exclusive
 - Read GEOS-Chem Classic restart file paths from the relevant `download_data.yml` file
+- Moved aerosol_mod module variables to new State_Chm container called AerMass
 
 ### Fixed
 - Prevent `POAEMISS` from being assigned a value if not allocated (in `carbon_mod.F90`)

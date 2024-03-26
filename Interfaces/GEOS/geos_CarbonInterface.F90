@@ -94,17 +94,18 @@ CONTAINS
     INTEGER                      :: STATUS
 
     ! Methane field from GEOS.
-    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
-    IF ( DoIt == 1 ) THEN
-       call MAPL_AddImportSpec(GC,                               &
-               SHORT_NAME         = 'GEOS_CH4',                  &
-               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
-               UNITS              = 'v/v',                       &
-               DIMS               = MAPL_DimsHorzVert,           &
-               VLOCATION          = MAPL_VLocationCenter,        &
-               RC=STATUS  )
-       _VERIFY(STATUS)
-    ENDIF
+    ! This is not yet fully implemented. Need corresponding connectivity in Chem_GridComp.
+!    CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="CH4_from_GEOS:", Default=0, __RC__ )
+!    IF ( DoIt == 1 ) THEN
+!       call MAPL_AddImportSpec(GC,                               &
+!               SHORT_NAME         = 'GEOS_CH4',                  &
+!               LONG_NAME          = 'GEOS_CH4_dry_mixing_ratio', &
+!               UNITS              = 'v/v',                       &
+!               DIMS               = MAPL_DimsHorzVert,           &
+!               VLOCATION          = MAPL_VLocationCenter,        &
+!               RC=STATUS  )
+!       _VERIFY(STATUS)
+!    ENDIF
 
     ! If enabled, create import field 
     CALL ESMF_ConfigGetAttribute( CF, DoIt, Label="Import_CO2_from_GOCART:", Default=0, __RC__ )
@@ -503,7 +504,7 @@ CONTAINS
 !
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
-    CHARACTER(LEN=63)            :: OrigUnit
+    INTEGER                      :: OrigUnit
     INTEGER                      :: I, LM, indCO2, indCO, STATUS
     REAL, POINTER                :: CO2(:,:,:)  => null()
     REAL, POINTER                :: COmeso(:,:) => null()

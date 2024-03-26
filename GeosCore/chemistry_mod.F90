@@ -122,7 +122,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    INTEGER, SAVE      :: id_DST1, id_NK1, id_CO2   ! Species ID flags
+    INTEGER, SAVE      :: id_DST1, id_NK01, id_CO2   ! Species ID flags
 
     ! Scalars
     INTEGER            :: N_TROP, N
@@ -155,7 +155,7 @@ CONTAINS
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
        id_DST1 = Ind_('DST1')
-       id_NK1  = Ind_('NK1' )
+       id_NK01 = Ind_('NK01')
        id_CO2  = Ind_('CO2' )
     ENDIF
 
@@ -168,6 +168,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
@@ -179,6 +180,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetChemistryLevs,            &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetChemistryLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -409,7 +413,7 @@ CONTAINS
           ! Call gas-phase chemistry
           !------------------------------------------------------------------
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Solve the KPP-generated mechanism
@@ -429,13 +433,13 @@ CONTAINS
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Do_FlexChem"!'
+             ErrMsg = 'Error encountered in "Do_FullChem"!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
           !------------------------------------------------------------------
@@ -624,7 +628,7 @@ CONTAINS
           !------------------------------------------------------------------
           ! Do TOMAS aerosol microphysics and dry dep
           !------------------------------------------------------------------
-          IF ( id_NK1 > 0 ) THEN
+          IF ( id_NK01 > 0 ) THEN
              CALL Do_TOMAS( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Diag = State_Diag,                         &
@@ -989,9 +993,8 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
 
-          ! Start "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Do carbon chemistry
@@ -1009,9 +1012,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Stop "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
        !====================================================================
@@ -1019,9 +1021,8 @@ CONTAINS
        !=====================================================================
        ELSE IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-          ! Start "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "=> FlexChem", RC )
+             CALL Timer_Start( "=> Gas-phase chem", RC )
           ENDIF
 
           ! Do Hg chemistry
@@ -1039,9 +1040,8 @@ CONTAINS
              RETURN
           ENDIF
 
-          ! Stop "FlexChem" timer
           IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "=> FlexChem", RC )
+             CALL Timer_End( "=> Gas-phase chem", RC )
           ENDIF
 
        !=====================================================================
@@ -1105,6 +1105,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetChemistryFull,            &
@@ -1116,6 +1117,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetChemistryPBL,             &
             diagPBL     = State_Diag%BudgetChemistryPBL,                     &
             mapDataPBL  = State_Diag%Map_BudgetChemistryPBL,                 &
+            isLevs      = State_Diag%Archive_BudgetChemistryLevs,            &
+            diagLevs    = State_Diag%BudgetChemistryLevs,                    &
+            mapDataLevs = State_Diag%Map_BudgetChemistryLevs,                &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Chem,                                           &
             RC          = RC                                                )
