@@ -1000,7 +1000,7 @@ CONTAINS
                                          isPBL,      diagPBL,  mapDataPBL,   &
                                          isLevs,     diagLevs, mapDataLevs,  &
                                          colMass,    RC,       timeStep,     &
-                                         isWetDep,   before_op              )
+                                         isWetDep,   before_op, msg           )
 !
 ! !USES:
 !
@@ -1029,6 +1029,7 @@ CONTAINS
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation; F = after
     REAL(f8),       OPTIONAL      :: timestep         ! Timestep of the operation
+    CHARACTER(LEN=*) OPTIONAL     :: msg              ! message to print to log if verbose
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1084,6 +1085,9 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    ! Optional print of message to log
+    IF ( PRESENT(msg) .AND. Input_Opt%Verbose ) print *, TRIM(msg)
 
     ! Use budgetCheck if debugging / sanity checking diagnostics.
     ! This will print a warning if global mass sum changes between end of one
