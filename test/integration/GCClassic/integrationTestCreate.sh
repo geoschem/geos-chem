@@ -12,8 +12,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file [yes|no]
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -49,7 +48,7 @@ quick="${3}"
 
 # Current directory
 thisDir=$(pwd -P)
-cd "${thisDir}"
+cd ${thisDir}
 
 # GCClassic superproject directory (absolute paths)
 cd ../../../../../
@@ -172,8 +171,7 @@ create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # 4x5 merra2 carbon CH4 only
-dir="gc_4x5_merra2_carbon_CH4only"
-create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # 4x5 merra2 fullchem
 create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"

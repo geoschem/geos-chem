@@ -16,7 +16,7 @@
 # !REMARKS:
 #  If optional run directory name argument is not passed then the user
 #  will be prompted to enter a name interactively, or choose to use the
-#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
+#  default name gchp_{met}_{sim_name}_{sim_extra_option}.
 #
 # !REVISION HISTORY:
 #  Initial version: E. Lundgren,10/5/2018
@@ -557,7 +557,7 @@ if [ -z "$1" ]; then
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=gchp_${sim_name}_${met}
+	rundir_name=gchp_${met}_${sim_name}
 	if [[ "${sim_extra_option}" != "none" ]]; then
 	    rundir_name=${rundir_name}_${sim_extra_option}
 	fi
