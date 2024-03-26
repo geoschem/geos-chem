@@ -165,6 +165,10 @@ create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
 # c24 merra2 fullchem tagO3
 create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
+# Placeholder for carbon simulation
+# c24 merra2 carbon
+#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then
     cd ${thisDir}
@@ -180,9 +184,8 @@ create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
 # c24 merra2 fullchem_RRTMG
 create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# Placeholder for carbon simulation
-# c24 merra2 carbon
-#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+# c24 merra2 fullchem_TOMAS15
+create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 #=============================================================================
 # Cleanup and quit

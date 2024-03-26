@@ -65,6 +65,7 @@ CONTAINS
    USE State_Grid_Mod,   ONLY : GrdState
    USE Time_Mod,         ONLY : TIMESTAMP_STRING
    USE PhysConstants,    ONLY : AIRMW
+   USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -92,34 +93,41 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+   ! Scalars
    INTEGER              :: I, J, L, N, NA     ! lon, lat, lev, spc indexes
-   CHARACTER(LEN=255)   :: LOC                ! routine location
-   CHARACTER(LEN=16)    :: STAMP
    LOGICAL              :: Perturb_CH4_BC
    REAL(fp)             :: MW_g_CH4           ! CH4 molecular weight
+
+   ! Strings
+   CHARACTER(LEN=16)    :: STAMP
+   CHARACTER(LEN=255)   :: errMsg, thisLoc
 
    !=================================================================
    ! SET_BOUNDARY_CONDITIONS begins here!
    !=================================================================
 
-   ! Name of this routine
-   LOC = &
+   ! Initialize
+   RC      = GC_SUCCESS
+   errMsg  = ''
+   thisLoc = &
  ' -> at Set_Boundary_Conditions (in GeosCore/set_boundary_conditions_mod.F90)'
 
-   ! Assume success
-   RC        = GC_SUCCESS
 
    ! We only need to get boundary conditions if this is a nested-grid
    ! simulation.  Otherwise the BoundaryCond field won't be allocated.
    IF ( .not. State_Grid%NestedGrid ) RETURN
 
    ! Ensure species array is in kg/kg as State_Chm%BoundaryCond is in kg/kg dry
-   IF ( TRIM(State_Chm%Spc_Units) /= 'kg/kg dry' ) THEN
+   IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
       IF ( Input_Opt%amIRoot ) THEN
-          WRITE(6,*) 'Unit check failure: Current units are ', &
-               State_Chm%Spc_Units, ', expected kg/kg dry'
+          WRITE(6, '(a)') 'Unit check failure: Current units are '        // &
+               UNIT_STR(State_Chm%Spc_Units)                              // &
+               ', expected kg/kg dry'
       ENDIF
-      CALL GC_Error( 'Unit check failure: Cannot apply nested-grid boundary conditions if units are not kg/kg dry. Your run may have failed previous to this error.', RC, LOC )
+      errMsg = 'Unit check failure: Cannot apply nested-grid boundary '   // &
+               'conditions if units are not kg/kg dry. Your run may '     // &
+               ' have failed previous to this error.'
+      CALL GC_Error( errMsg, RC, thisLoc )
       RETURN
    ENDIF
 
@@ -137,11 +145,11 @@ CONTAINS
       N = State_Chm%Map_Advect(NA)
 
       ! Optionally perturb the CH4 boundary conditions
-      ! Use ppb values specified in geoschem_config.yml 
+      ! Use ppb values specified in geoschem_config.yml
       ! Convert to [kg/kg dry] (nbalasus, 8/31/2023)
       Perturb_CH4_BC = ( State_Chm%SpcData(N)%Info%Name == "CH4" .AND. &
                          ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. &
-                         Input_Opt%PerturbCH4BoundaryConditions .AND. &
+                         Input_Opt%DoPerturbCH4BoundaryConditions .AND. &
                          ( .NOT. State_Chm%IsCH4BCPerturbed ) )
       MW_g_CH4       =   State_Chm%SpcData(N)%Info%MW_g
 

@@ -217,9 +217,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE TIME_MOD,             ONLY : GET_TS_DYN, GET_TS_CONV, GET_TS_CHEM
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
-
-    use timers_mod
+    USE UnitConv_Mod
 #ifdef MODEL_CLASSIC
     use hco_utilities_gc_mod, only: TMP_MDL ! danger
 #endif
@@ -249,7 +247,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER                 :: I, J, L, L1, L2, N, D, NN, NA, nAdvect, S
-    INTEGER                 :: DRYDEPID
+    INTEGER                 :: DRYDEPID, origUnit
     INTEGER                 :: PBL_TOP, DRYD_TOP, EMIS_TOP
     REAL(fp)                :: TS, TMP, FRQ, RKT, FRAC, FLUX, AREA_M2
     REAL(fp)                :: MWkg, DENOM
@@ -258,7 +256,6 @@ CONTAINS
     LOGICAL                 :: LEMIS,      LDRYD
     LOGICAL                 :: DryDepSpec, EmisSpec
     REAL(f8)                :: DT_Tend
-    CHARACTER(LEN=63)       :: OrigUnit
 
     ! PARANOX loss fluxes (kg/m2/s). These are obtained from the
     ! HEMCO PARANOX extension via the diagnostics module.
@@ -362,9 +359,21 @@ CONTAINS
     ! v/v for mixing, hence needed to convert before and after.
     ! Now use units kg/m2 as State_Chm%SPECIES units in DO_TEND to
     ! remove area-dependency (ewl, 9/30/15)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg/m2', RC, OrigUnit=OrigUnit )
-
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES_PER_M2,                                     &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+    
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Unit conversion error!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    
 #if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN
        WRITE(*,*) ' SpcAdj(IFD,JFD) after unit converstion: ',  &
@@ -861,6 +870,7 @@ CONTAINS
        SpcInfo  => NULL()
 
     ENDDO !N
+
     !--------------------------------------------------------------
     ! Special handling for tagged CH4 simulations
     !--------------------------------------------------------------
@@ -934,9 +944,16 @@ CONTAINS
     ENDIF
 
 #endif
+
     ! Convert State_Chm%Species back to original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit, RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

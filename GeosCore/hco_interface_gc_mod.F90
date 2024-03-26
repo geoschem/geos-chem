@@ -205,7 +205,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
@@ -630,7 +629,7 @@ CONTAINS
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
-    HcoState%MicroPhys%nBins           =  IBINS
+    HcoState%MicroPhys%nBins           =  State_Chm%nTomasBins
 
     ! Point to TOMAS bin boundaries array (Xk) in HcoState
     HcoState%MicroPhys%BinBound        => Xk
@@ -4171,7 +4170,7 @@ CONTAINS
     !-----------------------------------------------------------------------
     IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
-       IF ( Input_Opt%AnalyticalInv ) THEN
+       IF ( Input_Opt%DoAnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
                           OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
 
@@ -4562,7 +4561,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4605,7 +4604,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S
+    INTEGER                 :: S,       origUnit
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4613,7 +4612,6 @@ CONTAINS
     LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
-    CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
 
     ! Arrays
@@ -4659,10 +4657,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Convert units to v/v dry
+    ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -5114,8 +5118,13 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

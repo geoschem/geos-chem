@@ -27,7 +27,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      ${RUNDIR_MET_DIR}
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
@@ -1173,9 +1172,11 @@ VerboseOnCores:              root       # Accepted values: root all
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS.rc
 )))CEDS_GBDMAPS
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================
@@ -1538,9 +1539,11 @@ VerboseOnCores:              root       # Accepted values: root all
 )))CEDS_GBDMAPS_SHIP
 
 (((CEDS_SHIP_byFuelType
-(((.not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+(((.not.CEDS_GBDMAPS_SHIP
+(((.not.CEDSv2_SHIP
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBDMAPS_SHIP_byFuelType.rc
-))).not.CEDS_GBDMAPS_SHIP.and..not.CEDSv2_SHIP
+))).not.CEDSv2_SHIP
+))).not.CEDS_GBDMAPS_SHIP
 )))CEDS_SHIP_byFuelType
 
 #==============================================================================
@@ -1963,7 +1966,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_  $ROOT/SAMPLE_BCs/v2021-09/fullchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
+* BC_  $ROOT/SAMPLE_BCs/GC_14.3.0/fullchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 (((CHEMISTRY_INPUT

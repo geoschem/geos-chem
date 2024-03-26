@@ -150,7 +150,6 @@ CONTAINS
        RETURN
     ENDIF
 
-#ifdef BPCH_DIAG
     !=======================================================================
     ! Define manual diagnostics
     !=======================================================================
@@ -161,7 +160,7 @@ CONTAINS
     CALL Diagn_TOMAS   ( Input_Opt, HcoState, ExtState, RC )
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
-#endif
+
     ! Return
     RC = HCO_SUCCESS
 
@@ -793,7 +792,7 @@ CONTAINS
 
 #ifdef TOMAS
 
-          ! Get species name (i.e. DUST1 .. DUST40) for TOMAS simulatiosn
+          ! Get species name (i.e. DUST01 .. DUST40) for TOMAS simulatiosn
           IF ( I < 10 )  THEN
              WRITE( ISTR1,'(i1)' ) I
              SpcName = 'DUST'   // ISTR1
@@ -931,8 +930,6 @@ CONTAINS
 
     ! Assume success
     RC = HCO_SUCCESS
-
-#ifdef BPCH_DIAG
 
     ! Get default HEMCO species ID's
     id_BCPI = HCO_GetHcoID( 'BCPI', HcoState )
@@ -1246,7 +1243,6 @@ CONTAINS
        CALL GC_Error( Msg, RC, Loc )
        RETURN
     ENDIF
-#endif
 
   END SUBROUTINE Diagn_TOMAS
 !EOC
