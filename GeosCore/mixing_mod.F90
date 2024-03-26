@@ -337,6 +337,7 @@ CONTAINS
             mapDataLevs = State_Diag%Map_BudgetEmisDryDepLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
+            msg         = 'Compute budget diag (1)'//TRIM(ThisLoc),          &
             RC          = RC                                                )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -898,6 +899,7 @@ CONTAINS
             mapDataLevs = State_Diag%Map_BudgetEmisDryDepLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Tend,                                           &
+            msg         = 'Compute budget diag (2)'//TRIM(ThisLoc),          &
             RC          = RC                                                )
 
        ! Trap potential errors
