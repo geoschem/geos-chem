@@ -681,13 +681,13 @@ Mask fractions:              false
 # EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
 #==============================================================================
 (((CEDSv2
-0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/37/35/315 1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/316       1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDSv2
 
 #==============================================================================
@@ -1055,7 +1055,7 @@ Mask fractions:              false
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-* TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
+* TIMEZONES $ROOT/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc UTC_OFFSET 2017/1-12/1/0 C xy count * - 1 1
 
 #==============================================================================
 # --- Meteorology fields ---
@@ -1676,6 +1676,27 @@ ${RUNDIR_CO2_COPROD}
 311 QFED_PBL_FRAC 0.65 - - - xy 1 1
 312 QFED_FT_FRAC  0.35 - - - xy 1 1
 )))QFED2
+
+(((CEDSv2
+#=========================================================================
+# --- Sector-wise diel scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+2401 TOD_AGRICULTURE 0.599/0.599/0.599/0.599/0.599/0.649/0.748/0.898/1.098/1.247/1.447/1.597/1.796/1.746/1.696/1.547/1.347/1.098/0.898/0.748/0.649/0.599/0.599/0.599 - - - xy unitless 1
+2406 TOD_ENERGY      0.790/0.720/0.720/0.710/0.740/0.800/0.920/1.080/1.190/1.220/1.210/1.210/1.170/1.150/1.140/1.130/1.100/1.070/1.040/1.020/1.020/1.010/0.960/0.880 - - - xy unitless 1
+2407 TOD_INDUSTRY    0.750/0.750/0.780/0.820/0.880/0.950/1.020/1.090/1.160/1.220/1.280/1.300/1.220/1.240/1.250/1.160/1.080/1.010/0.950/0.900/0.850/0.810/0.780/0.750 - - - xy unitless 1
+2409 TOD_RESIDENTIAL 0.393/0.393/0.393/0.393/0.393/0.492/1.180/1.475/1.574/1.574/1.377/1.180/1.082/1.082/0.984/0.984/0.984/1.082/1.377/1.475/1.377/1.377/0.984/0.393 - - - xy unitless 1
+2411 TOD_TRANSPORT   0.190/0.090/0.060/0.050/0.090/0.220/0.860/1.840/1.860/1.410/1.240/1.200/1.320/1.440/1.450/1.590/2.030/2.080/1.510/1.060/0.740/0.620/0.610/0.440 - - - xy unitless 1
+
+#=========================================================================
+# --- Sector-wise day-of-week scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+706 DOW_ENERGY      0.850/1.060/1.060/1.060/1.060/1.060/0.850 - - - xy unitless 1
+707 DOW_INDUSTRY    0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+709 DOW_RESIDENTIAL 0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+711 DOW_TRANSPORT   0.790/1.020/1.060/1.080/1.100/1.140/0.810 - - - xy unitless 1
+)))CEDSv2
 
 )))EMISSIONS
 

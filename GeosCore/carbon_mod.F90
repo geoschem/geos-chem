@@ -321,9 +321,6 @@ CONTAINS
     USE HCO_TYPES_MOD,        ONLY : DiagnCont
     USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
-#ifdef BPCH_DIAG
-    USE CMN_O3_MOD,           ONLY : SAVEOA
-#endif
 #ifdef TOMAS
     USE TOMAS_MOD,            ONLY : SOACOND
     USE TOMAS_MOD,            ONLY : CHECKMN
@@ -4335,12 +4332,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-   USE CMN_DIAG_MOD             ! ND59
-   USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
-   USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
-   USE DIAG_MOD,           ONLY : AD59_NUMB
-#endif
    USE ERROR_MOD,          ONLY : IT_IS_NAN
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : SpcConc
@@ -4573,33 +4564,6 @@ CONTAINS
          ENDIF
 
       ENDDO ! L loop
-
-      !=======================================================================
-      !  ND59 Diagnostic: Size-resolved primary emission in
-      !                 [kg/box/timestep] and the corresponding
-      !                  number emission [no./box/timestep]
-      !=======================================================================
-#ifdef BPCH_DIAG
-      IF ( ND59 > 0 ) THEN
-         DO L = 1, PBL_MAX
-         DO K = 1, IBINS
-            SELECT CASE (CTYPE)
-            CASE (1)
-               AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + &
-                                    ( MIL1(L,K) - MIL0(L,K) )
-               AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + &
-                                    ( MOB1(L,K) - MOB0(L,K) )
-            CASE (2)
-               AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + &
-                                    ( MIL1(L,K) - MIL0(L,K) )
-               AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + &
-                                    ( MOB1(L,K) - MOB0(L,K) )
-            END SELECT
-            AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + ( N1(L,K) - N0(L,K) )
-         ENDDO
-         ENDDO
-      ENDIF
-#endif
 
 100   CONTINUE
 
@@ -5233,7 +5197,7 @@ CONTAINS
 
    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
-   !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
+   !%%%% (bmy, 8/7/18)                                              %%%%
    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()

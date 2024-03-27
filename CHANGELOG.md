@@ -5,9 +5,29 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Diel and day-of-week scale factors for CEDS global base emissions
+
 ### Fixed
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+
+### Changed
+- Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
+- Updated NOAA GMD surface CH4 boundary conditions through 2022
+- Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
+- Updated volcano emissions from GMAO v202005 product to v202302 which extends to the end of 2022
+- Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
+
+### Fixed
+- Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
+- Now use correct index `WEAEROSOL(I,J,L,2+NDUST)` in routine `Settle_Strat_Aer` of `GeosCore/ucx_mod.F90`
+- Now get density of BCPI species from the species database in `ucx_mod.F90`
 - Fix issues that prevented single-species carbon simulations from running
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
+
+### Removed
+- Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
+- `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
 
 ## [14.3.0] - 2024-02-07
 ### Added
@@ -47,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use run directory (not absolute path) to determine the executable file name in integration & parallel tests.
 - Fixed memory leaks in `State_Chm%AerMass` and `State_Chm%Phot` containers
 - Fixed incorrect time-avaging in RRTMG diagnostics wheres zeros included prior to first RRTMG call
+- Added fix for runaway HMS chemistry. See `KPP/fullchem/CHANGELOG_fullchem.md` for details.
 
 ### Removed
 - Removed references to unused met-fields RADLWG and LWGNT

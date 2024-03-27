@@ -94,10 +94,9 @@ CONTAINS
 !
 ! !REMARKS:
 !  WARNING: Soil absorption has to be the 15th field in CH4_EMIS
-!  Also: the ND58 diagnostics have now been removed.  We still need to
-!  read the HEMCO manual diagnostics into CH4_EMIS for the analytical
-!  inversion.  Therefore, we will keep EmissCh4 for the time-being
-!  but only remove the bpch diagnostic.
+!  Also:  We still need to read the HEMCO manual diagnostics into CH4_EMIS
+!  for the analyticalinversion.  Therefore, we will keep EmissCh4 for
+!  the time-being but only remove the bpch diagnostic.
 !
 ! !REVISION HISTORY:
 !  (1 ) Created by Bryan Duncan (1/99).  Adapted for CH4 chemistry by
