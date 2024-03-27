@@ -215,7 +215,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 fullchem
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # DEBUG: Exit after creating a couple of rundirsDirs if $quick is "yes"
+    # Exit after creating a couple of rundirsDirs if $quick is "yes"
     if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
         exit 0

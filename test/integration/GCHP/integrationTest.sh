@@ -236,7 +236,7 @@ elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
     sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh)
+    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh ${quick})
     output=($output)
     cmpId=${output[3]}
     
