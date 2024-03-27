@@ -4709,7 +4709,7 @@ CONTAINS
 
        CASE ( 'PHIS' )
           IF ( isDesc  ) Desc  = 'Surface geopotential height'
-          IF ( isUnits ) Units = 'm2 s-1'
+          IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'PRECANV' )
