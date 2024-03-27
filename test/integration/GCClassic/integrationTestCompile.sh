@@ -115,7 +115,7 @@ fi
 if [[ "X${quick}" == "XYES" ]]; then
     EXE_LIST=("default" "carbon")
 else
-    EXE_LIST=$EXE_GCC_BUILD_LIST
+    EXE_LIST=("${EXE_GCC_BUILD_LIST[@]}")
 fi
 
 # Count the number of tests to be done

@@ -117,7 +117,7 @@ fi
 if [[ "X${quick}" == "XYES" ]]; then
     EXE_LIST=("default" "carbon")
 else
-    EXE_LIST=$EXE_GCHP_BUILD_LIST
+    EXE_LIST=("${EXE_GCHP_BUILD_LIST[@]}")
 fi
 
 # Count the number of tests to be done
