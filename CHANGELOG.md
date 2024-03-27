@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Field `State_Diag%Obspack_CharArray` as a 2-D character array
 - Added util folder in run/CESM to include .cdl file used to generate CESM NetCDF input file for deposition
 - Add GCClassic operational example environment files for Harvard Cannon
+- Added slash in front of names of LUT files read into photolysis_mod to avoid needing it in path
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
