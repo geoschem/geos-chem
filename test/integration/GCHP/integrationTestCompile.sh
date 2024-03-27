@@ -32,6 +32,13 @@
 #------------------------------------------------------------------------------
 #BOC
 
+#=============================================================================
+# Arguments
+#=============================================================================
+
+# Run a short integration test?
+quick="${1}"
+
 #============================================================================
 # Global variable and function definitions
 #============================================================================
@@ -106,8 +113,15 @@ fi
 # Sanity check: Max out the OMP_STACKSIZE if it is not set
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
+# Only create necessary executables if $quick is "yes"
+if [[ "X${quick}" == "XYES" ]]; then
+    EXE_LIST=("default" "carbon")
+else
+    EXE_LIST=("${EXE_GCHP_BUILD_LIST[@]}")
+fi
+
 # Count the number of tests to be done
-numTests=${#EXE_GCHP_BUILD_LIST[@]}
+numTests=${#EXE_LIST[@]}
 
 #============================================================================
 # Initialize results logfile
@@ -151,8 +165,10 @@ let passed=0
 let failed=0
 let remain=${numTests}
 
+
+
 # Loop over build directories
-for dir in ${EXE_GCHP_BUILD_LIST[@]}; do
+for dir in ${EXE_LIST[@]}; do
 
     # Define build directory
     thisBuildDir="${buildDir}/${dir}"

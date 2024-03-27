@@ -206,7 +206,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # c24 merra2 carbon
     #create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
+    # Exit after creating a couple of rundirs if $quick is "yes"
     if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
         exit 0
