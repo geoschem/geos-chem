@@ -201,7 +201,7 @@ if [[ "x${testsToRun}" == "xCOMPILE" ]]; then
     #-------------------------------------------------------------------------
     echo ""
     echo "Compiliation tests are running..."
-    ${scriptsDir}/integrationTestCompile.sh &
+    ${scriptsDir}/integrationTestCompile.sh "${quick}"
     
 elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
 
@@ -236,7 +236,7 @@ elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCANNON" ]]; then
     sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh ${quick})
+    output=$(sbatch ${scriptsDir}/integrationTestCompile.sh "${quick}")
     output=($output)
     cmpId=${output[3]}
     
@@ -276,7 +276,7 @@ elif [[ "x${testsToRun}" == "xALL" && "x${site}" == "xCOMPUTE1" ]]; then
     sed_ie "${sedPartitionCmd}" "${scriptsDir}/integrationTestExecute.sh"
 
     # Submit compilation tests script
-    output=$(bsub ${scriptsDir}/integrationTestCompile.sh)
+    output=$(bsub ${scriptsDir}/integrationTestCompile.sh "${quick}")
     output=($output)
     cmpId=${output[1]}
     cmpId=${cmpId/<}

@@ -112,7 +112,7 @@ fi
 [[ "X${OMP_STACKSIZE}" == "X" ]] && export OMP_STACKSIZE=500m
 
 # Only create necessary executables if $quick is "yes"
-if [[ "x${quick}" == "xyes" ]]; then
+if [[ "X${quick}" == "XYES" ]]; then
     EXE_LIST=("default" "carbon")
 else
     EXE_LIST=$EXE_GCC_BUILD_LIST
