@@ -1199,7 +1199,7 @@ ${RUNDIR_GLOBAL_Cl}
 # Use updated files (v2024-01); these are COARDS-compliant.
 (((Scarpelli_Canada
 1002 CANADA_MASK     $ROOT/MASKS/v2024-01/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR $ROOT/MASKS/v20/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR $ROOT/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext
