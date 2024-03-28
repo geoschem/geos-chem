@@ -219,12 +219,9 @@ function updateHistory() {
     file="${2}/HISTORY.rc"
 
     # For GCHP: remove entries for species to be excluded
-    for spc in ${ALL_SPECIES[@]}; do
-        isItemInList "${spc}" "${1}"
-        if [[ $? == 0 ]]; then
-            sed -i "/\_${spc}/d"   "${file}"
-            sed -i "/Emis${spc}/d" "${file}"
-        fi
+    for spc in ${1}; do
+        sed -i "/\_${spc}/d"   "${file}"
+        sed -i "/Emis${spc}/d" "${file}"
     done
 }
 
@@ -253,17 +250,22 @@ function updateExtData() {
         sed -i "/^CAN_/d"               "${file}"
         sed -i "/^GFEI_/d"              "${file}"
         sed -i "/^EDGAR7_CH4_/d"        "${file}"
-        sed -i "/^CAN_/d"               "${file}"
+        sed -i "/CMIP6_CH4_/d"          "${file}"
+        sed -i "/CMIP6_BB_CH4/d"        "${file}"
         sed -i "/^UPDATED_GFED4_CH4/d"  "${file}"
         sed -i "/^JPLW_CH4/d"           "${file}"
         sed -i "/^CH4_/d"               "${file}"
         sed -i "/^\#CH4_/d"             "${file}"
-        sed -i "/CMIP6_CH4_/d"          "${file}"
-        sed -i "/CMIP6_BB_CH4/d"        "${file}"
         sed -i "/RCP3PD_CH4/d"          "${file}"
         sed -i "/RCP45_CH4/d"           "${file}"
         sed -i "/RCP60_CH4/d"           "${file}"
         sed -i "/RCP85_CH4/d"           "${file}"
+	sed -i "/^EMIS_SF/d"            "${file}"
+        sed -i "/^OH_SF/d"              "${file}"
+        sed -i "/^MANURE_SF/d"          "${file}"
+        sed -i "/^RICE_SF/d"            "${file}"
+        sed -i "/^EDGAR_SEASONAL_SF/d"  "${file}"
+        sed -i "/^CONUS_/d"             "${file}"
     fi
 
     # If CO2 is in the exclude list, remove CO2 entries.
@@ -280,6 +282,7 @@ function updateExtData() {
         sed -i "/ICOADS_CO2_/d"         "${file}"
         sed -i "/OCEANCO2_/d"           "${file}"
         sed -i "/SIB_BBIO_CO2/d"        "${file}"
+	sed -i "/AVIATION_SURF_CORR/d"  "${file}"
     fi
 
     # If CO is in the exclude list, remove CO entries
@@ -298,12 +301,15 @@ function updateExtData() {
         sed -i "/RCP45_CO/d"            "${file}"
         sed -i "/RCP60_CO/d"            "${file}"
         sed -i "/RCP85_CO/d"            "${file}"
+        sed -i "/NEI99_DOW_CO/d"        "${file}"
+	sed -i "/LIQFUEL_/d"            "${file}"
     fi
 
     # If OSC is in the exclude list, remove OCS entries
     isItemInList "OCS" "${1}"
     if [[ $? == 0 ]]; then
         sed -i "/^OCS_/d"              "${file}"
+        sed -i "/^StoOCS_/d"           "${file}"
     fi
 }
 

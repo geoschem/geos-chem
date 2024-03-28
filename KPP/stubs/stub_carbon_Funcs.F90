@@ -62,9 +62,9 @@ CONTAINS
     TYPE(MetState), INTENT(IN) :: State_Met
   END SUBROUTINE carbon_ComputeRateConstants
   !
-  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                &
-             I,         J,          L,         id_CH4,     id_CO,            &
-             id_COch4,  id_COnmvoc, id_CO2,    xnumol_CH4, xnumol_CO2,       &
+  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                     &
+             I,         J,          L,          id_CH4,                      &
+             id_CO,     id_CO2,     xnumol_CH4, xnumol_CO2,                  &
              xnumol_CO, State_Chm,  State_Met                               )
     !
     ! Stub for carbon_ConvertMolecCm3ToKg,
@@ -75,8 +75,6 @@ CONTAINS
     !
     INTEGER,        INTENT(IN)    :: id_CH4
     INTEGER,        INTENT(IN)    :: id_CO
-    INTEGER,        INTENT(IN)    :: id_COch4
-    INTEGER,        INTENT(IN)    :: id_COnmvoc
     INTEGER,        INTENT(IN)    :: id_CO2
     REAL(fp),       INTENT(IN)    :: xnumol_CH4
     REAL(fp),       INTENT(IN)    :: xnumol_CO

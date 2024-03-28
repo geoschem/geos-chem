@@ -12,8 +12,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file [yes|no]
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -35,7 +34,7 @@ if [[ "x${envFile}" == "x" ]]; then
     echo "ERROR: The enviroment file (w/ module loads) has not been specified!"
     exit 1
 fi
-if [[ ! -f "${envFile}" ]]; then
+if [[ ! -f ${envFile} ]]; then
     echo "ERROR: The enviroment file is not a valid file!"
     exit 1
 fi
@@ -165,9 +164,11 @@ create_rundir "2\n1\n${rundirsDir}\n\nn\n" "${log}"
 # c24 merra2 fullchem tagO3
 create_rundir "4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-# Placeholder for carbon simulation
 # c24 merra2 carbon
-#create_rundir "12\n1\n${rundirsDir}\n\nn\n" "${log}"
+create_rundir "5\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+# c24 merra2 carbon CH4 only
+create_rundir "5\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
 
 # DEBUG: Exit after creating a couple of rundirs if $quick is "yes"
 if [[ "x${quick}" == "xyes" ]]; then

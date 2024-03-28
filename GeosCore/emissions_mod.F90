@@ -118,8 +118,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, &
-                            State_Grid, State_Met, EmisTime,  Phase, RC   )
+  SUBROUTINE Emissions_Run( Input_Opt, State_Chm, State_Diag, State_Grid,    &
+                            State_Met, EmisTime,  Phase,      RC            )
 !
 ! !USES:
 !
