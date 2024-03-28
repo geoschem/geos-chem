@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update GCHP operational example environment files for Harvard Cannon
 - Do not run GCClassic integration test compile jobs in the background
 - Updated integration tests to pass quick option to compile scripts
+- Removed emissions handling from `global_ch4_mod.F90` and `carbon_gases_mod.F90` and instead apply scale factors to emissions directly in `HEMCO_Config.rc`
+- Loop over advected species CH4 chemistry routines to allow for multiple CH4 tracers within analytical inversion framework
 
 ### Fixed
 - Fixed unit conversions in GEOS-only code
@@ -46,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
+- Removed State_Chm%CH4_EMIS
 
 ## [14.3.0] - 2024-02-07
 ### Added
