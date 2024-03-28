@@ -370,7 +370,7 @@ CONTAINS
     USE rateLawUtilFuncs,     ONLY : SafeDiv
     USE Species_Mod,          ONLY : SpcConc
     USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Chm_Mod,        ONLY : ChmState, Ind_
+    USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Chem
@@ -1035,6 +1035,8 @@ CONTAINS
 
     !========================================================================
     ! Define GEOS-Chem species indices
+    !
+    ! Also denote which species are advected to facilitate single-tracer runs
     !========================================================================
     id_CH4        = Ind_( 'CH4'        )
     id_CH4_adv    = Ind_( 'CH4',   'A' )

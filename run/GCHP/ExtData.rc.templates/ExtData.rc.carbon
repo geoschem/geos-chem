@@ -135,14 +135,10 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 
 #==============================================================================
 # %%%%% CH4 emissions %%%%%
-#
-# Comment all entries in this section when
-# "--> USE_CH4_DATA : false" is in HEMCO_Config.rc.
 #==============================================================================
 
-# --- CH4: Gridded GHGI v2 Express Extension (Maasakkers et al., submitted to ES&T, 2023) ---
+# --- Gridded GHGI v2 Express Extension (Maasakkers et al., ES&T, 2023) ---
 #
-# Comment these lines when "GHGI_v2_Express_Ext: false" is in HEMCO_Config.rc.
 GHGI_EE_OIL_EXPLORATION         molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Exploration   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_OIL_PRODUCTION          molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Production    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_OIL_REFINING            molec/cm2/s N    Y - none none  emi_ch4_1B2a_Petroleum_Systems_Refining      ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
@@ -198,8 +194,6 @@ GHGI_EE_COAST_OTHER__ABOG       molec/cm2/s N    Y - none none  emi_ch4_1B2ab_Ab
 
 
 # --- Scarpelli Mexico ---
-#
-# Comment these when "--> Scarpelli_Mexico : false" is in HEMCO_Config.rc.
 MEX_OIL                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
 MEX_GAS                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc
 MEX_COAL                     kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc
@@ -221,9 +215,6 @@ MEX_OTHER_COAST              kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v20
 
 
 # --- Scarpelli Canada ---
-#
-# Comment these when "--> Scarpelli_Canada : false" is in HEMCO_Config.rc
-#
 CAN_OIL_GAS_COMBUSTION       kg/m2/s N Y - none none  oil_gas_combustion_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc
 CAN_OIL_GAS_LEAKAGE          kg/m2/s N Y - none none  oil_gas_leakage_total      ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc
 CAN_OIL_GAS_VENT_FLARE       kg/m2/s N Y - none none  oil_gas_vent_flare_total   ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc
@@ -243,18 +234,12 @@ CAN_OTHER_COAST              kg/m2/s N Y - none none  other_minor_sources_total 
 
 
 # --- GFEI ---
-#
-# Comment these when "--> GFEIv2 : false" is in HEMCO_Config.rc
 GFEI_CH4_OIL  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc
 GFEI_CH4_GAS  kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
 GFEI_CH4_COAL kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
 
 
 # --- EDGAR v7.0 ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
-#
-# Comment these when "--> EDGARv7 : false" is in HEMCO_Config.rc
 EDGAR7_CH4_OILGASCOAL__1B1_1B2  kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_PRO.0.1x0.1.nc
 EDGAR7_CH4_OTHER__1A1_1B1_1B2   kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_REF_TRF.0.1x0.1.nc
 EDGAR7_CH4_LIVESTOCK__4A        kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2024-01/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
@@ -278,87 +263,40 @@ EDGAR7_CH4_OTHER__6C            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi
 
 
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
-#
-# Comment this when "--> JPL_WETCHARTS: false" is in HEMCO_Config.rc.
 JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
 
 
 # --- Geological seeps ---
-#
-# Comment this when "--> SEEPS : false" is in HEMCO_Config.rc.
 CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc
 
 
 # --- Emissions from reservoirs (Delwich et al 2022) ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
-#
-# Comment these when "--> RESERVOIRS : false" is in HEMCO_Config.rc.
 CH4_RES_DAM kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc
 CH4_RES_SFC kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc
 
 
 # --- Emissions from termites (Fung et al 1991) ---
-#
-# Comment this when "--> FUNG_TERMITES : false" is in HEMCO_Config.rc.
 CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites.geos.4x5.nc
 
 
 # --- Soil absorption fro MeMo model (Murguia-Flores et al. 2018, GMD) ---
 #
-# Note; Use climatology by default
-# Comment this when "--> MeMo_SOIL_ABSORPTION :  false" is in HEMCO_Config.rc.
+# Note: Use climatology by default
 CH4_SOILABSORB kg/m2/s  2009 Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoDir/CH4/v2019-10/MeMo_SoilAbs/MeMo_CH4uptake_Climatology.nc
 #
 # Annual emissions are disabled by default
 #CH4_SOILABSORB kg/m2/s N    Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoDir/CH4/v2019-10/MeMo_SoilAbs/MeMo_CH4uptake_1990-2009.nc
 
-# --- BBMIPs ---
-# Add entries here
-
-# --- CEDS (historical) or Shared Socioeconomic Pathways (future) ---
-# Add entries here
-
-# --- EDGAR v6.0 ---
-# Add entries here
-
-# --- Gridded GHGI emissions ---
-# Add entries here
-
-# --- QFED v2.4r8 ---
-# Add entries here
-
-# --- Emissions from lakes (Maasakkers et al 2019) ---
-# Add entries here
-
-# --- Soil absoprtion (Fung et al 1991) ---
-# Add entries here
-
-# --- RCP future emission scenarios ---
-# Add entries here
-
-
 #==============================================================================
 # %%%%% CO emissions %%%%%
-#
-# Comment all entries in this section when
-# "--> USE_CO_DATA : false" is in HEMCO_Config.rc.
 #==============================================================================
 
 # --- AEIC 2019 aircraft (AEIC) ---
-#
-# Comment this when "--> AEIC2019_MONMEAN :  false" is in HEMCO_Config.rc.
 AEIC19_MONMEAN_CO kg/m2/s Y Y F2019-%m2-01T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 #
-# Comment this when "--> AEIC2019_DAILY :  false" is in HEMCO_Config.rc.
 ##AEIC19_DAILY_CO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 
-
 # --- CEDSv2 emissions ---
-#
-# Comment these when "--> CEDSv2 : false" is in HEMCO_Config.rc.
 CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
@@ -367,98 +305,31 @@ CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2
 CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
 #
-# Comment this when  "--> CEDSv2_SHIP : false" is in HEMCO_Config.rc.
 CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-
-
-# --- APEI (Canada) ---
-# Add entries here
-
-# --- BB4MIPs ---
-# Add entries here
-
-# --- CEDS GBD-MAPS ---
-# Add entries here
-
-# --- CMIP6 ---
-# Add entries here
-
-# --- DICE-Africa ---
-# Add entries here
-
-# --- GFAS biomass burning ---
-# Add entries here
-
-# --- HTAP ---
-# Add entries here
-
-# --- NEI2016_MONMEAN (USA) ---
-# Add entries here
-
-# --- QFED2 biomass burning ---
-# Add entries here
-
-# --- RCP future emissions scenarios ---
-# Add entries here
-
 
 #==============================================================================
 # --- CO2 emissions ---
-#
-# Comment all entries in this section when
-# "--> USE_CO2_DATA : false" is in HEMCO_Config.rc.
 #==============================================================================
 
 # --- CO2 Fossil Fuel ---
-#
-# Comment this when "--> FOSSIL_CDIAC : false" is in HEMCO_Config.rc.
-##FOSSILCO2_CDIAC  kg/m2/s N Y  F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2014-09/FOSSIL/CDIAC_v2014.monthly.generic.1x1.nc
-#
-# Comment this when "--> FOSSIL_ODIAC : false" is in HEMCO_Config.rc.
 FOSSILCO2_ODIAC  kg/m2/s N Y  F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
 
-
 # --- CO2 Ocean Exchange ---
-#
-# Comment this when "--> OCEAN_EXCH_TAKA09 : false" is in HEMCO_Config.rc.
-##OCEANCO2_TAKA_ANNUAL   kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Taka2009_CO2_Annual.nc
-#
-# Comment this when "--> OCEAN_EXCH_SCALED : false" is in HEMCO_Config.rc.
 OCEANCO2_TAKA_MONTHLY  kg/m2/s 2000 Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc
 
-
 # --- Balanced biosphere exchange ---
-#
-# Comment this when "--> BBIO_DIURNAL : false" is in HEMCO_Config.rc.
-##BBIOCO2_DIURNAL kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2014-09/BBIO/BBIO_diurnal_CO2.nc
-#
-# Comment this when "--> BBIO_SIB3 : false" is in HEMCO_Config.rc.
 SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
 
-
 # --- Net Terrestrial Exchange ---
-#
-# Comment this when "--> NET_TERR_EXCH : false" is in HEMCO_Config.rc.
 CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
 
-
 # --- CO2 Ship Emissions ---
-#
-# Comment this when "--> CEDS_v2_SHIP : false" is in HEMCO_Config.rc.
 CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2021-06/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
 
-
 # --- CO2: AEIC 2019 aircraft emissions ---
-## Comment this when "--> AEIC2019_DAILY :  false" is in HEMCO_Config.rc.
-##AEIC19_DAILY_CO2   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
-#
-# Comment this when "--> AEIC2019_MONMEAN :  false" is in HEMCO_Config.rc.
 AEIC19_MONMEAN_CO2 kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 
-
 # --- CO2: Surface correction for CO oxidation ---
-#
-# Comment these when "--> CO2CORR : false" is in HEMCO_Config.rc.
 FOSSILCO2_MONTHLY kg/m/s N    Y F%y4-%m2-01T01:00:00 none none CO2     ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
 CO2_LIVESTOCK     kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_004 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
 CO2_WASTE         kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_005 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
@@ -468,19 +339,11 @@ CO2_NATURAL       kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_012 ./HcoDir/
 CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc
 CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
 
-
 # --- CO2 production from CO ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
-#
-# Comment this when "--> CO2_COPROD : false" is in HEMCO_Config.rc.
 CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2024-01/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
 
 #==============================================================================
 # --- OCS emission fluxes ---
-#
-# If USE_OCS_DATA is set to "false" in HEMCO_Config.rc,
-# then you must comment out all of these entries.
 #==============================================================================
 OCS_ANTHRO        kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/%y4/%m2.nc
 OCS_BIOMASS       kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/%y4/%m2.nc
@@ -494,23 +357,17 @@ OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir
 ###############################################################################
 
 # --- GFED4 (Extension 111)---
-#
-# Comment these when  "111 GFEE : off" in HEMCO_Config.rc.
 GFED_TEMP kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_TEMP ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_AGRI kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_AGRI ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_DEFO kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_DEFO ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_BORF kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_BORF ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
-#
+
 # --- GFED_daily scale factors ---
-#
-# Comment this when "--> GFED_daily : false" is in HEMCO_Config.rc.
 GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2023-03/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
-#
+
 # --- GFED_3hourly --
-#
-# Comment this when "--> GFED_hourly : false" is in HEMCO_Config.rc.
 #GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 
 
@@ -523,34 +380,19 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 # --- Time zones (offset to UTC) ---
 TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 
-
 # --- OH from the latest 10-year benchmark ---
-#
-# Comment this if "--> GLOBAL_OH_GC14 : false" is in HEMCO_Config.rc
 ##GLOBAL_OH kg/m3 N N %y4-%m2-01T00:00:00       none none SpeciesConc_OH ./HcoDir/GCClassic_Output/14.0.0/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
-
-# --- OH from GEOS-Chem v5-07-08 ---
-# --- NOTE: Use this for CH4/IMI ---
-#
-# Comment this if "--> GLOBAL_OH_GCv5 : false" is in HEMCO_Config.rc
+# --- OH from GEOS-Chem v5-07-08 (used for CH4/IMI) ---
 GLOBAL_OH kg/m3 1985 Y F%y4-%m2-01T00:00:00 none none OH ./HcoDir/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc
 
-
 # --- Global Cl concentrations ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
 GLOBAL_Cl mol/mol N Y F%y4-%m2-01T00:00:00  none none SpeciesConc_Cl ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.SpeciesConc.%y4%m201_0000z.nc4
 
-
 # --- Stratospheric L(CO) from GMI ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
 CH4_LOSS s-1 1985 Y F%y4-%m2-01T00:00:00 none none CH4loss ./HcoDir/CH4/v2024-01/GC_CH4_LOSS/GCC14_72LM.ch4loss.4x5.nc4
 
 # --- P(CO) from CH4 and NMVOC from the last 10-yr benchmark ---
-#
-# Use updated files (v2024-01); these are COARDS-compliant.
 PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
@@ -566,14 +408,9 @@ GMI_PROD_CO  v/v/s 2005 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022
 
 #==============================================================================
 # %%%%% Scale factors for CH4 emissions %%%%%
-#
-# Comment out all entries in this section if the USE_CH4_DATA switch
-# is set to "false" in HEMCO_Config.rc.
 #==============================================================================
 
 # --- GHGI seasonal scale factors ---
-#
-# Comment these if "--> GHGI_v2_Express_Ext : false" is in HEMCO_Config.rc,
 GHGI_OTH_STA_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1A_Combustion_Stationary           ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 GHGI_OIL_EXP_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Exploration ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 GHGI_OIL_PRD_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_1B2a_Petroleum_Systems_Production  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
@@ -585,17 +422,11 @@ GHGI_LIV_MAN_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3B_M
 GHGI_RIC_CUL_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3C_Rice_Cultivation                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 GHGI_OTH_BUR_SF  1 N Y F%y4-%m2-%d2T00:00:00 none none monthly_scale_factor_3F_Field_Burning                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 
-
 # --- Scarpelli_Mexico manure and rice scale factors ---
-#
-# Comment these if "--> Scarpelli_Mexico : false" is in HEMCO_Config.rc,
 MANURE_SF  1 N    Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc
 RICE_SF    1 2012 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc
 
-
 # --- Monthly scale factors for EDGARv7 ---
-#
-# Comment these if "--> EDGARv7 : false" is in HEMCO_Config.rc,
 EDGAR_SEASONAL_SF_AGS        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AGS.0.1x0.1.nc
 EDGAR_SEASONAL_SF_AWB        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AWB.0.1x0.1.nc
 EDGAR_SEASONAL_SF_CHE        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_CHE.0.1x0.1.nc
@@ -620,13 +451,7 @@ EDGAR_SEASONAL_SF_WWT        1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./Hc
 
 #==============================================================================
 # %%%%% Scale factors for CO emissions %%%%%
-#
-# If USE_CO_DATA is set to "false" in HEMCO_Config.rc,
-# then you must comment out all of these entries below.
 #==============================================================================
-
-# --- HTAP annual scale factors ---
-# Add entries here
 
 # --- CEDS vertical partitioning ---
 ENERGY_LEVS   1 N Y - none none g_energy   ./HcoDir/VerticalScaleFactors/v2021-05/gc_layers.nc
@@ -635,9 +460,6 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 
 #==============================================================================
 # %%%%% Scale factors for CO2 emissions %%%%%
-#
-# If USE_CO2_DATA is set to "false" in HEMCO_Config.rc,
-# then you must comment out all of these entries below.
 #==============================================================================
 
 # --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
@@ -654,16 +476,13 @@ OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoD
 ###
 ###############################################################################
 
-# Use updated files (v2024-01); these are COARDS-compliant.
 MEX_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Mexico_Mask.001x001.nc
 MEX_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Mexico_Mask_Mirror.001x001.nc
 CAN_MASK          1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Canada_Mask.001x001.nc
 CAN_MASK_MIRROR   1 N Y - none none MASK ./HcoDir/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc
-#
 CHINA_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/China_mask.generic.1x1.nc
 CONUS_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask.001x001.nc
 CONUS_MASK_MIRROR 1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc
-#
 %%
 
 DerivedExports%%

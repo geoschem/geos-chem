@@ -24,10 +24,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Now get density of BCPI species from the species database in `ucx_mod.F90`
 - Fix issues that prevented single-species carbon simulations from running
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
+- Updated several emissions files for CO and CH4 for COARDS and MAPL compliance
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
 - `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
+- Removed tagged CH4 and CO species handling from `carbon_gases_mod.F90`
 
 ## [14.3.0] - 2024-02-07
 ### Added
