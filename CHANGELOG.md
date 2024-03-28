@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added util folder in run/CESM to include .cdl file used to generate CESM NetCDF input file for deposition
 - Add GCClassic operational example environment files for Harvard Cannon
 - Added new GCHP history collections for advection diagnostics
+- Added slash in front of names of LUT files read into `photolysis_mod.F90` to avoid needing it in path
 
 ### Changed
 - Updated Harvard Cannon operational run scripts to use `huce_cascade` instead of `huce_intel`; also added `sapphire`
