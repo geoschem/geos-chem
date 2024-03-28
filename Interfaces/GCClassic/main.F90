@@ -194,7 +194,7 @@ PROGRAM GEOS_Chem
   !-----------------------------
 
   ! Logicals
-  LOGICAL                  :: TimeForEmis
+  LOGICAL                  :: TimeForEmis, isChemTime
   LOGICAL                  :: notDryRun
   LOGICAL                  :: VerboseAndRoot
 
@@ -712,7 +712,8 @@ PROGRAM GEOS_Chem
      ENDIF
 
      ! Initialize PBL quantities from the initial met fields
-     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
+     CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
+                              State_Met, State_Diag, RC )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "COMPUTE_PBL_HEIGHT" at initialization!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -876,6 +877,9 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
        ENDIF
 
+       ! Is it time for chemistry?
+       isChemTime = ITS_TIME_FOR_CHEM()
+
        !---------------------------------------------------------------------
        ! %%%%% HISTORY (netCDF diagnostics) %%%%%
        !
@@ -887,7 +891,8 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "Diagnostics", RC )
           ENDIF
 
-          CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+          CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, isChemTime, &
+                                                 State_Diag, RC )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Zero_Diagnostics_StartOfTimestep!"'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1110,7 +1115,8 @@ PROGRAM GEOS_Chem
           ! and update tracer concentration to conserve tracer mass
           ! (ewl, 10/28/15)
           CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, Update_Mixing_Ratio=.TRUE. )
+                       State_Diag, RC, Update_Mixing_Ratio=.TRUE.,  &
+                       Update_Budget_TropHt=.TRUE. )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1126,9 +1132,8 @@ PROGRAM GEOS_Chem
           ! therefore this routine may call AIRQNT again to update
           ! air quantities and tracer concentrations (ewl, 10/28/15)
           IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
-             CALL Set_H2O_Trac( Input_Opt%LSETH2O,                           &
-                                Input_Opt, State_Chm, State_Grid,            &
-                                State_Met, RC )
+             CALL Set_H2O_Trac( Input_Opt%LSETH2O, Input_Opt, State_Chm, &
+                                State_Grid, State_Met, State_Diag, RC )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
@@ -1343,7 +1348,8 @@ PROGRAM GEOS_Chem
           ! Move this call from the PBL mixing routines because the PBL
           ! height is used by drydep and some of the emissions routines.
           ! (ckeller, 3/5/15)
-          CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Met, RC )
+          CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Chm, &
+                                   State_Met, State_Diag, RC )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1549,7 +1555,7 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Every chemistry timestep...
-          IF ( ITS_TIME_FOR_CHEM() ) THEN
+          IF ( isChemTime ) THEN
 
 #ifdef BPCH_DIAG
              ! Increment chemistry timestep counter
@@ -1559,8 +1565,8 @@ PROGRAM GEOS_Chem
              ! SDE 05/28/13: Set H2O to State_Chm tracer if relevant
              IF ( Input_Opt%ITS_A_FULLCHEM_SIM .and. id_H2O > 0 ) THEN
                 CALL Set_H2O_Trac( .FALSE., &
-                                   Input_Opt , State_Chm,    &
-                                   State_Grid, State_Met, RC )
+                                   Input_Opt, State_Chm, State_Grid, &
+                                   State_Met, State_Diag, RC )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -1614,7 +1620,7 @@ PROGRAM GEOS_Chem
        !=====================================================================
        !         ***** U P D A T E   O P T I C A L   D E P T H *****
        !=====================================================================
-       IF ( ITS_TIME_FOR_CHEM() .and. notDryRun ) THEN
+       IF ( isChemTime .and. notDryRun ) THEN
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "All chemistry",       RC )

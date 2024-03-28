@@ -899,7 +899,7 @@ CONTAINS
     ! call since this can erase diagnostics filled during phase 1 (e.g., drydep)
     ! (ckeller, 1/21/2022).
     IF ( Phase /= 2 ) THEN
-       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, State_Diag, RC )
+       CALL Zero_Diagnostics_StartOfTimestep( Input_Opt, isChemTime, State_Diag, RC )
     ENDIF
 
     ! Pass time values obtained from the ESMF environment to GEOS-Chem
@@ -943,7 +943,8 @@ CONTAINS
 
     ! Define airmass and related quantities
 #if defined( MODEL_GEOS )
-    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, .FALSE. )
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                 State_diag, RC, .FALSE. )
 #else
     ! Scale mixing ratio with changing met only if FV advection is off.
     ! Only do this the first timestep if DELP_DRY found in restart.
@@ -955,10 +956,12 @@ CONTAINS
        _VERIFY(STATUS)
        IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
                     RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    State_Diag, RC, scaleMR )
        scaleMR = .TRUE.
     ELSE
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                    State_Diag, RC, scaleMR )
     ENDIF
 #endif
 
@@ -980,7 +983,8 @@ CONTAINS
     ENDIF
 
     ! Call PBL quantities. Those are always needed
-    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Met, RC )
+    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
+                             State_Met, State_Diag, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
 
     ! Convert to dry mixing ratio
@@ -1009,7 +1013,7 @@ CONTAINS
           SetStratH2O = .TRUE.
        ENDIF
        CALL SET_H2O_TRAC( SetStratH2O, Input_Opt, State_Chm, &
-                          State_Grid,  State_Met, RC )
+                          State_Grid,  State_Met, State_Diag, RC )
        _ASSERT(RC==GC_SUCCESS, 'Error calling SET_H2O_TRAC')
 
       ! Only force strat once
@@ -1333,8 +1337,8 @@ CONTAINS
 #if !defined( MODEL_GEOS )
        ! Set H2O to species value if H2O is advected
        IF ( IND_('H2O','A') > 0 ) THEN
-          CALL SET_H2O_TRAC( .FALSE., Input_Opt, &
-                             State_Chm, State_Grid, State_Met, RC )
+          CALL SET_H2O_TRAC( .FALSE., Input_Opt, State_Chm, &
+                             State_Grid, State_Met, State_Diag, RC )
        ENDIF
 #endif
 

@@ -644,9 +644,11 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: AerMassOPOA(:,:,:)
      LOGICAL                     :: Archive_AerMassOPOA
+     LOGICAL                     :: isOPOA
 
      REAL(f4),           POINTER :: AerMassPOA(:,:,:)
      LOGICAL                     :: Archive_AerMassPOA
+     LOGICAL                     :: isPOA
 
      REAL(f4),           POINTER :: AerMassSAL(:,:,:)
      LOGICAL                     :: Archive_AerMassSAL
@@ -2085,9 +2087,11 @@ CONTAINS
 
     State_Diag%AerMassOPOA                         => NULL()
     State_Diag%Archive_AerMassOPOA                 = .FALSE.
+    State_Diag%isOPOA                              = .FALSE.
 
     State_Diag%AerMassPOA                          => NULL()
     State_Diag%Archive_AerMassPOA                  = .FALSE.
+    State_Diag%isPOA                               = .FALSE.
 
     State_Diag%AerMassSAL                          => NULL()
     State_Diag%Archive_AerMassSAL                  = .FALSE.
@@ -14403,7 +14407,7 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
           IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                    'change in column for transport'
-       
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for transport'

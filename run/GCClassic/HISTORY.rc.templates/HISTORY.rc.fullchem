@@ -270,8 +270,18 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Budget COLLECTION %%%%%
 #
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
-# (full, troposphere, or PBL) due to a single component (e.g. chemistry)
-# (default = advected species)
+# (full, troposphere, PBL, or fixed levels) due to a single component
+# (e.g. chemistry). May be computed for any advected species for all
+# components except wet deposition (only wet deposited species available).
+#
+# Description on vertical regions:
+#  Full = entire column
+#  Trop = within troposphere only
+#         NOTE: mass change from dynamic top-level included in BudgetTransportTrop
+#  PBL  = within PBL only
+#         NOTE: mass change from dynamic top-level included in BudgetMixingPBL
+#  Levs = within fixed levels specific in diagnostic name, e.g. "Levs1to35"
+#         NOTE: all Levs diagnostic must have the same range
 #
 # Available for all simulations
 #==============================================================================
