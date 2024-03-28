@@ -45,6 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed GEOS-IT SLP and TROPP scaling in pre-processed files used in GCHP
 - Fixed reading of NEI emissions through HEMCO
 - Fixed incorrect units metadata for `State_Met%PHIS`
+- Fixed bug in transport tracer ST80 mask criteria which prevented mask from ever being zero
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
