@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Diel and day-of-week scale factors for CEDS global base emissions
+- Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -17,6 +18,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
 - Updated volcano emissions from GMAO v202005 product to v202302 which extends to the end of 2022
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
+- Update drydep mean diameters of aerosols to account for size distribution
+  
 
 ### Fixed
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
