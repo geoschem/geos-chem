@@ -1006,6 +1006,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1225,9 +1226,9 @@ CONTAINS
     ! Small number
     REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
 
-    ! VTS
-    REAL(f8)  :: VTSoutput
-    REAL(f8)  :: VTSoutput_ (NUMDEP,NTYPE)
+    ! Gravitational Settling velocity (yli, 3/28/2024)
+    REAL(f8)  :: VTSoutput ! Used in AERO_SFCRSII, ADUST_SFCRSII and DUST_SFCRSII for a specific aerosol species and a specific land type
+    REAL(f8)  :: VTSoutput_ (NUMDEP,NTYPE) ! For all deposited aerosol species and all land types
 
     !=================================================================
     ! DEPVEL begins here!
@@ -1356,6 +1357,8 @@ CONTAINS
        DUMMY2_Alt = 0.0_f8
        DUMMY4_Alt = 0.0_f8
        RA_Alt     = 0.0_f8
+       VTSoutput = 0.0_fp
+       VTSoutput_ = 0.0_fp
 
        !** CZ is Altitude (m) at which deposition velocity is computed
        CZ = CZ1(I,J)
@@ -1718,31 +1721,31 @@ CONTAINS
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
 
-                IF ((SpcInfo%Name .EQ. 'DST1') .OR.      &
-                    (SpcInfo%Name .EQ. 'DSTAL1') .OR.    &
-                    (SpcInfo%Name .EQ. 'NITD1') .OR.     &
-                    (SpcInfo%Name .EQ. 'SO4D1')) THEN
+                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST1')) .OR.      &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL1')) .OR.    &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD1')) .OR.     &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D1'))) THEN
                     DIAM = 0.66895E-6
                 ENDIF
 
-                IF ((SpcInfo%Name .EQ. 'DST2') .OR.      &
-                    (SpcInfo%Name .EQ. 'DSTAL2') .OR.    &
-                    (SpcInfo%Name .EQ. 'NITD2') .OR.     &
-                    (SpcInfo%Name .EQ. 'SO4D2')) THEN
+                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST2')) .OR.      &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL2')) .OR.    &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD2')) .OR.     &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D2'))) THEN
                     DIAM = 2.4907E-6
                 ENDIF
 
-                IF ((SpcInfo%Name .EQ. 'DST3') .OR.      &
-                    (SpcInfo%Name .EQ. 'DSTAL3') .OR.    &
-                    (SpcInfo%Name .EQ. 'NITD3') .OR.     &
-                    (SpcInfo%Name .EQ. 'SO4D3')) THEN
+                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST3')) .OR.      &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL3')) .OR.    &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD3')) .OR.     &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D3'))) THEN
                     DIAM = 4.164E-6
                 ENDIF
 
-                IF ((SpcInfo%Name .EQ. 'DST4') .OR.      &
-                    (SpcInfo%Name .EQ. 'DSTAL4') .OR.    &
-                    (SpcInfo%Name .EQ. 'NITD4') .OR.     &
-                    (SpcInfo%Name .EQ. 'SO4D4')) THEN
+                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST4')) .OR.      &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL4')) .OR.    &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD4')) .OR.     &
+                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D4'))) THEN
                     DIAM = 6.677E-6
                 ENDIF
 
@@ -3144,6 +3147,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3430,14 +3434,14 @@ CONTAINS
     drydepRadius = A_RADI(K)
 
     ! Coarse seasalt
-    IF ((SpcInfo%Name .EQ. 'NITS') .OR. (SpcInfo%Name .EQ. 'SALC') & 
-  .OR. (SpcInfo%Name .EQ. 'SO4S') .OR. (SpcInfo%Name .EQ. 'BRSALC') &
-  .OR. (SpcInfo%Name .EQ. 'ISALC')) THEN
+    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('NITS')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SALC')) & 
+  .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SO4S')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('BRSALC')) &
+  .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('ISALC'))) THEN
            drydepRadius = 0.74025E-6
     ENDIF
 
-    IF ((SpcInfo%Name .EQ. 'SALA') .OR. (SpcInfo%Name .EQ. 'BRSALA') &
-        .OR. (SpcInfo%Name .EQ. 'ISALA')) THEN
+    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('SALA')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('BRSALA')) &
+        .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('ISALA'))) THEN
            drydepRadius = 0.114945E-6
     ENDIF
 
@@ -3939,6 +3943,7 @@ CONTAINS
 !
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Chm_Mod,      ONLY : Ind_
 
 !
 ! !INPUT PARAMETERS:
@@ -4157,8 +4162,8 @@ CONTAINS
     SpcInfo => State_Chm%SpcData(SpcId)%Info
 
     ! SIA
-    IF ((SpcInfo%Name .EQ. 'NIT') .OR. (SpcInfo%Name .EQ. 'NH4') &
-        .OR. (SpcInfo%Name .EQ. 'SO4')) THEN
+    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('NIT')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('NH4')) &
+        .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SO4'))) THEN
         ! Efflorescence transtions
         IF (RHBL .LT. 0.35) THEN
             DIAM = DIAM * 1.0
@@ -4174,8 +4179,8 @@ CONTAINS
         ENDIF
 
     !BC
-    ELSE IF ((SpcInfo%Name .EQ. 'BCPI') .OR. &
-       (SpcInfo%Name .EQ. 'BCPO')) THEN
+    ELSE IF ((Ind_(SpcInfo%Name) .EQ. Ind_('BCPI')) .OR. &
+       (Ind_(SpcInfo%Name) .EQ. Ind_('BCPO'))) THEN
         DIAM = DIAM * 1.0
     
     !OA
