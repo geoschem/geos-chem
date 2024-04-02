@@ -131,7 +131,7 @@ CONTAINS
        IF ( KPP_Standalone_YAML%IDX(K) == I .AND. KPP_Standalone_YAML%JDX(K) == J ) THEN
           KPP_Standalone_YAML%Active_Cell = .TRUE.
           KPP_Standalone_YAML%Active_Cell_Name = KPP_Standalone_YAML%LocationName(K)
-          write(*,*) trim(KPP_Standalone_YAML%Active_Cell_Name), " LatLon: " , State_Grid%YMid(I,J), State_Grid%XMid(I,J)
+          !write(*,*) trim(KPP_Standalone_YAML%Active_Cell_Name), " LatLon: " , State_Grid%YMid(I,J), State_Grid%XMid(I,J)
        ENDIF
     ENDDO
     ENDIF
