@@ -317,10 +317,10 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	met="geosfp"
 
- 	# Ask user to specify processed or native files
-	printf "${thinline}Choose meteorology file type:${thinline}"
+        # Ask user to specify processed or raw files
+        printf "${thinline}Choose meteorology file type:${thinline}"
 	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
-	printf "  2. 0.25x0.3125 hourly and 3-hourly native files produced by GEOS\n"
+	printf "  2. 0.25x0.3125 hourly and 3-hourly raw files produced by GEOS\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -328,16 +328,16 @@ while [ "${valid_met}" -eq 0 ]; do
 	    if [[ ${response} = "1" ]]; then
 		met_file_type="processed_ll"
 	    elif [[ ${response} = "2" ]]; then
-		met_file_type="native_ll"
-		met_desc="native"
+		met_file_type="raw_ll"
+		met_desc="raw"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
 	    fi
 	done
 
-       	# If using native files ask user to specify meteoerology for advection.
-	if [[ ${met_file_type} = "native_ll" ]]; then
+       	# If using raw files ask user to specify meteoerology for advection.
+	if [[ ${met_file_type} = "raw_ll" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
 	    printf "  1. 0.25x0.3125 3-hourly winds\n"
 	    printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
@@ -360,21 +360,21 @@ while [ "${valid_met}" -eq 0 ]; do
 	fi
 	    
 	# Set ExtData.rc settings for met data. Different settings based options chosen above.
-	if [[ ${met_file_type} = "native_ll" ]]; then
+	if [[ ${met_file_type} = "raw_ll" ]]; then
 
 	    # config file with advection meteorology
 	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_3hr_wind_ll.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
 		
 	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
 		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
 		
 	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_1hr_mass_flux_cs.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
 	    fi
 
 	    # config file with everything else
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.native_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
 	    
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
@@ -384,41 +384,40 @@ while [ "${valid_met}" -eq 0 ]; do
 	
 	met="geosit"
 	
- 	# Ask user to specify processed or native files
+ 	# Ask user to specify processed or raw files
 	printf "${thinline}Choose meteorology files:${thinline}"
-	printf "  1. Native C180 (recommended)\n"
-	printf "  2. Native 0.5x0.625 \n"
+	printf "  1. Raw C180 (recommended)\n"
+	printf "  2. Raw 0.5x0.625 \n"
 	printf "  3. Pre-processed C180 (not yet available)\n"
-	printf "  4. Pre-processed 0.5x0.625 (not yet available) \n"
+	printf "  4. Pre-processed 0.5x0.625 \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
-		met_file_type="native_cs"
-		met_desc="native_cs"
+		met_file_type="raw_cs"
+		met_desc="raw_cs"
 	    elif [[ ${response} = "2" ]]; then
-		met_file_type="native_ll"
-		met_desc="native_ll"
+		met_file_type="raw_ll"
+		met_desc="raw_ll"
 	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_cs"
 		valid_response=0
 		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
 	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
-		valid_response=0
-		printf "Pre-processed lat-lon GEOS-IT data is not yet available. Try again.\n"
+		met_desc="processed_ll"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
 	    fi
 	done
 
-	# If using cubed-sphere native files ask user to specify meteoerology for
-	# advection. If using native lat-lon then always use winds.
-	if [[ ${met_file_type} = "native_ll" ]]; then
+	# If using cubed-sphere raw files ask user to specify meteoerology for
+	# advection. If using raw lat-lon then always use winds.
+	if [[ ${met_file_type} = "raw_ll" ]]; then
 	    adv_flux_src="wind"
-	elif [[ ${met_file_type} = "native_cs" ]]; then
+	elif [[ ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
 	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
 	    printf "  2. C180 3-hourly winds\n"
@@ -437,8 +436,8 @@ while [ "${valid_met}" -eq 0 ]; do
 	    done
 	fi
 	
-	# If using native files, ask user if they are using discover
-	if [[ ${met_file_type} = "native_cs" || ${met_file_type} = "native_ll" ]]; then
+	# If using raw files, ask user if they are using discover
+	if [[ ${met_file_type} = "raw_cs" || ${met_file_type} = "raw_ll" ]]; then
 	    printf "${thinline}Are you running on the NASA discover cluster? (y/n)${thinline}"
 	    valid_response=0
 	    while [ "$valid_response" -eq 0 ]; do
@@ -457,43 +456,43 @@ while [ "${valid_met}" -eq 0 ]; do
 	
 	# Set text files containing settings for met data. Different settings based options aboves.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit.preprocessed_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
 	    
 	else
 	    if [[ ${use_discover} = "y" ]]; then
 		
 		# Settings for advection vars in ExtData.rc, running on discover
 	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_mass_flux.discover.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_cs" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_wind_cs.discover.txt)\n"  
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_ll" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_wind_ll.discover.txt)\n"
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_mass_flux.discover.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_cs.discover.txt)\n"  
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
 		fi
 		
 		# Settings for all other met vars in ExtData.rc, running on discover
-		if [[ ${met_file_type} = "native_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_cs.discover.txt)\n"
-		elif [[ ${met_file_type} = "native_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.native_ll.discover.txt)\n"
+		if [[ ${met_file_type} = "raw_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
 		fi
 		
 	    elif [[ ${use_discover} = "n" ]]; then
 		
 		# Settings for advection vars in ExtData.rc, NOT running on discover
 	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_mass_flux.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_cs" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_wind_cs.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "native_ll" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_wind_ll.txt)\n"
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_mass_flux.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_cs.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
 		fi
 	        
 		# Settings for all other met vars in ExtData.rc, NOT running on discover
-		if [[ ${met_file_type} = "native_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_cs.txt)\n"
-		elif [[ ${met_file_type} = "native_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.native_ll.txt)\n"
+		if [[ ${met_file_type} = "raw_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
 		fi
 		
 	    fi

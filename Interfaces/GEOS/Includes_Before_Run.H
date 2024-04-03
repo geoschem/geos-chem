@@ -247,7 +247,7 @@
      ENDIF
      !IF ( MAPL_am_I_Root() ) WRITE(*,*) 'Copying from internal: ',I,Int2Spc(I)%ID,MINVAL(Int2Spc(I)%Internal(:,:,:)),MAXVAL(Int2Spc(I)%Internal(:,:,:)),SUM(Int2Spc(I)%Internal(:,:,:))/IM/JM/LM
   ENDDO
-  State_Chm%Spc_Units = 'kg/kg total'
+  State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
 
   !=========================================================================
   ! Various other archived variables needed in internal state. Eventually,
