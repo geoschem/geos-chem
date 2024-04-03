@@ -146,6 +146,36 @@ COLLECTIONS: 'Emissions',
                               'EmisCO2_BiomassBurn  ', 'GCHPchem',
 ::
 #==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull             ',
+                              'CH4emission                   ',
+                              'CH4massColumnFull             ',
+                              'CH4massColumnTrop             ',
+                              'LossOHbyCH4columnTrop         ',
+                              'LossOHbyMCFcolumnTrop         ',
+                              'OHwgtByAirMassColumnFull      ',
+::
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.timestampStart: .true.
+  SpeciesConc.monthly:        1
+  SpeciesConc.frequency:      010000
+  SpeciesConc.duration:       240000
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConcVV_CH4',  'GCHPchem',
+                              'SpeciesConcVV_CO ',  'GCHPchem',
+                              'SpeciesConcVV_CO2',  'GCHPchem',
+                              'SpeciesConcVV_OCS',  'GCHPchem',
+			      ##'SpeciesConcMND_CH4', 'GCHPchem',
+                              ##'SpeciesConcMND_CO ', 'GCHPchem',
+                              ##'SpeciesConcMND_CO2', 'GCHPchem',
+                              ##'SpeciesConcMND_OCS', 'GCHPchem',
+::
+#==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
 # due to a single component (e.g. chemistry); default = ozone only; add more
 # species as needed to the example below (advected only)
@@ -311,23 +341,6 @@ COLLECTIONS: 'Emissions',
                                  'Met_PFILSAN ', 'GCHPchem',
                                  'Met_PFLCU   ', 'GCHPchem',
                                  'Met_PFLLSAN ', 'GCHPchem',
-::
-#==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.format:         'CFIO',
-  SpeciesConc.timestampStart: .true.
-  SpeciesConc.monthly:        1
-  SpeciesConc.frequency:      010000
-  SpeciesConc.duration:       240000
-  SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConcVV_CH4',  'GCHPchem',
-                              'SpeciesConcVV_CO ',  'GCHPchem',
-                              'SpeciesConcVV_CO2',  'GCHPchem',
-                              'SpeciesConcVV_OCS',  'GCHPchem',
-			      'SpeciesConcMND_CH4', 'GCHPchem',
-                              'SpeciesConcMND_CO ', 'GCHPchem',
-                              'SpeciesConcMND_CO2', 'GCHPchem',
-                              'SpeciesConcMND_OCS', 'GCHPchem',
 ::
 #==============================================================================
   StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',

@@ -622,10 +622,12 @@ VerboseOnCores:              root       # Accepted values: root all
 
 #==============================================================================
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+#
+# # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4_T $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4_WTL - 10 1
-0 JPLW_CH4   $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4     - 10 1
+0 JPLW_CH4_T $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4_WTL - 10 1
+0 JPLW_CH4   $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4     - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -646,12 +648,14 @@ VerboseOnCores:              root       # Accepted values: root all
 
 #==============================================================================
 # --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM_T $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4_RES - 15 1
-0 CH4_RES_DAM   $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4     - 15 1
-0 CH4_RES_SFC_T $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4_RES - 15 1
-0 CH4_RES_SFC   $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4     - 15 1
+0 CH4_RES_DAM_T $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4_RES - 15 1
+0 CH4_RES_DAM   $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4     - 15 1
+0 CH4_RES_SFC_T $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4_RES - 15 1
+0 CH4_RES_SFC   $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4     - 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -820,11 +824,11 @@ ${RUNDIR_CH4_LOSS}
 (((GLOBAL_OH
 
 (((OH_PosteriorSF
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH   1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
 )))OH_PosteriorSF
 
 (((.not.OH_PosteriorSF
-* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH           1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+* GLOBAL_OH  $ROOT/OH/v2014-09/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH   1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 ))).not.OH_PosteriorSF
 
 )))GLOBAL_OH
@@ -1079,10 +1083,13 @@ ${RUNDIR_GLOBAL_Cl}
 59 GHGI_OTH_BUR_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_3F_Field_Burning                   2012-2018/1-12/1/0 C xy 1 1
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
-(((Scarpelli_Mexico.or.Scarpelli_Canada
+#==============================================================================
+# --- Seasonal scaling factors ----
+#==============================================================================
+(((Scarpelli_Mexico
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
 11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0  C xy 1 1
-)))Scarpelli_Mexico.or.Scarpelli_Canada
+)))Scarpelli_Mexico
 
 #==============================================================================
 # --- QFED2 diurnal scale factors ---
@@ -1109,14 +1116,17 @@ ${RUNDIR_GLOBAL_Cl}
 #==============================================================================
 # Country/region masks
 #==============================================================================
+
+# Use updated files (v2024-01); these are COARDS-compliant.
 (((Scarpelli_Mexico
-1001 MEXICO_MASK     $ROOT/MASKS/v2018-09/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+1001 MEXICO_MASK     $ROOT/MASKS/v2024-01/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+1010 MEX_MASK_MIRROR $ROOT/MASKS/v2024-01/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
+# Use updated files (v2024-01); these are COARDS-compliant.
 (((Scarpelli_Canada
-1002 CANADA_MASK     $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
+1002 CANADA_MASK     $ROOT/MASKS/v2024-01/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR $ROOT/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext

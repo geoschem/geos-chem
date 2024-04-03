@@ -12,8 +12,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file [yes|no]
 #EOP
 #------------------------------------------------------------------------------
 #BOC
