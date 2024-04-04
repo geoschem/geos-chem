@@ -76,8 +76,16 @@ RUN_PHASES:        2
 #
 # %%% Stop if KPP integration fails (default: 1) %%% 
 #
-KPP_STOP_IF_FAIL:  0
+KPP_STOP_IF_FAIL:   0
 
+# Checks to prevent negative concentrations after KPP integration. These can create
+# problems with mass balance. KppCheckNegatives checks for negatives in the N top 
+# layers. I.e., if set to 5 it will check for negatives in the top 5 model levels.
+# If set to 0, it will perform the check in the entire stratosphere and mesosphere.
+# If negatives are found, a second integration attempt will be made using HSTART=0 
+# and by relaxing the KPP tolerances using the scale factor provided in KppTolScale.
+KppCheckNegatives: -1
+KppTolScale:        1.0
 
 #
 # %%% HEMCO configuration file %%%
@@ -102,13 +110,16 @@ ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
 # Make species friendly to moist? If turned on, convection must be turned off in in geoschem_config.yml
-Species_friendly_to_moist: 0
+Species_friendly_to_moist: 1
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1
 # Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
 Online_CLDLIQ: 1
 # Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
 Online_VUD: 1
+
+# Use GAAS on GEOS-Chem aerosols? 
+Species_friendly_to_GAAS: 0
 
 #
 # %%% Tuning parameter to reduce washout efficiency 
@@ -168,7 +179,7 @@ Use_GMI_O3_PL:        0
 
 # Analysis options 
 ANAPHASE: 2
-Analysis_nSpecies: 0
+Analysis_nSpecies: 2
 Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.rc
 Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
 
@@ -210,3 +221,25 @@ TurnOffHetRates: 1
 #
 Bry_Cly_Family_Transport: 1
 
+#
+# CO production from CO2 photolysis
+#
+CO_production_from_CO2_photolysis: 0
+CO2photolysisFile: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/StratChem/SC.J_20_12_79_72_200_45.jpl15.nc4
+
+#
+# CO2 coupling with GOCART
+#
+Import_CO2_from_GOCART: 0
+GOCART_CO2_FieldName: GOCART_CO2
+
+#
+# Set CO mesosphere upper boundary to external field 
+#
+Set_CO_Mesosphere: 0
+CO_Mesosphere_FieldName: CO_CMAM
+
+#
+# To set CH4 boundary condition from GEOS 
+# This is not yet implemented. Set to zero for now. If you want GEOS CH4, need to activate GEOS_CH4 in HEMCO_Config.rc
+CH4_from_GEOS: 0

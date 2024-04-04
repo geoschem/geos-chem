@@ -1517,11 +1517,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -2285,26 +2280,6 @@ CONTAINS
                 VARI(V) = Spc(N)%Conc(I,J,L) * ( AIRMW / MW_g )
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.0_fp
-
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-             !---------------------------------------------------------------
-             ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
-             !---------------------------------------------------------------
-             CASE( 200000:299999 )
-
-                ! Remove offset from PVAR
-                N = PVAR(V) - 200000
-
-                ! Archive the microphysics rate
-                VARI(V) = AD61_INST(I,J,L,N)
-
-                IF ( Input_Opt%amIRoot ) THEN
-                   write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG', &
-                               'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
-                ENDIF
-#endif
-#endif
 
              !---------------------------------------------------------------
              ! Otherwise it's an error!

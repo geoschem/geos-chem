@@ -33,12 +33,21 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
 #==============================================================================
-FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
-CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/%y4/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_%y4_%m2.nc4
+#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_%y4_%m2.nc4
+#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_%y4_%m2.nc4
+
+# Climatology option (if using make sure two lines below are uncommented and
+# two lines above are commented)
+FLASH_DENS 1 N N F1980-%m2-01T00:00:00 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+CONV_DEPTH 1 N N F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
 #
-# To utilize climatology lightning fields, comment the two lines above and uncomment these lines
-#FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
-#CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_MET}/CLIM/FLASH_CTH_${RUNDIR_MET}_${RUNDIR_MET_NATIVE_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#==============================================================================
+# --- Fields for RRTMG ---
+# Dynamical heating data is only read in when RRTMG FDH/SEFDH is used and
+# must be generated in a reference (companion) run. The time after P at
+# the end should be the RRTMG time step (3 hours by default)
+#==============================================================================
+DynHeating 1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./DynHeating/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 ###############################################################################
 ###
@@ -1408,14 +1417,14 @@ AEIC19_DAILY_BCPI   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none BC       ./Hc
 AEIC19_DAILY_OCPI   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 AEIC19_DAILY_ACET   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 # Monthly data
-AEIC19_MONMEAN_NO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none NO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_NO2  kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none NO2      ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_HONO kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HONO     ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_CO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_SO2  kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_BCPI kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none BC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_OCPI kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
-AEIC19_MONMEAN_ACET kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_NO   kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none NO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_NO2  kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none NO2      ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_HONO kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none HONO     ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_CO   kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none CO       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_SO2  kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_BCPI kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none BC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_OCPI kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none OC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_ACET kg/m2/s Y    Y F2019-%m2-01T00:00:00 none none HC       ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 #
 #==============================================================================
 # --- Emissions from decaying plants (DECAYING_PLANTS) ---
@@ -1772,7 +1781,7 @@ GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
+TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 #
 #==============================================================================
 # --- UV albedo (UVALBEDO) ---
@@ -2069,7 +2078,7 @@ GMI_PROD_VRP  v/v/s Y Y F2000-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-
 #==============================================================================
 # --- NOAA GMD monthly mean surface CH4 (GMD_SFC_CH4) ---
 #==============================================================================
-NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc
+NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1975-2022.1x1.nc
 #
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---
@@ -2107,6 +2116,9 @@ TES_CLIM_CFC12 ppbv N Y - none none CFC12 ./HcoDir/RRTMG/v2018-11/species_clim_p
 TES_CLIM_CFC22 ppbv N Y - none none CFC22 ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_CH4   ppbv N Y - none none CH4   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
 TES_CLIM_N2O   ppbv N Y - none none N2O   ./HcoDir/RRTMG/v2018-11/species_clim_profiles.2x25.nc
+#
+# Dynamical heating rates from a previous reference (baseline) simulation
+DynHeating Kday-1 N N F%y4-%m2-%d2T%h2:00:00 none none DynHeating ./Heating_Baseline/GEOSChem.DynHeating.%y4%m2%d2_%h2%n2z.nc4 2000-01-01T00:00:00P03:00
 #
 #==============================================================================
 # --- Surface VMR (SfcVMR) ---

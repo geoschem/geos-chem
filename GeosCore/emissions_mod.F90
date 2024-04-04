@@ -211,7 +211,8 @@ CONTAINS
 
 #ifdef TOMAS
     ! Call TOMAS emission routines (JKodros 6/2/15)
-    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+    CALL EmissCarbonTomas( Input_Opt, State_Chm, State_Grid, State_Met, &
+               State_Diag,  RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -258,7 +259,7 @@ CONTAINS
     ! To enable CH4 emissions in a full-chemistry simulation, add entries
     ! in HEMCO_Config.rc as is done for other species. 
     ! (mps, 2/12/21)
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
        CALL EmissCh4( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
        ! Trap potential errors

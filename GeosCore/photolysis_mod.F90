@@ -32,6 +32,7 @@ MODULE PHOTOLYSIS_MOD
   PRIVATE :: RD_AOD
   PRIVATE :: CALC_AOD
   PRIVATE :: SET_AER
+  PRIVATE :: RD_PROF_NC
 !
 ! !REVISION HISTORY:
 !  20 Mar 2023 - E. Lundgren - initial version, adapted from fast_jx_mod.F90
@@ -57,22 +58,32 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PHOTOLYSIS( Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE INIT_PHOTOLYSIS( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
 !
 ! !USES:
 !
     USE Charpak_Mod,    ONLY : CSTRIP
+#ifdef FASTJX
     USE CMN_FJX_Mod,    ONLY : JVN_, W_, JLABEL, RNAMES, WL, JFACTA
+#else
+    USE Cldj_Cmn_Mod,   ONLY : JVN_, W_, JLABEL, RNAMES, WL, JFACTA
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : Planck, CConst
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
+    USE State_Grid_Mod, ONLY : GrdState
+#ifdef FASTJX
     USE Fjx_Interface_Mod,  ONLY : Init_FastJX
+#else
+    USE Cldj_Interface_Mod, ONLY : Init_CloudJ
+#endif
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostics State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -124,6 +135,7 @@ CONTAINS
     ! a list of all of the lookup tables etc read by Fast-JX
     !--------------------------------------------------------------------
     IF ( Input_Opt%Do_Photolysis ) THEN
+#ifdef FASTJX
        IF ( TRIM(Input_Opt%Fast_JX_Dir) == MISSING_STR ) THEN
           ErrMsg = 'Init_Photolysis: Fast-JX directory missing in ' // &
                    'in geoschem_config.yml!'
@@ -136,15 +148,45 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+#else
+       IF ( TRIM(Input_Opt%CloudJ_Dir) == MISSING_STR ) THEN
+          ErrMsg = 'Init_Photolysis: Cloud-J directory missing in ' // &
+                   'geoschem_config.yml!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+       CALL Init_CloudJ( Input_Opt, State_Grid, State_Diag, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Init_CloudJ"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+#endif
     ENDIF
-
+    
     !------------------------------------------------------------------------
     ! Read in AOD data even if photolysis disabled
     ! (or just print file name if in dry-run mode)
     !------------------------------------------------------------------------
     CALL RD_AOD( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in FAST-JX routine "RD_AOD"!'
+       ErrMsg = 'Error encountered in routine "RD_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !--------------------------------------------------------------------
+    ! Read in T & O3 climatology to fill e.g. upper layers or if O3 not calc.
+    !--------------------------------------------------------------------
+    ! NOTE: Cloud-J reads in an ascii file with this data during initialization
+    ! and uses it prior to calling Cloud_JX within the Cloud-J standalone. In
+    ! GEOS-Chem we read a netcdf file instead and use the data within
+    ! subroutine Set_Prof_Fjx if using Fast-JX and Set_Prof_CloudJ if using
+    ! Cloud-J. The data is stored in State_Chm%Phot%TREF/%OREF. Cloud-J
+    ! globals variables TREF and OREF are only used for Cloud-J standalone.
+    CALL RD_PROF_NC( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "Rd_Prof_Nc"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -165,7 +207,7 @@ CONTAINS
     !------------------------------------------------------------------------
     IF ( .NOT. Input_Opt%Do_Photolysis ) RETURN
 
-    !------------------------------------------------------------------------
+    !--------------------------------------------------------------------
     ! Set up MIEDX array to interpret between GC and FJX aerosol indexing
     !------------------------------------------------------------------------
     CALL SET_AER( Input_Opt, State_Chm, RC )
@@ -505,7 +547,11 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+#ifdef FASTJX
     USE Fjx_Interface_Mod,  ONLY : Run_FastJX
+#else
+    USE Cldj_Interface_Mod, ONLY : Run_CloudJ
+#endif
 
     IMPLICIT NONE
 !
@@ -549,9 +595,19 @@ CONTAINS
     ThisLoc  = ' -> at DO_PHOTOLYSIS (in module GeosCore/photolysis_mod.F90)'
     WAVELENGTH = 0
 
+#ifdef FASTJX
     CALL Run_FastJX( Wavelength, Input_Opt,  State_Chm, State_Diag, &
                      State_Grid, State_Met, RC )
+#else
+    CALL Run_CloudJ( Input_Opt, State_Chm, State_Diag, State_Grid, State_Met, RC )
+#endif
+
     IF ( RC /= GC_SUCCESS ) THEN
+#ifdef FASTJX
+       ErrMsg = 'Error encountered in subroutine Run_FastJX!'
+#else
+       ErrMsg = 'Error encountered in subroutine Run_CloudJ!'
+#endif
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -601,8 +657,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  NOTE: The netCDF diagnostics are attached in DO_FLEXCHEM so that we have
-!  access to the adjusted rates.  Only the bpch diagnostics are updated
-!  here.
+!  access to the adjusted rates.
 !    -- Bob Yantosca, 19 Dec 2017
 !
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
@@ -841,7 +896,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
     ErrMsg   = ''
-    ThisLoc  = ' -> at RD_AOD (in module GeosCore/fast_jx_mod.F90)'
+    ThisLoc  = ' -> at RD_AOD (in module GeosCore/photolysis_mod.F90)'
     LBRC     = Input_Opt%LBRC
     DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
 
@@ -902,9 +957,9 @@ CONTAINS
 
        ! Test if the file exists and define an output string
        IF ( FileExists ) THEN
-          FileMsg = 'FAST-JX (RD_AOD): Opening'
+          FileMsg = 'PHOTOLYSIS (RD_AOD): Opening'
        ELSE
-          FileMsg = 'FAST-JX (RD_AOD): REQUIRED FILE NOT FOUND'
+          FileMsg = 'PHOTOLYSIS (RD_AOD): REQUIRED FILE NOT FOUND'
        ENDIF
 
        ! Write to stdout for both regular and dry-run simulations
@@ -1316,7 +1371,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod, ONLY : AN_, NAA, TITLAA
+#ifdef FASTJX
+    USE CMN_FJX_Mod,    ONLY : AN_, NAA, TITLAA
+#else
+    USE Cldj_Cmn_Mod,   ONLY : AN_, NAA, TITLAA
+#endif
     USE CMN_SIZE_Mod,   ONLY : NRHAER, NRH
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
@@ -1393,7 +1452,11 @@ CONTAINS
     ENDDO
 
     ! Stratospheric aerosols - SSA/STS and solid PSCs
+#ifdef FASTJX
     MIEDX(10+(NRHAER*NRH)+1) = 4  ! SSA/LBS/STS
+#else
+    MIEDX(10+(NRHAER*NRH)+1) = 1  ! SSA/LBS/STS
+#endif
     MIEDX(10+(NRHAER*NRH)+2) = 14 ! NAT/ice PSCs
 
     ! Ensure all 'AN_' types are valid selections
@@ -1417,6 +1480,250 @@ CONTAINS
             'between 1 and ',i3)
 
   END SUBROUTINE SET_AER
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rd_prof_nc
+!
+! !DESCRIPTION: Subroutine RD\_PROF\_NC reads in the reference climatology
+!  from a NetCDF file rather than an ASCII .dat.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE RD_PROF_NC( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE State_Chm_Mod, ONLY : ChmState
+
+#if defined( MODEL_CESM )
+    USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
+    USE IOFILEMOD,         ONLY : GETFIL
+    USE PIO,               ONLY : PIO_CLOSEFILE
+    USE PIO,               ONLY : PIO_INQ_DIMID
+    USE PIO,               ONLY : PIO_INQ_DIMLEN
+    USE PIO,               ONLY : PIO_INQ_VARID
+    USE PIO,               ONLY : PIO_GET_VAR
+    USE PIO,               ONLY : PIO_NOERR
+    USE PIO,               ONLY : PIO_NOWRITE
+    USE PIO,               ONLY : FILE_DESC_T
+#else
+    USE m_netcdf_io_open
+    USE m_netcdf_io_read
+    USE m_netcdf_io_readattr
+    USE m_netcdf_io_close
+#endif
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  This file was automatically generated by the Perl scripts in the
+!  NcdfUtilities package (which ships w/ GEOS-Chem) and was subsequently
+!  hand-edited.
+!
+! !REVISION HISTORY:
+!  19 Apr 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: FileExists          ! Does input file exist?
+    INTEGER            :: fId                 ! netCDF file ID
+
+    ! Strings
+    CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
+    CHARACTER(LEN=255) :: nc_file             ! netCDF file name
+    CHARACTER(LEN=255) :: nc_path             ! netCDF path name
+    CHARACTER(LEN=255) :: v_name              ! netCDF variable name
+    CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+    CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+    CHARACTER(LEN=255) :: FileMsg
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
+    ! Arrays
+    INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
+
+#if defined( MODEL_CESM )
+    type(FILE_DESC_T)  :: ncid
+    INTEGER            :: vId, iret
+#endif
+
+    ! Pointers
+    REAL(fp), POINTER :: OREF(:,:,:)
+    REAL(fp), POINTER :: TREF(:,:,:)
+
+    !=================================================================
+    ! RD_PROF_NC begins here!
+    !=================================================================
+
+    ! Initialize
+    ! Assume success
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/photolysis_mod.F90)'
+
+    ! Set pointers
+    OREF => State_Chm%Phot%OREF
+    TREF => State_Chm%Phot%TREF
+
+    ! Directory and file names
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
+    nc_file = 'fastj.jv_atms_dat.nc'
+    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+
+    !=================================================================
+    ! In dry-run mode, print file path to dryrun log and exit.
+    ! Otherwise, print file path to stdout and continue.
+    !=================================================================
+
+    ! Test if the file exists
+    INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
+    ! Test if the file exists and define an output string
+    IF ( FileExists ) THEN
+       FileMsg = 'PHOTOLYSIS (RD_PROF_NC): Opening'
+    ELSE
+       FileMsg = 'PHOTOLYSIS (RD_PROF_NC): REQUIRED FILE NOT FOUND'
+    ENDIF
+
+    ! Write to stdout for both regular and dry-run simulations
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+300    FORMAT( a, ' ', a )
+    ENDIF
+
+    ! For dry-run simulations, return to calling program.
+    ! For regular simulations, throw an error if we can't find the file.
+    IF ( Input_Opt%DryRun ) THEN
+       RETURN
+    ELSE
+       IF ( .not. FileExists ) THEN
+          WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    !=========================================================================
+    ! Open and read data from the netCDF file
+    !=========================================================================
+
+    ! Open netCDF file
+#if defined( MODEL_CESM )
+    CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
+#else
+    CALL Ncop_Rd( fId, TRIM(nc_path) )
+#endif
+
+    ! Echo info to stdout
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+       WRITE( 6, 110 ) TRIM(nc_file)
+       WRITE( 6, 120 ) TRIM(nc_dir)
+    ENDIF
+
+    !----------------------------------------
+    ! VARIABLE: T
+    !----------------------------------------
+
+    ! Variable name
+    v_name = "T"
+
+    ! Read T from file
+    st3d   = (/  1,  1,  1 /)
+    ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, TREF          )
+#else
+    CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the T:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+    ! Echo info to stdout
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+    ENDIF
+#endif
+
+    !----------------------------------------
+    ! VARIABLE: O3
+    !----------------------------------------
+
+    ! Variable name
+    v_name = "O3"
+
+    ! Read O3 from file
+    st3d   = (/  1,  1,  1 /)
+    ct3d   = (/ 51, 18, 12 /)
+#if defined( MODEL_CESM )
+    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
+    iret = PIO_GET_VAR(   ncid, vid, OREF          )
+#else
+    CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
+
+    ! Read the O3:units attribute
+    a_name = "units"
+    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
+
+    ! Echo info to stdout
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
+    ENDIF
+#endif
+
+    !=================================================================
+    ! Cleanup and quit
+    !=================================================================
+
+    ! Close netCDF file
+#if defined( MODEL_CESM )
+    CALL PIO_CLOSEFILE( ncid )
+#else
+    CALL NcCl( fId )
+#endif
+
+    ! Echo info to stdout
+    IF ( Input_Opt%amIRoot ) THEN
+       WRITE( 6, 140 )
+       WRITE( 6, 100 ) REPEAT( '%', 79 )
+    ENDIF
+
+    ! Free pointers
+    OREF => NULL()
+    TREF => NULL()
+
+    ! FORMAT statements
+100 FORMAT( a                                              )
+110 FORMAT( '%% Opening file  : ',         a               )
+120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
+130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
+140 FORMAT( '%% Successfully closed file!'                 )
+
+  END SUBROUTINE RD_PROF_NC
 !EOC
 
 END MODULE PHOTOLYSIS_MOD

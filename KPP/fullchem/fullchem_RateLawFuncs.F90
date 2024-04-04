@@ -375,24 +375,6 @@ CONTAINS
     k  = k0 / ( 1.0_dp + k1 )
   END FUNCTION GC_TBRANCH_1_acac
 
-  FUNCTION GC_TBRANCH_2_acabc( a0, c0, a1, b1, c1 ) RESULT( k )
-    ! Temperature Dependent Branching Ratio, used for reactions:
-    !    C3H8 + OH = B3O2
-    !    C3H8 + OH = A3O2
-    !
-    ! For these reactions, this Arrhenius law term evaluates to 1:
-    !    (300/T)**b0
-    ! because b0 = 0.  Therefore we can skip computing this
-    ! term.  This avoids excess CPU cycles. (bmy, 12/18/20)
-    !
-    REAL(dp), INTENT(IN) :: a0, c0, a1, b1, c1
-    REAL(dp)             :: k0, k1, k
-    !
-    k0 = a0 * EXP( c0 / TEMP )
-    k1 = a1 * EXP( c1 / TEMP ) * K300_OVER_TEMP**b1
-    k  = k0 / ( 1.0_dp + k1 )
-  END FUNCTION GC_TBRANCH_2_acabc
-
   FUNCTION GC_RO2HO2_aca( a0, c0, a1 ) RESULT( k )
     ! Carbon Dependence of RO2+HO2, used in these reactions:
     !    A3O2 + HO2 = RA3P
@@ -450,28 +432,6 @@ CONTAINS
     k  = a0 * EXP( c0 / TEMP )
     k   = k * ( O2 + 3.5E+18_dp ) / ( 2.0_dp * O2 + 3.5E+18_dp )
   END FUNCTION GC_GLYXNO3_ac
-
-  FUNCTION GC_OHHNO3_acacac( a0, c0, a1, c1, a2, c2 ) RESULT( k )
-    ! Used to compute the rate for these reactions:
-    !    HNO3  + OH = H2O + NO3
-    !    HONIT + OH = NO3 + HAC
-    !
-    ! For these reactions, these Arrhenius law terms evaluate to 1:
-    !    (300/T)**b0
-    !    (300/T)**b1
-    !    (300/T)**b2
-    ! Because b0 = b1 = b2 = 0.  Therefore we can skip computing
-    ! these terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
-    !
-    REAL(dp), INTENT(IN) :: a0, c0, a1, c1, a2, c2
-    REAL(dp)             :: k0, k1, k2, k
-    !
-    ! ---  OH + HNO3:   K = K0 + K3[M] / (1 + K3[M]/K2)  ------
-    k0   = a0 * EXP( c0 / TEMP )
-    k1   = a1 * EXP( c1 / TEMP )
-    k2   = NUMDEN * ( a2 * EXP( c2 / TEMP ) )
-    k = k0 + k2 / ( 1.0_dp + k2/k1 )
-  END FUNCTION GC_OHHNO3_acacac
 
   FUNCTION GC_GLYCOH_A_a( a0 ) RESULT( k )
     ! Used to compute the rate for this reaction:
@@ -551,36 +511,6 @@ CONTAINS
     hac_frac = MAX( hac_frac, 0.0_dp )
     k        = k0 * ( 1.0_dp - hac_frac )
   END FUNCTION GC_HACOH_B_ac
-
-  FUNCTION GC_OHCO_a( a0 ) RESULT( k )
-    ! Reaction rate for:
-    !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
-    !
-    ! For this reaction, these Arrhenius law terms evaluate to 1:
-    !    (300/T)**b0 * EXP(c0/T)
-    ! because b0 = c0 = 0.  Therefore we can skip computing these
-    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
-    !
-    REAL(dp), INTENT(IN) :: a0
-    !
-    REAL(dp)             :: klo1,   klo2,   khi1,  khi2
-    REAL(dp)             :: xyrat1, xyrat2, blog1, blog2,   fexp1
-    REAL(dp)             :: fexp2,  kco1,   kco2,  TEMP300, k
-    !
-    klo1   = 5.9E-33_dp * K300_OVER_TEMP
-    khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
-    xyrat1 = klo1 * NUMDEN / khi1
-    blog1  = LOG10( xyrat1 )
-    fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
-    kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
-    klo2   = 1.5E-13_dp
-    khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
-    xyrat2 = klo2 * NUMDEN / khi2
-    blog2  = LOG10( xyrat2 )
-    fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
-    kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
-    k      = kco1 + kco2
-  END FUNCTION GC_OHCO_a
 
   FUNCTION GC_RO2NO_A1_ac( a0, c0 ) RESULT( k )
     ! Reaction rate for the "A" branch of these RO2 + NO reactions:
@@ -834,6 +764,33 @@ CONTAINS
     k     = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
   END FUNCTION GCJPLPR_abcabc
 
+  FUNCTION GCJPLAC_ababac( a1, b1, a2, b2, a3, c3, fv ) RESULT( k )
+    ! Rate coefficient for activation reactions competing with a 
+    ! termolecular association pathway
+    ! a1, b1 are the Arrhenius parameters for the lower-limit rate.
+    ! a2, b2 are the Arrhenius parameters for the upper-limit rate.
+    ! a3, c3 are Arrhenius parameters for the activation path
+    ! fv     is the falloff curve parameter, usually = 0.6.
+    !
+    ! Used to compute the rate for these reactions:
+    !    NO2  + O  = O2 + NO
+    !    HNO3 + OH = NO3 + H2O
+    !    CO   + OH = HO2 + CO2
+    !
+    REAL(dp), INTENT(IN) :: a1, b1, a2, b2, a3, c3, fv
+    REAL(dp)             :: rlow, rhigh, xyrat, blog
+    REAL(dp)             :: fexp, k1, k2, k
+    !
+    rlow  = a1 * ( K300_OVER_TEMP**b1 ) * NUMDEN
+    rhigh = a2 * ( K300_OVER_TEMP**b2 )
+    xyrat = rlow / rhigh
+    blog  = LOG10( xyrat )
+    fexp  = 1.0_dp / ( 1.0_dp + ( blog * blog ) )
+    k1    = rlow * ( fv**fexp ) / ( 1.0_dp + xyrat )
+    k2    = a3 * EXP( c3 / TEMP )
+    k     = k2 * (1.0_dp - (k1 / rhigh) )
+  END FUNCTION GCJPLAC_ababac
+  
   !#########################################################################
   !#####        RATE-LAW FUNCTIONS FOR HETEROGENEOUS REACTIONS         #####
   !#####   Some common functions are defined in rateLawUtilFuncs.F90   #####
@@ -898,6 +855,10 @@ CONTAINS
 
     ! Assume BrNO3 is limiting, so update the removal rate accordingly
     k = kIIR1Ltd( C(ind_BrNO3), C(ind_HCl), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION BrNO3uptkByHCl
 
   !=========================================================================
@@ -1328,6 +1289,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_HBr), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByHBr
 
   FUNCTION ClNO3uptkByBrSALA( H ) RESULT( k )
@@ -1360,6 +1325,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALA), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByBrSALA
 
   FUNCTION ClNO3uptkByBrSALC( H ) RESULT( k )
@@ -1392,6 +1361,10 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_BrSALC), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION ClNO3uptkByBrSALC
 
   FUNCTION ClNO3uptkBySALACL( H ) RESULT( k )
@@ -1416,6 +1389,7 @@ CONTAINS
     !
     ! Assume ClNO3 is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_ClNO3), C(ind_SALACL), k )
+
   END FUNCTION ClNO3uptkBySALACL
 
   FUNCTION ClNO3uptkBySALCCL( H ) RESULT( k )
@@ -2255,6 +2229,10 @@ CONTAINS
     !
     ! Assume HOCl is limiting, so recompute reaction rate accordingly
     k = kIIR1Ltd( C(ind_HOCl), C(ind_HBr), k )
+
+    ! Force to zero if HetRate flag is turned on
+    IF ( H%TurnOffHetRates ) k = 0.0_dp
+
   END FUNCTION HOClUptkByHBr
 
   FUNCTION HOClUptkBySALACL( H ) RESULT( k )
@@ -2994,7 +2972,7 @@ CONTAINS
     ! Uptake by stratospheric sulfate (aerosol type 13)
     ! and by irregular ice cloud (aerosol type 14)
     gamma = 1.0e-4_dp
-    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO2 in cloud (liquid branch only)
@@ -3072,7 +3050,7 @@ CONTAINS
     ! Uptake by stratospheric sulfate liquid aerosol
     ! and by irregular ice cloud
     gamma = 0.1_dp
-    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO3 in cloud (liquid and ice branches)
@@ -3473,7 +3451,7 @@ CONTAINS
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
        k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
-       k = k + H%xArea(SLA) * gamma
+       k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
        k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ENDIF
   END FUNCTION VOCuptk1stOrd

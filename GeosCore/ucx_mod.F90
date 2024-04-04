@@ -756,7 +756,12 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : RAA
+#else
+    USE Cldj_Cmn_Mod,    ONLY : RAA
+#endif
+    USE CMN_SIZE_Mod,    ONLY : NDUST
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -804,9 +809,6 @@ CONTAINS
 
     ! Used for old Seinfeld & Pandis slip factor calc
     REAL(fp)               :: sp_Lambda, sp_Num
-
-    ! Parameters
-    REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
 
     ! Indexing
     INTEGER, PARAMETER     :: IBC  = 1
@@ -920,14 +922,17 @@ CONTAINS
           IF (RUNCALC) THEN
              ! Need to translate for BC radii
              IF ( State_Met%InChemGrid(I,J,L) ) THEN
-                RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
+                RWET(IBC) = WERADIUS(I,J,L,2+NDUST)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
+#ifdef FASTJX
                 RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
+#else
+                RWET(IBC) = RAA(29) * 1.0e-6_fp
+#endif
              ENDIF
 
-             ! Taken from aerosol_mod (MSDENS(2))
-             RHO(IBC) = BCDEN
+             RHO(IBC) = State_Chm%SpcData(id_BCPI)%Info%Density
 
              ! Get aerosol properties
              RWET(ILIQ) = State_Chm%RAD_AER(I,J,L,I_SLA)*1.e-2_fp
@@ -3640,8 +3645,9 @@ CONTAINS
     LACTIVEH2O = Input_Opt%LACTIVEH2O
 
     ! Check that species concentration units are as expected
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       MSG = 'Incorrect species units: '                                  // & 
+              TRIM( UNIT_STR(State_Chm%Spc_Units) )
        LOC = 'UCX_MOD: SET_H2O_TRAC'
        CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
     ENDIF
@@ -3895,9 +3901,8 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
-#if defined( SPMD )
-    USE MPISHORTHAND
-#endif
+    USE CAM_ABORTUTILS,     ONLY : endrun
+    USE SPMD_UTILS,         ONLY : mpirun, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -3923,8 +3928,9 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
-#if defined( MODEL_CESM ) && defined( SPMD )
+#if defined( MODEL_CESM )
     INTEGER            :: nSize ! Number of elements in State_Chm%NOXCOEFF
+    INTEGER            :: ierr
 #endif
 
     ! Strings
@@ -3934,6 +3940,9 @@ CONTAINS
     CHARACTER(LEN=255) :: FileMsg
     CHARACTER(LEN=255) :: GridSpec
     CHARACTER(LEN=255) :: NOON_FILE_ROOT
+#if defined( MODEL_CESM )
+    CHARACTER(LEN=*), PARAMETER :: subname = 'NOXCOEFF_INIT'
+#endif
 
     !=================================================================
     ! NOXCOEFF_INIT begins here!
@@ -4046,7 +4055,6 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
-    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
@@ -4127,9 +4135,9 @@ CONTAINS
     ENDDO !IMON
 #if defined( MODEL_CESM )
     ENDIF
-#if defined( SPMD )
-    CALL MPIBCAST( State_Chm%NOXCOEFF, nSize, MPIR8, 0, MPICOM )
-#endif
+
+    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom )
+    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 
   END SUBROUTINE NOXCOEFF_INIT

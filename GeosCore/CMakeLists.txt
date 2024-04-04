@@ -1,26 +1,5 @@
 # GeosCore/CMakeLists.txt
 
-#-----------------------------------------------------------------------------
-# Define libTransport.a
-#-----------------------------------------------------------------------------
-add_library(Transport
-  STATIC EXCLUDE_FROM_ALL
-  diag_mod.F90
-  calc_met_mod.F90
-  diagnostics_mod.F90
-  pjc_pfix_mod.F90
-  tpcore_fvdas_mod.F90
-  tpcore_window_mod.F90
-  pjc_pfix_window_mod.F90
-  transport_mod.F90
-)
-
-# Dependencies
-target_link_libraries(Transport
-  PUBLIC
-  GeosUtil
-)
-
 # Add a compilation flag to force REAL to REAL*8 if necessary
 # only for file tpcore_window_mod.F90
 if(${USE_REAL8})
@@ -41,22 +20,23 @@ add_library(GeosCore
   aero_drydep.F90
   aerosol_mod.F90
   airs_ch4_mod.F90
+  calc_met_mod.F90
   carbon_mod.F90
   carbon_gases_mod.F90
   chemistry_mod.F90
   cldice_HBrHOBr_rxn.F90
+  cldj_interface_mod.F90
   cleanup.F90
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
-  diag3.F90
+  diagnostics_mod.F90
   drydep_mod.F90
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
   fjx_interface_mod.F90
   fullchem_mod.F90
-  gamap_mod.F90
   gc_environment_mod.F90
   get_ndep_mod.F90
   global_br_mod.F90
@@ -66,7 +46,6 @@ add_library(GeosCore
   hco_state_gc_mod.F90
   hco_interface_gc_mod.F90
   hco_utilities_gc_mod.F90
-  initialize.F90
   input_mod.F90
   isorropiaII_mod.F90
   land_mercury_mod.F90
@@ -76,12 +55,12 @@ add_library(GeosCore
   mercury_mod.F90
   mixing_mod.F90
   modis_lai_mod.F90
-  ndxx_setup.F90
-  oasave.F90
   ocean_mercury_mod.F90
   olson_landmap_mod.F90
   pbl_mix_mod.F90
   photolysis_mod.F90
+  pjc_pfix_mod.F90
+  pjc_pfix_window_mod.F90
   planeflight_mod.F90
   pops_mod.F90
   RnPbBe_mod.F90
@@ -94,7 +73,10 @@ add_library(GeosCore
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90
+  tpcore_fvdas_mod.F90
+  tpcore_window_mod.F90
   tracer_mod.F90
+  transport_mod.F90
   ucx_mod.F90
   uvalbedo_mod.F90
   vdiff_mod.F90
@@ -102,7 +84,7 @@ add_library(GeosCore
   YuIMN_Code.F90
 
   # Files only included for special cases
-  $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90>
+  $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90 set_boundary_conditions_mod.F90>
   $<$<BOOL:${RRTMG}>:rrtmg_rad_transfer_mod.F90>
   $<$<BOOL:${TOMAS}>:tomas_mod.F90>
   $<$<BOOL:${APM}>:apm_driv_mod.F90>
@@ -119,7 +101,6 @@ endif()
 
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
-  Transport 
   ObsPack 
   History 
   Isorropia 

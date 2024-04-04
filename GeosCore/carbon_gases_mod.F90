@@ -53,7 +53,8 @@ MODULE Carbon_Gases_Mod
 !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! Scalars
-  LOGICAL               :: useGlobOH,  useGlobOHv5
+  LOGICAL               :: useGlobOHbmk10yr
+  LOGICAL               :: useGlobOHv5
   INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
   INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
   INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
@@ -368,7 +369,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Chem_Carbon_Gases( Input_Opt,  State_Met,  State_Chm,            &
-                               State_Grid, State_Diag, RC                   )
+                                State_Grid, State_Diag, RC                   )
 !
 ! !USES:
 !
@@ -390,7 +391,6 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Chem
-    USE Timers_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -441,7 +441,7 @@ CONTAINS
     INTEGER                :: HcoID,    I
     INTEGER                :: J,        L
     INTEGER                :: NA,       N
-    INTEGER                :: IERR,     threadNum
+    INTEGER                :: IERR
     REAL(fp)               :: dtChem,   facDiurnal
     REAL(fp)               :: tsPerDay
 
@@ -473,14 +473,6 @@ CONTAINS
     !@@@ PrevCH4 stores CH4 before chemistry, for later distribution
     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     REAL(fp) :: PREVCH4(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-#endif
-
-
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    ! For GEOS-Chem Classic timers
-    INTEGER,     EXTERNAL  :: OMP_GET_THREAD_NUM
-#endif
 #endif
 
     !========================================================================
@@ -621,11 +613,6 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, N                                               )&
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    !$OMP PRIVATE( threadNum                                                )&
-#endif
-#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -644,22 +631,6 @@ CONTAINS
        TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
        K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
        SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-       threadNum      = OMP_GET_THREAD_NUM() + 1   ! OpenMP thread number
-#endif
-#endif
-
-       !=====================================================================
-       ! Start KPP main timer
-       !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        !=====================================================================
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
@@ -683,15 +654,6 @@ CONTAINS
        ! Update reaction rates
        !===================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        ! Compute the rate constants that will be used
        CALL carbon_ComputeRateConstants(                                     &
             I                = I,                                            &
@@ -714,27 +676,9 @@ CONTAINS
        ! Update the array of rate constants for the KPP solver
        CALL Update_RCONST()
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        !=====================================================================
        ! Call the KPP integrator
        !=====================================================================
-
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     Integrate 1",                               &
-               inLoop    =  .TRUE.,                                          &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        ! Integrate the mechanism forward in time
        CALL Integrate(                                                       &
@@ -742,15 +686,6 @@ CONTAINS
             TOUT     = dtChem,                                               &
             ICNTRL_U = ICNTRL,                                               &
             IERR_U   = IERR                                                 )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     Integrate 1",                               &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
@@ -816,24 +751,6 @@ CONTAINS
             xnumol_CO2   = xnumol_CO2,                                       &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met                                        )
-
-       IF ( Input_Opt%useTimers ) THEN
-
-          ! Stop main KPP timer
-          CALL Timer_End(                                                    &
-               timerName  = "  -> KPP",                                      &
-               inLoop     = .TRUE.,                                          &
-               threadNum  = threadNum,                                        &
-               RC         = RC                                              )
-
-          ! Start Prod/Loss timer
-          CALL Timer_Start(                                                  &
-               timerName = "  -> Prod/loss diags",                           &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-
-       ENDIF
 
 #ifdef ACTIVATE_TAGGED_SPECIES
        !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -925,15 +842,6 @@ CONTAINS
           State_Diag%Loss(I,J,L,16) = ( COfrom_OH / STTCO / DTCHEM )
        ENDIF
 #endif
-
-       ! Stop Prod/Loss timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName =  "  -> Prod/loss diags",                          &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
     ENDDO
     ENDDO
@@ -1088,7 +996,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
     !------------------------------------------------------------------------
-    IF ( useGlobOH ) THEN
+    IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
 
        ! NOTE: Container name is GLOBAL_OH for both data sets!
        DgnName = 'GLOBAL_OH'
@@ -1099,21 +1007,18 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+    ENDIF
 
-       IF ( useGlobOHv5 ) THEN
+    ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
+    ! then convert OH [mol/mol dry air] to [molec/cm3].
+    IF ( useGlobOHbmk10yr ) THEN
+       Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
+    ENDIF
 
-          ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
-          ! methane simulations) then convert OH from [kg/m3] to [molec/cm3]
-          Global_OH = Global_OH * xnumol_OH / CM3perM3
-
-       ELSE
-
-          ! If we are using OH from a 10-year benchmark ("SpeciesConc")
-          ! then convert OH [mol/mol dry air] to [molec/cm3]
-          Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-
-       ENDIF
-
+    ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
+    ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
+    IF ( useGlobOHv5 ) THEN
+       Global_OH = Global_OH * xnumol_OH / CM3perM3
     ENDIF
 
     !------------------------------------------------------------------------
@@ -1699,7 +1604,8 @@ CONTAINS
      ' -> at InquireGlobalOHversion (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Test if any Global OH option is on
-    optVal   = HCO_GC_GetOption( "GLOBAL_OH", extNr=0 )
+    ! NOTE: Update the option name with each major version!!!
+    optVal   = HCO_GC_GetOption( "GLOBAL_OH_GC14", extNr=0 )
     isOHon   = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Test for GEOS-Chem v5 OH
@@ -1708,18 +1614,14 @@ CONTAINS
     isOHv5On = ( To_UpperCase( TRIM( optVal ) ) == 'TRUE' )
 
     ! Set a global variable to determine which OH to use
-    useGlobOH   = isOHon
-    useGlobOHv5 = isOHv5on
+    useGlobOHbmk10yr = isOHon
+    useGlobOHv5      = isOHv5on
 
     IF ( Input_Opt%amIRoot ) THEN
-       IF ( useGlobOH ) THEN
-          IF ( useGlobOHv5 ) THEN
-             WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
-          ELSE
-             WRITE( 6, 100 ) 'GLOBAL_OH'
-          ENDIF
- 100   FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
-
+       IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
+          IF ( useGlobOHbmk10yr ) WRITE( 6, 100 ) 'GLOBAL_OH_GC14'
+          IF ( useGlobOHv5      ) WRITE( 6, 100 ) 'GLOBAL_OH_GCv5'
+ 100      FORMAT( 'Carbon_Gases: Using global OH oxidant field option: ', a )
        ELSE
           WRITE( 6, 110 )
  110      FORMAT( 'Carbon_Gases: Global OH is set to zero!' )

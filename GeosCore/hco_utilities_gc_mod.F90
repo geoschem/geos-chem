@@ -1583,7 +1583,7 @@ CONTAINS
    USE State_Grid_Mod,    ONLY : GrdState
    USE State_Met_Mod,     ONLY : MetState
    USE Time_Mod,          ONLY : Expand_Date
-   USE UnitConv_Mod,      ONLY : Convert_Spc_Units
+   USE UnitConv_Mod
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
@@ -1613,6 +1613,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
    INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
+   INTEGER                   :: origUnit
    LOGICAL                   :: FOUND              ! Found in restart file?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
@@ -1620,7 +1621,6 @@ CONTAINS
    CHARACTER(LEN=255)        :: v_name             ! variable name
    REAL(fp)                  :: MW_g               ! species molecular weight
    REAL(fp)                  :: SMALL_NUM          ! small number threshold
-   CHARACTER(LEN=63)         :: OrigUnit
 
    ! Temporary arrays and pointers
    REAL*4,  TARGET           :: Temp2D(State_Grid%NX,State_Grid%NY)
@@ -1630,10 +1630,7 @@ CONTAINS
    REAL*4,  POINTER          :: Ptr3D(:,:,:)
 
    ! For Hg simulation
-   INTEGER                   :: Num_Hg_Categories
-   INTEGER                   :: Total_Hg_Id
    CHARACTER(LEN=60)         :: HgSpc
-   CHARACTER(LEN=4), POINTER :: Hg_Cat_Name(:)
 
    ! Default background concentration
    REAL(fp)                  :: Background_VV
@@ -1653,7 +1650,6 @@ CONTAINS
    Ptr2D       => NULL()
    Ptr3D       => NULL()
    SpcInfo     => NULL()
-   Hg_Cat_Name => NULL()
 
    ! Name of this routine
    LOC = ' -> at Get_GC_Restart (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -1905,7 +1901,7 @@ CONTAINS
    ENDDO
 
    ! Set species units
-   State_Chm%Spc_Units = 'kg/kg dry'
+   State_Chm%Spc_Units = KG_SPECIES_PER_KG_DRY_AIR
 
    ! If in debug mode, print out species min and max in [molec/cm3]
    IF ( Input_Opt%Verbose ) THEN
@@ -1913,8 +1909,15 @@ CONTAINS
       ! Convert units
       PRINT *, " "
       PRINT *, "Species min and max in molec/cm3"
-      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                              'molec/cm3', RC, OrigUnit=OrigUnit )
+
+      CALL Convert_Spc_Units(                                                &
+           Input_Opt  = Input_Opt,                                           &
+           State_Chm  = State_Chm,                                           &
+           State_Grid = State_Grid,                                          &
+           State_Met  = State_Met,                                           &
+           outUnit    = MOLECULES_SPECIES_PER_CM3,                           &
+           origUnit   = origUnit,                                            &
+           RC         = RC                                                  )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -1935,8 +1938,13 @@ CONTAINS
       ENDDO
 
       ! Convert units back
-      CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                              OrigUnit,  RC )
+      CALL Convert_Spc_Units(                                                &
+           Input_Opt  = Input_Opt,                                           &
+           State_Chm  = State_Chm,                                           &
+           State_Grid = State_Grid,                                          &
+           State_Met  = State_Met,                                           &
+           outUnit    = origUnit,                                            &
+           RC         = RC                                                  )
 
       ! Trap error
       IF ( RC /= GC_SUCCESS ) THEN
@@ -2383,17 +2391,6 @@ CONTAINS
 230   FORMAT( a24, ' not found in restart file, set to zero')
 240   FORMAT( a24, ':   ', es15.9, 1x, a4)
 
-      ! Print note that variables are initialized to zero if not
-      ! found (currently only happens in tagged Hg simulation)
-      IF ( Input_Opt%LSPLIT ) THEN
-         WRITE( 6, 250 )
-250      FORMAT( /, 'NOTE: all variables not found in restart ', &
-                    'are initialized to zero')
-      ENDIF
-
-      ! Free pointers for Hg indexing
-      Hg_Cat_Name => NULL()
-
    ENDIF
 
    !=================================================================
@@ -2433,7 +2430,7 @@ CONTAINS
    USE HCO_State_GC_Mod, ONLY : HcoState
    USE Input_Opt_Mod,    ONLY : OptInput
    USE PhysConstants,    ONLY : AIRMW
-   USE Species_Mod,      ONLY : Species, SpcConc
+   USE Species_Mod,      ONLY : Species
    USE State_Chm_Mod,    ONLY : ChmState
    USE State_Grid_Mod,   ONLY : GrdState
    USE State_Met_Mod,    ONLY : MetState
@@ -2477,7 +2474,6 @@ CONTAINS
    ! Temporary arrays and pointers
    REAL*4,  TARGET        :: Temp3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
    REAL*4,  POINTER       :: Ptr3D(:,:,:)
-   TYPE(SpcConc), POINTER :: Spc(:)
 
    ! Objects
    TYPE(Species), POINTER :: SpcInfo
@@ -2496,9 +2492,6 @@ CONTAINS
    ! Initialize pointers
    Ptr3D     => NULL()
    SpcInfo   => NULL()
-
-   ! Point to species array [kg/kg]
-   Spc       => State_Chm%Species
 
    ! Name of this routine
    LOC = ' -> at Get_Boundary_Conditions (in GeosCore/hco_utilities_gc_mod.F90)'
@@ -2520,7 +2513,7 @@ CONTAINS
    !=================================================================
 
    ! Print header for min/max concentration to log
-   IF ( Input_Opt%amIRoot ) THEN
+   IF ( Input_Opt%amIRoot .AND. (FIRST .or. Input_Opt%Verbose) ) THEN
       WRITE( 6, 110 )
 110   FORMAT( 'Min and Max of each species in BC file [mol/mol]:' )
    ENDIF
@@ -2589,52 +2582,17 @@ CONTAINS
 
       ENDIF
 
-
-      ! Loop over grid boxes and apply BCs to the specified buffer zone
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L )
-      DO L = 1, State_Grid%NZ
-
-         ! First loop over all latitudes of the nested domain
-         DO J = 1, State_Grid%NY
-
-            ! West BC
-            DO I = 1, State_Grid%WestBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! East BC
-            DO I = (State_Grid%NX-State_Grid%EastBuffer)+1, State_Grid%NX
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-         ENDDO
-
-         ! Then loop over the longitudes of the nested domain
-         DO I = 1+State_Grid%WestBuffer,(State_Grid%NX-State_Grid%EastBuffer)
-
-            ! South BC
-            DO J = 1, State_Grid%SouthBuffer
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-
-            ! North BC
-            DO J = (State_Grid%NY-State_Grid%NorthBuffer)+1, State_Grid%NY
-               Spc(N)%Conc(I,J,L) = State_Chm%BoundaryCond(I,J,L,N)
-            ENDDO
-         ENDDO
-
-      ENDDO
-      !OMP END PARALLEL DO
-
       ! Free pointer
       SpcInfo => NULL()
 
-   ENDDO
+      ! Each time the boundary conditions are read, they have no longer been perturbed
+      ! This value is sometimes set to True in set_boundary_conditions_mod.F90
+      IF ( ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. & 
+           Input_Opt%DoPerturbCH4BoundaryConditions ) THEN
+        State_Chm%IsCH4BCPerturbed = .FALSE.
+      ENDIF
 
-   ! Free pointer
-   Spc => NULL()
+   ENDDO
 
    ! Reset FIRST flag
    FIRST = .FALSE.
@@ -2642,8 +2600,7 @@ CONTAINS
    ! Echo output
    IF ( Input_Opt%amIRoot ) THEN
       STAMP = TIMESTAMP_STRING()
-      WRITE( 6, 140 ) STAMP
-140   FORMAT( 'GET_BOUNDARY_CONDITIONS: Done applying BCs at ', a )
+      WRITE( 6, * ) 'GET_BOUNDARY_CONDITIONS: Done reading BCs at ', STAMP, ' using ', HHMMSS, t_index
    ENDIF
 
  END SUBROUTINE Get_Boundary_Conditions

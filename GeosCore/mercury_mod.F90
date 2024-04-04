@@ -165,7 +165,7 @@ MODULE Mercury_Mod
   REAL(f4), POINTER :: ClO(:,:,:)        => NULL()
   REAL(f4), POINTER :: Cl(:,:,:)         => NULL()
   REAL(f4), POINTER :: OA(:,:,:)         => NULL()
-  REAL(f4), POINTER :: OCEAN_CONC(:,:,:) => NULL()
+  REAL(f4), POINTER :: OCEAN_CONC(:,:)   => NULL()
   REAL(f4), POINTER :: GLOB_PM25(:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_fOA (:,:,:)  => NULL()
   REAL(f4), POINTER :: GLOB_RH(:,:,:)    => NULL()
@@ -226,7 +226,7 @@ CONTAINS
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : GET_MONTH, ITS_A_NEW_MONTH
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     
     ! Added for GTMM (ccc, 11/19/09)
     !USE LAND_MERCURY_MOD,   ONLY : GTMM_DR
@@ -259,19 +259,18 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     LOGICAL, SAVE      :: FIRST = .TRUE.
-    INTEGER            :: THISMONTH, I, J
+    INTEGER            :: THISMONTH, I, J, origUnit
     
     ! Pointers
     REAL(f4),  POINTER :: Ptr2D(:,:)
 
     ! Strings
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
-    !=================================================================
+    !========================================================================
     ! EMISSMERCURY begins here!
-    !=================================================================
+    !========================================================================
 
     ! Assume success
     RC       = GC_SUCCESS
@@ -279,8 +278,14 @@ CONTAINS
     ThisLoc  = ' -> at EMISSMERCURY (in module GeosCore/mercury_mod.F90)'
 
     ! Convert species units to [kg] for EMISSMERCURY (ewl, 8/12/15)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES,                                            &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -289,9 +294,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !=================================================================
+    !========================================================================
     ! Get data pointers from HEMCO on the first call
-    !=================================================================
+    !========================================================================
     IF ( FIRST ) THEN
 
        ! Soil distribution
@@ -363,8 +368,14 @@ CONTAINS
    ENDIF
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Routine EMISSMERCURY in mercury_mod.F90')
@@ -623,7 +634,6 @@ CONTAINS
     USE GcKpp_Model
     USE Gckpp_Global
     USE GcKpp_Rates,        ONLY : UPDATE_RCONST, RCONST
-    USE Timers_Mod
     USE Photolysis_Mod,     ONLY : Do_Photolysis
     USE PhysConstants,      ONLY : AVO
     USE State_Chm_Mod,      ONLY : Ind_
@@ -635,7 +645,7 @@ CONTAINS
     USE Time_Mod,           ONLY : Get_Year
     USE Time_Mod,           ONLY : ITS_A_NEW_MONTH, ITS_A_NEW_DAY
     USE Time_Mod,           ONLY : ITS_TIME_FOR_A3
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : ERROR_STOP, DEBUG_MSG, SAFE_DIV
     USE HCO_STATE_GC_MOD,   ONLY : HcoState
@@ -672,19 +682,18 @@ CONTAINS
 
     ! Scalars
     LOGICAL                :: doSuppress
-    INTEGER                :: I,         J,         L,         K
-    INTEGER                :: N,         NN,        CN,        Hg_Cat
-    INTEGER                :: NA,        F,         SpcID,     KppID
-    INTEGER                :: P,         MONTH,     YEAR,      IRH
-    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,  TotAccep
-    INTEGER                :: TotRejec,  TotNumLU,  HCRC,      IERR
-    INTEGER                :: Day,       S,         errorCount
-    REAL(fp)               :: REL_HUM,   Start,     Finish,    rtim
-    REAL(fp)               :: itim,      TOUT,      T,         TIN
+    INTEGER                :: I,         J,         L,          K
+    INTEGER                :: N,         NN,        CN,         Hg_Cat
+    INTEGER                :: NA,        F,         SpcID,      KppID
+    INTEGER                :: P,         MONTH,     YEAR,       IRH
+    INTEGER                :: TotSteps,  TotFuncs,  TotJacob,   TotAccep
+    INTEGER                :: TotRejec,  TotNumLU,  HCRC,       IERR
+    INTEGER                :: Day,       S,         errorCount, origUnit
+    REAL(fp)               :: REL_HUM,   rtim,      itim,       TOUT
+    REAL(fp)               :: T,         TIN
 
     ! Strings
     CHARACTER(LEN=16)      :: thisName
-    CHARACTER(LEN=63)      :: origUnit
     CHARACTER(LEN=255)     :: errMsg
     CHARACTER(LEN=255)     :: thisLoc
 
@@ -856,8 +865,15 @@ CONTAINS
     !======================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'molec/cm3', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLECULES_SPECIES_PER_CM3,                             &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Unit conversion error!'
        CALL GC_Error( errMsg, RC, 'mercury_mod.F90')
@@ -962,10 +978,10 @@ CONTAINS
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( IERR,     RCNTRL,   START,   FINISH, ISTATUS             )&
-    !$OMP PRIVATE( RSTATE,   SpcID,    KppID,   F,      P                   )&
-    !$OMP PRIVATE( Vloc,     Aout,     NN,      C_before_integrate          )&
+    !$OMP PRIVATE( I,        J,        L,        N                          )&
+    !$OMP PRIVATE( IERR,     RCNTRL,   ISTATUS,  RSTATE                     )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,        P                          )&
+    !$OMP PRIVATE( Vloc,     Aout,     NN,       C_before_integrate         )&
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE ( DYNAMIC,  24                                           )&
     !$OMP REDUCTION( +:errorCount                                           )
@@ -1366,8 +1382,13 @@ CONTAINS
     !========================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !========================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3292,8 +3313,8 @@ CONTAINS
 
     ENDIF
 
-    ! Only doing Hg0 overall, should add trap for LSPLIT (cpt - 2017)
-    Hg0aq = OCEAN_CONC(:,:,1)
+    ! Only doing Hg0 overall
+    Hg0aq = OCEAN_CONC(:,:)
 
     ! Emission timestep [s]
     DTSRCE = GET_TS_EMIS()
@@ -3563,7 +3584,7 @@ CONTAINS
     !========================================================================
     IF ( nFam > 0 ) THEN
 
-        ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
+        ! Allocate mapping array for KPP Ids for prod/loss diagnostic
         ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
         CALL GC_CheckVar( 'mercury_mod.F90:PL_Kpp_Id', 0, RC )
         IF ( RC /= GC_SUCCESS ) RETURN
@@ -3872,7 +3893,7 @@ CONTAINS
     !========================================================================
     ! Initialize photolysis
     !========================================================================
-    CALL Init_Photolysis( Input_Opt, State_Chm, State_Diag, RC )
+    CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Init_Photolysis"!'
        CALL GC_Error( errMsg, RC, thisLoc )

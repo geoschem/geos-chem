@@ -205,7 +205,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
@@ -630,7 +629,7 @@ CONTAINS
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
-    HcoState%MicroPhys%nBins           =  IBINS
+    HcoState%MicroPhys%nBins           =  State_Chm%nTomasBins
 
     ! Point to TOMAS bin boundaries array (Xk) in HcoState
     HcoState%MicroPhys%BinBound        => Xk
@@ -1035,6 +1034,11 @@ CONTAINS
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    ! This only retrieves boundary conditions from HEMCO and puts them into
+    ! State_Chm%BoundaryCond. It no longer applies the boundary conditions
+    ! to the species array, which is handled by Set_Boundary_Conditions().
+    ! This is so that boundary conditions can be updated at a higher frequency
+    ! than the emissions timestep. (hplin, 7/28/23)
     !=======================================================================
 
     ! Assume BCs are 3-hourly and only get from HEMCO when needed
@@ -3598,17 +3602,18 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
-         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
-         Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_Opt%ITS_A_CH4_SIM          .or.                               &
-         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
-         Input_Opt%ITS_A_POPS_SIM         .or.                               &
-         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
-         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_TRACEMETAL_SIM   .or.                               &
-         Input_Opt%ITS_A_TRACER_SIM       ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_CO2_SIM                                        .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
+         Input_Opt%ITS_A_POPS_SIM                                       .or. &
+         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
+         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
+         Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
+         Input_Opt%ITS_A_TRACER_SIM                                     .or. &
+         Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -4163,9 +4168,9 @@ CONTAINS
     ! If we have turned on CH4 options in geoschem_config.yml, then we
     ! also need to toggle switches so that HEMCO reads the appropriate data.
     !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
 
-       IF ( Input_Opt%AnalyticalInv ) THEN
+       IF ( Input_Opt%DoAnalyticalInv ) THEN
           CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
                           OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
 
@@ -4556,7 +4561,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4599,7 +4604,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S
+    INTEGER                 :: S,       origUnit
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4607,7 +4612,6 @@ CONTAINS
     LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
-    CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
 
     ! Arrays
@@ -4653,10 +4657,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Convert units to v/v dry
+    ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4772,15 +4782,14 @@ CONTAINS
         !------------------------------------------------------------------
         IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
 
+           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
+
+        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+
            ! CH4 emissions become stored in state_chm_mod.F90.
            ! We use CH4_EMIS here instead of the HEMCO internal emissions
            ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-           ! and/or all other source types, we could use the HEMCO internal
-           ! values set above and would not need the code below.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
+           ! in a multi-tracer CH4 simulation.
            eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
 
         ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
@@ -5056,20 +5065,6 @@ CONTAINS
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
           ! by the "frequency" setting in the "HISTORY.rc"input file.
-          ! The old bpch diagnostics archived the drydep due to chemistry
-          ! every chemistry timestep = 2X the dynamic timestep.  So in
-          ! order to avoid double-counting the drydep flux from mixing,
-          ! you had to multiply by TS_CONV / TS_CHEM.
-          !
-          ! ALSO NOTE: When comparing History output to bpch output,
-          ! you must use an updating frequency equal to the dynamic
-          ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to
-          ! turn off chemistry so as to be able to compare the drydep
-          ! fluxes due to mixing in bpch vs. History as an "apples-to-
-          ! apples" comparison.
-          !
-          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
           IF ( State_Diag%Archive_DryDepMix   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
@@ -5109,8 +5104,13 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

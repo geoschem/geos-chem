@@ -572,14 +572,18 @@ CONTAINS
           !-----------------------------------------------
 
           IF (N == 1) THEN
-             IF (Spc(id_SALAAL)%Conc(I,J,L) .GT. CONMIN) THEN
+!             IF (Spc(id_SALAAL)%Conc(I,J,L) .GT. CONMIN) THEN !bc 08/01/24 for floating point exception
+             IF (Spc(id_SALAAL)%Conc(I,J,L) .GT. CONMIN .and. &
+                   Spc(id_SALA)%Conc(I,J,L) .GT. CONMIN) THEN
                 AlkR = Spc(id_SALAAL)%Conc(I,J,L) / Spc(id_SALA)%Conc(I,J,L)
                 AlkR = MAX( (1.0_fp-AlkR), CONMIN)
              ELSE
                 AlkR = 1.0_fp
              ENDIF
           ELSE
-             IF (Spc(id_SALCAL)%Conc(I,J,L) .GT. CONMIN) THEN
+!             IF (Spc(id_SALCAL)%Conc(I,J,L) .GT. CONMIN) THEN !bc 08/01/24 for floating point exception
+             IF (Spc(id_SALCAL)%Conc(I,J,L) .GT. CONMIN .and. &
+                   Spc(id_SALC)%Conc(I,J,L) .GT. CONMIN) THEN
                 AlkR = Spc(id_SALCAL)%Conc(I,J,L) / Spc(id_SALC)%Conc(I,J,L)
                 AlkR = MAX( (1.0_fp-AlkR), CONMIN)
              ELSE

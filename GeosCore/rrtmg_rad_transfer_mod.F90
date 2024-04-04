@@ -125,7 +125,8 @@ CONTAINS
   SUBROUTINE DO_RRTMG_RAD_TRANSFER( ThisDay,    ThisMonth,  iCld,       &
                                     iSpecMenu,  iNcDiag,    iSeed,      &
                                     Input_Opt,  State_Chm,  State_Diag, &
-                                    State_Grid, State_Met,  RC         )
+                                    State_Grid, State_Met,  DT_3D,      &
+                                    HR_3D,      RC                      )
 !
 ! !USES:
 !
@@ -157,7 +158,7 @@ CONTAINS
     USE State_Met_Mod,       ONLY : MetState
     USE TIME_MOD,            ONLY : GET_DAY_OF_YEAR, GET_HOUR
     USE TOMS_MOD,            ONLY : GET_OVERHEAD_O3
-    USE UnitConv_Mod,        ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -177,6 +178,9 @@ CONTAINS
     TYPE(DgnState), INTENT(INOUT) :: State_Diag ! Diagnostics State object
     INTEGER,        INTENT(INOUT) :: iCld       ! CLOUD FLAG FOR RRTMG
                                                 ! 0-NOCLOUD, 1-GREY CLOUD
+    ! Used only for fixed dynamical heating work
+    REAL(RB), ALLOCATABLE, INTENT(INOUT) :: DT_3D(:,:,:) ! Layer temperature adjustment (K)
+    REAL(RB), ALLOCATABLE, INTENT(INOUT) :: HR_3D(:,:,:) ! Heating rate (K/day)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -204,13 +208,13 @@ CONTAINS
     LOGICAL            :: LOUTPUTAERO  ! OUTPUT AEROSOL DIAGNOSTICS?
     INTEGER            :: ITIMEVALS(8)
     INTEGER            :: IDIAGOUT     ! INDEX OF SPC OPTICS FOR OUTPUT
+    INTEGER            :: origUnit
     REAL*8             :: OLDSECS, NEWSECS
-    CHARACTER(LEN=63)  :: OrigUnit
 
     ! SAVEd scalars
     LOGICAL, SAVE      :: FIRST    = .TRUE.
     INTEGER, SAVE      :: id_O3,    id_CH4,  id_N2O, id_CFC11
-    INTEGER, SAVE      :: id_CFC12, id_CCL4, id_HCFC22
+    INTEGER, SAVE      :: id_CFC12, id_CCL4, id_HCFC22, id_H2O
 
     !-----------------------------------------------------------------
     ! TEMPORARY AEROSOL VARIABLES
@@ -285,6 +289,7 @@ CONTAINS
 
     REAL(KIND=RB)      :: H2OVMR   (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(KIND=RB)      :: TLAY     (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+    REAL(KIND=RB)      :: TLAY_SW  (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(KIND=RB)      :: PLAY     (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(KIND=RB)      :: SUNCOS   (State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(KIND=RB)      :: TSFC     (State_Grid%NX,State_Grid%NY)
@@ -323,6 +328,7 @@ CONTAINS
     !-----------------------------------------------------------------
     REAL (KIND=RB)     :: PLEV(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
     REAL (KIND=RB)     :: TLEV(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
+    REAL (KIND=RB)     :: TLEV_SW(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
     REAL (KIND=RB)     :: CO2VMR(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL (KIND=RB)     :: O2VMR(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL (KIND=RB)     :: T_CTM(State_Grid%NZ+1)
@@ -444,7 +450,9 @@ CONTAINS
     ! For RRTMG_LW and RRTMG_SW
     REAL(KIND=RB)      :: p_PLEV      (         State_Grid%NZ+1)
     REAL(KIND=RB)      :: p_TLAY      (         State_Grid%NZ  )
+    REAL(KIND=RB)      :: p_TLAY_SW   (         State_Grid%NZ  )
     REAL(KIND=RB)      :: p_TLEV      (         State_Grid%NZ+1)
+    REAL(KIND=RB)      :: p_TLEV_SW   (         State_Grid%NZ+1)
     REAL(KIND=RB)      :: p_H2OVMR    (         State_Grid%NZ  )
     REAL(KIND=RB)      :: p_O3VMR     (         State_Grid%NZ  )
     REAL(KIND=RB)      :: p_CO2VMR    (         State_Grid%NZ  )
@@ -474,6 +482,51 @@ CONTAINS
     REAL(KIND=RB)      :: p_TAUAER_SW ( State_Grid%NZ,  NBNDSW )
     REAL(KIND=RB)      :: p_SSAAER    ( State_Grid%NZ,  NBNDSW )
     REAL(KIND=RB)      :: p_ASMAER    ( State_Grid%NZ,  NBNDSW )
+
+    ! Stratospheric adjustment
+    REAL(KIND=RB)              :: DT_Col(State_Grid%NZ) ! Temperature difference, column (K)
+    REAL(KIND=RB)              :: HRStrat(State_Grid%NZ)! Strat. dyn. heating rate, column (K/day)
+    REAL(KIND=RB)              :: HRDyn(State_Grid%NZ)  ! Dynamical heating rate, column (K/day)
+    LOGICAL                    :: Do_Adjust(State_Grid%NZ)! Do we perform adjustment here?
+    LOGICAL                    :: StratImbal            ! Is the net heating rate >> 0?
+    LOGICAL                    :: Calc_DeltaT           ! Are we calculating the T difference?
+    LOGICAL                    :: Store_DHR             ! Are we estimating the dynamical heating rate?
+    REAL(KIND=RB), PARAMETER   :: HRMax        = 1.0d-3 ! Maximum residual heating rate (K/day)
+    REAL(KIND=RB), PARAMETER   :: TSadj_max    = 0.5d0  ! Outer time step used in strat adjustment (days)
+    REAL(KIND=RB), PARAMETER   :: TSadj_min    = 0.5d-1 ! Minimum time step that we can adjust to (days)
+    REAL(KIND=RB)              :: TSadj                 ! 
+    REAL(KIND=RB)              :: TSadj_adapt           ! 
+    REAL(KIND=RB)              :: last_max, curr_max    ! Track the current maximum heating rate imbalance
+    REAL(KIND=RB)              :: last_max_stored       ! For debug only
+    Integer                    :: i_max                 !
+    REAL(KIND=RB), PARAMETER   :: dtadj_max    = 150d0  ! Time allowable to reach equilbrium (days)
+    REAL(KIND=RB)              :: dtadj                 ! Total time to reach equilibrium (days)
+    Integer                    :: i_iter                ! Iteration number
+    Integer                    :: N_Failed              ! Number of columns failing to converge
+    Integer                    :: N_Column              ! Total number of columns (NX * NY)
+
+    ! For SEFDH calculations
+    Real(kind=RB)              :: Relax_Factor
+    Real(kind=RB)              :: DT_Days
+    Real(kind=RB), Parameter   :: Relax_Time = 1.0d0 ! E-folding time in days
+
+    ! For RK4 integrations
+    INTEGER, PARAMETER         :: N_PC = 4
+    INTEGER                    :: I_PC
+    REAL(KIND=RB)              :: p_TLAY_0(State_Grid%NZ)
+    ! Data from predictor step(s)
+    REAL(KIND=RB)              :: HR_P(4,State_Grid%NZ)
+    REAL(KIND=RB)              :: p_TLAY_P(State_Grid%NZ)
+    REAL(KIND=RB)              :: UFLX_P(1,State_Grid%NZ+1)
+    REAL(KIND=RB)              :: DFLX_P(1,State_Grid%NZ+1)
+    REAL(KIND=RB)              :: UFLXC_P(1,State_Grid%NZ+1)
+    REAL(KIND=RB)              :: DFLXC_P(1,State_Grid%NZ+1)
+
+    ! For RF at tropopause
+    Integer                    :: iTrop
+
+    ! To simplify ozone RF calculation
+    Logical                    :: in_Trop
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
@@ -511,9 +564,15 @@ CONTAINS
     RTSSAER     => State_Chm%Phot%RTSSAER
     RTASYMAER   => State_Chm%Phot%RTASYMAER
 
-    ! Convert species units to kg/kg dry for RRTMG
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg/kg dry', RC, OrigUnit=OrigUnit )
+    ! Convert species units to [kg/kg dry] for RRTMG
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -545,6 +604,21 @@ CONTAINS
     NSPEC                = NAER+NDUST+4
     FLG_FIRST_STRAT(:,:) = 0 !FLAG TO DETERMINE IF THE FIRST STRATOSPHERIC
                              ! LEVEL HAS BEEN REACHED
+
+    ! Are we calculating delta-T?
+    Calc_DeltaT = (Input_Opt%Read_Dyn_Heating .and. (ISPECMENU.eq.0) .and. Input_Opt%RRTMG_FDH)
+    ! Are we storing the dynamical heating rate?
+    Store_DHR   = ((.not. Input_Opt%Read_Dyn_Heating) .and. (ISPECMENU.eq.0) .and. Input_Opt%RRTMG_FDH)
+
+    ! Factor to relax non-stratospheric temperatures by
+    If (Input_Opt%RRTMG_SEFDH) Then
+        ! Time step length in days
+        DT_Days = (Input_Opt%ts_rad * 1.0e+0_RB) / (3600.0e+0_RB * 24.0e+0_RB)
+        ! One day e-folding time
+        Relax_Factor = exp(-1.0 * DT_Days / relax_time)
+    Else
+        Relax_Factor = 0.0
+    End If
 
     !DETERMINE IF WE ARE RUNNING WITH AEROSOL
     !CREATE INDEX FOR AEROSOLS REQUIRED
@@ -594,6 +668,13 @@ CONTAINS
     SWHRC(:,:)          = 0.0
     O3VMR(:,:,:)        = 0.0
     CH4VMR(:,:,:)       = 0.0
+    H2OVMR(:,:,:)       = 0.0
+    CO2VMR(:,:,:)       = 0.0
+    N2OVMR(:,:,:)       = 0.0
+    CFC11VMR(:,:,:)     = 0.0
+    CFC12VMR(:,:,:)     = 0.0
+    CCL4VMR(:,:,:)      = 0.0
+    CFC22VMR(:,:,:)     = 0.0
     NBNDS               = NBNDLW+NBNDSW
 
     !=================================================================
@@ -604,6 +685,7 @@ CONTAINS
        ! Define species ID flags
        id_O3     = Ind_('O3')
        id_CH4    = Ind_('CH4')
+       id_H2O    = Ind_('H2O')
        id_N2O    = Ind_('N2O')
        id_CFC11  = Ind_('CFC11')
        id_CFC12  = Ind_('CFC12')
@@ -681,13 +763,14 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    !GET PCENTER, PEDGE AND DETERMINE IF IN TROP
     !%%% NOTE: LOOPS ARE GOING IN WRONG ORDER (bmy, 1/8/18)
     DO I = 1, State_Grid%NX
     DO J = 1, State_Grid%NY
        DO L = 1, State_Grid%NZ
           PCENTER(I,J,L) = GET_PCENTER( I, J, L )
           PEDGE  (I,J,L) = GET_PEDGE  ( I, J, L )
+          ! H2O will be overwritten later except above the
+          ! chemistry grid
           H2OVMR (I,J,L) = State_Met%AVGW(I,J,L)
           TLAY   (I,J,L) = State_Met%T(I,J,L)
           SUNCOS (I,J,L) = State_Met%SUNCOS(I,J)
@@ -696,9 +779,30 @@ CONTAINS
     ENDDO
     ENDDO
 
+    ! Incorporate temperature adjustment if not the baseline
+    ! call and we are using fixed dynamical heating
+    ! In either case, shortwave calculation is unaffected
+    If (.not. Input_Opt%RRTMG_SEFDH) Then
+       TLAY_SW(:,:,:) = TLAY(:,:,:)
+    End If
+    ! If pure FDH, DT_3D will be zero on the baseline call
+    ! and non-zero for the single-species calls. If this is
+    ! SEFDH, DT_3D will evolve consistently and be either
+    ! modified by this routine (baseline call) or unchanged
+    ! (single-species call); however, for single-species
+    ! calls, the DT_3D will match that which was PROVIDED to
+    ! the baseline call.
+    If (Input_Opt%RRTMG_FDH) Then
+       TLAY(:,:,:) = TLAY(:,:,:) + DT_3D(:,:,:)
+    End If
+    ! If using SEFDH, adjust temperatures for all (why not)
+    If (Input_Opt%RRTMG_SEFDH) Then
+       TLAY_SW(:,:,:) = TLAY(:,:,:)
+    End If
+
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I,       J,      L                         ) &
+    !$OMP PRIVATE( I,       J,      L,      IN_TROP           ) &
     !$OMP PRIVATE( AIR_TMP, YLAT,   O3COL,  O3_CTM,  T_CTM    ) &
     !$OMP PRIVATE( P_CTM,   T_CLIM, Z_CLIM, O3_CLIM, AIR_CLIM ) &
     !$OMP SCHEDULE( DYNAMIC )
@@ -762,74 +866,53 @@ CONTAINS
              CLDFR(I,J,L)  = State_Met%CLDF(I,J,L)
           ENDIF !CLOUDS
 
-          IF ( State_Met%InTroposphere(I,J,L) ) THEN
-             !-----------------------------
-             ! WE ARE IN THE TROPOSPHERE
-             !-----------------------------
+          ! SET O3, CH4, N2O AND CFC PROFILES
 
-             ! SET O3, CH4, N2O AND CFC PROFILES
-             ! G-C CHEMISTRY IS ONLY DONE IN THE TROP
-             ! THEREFORE State_Chm%Species WILL ONLY BE DEFINED IN THE TROP
+          !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
+          !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
+          !(WHEN SPECMASK DEFAULTS TO 1)
+          !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
+          !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
 
-             !IF O3 REQUESTED THEN SPECMASK WILL BE SET TO ZERO
-             !SO THAT O3 WILL BE REMOVED RELATIVE TO THE BASELINE CASE
-             !(WHEN SPECMASK DEFAULTS TO 1)
-             !I.E. WE WANT TO RUN WITHOUT THE GAS IF IT HAS BEEN
-             !REQUESTED SO THAT WE CAN DIFFERENCE WITH THE BASELINE RUN
-
-             IF (SPECMASK(State_Chm%Phot%NASPECRAD+1).EQ.1) THEN
-                O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
-                                State_Chm%SpcData(id_O3)%Info%MW_g
-
-             ENDIF
-
-             IF (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) THEN
-                CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
-                                State_Chm%SpcData(id_CH4)%Info%MW_g
-
-             ENDIF
-
-             N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
-                             State_Chm%SpcData(id_N2O)%Info%MW_g
-
-             CFC11VMR(I,J,L) = Spc(id_CFC11)%Conc(I,J,L) * AIRMW/&
-                               State_Chm%SpcData(id_CFC11)%Info%MW_g
-
-             CFC12VMR(I,J,L) = Spc(id_CFC12)%Conc(I,J,L) * AIRMW/&
-                               State_Chm%SpcData(id_CFC12)%Info%MW_g
-
-             CCL4VMR(I,J,L)  = Spc(id_CCL4)%Conc(I,J,L) * AIRMW /&
-                               State_Chm%SpcData(id_CCL4)%Info%MW_g
-
-             CFC22VMR(I,J,L) = Spc(id_HCFC22)%Conc(I,J,L) *AIRMW/&
-                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
-
-          ELSE
-             !-----------------------------
-             ! WE ARE IN THE STRATOSPHERE
-             !-----------------------------
-
+          ! Treat tropospheric and stratospheric ozone seprately
+          In_Trop = State_Met%InTroposphere(I,J,L)
+          IF ( ((.not. In_Trop) .and. (SPECMASK(State_Chm%Phot%NASPECRAD+1).EQ.1) ) .or. &
+               (    In_Trop     .and. (SPECMASK(State_Chm%Phot%NASPECRAD+2).EQ.1) ) ) Then
              O3VMR(I,J,L)  = Spc(id_O3)%Conc(I,J,L) * AIRMW / &
                              State_Chm%SpcData(id_O3)%Info%MW_g
+          ENDIF
 
-             CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW / &
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+3).EQ.1) THEN
+             CH4VMR(I,J,L) = Spc(id_CH4)%Conc(I,J,L) * AIRMW /&
                              State_Chm%SpcData(id_CH4)%Info%MW_g
 
-             N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
-                             State_Chm%SpcData(id_N2O)%Info%MW_g
+          ENDIF
 
-             CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
-                              State_Chm%SpcData(id_CFC11)%Info%MW_g
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+4).EQ.1) THEN
+             H2OVMR(I,J,L) = Spc(id_H2O)%Conc(I,J,L) * AIRMW / &
+                             State_Chm%SpcData(id_H2O)%Info%MW_g
+          ELSE
+             ! Set to zero to override the default (AVGW)
+             H2OVMR(I,J,L) = 0.0
+          ENDIF
 
-             CFC12VMR(I,J,L) =Spc(id_CFC12)%Conc(I,J,L) * AIRMW / &
-                              State_Chm%SpcData(id_CFC12)%Info%MW_g
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+7).EQ.1) THEN
+              N2OVMR(I,J,L) = Spc(id_N2O)%Conc(I,J,L) * AIRMW / &
+                              State_Chm%SpcData(id_N2O)%Info%MW_g
+          ENDIF
 
-             CCL4VMR(I,J,L)  =Spc(id_CCL4)%Conc(I,J,L) * AIRMW / &
-                              State_Chm%SpcData(id_CCL4)%Info%MW_g
+          IF (SPECMASK(State_Chm%Phot%NASPECRAD+6).EQ.1) THEN
+              CFC11VMR(I,J,L) =Spc(id_CFC11)%Conc(I,J,L) * AIRMW /&
+                               State_Chm%SpcData(id_CFC11)%Info%MW_g
 
-             CFC22VMR(I,J,L) =Spc(id_HCFC22)%Conc(I,J,L) * AIRMW/ &
-                              State_Chm%SpcData(id_HCFC22)%Info%MW_g
+              CFC12VMR(I,J,L) =Spc(id_CFC12)%Conc(I,J,L) * AIRMW / &
+                               State_Chm%SpcData(id_CFC12)%Info%MW_g
 
+              CCL4VMR(I,J,L)  =Spc(id_CCL4)%Conc(I,J,L) * AIRMW / &
+                               State_Chm%SpcData(id_CCL4)%Info%MW_g
+
+              CFC22VMR(I,J,L) =Spc(id_HCFC22)%Conc(I,J,L) * AIRMW/ &
+                               State_Chm%SpcData(id_HCFC22)%Info%MW_g
           ENDIF
        ENDDO
     ENDDO
@@ -864,46 +947,40 @@ CONTAINS
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
 
-                ! We need to go above the tropopause to get
-                ! the strat AOD, but only for IS=8 and IS=9
-                IF ( State_Met%InTroposphere(I,J,L) .OR. &
-                     ( (IS.EQ.8) .OR. (IS.EQ.9) ) ) THEN
+                !MAKE SURE WE HAVE SENSIBLE DATA
+                !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
+                IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
+                   IF (IB.LE.16) THEN !LW
+                      IF (SPECMASK(IS).EQ.1) THEN
+                         TAUAER_LW(I,J,L,IB) = TAUAER_LW(I,J,L,IB) + &
+                              RTODAER(I,J,L,IBX,IS)
+                      ENDIF
+                   ELSE !SW
+                      !IF SPECMASK(IS)=1 THEN WE AGGREGATE THAT SPECIES FOR RRTMG
+                      !IF SPECMASK(IS)>1 THEN WE SAVE THAT SPECIES FOR DIAG OUTPUT
+                      IF (SPECMASK(IS).EQ.1) THEN
+                         TAUAER_SW(I,J,L,IB_SW)=TAUAER_SW(I,J,L,IB_SW)+ &
+                              RTODAER(I,J,L,IBX,IS)
+                         SSAAER(I,J,L,IB_SW) =  SSAAER(I,J,L,IB_SW) + &
+                              RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
+                         ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) + &
+                              RTASYMAER(I,J,L,IBX,IS) * &
+                              RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+                      ENDIF
+                      IF (SPECMASK(IS).GT.1) THEN
+                         TAUAERDIAG(I,J,L,IB_SW)=TAUAERDIAG(I,J,L,IB_SW)+ &
+                              RTODAER(I,J,L,IBX,IS)
+                         SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) +&
+                              RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
+                         ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) +&
+                              RTASYMAER(I,J,L,IBX,IS) * &
+                              RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
+                         !IF ((IS.EQ.9).AND.(L.GT.30).AND.(IB_SW.EQ.10).AND.
+                         !   (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
+                         ! write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS), &
+                         !            RTSSAER(I,J,L,IBX,IS)
+                         !ENDIF
 
-                   !MAKE SURE WE HAVE SENSIBLE DATA
-                   !DONT WASTE TIME IF VIRTUALLY NO AEROSOL
-                   IF (RTODAER(I,J,L,IBX,IS).GT.1e-10) THEN
-                      IF (IB.LE.16) THEN !LW
-                         IF (SPECMASK(IS).EQ.1) THEN
-                            TAUAER_LW(I,J,L,IB) = TAUAER_LW(I,J,L,IB) + &
-                                 RTODAER(I,J,L,IBX,IS)
-                         ENDIF
-                      ELSE !SW
-                         !IF SPECMASK(IS)=1 THEN WE AGGREGATE THAT SPECIES FOR RRTMG
-                         !IF SPECMASK(IS)>1 THEN WE SAVE THAT SPECIES FOR DIAG OUTPUT
-                         IF (SPECMASK(IS).EQ.1) THEN
-                            TAUAER_SW(I,J,L,IB_SW)=TAUAER_SW(I,J,L,IB_SW)+ &
-                                 RTODAER(I,J,L,IBX,IS)
-                            SSAAER(I,J,L,IB_SW) =  SSAAER(I,J,L,IB_SW) + &
-                                 RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-                            ASMAER(I,J,L,IB_SW) = ASMAER(I,J,L,IB_SW) + &
-                                 RTASYMAER(I,J,L,IBX,IS) * &
-                                 RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-                         ENDIF
-                         IF (SPECMASK(IS).GT.1) THEN
-                            TAUAERDIAG(I,J,L,IB_SW)=TAUAERDIAG(I,J,L,IB_SW)+ &
-                                 RTODAER(I,J,L,IBX,IS)
-                            SSAAERDIAG(I,J,L,IB_SW) = SSAAERDIAG(I,J,L,IB_SW) +&
-                                 RTSSAER(I,J,L,IBX,IS)*RTODAER(I,J,L,IBX,IS)
-                            ASMAERDIAG(I,J,L,IB_SW) = ASMAERDIAG(I,J,L,IB_SW) +&
-                                 RTASYMAER(I,J,L,IBX,IS) * &
-                                 RTODAER(I,J,L,IBX,IS)*RTSSAER(I,J,L,IBX,IS)
-                            !IF ((IS.EQ.9).AND.(L.GT.30).AND.(IB_SW.EQ.10).AND.
-                            !   (RTODAER(I,J,L,IBX,IS).GT.0.0d0)) THEN
-                            ! write(6,*) 'STS',I,J,L,IBX,IS,RTODAER(I,J,L,IBX,IS), &
-                            !            RTSSAER(I,J,L,IBX,IS)
-                            !ENDIF
-
-                         ENDIF
                       ENDIF
                    ENDIF
                 ENDIF
@@ -1037,20 +1114,30 @@ CONTAINS
     DO I=1,State_Grid%NX
        PLEV(I,J,1) = PEDGE(I,J,1) ! SET LOWEST LEVEL TO SURFACE PRESSURE
        TLEV(I,J,1) = TLAY(I,J,1)  ! SET LOWEST LEVEL TO LAYER TEMPERATURE  (KLUDGE)
+       TLEV_SW(I,J,1) = TLAY_SW(I,J,1)  ! SET LOWEST LEVEL TO LAYER TEMPERATURE  (KLUDGE)
        PLEV(I,J,State_Grid%NZ+1) = PCENTER(I,J,State_Grid%NZ)
        TLEV(I,J,State_Grid%NZ+1) = TLAY(I,J,State_Grid%NZ)
+       TLEV_SW(I,J,State_Grid%NZ+1) = TLAY_SW(I,J,State_Grid%NZ)
        DO L=2,State_Grid%NZ
           RHOA = PCENTER(I,J,L-1)/(GCAIR*TLAY(I,J,L-1))
           RHOB = PCENTER(I,J,L)/(GCAIR*TLAY(I,J,L))
           RHOSUM = RHOA+RHOB
           PLEV(I,J,L) = (RHOA*PCENTER(I,J,L-1)+RHOB*PCENTER(I,J,L))/RHOSUM
           TLEV(I,J,L) = (RHOA*TLAY(I,J,L-1)+RHOB*TLAY(I,J,L))/RHOSUM
+          ! Repeat for SW
+          RHOA = PCENTER(I,J,L-1)/(GCAIR*TLAY_SW(I,J,L-1))
+          RHOB = PCENTER(I,J,L)/(GCAIR*TLAY_SW(I,J,L))
+          RHOSUM = RHOA+RHOB
+          TLEV_SW(I,J,L) = (RHOA*TLAY_SW(I,J,L-1)+RHOB*TLAY_SW(I,J,L))/RHOSUM
        END DO
     END DO
     END DO
 
     ! FILL CO2, N2O AND O2 ARRAYS WITH REASONABLE ATMOSPHERIC VALUES
-    CO2VMR(:,:,:) = 3.90E-4
+    IF (SPECMASK(State_Chm%Phot%NASPECRAD+5).EQ.1) THEN
+       ! Was 3.90e-4 (i.e. 390 ppmv), but now set from Input_Opt
+       CO2VMR(:,:,:) = Input_Opt%RRTMG_CO2_ppmv * 1.0d-6
+    END IF
     O2VMR(:,:,:)  = 0.209
 
     SELECT CASE (ICLD)
@@ -1225,6 +1312,9 @@ CONTAINS
 
     ENDIF !DO MCICA CLOUDS
 
+    ! Number of columns which fail to converge - initialize to zero
+    N_Failed = 0
+
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( I,   J,       UFLX,         DFLX,         HR           ) &
@@ -1239,7 +1329,13 @@ CONTAINS
     !$OMP PRIVATE( p_CLWPMCL_LW, p_TAUAER_LW,  p_CLDFMCL_SW, p_TAUCMCL_SW ) &
     !$OMP PRIVATE( p_SSACMCL,    p_ASMCMCL,    p_FSFCMCL,    p_CIWPMCL_SW ) &
     !$OMP PRIVATE( p_CLWPMCL_SW, p_TAUAER_SW,  p_SSAAER,     p_ASMAER     ) &
-    !$OMP PRIVATE( p_SUNCOS                                               ) &
+    !$OMP PRIVATE( p_SUNCOS,     dtadj,        HRdyn,        HRstrat      ) &
+    !$OMP PRIVATE( RHOA,         RHOB,         RHOSUM,       StratImbal   ) &
+    !$OMP PRIVATE( HR_P,         p_TLAY_P,     I_PC,         p_TLAY_0     ) &
+    !$OMP PRIVATE( UFLXC_P,      DFLXC_P,      UFLX_P,       DFLX_P       ) &
+    !$OMP PRIVATE( TSadj_adapt,  TSadj,        i_Iter,       L            ) &
+    !$OMP PRIVATE( p_TLAY_SW,    p_TLEV_SW,    Do_Adjust                  ) &
+    !$OMP PRIVATE( last_max,     curr_max,     i_max,    last_max_stored  ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J=1, State_Grid%NY
     DO I=1, State_Grid%NX
@@ -1263,6 +1359,11 @@ CONTAINS
        p_RTEMISS  = RTEMISS (I,J,:)
        p_REICMCL  = REICMCL (I,J,:)
        p_RELQMCL  = RELQMCL (I,J,:)
+
+       ! For shortwave calculations we need to neglect the strat.
+       ! adjustment (otherwise inconsistent with baseline)
+       p_TLAY_SW = TLAY_SW(I,J,:)
+       p_TLEV_SW = TLEV_SW(I,J,:)
 
        !--------------------------------------------------------------
        ! RRTMG - Longwave radiation
@@ -1362,8 +1463,8 @@ CONTAINS
                ICLDMCL,        &
                p_PCENTER,      &
                p_PLEV,         &
-               p_TLAY,         &
-               p_TLEV,         &
+               p_TLAY_SW,      &
+               p_TLEV_SW,      &
                TSFC(I,J),      &
                p_H2OVMR,       &
                p_O3VMR,        &
@@ -1411,9 +1512,243 @@ CONTAINS
           SW_DFLUXC(I,J,:) = SWDFLXC(1,:)
 
        ENDIF !SW
+
+       ! If we are including stratospheric adjustment, we need
+       ! to repeat calculations using the approach outlined in
+       ! Maycock et al. (2011)
+       If (Store_DHR .or. Calc_DeltaT) Then
+          If (Store_DHR) Then
+             ! Assume that dT/dt is ~ 0; therefore the dynamical
+             ! heating rate is approximately -1x the net radiative
+             ! heating rate
+             Do L=1,State_Grid%NZ
+                HRdyn(L) = -1.0e+0_RB * (HR(1,L) + SWHR(1,L))
+             End Do
+             ! Store in the output array
+             HR_3D(I,J,:) = HRdyn(:)
+          Else If (Calc_DeltaT.and.Input_Opt%RRTMG_SEFDH) Then
+             ! Only performed on the baseline call
+             ! Read the heating rate from the archived data
+             HRdyn(:) = HR_3D(I,J,:)
+             ! Update delta-T using simple forward Euler
+             Do L=1,State_Grid%NZ
+                If (State_Met%InStratosphere(I,J,L)) Then
+                   ! March forward to end of the coming time step
+                   DT_3D(I,J,L) = DT_3D(I,J,L) + (DT_days * (HR(1,L) + SWHR(1,L) + HRdyn(L)))
+                Else
+                   ! Relax temperature adjustment to zero
+                   ! outside the stratosphere
+                   DT_3D(I,J,L) = DT_3D(I,J,L) * Relax_Factor
+                End If
+             End Do
+          Else If (Calc_DeltaT.and.Input_Opt%RRTMG_FDH) Then
+             ! Read the heating rate from the archived data
+             HRdyn(:) = HR_3D(I,J,:)
+             ! Assume we start in an imbalanced state
+             StratImbal = .True.
+             ! Cumulative integration time so far in days
+             dtadj = 0.0d0
+             ! Iteration counter
+             i_iter = 0
+             ! Initial time step (days)
+             tsadj_adapt = tsadj_max
+             last_max = 0.0d0
+             last_max_stored = 0.0d0 ! Debug
+             ! Define which region we perform adjustment in
+             Do_Adjust(:) = State_Met%InStratosphere(I,J,:)
+             If (Input_Opt%RRTMG_SA_TOA) Then
+                 Do L = 1, State_Grid%NZ
+                     Do_Adjust(L) = (.not. State_Met%InTroposphere(I,J,L))
+                 End Do
+             End If
+             Do While (StratImbal)
+                i_iter = i_iter + 1
+                ! Reset net stratospheric heating rate
+                HRstrat(:) = 0.0e+0_RB
+                StratImbal = .False.
+
+                ! Store temperatures at the start of the step
+                Do L=1,State_Grid%NZ
+                   p_TLAY_0(L) = p_TLAY(L)
+                End Do
+
+                ! Perform RK4 integration forward in time
+                ! Estimate heating rate at each of the 4 points
+                Do I_PC = 1, N_PC
+                   ! Estimate heating rate using "current" conditions
+                   ! Can be skipped if i_iter == 1 because we just ran
+                   ! the longwave calculation
+                   If ((I_PC.gt.1).or.(i_iter.gt.1)) Then
+                      ! Reinterpolate temperatures
+                      p_TLEV(1) = p_TLAY(1)
+                      p_TLEV(State_Grid%NZ+1) = p_TLAY(State_Grid%NZ)
+                      Do L=2,State_Grid%NZ
+                         RHOA = p_PCENTER(L-1)/(GCAIR*p_TLAY(L-1))
+                         RHOB = p_PCENTER(L  )/(GCAIR*p_TLAY(L  ))
+                         RHOSUM = RHOA+RHOB
+                         p_TLEV(L) = (RHOA*p_TLAY(L-1)+ &
+                                      RHOB*p_TLAY(L  ))/RHOSUM
+                      End Do
+
+                      ! Recalculate LW RT and heating
+                      CALL RRTMG_LW( &
+                           !-------------------------------------
+                           ! Inputs
+                           ONECOL,        &
+                           State_Grid%NZ, &
+                           ICLDMCL,       &
+                           IDRV,          &
+                           p_PCENTER,     &
+                           p_PLEV,        &
+                           p_TLAY,        &
+                           p_TLEV,        &
+                           TSFC(I,J),     &
+                           p_H2OVMR,      &
+                           p_O3VMR,       &
+                           p_CO2VMR,      &
+                           p_CH4VMR,      &
+                           p_N2OVMR,      &
+                           p_O2VMR,       &
+                           p_CFC11VMR,    &
+                           p_CFC12VMR,    &
+                           p_CFC22VMR,    &
+                           p_CCL4VMR,     &
+                           p_RTEMISS,     &
+                           INFLGLW,       &
+                           ICEFLGLW,      &
+                           LIQFLGLW,      &
+                           p_CLDFMCL_LW,  &
+                           p_TAUCMCL_LW,  &
+                           p_CIWPMCL_LW,  &
+                           p_CLWPMCL_LW,  &
+                           p_REICMCL,     &
+                           p_RELQMCL,     &
+                           p_TAUAER_LW,   &
+                           !-------------------------------------
+                           ! Outputs
+                           UFLX,          &
+                           DFLX,          &
+                           HR,            &
+                           UFLXC,         &
+                           DFLXC,         &
+                           HRC,           &
+                           DUFLX_DT,      &
+                           DUFLXC_DT )
+                   End If ! I_PC > 1 or i_iter > 1
+
+                   ! Store the gradient (heating rate) from each calculation
+                   HR_P(I_PC,:) = HR(1,:)
+
+                   ! If this is the last calculation, store the output
+                   ! All non-baseline calculations will use these temperatures
+                   ! if convergence has been reached
+                   If (I_PC == N_PC) Then
+                      p_TLAY_P(:)  = p_TLAY(:)
+                      ! Also store the fluxes for transfer to the 3-D arrays
+                      UFLX_P(1,:)  = UFLX(1,:)
+                      DFLX_P(1,:)  = DFLX(1,:)
+                      UFLXC_P(1,:) = UFLXC(1,:)
+                      DFLXC_P(1,:) = DFLXC(1,:)
+                   End If
+
+                   ! Update the heating rate and layer temperatures
+                   ! Recall that for RK4, we will perform 4 estimates
+                   ! Estimate 1: heating rate at t = T + 0
+                   ! Estimate 2: heating rate at t = T + dt/2, projected 1st order from t = T using estimate 1
+                   ! Estimate 3: heating rate at t = T + dt/2, projected 1st order from t = T using estimate 2
+                   ! Estimate 4: heating rate at t = T + dt,   projected 1st order from t = T using estimate 3
+                   ! Choose how far to project forward for the NEXT RK4 step
+                   If ((I_PC == 1).or.(I_PC == 2)) Then
+                      ! 2nd and 3rd evaluation to take place at t = T + dt/2
+                      tsadj = tsadj_adapt / 2.0
+                   Else
+                      ! 4th evaluation to take place at t = T + dt
+                      tsadj = tsadj_adapt
+                   End If
+
+                   ! If this is the last calculation, use the RK4 estimate of the heating rate
+                   If (I_PC == N_PC) Then
+                      HR(1,:) = (1.0/6.0) *        &
+                                ( HR_P(1,:)      + &
+                                 (HR_P(2,:)*2.0) + &
+                                 (HR_P(3,:)*2.0) + &
+                                  HR_P(4,:)        )
+                   End If                   
+                  
+                   ! Reset
+                   HRstrat(:) = 0.0e+0_RB
+                   Do L=1,State_Grid%NZ
+                      If (Do_Adjust(L)) Then
+                         ! This should be approaching zero over time
+                         HRstrat(L) = HR(1,L) + SWHR(1,L) + HRdyn(L)
+                         ! Update layer temperature by projecting forward
+                         ! from the temperature at the start of the calculation
+                         ! loop (p_TLAY_0)
+                         p_TLAY(L) = (TSadj_adapt * HRstrat(L)) + p_TLAY_0(L)
+                      End If
+                   End Do ! L = 1, State-Grid%NZ
+                End Do ! I_PC = 1, N_PC
+  
+                ! RK4 calculations now complete - move forward one timestep
+                dtadj = dtadj + tsadj_adapt
+ 
+                ! Check how close we are to equilibrium
+                i_max = MaxLoc(Abs(HRstrat),1)
+                curr_max = HRstrat(i_max)
+                StratImbal = (Abs(curr_max) > HRmax)
+
+                ! Is the net heating rate ~0?
+                If (.not.StratImbal) Exit
+                ! Are we oscillating? If so - reduce time step
+                If ((i_iter.gt.1) .and. (((curr_max.gt.0) .and. (last_max.lt.0)) .or. &
+                                        (((curr_max.lt.0) .and. (last_max.gt.0))))) Then
+                    tsadj_adapt = max(tsadj_adapt/2.0,tsadj_min)
+                End If
+                last_max_stored = last_max
+                last_max = curr_max
+                ! Are we taking too long to reach equilibrium?
+                If (dtadj > dtadj_max) Exit
+             End Do ! While StratImbal
+
+             ! If convergence failed, record that
+             If (StratImbal) Then
+                !$OMP ATOMIC UPDATE
+                N_Failed = N_Failed + 1
+                !$OMP END ATOMIC
+             End If
+
+             ! Store the flux arrays and delta-T from the final
+             ! RK4 sub-calculation. This ensures that the fluxes 
+             ! and layer temperatures are all consistent. The
+             ! alternative would be to run a final calculation
+             ! using the "final" layer temperatures, but this would
+             ! require yet another LW flux calculation.
+             LW_UFLUX (I,J,:) = UFLX_P(1,:)
+             LW_DFLUX (I,J,:) = DFLX_P(1,:)
+             LW_UFLUXC(I,J,:) = UFLXC_P(1,:)
+             LW_DFLUXC(I,J,:) = DFLXC_P(1,:)
+             DT_3D(I,J,:) = p_TLAY_P(:) - TLAY(I,J,:)
+          End If ! Calc_DeltaT
+       End If
     ENDDO !State_Grid%NX
     ENDDO !State_Grid%NY
     !$OMP END PARALLEL DO
+
+    If (Calc_DeltaT) Then
+       ! Warn the user if there were failed columns
+       If (N_Failed > 0) Then
+          N_Column = State_Grid%NX*State_Grid%NY
+          Write(ErrMsg,'(a,I6,a,I6,a,I6)') 'RRTMG FDH routine failed to converge for ',N_Failed, &
+                                        ' of ',N_Column,' columns on CPU ', Input_Opt%thisCPU
+          If (N_Failed .gt. (N_Column/10)) Then
+              Call Log_Msg(Trim(ErrMsg),'WARNING','Do_RRTMG_Rad_Transfer')
+          Else
+              Call Log_Msg(Trim(ErrMsg),'INFO','Do_RRTMG_Rad_Transfer')
+          End If
+       Else
+          Call Log_Msg('FDH calculation succeeded in every column','DEBUG','Do_RRTMG_Rad_Transfer')
+       End If
+    End If
 
     ! OUTPUT RADIATION VARIABLES TO DIAGNOSTIC
     ! IF CALC WITH AEROSOLS AND GASES COMPLETED
@@ -1436,6 +1771,7 @@ CONTAINS
     !$OMP PRIVATE( I, J, LL, W )            &
     !$OMP PRIVATE( AODTMP, SSATMP, ASYMTMP) &
     !$OMP PRIVATE( AODOUT, SSAOUT, ASYMOUT) &
+    !$OMP PRIVATE( iTrop                  ) &
     !$OMP SCHEDULE( DYNAMIC )
     DO J=1,State_Grid%NY
     DO I=1,State_Grid%NX
@@ -1443,6 +1779,9 @@ CONTAINS
        !================================================================
        ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
        !================================================================
+
+       ! Get the tropopause level
+       iTrop = State_Met%TropLev(I,J)
 
        !================================================================
        ! Save clear-sky and all-sky fluxes from RRTMG [W/m2]
@@ -1460,6 +1799,12 @@ CONTAINS
                   -SW_UFLUX(I,J,State_Grid%NZ+1)
           ENDIF
 
+          ! All-sky SW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTrop ) THEN
+             State_Diag%RadAllSkySWTrop(I,J,iNcDiag) = &
+                  SW_DFLUX(I,J,iTrop)-SW_UFLUX(I,J,iTrop)
+          ENDIF
+
           ! All-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
              State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
@@ -1470,6 +1815,12 @@ CONTAINS
           IF ( State_Diag%Archive_RadAllSkyLWTOA ) THEN
              State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
                   -LW_UFLUX(I,J,State_Grid%NZ+1)
+          ENDIF
+
+          ! All-sky LW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTrop ) THEN
+             State_Diag%RadAllSkyLWTrop(I,J,iNcDiag) = &
+                  LW_DFLUX(I,J,iTrop)-LW_UFLUX(I,J,iTrop)
           ENDIF
 
           ! All-sky LW flux @ surface [W/m2]
@@ -1484,6 +1835,12 @@ CONTAINS
                   -SW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
+          ! Clear-sky SW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTrop ) THEN
+             State_Diag%RadClrSkySWTrop(I,J,iNcDiag) = &
+                  SW_DFLUXC(I,J,iTrop)-SW_UFLUXC(I,J,iTrop)
+          ENDIF
+
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
              State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
@@ -1494,6 +1851,12 @@ CONTAINS
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
              State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
                   -LW_UFLUXC(I,J,State_Grid%NZ+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTrop ) THEN
+             State_Diag%RadClrSkyLWTrop(I,J,iNcDiag) = &
+                  LW_DFLUXC(I,J,iTrop)-LW_UFLUXC(I,J,iTrop)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
@@ -1514,6 +1877,12 @@ CONTAINS
                   -SW_UFLUXC(I,J,State_Grid%NZ+1)
           ENDIF
 
+          ! Clear-sky SW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTrop ) THEN
+             State_Diag%RadClrSkySWTrop(I,J,iNcDiag) = &
+                  SW_DFLUXC(I,J,iTrop)-SW_UFLUXC(I,J,iTrop)
+          ENDIF
+
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
              State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
@@ -1524,6 +1893,12 @@ CONTAINS
           IF ( State_Diag%Archive_RadClrSkyLWTOA ) THEN
              State_Diag%RadClrSkyLWTOA(I,J,iNcDiag) = &
                   -LW_UFLUXC(I,J,State_Grid%NZ+1)
+          ENDIF
+
+          ! Clear-sky LW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTrop ) THEN
+             State_Diag%RadClrSkyLWTrop(I,J,iNcDiag) = &
+                  LW_DFLUXC(I,J,iTrop)-LW_UFLUXC(I,J,iTrop)
           ENDIF
 
           ! Clear-sky LW flux @ surface [W/m2]
@@ -1553,6 +1928,13 @@ CONTAINS
                 State_Diag%RadAllSkySWTOA(I,J,iNcDiag)
           ENDIF
 
+          ! All-sky SW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadAllSkySWTrop ) THEN
+             State_Diag%RadAllSkySWTrop(I,J,iNcDiag) = &
+                State_Diag%RadAllSkySWTrop(I,J,baseIndex) - &
+                State_Diag%RadAllSkySWTrop(I,J,iNcDiag)
+          ENDIF
+
           ! All-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadAllSkySWSurf ) THEN
              State_Diag%RadAllSkySWSurf(I,J,iNcDiag) = &
@@ -1565,6 +1947,13 @@ CONTAINS
              State_Diag%RadAllSkyLWTOA(I,J,iNcDiag) = &
                 State_Diag%RadAllSkyLWTOA(I,J,baseIndex) - &
                 State_Diag%RadAllSkyLWTOA(I,J,iNcDiag)
+          ENDIF
+
+          ! All-sky LW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadAllSkyLWTrop ) THEN
+             State_Diag%RadAllSkyLWTrop(I,J,iNcDiag) = &
+                State_Diag%RadAllSkyLWTrop(I,J,baseIndex) - &
+                State_Diag%RadAllSkyLWTrop(I,J,iNcDiag)
           ENDIF
 
           ! All-sky LW flux @ surface [W/m2]
@@ -1581,6 +1970,13 @@ CONTAINS
                 State_Diag%RadClrSkySWTOA(I,J,iNcDiag)
           ENDIF
 
+          ! Clear-sky SW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkySWTrop ) THEN
+             State_Diag%RadClrSkySWTrop(I,J,iNcDiag) = &
+                State_Diag%RadClrSkySWTrop(I,J,baseIndex) - &
+                State_Diag%RadClrSkySWTrop(I,J,iNcDiag)
+          ENDIF
+
           ! Clear-sky SW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkySWSurf ) THEN
              State_Diag%RadClrSkySWSurf(I,J,iNcDiag) = &
@@ -1595,6 +1991,13 @@ CONTAINS
                 State_Diag%RadClrSkyLWTOA(I,J,iNcDiag)
           ENDIF
 
+          ! Clear-sky LW flux @ tropopause [W/m2]
+          IF ( State_Diag%Archive_RadClrSkyLWTrop ) THEN
+             State_Diag%RadClrSkyLWTrop(I,J,iNcDiag) = &
+                State_Diag%RadClrSkyLWTrop(I,J,baseIndex) - &
+                State_Diag%RadClrSkyLWTrop(I,J,iNcDiag)
+          ENDIF
+
           ! Clear-sky LW flux @ surface [W/m2]
           IF ( State_Diag%Archive_RadClrSkyLWSurf ) THEN
              State_Diag%RadClrSkyLWSurf(I,J,iNcDiag) = &
@@ -1606,15 +2009,17 @@ CONTAINS
 
        !-------------------------------------------------------
        ! Optics diagnostics (AOD, single scattering albedo, asymmetry param)
-       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, and
-       ! methane (hence OUTIDX > 4)T=, and there is one diagnostic per
-       ! RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       ! There is one diagnostic per RRTMG output, excluding BASE, ozone, CH4,
+       ! H2O, CO2, CFC, and N2O (hence OUTIDX > 7), and there is one
+       ! diagnostic per RRTMG wavelength (up to Input_Opt%NWVSELECT).
+       ! 2022-01-10: Added water vapor, CO2, CFC, and N2O (SDE)
        !-------------------------------------------------------
 
        !OUTPUT OPTICS FOR EACH AEROSOL...
        !CHECK THAT WE HAVE SOME AEROSOL TO OUTPUT
-       !SKIP OUTIDX=1,2,3 (BASELINE, OZONE AND CH4)
-       IF ((OUTIDX.GE.4).AND.(LOUTPUTAERO)) THEN
+       !SKIP OUTIDX=1,2,3,4,5,6,7
+       !(BASELINE, OZONE, CH4, H2O,CO2,CFC,N2O)
+       IF ((OUTIDX.GE.8).AND.(LOUTPUTAERO)) THEN
           !INTERPOLATE TO THE REQUESTED WAVELENGTH
           DO W=1,Input_Opt%NWVSELECT
              AODTMP  = 0.0D0
@@ -1698,8 +2103,14 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, 'DO_RRTMG_RAD_TRANSFER')
        RETURN
@@ -1762,7 +2173,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: N0,N,I,II,NXTRA
+    INTEGER :: N0,N,I,II,NXTRA,NASPECRAD
 
     ! Pointers
     INTEGER, POINTER :: SPECMASK(:)
@@ -1783,6 +2194,7 @@ CONTAINS
     !E.G. FOR UCX NSPECRAD=18 AND STS AND NAT ARE INCLUDED
     !IN RTODAER INDEX 8 AND 9, BEFORE DUST
     NXTRA = State_Chm%Phot%NSPECRAD - 16
+    NASPECRAD = State_Chm%Phot%NASPECRAD
 
     ! Set pointer
     SPECMASK => State_Chm%Phot%SpecMask
@@ -1798,62 +2210,80 @@ CONTAINS
 
        ! O3 = Ozone
        CASE( 1 )
-          SPECMASK(15+NXTRA)=0
+          SPECMASK(NASPECRAD+1)=0 ! Stratospheric
+          SPECMASK(NASPECRAD+2)=0 ! Tropospheric
+
+       ! O3T = Tropospheric ozone only
+       CASE( 2 )
+          SPECMASK(NASPECRAD+2)=0 ! Tropospheric
 
        ! ME = Methane
-       CASE( 2 )
-          SPECMASK(16+NXTRA)=0
+       CASE( 3 )
+          SPECMASK(NASPECRAD+3)=0
+
+       ! H2O = Water vapor
+       CASE( 4 )
+          SPECMASK(NASPECRAD+4)=0
+
+       ! CO2 = Carbon dioxide
+       CASE( 5 )
+          SPECMASK(NASPECRAD+5)=0
+
+       ! CFC = Chlorofluorocarbons
+       CASE( 6 )
+          SPECMASK(NASPECRAD+6)=0
+
+       ! N2O = Nitrous oxide
+       CASE( 7 )
+          SPECMASK(NASPECRAD+7)=0
 
        ! SU = Sulfate
-       CASE( 3 )
-          SPECMASK(1)=3
+       CASE( 8 )
+          SPECMASK(1)=8
 
        ! NI = Nitrate
-       CASE( 4 )
-          SPECMASK(2)=4
+       CASE( 9 )
+          SPECMASK(2)=9
 
        ! AM = Ammonium
-       CASE( 5 )
-          SPECMASK(3)=5
+       CASE( 10 )
+          SPECMASK(3)=10
 
        ! BC = Black carbon (Hydrophilic+phobic)
-       CASE( 6 )
-          SPECMASK(4)=6
+       CASE( 11 )
+          SPECMASK(4)=11
 
        ! OA = Organic aerosol (!Hydrophilic+phobic)
-       CASE( 7 )
-          SPECMASK(5)=7
+       CASE( 12 )
+          SPECMASK(5)=12
 
        ! SS = Sea salt
-       CASE( 8 )
-          SPECMASK(6)=8
-          SPECMASK(7)=8
+       CASE( 13 )
+          SPECMASK(6)=13
+          SPECMASK(7)=13
 
        ! DU = Mineral dust
-       CASE( 9 )
-          SPECMASK(8+NXTRA)=9
-          SPECMASK(9+NXTRA)=9
-          SPECMASK(10+NXTRA)=9
-          SPECMASK(11+NXTRA)=9
-          SPECMASK(12+NXTRA)=9
-          SPECMASK(13+NXTRA)=9
-          SPECMASK(14+NXTRA)=9
+       CASE( 14 )
+          ! 7 dust bins for RT
+          Do II=10,16
+             SPECMASK(II)=14
+          End Do
 
        ! PM = All particulate matter
        ! add all aerosols but not gases here
-       CASE( 10 )
+       CASE( 15 )
           DO II = 1, State_Chm%Phot%NASPECRAD
-             SPECMASK(II)=10
+             SPECMASK(II)=15
           ENDDO
 
        ! ST = STRAT AEROSOL
-       CASE( 11 )
+       CASE( 16 )
 
           !LSA
-          SPECMASK(8) = 11
+          SPECMASK(8) = 16
 
           !NAT
-          SPECMASK(9) = 11
+          SPECMASK(9) = 16
 
        END SELECT
     ENDIF
@@ -1936,13 +2366,11 @@ CONTAINS
     ! which is type 0).
     !
     ! Optional outputs (requested via HISTORY.rc)
-    !   1=O3  2=ME  3=SU   4=NI  5=AM  6=BC
-    !   7=OA  8=SS  9=DU  10=PM  11=ST
+    !   1=O3  2=O3T  3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI  10=AM 11=BC  12=OA  13=SS  14=DU  
+    !  15=PM  16=ST
     !
-    ! NOTE: We can get rid of Input_Opt%LSPECRADMENU once all of
-    ! the bpch code is removed from GEOS-Chem.  This array is still
-    ! used in diag3.F90, so we need to keep it for the time being.
-    ! (bmy, 11/9/18)
+    ! NB: "O3" is all ozone; "O3T" is tropospheric ozone only.
     !=================================================================
 
     ! Loop over all of the flux outputs requested in HISTORY.rc
@@ -1951,26 +2379,36 @@ CONTAINS
        SELECT CASE( State_Diag%RadOutName(N) )
        CASE( 'O3' )
           Input_Opt%LSpecRadMenu(1)  = 1
-       CASE( 'ME' )
+       CASE( 'O3T' )
           Input_Opt%LSpecRadMenu(2)  = 1
-       CASE( 'SU' )
+       CASE( 'ME' )
           Input_Opt%LSpecRadMenu(3)  = 1
-       CASE( 'NI' )
-          Input_Opt%LSpecRadMenu(4)  = 1
-       CASE( 'AM' )
-          Input_Opt%LSpecRadMenu(5)  = 1
-       CASE( 'BC' )
-          Input_Opt%LSpecRadMenu(6)  = 1
-       CASE( 'OA' )
-          Input_Opt%LSpecRadMenu(7)  = 1
-       CASE( 'SS' )
+       CASE( 'H2O' )
+          Input_Opt%LSpecRadMenu(4) = 1
+       CASE( 'CO2' )
+          Input_Opt%LSpecRadMenu(5) = 1
+       CASE( 'CFC' )
+          Input_Opt%LSpecRadMenu(6) = 1
+       CASE( 'N2O' )
+          Input_Opt%LSpecRadMenu(7) = 1
+       CASE( 'SU' )
           Input_Opt%LSpecRadMenu(8)  = 1
-       CASE( 'DU' )
+       CASE( 'NI' )
           Input_Opt%LSpecRadMenu(9)  = 1
-       CASE( 'PM' )
+       CASE( 'AM' )
           Input_Opt%LSpecRadMenu(10) = 1
-       CASE( 'ST' )
+       CASE( 'BC' )
           Input_Opt%LSpecRadMenu(11) = 1
+       CASE( 'OA' )
+          Input_Opt%LSpecRadMenu(12) = 1
+       CASE( 'SS' )
+          Input_Opt%LSpecRadMenu(13) = 1
+       CASE( 'DU' )
+          Input_Opt%LSpecRadMenu(14) = 1
+       CASE( 'PM' )
+          Input_Opt%LSpecRadMenu(15) = 1
+       CASE( 'ST' )
+          Input_Opt%LSpecRadMenu(16) = 1
        CASE DEFAULT
           ! Nothing
        END SELECT

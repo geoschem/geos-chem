@@ -1,3 +1,4 @@
+#ifdef FASTJX
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -18,10 +19,6 @@ MODULE FJX_INTERFACE_MOD
 !
   USE FJX_Mod
   USE PRECISION_MOD    ! For GEOS-Chem Precision (fp)
-#if defined( MODEL_CESM ) && defined( SPMD )
-  USE MPISHORTHAND
-  USE SPMD_UTILS
-#endif
 
   IMPLICIT NONE
 
@@ -34,7 +31,6 @@ MODULE FJX_INTERFACE_MOD
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-  PRIVATE :: RD_PROF_NC ! NC-read version of what is in original fast-jx
   PRIVATE :: SET_PROF_FJX ! could consolidate in photolysis_mod perhaps
 !
 ! !REVISION HISTORY:
@@ -162,6 +158,14 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Skip if in dry-run mode
+    IF ( notDryRun ) THEN
+       NJXX = NJX
+       do J = 1,NJX
+          TITLEJXX(J) = TITLEJX(J)
+       enddo
+    ENDIF
+
     !=====================================================================
     ! Read in 5-wavelength scattering data
     ! (or just print file name if in dry-run mode)
@@ -177,27 +181,6 @@ CONTAINS
        ErrMsg = 'Error encountered in FAST-JX routine "RD_MIE"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
-
-    !=====================================================================
-    ! Read in T & O3 climatology used to fill e.g. upper layers
-    ! or if O3 not calc.
-    !=====================================================================
-    CALL RD_PROF_NC( Input_Opt, State_Chm, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Rd_Prof_Nc"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Skip if not in dry-run mode
-    IF ( notDryRun ) THEN
-       NJXX = NJX
-       do J = 1,NJX
-          TITLEJXX(J) = TITLEJX(J)
-       enddo
     ENDIF
 
     !=====================================================================
@@ -240,9 +223,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod,     ONLY : A_, L_, L1_, W_, JVN_, JXL_, JXL1_
+    USE CMN_FJX_Mod,     ONLY : AN_, L_, L1_, W_, JVN_, JXL_, JXL1_
     USE CMN_FJX_Mod,     ONLY : NRATJ, JIND, JFACTA, FL
-    USE CMN_SIZE_MOD,    ONLY : NDUST, NRH, NAER
+    USE CMN_SIZE_MOD,    ONLY : NDUST, NRH, NRHAER, NSTRATAER
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : ERROR_STOP, ALLOC_ERR
     USE ERROR_MOD,       ONLY : DEBUG_MSG
@@ -312,7 +295,7 @@ CONTAINS
     REAL(fp)      :: O3_CTM(State_Grid%NZ+1)
     REAL(fp)      :: T_CTM(State_Grid%NZ+1), OPTD(State_Grid%NZ)
     REAL(fp)      :: OPTDUST(State_Grid%NZ,NDUST)
-    REAL(fp)      :: OPTAER(State_Grid%NZ,A_)
+    REAL(fp)      :: OPTAER(State_Grid%NZ,NRHAER*NRH+NSTRATAER)
 
     ! Local variables for cloud overlap (hyl, phs)
     INTEGER       :: NUMB, KK, I
@@ -327,7 +310,7 @@ CONTAINS
     REAL(fp)      :: CLDF1D(State_Grid%NZ)
     REAL(fp)      :: ODNEW(State_Grid%NZ)
     REAL(fp)      :: P_CTM(State_Grid%NZ+2)
-    REAL(fp)      :: AERX_COL(A_,L1_)
+    REAL(fp)      :: AERX_COL(AN_,L1_)
     REAL(fp)      :: T_CLIM(L1_)
     REAL(fp)      :: O3_CLIM(L1_)
     REAL(fp)      :: Z_CLIM(L1_+1)
@@ -396,15 +379,11 @@ CONTAINS
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
-    IF ( State_Diag%Archive_UVFluxDiffuse ) THEN
-       State_Diag%UVFluxDiffuse = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_UVFluxDirect ) THEN
-       State_Diag%UVFluxDirect = 0.0_f4
-    ENDIF
-    IF ( State_Diag%Archive_UVFluxNet ) THEN
-       State_Diag%UVFluxNet = 0.0_f4
-    ENDIF
+    IF ( State_Diag%Archive_UVFluxDiffuse ) State_Diag%UVFluxDiffuse = 0.0_f4
+    IF ( State_Diag%Archive_UVFluxDirect  ) State_Diag%UVFluxDirect  = 0.0_f4
+    IF ( State_Diag%Archive_UVFluxNet     ) State_Diag%UVFluxNet     = 0.0_f4
+    IF ( State_Diag%Archive_OD600         ) State_Diag%OD600         = 0.0_f4
+    IF ( State_Diag%Archive_TCOD600       ) State_Diag%TCOD600       = 0.0_f4
 
     !-----------------------------------------------------------------
     ! Special handling for first-time setup
@@ -494,35 +473,39 @@ CONTAINS
 
        ! Aerosol OD profile [unitless] at (NLON,NLAT)
        ! and at 1000nm, IWV1000 (DAR)
-       !OPTAER wants NAER*NRH values but ODAER is now NAER
-       !use IRHARR to map to correct OPTAER bin (DAR 08/13)
        OPTAER = 0.0e+0_fp
-       DO N = 1, NAER
+
+       ! OD profiles for aerosols undergoing hygroscopic growth. The OD
+       ! profile array has 5 columns for each of these aerosols, one for each
+       ! humidity in the optical properties LUT used by Fast-JX. For each grid
+       ! cell and aerosol, assign OD based on humidity in the grid box; values for
+       ! that grid cell and aerosol will be zero for all other humidity bins,
+       ! e.g. if RH<50% at L=1 then OPTAER(1,1) will contain SO4 OD and OPTAER(1,2:5)
+       ! will be all zeros.
+       DO N = 1, NRHAER
        DO L = 1, State_Grid%NZ
           IOPT = ( (N-1) * NRH ) + IRHARR(NLON,NLAT,L)
           OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,State_Chm%Phot%IWV1000,N)
        ENDDO
        ENDDO
+
+       ! OD profiles for stratospheric aerosols (N=1: ssa, N=2: psc)
+       DO N = 1, NSTRATAER
+       DO L = 1, State_Grid%NZ
+          IOPT = (NRHAER * NRH) + N
+          OPTAER(L,IOPT) = ODAER(NLON,NLAT,L,State_Chm%Phot%IWV1000,NRHAER+N)
+       ENDDO
+       ENDDO
+
+       ! Mineral dust optical depth profiles
        DO N = 1, NDUST
        DO L = 1, State_Grid%NZ
           OPTDUST(L,N) = ODMDUST(NLON,NLAT,L,State_Chm%Phot%IWV1000,N)
        ENDDO
        ENDDO
 
-       ! Mineral dust OD profile [unitless] at (NLON,NLAT)
-       ! and at 1000nm, IWV1000 (DAR)
-       !OPTDUST = ODMDUST(NLON,NLAT,:,State_Chm%Phot%IWV1000,:)
-
        ! Cloud OD profile [unitless] at (NLON,NLAT)
        OPTD = State_Met%OPTD(NLON,NLAT,1:State_Grid%NZ)
-
-       !-----------------------------------------------------------
-       !### If you want to exclude aerosol OD, mineral dust OD,
-       !### or cloud OD, then uncomment the following lines:
-       !OPTAER  = 0d0
-       !OPTDUST = 0d0
-       !OPTD(:)    = 0d0
-       !-----------------------------------------------------------
 
 #if defined( MODEL_GEOS )
        ! Initialize diagnostics arrays
@@ -730,250 +713,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: rd_prof_nc
-!
-! !DESCRIPTION: Subroutine RAD\_PROF\_NC reads in the reference climatology
-!  from a NetCDF file rather than an ASCII .dat.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE RD_PROF_NC( Input_Opt, State_Chm, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Chm_Mod, ONLY : ChmState
-
-#if defined( MODEL_CESM )
-    USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
-    USE IOFILEMOD,         ONLY : GETFIL
-    USE PIO,               ONLY : PIO_CLOSEFILE
-    USE PIO,               ONLY : PIO_INQ_DIMID
-    USE PIO,               ONLY : PIO_INQ_DIMLEN
-    USE PIO,               ONLY : PIO_INQ_VARID
-    USE PIO,               ONLY : PIO_GET_VAR
-    USE PIO,               ONLY : PIO_NOERR
-    USE PIO,               ONLY : PIO_NOWRITE
-    USE PIO,               ONLY : FILE_DESC_T
-#else
-    USE m_netcdf_io_open
-    USE m_netcdf_io_read
-    USE m_netcdf_io_readattr
-    USE m_netcdf_io_close
-#endif
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry state object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  This file was automatically generated by the Perl scripts in the
-!  NcdfUtilities package (which ships w/ GEOS-Chem) and was subsequently
-!  hand-edited.
-!
-! !REVISION HISTORY:
-!  19 Apr 2012 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL            :: FileExists          ! Does input file exist?
-    INTEGER            :: fId                 ! netCDF file ID
-
-    ! Strings
-    CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
-    CHARACTER(LEN=255) :: nc_file             ! netCDF file name
-    CHARACTER(LEN=255) :: nc_path             ! netCDF path name
-    CHARACTER(LEN=255) :: v_name              ! netCDF variable name
-    CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
-    CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
-    CHARACTER(LEN=255) :: FileMsg
-    CHARACTER(LEN=255) :: ErrMsg
-    CHARACTER(LEN=255) :: ThisLoc
-
-    ! Arrays
-    INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
-
-#if defined( MODEL_CESM )
-    type(FILE_DESC_T)  :: ncid
-    INTEGER            :: vId, iret
-#endif
-
-    ! Pointers
-    REAL(fp), POINTER :: OREF(:,:,:)
-    REAL(fp), POINTER :: TREF(:,:,:)
-
-    !=================================================================
-    ! RD_PROF_NC begins here!
-    !=================================================================
-
-    ! Initialize
-    ! Assume success
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/fjx_interface_mod.F90)'
-
-    ! Set pointers
-    OREF => State_Chm%Phot%OREF
-    TREF => State_Chm%Phot%TREF
-
-    ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
-    nc_file = 'fastj.jv_atms_dat.nc'
-    nc_path = TRIM( nc_dir ) // TRIM( nc_file )
-
-    !=================================================================
-    ! In dry-run mode, print file path to dryrun log and exit.
-    ! Otherwise, print file path to stdout and continue.
-    !=================================================================
-
-    ! Test if the file exists
-    INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
-
-    ! Test if the file exists and define an output string
-    IF ( FileExists ) THEN
-       FileMsg = 'FAST-JX (RD_PROF_NC): Opening'
-    ELSE
-       FileMsg = 'FAST-JX (RD_PROF_NC): REQUIRED FILE NOT FOUND'
-    ENDIF
-
-    ! Write to stdout for both regular and dry-run simulations
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( nc_path )
-300    FORMAT( a, ' ', a )
-    ENDIF
-
-    ! For dry-run simulations, return to calling program.
-    ! For regular simulations, throw an error if we can't find the file.
-    IF ( Input_Opt%DryRun ) THEN
-       RETURN
-    ELSE
-       IF ( .not. FileExists ) THEN
-          WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( nc_path )
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !=========================================================================
-    ! Open and read data from the netCDF file
-    !=========================================================================
-
-    ! Open netCDF file
-#if defined( MODEL_CESM )
-    CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
-#else
-    CALL Ncop_Rd( fId, TRIM(nc_path) )
-#endif
-
-    ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 100 ) REPEAT( '%', 79 )
-       WRITE( 6, 110 ) TRIM(nc_file)
-       WRITE( 6, 120 ) TRIM(nc_dir)
-    ENDIF
-
-    !----------------------------------------
-    ! VARIABLE: T
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "T"
-
-    ! Read T from file
-    st3d   = (/  1,  1,  1 /)
-    ct3d   = (/ 51, 18, 12 /)
-#if defined( MODEL_CESM )
-    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-    iret = PIO_GET_VAR(   ncid, vid, TREF          )
-#else
-    CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
-
-    ! Read the T:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-
-    ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-    ENDIF
-#endif
-
-    !----------------------------------------
-    ! VARIABLE: O3
-    !----------------------------------------
-
-    ! Variable name
-    v_name = "O3"
-
-    ! Read O3 from file
-    st3d   = (/  1,  1,  1 /)
-    ct3d   = (/ 51, 18, 12 /)
-#if defined( MODEL_CESM )
-    iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-    iret = PIO_GET_VAR(   ncid, vid, OREF          )
-#else
-    CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
-
-    ! Read the O3:units attribute
-    a_name = "units"
-    CALL NcGet_Var_Attributes( fId,TRIM(v_name),TRIM(a_name),a_val )
-
-    ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
-    ENDIF
-#endif
-
-    !=================================================================
-    ! Cleanup and quit
-    !=================================================================
-
-    ! Close netCDF file
-#if defined( MODEL_CESM )
-    CALL PIO_CLOSEFILE( ncid )
-#else
-    CALL NcCl( fId )
-#endif
-
-    ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, 140 )
-       WRITE( 6, 100 ) REPEAT( '%', 79 )
-    ENDIF
-
-    ! Free pointers
-    OREF => NULL()
-    TREF => NULL()
-
-    ! FORMAT statements
-100 FORMAT( a                                              )
-110 FORMAT( '%% Opening file  : ',         a               )
-120 FORMAT( '%%  in directory : ',         a, / , '%%'     )
-130 FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
-140 FORMAT( '%% Successfully closed file!'                 )
-
-  END SUBROUTINE RD_PROF_NC
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: set_prof_fjx
 !
 ! !DESCRIPTION: Subroutine SET\_PROF\_FJX sets vertical profiles for a given
@@ -989,8 +728,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_Mod,     ONLY : L_, L1_, A_, ZZHT
-    USE CMN_SIZE_Mod,    ONLY : NAER, NRH, NDUST
+    USE CMN_FJX_Mod,     ONLY : L_, L1_, AN_, ZZHT
+    USE CMN_SIZE_Mod,    ONLY : NDUST, NRH, NRHAER, NSTRATAER
     USE Input_Opt_Mod,   ONLY : OptInput
     USE PhysConstants,   ONLY : AIRMW, AVO, g0, BOLTZ
     USE State_Chm_Mod,   ONLY : ChmState
@@ -1006,7 +745,7 @@ CONTAINS
     REAL(fp), INTENT(IN)       :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
     REAL(fp), INTENT(INOUT)    :: CLDOD(L_)         ! Cloud optical depth
     REAL(fp), INTENT(IN)       :: DSTOD(L_,NDUST)   ! Mineral dust OD
-    REAL(fp), INTENT(IN)       :: AEROD(L_,A_)      ! Aerosol OD
+    REAL(fp), INTENT(IN)       :: AEROD(L_,NRHAER*NRH+NSTRATAER) ! Aerosol OD
     REAL(fp), INTENT(IN)       :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
     TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input options
     TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
@@ -1014,7 +753,7 @@ CONTAINS
 !
 ! !OUTPUT VARIABLES:
 !
-    REAL(fp), INTENT(OUT)      :: AERCOL(A_,L1_)    ! Aerosol column
+    REAL(fp), INTENT(OUT)      :: AERCOL(AN_,L1_)   ! Aerosol column
     REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)       ! Clim. temperatures (K)
     REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
     REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
@@ -1040,15 +779,41 @@ CONTAINS
     ! Local variables for quantities from Input_Opt
     LOGICAL :: USE_ONLINE_O3
 
+    ! Debugging logicals to turn optical depth sources on/off
+    LOGICAL :: use_liqcld
+    LOGICAL :: use_icecld
+    LOGICAL :: use_dust
+    LOGICAL :: use_so4
+    LOGICAL :: use_bc
+    LOGICAL :: use_oc
+    LOGICAL :: use_sala
+    LOGICAL :: use_salc
+    LOGICAL :: use_stratso4
+    LOGICAL :: use_psc
+
     !=================================================================
     ! SET_PROF begins here!
     !=================================================================
+
+    ! Debugging option to turn optical depth sources on/off. Uncomment where
+    ! used elsewhere in this file to use. They are commented out by default
+    ! to avoid unnecessary model slow-down.
+    use_liqcld   = .true.
+    use_icecld   = .true.
+    use_dust     = .true.
+    use_so4      = .true.
+    use_bc       = .true.
+    use_oc       = .true.
+    use_sala     = .true.
+    use_salc     = .true.
+    use_stratso4 = .true.
+    use_psc      = .true.
 
     ! Copy fields from INPUT_OPT
     USE_ONLINE_O3   = Input_Opt%USE_ONLINE_O3
 
     ! Zero aerosol column
-    DO K=1,A_
+    DO K=1,AN_
        DO I=1,L1_
           AERCOL(K,I) = 0.e+0_fp
        ENDDO
@@ -1145,21 +910,40 @@ CONTAINS
           AERCOL(3,I) = CLDOD(I)
        ENDIF
 
-       ! Also add in aerosol optical depth columns (rvm, bmy, 9/30/00)
+       ! Mineral dust optical depth columns
        DO N = 1, NDUST
           AERCOL(3+N,I) = DSTOD(I,N)
        ENDDO
 
-       ! Also add in other aerosol optical depth columns (rvm, bmy, 2/27/02)
-       DO N = 1, NAER*NRH
-          AERCOL(3+N+NDUST,I) = AEROD(I,N)
+       ! Aerosol optical depth columns for aerosols undergroing
+       ! hygroscopic growth
+       DO N = 1, NRHAER*NRH
+          AERCOL(3+NDUST+N,I) = AEROD(I,N)
+       ENDDO
+
+       ! Stratospheric aerosol optical depth columns
+       DO N = 1, NSTRATAER
+          AERCOL(3+NDUST+NRHAER*NRH+N,I) = AEROD(I,NRHAER*NRH+N)
        ENDDO
 
     ENDDO
 
-    DO K = 1,(3+NDUST+(NAER))
+    DO K = 1,AN_
        AERCOL(K,L1_    ) = 0.e+0_fp
     ENDDO
+
+    ! Debugging option to turn off contributions for different sources.
+    ! Uncomment if using.
+    !IF ( .NOT. use_liqcld   ) AERCOL(2,:)     = 0.0_fp
+    !IF ( .NOT. use_icecld   ) AERCOL(3,:)     = 0.0_fp
+    !IF ( .NOT. use_dust     ) AERCOL(4:10,:)  = 0.0_fp
+    !IF ( .NOT. use_so4      ) AERCOL(11:15,:) = 0.0_fp
+    !IF ( .NOT. use_bc       ) AERCOL(16:20,:) = 0.0_fp
+    !IF ( .NOT. use_oc       ) AERCOL(21:25,:) = 0.0_fp
+    !IF ( .NOT. use_sala     ) AERCOL(26:30,:) = 0.0_fp
+    !IF ( .NOT. use_salc     ) AERCOL(31:35,:) = 0.0_fp
+    !IF ( .NOT. use_stratso4 ) AERCOL(36,:)    = 0.0_fp
+    !IF ( .NOT. use_psc      ) AERCOL(37,:)    = 0.0_fp
 
     !=================================================================
     ! Calculate column quantities for FAST-JX
@@ -1261,3 +1045,4 @@ CONTAINS
   END SUBROUTINE SET_PROF_FJX
 !EOC
 END MODULE FJX_INTERFACE_MOD
+#endif
