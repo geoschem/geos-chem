@@ -75,7 +75,7 @@ CO2_simulation_options:
 
   tagged_species:
     tag_bio_and_ocean_CO2: false
-    tag_land_fossil_fuel_CO2: 
+    tag_land_fossil_fuel_CO2: false
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
