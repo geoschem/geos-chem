@@ -208,6 +208,15 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # c24 merra2 carbon CH4 only
     create_rundir "5\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
 
+    # c24 merra2 carbon CO2 only
+    create_rundir "5\n3\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 carbon CO only
+    create_rundir "5\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # c24 merra2 carbon OCS only
+    create_rundir "5\n5\n1\n${rundirsDir}\n\nn\n" "${log}"
+
     # Exit after creating a couple of rundirs if $quick is "yes"
     if [[ "X${quick}" == "XYES" ]]; then
         cd ${thisDir}
