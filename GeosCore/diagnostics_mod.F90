@@ -303,7 +303,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, State_Diag, RC )
+  SUBROUTINE Zero_Diagnostics_StartofTimestep( Input_Opt, isChemTime, State_Diag, RC )
 !
 ! !USES:
 !
@@ -313,6 +313,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Options object
+    LOGICAL,          INTENT(IN)    :: isChemTime   ! This a chemistry timestep?
 !
 ! !INPUT AND OUTPUT PARAMETERS:
 !
@@ -386,6 +387,54 @@ CONTAINS
        IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
           State_Diag%DryDepMix = 0.0_f4
        ENDIF
+    ENDIF
+
+    ! Budget Diagnostics
+    IF ( State_Diag%Archive_BudgetTransportFull ) &
+         State_Diag%BudgetTransportFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetTransportTrop ) &
+         State_Diag%BudgetTransportTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetTransportPBL ) &
+         State_Diag%BudgetTransportPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetMixingFull ) &
+         State_Diag%BudgetMixingFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetMixingTrop ) &
+         State_Diag%BudgetMixingTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetMixingPBL ) &
+         State_Diag%BudgetMixingPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetConvectionFull ) &
+         State_Diag%BudgetConvectionFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetConvectionTrop ) &
+         State_Diag%BudgetConvectionTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetConvectionPBL ) &
+         State_Diag%BudgetConvectionPBL = 0.0_f8
+
+    IF ( State_Diag%Archive_BudgetWetDepFull ) &
+         State_Diag%BudgetWetDepFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetWetDepTrop ) &
+         State_Diag%BudgetWetDepTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetWetDepPBL ) &
+         State_Diag%BudgetWetDepPBL = 0.0_f8
+
+    ! Only zero out chemistry/emissions/dry dep budget diagnostic arrays
+    ! if this is a chemistry timestep to avoid zero values in history
+    ! when only dynamics is performed
+    IF ( isChemTime ) THEN
+       IF ( State_Diag%Archive_BudgetChemistryFull ) &
+            State_Diag%BudgetChemistryFull = 0.0_f8
+       IF ( State_Diag%Archive_BudgetChemistryTrop ) &
+            State_Diag%BudgetChemistryTrop = 0.0_f8
+       IF ( State_Diag%Archive_BudgetChemistryPBL ) &
+            State_Diag%BudgetChemistryPBL = 0.0_f8
+
+       IF ( State_Diag%Archive_BudgetEmisDryDepFull ) &
+            State_Diag%BudgetEmisDryDepFull = 0.0_f8
+       IF ( State_Diag%Archive_BudgetEmisDryDepTrop ) &
+            State_Diag%BudgetEmisDryDepTrop = 0.0_f8
+       IF ( State_Diag%Archive_BudgetEmisDryDepPBL ) &
+            State_Diag%BudgetEmisDryDepPBL = 0.0_f8
     ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
@@ -917,7 +966,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Compute_Column_Mass
+! !IROUTINE: Compute_Budget_Diagnostics
 !
 ! !DESCRIPTION: Subroutine Compute\_Budget\_Diagnostics calculates the
 !  budget diagnostics for a given component by taking the difference of the
@@ -934,11 +983,11 @@ CONTAINS
                                          isPBL,      diagPBL,  mapDataPBL,   &
                                          isLevs,     diagLevs, mapDataLevs,  &
                                          colMass,    RC,       timeStep,     &
-                                         isWetDep,   before_op              )
+                                         isWetDep,   before_op, msg           )
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,  Only : OptInput
+    USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
@@ -961,8 +1010,9 @@ CONTAINS
     LOGICAL,        INTENT(IN)    :: isLevs           ! T if fixed levels diag on
     TYPE(DgnMap),   POINTER       :: mapDataLevs      ! Map to species indexes
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
-    LOGICAL,        OPTIONAL      :: before_op        ! T = before operation
-    REAL(f8),       OPTIONAL      :: timestep         ! F = after operation
+    LOGICAL,        OPTIONAL      :: before_op        ! T = before operation; F = after
+    REAL(f8),       OPTIONAL      :: timestep         ! Timestep of the operation
+    CHARACTER(LEN=*),OPTIONAL     :: msg              ! message to print to log if verbose
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -989,13 +1039,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: after,  before, wetDep
-    INTEGER            :: I,      J,      L,       N,      S
+    LOGICAL            :: after,  before, wetDep, budgetCheck
+    INTEGER            :: I,      J,      L,       N,    S
     INTEGER            :: numSpc, region, topLev,  botLev
-    REAL(f8)           :: colSum, dt
+    REAL(f8)           :: colSum, dt,     rtol
 
     ! Arrays
     REAL(f8)           :: spcMass(State_Grid%NZ)
+    REAL(f8)           :: rerr(3),  PriorGlobalMass(3)
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1007,9 +1058,20 @@ CONTAINS
     ! Initialize
     RC      =  GC_SUCCESS
     errMsg  = ''
-    ThisLoc = ' -> at Compute_Column_Mass (in GeosCore/diagnostics_mod.F90)'
+    ThisLoc = ' -> at Compute_Budget_Diagnostics (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
+
+    ! Optional print of message to log
+    IF ( PRESENT(msg) .AND. Input_Opt%Verbose ) print *, TRIM(msg)
+
+    ! Use budgetCheck if debugging / sanity checking diagnostics.
+    ! This will print a warning if global mass sum changes between end of one
+    ! budget calculation and beginning of the next. This should never happen if
+    ! the budget diagnostics capture all species mass change across the model.
+    !
+    ! NOTE for GCHP: Warnings will only be generated if criteria met on root thread.
+    budgetCheck = Input_Opt%Verbose
 
     ! Exit if concentrations are not in [kg/kg dry]
     IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
@@ -1109,13 +1171,16 @@ CONTAINS
     ! Before operation: Compute column masses (full, trop, PBL, levs)
     !
     ! After operation:  Compute column differences (final-initial)
-    !                   and them update diagnostic arrays
+    !                   and then update diagnostic arrays
     !====================================================================
 
-    ! Zero out the column mass array if we are calling this routine
-    ! before the desired operation.  This will let us compute initial mass.
-    IF ( before ) THEN
-       colMass = 0.0_f8
+    IF ( before .and. budgetCheck ) THEN
+       ! Prior global tracer mass, summed over all tracers
+       ! This isn't physically meaningful, 
+       ! but can be used to check if the budget diagnostic is working correctly
+       PriorGlobalMass(1) = sum( colMass(:,:,:,1) )
+       PriorGlobalMass(2) = sum( colMass(:,:,:,2) )
+       PriorGlobalMass(3) = sum( colMass(:,:,:,3) )
     ENDIF
 
     ! Loop over NX and NY dimensions
@@ -1167,13 +1232,17 @@ CONTAINS
                 colMass(I,J,N,1) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep &
-                                / State_Grid%AREA_M2(I,J)
+                diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
+                                  / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagFull(I,J,S) = ( colSum - colMass(I,J,N,1) ) / timeStep
+                diagFull(I,J,S) = diagFull(I,J,S) + ( ( colSum - colMass(I,J,N,1) ) &
+                                  / timeStep )
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,1) = colSum
              ENDIF
           ENDDO
+
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1215,11 +1284,14 @@ CONTAINS
                 colMass(I,J,N,2) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep &
-                                / State_Grid%AREA_M2(I,J)
+                diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
+                                  / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagTrop(I,J,S) = ( colSum - colMass(I,J,N,2) ) / timeStep
+                diagTrop(I,J,S) = diagTrop(I,J,S) + ( ( colSum - colMass(I,J,N,2) ) &
+                                  / timeStep )
 #endif
+                ! Update column mass for budget consistency check at next budget call
+                colMass(I,J,N,2) = colSum
              ENDIF
           ENDDO
        ENDIF
@@ -1261,13 +1333,16 @@ CONTAINS
              ! convert to [kg/s], and store in the diagPBL array.
              IF ( before ) THEN
                 colMass(I,J,N,3) = colSum
-             ELSE
+             ELSE     
 #ifdef MODEL_GEOS
-                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
-                               / State_Grid%AREA_M2(I,J)
+                diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
+                                 / timeStep / State_Grid%AREA_M2(I,J) )
 #else
-                diagPBL(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagPBL(I,J,S) = diagPBL(I,J,S) + ( ( colSum - colMass(I,J,N,3) ) &
+                                 / timeStep )
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,3) = colSum
              ENDIF
           ENDDO
        ENDIF
@@ -1324,6 +1399,44 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    ! Budget consistency check
+    ! The global total tracer mass should *not* change between an "after" call and the next "before" call
+    IF ( budgetCheck .AND. before ) THEN
+       IF (.NOT. ANY( PriorGlobalMass == 0. ) ) THEN
+
+          ! Relative error, change since prior "after" call
+          rerr(1) = ABS( SUM( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
+          rerr(2) = ABS( SUM( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
+          rerr(3) = ABS( SUM( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
+
+          ! Relative error tolarance, errors larger than this will halt the model
+          rtol = 0.001
+
+          IF ( rerr(1) > rtol .and. Input_Opt%amIRoot ) THEN
+             PRINT *, 'Budget Diagnostic Warning: FULL-column tracer mass changed ', &
+                      'unexpectedly, rerr=', rerr(1)
+          ENDIF
+          IF ( rerr(2) > rtol .and. Input_Opt%amIRoot ) THEN
+             PRINT *, 'Budget Diagnostic Warning: TROP-column tracer mass changed ', &
+                      'unexpectedly, rerr=', rerr(2)
+          ENDIF
+          IF ( rerr(3) > rtol .and. Input_Opt%amIRoot) THEN
+             PRINT *, 'Budget Diagnostic Warning: PBL-column tracer mass changed ', &
+                      ' unexpectedly, rerr=', rerr(3)
+          ENDIF
+
+          IF ( ANY( rerr > rtol ) ) THEN
+             errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
+                  //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+             PRINT *, errMsg
+             PRINT *, 'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
+             ! Optional code to exit with error if warning criteria is met:
+             ! CALL GC_Error( errMsg, RC, thisLoc )
+             ! RETURN
+          ENDIF
+       ENDIF
+    ENDIF
 
   END SUBROUTINE Compute_Budget_Diagnostics
 !EOC
@@ -1753,7 +1866,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : IS_POA, IS_OPOA
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species, SpcConc
@@ -2072,7 +2184,7 @@ CONTAINS
        ! AerMassPOA [ug/m3], OA:OC=2.1
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassPOA ) THEN
-          IF ( Is_POA ) THEN
+          IF ( State_Diag%isPOA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
           ELSE
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
@@ -2166,13 +2278,13 @@ CONTAINS
        !--------------------------------------
        IF ( State_Diag%Archive_TotalOC ) THEN
 
-          IF ( Is_POA ) THEN
+          IF ( State_Diag%isPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
 
-          ELSE IF ( Is_OPOA ) THEN
+          ELSE IF ( State_Diag%isOPOA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &
