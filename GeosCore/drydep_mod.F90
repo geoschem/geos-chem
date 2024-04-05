@@ -1344,7 +1344,7 @@ CONTAINS
     !$OMP PRIVATE( DUMMY1,    DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB         )&
     !$OMP PRIVATE( C1X,       VK,      I,       J,      IW                  )&
     !$OMP PRIVATE( DIAM,      DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP   )&
-    !$OMP PRIVATE( N_SPC,     alpha,   DEPVw    VTSoutput,       VTSoutput_ )&
+    !$OMP PRIVATE( N_SPC,     alpha,   DEPVw,   VTSoutput,       VTSoutput_ )&
 #ifdef TOMAS
     !$OMP PRIVATE( BIN                                                      )&
 #endif
