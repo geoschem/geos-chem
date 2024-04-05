@@ -3,14 +3,22 @@
 #SBATCH -c 8
 #SBATCH -N 1
 #SBATCH -t 0-12:00
-#SBATCH -p huce_intel,seas_compute,shared
+#SBATCH -p sapphire,huce_cascade,seas_compute,shared
 #SBATCH --mem=15000
 #SBATCH --mail-type=END
 
 ###############################################################################
-### Sample GEOS-Chem run script for SLURM
-### You can increase the number of cores with -c and memory with --mem,
-### particularly if you are running at very fine resolution (e.g. nested-grid)
+### Sample GEOS-Chem Classic run script for Harvard Cannon (using SLURM).
+###
+### If you are running a nested-grid simulation at fine resolution, you
+### will likely need to request additional memory, cores, and time.
+###
+### -c           : Requests this many cores
+### -N           : Requests a single node
+### --mem        : Requests this amount of memory in GB
+### -p           : Requests these partitions where the job can run
+### -t           : Requests time for the job (days-hours:minutes)
+###  --exclusive : Reserves entire nodes (i.e. to prevent backfilling jobs)
 ###############################################################################
 
 # Set the proper # of threads for OpenMP
@@ -24,4 +32,4 @@ srun -c $OMP_NUM_THREADS time -p ./gcclassic >> GC.log
 
 # Exit normally
 exit 0
-#EOC
+

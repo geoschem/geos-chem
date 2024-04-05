@@ -916,16 +916,8 @@ CONTAINS
     ASYMAA => State_Chm%Phot%ASYMAA
     PHAA   => State_Chm%Phot%PHAA
 
-#if defined( MODEL_CESM )
-    IF ( Input_Opt%amIRoot ) THEN
-       NJ1 = findFreeLUN()
-    ELSE
-       NJ1 = 0
-    ENDIF
-#else
     ! Get a free LUN
     NJ1 = findFreeLUN()
-#endif
 
     ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
     !
@@ -946,7 +938,7 @@ CONTAINS
 
        ! Choose different set of input files for standard (trop+strat chenm)
        ! and tropchem (trop-only chem) simulations
-       THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
+       THISFILE = TRIM( DATA_DIR ) // '/' // TRIM( SPECFIL(k) )
 
        !--------------------------------------------------------------
        ! In dry-run mode, print file path to dryrun log and cycle.
@@ -984,11 +976,6 @@ CONTAINS
        !--------------------------------------------------------------
        ! If not a dry-run, read data from each species file
        !--------------------------------------------------------------
-
-#if defined( MODEL_CESM )
-       ! Only read file on root thread if using CESM
-       IF ( Input_Opt%amIRoot ) THEN
-#endif
 
        ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
@@ -1028,14 +1015,10 @@ CONTAINS
        ! Close file
        CLOSE( NJ1 )
 
-#if defined( MODEL_CESM )
-       ENDIF
-#endif
-
     ENDDO
     
 #if defined( MODEL_CESM )
-    IF ( Input_Opt%amIRoot ) CALL freeUnit(NJ1)
+   CALL freeUnit(NJ1)
 #endif
 
   ! Free pointers
@@ -1589,7 +1572,7 @@ CONTAINS
     TREF => State_Chm%Phot%TREF
 
     ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // '/' // 'FastJ_201204' // '/'
     nc_file = 'fastj.jv_atms_dat.nc'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 

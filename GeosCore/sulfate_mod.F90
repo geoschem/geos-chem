@@ -1000,7 +1000,7 @@ CONTAINS
 
     INTEGER                :: N_TRACERS
     INTEGER                :: IBINS
-    LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
+    LOGICAL                :: ERRORSWITCH, SGCOAG = .FALSE. ! bc,jrp - turn off subgridcoag 18/12/23
     INTEGER                :: FLAG, ERR
     logical                :: pdbug !(temporary) win, 10/24/07
     !integer               :: ii, jj, ll
@@ -1045,17 +1045,18 @@ CONTAINS
     AREA = HcoState%Grid%AREA_M2%Val(:,:)
     !AREA3D(:,:,1) = AREA(:,:)
     !AREA3D(:,:,2) = AREA(:,:)
-
+    
+     ! comment out if shut off subgridcoag bc,14/12/23
     ! Define subgrid coagulation timescale (win, 10/28/08)
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       TSCALE = 10.*3600.  ! 10 hours
-    ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-       TSCALE = 5.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-       TSCALE = 1.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       TSCALE = 0.5*3600.
-    ENDIF
+    !IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+    !   TSCALE = 10.0_fp*3600.0_fp  ! 10 hours
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+       TSCALE = 5.0_fp*3600.0_fp
+    !!ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    !   TSCALE = 1.0_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    !   TSCALE = 0.5_fp*3600.0_fp
+    !ENDIF
 
     ! Point to species array
     TC1 => State_Chm%Species

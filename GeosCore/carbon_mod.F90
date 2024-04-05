@@ -4968,7 +4968,7 @@ CONTAINS
    REAL*4                   :: TEMPTMS ! calculated from State_Met
    REAL*4                   :: PRES    ! calculated from State_Met
    REAL(fp)                 :: OC2OM = 1.8d0
-   LOGICAL                  :: SGCOAG = .True.
+   LOGICAL                  :: SGCOAG = .FALSE. ! bc,jrp turn off subgrid coag 18/12/23
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
    INTEGER                  :: origUnit

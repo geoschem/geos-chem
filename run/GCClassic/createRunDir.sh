@@ -1045,7 +1045,7 @@ fi
 
 #--------------------------------------------------------------------
 # Copy sample restart file to run directory
-# Bash functions used here are from ../shared/setupForRestarts.sh
+# Bash functions used here are from ./setupForRestarts.sh
 #--------------------------------------------------------------------
 
 # Parse the download_data.yml file, which returns variable declarations

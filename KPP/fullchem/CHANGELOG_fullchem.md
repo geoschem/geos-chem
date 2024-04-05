@@ -4,7 +4,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
-## [Unreleased 14.3.0] - TBD
+## [14.3.0] - 2024-02-07
 ### Added
 - Added PH2SO2 and PSO4AQ to track production of SO4 for use in TOMAS
 
