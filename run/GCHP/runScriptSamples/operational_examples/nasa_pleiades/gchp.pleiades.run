@@ -21,7 +21,10 @@
 cd $PBS_O_WORKDIR
 
 # Exit if command fails, and log all commands
-set -xe
+set -e
+
+# Debug option to print all commands in this script
+#set -x
 
 # Export and unset certain environment variables
 export MPI_LAUNCH_TIMEOUT=40

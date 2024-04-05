@@ -2273,6 +2273,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2284,6 +2285,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -2396,6 +2400,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2407,6 +2412,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = State_Diag%BudgetMixingPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = State_Diag%BudgetMixingLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )
