@@ -220,9 +220,17 @@ function updateHistory() {
 
     # For GCHP: remove entries for species to be excluded
     for spc in ${1}; do
-        sed -i "/\_${spc}/d"   "${file}"
-        sed -i "/Emis${spc}/d" "${file}"
+	sed -i "/\_${spc}'/d"   "${file}"
+        sed -i "/\_${spc} '/d"  "${file}"
+        sed -i "/Emis${spc}_/d"  "${file}"
     done
+
+    # Also disable emissions for OCS-only simulations
+    # (as we currently do not have any)
+    isItemInList "OCS" "${1}"
+    if [[ $? == 1 ]]; then
+	sed -i -e "s/'Emissions/#'Emissions/" "${file}"
+    fi
 }
 
 
