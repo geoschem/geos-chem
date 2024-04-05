@@ -74,12 +74,15 @@ COLLECTIONS: 'Metrics',
              #'DryDep',
              'JValues',
              #'KppDiags',
+	     #'KppARDiags',
              #'LevelEdgeDiags',
              'ProdLoss',
+             #'RxnRates',
+	     #'RxnConst',
              'StateChm',
              #'StateMet',
              #'StratBM',
-             'UVFlux',
+             #'UVFlux',
 ::
 ###############################################################################
 ### The rest of this file consists of collection definitions.               ###
@@ -89,7 +92,7 @@ COLLECTIONS: 'Metrics',
 ###############################################################################
 
 #==============================================================================
-# %%%%% THE Metrics COLLECTION %%%%%
+# %%%%% Metrics %%%%%
 #
 # Diagnostics for chemistry metrics such as global mean OH concentration,
 # MCF lifetime, and CH4 lifetime.
@@ -100,8 +103,8 @@ COLLECTIONS: 'Metrics',
 # Available for full-chemistry and CH4 simulations only.
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
-  Metrics.frequency:          'End',
-  Metrics.duration:           'End',
+  Metrics.frequency:          {FREQUENCY}
+  Metrics.duration:           {DURATION}
   Metrics.mode:               'time-averaged'
   Metrics.fields:             'AirMassColumnFull             ',
                               'LossOHbyCH4columnTrop         ',
@@ -109,7 +112,7 @@ COLLECTIONS: 'Metrics',
                               'OHwgtByAirMassColumnFull      ',
 ::
 #==============================================================================
-# %%%%% THE AerosolMass COLLECTION %%%%%
+# %%%%% AerosolMass %%%%%
 #
 # Aerosol and PM2.5 mass
 #
@@ -139,7 +142,7 @@ COLLECTIONS: 'Metrics',
                               'TotalOC              ',
 ::
 #==============================================================================
-# %%%%% The Aerosols COLLECTION %%%%%
+# %%%%% Aerosols %%%%%
 #
 # Aerosol optical depth, surface area, number density, and hygroscopic growth
 #
@@ -251,7 +254,7 @@ COLLECTIONS: 'Metrics',
                               'Chem_KhetiSLAHOBrHBr          ',
 ::
 #==============================================================================
-# %%%%% THE Budget COLLECTION %%%%%
+# %%%%% Budget %%%%%
 #
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
@@ -266,9 +269,10 @@ COLLECTIONS: 'Metrics',
   Budget.fields:       'BudgetChemistryFull_O3            ',
                        'BudgetChemistryTrop_O3            ',
                        'BudgetChemistryPBL_O3             ',
+                       'BudgetChemistryLevs1to35_O3       ',
 ::
 #==============================================================================
-# %%%%% THE ConcAboveSfc COLLECTION %%%%%
+# %%%%% ConcAboveSfc %%%%%
 #
 # Concentrations of O3 and HNO3 at a user-specified altitude above
 # the surface, such as 10m.  Set the desired output altitude in meters
@@ -290,7 +294,7 @@ COLLECTIONS: 'Metrics',
                               'SpeciesConcALT1_HNO3       ',
 ::
 #==============================================================================
-# %%%%% THE ConcAfterChem COLLECTION %%%%%
+# %%%%% ConcAfterChem %%%%%
 #
 # Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
 # or OH after the CH4 specialty-simulation chemistry routine.
@@ -309,7 +313,7 @@ COLLECTIONS: 'Metrics',
                               'O3PconcAfterChem              ',
 ::
 #==============================================================================
-# %%%%% THE JValues COLLECTION %%%%%
+# %%%%% JValues %%%%%
 #
 # Photolysis rates (from the photolysis module)
 #
@@ -460,7 +464,7 @@ COLLECTIONS: 'Metrics',
                               'Jval_ACET              ',
 ::
 #==============================================================================
-# %%%%% THE UVFlux COLLECTION %%%%%
+# %%%%% UVFlux %%%%%
 #
 # UV fluxes (from the photolysis module)
 #
@@ -526,7 +530,7 @@ COLLECTIONS: 'Metrics',
                               'UVFluxDiffuse_187nm    ',
 ::
 #==============================================================================
-# %%%%% THE KppDiags COLLECTION %%%%%
+# %%%%% KppDiags %%%%%
 #
 # Diagnostics from the KPP solver.
 #
@@ -546,11 +550,28 @@ COLLECTIONS: 'Metrics',
                               'KppSmDecomps                  ',
                               #'KppNegatives                  ',
                               #'KppNegatives0                 ',
+                              'KppTime                       ',
 ::
 #==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
+# %%%%% KppARDiags %%%%%
 #
-# Diagnostics that are defined on grid box level edges
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppARDiags.frequency:       {FREQUENCY}
+  KppARDiags.duration:        {DURATION}
+  KppARDiags.mode:            'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
+::
+#==============================================================================
+# %%%%% LevelEdgeDiags %%%%%
+#
+# Diagnostics that are defined on grid box level edges. Vertical dimension
+# size is one more than 3D fields in the StateMet collection.
 #
 # Available for all simulations
 #==============================================================================
@@ -567,7 +588,7 @@ COLLECTIONS: 'Metrics',
                               'Met_PFLLSAN                   ',
 ::
 #==============================================================================
-# %%%%% THE ProdLoss COLLECTION %%%%%
+# %%%%% ProdLoss %%%%%
 #
 # Chemical production and loss rates
 #
@@ -599,7 +620,44 @@ COLLECTIONS: 'Metrics',
                               'ProdCOfromNMVOC               ',
 ::
 #==============================================================================
-# %%%%% THE StateChm COLLECTION %%%%%
+# %%%%% RxnRates %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.frequency:  {FREQUENCY}
+  RxnRates.duration:   {DURATION}
+  RxnRates.mode:       'time-averaged'
+  RxnRates.fields:     'RxnRate_EQ001                           ',
+                       'RxnRate_EQ002                           ',
+::
+#==============================================================================
+# %%%%% RxnConst %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of reactants
+# in the reaction.
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnConst.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.frequency:  {FREQUENCY}
+  RxnConst.duration:   {DURATION}
+  RxnConst.mode:       'time-averaged'
+  RxnConst.fields:     'RxnConst_EQ001                          ',
+                       'RxnConst_EQ002                          ',
+::
+#==============================================================================
+# %%%%% StateChm %%%%%
 #
 # Fields of the State_Chm object (see also Aerosols collection)
 #
@@ -633,9 +691,11 @@ COLLECTIONS: 'Metrics',
                               'Chem_YieldClNO2fine           ',
 ::
 #==============================================================================
-# %%%%% The StateMet COLLECTION %%%%%
+# %%%%% StateMet %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+# Fields of the State_Met object (also see the LevelEdgeDiags collection). All
+# 3D fields are centered in the grid box, i.e. not at level edges. Vertical
+# dimension size is one more than 3D fields in the LevelEdgeDiags collection.
 #
 # Available for all simulations
 #==============================================================================
@@ -725,23 +785,4 @@ COLLECTIONS: 'Metrics',
                               'Met_V10M                      ',
                               'Met_Z0                        ',
                               'FracOfTimeInTrop              ',
-::
-#==============================================================================
-# %%%%% THE StratBM COLLECTION %%%%%
-#
-# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
-#
-# Available for full-chemistry simulations
-#==============================================================================
-  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  StratBM.frequency:      00000000 010000
-  StratBM.duration:       00000001 000000
-  StratBM.mode:           'time-averaged'
-  StratBM.fields:         'SpeciesConcVV_NO2                 ',
-                          'SpeciesConcVV_O3                  ',
-                          'SpeciesConcVV_ClO                 ',
-                          'Met_PSC2WET                       ',
-                          'Met_BXHEIGHT                      ',
-                          'Met_AIRDEN                        ',
-                          'Met_AD                            ',
 ::

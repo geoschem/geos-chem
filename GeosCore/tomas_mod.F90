@@ -524,41 +524,41 @@ CONTAINS
        printneg = .FALSE.
 
        ! determine ion rate
-       !ionrate = 10. ! set as constant now !!jrp
+       ionrate = 10.0_fp ! set as constant now !!jrp, bc 18/12/23 and comment out below
 
-       IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-
-          if( (pres / 100.) .lt. cplevels(9) ) then
-             ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
-             if(State_Met%FRCLND(I,J) .gt. 0.2) then
-                ionrate = ionrate + soil_ions(9)
-             endif
-          elseif((pres/100.) .gt. cplevels(1)) then
-             ionrate = cosmic_ions(i,j,1) * boxmass / boxvol
-             if( State_Met%FRCLND(I,J) .gt. 0.2 ) then
-                ionrate = ionrate + soil_ions(1)
-             endif
-          else
-             lev=2
-             do while (pres / 100. .lt. cplevels(lev))
-                lev=lev+1
-             enddo
-             weight=( cplevels( lev - 1 ) - pres / 100. ) / &
-                    ( cplevels( lev - 1 ) - cplevels(lev) )
-             ionrate=( cosmic_ions(i,j,lev  ) * weight + &
-                       cosmic_ions(i,j,lev-1) * (1.e+0_fp - weight) ) &
-                       * boxmass / boxvol
-             if( State_Met%FRCLND(I,J) .gt. 0.2) then
-                ionrate=ionrate + ( soil_ions( lev   ) * weight + &
-                        soil_ions( lev-1 ) * (1.e+0_fp-weight) )
-             endif
-          endif
-
-       ELSE
-          ionrate = 0.e+0_fp
-       ENDIF
-
-       if(ionrate .le. 1.501) ionrate = 1.501
+!       IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+!
+!          if( (pres / 100.) .lt. cplevels(9) ) then
+!             ionrate = cosmic_ions(i,j,9) * boxmass / boxvol
+!             if(State_Met%FRCLND(I,J) .gt. 0.2) then
+!                ionrate = ionrate + soil_ions(9)
+!             endif
+!          elseif((pres/100.) .gt. cplevels(1)) then
+!             ionrate = cosmic_ions(i,j,1) * boxmass / boxvol
+!             if( State_Met%FRCLND(I,J) .gt. 0.2 ) then
+!                ionrate = ionrate + soil_ions(1)
+!             endif
+!          else
+!             lev=2
+!             do while (pres / 100. .lt. cplevels(lev))
+!                lev=lev+1
+!             enddo
+!             weight=( cplevels( lev - 1 ) - pres / 100. ) / &
+!                    ( cplevels( lev - 1 ) - cplevels(lev) )
+!             ionrate=( cosmic_ions(i,j,lev  ) * weight + &
+!                       cosmic_ions(i,j,lev-1) * (1.e+0_fp - weight) ) &
+!                       * boxmass / boxvol
+!             if( State_Met%FRCLND(I,J) .gt. 0.2) then
+!                ionrate=ionrate + ( soil_ions( lev   ) * weight + &
+!                        soil_ions( lev-1 ) * (1.e+0_fp-weight) )
+!             endif
+!          endif
+!
+!       ELSE
+!          ionrate = 0.e+0_fp
+!       ENDIF
+!
+!       if(ionrate .le. 1.501) ionrate = 1.501
 
        !print*,'i',i,'j',j,'l',l,'ionrate',ionrate
 
@@ -731,8 +731,16 @@ CONTAINS
              ERR_IND(2) = J
              ERR_IND(3) = L
              ERR_IND(4) = 0
+!             IF (SPINUP(14.0) .and. Gcout(jc) /= Gcout(jc) ) THEN
+             IF( SPINUP(14.0) .AND. IT_IS_NAN( Gcout(jc) ) ) THEN
+                 Gcout(jc) = 0.0e+0_fp ! reset Nan to zero during spinup, bc 18/12/23
+                 print*,'Reset Gcout NaN to zero at ',I,J,L
+             ELSEIF ( SPINUP(14.0) .AND. .not. IT_IS_FINITE( Gcout(jc) ) ) THEN
+                 Gcout(jc) = 0.0e+0_fp ! reset Inf to zero during spinup, bc 18/12/23
+                 print*,'Reset Gcout Inf to zero at ',I,J,L
+             ELSE
              call check_value( Gcout(jc), ERR_IND, ERR_VAR, ERR_MSG )
-
+             ENDIF
              !if( IT_IS_FINITE(Gcout(jc))) then
              !   print *,'xxxxxxxxx Found Inf in Gcout xxxxxxxxxxxxxx'
              !   print *,'Location ',I,J,L, 'comp',jc
@@ -3891,7 +3899,7 @@ CONTAINS
 
     ! For SOACOND warnings
     INTEGER, SAVE       :: SOACOND_WARNING_CT  = -1
-    INTEGER, PARAMETER  :: SOACOND_WARNING_MAX = 20
+    INTEGER, PARAMETER  :: SOACOND_WARNING_MAX = 2  !bc 02/01/24 shut off too many warnings
 
     !=================================================================
     ! SOACOND begins here
@@ -6044,6 +6052,150 @@ CONTAINS
        ENDDO
     ENDIF
 
+        IF ( PTYPE == 2 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasCOAGmass(I,J,L,K) = 0.e+0_fp
+            State_Diag%TomasCOAGnumber(I,J,L,K) = 0.e+0_fp
+        DO JS = 1, ICOMP-IDIAG
+        IF ( State_Diag%Archive_TomasCOAGmass ) THEN
+              S = State_Diag%Map_TomasCOAGmass%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasCOAGmass(I,J,L,K) = &
+                      State_Diag%TomasCOAGmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                      DTCHEM / BOXMASS  ! kg/kg air/sec                                                                      
+              ENDIF
+           ENDIF
+        ENDDO
+        IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
+              S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasCOAGnumber(I,J,L,K) = &
+                   State_Diag%TomasCOAGnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                        
+              ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
+        IF ( PTYPE == 3 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasNUCLmass(I,J,L,K) = 0.e+0_fp
+            State_Diag%TomasNUCLnumber(I,J,L,K) = 0.e+0_fp
+        DO JS = 1, ICOMP-IDIAG
+        IF ( State_Diag%Archive_TomasNUCLmass ) THEN
+              S = State_Diag%Map_TomasNUCLmass%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasNUCLmass(I,J,L,K) = &
+                   State_Diag%TomasNUCLmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+              ENDIF
+           ENDIF
+        ENDDO
+
+        IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
+              S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                State_Diag%TomasNUCLnumber(I,J,L,K) = &
+                   State_Diag%TomasNUCLnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
+                              ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
+        IF ( PTYPE == 4 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasAQOXmass(I,J,L,K) = 0.e+0_fp
+            State_Diag%TomasAQOXnumber(I,J,L,K) = 0.e+0_fp
+        DO JS = 1, ICOMP-IDIAG
+        IF ( State_Diag%Archive_TomasAQOXmass ) THEN
+              S = State_Diag%Map_TomasAQOXmass%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasAQOXmass(I,J,L,K) = &
+                   State_Diag%TomasAQOXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+              ENDIF
+           ENDIF
+        ENDDO
+        IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
+              S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasAQOXnumber(I,J,L,K) = &
+                   State_Diag%TomasAQOXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                          DTCHEM / BOXMASS  ! no./kg air/sec                                                                           \
+                                                                                                                                        
+             ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
+        IF ( PTYPE == 5 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasMNFIXmass(I,J,L,K) = 0.e+0_fp
+            State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.e+0_fp
+        DO JS = 1, ICOMP-IDIAG
+        IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
+              S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasMNFIXmass(I,J,L,K) = &
+                   State_Diag%TomasMNFIXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+              ENDIF
+           ENDIF
+        ENDDO
+        IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
+              S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasMNFIXnumber(I,J,L,K) = &
+                   State_Diag%TomasMNFIXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
+              ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
+        IF ( PTYPE == 6 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasSOAmass(I,J,L,K) = 0.e+0_fp
+            State_Diag%TomasSOAnumber(I,J,L,K) = 0.e+0_fp
+        DO JS = 1, ICOMP-IDIAG
+        IF ( State_Diag%Archive_TomasSOAmass ) THEN
+              S = State_Diag%Map_TomasSOAmass%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasSOAmass(I,J,L,K) = &
+                   State_Diag%TomasSOAmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
+                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+              ENDIF
+           ENDIF
+        ENDDO
+        IF ( State_Diag%Archive_TomasSOAnumber ) THEN
+              S = State_Diag%Map_TomasSOAnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasSOAnumber(I,J,L,K) = &
+                      State_Diag%TomasSOAnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
+                      DTCHEM / BOXMASS  ! no./kg air/sec                                                                                
+              ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
+        IF ( PTYPE == 7 ) THEN
+        DO K=1,IBINS
+            State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.e+0_fp
+        IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
+              S = State_Diag%Map_TomasNUCRATEnumber%id2slot(K)
+              IF ( S > 0 ) THEN
+                 State_Diag%TomasNUCRATEnumber(I,J,L,K) = &
+                   State_Diag%TomasNUCRATEnumber(I,J,L,K) + (NK(K) - NKD(K)) / &
+                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
+                 !            print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &                                                  
+                 !                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &                                                               
+                 !                       DTCHEM / BOXMASS  ! no./kg air/sec                                                             
+              ENDIF
+           ENDIF
+        ENDDO
+        ENDIF
+
     IF ( PTYPE == 11 ) THEN
        DO K=1,IBINS
           State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = 0.e+0_fp  
@@ -6355,16 +6507,17 @@ CONTAINS
     ! (bmy, 1/30/14)
     DATA_DIR = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'TOMAS_201402/'
 
+    ! comment out if  shut off subgridcoag 14/12/23, bc
     ! Define subgrid coagulation timescale (win, 10/28/08)
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       SGCTSCALE = 10.*3600.  ! 10 hours
-    ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-       SGCTSCALE = 5.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-       SGCTSCALE = 1.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       SGCTSCALE = 0.5*3600.
-    ENDIF
+    !IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+    !   SGCTSCALE = 10.0_fp*3600.0_fp  ! 10 hours
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+    !   SGCTSCALE = 5.0_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    !   SGCTSCALE = 1.0_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    !   SGCTSCALE = 0.50_fp*3600.0_fp
+    !ENDIF
 
 #if defined(TOMAS40)
     Mo = 1.0e-21_fp*2.e+0_fp**(-10)
@@ -8559,7 +8712,7 @@ CONTAINS
           if (kcoag(k).gt.0.e+0_fp)then
              fracdiaml(k,kk)=kij(k,kk)*ndist(kk)/kcoag(k)
           else
-             fracdiaml(k,kk)=0
+             fracdiaml(k,kk)=0.e+0_fp
           endif
           !debug
           if(pdbug) print *, kk, fracdiaml(k,kk)
@@ -8568,7 +8721,9 @@ CONTAINS
 
     ! determine the number of new particles left after coagulation
     do k=1,ibins
-       ndistfinal(k)=ndistinit(k)*exp(-kcoag(k)*tscale)
+       !ndistfinal(k)=ndistinit(k)*exp(-kcoag(k)*tscale)
+       !print*, 'Betty is here tscale ',tscale,k,kcoag(k)
+       ndistfinal(k)=ndistinit(k)*exp(-1.e+0_fp*kcoag(k)*tscale)
     enddo
 
     ! determine the mass added to each bin coagulation

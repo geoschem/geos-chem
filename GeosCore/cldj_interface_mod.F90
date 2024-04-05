@@ -160,7 +160,7 @@ CONTAINS
     USE Cldj_Cmn_Mod,   ONLY : L_, L1_, W_, S_, LWEPAR
     USE Cldj_Cmn_Mod,   ONLY : JVN_, AN_, NQD_, W_r
     USE Cldj_Cmn_Mod,   ONLY : JIND, JFACTA, FL, QAA, RAA, SAA
-    USE CldJ_Sub_Mod,   ONLY : Cloud_JX
+    USE Cldj_Sub_Mod,   ONLY : Cloud_JX
     USE Cmn_Size_Mod,   ONLY : NRHAER, NRH, NDUST
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
