@@ -205,7 +205,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
@@ -630,7 +629,7 @@ CONTAINS
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
-    HcoState%MicroPhys%nBins           =  IBINS
+    HcoState%MicroPhys%nBins           =  State_Chm%nTomasBins
 
     ! Point to TOMAS bin boundaries array (Xk) in HcoState
     HcoState%MicroPhys%BinBound        => Xk
@@ -4164,85 +4163,6 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Input data for CH4 simulations only
-    !
-    ! If we have turned on CH4 options in geoschem_config.yml, then we
-    ! also need to toggle switches so that HEMCO reads the appropriate data.
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
-
-       IF ( Input_Opt%DoAnalyticalInv ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( AnalyticalInv )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'AnalyticalInv not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'AnalyticalInv is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseEmisSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'Emis_ScaleFactor', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( Emis_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'Emis_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'Emis_ScaleFactor is set to false in HEMCO_Config.rc '// &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseOHSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'OH_ScaleFactor',           &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( OH_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'OH_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'OH_ScaleFactor is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! RRTMG input data
     !
     ! If we have turned on the RRTMG simulation in the
@@ -4562,7 +4482,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4605,7 +4525,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S
+    INTEGER                 :: S,       origUnit
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4613,7 +4533,6 @@ CONTAINS
     LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
-    CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
 
     ! Arrays
@@ -4659,10 +4578,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Convert units to v/v dry
+    ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4776,19 +4701,7 @@ CONTAINS
         ! Add total emissions in the PBL to the EFLX array
         ! which tracks emission fluxes.  Units are [kg/m2/s].
         !------------------------------------------------------------------
-        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
-
-        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-
-           ! CH4 emissions become stored in state_chm_mod.F90.
-           ! We use CH4_EMIS here instead of the HEMCO internal emissions
-           ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation.
-           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
-
-        ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
+        IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp
@@ -5114,8 +5027,13 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

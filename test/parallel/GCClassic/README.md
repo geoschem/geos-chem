@@ -2,7 +2,15 @@
 
 ## Overview:
 
-This directory contains scripts to submit automated GEOS-Chem Classic parallelization tests.  Parallelization tests are two short GEOS-Chem Classic simulations run using different numbers of computational cores.  Executables are run with all debugging options.  This should reveal any errors in OpenMP parallel DO loops.
+This directory contains:
+
+1. Scripts to submit automated GEOS-Chem Classic parallelization tests, which will test the following processes:
+
+    - GEOS-Chem Classic run directory creation
+    - GEOS-Chem Classic code configuration and compilation
+    - GEOS-Chem Classic execution
+
+Parallelization tests are short GEOS-Chem Classic simulations.  Executables are compiled with all debugging options.  This should reveal any coding errors or run-directory configuration errors.
 
 ## Files
 
@@ -22,57 +30,62 @@ This directory contains scripts to submit automated GEOS-Chem Classic paralleliz
 - `commonFunctionsForTests.sh`
   - Link to `../../shared/commonFunctionsForTests.sh`, which contains global variables and functions for the parallelization and parallelization tests.
 
-## Running GEOS-Chem Classic Parallelization Tests
+## Before you begin
 
-Before you submit any GEOS-Chem Classic parallelization tests, please take a moment to:
+Please take a moment to:
 
 1. Verify that the `GCClassic` superproject is checked out to the correct branch and commit.
 2. Run `git submodule update --init --recursive` in order to update all submodules.
 3. Verify that the `HEAD` commit of the `GEOS-Chem` submodule contains the code that you wish to test. (If not, then check out the proper branch.)
 4. Verify that the `HEAD` commit of the `HEMCO` submodule contains the code that you wish to test. (If not, then check out the proper branch.)
 
-### With the SLURM scheduler
-
-```console
-$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel/GCClassic
-$ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s slurm -p partition
-```
-
-### With the LSF scheduler
-
-```console
-$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel/GCClassic
-$ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file -s lsf -p partition
-```
-
-### Interactively at the command line
-
-```console
-$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
-$ cd test/parallel/GCClassic
-$ ./parallelTest.sh -d /path/to/test/dir -e /path/to/env-file
-```
-
 ## Command-line Arguments
 
-The parallelization test scripts accept the following command-line arguments
+The parallelization test scripts accept the following command-line arguments:
+
+### Required arguments
 
 `-d /path/to/test/dir` specifies the root directory where parallelization test subdirectories and scripts will be placed.
 
-`-e /path/to/env-file` specifies the file that is used to initialize the software environment.  This file will typically contain either `module load` or `spack load` commands.
+`-t compile|all` specifies the type of test to be run:
+  - `compile` will run compilation-only tests.
+  - `all` will run compilation and execution tests.
 
-`-s scheduler` specifies the choice of scheduler (case-insensitive). SLURM and LSF schedulers are currently supported.  You may omit this for running interactively.
+### Optional arguments
 
-`-p partition` specifies the partition for the scheduler.  You may omit this for running interactively.
+`-e /path/to/env-file` Specifies the file that is used to initialize the software environment on the Harvard Cannon cluster.  If omitted, a default file will be selected.
 
-`-s` specifies that the SLURM scheduler will be used to run the parallelization test scripts.
+`-h` displays a help screeen.
+
+`-q` will run only a couple of parallelization tests instead of the full suite.  This is intended for development and debugging.  You will normally not need to use this option.
 
 You can also use long names for the option switches:
 - `--directory` instead of `-d`
 - `--env-file` instead of `-e`
-- `--partition partition` instead of `-p`
-- `--scheduler scheduler` instead of `-s`
+- `--help` instead of `h`
+- `--tests-to-run` instead of `-t`
 
-There is an additional option (`-q` or `--quick`) that will run only a couple of parallelization tests instead of the full suite.  This is intended for development and debugging.  You will normally not need to use this option.
+## Examples
+
+### Request compile-only tests on Cannon or Compute1
+```console
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test/parallel/GCClassic
+$ ./parallelTest.sh -d /path/to/test/dir -t compile
+```
+
+### Request compile and execution tests (Harvard Cannon)
+```console
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test/parallel/GCClassic
+$ ./parallelTest.sh -d /path/to/test/dir -t all -e /path/to/env-file
+```
+NOTE: If you omit the `-e /path/to/env/file` a default environment file will be used to load GNU Compiler Collection 10 and related libraries.
+
+### Request compile & execution tests (WashU compute1)
+```console
+$ cd /path/to/GCClassic     # Path to GCClassic superproject directory
+$ cd test/parallel/GCClassic
+$ ./parallelTest.sh -d /path/to/test/dir -t all
+```
+NOTE: No environment file is needed.  On Compute1 the tests will run inside a software container with all necessary libraries included.

@@ -81,13 +81,15 @@ MODULE DiagList_Mod
   !=========================================================================
   ! Configurable Settings Used for Diagnostic Names at Run-time
   !=========================================================================
-  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)      ! Wavelengths in radiation menu
-  CHARACTER(LEN=4),  PUBLIC  :: RadOut(12)    ! Names of RRTMG outputs (tags)
-  INTEGER,           PUBLIC  :: nRadOut       ! # of selected RRTMG outputs
-  LOGICAL,           PUBLIC  :: IsFullChem    ! Is it a fullchem simulation?
-  LOGICAL,           PUBLIC  :: IsHg          ! Is it a Hg simulation?
-  LOGICAL,           PUBLIC  :: IsCarbon      ! Is it a carbon sim?
-  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc   ! Alt for O3, HNO3 diagnostics
+  CHARACTER(LEN=3),  PUBLIC  :: budgetBotLev_str ! Budget diag level range bottom
+  CHARACTER(LEN=3),  PUBLIC  :: budgetTopLev_str ! Budget diag level range top
+  CHARACTER(LEN=5),  PUBLIC  :: RadWL(3)         ! Wavelengths in radiation menu
+  CHARACTER(LEN=4),  PUBLIC  :: RadOut(17)       ! Names of RRTMG outputs (tags)
+  INTEGER,           PUBLIC  :: nRadOut          ! # of selected RRTMG outputs
+  LOGICAL,           PUBLIC  :: IsFullChem       ! Is it a fullchem simulation?
+  LOGICAL,           PUBLIC  :: IsHg             ! Is it a Hg simulation?
+  LOGICAL,           PUBLIC  :: IsCarbon         ! Is it a carbon sim?
+  CHARACTER(LEN=10), PUBLIC  :: AltAboveSfc      ! Alt for O3, HNO3 diagnostics
 
   !=========================================================================
   ! Derived type for Collections List
@@ -188,7 +190,7 @@ CONTAINS
     INTEGER                      :: LineNum, LineLen, LineInd, LineInd2
     INTEGER                      :: fId, IOS, N, N1, N2, N3, I, J
     INTEGER                      :: WLIndMax, WLIndMaxLoc(1), WLInd(3)
-    INTEGER                      :: strIndMax, strInd(5)
+    INTEGER                      :: strIndMax, strIndMin, strInd(5)
     INTEGER                      :: numSpcWords, numIDWords
     INTEGER                      :: NFIELDS
 
@@ -201,6 +203,7 @@ CONTAINS
     CHARACTER(LEN=255)           :: collname, AttName, AttValue
     CHARACTER(LEN=255)           :: AttComp,  FieldName
     CHARACTER(LEN=2)             :: rrtmgOutputs(10)
+    CHARACTER(LEN=3)             :: topLev, botLev
     CHARACTER(LEN=255)           :: names(100)
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_StrLen) :: v_str, a_str(3)
@@ -225,6 +228,10 @@ CONTAINS
     EOF             = .FALSE.
     found           = .FALSE.
     NewDiagItem     => NULL()
+    topLev          =  ''
+    botLev          =  ''
+    budgetBotLev_str=  ''
+    budgetTopLev_str=  ''
     RadWL           =  ''
     RadOut          =  ''
     nRadOut         =  0
@@ -783,7 +790,7 @@ CONTAINS
           strInd(4) = INDEX( TRIM(metadataID), 'RADSSA' )
           strInd(5) = INDEX( TRIM(metadataID), 'RADASYM' )
           strIndMax = MAX(strInd(1),strInd(2),strInd(3),strInd(4),strInd(5))
-          IF ( strIndMax == 1 .AND. nRadOut < 12 ) THEN
+          IF ( strIndMax == 1 .AND. nRadOut < 17 ) THEN
 
              ! If RRTMG diagnostics present, always calculate BASE, and store
              ! first, since used to calculate other outputs.
@@ -805,6 +812,8 @@ CONTAINS
                 ! outputs, except the stratosphere (ST) and BASE (already added).
                 ! ST must be explicit in HISTORY.rc and is not included in the
                 ! RRTMG wildcard since it may not be relevant to the simulation.
+                ! CO2, CFCs, H2O, and N2O also excluded since they are somewhat
+                ! niche (same for trop-only O3).
                 RRTMGOutputs = (/'O3','ME','SU','NI','AM','BC','OA','SS','DU','PM'/)
                 DO N = 1, SIZE(rrtmgOutputs,1)
                    IF ( .not. ANY( RadOut == TRIM(rrtmgOutputs(N)) ) ) THEN
@@ -832,6 +841,34 @@ CONTAINS
              metadataID = metadataID(1:strInd(2)-1) // TRIM( AltAboveSfc )
           ENDIF
 
+          ! Special handling for the budget fixed level range diagnostic
+          strInd(1) = INDEX( TRIM(metadataID), 'BUDGET' )
+          strInd(2) = INDEX( TRIM(metadataID), 'LEVS' )
+          strInd(3) = INDEX( TRIM(metadataID), 'TO' )
+          strIndMin = MIN( strInd(1), strInd(2), strInd(3) )
+          ! Set budget diagnostic level range top and bottom from entry in HISTORY.rc
+          ! All budget level diagnostics must have the same range
+          IF ( strIndMin > 0  ) THEN
+             botLev = TRIM( metadataID( strInd(2)+4:strInd(3)-1 ) )
+             topLev = TRIM( metadataID( strInd(3)+2:LEN(TRIM(metadataID)) ) )
+             IF ( budgetBotLev_str == '' .AND. budgetTopLev_str == '' ) THEN
+                budgetBotLev_str = botLev
+                budgetTopLev_str = topLev
+             ELSE IF ( ( budgetBotLev_str == '' ) .OR. &
+                       ( budgetTopLev_str == '' ) ) THEN
+                ErrMsg = 'Missing level in budget diagnostic name: ' // TRIM(name)
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ELSE IF ( ( budgetBotLev_str /= botLev ) .OR. &
+                       ( budgetTopLev_str /= topLev ) ) THEN
+                ErrMsg = 'Budget diagnostic level ranges do not match: ' //      &
+                     TRIM(budgetBotLev_str) // ' and ' // TRIM(budgetTopLev_str) &
+                     // ' versus ' // TRIM(botLev) // ' and ' // TRIM(TopLev) // &
+                     '. Check budget diagnostic entries in HISTORY.rc'
+                CALL GC_Error( ErrMsg, RC, ThisLoc )
+                RETURN
+             ENDIF
+          ENDIF
           !====================================================================
           ! Create a new DiagItem object
           !====================================================================

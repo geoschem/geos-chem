@@ -278,7 +278,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -326,7 +326,7 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:)     => NULL()
     REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
     LOGICAL                      :: NeedO3
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: OrigUnit
 
     __Iam__('GEOS_RATSandOxDiags')
 
@@ -336,7 +336,7 @@ CONTAINS
     ! Make sure that species are in kg/kg total. This should be the case already,
     ! but better be safe!
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg total', RC, OrigUnit=OrigUnit )
+                             outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
 
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
@@ -437,7 +437,7 @@ CONTAINS
 
     ! Convert back to original unit
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+                             OutUnit=OrigUnit, RC=RC )
 
     ! All done
     RETURN_(ESMF_SUCCESS)
@@ -461,7 +461,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -488,8 +488,8 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                      :: IndH2O, LM 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER   :: IndH2O, LM 
+    INTEGER   :: OrigUnit
 
     __Iam__('GEOS_SetH2O')
 
@@ -499,7 +499,7 @@ CONTAINS
        ! Make sure that species are in kg/kg total. This should be the case already,
        ! but better be safe!
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                'kg/kg total', RC, OrigUnit=OrigUnit )
+                                outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
   
        ! Sync Q and H2O concentration array. Q is in kg/kg total, so is H2O. 
        LM = State_Grid%NZ
@@ -514,7 +514,7 @@ CONTAINS
 
        ! Convert back to original unit
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                OrigUnit, RC )
+                                outUnit=OrigUnit, RC=RC )
     ENDIF
 
     ! All done
@@ -1218,7 +1218,7 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1276,7 +1276,7 @@ CONTAINS
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: OrigUnit
 
     __Iam__('GEOS_Diagnostics')
 
@@ -1312,13 +1312,13 @@ CONTAINS
     ! make sure that these diagnostics see any post-run updates.
     ! Diagnostics routine expects units of kg/kg dry. 
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+                             outUnit=KG_SPECIES_PER_KG_DRY_AIR, OrigUnit=OrigUnit, RC=RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+                             outUnit=OrigUnit, RC=RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
@@ -1332,7 +1332,8 @@ CONTAINS
     !=======================================================================
 
     ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, &
+                            PLE, TROPP, __RC__ )
 
     ! O3 mass in kg/m2
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN
@@ -1530,14 +1531,18 @@ CONTAINS
     IF ( State_Diag%Archive_GCCTTO3 .AND. &
          ASSOCIATED(State_Diag%GCCTTO3) ) TTO3  => State_Diag%GCCTTO3
 
-    ! Nothing to do if neither of the arrays is associated
+    ! Nothing to do if none of the arrays are associated
     IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) .AND. .NOT. ASSOCIATED(TO3fp) ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
 
-    ! Get O3 from species array (kg/kg total)
+    ! Get O3 from species array (kg/kg total). Do nothing if ozone is not a species.
     indO3 = Ind_('O3')
+    IF ( indO3 < 0 ) THEN
+       RC = ESMF_SUCCESS
+       RETURN
+    ENDIF
     O3 => State_Chm%Species(indO3)%Conc(:,:,:)
 
     ! Grid size

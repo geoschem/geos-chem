@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------------
 add_library(Headers
   STATIC EXCLUDE_FROM_ALL
+  aermass_container_mod.F90
   charpak_mod.F90
   CMN_DIAG_mod.F90
   CMN_FJX_MOD.F90
@@ -32,5 +33,7 @@ add_library(Headers
 )
 
 # Define dependencies for libHeaders.a
-target_link_libraries(Headers PUBLIC KPP_FirstPass)
-
+target_link_libraries(Headers PUBLIC
+  KPP_FirstPass
+  CloudJ_Core
+)
