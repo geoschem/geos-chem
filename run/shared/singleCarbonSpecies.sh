@@ -256,7 +256,7 @@ function updateExtData() {
         sed -i "/^MEX_/d"               "${file}"
         sed -i "/^CAN_/d"               "${file}"
         sed -i "/^GFEI_/d"              "${file}"
-        sed -i "/^EDGAR7_CH4_/d"        "${file}"
+        sed -i "/^EDGAR8_CH4_/d"        "${file}"
         sed -i "/CMIP6_CH4_/d"          "${file}"
         sed -i "/CMIP6_BB_CH4/d"        "${file}"
         sed -i "/^UPDATED_GFED4_CH4/d"  "${file}"

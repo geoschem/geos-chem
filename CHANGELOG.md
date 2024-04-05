@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fix issues that prevented single-species carbon simulations from running
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
 - Updated several emissions files for CO and CH4 for COARDS and MAPL compliance
+- Fixed several issues in GCHP single-species carbon simulation setup scripts
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
