@@ -1269,10 +1269,10 @@ CONTAINS
     INTEGER,  POINTER :: IWVSELECT  (:,:)
     REAL*8,   POINTER :: ACOEF_WV (:)
     REAL*8,   POINTER :: BCOEF_WV (:)
-    REAL*8,   POINTER :: RDAA     (:,:)
-    REAL*8,   POINTER :: QQAA     (:,:,:)
-    REAL*8,   POINTER :: SSAA     (:,:,:)
-    REAL*8,   POINTER :: ASYMAA   (:,:,:)
+    REAL*8,   POINTER :: RDAA     (:,:,:)
+    REAL*8,   POINTER :: QQAA     (:,:,:,:)
+    REAL*8,   POINTER :: SSAA     (:,:,:,:)
+    REAL*8,   POINTER :: ASYMAA   (:,:,:,:)
     REAL(fp), POINTER :: ODMDUST  (:,:,:,:,:)
 #ifdef RRTMG
     REAL*8,   POINTER :: RTODAER  (:,:,:,:,:)
@@ -1407,8 +1407,8 @@ CONTAINS
           ! dust stored in the IDST species bin of LUT variables
           ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp * &
                                  State_Met%BXHEIGHT(I,J,L) * &
-                                 DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / &
-                                 ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
+                                 DUST(I,J,L,N) * QQAA(IWV,N,IDST,State_Chm%Phot%DRg)  / &
+                                 ( MSDENS(N) * RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp)
 
 #ifdef RRTMG
           !add dust optics to the RT code arrays
@@ -1416,8 +1416,8 @@ CONTAINS
           !will keep this way for uniformity for now but
           !possibly could deal with SSA and ASYM in RT module
           RTODAER(I,J,L,IWV,NAER+2+N) = ODMDUST(I,J,L,IWV,N)
-          RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST)
-          RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST)
+          RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST,State_Chm%Phot%DRg)
+          RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST,State_Chm%Phot%DRg)
 #endif
 
        ENDDO
@@ -1454,7 +1454,7 @@ CONTAINS
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
-       ERADIUS(I,J,L,N) = RDAA(N,IDST) * 1.0e-4_fp
+       ERADIUS(I,J,L,N) = RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-4_fp
 
        TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) * &
                           DUST(I,J,L,N) / MSDENS(N)
