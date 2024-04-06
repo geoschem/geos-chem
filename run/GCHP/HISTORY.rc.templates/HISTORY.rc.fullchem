@@ -636,7 +636,6 @@ COLLECTIONS: @#'DefaultCollection',
                           'AerMassSOAIE       ', 'GCHPchem',
                           'PM25               ', 'GCHPchem',
                           'PM10               ', 'GCHPchem',
-                          'PDER               ', 'GCHPchem',
                           'TotalOA            ', 'GCHPchem',
                           'TotalOC            ', 'GCHPchem',
                           #'AerMassASOA        ', 'GCHPchem',
@@ -759,6 +758,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'Chem_KhetiSLAHOClHBr          ', 'GCHPchem',
                           'Chem_KhetiSLAHOBrHCl          ', 'GCHPchem',
                           'Chem_KhetiSLAHOBrHBr          ', 'GCHPchem',
+                          'PDER                          ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)

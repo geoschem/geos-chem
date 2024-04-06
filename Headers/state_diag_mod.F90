@@ -12183,7 +12183,6 @@ CONTAINS
                                    State_Diag%Archive_AerMassTSOA       .or. &
                                    State_Diag%Archive_BetaNO            .or. &
                                    State_Diag%Archive_PM25              .or. &
-                                   State_Diag%Archive_PDER              .or. & ! H. Zhu, April 05, 2024
                                    State_Diag%Archive_PM10              .or. &
                                    State_Diag%Archive_TotalOA           .or. &
                                    State_Diag%Archive_TotalOC           .or. &
@@ -12233,6 +12232,7 @@ CONTAINS
     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
