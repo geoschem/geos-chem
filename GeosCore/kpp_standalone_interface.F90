@@ -420,6 +420,7 @@ CONTAINS
       INTEGER                :: N          ! Loop index
       INTEGER                :: IU_FILE    ! Available unit for writing
       INTEGER                :: SpcID      ! Mapping from State_Chm and KPP
+      REAL(fp)               :: DT         ! Chemistry operator timestep
       ! Strings
       CHARACTER(LEN=255)     :: YYYYMMDD_hhmmz
       CHARACTER(LEN=255)     :: level_string
@@ -454,6 +455,8 @@ CONTAINS
                 Vdot    = Vloc,                                              &
                 Aout    = Aout                                          )
 
+      DT = GET_TS_CHEM()
+
       !========================================================================
       ! Write the file
       !========================================================================
@@ -473,7 +476,7 @@ CONTAINS
          RETURN
       END IF
       ! Write header to file
-      write(IU_FILE, '(a)') '47                                                                         '
+      write(IU_FILE, '(a)') '48                                                                         '
       write(IU_FILE, '(a)') '==========================================================================='
       write(IU_FILE, '(a)') '                                                                           '
       write(IU_FILE, '(a)') '                  KPP Standalone Atmospheric Chemical State                '
@@ -513,8 +516,9 @@ CONTAINS
       write(IU_FILE,'(a,e11.4)') 'Cloud fraction:                                  ', State_Met%CLDF(I,J,L)
       write(IU_FILE,'(a,e11.4)') 'Cosine of solar zenith angle:                    ', State_Met%SUNCOSmid(I,J)
       write(IU_FILE,'(a)'      ) 'KPP Integrator-specific parameters               '
-      write(IU_FILE,'(a,e11.4)') 'Initial KPP H val (seconds):                     ', initHvalue
-      write(IU_FILE,'(a,e11.4)') 'Final KPP H val (seconds):                       ', State_Chm%KPPHvalue(I,J,L)
+      write(IU_FILE,'(a,F11.4)') 'Initial KPP H val (seconds):                     ', initHvalue
+      write(IU_FILE,'(a,F11.4)') 'Final KPP H val (seconds):                       ', State_Chm%KPPHvalue(I,J,L)
+      write(IU_FILE,'(a,F11.4)') 'Chemistry operator timestep (seconds):           ', DT
       write(IU_FILE,'(a,i6)'   ) 'Number of internal timesteps:                    ', KPP_TotSteps
       write(IU_File,'(a)'      ) 'CSV data of full chemical state, including species concentrations,    '
       write(IU_File,'(a)'      ) 'rate constants (R) and instantaneous reaction rates (A).              '
