@@ -156,13 +156,23 @@ MODULE DRYDEP_MOD
   !========================================================================
 
   ! Scalars
-  INTEGER                        :: NUMDEP,   NWATER
-  INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-  INTEGER                        :: id_ACET,  id_ALD2,  id_O3
-  INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
-  INTEGER                        :: id_NK01,  id_Hg0
-  INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
-  INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
+  INTEGER                        :: NUMDEP,     NWATER
+  INTEGER                        :: DRYHg0,     DRYHg2,     DryHgP
+  INTEGER                        :: id_ACET,    id_ALD2,    id_O3
+  INTEGER                        :: id_MENO3,   id_ETNO3,   id_MOH
+  INTEGER                        :: id_NK01,    id_Hg0
+  INTEGER                        :: id_HNO3,    id_PAN,     id_IHN1
+  INTEGER                        :: id_H2O2,    id_SO2,     id_NH3
+  INTEGER                        :: idd_BCPO,   idd_BCPI,   idd_BrSALC
+  INTEGER                        :: idd_BrSALA, idd_DST1,   idd_DST2
+  INTEGER                        :: idd_DST3,   idd_DST4,   idd_DSTAL1
+  INTEGER                        :: idd_DSTAL2, idd_DSTAL3, idd_DSTAL4
+  INTEGER                        :: idd_ISALA,  idd_ISALC,  idd_NH4
+  INTEGER                        :: idd_NIT,    idd_NITD1,  idd_NITD2
+  INTEGER                        :: idd_NITD3,  idd_NITD4,  idd_NITs
+  INTEGER                        :: idd_SALA,   idd_SALC,   idd_SO4
+  INTEGER                        :: idd_SO4D1,  idd_SO4D2,  idd_SO4D3
+  INTEGER                        :: idd_SO4D4,  idd_SO4s
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    ) = 0.0_fp
@@ -1007,7 +1017,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
@@ -1776,32 +1785,24 @@ CONTAINS
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
 
-                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST1')) .OR.      &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL1')) .OR.    &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD1')) .OR.     &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D1'))) THEN
-                    DIAM = 0.66895E-6
+                IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
+                     K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
+                   DIAM = 0.66895E-6
                 ENDIF
 
-                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST2')) .OR.      &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL2')) .OR.    &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD2')) .OR.     &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D2'))) THEN
-                    DIAM = 2.4907E-6
+                IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.              &
+                     K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
+                   DIAM = 2.4907E-6
                 ENDIF
 
-                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST3')) .OR.      &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL3')) .OR.    &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD3')) .OR.     &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D3'))) THEN
-                    DIAM = 4.164E-6
+                IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.              &
+                     K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
+                   DIAM = 4.164E-6
                 ENDIF
 
-                IF ((Ind_(SpcInfo%Name) .EQ. Ind_('DST4')) .OR.      &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('DSTAL4')) .OR.    &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('NITD4')) .OR.     &
-                    (Ind_(SpcInfo%Name) .EQ. Ind_('SO4D4'))) THEN
-                    DIAM = 6.677E-6
+                IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.              &
+                     K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
+                   DIAM = 6.677E-6
                 ENDIF
 
                 ! Particle density [kg/m3]
@@ -3202,7 +3203,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Chm_Mod,      ONLY : Ind_
 !
 ! !INPUT PARAMETERS:
 !
@@ -3303,11 +3303,7 @@ CONTAINS
     REAL(f8)      :: DEDGE
     REAL(f8)      :: DEN1, WTP
     INTEGER       :: ID,NR
-
-    ! For the species database
-    INTEGER                :: SpcId
-    TYPE(Species), POINTER :: SpcInfo
-    REAL(f8)               :: drydepRadius
+    REAL(f8)      :: drydepRadius
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -3482,22 +3478,16 @@ CONTAINS
     NR = INT((( Input_Opt%SALC_REDGE_um(2) - Input_Opt%SALA_REDGE_um(1) ) &
          / DR ) + 0.5e+0_f8 )
 
-    ! drydepRadius
-    SpcId = NTRAIND(K)
-    SpcInfo => State_Chm%SpcData(SpcId)%Info
-
     drydepRadius = A_RADI(K)
 
     ! Coarse seasalt
-    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('NITS')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SALC')) & 
-  .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SO4S')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('BRSALC')) &
-  .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('ISALC'))) THEN
-           drydepRadius = 0.74025E-6
+    IF ( K == idd_NITS    .or. K == idd_SALC .or. K == idd_SO4S .or.         &
+         K == idd_BRSALC  .or. K == idd_ISALC                        ) THEN
+       drydepRadius = 0.74025E-6
     ENDIF
 
-    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('SALA')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('BRSALA')) &
-        .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('ISALA'))) THEN
-           drydepRadius = 0.114945E-6
+    IF ( K == idd_SALA .OR. K == idd_BRSALA .or. K == idd_ISALA ) THEN
+       drydepRadius = 0.114945E-6
     ENDIF
 
     ! Particle radius [cm]
@@ -3998,7 +3988,6 @@ CONTAINS
 !
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
-      USE State_Chm_Mod,      ONLY : Ind_
 
 !
 ! !INPUT PARAMETERS:
@@ -4060,10 +4049,6 @@ CONTAINS
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
 
     REAL(f8)  :: RHBL        ! Relative humidity local
-
-    ! For the species database
-    INTEGER                :: SpcId
-    TYPE(Species), POINTER :: SpcInfo
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -4213,39 +4198,31 @@ CONTAINS
         RHBL = 0.98
     ENDIF
 
-    SpcId = NTRAIND(K)
-    SpcInfo => State_Chm%SpcData(SpcId)%Info
-
     ! SIA
-    IF ((Ind_(SpcInfo%Name) .EQ. Ind_('NIT')) .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('NH4')) &
-        .OR. (Ind_(SpcInfo%Name) .EQ. Ind_('SO4'))) THEN
+    IF ( K == idd_NIT .or. K == idd_NH4 .or. K == idd_SO4 ) THEN
         ! Efflorescence transtions
         IF (RHBL .LT. 0.35) THEN
-            DIAM = DIAM * 1.0
-        ! Linear hygroscopic growth    
+           ! DIAM is not changed
         ELSE IF ((RHBL .GE. 0.35) .AND. (RHBL .LE. 0.40)) THEN
-            DIAM = DIAM + (DIAM * ((1.0 + 0.61 * 0.40 / &
-                   (1.0 - 0.40)) ** (1.0 / 3.0)) - DIAM) / &
-                   (0.40 - 0.35) * (RHBL - 0.35)
-        ! Kohler hygroscopic growth
+           ! Linear hygroscopic growth
+            DIAM = DIAM + (DIAM * ((1.0_fp + 0.61_fp * 0.40_fp /             &
+                   (1.0_fp - 0.40_fp)) ** (1.0_fp / 3.0_fp)) - DIAM) /       &
+                   (0.40_fp - 0.35_fp) * (RHBL - 0.35_fp)
         ELSE
-            DIAM = DIAM * ((1.0 + 0.61 * RHBL / (1.0 - RHBL)) &
-                   ** (1.0 / 3.0))
+           ! Kohler hygroscopic growth
+            DIAM = DIAM * ((1.0_fp + 0.61_fp * RHBL / (1.0_fp - RHBL))       &
+                   ** (1.0_fp / 3.0_fp))
         ENDIF
 
     !BC
-    ELSE IF ((Ind_(SpcInfo%Name) .EQ. Ind_('BCPI')) .OR. &
-       (Ind_(SpcInfo%Name) .EQ. Ind_('BCPO'))) THEN
-        DIAM = DIAM * 1.0
+    ELSE IF ( K == idd_BCPI .OR. K == idd_BCPO )  THEN
+       ! DIAM is not changed
     
     !OA
     ELSE
-        DIAM = DIAM * ((1.0 + 0.1 * RHBL / (1.0 - RHBL)) &
-      ** (1.0 / 3.0))
+        DIAM = DIAM * ((1.0_fp + 0.1_fp * RHBL / (1.0_fp - RHBL))            &
+             ** (1.0_fp / 3.0_fp))
     ENDIF
-
-    ! Free pointer
-    SpcInfo => NULL()
 
     ! Particle density [kg/m3] hotp 10/26/07
     DEN   = 1500
@@ -4761,6 +4738,38 @@ CONTAINS
     id_H2O2   = Ind_('H2O2'  )
     id_SO2    = Ind_('SO2'   )
     id_NH3    = Ind_('NH3'   )
+    id_NK01   = Ind_('NK01'  )
+
+    ! Drydep ID flags
+    idd_BCPO   = Ind_('BCPI',   'D')
+    idd_BCPO   = Ind_('BCPO',   'D')
+    idd_BrSALC = Ind_('BrSALC', 'D')
+    idd_BrSALA = Ind_('BrSALA', 'D')
+    idd_DST1   = Ind_('DST1',   'D')
+    idd_DST2   = Ind_('DST2',   'D')
+    idd_DST3   = Ind_('DST3',   'D')
+    idd_DST4   = Ind_('DST4',   'D')
+    idd_DSTAL1 = Ind_('DSTAL1', 'D')
+    idd_DSTAL2 = Ind_('DSTAL2', 'D')
+    idd_DSTAL3 = Ind_('DSTAL3', 'D')
+    idd_DSTAL4 = Ind_('DSTAL4', 'D')
+    idd_ISALA  = Ind_('ISALA',  'D')
+    idd_ISALC  = Ind_('ISALC',  'D')
+    idd_NH4    = Ind_('NH4',    'D')
+    idd_NIT    = Ind_('NIT',    'D')
+    idd_NITD1  = Ind_('NITD1',  'D')
+    idd_NITD2  = Ind_('NITD2',  'D')
+    idd_NITD3  = Ind_('NITD3',  'D')
+    idd_NITD4  = Ind_('NITD4',  'D')
+    idd_NITs   = Ind_('NITs',   'D')
+    idd_SALA   = Ind_('SALA',   'D')
+    idd_SALC   = Ind_('SALC',   'D')
+    idd_SO4    = Ind_('SO4',    'D')
+    idd_SO4D1  = Ind_('SO4D1',  'D')
+    idd_SO4D2  = Ind_('SO4D2',  'D')
+    idd_SO4D3  = Ind_('SO4D3',  'D')
+    idd_SO4D4  = Ind_('SO4D4',  'D')
+    idd_SO4s   = Ind_('SO4S',   'D')
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species
@@ -4986,9 +4995,6 @@ CONTAINS
        ! Free pointer
        SpcInfo => NULL()
     ENDDO
-
-    ! For TOMAS
-    id_NK01   = Ind_('NK01'  )
 
     !=================================================================
     ! Allocate arrays
