@@ -97,8 +97,6 @@ MODULE AEROSOL_MOD
   ! (ewl, 1/23/17)
   INTEGER  :: Map_NRHAER(5)
 
-  ! (hzhu Apr. 2024)
-  INTEGER  :: g 
   
 CONTAINS
 !EOC
@@ -1065,7 +1063,7 @@ CONTAINS
     LOGICAL             :: FIRST = .TRUE.
     LOGICAL             :: LINTERP
     CHARACTER(LEN=16)   :: STAMP
-    INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID
+    INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID, g
     INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT, S
     REAL*4              :: TEMP( State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp)            :: TEMP2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)

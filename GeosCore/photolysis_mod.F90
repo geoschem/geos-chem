@@ -43,9 +43,6 @@ MODULE PHOTOLYSIS_MOD
    ! Species ID flags
    INTEGER :: id_NIT, id_NITs, id_SALA, id_SALC
 
-! for number of radii [hzhu, 08/2023]
-   INTEGER :: g 
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -862,7 +859,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER            :: I, J, K, N
+    INTEGER            :: I, J, K, N, g
     INTEGER            :: IOS, NJ1
     LOGICAL            :: LBRC, FileExists
 
