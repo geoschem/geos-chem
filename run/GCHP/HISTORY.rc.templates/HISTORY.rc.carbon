@@ -166,14 +166,14 @@ COLLECTIONS: 'Emissions',
   SpeciesConc.frequency:      010000
   SpeciesConc.duration:       240000
   SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConcVV_CH4',  'GCHPchem',
-                              'SpeciesConcVV_CO ',  'GCHPchem',
-                              'SpeciesConcVV_CO2',  'GCHPchem',
-                              'SpeciesConcVV_OCS',  'GCHPchem',
-			      ##'SpeciesConcMND_CH4', 'GCHPchem',
-                              ##'SpeciesConcMND_CO ', 'GCHPchem',
-                              ##'SpeciesConcMND_CO2', 'GCHPchem',
-                              ##'SpeciesConcMND_OCS', 'GCHPchem',
+  SpeciesConc.fields:         'SpeciesConcVV_CH4    ', 'GCHPchem',
+                              'SpeciesConcVV_CO     ', 'GCHPchem',
+                              'SpeciesConcVV_CO2    ', 'GCHPchem',
+                              'SpeciesConcVV_OCS    ', 'GCHPchem',
+                              ##'SpeciesConcMND_CH4 ', 'GCHPchem',
+                              ##'SpeciesConcMND_CO  ', 'GCHPchem',
+                              ##'SpeciesConcMND_CO2 ', 'GCHPchem',
+                              ##'SpeciesConcMND_OCS ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
@@ -258,10 +258,10 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.frequency:      010000
   CloudConvFlux.duration:       010000
   CloudConvFlux.mode:           'time-averaged'
-  CloudConvFlux.fields:         'CloudConvFlux_CH4', 'GCHPchem',
-                                'CloudConvFlux_CO ', 'GCHPchem',
-                                'CloudConvFlux_CO2', 'GCHPchem',
-                                'CloudConvFlux_OCS', 'GCHPchem',
+  CloudConvFlux.fields:         'CloudConvFlux_CH4 ', 'GCHPchem',
+                                'CloudConvFlux_CO  ', 'GCHPchem',
+                                'CloudConvFlux_CO2 ', 'GCHPchem',
+                                'CloudConvFlux_OCS ', 'GCHPchem',
 ::
 #==============================================================================
 # Concentrations of OH immediately after exiting the KPP solver

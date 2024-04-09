@@ -9,9 +9,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Diel and day-of-week scale factors for CEDS global base emissions
 - Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
 
-### Fixed
-- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
-
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
@@ -20,10 +17,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 
 ### Fixed
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
 - Now use correct index `WEAEROSOL(I,J,L,2+NDUST)` in routine `Settle_Strat_Aer` of `GeosCore/ucx_mod.F90`
 - Now get density of BCPI species from the species database in `ucx_mod.F90`
-- Fix issues that prevented single-species carbon simulations from running
+- Fix issues that prevented single-species carbon simulations from running in GCHP
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
 - Updated several emissions files for CO and CH4 for COARDS and MAPL compliance
 - Fixed several issues in GCHP single-species carbon simulation setup scripts

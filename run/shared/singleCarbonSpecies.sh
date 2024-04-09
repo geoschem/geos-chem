@@ -213,16 +213,37 @@ function updateHistory() {
     # Arguments:
     # ${1} : List of species to exclude
     # ${2} : Path to the run directory
+    # ${3} : List of species to include
     #========================================================================
 
     # File to be modified
     file="${2}/HISTORY.rc"
 
     # For GCHP: remove entries for species to be excluded
-    for spc in ${1}; do
-	sed -i "/\_${spc}[ \t]*'/d" "${file}"
-        sed -i "/Emis${spc}_/d"     "${file}"
+    exclude=("${1}")
+    for spc in ${exclude[@]}; do
+        sed -i "/\_${spc} /d"   "${file}" # trailing space required
+        sed -i "/Emis${spc}_/d" "${file}"
     done
+
+    # Restore Collection.fields line
+    if [[ ! ${3} =~ "CH4" ]]; then
+	oldline="                            'Emis${3}_Total"
+	newline="Emissions.fields:           'Emis${3}_Total"
+	sed -i "s|$oldline|$newline|g" "${file}"
+
+	oldline="                            'SpeciesConcVV_${3}"
+	newline="SpeciesConc.fields:         'SpeciesConcVV_${3}"
+	sed -i "s|$oldline|$newline|g" "${file}"
+
+	oldline="                            'BudgetEmisDryDepFull_${3}"
+	newline="Budget.fields:              'BudgetEmisDryDepFull_${3}"
+	sed -i "s|$oldline|$newline|g" "${file}"
+
+	oldline="                              'CloudConvFlux_${3}"
+	newline="CloudConvFlux.fields:         'CloudConvFlux_${3}"
+	sed -i "s|$oldline|$newline|g" "${file}"
+    fi
 
     # Also disable emissions for OCS-only simulations
     # (as we currently do not have any)
@@ -348,13 +369,14 @@ function singleCarbonSpecies() {
         rundir="${2}"
     fi
 
-    # Get species to exclude
+    # Get species to include/exclude
     exclude=$(speciesToExclude "${1}")
+    include=${1}
 
     # Update configuration files
     updateGeosChemConfig "${exclude}" "${rundir}"
     updateHemcoConfig    "${exclude}" "${rundir}"
     updateHemcoDiagn     "${exclude}" "${rundir}"
-    updateHistory        "${exclude}" "${rundir}"
+    updateHistory        "${exclude}" "${rundir}" "${include}"
     updateExtData        "${exclude}" "${rundir}"
 }
