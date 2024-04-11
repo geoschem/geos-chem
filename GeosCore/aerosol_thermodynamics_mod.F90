@@ -139,7 +139,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
     USE IsorropiaII_Main_Mod, ONLY : Isorropia
-    USE HETP_Mod,             ONLY : mach_hetp_main_15cases
+    USE HETP_mod,             ONLY : mach_hetp_main_15cases
 !
 ! !INPUT PARAMETERS:
 !
@@ -217,8 +217,7 @@ CONTAINS
     REAL(f8)                 :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
     REAL(f8)                 :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
     REAL(f8)                 :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
-    REAL(f8)                 :: HETP_frSO4
-    REAL(f4)                 :: HETP_num
+    REAL(f8)                 :: HETP_frSO4, HETP_num
 
     ! Strings
     CHARACTER(LEN=15)        :: SCASI

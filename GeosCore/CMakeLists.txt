@@ -4,10 +4,10 @@
 # only for file tpcore_window_mod.F90
 if(${USE_REAL8})
   if("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "Intel")
-    set_source_files_properties(tpcore_window_mod.F90 mach_hetp_mod.F90 hetp_mod.F90
+    set_source_files_properties(tpcore_window_mod.F90
       PROPERTIES COMPILE_FLAGS "-r8")
   elseif("${CMAKE_Fortran_COMPILER_ID}" STREQUAL "GNU")
-    set_source_files_properties(tpcore_window_mod.F90 mach_hetp_mod.F90 hetp_mod.F90
+    set_source_files_properties(tpcore_window_mod.F90
       PROPERTIES COMPILE_FLAGS "-fdefault-real-8 -fdefault-double-8")
   endif()
 endif()
@@ -82,8 +82,6 @@ add_library(GeosCore
   vdiff_mod.F90
   wetscav_mod.F90
   YuIMN_Code.F90
-  mach_hetp_mod.F90
-  hetp_mod.F90
 
   # Files only included for special cases
   $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90 set_boundary_conditions_mod.F90>
@@ -107,6 +105,7 @@ target_link_libraries(GeosCore PUBLIC
   History 
   Isorropia 
   KPP
+  HETP_core
   $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true
