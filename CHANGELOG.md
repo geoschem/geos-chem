@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Diel and day-of-week scale factors for CEDS global base emissions
 - Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
+- Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -22,12 +23,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   
 
 ### Fixed
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
 - Use rate-law function `GCARR_ac` for rxns that have Arrhenius `B` parameters that are zero
 - Now use correct index `WEAEROSOL(I,J,L,2+NDUST)` in routine `Settle_Strat_Aer` of `GeosCore/ucx_mod.F90`
 - Now get density of BCPI species from the species database in `ucx_mod.F90`
-- Fix issues that prevented single-species carbon simulations from running
+- Fix issues that prevented single-species carbon simulations from running in GCHP
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
 - Updated several emissions files for CO and CH4 for COARDS and MAPL compliance
+- Fixed several issues in GCHP single-species carbon simulation setup scripts
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks

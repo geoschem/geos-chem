@@ -208,8 +208,16 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 carbon CH4 only
-    dir="gc_4x5_merra2_carbon_CH4only"
-    create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+    create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon CO2 only
+    create_rundir "12\n3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon CO only
+    create_rundir "12\n4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon OCS only
+    create_rundir "12\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 fullchem
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
