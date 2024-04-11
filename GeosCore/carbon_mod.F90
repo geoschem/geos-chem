@@ -4999,16 +4999,14 @@ CONTAINS
       CALL Timer_End( "HEMCO", RC )
    ENDIF
 
-   ! Convert concentration units to [kg] for TOMAS. This will be
-   ! removed once TOMAS uses mixing ratio instead of mass
-   ! as species units (ewl, 9/11/15)
+   ! NOTE: For TOMAS, convert all species units, in order not to
+   ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
    CALL Convert_Spc_Units(                                                   &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
          new_units      = KG_SPECIES,                                        &
-         mapping        = State_Chm%Map_Advect,                              &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
 
@@ -5250,13 +5248,13 @@ CONTAINS
       CALL Timer_End( "HEMCO", RC )
    ENDIF
 
-   ! Convert concentrations back to original units (ewl, 9/11/15)
+   ! NOTE: For TOMAS, convert all species units, in order not to
+   ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
    CALL Convert_Spc_Units(                                                   &
         Input_Opt  = Input_Opt,                                              &
         State_Chm  = State_Chm,                                              &
         State_Grid = State_Grid,                                             &
         State_Met  = State_Met,                                              &
-        mapping    = State_Chm%Map_Advect,                                   &
         new_units  = previous_units,                                         &
         RC         = RC                                                     )
 

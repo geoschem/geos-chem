@@ -368,7 +368,7 @@ CONTAINS
        CALL Timer_End( "=> Gas-phase chem", RC )
     ENDIF
 
-    ! Convert units
+    ! Convert units of all species to molec/cm3 for KPP
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -1512,7 +1512,6 @@ CONTAINS
        ! SO4 produced via aqueous chemistry is distributed onto 30-bin
        ! aerosol by TOMAS subroutine AQOXID.
        !-----------------------------------------------------------------
-
        CALL TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
                           State_Met, State_Diag, RC )
        IF ( Input_Opt%Verbose ) THEN
@@ -1589,7 +1588,7 @@ CONTAINS
        CALL Timer_End( "=> Gas-phase chem", RC )
     ENDIF
 
-    ! Convert units
+    ! Convert units of all species back to kg
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
@@ -1707,7 +1706,7 @@ CONTAINS
     ! Assume success
     RC  = GC_SUCCESS
 
-    ! Convert species from to [kg]
+    ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
@@ -1765,8 +1764,22 @@ CONTAINS
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, State_Diag, RC )
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
        ENDIF
     ENDDO
     ENDDO

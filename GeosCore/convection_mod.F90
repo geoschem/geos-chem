@@ -381,7 +381,7 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-       
+
   END SUBROUTINE DO_CONVECTION
 !EOC
 !------------------------------------------------------------------------------
@@ -1120,15 +1120,38 @@ CONTAINS
 
                 ! Call WASHOUT to compute the fraction of species lost
                 ! to washout in grid box (I,J,K)
-                CALL WASHOUT( I,         J,                         &
-                              K,         IC,         BXHEIGHT(K),   &
-                              T(K),      QDOWN,      SDT,           &
-                              F_WASHOUT, H2O2s(K),   SO2s(K),       &
+                !
+                ! For TOMAS, indicate that we are not calling WASHOUT
+                ! from wet deposition, so that the proper unit conversions
+                ! will be applied. -- Bob Yantosca (11 Apr 2024)
+                CALL WASHOUT(                                                &
+                     ! --- Input ---
+                     I          = I,                                         &
+                     J          = J,                                         &
+                     L          = K,                                         &
+                     N          = IC,                                        &
+                     BXHEIGHT   = BXHEIGHT(K),                               &
+                     TK         = T(K),                                      &
+                     PP         = QDOWN,                                     &
+                     DT         = SDT,                                       &
+                     F          = F_WASHOUT,                                 &
+                     Input_Opt  = Input_Opt,                                 &
+                     State_Grid = State_Grid,                                &
+                     State_Met  = State_Met,                                 &
 #ifdef LUO_WETDEP
-                              pHRain,                               &
+                     phRain     = pHRain,                                    &
 #endif
-                              WASHFRAC,  AER,        Input_Opt,     &
-                              State_Chm, State_Grid, State_Met,  RC )
+#ifdef TOMAS
+                     fromWetDep = .FALSE.,                                   &
+#endif
+                     ! --- Input/Output ---
+                     State_Chm  = State_Chm,                                 &
+                     H2O2s      = H2O2s(K),                                  &
+                     SO2s       = SO2s(K),                                   &
+                     ! --- Output ---
+                     WASHFRAC   = WASHFRAC,                                  &
+                     KIN        = AER,                                       &
+                     RC         = RC                                        )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN

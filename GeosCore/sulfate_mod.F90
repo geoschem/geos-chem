@@ -541,12 +541,16 @@ CONTAINS
        ENDIF
 
        ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
        CALL Convert_Spc_Units(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
             State_Grid     = State_Grid,                                     &
             State_Met      = State_Met,                                      &
+#ifndef TOMAS
             mapping        = State_Chm%Map_Advect,                           &
+#endif
             new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
             previous_units = previous_units,                                 &
             RC             = RC                                             )
@@ -642,7 +646,7 @@ CONTAINS
        ENDIF
 
 #ifdef TOMAS
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! For TOMAS microphysics:
        !
        ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
@@ -651,9 +655,17 @@ CONTAINS
        ! aerosol by TOMAS subroutine AQOXID.   NOTE: This may be moved
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
-       !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt,  State_Chm, State_Grid, State_Met, &
-                         State_Diag, RC )
+       !---------------------------------------------------------------------
+       CALL CHEM_SO4_AQ( Input_Opt, State_Chm,  State_Grid,                  &
+                         State_Met, State_Diag, RC                          )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "CHEM_SO4_AQ"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
        ENDIF
@@ -691,12 +703,16 @@ CONTAINS
        ENDIF
 
        ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
        CALL Convert_Spc_Units(                                               &
             Input_Opt      = Input_Opt,                                      &
             State_Chm      = State_Chm,                                      &
             State_Grid     = State_Grid,                                     &
             State_Met      = State_Met,                                      &
+#ifndef TOMAS
             mapping        = State_Chm%Map_Advect,                           &
+#endif
             new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
             previous_units = previous_units,                                 &
             RC             = RC                                             )
@@ -739,12 +755,16 @@ CONTAINS
     ENDIF
 
     ! Convert species units back to original unit
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
+#ifndef TOMAS
          mapping    = State_Chm%Map_Advect,                                  &
+#endif
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
@@ -7846,12 +7866,13 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Convert species from to [kg]
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
          new_units      = KG_SPECIES,                                        &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -7903,9 +7924,23 @@ CONTAINS
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, &
-                       State_Diag, RC )
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
+
        ENDIF
     ENDDO
     ENDDO
@@ -7913,12 +7948,13 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original units
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_Advect,                                  &
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
 

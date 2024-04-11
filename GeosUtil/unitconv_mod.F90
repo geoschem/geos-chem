@@ -71,7 +71,6 @@ MODULE UnitConv_Mod
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
   ! KG/KG DRY <-> V/V DRY
   !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -2226,13 +2225,11 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ConvertBox_KgKgDry_to_Kg( I,         J,         L,              &
-                                       N,         State_Met, State_Chm,      &
-                                       isAdjoint                            )
+                                       State_Met, State_Chm, isAdjoint      )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
-    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indices
     TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology state object
     LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
@@ -2255,23 +2252,30 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER :: N
+
     !========================================================================
     ! ConvertBox_KgKgDry_to_Kg begins here!
     !========================================================================
+    DO N = 1, State_Chm%nSpecies
 
-    ! Convert species concentration units
-    State_Chm%Species(N)%Conc(I,J,L) =                                    &
-    State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc(I,J,L) =                                    &
+       State_Chm%Species(N)%Conc(I,J,L) * State_Met%AD(I,J,L)
 
 #ifdef ADJOINT
-    IF ( isAdjoint ) THEN
-       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-       State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)
-    ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+          State_Chm%SpeciesAdj(I,J,L,N) * State_Met%AD(I,J,L)
+       ENDIF
 #endif
 
-    ! Update units metadata
-    State_Chm%Species(N)%Units = KG_SPECIES
+       ! Update units metadata
+       State_Chm%Species(N)%Units = KG_SPECIES
+    ENDDO
 
   END SUBROUTINE ConvertBox_KgKgDry_to_Kg
 !EOC
@@ -2292,13 +2296,11 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ConvertBox_Kg_to_KgKgDry( I,         J,         L,              &
-                                       N,         State_Met, State_Chm,      &
-                                       isAdjoint                            )
+                                       State_Met, State_Chm, isAdjoint      )
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
-    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
+    INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indices
     TYPE(MetState),    INTENT(IN)    :: State_Met   ! Meteorology state object
     LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
@@ -2321,23 +2323,30 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER :: N
+
     !========================================================================
     ! ConvertBox_Kg_to_KgKgDry begins here!
     !========================================================================
+    DO N = 1, State_Chm%nSpecies
 
-    ! Convert species concentration units
-    State_Chm%Species(N)%Conc(I,J,L) =                                    &
-    State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc(I,J,L) =                                    &
+       State_Chm%Species(N)%Conc(I,J,L) / State_Met%AD(I,J,L)
 
 #ifdef ADJOINT
-    IF ( isAdjoint ) THEN
-       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-       State_Chm%SpeciesAdj(I,J,L,N) / State_Met%AD(I,J,L)
-    ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+          State_Chm%SpeciesAdj(I,J,L,N) / State_Met%AD(I,J,L)
+       ENDIF
 #endif
 
-    ! Update units metadata
-    State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
+       ! Update units metadata
+       State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
+    ENDDO
 
   END SUBROUTINE ConvertBox_Kg_to_KgKgDry
 !EOC
@@ -2355,14 +2364,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kgm2_to_Kg( I,         J,         L,                 &
-                                    N,         State_Chm, State_Grid,        &
-                                    isAdjoint                               )
+  SUBROUTINE ConvertBox_Kgm2_to_Kg( I,         J,          L,                &
+                                    State_Chm, State_Grid, isAdjoint        )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indices
-    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
     TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
     LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
@@ -2384,23 +2391,30 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
+
     !========================================================================
     ! ConvertBox_Kgm2_to_Kg begins here!
     !========================================================================
+    DO N = 1, State_Chm%nSpecies
 
-    ! Convert species concentration units
-    State_Chm%Species(N)%Conc(I,J,L) =                                    &
-    State_Chm%Species(N)%Conc(I,J,L) * State_Grid%Area_M2(I,J)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc(I,J,L) =                                    &
+       State_Chm%Species(N)%Conc(I,J,L) * State_Grid%Area_M2(I,J)
 
 #ifdef ADJOINT
-    IF ( isAdjoint ) THEN
-       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-       State_Chm%SpeciesAdj(I,J,L,N) * State_Grid%Area_M2(I,J)
-    ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+          State_Chm%SpeciesAdj(I,J,L,N) * State_Grid%Area_M2(I,J)
+       ENDIF
 #endif
 
-    ! Update units metadata
-    State_Chm%Species(N)%Units = KG_SPECIES
+       ! Update units metadata
+       State_Chm%Species(N)%Units = KG_SPECIES
+    ENDDO
 
   END SUBROUTINE ConvertBox_Kgm2_to_Kg
 !EOC
@@ -2418,14 +2432,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ConvertBox_Kg_to_Kgm2( I,         J,         L,                 &
-                                    N,         State_Chm, State_Grid,        &
-                                    isAdjoint                               )
+  SUBROUTINE ConvertBox_Kg_to_Kgm2( I,         J,          L,                &
+                                    State_Chm, State_Grid, isAdjoint        )
 !
 ! !INPUT PARAMETERS:
 !
     INTEGER,           INTENT(IN)    :: I, J, L     ! Grid box indexes
-    INTEGER,           INTENT(IN)    :: N           ! Species index (modelId)
     TYPE(GrdState),    INTENT(IN)    :: State_Grid  ! Grid State object
     LOGICAL,           INTENT(IN)    :: isAdjoint   ! Reverse integration?
 !
@@ -2447,23 +2459,31 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: N
+
     !========================================================================
     ! ConvertBox_Kg_to_Kgm2 begins here!
     !========================================================================
+    DO N = 1, State_Chm%nSpecies
 
-    ! Convert species concentration units
-    State_Chm%Species(N)%Conc(I,J,L) =                                    &
-    State_Chm%Species(N)%Conc(I,J,L) / State_Grid%Area_M2(I,J)
+       ! Convert species concentration units
+       State_Chm%Species(N)%Conc(I,J,L) =                                    &
+       State_Chm%Species(N)%Conc(I,J,L) / State_Grid%Area_M2(I,J)
 
 #ifdef ADJOINT
-    IF ( isAdjoint ) THEN
-       State_Chm%SpeciesAdj(I,J,L,N) =                                    &
-       State_Chm%SpeciesAdj(I,J,L,N) / State_Grid%Area_M2(I,J)
-    ENDIF
+       IF ( isAdjoint ) THEN
+          State_Chm%SpeciesAdj(I,J,L,N) =                                    &
+          State_Chm%SpeciesAdj(I,J,L,N) / State_Grid%Area_M2(I,J)
+       ENDIF
 #endif
 
-    ! Update units metadata
-    State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
+       ! Update units metadata
+       State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
+    ENDDO
 
   END SUBROUTINE ConvertBox_Kg_to_Kgm2
 !EOC
@@ -2540,7 +2560,7 @@ CONTAINS
 !
     USE State_Chm_Mod, ONLY : ChmState
 !
-! !INPUT PARAMETERS: 
+! !INPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(IN) :: State_Chm    ! Chemistry state object
     INTEGER, OPTIONAL, POINTER :: mapping(:)   ! Species Id -> modelId

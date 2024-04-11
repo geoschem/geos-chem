@@ -612,6 +612,7 @@ CONTAINS
 #ifdef TOMAS
     USE Tomas_Mod,          ONLY : GetFraction
 #endif
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -865,12 +866,15 @@ CONTAINS
        CALL F_AEROSOL( KC, KcScale, Input_Opt, State_Grid, State_Met, F )
 
        ! Adjust F for size-resolved aerosol (multiply by XFRAC)
+       ! NOTE: Here species units are in kg/kg dry, so State_Met%AD(I,J,L)
+       ! is the unit conversion factor (Bob Yantosca, 10 Apr 2024)
        DO L = 2, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          CALL GETFRACTION( I, J, L, N, .FALSE., &
-                            State_Chm,  State_Grid, State_Met, &
-                            XFRAC,      SOLFRAC )
+          CALL GETFRACTION( I,           J,                   L,             &
+                            N,           .FALSE.,             State_Chm,     &
+                            State_Grid,  State_Met,           XFRAC,         &
+                            SOLFRAC,     State_Met%AD(I,J,L)                )
           F(I,J,L) = XFRAC * F(I,J,L)
        ENDDO
        ENDDO
@@ -891,12 +895,15 @@ CONTAINS
 
        ! Adjust F for size-resolved aerosol number
        ! (multiply by XFRAC * SOLFRAC)
+       ! NOTE: Here species units are in kg/kg dry, so State_Met%AD(I,J,L)
+       ! is the unit conversion factor (Bob Yantosca, 10 Apr 2024)
        DO L = 2, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
-          CALL GETFRACTION( I, J, L, N, .FALSE., &
-                            State_Chm,  State_Grid, State_Met, &
-                            XFRAC,      SOLFRAC )
+          CALL GETFRACTION( I,           J,                   L,             &
+                            N,           .FALSE.,             State_Chm,     &
+                            State_Grid,  State_Met,           XFRAC,         &
+                            SOLFRAC,     State_Met%AD(I,J,L)                )
           F(I,J,L) = XFRAC * SOLFRAC * F(I,J,L)
        ENDDO
        ENDDO
@@ -1572,14 +1579,18 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WASHOUT( I,          J,         L,                    &
-                      N,          BXHEIGHT,  TK,        PP,        &
-                      DT,         F,         H2O2s,     SO2s,      &
+  SUBROUTINE WASHOUT( I,          J,         L,         N,                   &
+                      BXHEIGHT,   TK,        PP,        DT,                  &
+                      F,          H2O2s,     SO2s,      WASHFRAC,            &
+                      KIN,        Input_Opt, State_Chm, State_Grid,          &
+                      State_Met,                                             &
 #ifdef LUO_WETDEP
-                      pHRain,                                      &
+                      pHRain,                                                &
 #endif
-                      WASHFRAC,   KIN,       Input_Opt, State_Chm, &
-                      State_Grid, State_Met, RC )
+#ifdef TOMAS
+                      fromWetDep,                                            &
+#endif
+                      RC                                                    )
 !
 ! !USES:
 !
@@ -1616,6 +1627,12 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options
     TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State
     TYPE(MetState), INTENT(IN)    :: State_Met  ! Meteorology State
+#ifdef LUO_WETDEP
+    REAL(fp),       INTENT(IN)    :: pHRain
+#endif
+#ifdef TOMAS
+    LOGICAL,        INTENT(IN)    :: fromWetDep ! Called from wetdep (T/F)?
+#endif
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1626,9 +1643,6 @@ CONTAINS
                                                 ! computed in the sulfate
                                                 ! chemistry module and
                                                 ! passed here as arguments.
-#ifdef LUO_WETDEP
-    REAL(fp),       INTENT(IN)    :: pHRain
-#endif
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1654,9 +1668,6 @@ CONTAINS
     REAL(f8)               :: K0,  CR, pKa
 #ifdef APM
     REAL(fp)               :: RIN
-#endif
-#ifdef TOMAS
-    INTEGER                :: previous_units
 #endif
 #ifdef LUO_WETDEP
     REAL(f8)               :: Hplus, HCSO2, HCNH3, Ks1, Ks2, T_Term
@@ -1688,61 +1699,15 @@ CONTAINS
     SpcInfo => State_Chm%SpcData(N)%Info
 
 #ifdef TOMAS
-    !-----------------------------------------------------------------
-    ! TOMAS MICROPHYSICS ONLY
-    !
-    ! Convert species concentration units to [kg] if not already
-    ! since TOMAS functions and routines expect [kg]. Units are
-    ! kg/kg total air if WASHOUT is called from convection and are
-    ! kg/m2 is called from DO_WASHOUT_ONLY. Since WASHOUT is called
-    ! within an (I,J,L) loop, only convert units for a single grid
-    ! box.  Otherwise, run will take too long.
-    !  -- Lizzie Lundgren (22 Sep 2015) 
-    !
-    ! Now only convert units for the current species N. 
-    !  -- Bob Yantosca (23 Feb 2024)
-    !-----------------------------------------------------------------
-    
-    ! Save original units for reverse unit conversion
-    previous_units = State_Chm%Species(N)%Units
-
-    IF ( State_Chm%Species(N)%Units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       !------------------------------------------
-       ! WASHOUT is being called from convection, 
-       ! so convert from "kg/kg dry" to "kg"
-       !------------------------------------------
-       CALL ConvertBox_KgKgDry_to_Kg(                                        &
-            I         = I,                                                   &
-            J         = J,                                                   &
-            L         = L,                                                   &
-            N         = N,                                                   &
-            State_Chm = State_Chm,                                           &
-            State_Met = State_Met,                                           &
-            isAdjoint = .FALSE.                                             )
-
-    ELSE IF ( State_Chm%Species(N)%Units == KG_SPECIES_PER_M2 ) THEN
-       !-----------------------------------------
-       ! WASHOUT is being called from wetdep 
-       ! so convert from "kg/m2" to "kg".
-       !-----------------------------------------
-       CALL ConvertBox_Kgm2_to_Kg(                                           &
-            I          = I,                                                  &
-            J          = J,                                                  &
-            L          = L,                                                  &
-            N          = N,                                                  &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            isAdjoint  = .FALSE.                                            )
-
-    ENDIF
-
-    ! The species should be in kg at this point for TOMAS
-    IF ( State_Chm%Species(N)%Units /= KG_SPECIES ) THEN
-       ErrMsg = TRIM( SpcInfo%Name ) // ' is in '                         // &
-                TRIM( UNIT_STR( State_Chm%Species(N)%Units ) )            // &
-                ', but needs to be in kg for TOMAS!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    !------------------------------------------------------------------------
+    ! TOMAS MICROPHYSICS ONLY:
+    ! If called from wetdep,     convert kg/m2     -> kg
+    ! If called fron convection, convert kg/kg dry -> kg
+    !------------------------------------------------------------------------
+    IF ( fromWetDep ) THEN
+       CALL ConvertBox_Kgm2_to_Kg( I, J, L, State_Chm, State_Grid, .FALSE. )
+    ELSE
+       CALL ConvertBox_KgKgDry_to_Kg( I, J, L, State_Met, State_Chm, .FALSE. )
     ENDIF
 #endif
 
@@ -1988,41 +1953,14 @@ CONTAINS
 
 #ifdef TOMAS
     !------------------------------------------------------------------------
-    ! TOMAS MICROPHYSICS ONLY
-    ! Convert State_Chm%Species%Conc units from kg back to original units
-    ! if conversion occurred at start of WASHOUT (ewl, 5/12/15)
+    ! TOMAS MICROPHYSICS ONLY:
+    ! If called from wetdep,     convert kg -> kg/m2
+    ! If called fron convection, convert kg -> kg/kg dry
     !------------------------------------------------------------------------
-    IF ( State_Chm%Species(N)%Units == KG_SPECIES ) THEN
-
-       !------------------------------------------
-       ! WASHOUT is being called from convection, 
-       ! so convert "kg" back to "kg/kg dry".
-       !------------------------------------------
-       IF ( previous_units == KG_SPECIES_PER_KG_DRY_AIR ) THEN
-          CALL ConvertBox_Kg_to_KgKgDry(                                     &
-               I         = I,                                                &
-               J         = J,                                                &
-               L         = L,                                                &
-               N         = N,                                                &
-               State_Chm = State_Chm,                                        &
-               State_Met = State_Met,                                        &
-               isAdjoint = .FALSE.                                          )
-
-       ELSE IF ( previous_units == KG_SPECIES_PER_M2 ) THEN
-
-          !------------------------------------------
-          ! WASHOUT is being called from wetdep, 
-          ! so convert "kg" back to "kg/m2".
-          !-----------------------------------------
-          CALL ConvertBox_Kg_to_Kgm2(                                        &
-               I          = I,                                               &
-               J          = J,                                               &
-               L          = L,                                               &
-               N          = N,                                               &
-               State_Chm  = State_Chm,                                       &
-               State_Grid = State_Grid,                                      &
-               isAdjoint  = .FALSE.                                         )
-       ENDIF
+    IF ( fromWetDep ) THEN
+       CALL ConvertBox_Kg_to_Kgm2( I, J, L, State_Chm, State_Grid, .FALSE. )
+    ELSE
+       CALL ConvertBox_Kg_to_KgKgDry( I, J, L, State_Met, State_Chm, .FALSE. )
     ENDIF
 #endif
 
@@ -3238,7 +3176,9 @@ CONTAINS
          State_Chm      = State_Chm,                                         &
          State_Grid     = State_Grid,                                        &
          State_Met      = State_Met,                                         &
+#ifndef TOMAS
          mapping        = State_Chm%Map_WetDep,                              &
+#endif
          new_units      = KG_SPECIES_PER_M2,                                 &
          previous_units = previous_units,                                    &
          RC             = RC                                                )
@@ -3833,7 +3773,9 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
+#ifndef TOMAS
          mapping    = State_Chm%Map_WetDep,                                  &
+#endif
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
@@ -4153,20 +4095,30 @@ CONTAINS
        ENDIF
 
 #ifdef TOMAS
+       ! NOTE: Here the units are kg/m2, so State_Grid%Area_M2(I,J) is
+       ! the proper unit conversion factor. (Bob Yantosca, 10 Apr 2024)
        IF ( id_NK01 > 0 ) THEN
+
           IF ( N >= id_NK01 .and. N < id_NK01 + State_Chm%nTomasBins ) THEN
 
-             CALL GETFRACTION( I, J, L, N, LS, &
-                               State_Chm, State_Grid, State_Met, &
-                               XFRAC, SOLFRAC )
+             CALL GETFRACTION( I,                      J,                   &
+                               L,                      N,                   &
+                               LS,                     State_Chm,           &
+                               State_Grid,             State_Met,           &
+                               XFRAC,                  SOLFRAC,             &
+                               State_Grid%Area_M2(I,J)                     )
 
              RAINFRAC = RAINFRAC * XFRAC * SOLFRAC
+
           ELSE IF ( N >= id_SF01             .and. &
                     N <  id_DUST01 + State_Chm%nTomasBins ) THEN
 
-             CALL GETFRACTION( I, J, L, N, LS, &
-                               State_Chm, State_Grid, State_Met, &
-                               XFRAC, SOLFRAC )
+             CALL GETFRACTION( I,                      J,                   &
+                               L,                      N,                   &
+                               LS,                     State_Chm,           &
+                               State_Grid,             State_Met,           &
+                               XFRAC,                  SOLFRAC,             &
+                               State_Grid%Area_M2(I,J)                     )
 
              RAINFRAC = RAINFRAC * XFRAC
           ENDIF
@@ -4505,24 +4457,34 @@ CONTAINS
 
        ! Call WASHOUT to compute the fraction of
        ! species lost to washout in grid box (I,J,L)
-       CALL WASHOUT( I, J, L, N,                                             &
-                     State_Met%BXHEIGHT(I,J,L),                              &
-                     TK,                                                     &
-                     QDOWN,                                                  &
-                     DT,                                                     &
-                     TF,                                                     &
-                     State_Chm%H2O2AfterChem(I,J,L),                         &
-                     State_Chm%SO2AfterChem(I,J,L),                          &
+       CALL WASHOUT(                                                         &
+            ! --- Input ---
+            I          = I,                                                  &
+            J          = J,                                                  &
+            L          = L,                                                  &
+            N          = N,                                                  &
+            BXHEIGHT   = State_Met%BXHEIGHT(I,J,L),                          &
+            TK         = TK,                                                 &
+            PP         = QDOWN,                                              &
+            DT         = DT,                                                 &
+            F          = TF,                                                 &
+            Input_Opt  = Input_Opt,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
 #ifdef LUO_WETDEP
-                     State_Chm%pHRain(I,J,L),                                &
+            phRain      State_Chm%pHRain(I,J,L),                             &
 #endif
-                     WASHFRAC,                                               &
-                     KIN,                                                    &
-                     Input_Opt,                                              &
-                     State_Chm,                                              &
-                     State_Grid,                                             &
-                     State_Met,                                              &
-                     RC                                                     )
+#ifdef TOMAS
+            fromWetDep = .TRUE.,                                             &
+#endif
+            ! --- Input/Output ---
+            State_Chm  = State_Chm,                                          &
+            H2O2s      = State_Chm%H2O2AfterChem(I,J,L),                     &
+            SO2s       = State_Chm%SO2AfterChem(I,J,L),                      &
+            ! --- Output ---
+            WASHFRAC   = WASHFRAC,                                           &
+            KIN        = KIN,                                                &
+            RC         = RC                                                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -4645,7 +4607,9 @@ CONTAINS
                 ! therefore converted to [kg] locally within AQOXID.
                 ! GAINED is now [kg/m2] ans so is multiplied
                 ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-                IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
+                IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
+                   ! nothing
+                ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                    REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
                                * State_Grid%Area_M2(I,J)
                 ELSE
@@ -4656,9 +4620,21 @@ CONTAINS
                    ENDIF
                    RETURN
                 ENDIF
-                CALL AQOXID( REEVAPSO2, KMIN, I, J, L, &
-                             Input_Opt, State_Chm, State_Grid, &
-                             State_Met, State_Diag, RC  )
+
+                ! NOTE: Species units are kg here
+                CALL AqOxid(                                                 &
+                     I          = I,                                         &
+                     J          = J,                                         &
+                     L          = L,                                         &
+                     fromWetDep = .TRUE.,                                    &
+                     MOXID      = REEVAPSO2,                                 &
+                     KMIN       = KMIN,                                      &
+                     Input_Opt  = Input_Opt,                                 &
+                     State_Chm  = State_Chm,                                 &
+                     State_Grid = State_Grid,                                &
+                     State_Met  = State_Met,                                 &
+                     State_Diag = State_Diag,                                &
+                     RC         = RC                                        )
              ENDIF
              !end -added for TOMAS  (win, 7/16/09)
 #endif
@@ -4993,7 +4969,9 @@ CONTAINS
              ! therefore converted to [kg] locally within AQOXID.
              ! WETLOSS is now [kg/m2] and so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-             IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
+             IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
+                ! Nothing
+             ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
                             * State_Grid%Area_M2(I,J)
              ELSE
@@ -5005,9 +4983,20 @@ CONTAINS
                 Spc => NULL()
                 RETURN
              ENDIF
-             CALL AQOXID( REEVAPSO2, KMIN, I, J, L,                          &
-                          Input_Opt, State_Chm, State_Grid, State_Met,       &
-                          State_Diag, RC )
+
+             CALL AqOxid(                                                    &
+                     I          = I,                                         &
+                     J          = J,                                         &
+                     L          = L,                                         &
+                     MOXID      = REEVAPSO2,                                 &
+                     KMIN       = KMIN,                                      &
+                     fromWetDep = .TRUE.,                                    &
+                     Input_Opt  = Input_Opt,                                 &
+                     State_Chm  = State_Chm,                                 &
+                     State_Grid = State_Grid,                                &
+                     State_Met  = State_Met,                                 &
+                     State_Diag = State_Diag,                                &
+                     RC         = RC                                        )
           ENDIF
           !end- added for TOMAS (win, 7/16/09)
 #endif
@@ -5080,7 +5069,7 @@ CONTAINS
                           State_Grid  = State_Grid,                          &
                           DSpc        = DSpc(NW,:,I,J),                      &
                           Spc         = Spc(N)%Conc(I,J,:),                  &
-                          RC          = RC )
+                          RC          = RC                                  )
           ENDIF
 
           ! Trap potential errors
@@ -5230,24 +5219,34 @@ CONTAINS
 
        ! Call WASHOUT to compute the fraction of species
        ! in grid box (I,J,L) that is lost to washout.
-       CALL WASHOUT( I, J, L, N,                                            &
-                     State_Met%BXHEIGHT(I,J,L),                             &
-                     TK,                                                    &
-                     QDOWN,                                                 &
-                     DT,                                                    &
-                     F,                                                     &
-                     State_Chm%H2O2AfterChem(I,J,L),                        &
-                     State_Chm%SO2AfterChem(I,J,L),                         &
+       CALL WASHOUT(                                                         &
+            ! --- Input ---
+            I          = I,                                                  & 
+            J          = J,                                                  & 
+            L          = L,                                                  &
+            N          = N,                                                  &
+            BXHEIGHT   = State_Met%BXHEIGHT(I,J,L),                          &
+            TK         = TK,                                                 &
+            PP         = QDOWN,                                              &
+            DT         = DT,                                                 &
+            F          = F,                                                  &
+            Input_Opt  = Input_Opt,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
 #ifdef LUO_WETDEP
-                     State_Chm%pHRain(I,J,L),                               &
+            phRain     = State_Chm%pHRain(I,J,L),                            &
 #endif
-                     WASHFRAC,                                              &
-                     KIN,                                                   &
-                     Input_Opt,                                             &
-                     State_Chm,                                             &
-                     State_Grid,                                            &
-                     State_Met,                                             &
-                     RC                                                    )
+#ifdef TOMAS
+            fromWetDep = .TRUE.,                                             &
+#endif
+            ! --- Input/Output ---
+            State_Chm  = State_Chm,                                          &
+            H2O2s      = State_Chm%H2O2AfterChem(I,J,L),                     &
+            SO2s       = State_Chm%SO2AfterChem(I,J,L),                      &
+            ! --- Output ---
+            WASHFRAC   = WASHFRAC,                                           &
+            KIN        = KIN,                                                &
+            RC         = RC                                                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
