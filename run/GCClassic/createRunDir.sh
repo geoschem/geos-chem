@@ -478,10 +478,10 @@ else
     # NOTE: Benchmark simulations always use the climatological emissions!
     if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
        [[ "x${sim_name}" == "xaerosol"  ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202106.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
 	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202106.degassing_only.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
 	fi
