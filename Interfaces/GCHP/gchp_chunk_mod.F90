@@ -145,7 +145,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                        :: I, J, L, STATUS
+    INTEGER                        :: I, J, L, N, STATUS
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
     TYPE(ESMF_Config)              :: CF            ! Grid comp config object
 
@@ -511,13 +511,13 @@ CONTAINS
     ! units as the restart file values. Note that species concentrations
     ! are all still zero at this point since internal state values are not
     ! copied to State_Chm%Species%Conc until Run (post-initialization).
-# if defined( MODEL_GEOS )
-    State_Chm%Species(:)%Units           = KG_SPECIES_PER_KG_TOTAL_AIR
-    State_Chm%allSpeciesInDryMixingRatio = .FALSE.
+    DO N = 1, State_Chm%nSpecies
+#if defined( MODEL_GEOS )
+       State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
 #else
-    State_Chm%Species(:)%Units           = MOLES_SPECIES_PER_MOLES_DRY_AIR
-    State_Chm%allSpeciesInDryMixingRatio = .TRUE.
+       State_Chm%Species(N)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 #endif
+    ENDDO
 
     ! Initialize photolysis, including reading files for optical properties
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
