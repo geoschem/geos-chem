@@ -1139,7 +1139,7 @@ CONTAINS
                      State_Grid = State_Grid,                                &
                      State_Met  = State_Met,                                 &
 #ifdef LUO_WETDEP
-                     phRain     = pHRain,                                    &
+                     pHRain     = pHRain,                                    &
 #endif
 #ifdef TOMAS
                      fromWetDep = .FALSE.,                                   &

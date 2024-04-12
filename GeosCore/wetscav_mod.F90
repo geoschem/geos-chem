@@ -4472,7 +4472,7 @@ CONTAINS
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
 #ifdef LUO_WETDEP
-            phRain      State_Chm%pHRain(I,J,L),                             &
+            pHRain     = State_Chm%pHRain(I,J,L),                             &
 #endif
 #ifdef TOMAS
             fromWetDep = .TRUE.,                                             &
@@ -5234,7 +5234,7 @@ CONTAINS
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
 #ifdef LUO_WETDEP
-            phRain     = State_Chm%pHRain(I,J,L),                            &
+            pHRain     = State_Chm%pHRain(I,J,L),                            &
 #endif
 #ifdef TOMAS
             fromWetDep = .TRUE.,                                             &
