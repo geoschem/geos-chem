@@ -13,7 +13,7 @@
   ! Species molecular weight [g/mole]
   REAL(dp) :: MW(NSPEC)
 
-  ! Square root of species molecular weight [g/mole]
+  ! Square root of species molecular weight [g/mole]^1/2
   REAL(dp) :: SR_MW(NSPEC)
 
   ! Henry's law constants
@@ -44,14 +44,15 @@
   REAL(dp) :: NUMDEN
   !$OMP THREADPRIVATE( NUMDEN )
 
-  ! Pressure and relative humidity
+  ! Pressure [hPa]
   REAL(dp) :: PRESS
   !$OMP THREADPRIVATE( PRESS )
 
+  ! Relative humidity [%]
   REAL(dp) :: RELHUM
   !$OMP THREADPRIVATE( RELHUM )
 
-  ! Cosine of solar zenith angle
+  ! Cosine of solar zenith angle [unitless]
   REAL(dp) :: SUNCOS
   !$OMP THREADPRIVATE( SUNCOS )
 
@@ -59,7 +60,7 @@
   ! Rate array variables (used by more than one mechanism)
   !=========================================================================
 
-  ! Photolysis rates (increase size if necessary)
+  ! Photolysis rates [1/s] (increase size if necessary)
   ! Used by fullchem and Hg mechanisms
   REAL(dp) :: PHOTOL(200)
   !$OMP THREADPRIVATE( PHOTOL )
@@ -80,7 +81,7 @@
   REAL(dp) :: EIGHT_RSTARG_T
   !$OMP THREADPRIVATE( EIGHT_RSTARG_T )
 
-  ! H2O concentration
+  ! H2O concentration [molec/cm3]
   REAL(dp) :: H2O
   !$OMP THREADPRIVATE( H2O )
 
@@ -215,13 +216,14 @@
   ! Variables specific to the carbon mechanism
   !==========================================================================
 
-  ! Array for strat CH4/CO/CO2 rates
+  ! Array for strat CH4/CO/CO2 rates [1/s]
   REAL(dp) :: K_STRAT(5)
   !$OMP THREADPRIVATE( K_STRAT )
 
-  ! Array for trop CH4/CO/CO2 rates
+  ! Array for trop CH4/CO/CO2 rates [1/s]
   REAL(dp) :: K_TROP(5)
   !$OMP THREADPRIVATE( K_TROP )
 
+  ! Are we in the tropopshere (1=yes, 0=no)
   REAL(dp) :: TROP
   !$OMP THREADPRIVATE( TROP )

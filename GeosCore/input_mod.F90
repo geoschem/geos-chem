@@ -2466,7 +2466,7 @@ CONTAINS
     Input_Opt%LACTIVEH2O = v_bool
 
     !------------------------------------------------------------------------
-    ! Turn on online stratospheric H2O?
+    ! Use a more conservative boundary condition for strat. H2O?
     !------------------------------------------------------------------------
     key    = "operations%chemistry%active_strat_H2O%use_static_bnd_cond"
     v_bool = MISSING_BOOL
@@ -2681,6 +2681,7 @@ CONTAINS
     CHARACTER(LEN=512)           :: errMsg
     CHARACTER(LEN=QFYAML_NamLen) :: key
     CHARACTER(LEN=QFYAML_NamLen) :: a_str(3)
+    CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
     !========================================================================
     ! Config_RRTMG begins here!
@@ -2779,6 +2780,71 @@ CONTAINS
     ENDIF
     Input_Opt%LSKYRAD(2) = v_bool
 
+    !------------------------------------------------------------------------
+    ! Value to use (in ppmv) for CO2?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%co2_ppmv"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_CO2_ppmv = Cast_and_Roundoff( v_str, places=2 )
+
+    !------------------------------------------------------------------------
+    ! Use the fixed dynamical heating assumption?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fixed_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_FDH = v_bool
+
+    !------------------------------------------------------------------------
+    ! Allow seasonal adjustment?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%seasonal_fdh"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SEFDH = v_bool
+
+    !------------------------------------------------------------------------
+    ! Extend dynamical heating adjustment to TOA?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%fdh_to_toa"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%RRTMG_SA_TOA = v_bool
+
+    !------------------------------------------------------------------------
+    ! Read in dynamical heating data?
+    !------------------------------------------------------------------------
+    key    = "operations%rrtmg_rad_transfer_model%read_dyn_heating"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Read_Dyn_Heating = v_bool
+
     !========================================================================
     ! Error check settings
     !========================================================================
@@ -2818,6 +2884,18 @@ CONTAINS
        ENDIF
     ENDIF
 
+#ifndef MODEL_GCHPCTM
+    If (Input_Opt%RRTMG_FDH) Then
+       errMsg = 'Fixed dynamical heating in RRTMG is currently only available in GCHP'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+#endif
+
+    If (Input_Opt%RRTMG_SEFDH.and.(.not.Input_Opt%RRTMG_FDH)) Then
+       errMsg = 'Cannot have seasonally evolving FDH without enabling FDH!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+    End If
+
     !========================================================================
     ! Print to screen
     !========================================================================
@@ -2833,6 +2911,11 @@ CONTAINS
        WRITE( 6, 100 ) 'Consider shortwave?         : ', Input_Opt%LSWRAD
        WRITE( 6, 100 ) 'Clear-sky flux?             : ', Input_Opt%LSKYRAD(1)
        WRITE( 6, 100 ) 'All-sky flux?               : ', Input_Opt%LSKYRAD(2)
+       WRITE( 6, 115 ) 'CO2 VMR in ppmv             : ', Input_Opt%RRTMG_CO2_ppmv
+       WRITE( 6, 100 ) 'Fixed dyn. heat. assumption?: ', Input_Opt%RRTMG_FDH
+       WRITE( 6, 100 ) ' --> Seasonal evolution?    : ', Input_Opt%RRTMG_SEFDH
+       WRITE( 6, 100 ) ' --> Extend to TOA?         : ', Input_Opt%RRTMG_SA_TOA
+       WRITE( 6, 100 ) ' --> Read in dyn. heating?  : ', Input_Opt%Read_Dyn_Heating
     ENDIF
 
     ! FORMAT statements
@@ -2926,6 +3009,16 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%FAST_JX_DIR = TRIM( v_str )
+
+    key   = "operations%photolysis%input_directories%cloudj_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CloudJ_DIR = TRIM( v_str )
 
     !------------------------------------------------------------------------
     ! Use online ozone in extinction calculations for FAST-JX?
@@ -3112,10 +3205,12 @@ CONTAINS
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
-       WRITE( 6,100 ) 'Online ozone for FAST-JX?   : ', Input_Opt%USE_ONLINE_O3
-       WRITE( 6,100 ) 'Ozone from met for FAST-JX? : ',                      &
+       WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
+                       TRIM( Input_Opt%CloudJ_Dir )
+       WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
+       WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET
-       WRITE( 6,100 ) 'TOMS/SBUV ozone for FAST-JX?: ', Input_Opt%USE_TOMS_O3
+       WRITE( 6,100 ) 'Use TOMS/SBUV ozone?        : ', Input_Opt%USE_TOMS_O3
        WRITE( 6,100 ) 'Photolyse nitrate aerosol?  : ', Input_Opt%hvAerNIT
        WRITE( 6,105 ) 'JNITs scaling of JHNO3      : ', Input_Opt%hvAerNIT_JNITs
        WRITE( 6,105 ) 'JNIT scaling of JHNO3       : ', Input_Opt%hvAerNIT_JNIT
@@ -4889,46 +4984,6 @@ CONTAINS
     Input_Opt%TCCON_CH4_OBS = v_bool
 
     !------------------------------------------------------------------------
-    ! Do an analytical inversion?
-    !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%analytical_inversion%activate"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%DoAnalyticalInv = v_bool
-
-    !------------------------------------------------------------------------
-    ! Current state vector element number
-    !------------------------------------------------------------------------
-    key   = &
-     "CH4_simulation_options%analytical_inversion%state_vector_element_number"
-    v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%StateVectorElement = v_int
-
-    !------------------------------------------------------------------------
-    ! Emission perturbation factor
-    !------------------------------------------------------------------------
-    key   = "CH4_simulation_options%analytical_inversion%emission_perturbation_factor"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%EmisPerturbFactor = Cast_and_RoundOff( v_str, places=4 )
-
-    !------------------------------------------------------------------------
     ! Perturb CH4 boundary conditions?
     !------------------------------------------------------------------------
     key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
@@ -4957,33 +5012,6 @@ CONTAINS
     Input_Opt%CH4BoundaryConditionIncreaseEast  = Cast_and_RoundOff( a_str(3), places=4 )
     Input_Opt%CH4BoundaryConditionIncreaseWest  = Cast_and_RoundOff( a_str(4), places=4 )
 
-    !------------------------------------------------------------------------
-    ! Use emission scale factors from a previous inversion?
-    !------------------------------------------------------------------------
-    key = &
-     "CH4_simulation_options%analytical_inversion%use_emission_scale_factor"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%UseEmisSF = v_bool
-
-    !------------------------------------------------------------------------
-    ! Use OH scale factors from a previous inversion?
-    !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%analytical_inversion%use_OH_scale_factors"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%UseOHSF = v_bool
-
     !========================================================================
     ! Print to screen
     !========================================================================
@@ -4993,24 +5021,17 @@ CONTAINS
        WRITE(6,100) 'Use AIRS obs operator?   : ', Input_Opt%AIRS_CH4_OBS
        WRITE(6,100) 'Use GOSAT obs operator?  : ', Input_Opt%GOSAT_CH4_OBS
        WRITE(6,100) 'Use TCCON obs operator?  : ', Input_Opt%TCCON_CH4_OBS
-       WRITE(6,100) 'Do analytical inversion? : ', Input_Opt%DoAnalyticalInv
-       WRITE(6,120) 'Current state vector elem: ', Input_Opt%StateVectorElement
-       WRITE(6,110) 'Emiss perturbation factor: ', Input_Opt%EmisPerturbFactor
        WRITE(6,100) 'Perturb CH4 BCs?         : ', Input_Opt%DoPerturbCH4BoundaryConditions
        WRITE(6,130) 'CH4 BC ppb increase NSEW : ', Input_Opt%CH4BoundaryConditionIncreaseNorth,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseSouth,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseEast,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseWest
-       WRITE(6,100) 'Use emis scale factors?  : ', Input_Opt%UseEmisSF
-       WRITE(6,100) 'Use OH scale factors?    : ', Input_Opt%UseOHSF
     ENDIF
 
     ! FORMAT statements
 90  FORMAT( /, A    )
 95  FORMAT( A       )
 100 FORMAT( A, L5   )
-110 FORMAT( A, f6.2 )
-120 FORMAT( A, I5   )
 130 FORMAT( A, F10.4, 1X, F10.4, 1X, F10.4, 1X, F10.4)
 
   END SUBROUTINE Config_CH4
@@ -5955,8 +5976,8 @@ CONTAINS
     !=================================================================
 
 #ifdef TOMAS
-    ! For TOMAS only: If DUST1 is present, the other dust species are too
-    I = MAX( Ind_('DUST1','A'), 0 )
+    ! For TOMAS only: If DUST01 is present, the other dust species are too
+    I = MAX( Ind_('DUST01','A'), 0 )
 #else
     ! Non-TOMAS simulations: Need all DST1-DST4 species
     I = MAX( Ind_('DST1','A'), 0 ) + &

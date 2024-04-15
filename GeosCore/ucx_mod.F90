@@ -756,7 +756,11 @@ CONTAINS
 !
 ! !USES:
 !
+#ifdef FASTJX
     USE CMN_FJX_Mod,     ONLY : RAA
+#else
+    USE Cldj_Cmn_Mod,    ONLY : RAA
+#endif
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -923,7 +927,11 @@ CONTAINS
                 RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
+#ifdef FASTJX
                 RWET(IBC) = RAA(State_Chm%Phot%IND999,29) * 1.0e-6_fp
+#else
+                RWET(IBC) = RAA(29) * 1.0e-6_fp
+#endif
              ENDIF
 
              ! Taken from aerosol_mod (MSDENS(2))
@@ -3640,8 +3648,9 @@ CONTAINS
     LACTIVEH2O = Input_Opt%LACTIVEH2O
 
     ! Check that species concentration units are as expected
-    IF ( TRIM( State_Chm%Spc_Units ) /= 'kg/kg dry' ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(State_Chm%Spc_Units)
+    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       MSG = 'Incorrect species units: '                                  // & 
+              TRIM( UNIT_STR(State_Chm%Spc_Units) )
        LOC = 'UCX_MOD: SET_H2O_TRAC'
        CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
     ENDIF
@@ -3896,7 +3905,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
     USE CAM_ABORTUTILS,     ONLY : endrun
-    USE SPMD_UTILS,         ONLY : mpirun, masterprocid, mpi_success, mpi_real8
+    USE SPMD_UTILS,         ONLY : mpicom, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -4131,7 +4140,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom )
+    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom, ierr )
     IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 

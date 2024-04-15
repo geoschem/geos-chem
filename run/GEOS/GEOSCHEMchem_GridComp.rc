@@ -110,7 +110,7 @@ ARCHIVED_CONV:        0
 
 # %%% Use MOIST module for convective transport (including washout)
 # Make species friendly to moist? If turned on, convection must be turned off in in geoschem_config.yml
-Species_friendly_to_moist: 0
+Species_friendly_to_moist: 1
 # Turn off washout for SO2?
 TurnOff_SO2_washout: 1
 # Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
@@ -241,5 +241,5 @@ CO_Mesosphere_FieldName: CO_CMAM
 
 #
 # To set CH4 boundary condition from GEOS 
-# This is not yet implemented. Set to zero for now. If you want GEOS CH4, need to activate GEOS_CH4 in HEMCO_Config.rc 
+# This is not yet implemented. Set to zero for now. If you want GEOS CH4, need to activate GEOS_CH4 in HEMCO_Config.rc
 CH4_from_GEOS: 0

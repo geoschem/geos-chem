@@ -49,10 +49,11 @@ envDir="${ptRoot}/${ENV_DIR}"
 codeDir="${ptRoot}/CodeDir"
 logsDir="${ptRoot}/${LOGS_DIR}"
 scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
+site=$(get_site_name)
 
 # Load the user-environment and the software environment
-. ~/.bashrc               > /dev/null 2>&1
-. ${envDir}/gcclassic.env > /dev/null 2>&1
+. ~/.bashrc > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # All parallelization tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
@@ -65,12 +66,8 @@ head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
-# Determine the scheduler from the job ID (or lack of one)
-scheduler="none"
-[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
-[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
-
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+# Scheduler-specific settings
+if [[ "X${SLURM_JOBID}" != "X" ]]; then
 
     #-----------------------
     # SLURM settings
@@ -79,7 +76,7 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     # Set OMP_NUM_THREADS to the same # of cores requested with #SBATCH -c
     export OMP_NUM_THREADS=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "X${LSB_JOBID}" != "X" ]]; then
 
     #-----------------------
     # LSF settings
@@ -111,9 +108,8 @@ fi
 # Load common variables and functions for tesets
 #============================================================================
 
-# Count the number of tests to be done (exclude TOMAS40)
+# Count the number of tests to be done
 parallelTests=("${EXE_GCC_BUILD_LIST[@]}")
-unset parallelTests[6]
 numTests=${#parallelTests[@]}
 
 #============================================================================
@@ -135,9 +131,9 @@ print_to_log ""                                            "${results}"
 print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
 print_to_log "Number of compilation tests: ${numTests}"    "${results}"
 print_to_log ""                                            "${results}"
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "X${SLURM_JOBID}" != "X" ]]; then
     print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"  "${results}"
-elif  [[ "x${scheduler}" == "xLSF" ]]; then
+elif  [[ "X${LSB_JOBID}" != "X" ]]; then
     print_to_log "Submitted as LSF job: ${LSB_JOBID}"      "${results}"
 else
     print_to_log "Submitted as interactive job"            "${results}"
@@ -205,7 +201,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" "${results}"
 
     # Start the interactive execution test script upon successful finish
-    if [[ "x${scheduler}" == "xnone" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Compilation tests finished!"
         ${scriptsDir}/parallelTestExecute.sh &
@@ -216,7 +212,7 @@ else
     #---------------------------
     # Unsuccessful compilation
     #---------------------------
-    if [[ "x${scheduler}" == "xnone" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "x${LSB_JOBID}" == "X" ]]; then
        echo ""
        echo "Compilation tests failed!  Exiting..."
     fi

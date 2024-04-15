@@ -4,15 +4,28 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
-## [Unreleased]
+## [14.3.0] - 2024-02-07
+### Added
+- Added PH2SO2 and PSO4AQ to track production of SO4 for use in TOMAS
+
+### Changed
+- Updated rate coefficients and products in 63 reactions per JPL / IUPAC recommendations (JPL 19-5; Bates2023)
+- Consolidated product branches to remove 25 reactions (Bates2023 Table S4)
+
+### Fixed
+- Fixed C and N balance in 63 reactions (Bates2023 Table S2)
+- Replaced the HMS + OH -> 2SO4 + CH2O - SO2 reaction with HMS + OH + SO2 -> 2SO4 + CH2O reaction and divided the rate constant be [SO2] to improve stability
+
+## [14.2.1] - Oct 2023
 ### Changed
 - The `fullchem` mechanism must now be built with KPP 3.0.0 or later
 
-## [Unreleased 14.2.0]
+## [14.2.0] - Oct 2023
 ### Added
 - Added lumped furan chemistry following Carter2020
 - Restored sink reactions for HOI, IONO, IONO2
 - Added S(IV)+HOBr and S(IV)+HOCl rxns (they had been inadvertently omitted)
+- Added nitrate aerosol (NIT, NITs) to Ox family in `gckpp.kpp`
 
 ### Changed
 - Set `k(SALAAL+SO2)` and `k(SALCAL+SO2)` to zero if O3 < 1e10 molec/cm3

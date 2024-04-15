@@ -48,10 +48,12 @@ envDir="${ptRoot}/${ENV_DIR}"
 codeDir="${ptRoot}/CodeDir"
 logsDir="${ptRoot}/${LOGS_DIR}"
 rundirsDir="${ptRoot}/${RUNDIRS_DIR}"
+numTests=$(count_rundirs "${rundirsDir}")
+site=$(get_site_name)
 
 # Load the environment and the software environment
-. ~/.bashrc               > /dev/null 2>&1
-. ${envDir}/gcclassic.env > /dev/null 2>&1
+. ~/.bashrc > /dev/null 2>&1
+[[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
 
 # Get the Git commit of the superproject and submodules
 head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
@@ -61,18 +63,13 @@ head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
 head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
            git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
 
-# Determine the scheduler from the job ID (or lack of one)
-scheduler="none"
-[[ "x${SLURM_JOBID}" != "x" ]] && scheduler="SLURM"
-[[ "x${LSB_JOBID}"   != "x" ]] && scheduler="LSF"
-
-# Define the full number of cores to use for the parallelization tests
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+# Site-specific settings
+if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
     # SLURM
     export allThreads=${SLURM_CPUS_PER_TASK}
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "X${site}" == "XCOMPUTE1" && "X${LSB_JOBID}" != "X" ]]; then
 
     # LSF
     export allThreads=${LSB_DJOB_NUMPROC}
@@ -97,13 +94,6 @@ fewerThreads=$(( ${allThreads} / 2 ))
 [[ "x${OMP_STACKSIZE}" == "x" ]] && export OMP_STACKSIZE=500m
 
 #============================================================================
-# Load common variables and functions for tesets
-#============================================================================
-
-# Count the number of tests to be run (same as the # of run directories)
-numTests=$(count_rundirs "${rundirsDir}")
-
-#============================================================================
 # Initialize results logfile
 #============================================================================
 
@@ -123,9 +113,9 @@ print_to_log "1st run uses ${allThreads} OpenMP threads"        "${results}"
 print_to_log "2nd run uses ${fewerThreads} OpenMP threads"      "${results}"
 print_to_log "Number of parallelization tests: ${numTests}"     "${results}"
 print_to_log ""                                                 "${results}"
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "X${SLURM_JOBID}" != "X" ]]; then
     print_to_log "Submitted as SLURM job: ${SLURM_JOBID}"       "${results}"
-elif  [[ "x${scheduler}" == "xLSF" ]]; then
+elif  [[ "X${LSB_JOBID}" != "X" ]]; then
     print_to_log "Submitted as LSF job: ${LSB_JOBID}"           "${results}"
 else
     print_to_log "Submitted as interactive job"                 "${results}"
@@ -155,7 +145,7 @@ for runDir in *; do
 
     # Do the following if for only valid GEOS-Chem run dirs
     expr=$(is_valid_rundir "${runAbsPath}")
-    if [[ "x${expr}" == "xTRUE" ]]; then
+    if [[ "X${expr}" == "XTRUE" ]]; then
 
         # Define log file
         log="${logsDir}/parallel.${runDir}.log"
@@ -166,7 +156,7 @@ for runDir in *; do
         failMsg="$runDir${FILL:${#runDir}}.....${EXE_FAIL_STR}"
 
         # Get the executable file corresponding to this run directory
-        exeFile=$(exe_name "gcclassic" "${runAbsPath}")
+        exeFile=$(exe_name "gcclassic" "${runDir}")
 
         # Test if the executable exists
         if [[ -f "${binDir}/${exeFile}" ]]; then
@@ -196,7 +186,7 @@ for runDir in *; do
             # Run GEOS-Chem Classic
             export OMP_NUM_THREADS=${allThreads}
             echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-            if [[ "x${scheduler}" == "xSLURM" ]]; then
+            if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
                 srun -c ${allThreads} ./${exeFile} >> "${log}" 2>&1
             else
                 ./${exeFile} >> "${log}" 2>&1
@@ -215,7 +205,7 @@ for runDir in *; do
             # Run GEOS-Chem Classic
             export OMP_NUM_THREADS=${fewerThreads}
             echo "Now using ${OMP_NUM_THREADS}" >> "${log}" 2>&1
-            if [[ "x${scheduler}" == "xSLURM" ]]; then
+            if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
                 srun -c ${fewerThreads} ./${exeFile} >> "${log}" 2>&1
             else
                 ./${exeFile} >> "${log}" 2>&1
@@ -269,7 +259,7 @@ print_to_log "Parallelization tests failed: ${failed}"            "${results}"
 print_to_log "Parallelization tests not yet completed: ${remain}" "${results}"
 
 # Check for success
-if [[ "x${passed}" == "x${numTests}" ]]; then
+if [[ "X${passed}" == "X${numTests}" ]]; then
 
     #--------------------------
     # Successful execution
@@ -280,7 +270,7 @@ if [[ "x${passed}" == "x${numTests}" ]]; then
     print_to_log "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%"    "${results}"
 
     # Print success (if interactive)
-    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+    if [[ "X${SLURM_JOBID}" == "X" && "X${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Parallelization tests finished!"
     fi
@@ -290,7 +280,7 @@ else
     #--------------------------
     # Unsuccessful execution
     #--------------------------
-    if [[ "x${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "x" ]]; then
+    if [[ "X${SLURM_JOBID}" == "x" && "x${LSB_JOBID}" == "X" ]]; then
         echo ""
         echo "Parallelization tests failed!  Exiting ..."
     fi

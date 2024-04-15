@@ -1,0 +1,129 @@
+RUNDIR_MET='GEOSIT'
+RUNDIR_MET_LOWERCASE='geosit'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/GEOS_IT"
+RUNDIR_MET_DIR_RAW="${RUNDIR_DATA_ROOT}/GEOS_C180/GEOS_IT_Raw"
+
+RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.true.
+RUNDIR_MET_RES='C180'
+RUNDIR_MET_EXT='nc4'
+
+RUNDIR_MET_CN_YR=Y1998
+RUNDIR_MET_CN_MO=M01
+RUNDIR_MET_PRES_UNIT='hPa'
+RUNDIR_MET_PRES_SCALE='1.0'
+
+RUNDIR_OFFLINE_EMIS_RES='0.5x0.625'
+RUNDIR_OFFLINE_EMIS_LAT_RES='05'
+
+RUNDIR_METLIGHTNING='MERRA2'
+RUNDIR_METLIGHTNING_DIR="${RUNDIR_DATA_ROOT}/0.5x0.625/MERRA2"
+RUNDIR_METLIGHTNING_RES='0.5x0.625'
+RUNDIR_LIGHTNOX_CLIM=true
+RUNDIR_MET_LCLIM='1980-2019'
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION}
+
+#-------------------------------------------------------
+# --- 1-hr time-averaged, 2D ---
+#-------------------------------------------------------
+
+EFLUX     W_m-2      N Y F0;003000 none  none EFLUX    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+EVAP      kg_m-2_s-1 N Y F0;003000 none  none EVAP     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+FRSEAICE  1          N Y F0;003000 none  none FRSEAICE ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+HFLUX     W_m-2      N Y F0;003000 none  none HFLUX    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PBLH      m          N Y F0;003000 none  none PBLH     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PRECANV   kg_m-2_s-1 N Y F0;003000 none  none PRECANV  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PRECCON   kg_m-2_s-1 N Y F0;003000 none  none PRECCON  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PRECLSC   kg_m-2_s-1 N Y F0;003000 none  none PRECLSC  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PRECSNO   kg_m-2_s-1 N Y F0;003000 none  none PRECSNO  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PRECTOT   kg_m-2_s-1 N Y F0;003000 none  none PRECTOT  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+USTAR     m_s-1      N Y F0;003000 none  none USTAR    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+Z0        m          N Y F0;003000 none  none Z0M      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.flx_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+
+FRSNO     1          N Y F0;003000 none  none FRSNO    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+GRN       1          N Y F0;003000 none  none GRN      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+GWETROOT  1          N Y F0;003000 none  none GWETROOT ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+GWETTOP   1          N Y F0;003000 none  none GWETTOP  ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+LAI       1          N Y F0;003000 none  none LAI      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PARDF     W_m-2      N Y F0;003000 none  none PARDF    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+PARDR     W_m-2      N Y F0;003000 none  none PARDR    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+SNODP     m          N Y F0;003000 none  none SNODP    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+SNOMAS    kg_m-2     N Y F0;003000 none  none SNOMAS   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.lnd_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+
+ALBD      1          N Y F0;003000 none  none ALBEDO   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+CLDFRC    1          N Y F0;003000 none  none CLDTOT   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+RADSWG    W_m-2      N Y F0;003000 none  none SWGDN    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+
+QV2M      kg_kg-1    N Y F0;003000 none  none QV2M     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+SLP       Pa         N Y F0;003000 none  0.01 SLP      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+TS        K          N Y F0;003000 none  none T2M      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+TO3       Dobsons    N Y F0;003000 none  none TO3      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+TROPP     Pa         N Y F0;003000 none  0.01 TROPPT   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+TSKIN     K          N Y F0;003000 none  none TS       ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+U10M      m_s-1      N Y F0;003000 none  none U10M     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+V10M      m_s-1      N Y F0;003000 none  none V10M     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.slv_tavg_1hr_glo_C180x180x6_slv.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:30:00P01:00
+
+# SEAICE[0-9]0 bins not used except in Hg simulation
+
+SEAICE00 1 N Y F0;003000 none none SEAICE00 /dev/null
+SEAICE10 1 N Y F0;003000 none none SEAICE10 /dev/null
+SEAICE20 1 N Y F0;003000 none none SEAICE20 /dev/null
+SEAICE30 1 N Y F0;003000 none none SEAICE30 /dev/null
+SEAICE40 1 N Y F0;003000 none none SEAICE40 /dev/null
+SEAICE50 1 N Y F0;003000 none none SEAICE50 /dev/null
+SEAICE60 1 N Y F0;003000 none none SEAICE60 /dev/null
+SEAICE70 1 N Y F0;003000 none none SEAICE70 /dev/null
+SEAICE80 1 N Y F0;003000 none none SEAICE80 /dev/null
+SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/null
+
+#-------------------------------------------------------
+# --- 3-hr instantaneous (all 3D) ---
+#-------------------------------------------------------
+
+TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:00:00P03:00
+TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_inst_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T00:00:00P03:00
+
+#-------------------------------------------------------
+# --- 3-hr time-averaged (all 3D) ---
+#-------------------------------------------------------
+
+CLDF      1           N Y F0;013000 none  none CLOUD      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.rad_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+
+DTRAIN    kg_m-2_s-1  N Y F0;013000 none  none DTRAIN     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+TAUCLI    1           N Y F0;013000 none  none TAUCLI     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+TAUCLW    1           N Y F0;013000 none  none TAUCLW     ./MetDir/%y4/%m2/%d2/GEOS.it.asm.cld_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+
+OMEGA     Pa_s-1      N Y F0;013000 none  none OMEGA      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+QI        kg_kg-1     N Y F0;013000 none  none QI         ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+QL        kg_kg-1     N Y F0;013000 none  none QL         ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+RH        1           N Y F0;013000 none  none RH         ./MetDir/%y4/%m2/%d2/GEOS.it.asm.asm_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+
+DQRCU     kg_kg-1_s-1 N Y F0;013000 none  none DQRCU      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+DQRLSAN   kg_kg-1_s-1 N Y F0;013000 none  none DQRLSAN    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+REEVAPCN  kg_kg-1_s-1 N Y F0;013000 none  none REEVAPCN   ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+REEVAPLS  kg_kg-1_s-1 N Y F0;013000 none  none REEVAPLSAN ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v72.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+
+CMFMC     kg_m-2_s-1  N Y F0;013000 none  none CMFMC      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+PFICU     kg_m-2_s-1  N Y F0;013000 none  none PFICU      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+PFILSAN   kg_m-2_s-1  N Y F0;013000 none  none PFILSAN    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+PFLCU     kg_m-2_s-1  N Y F0;013000 none  none PFLCU      ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+PFLLSAN   kg_m-2_s-1  N Y F0;013000 none  none PFLLSAN    ./MetDir/%y4/%m2/%d2/GEOS.it.asm.mst_tavg_3hr_glo_C180x180x6_v73.GEOS5294.%y4-%m2-%d2T%h2%n2.V01.nc4 1995-01-01T01:30:00P03:00
+
+#-------------------------------------------------------
+# --- Fixed variables, from constants file ---
+#-------------------------------------------------------
+
+FRLAKE     1      N Y - none none FRLAKE    ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FRLAND     1      N Y - none none FRLAND    ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FRLANDIC   1      N Y - none none FRLANDICE ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+FROCEAN    1      N Y - none none FROCEAN   ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+PHIS       m2_s-2 N Y - none none PHIS      ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+OCEAN_MASK 1      N Y - none none FROCEAN   ./MetDir/1998/01/01/GEOS.it.asm.asm_const_0hr_glo_C180x180x6_slv.GEOS5294.1998-01-01T0000.V01.nc4
+
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+OPTDEP      TAUCLI+TAUCLW 0
+"""

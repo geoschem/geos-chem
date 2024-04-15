@@ -12,25 +12,26 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./parallelTest.sh -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]
+#  ./parallelTest.sh -d root-dir -t compile|all [-e env-file] [-h] [-q]
 #
-#  Where the command-line arguments are as follows:
+#  Required arguments
+#    -d root-dir     : Specify the root folder for integration tests
+#    -t compile|all  : Specify the tests to run (compile-only or all)
 #
-#    -d root-dir  : Specify the root folder for parallelization tests
-#    -e env-file  : Specitify the environment file (w/ module loads)
-#    -h           : Display a help message
-#    -p partition : Select partition for SLURM or LSF schedulers
-#    -q           : Run a quick set of parallelization tests (for testing)
-#    -s scheduler : Specify the scheduler (SLURM or LSF)
+#  Optional arguments
+#    -e env-file     : Software environment file for Harvard Cannon
+#    -h              : Display a help message
+#    -n              : Do not bootstrap missing restart file variables
+#    -q              : Run a quick set of integration tests (for testing)
 #
 #  NOTE: you can also use the following long name options:
 #
-#    --directory root-dir  (instead of -d root-dir )
-#    --env-file  env-file  (instead of -e env-file )
-#    --help                (instead of -h          )
-#    --partition partition (instead of -p partition)
-#    --quick               (instead of -q          )
-#    --scheduler scheduler (instead of -s scheduler)
+#    --directory     (instead of -d)
+#    --env-file      (instead of -e)
+#    --help          (instead of -h)
+#    --no-bootstrap  (instead of -n)
+#    --quick         (instead of -q)
+#    --tests-to-run  (instead of -t)
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -39,12 +40,15 @@
 # Initialize
 #=============================================================================
 this="$(basename ${0})"
-usage="Usage: ${this} -d root-dir -e env-file [-h] [-p partition] [-q] [-s scheduler]"
-ptRoot="none"
-envFile="none"
-scheduler="none"
-sedCmd="none"
-quick="no"
+usage="Usage: ${this} -d root-dir -t compile|all [-e env-file] [-h] [-q]"
+quick="NO"
+
+# Current directory
+thisDir=$(pwd -P)
+cd "${thisDir}"
+
+# Load common functions
+. "${thisDir}/../../shared/commonFunctionsForTests.sh"
 
 #=============================================================================
 # Parse command-line arguments
@@ -53,13 +57,14 @@ quick="no"
 
 # Call Linux getopt function to specify short & long input options
 # (e.g. -d or --directory, etc).  Exit if not succesful
-validArgs=$(getopt --options d:e:hp:qs: \
-  --long directory:,env-file:,help,partition:,quick,scheduler: -- "$@")
+validArgs=$(getopt --options d:e:hqt: \
+  --long directory:,env-file:,help,quick,tests-to-run: -- "$@")
 if [[ $? -ne 0 ]]; then
     exit 1;
 fi
 
 # Parse arguments and set variables accordingly
+# NOTE: Convert some inputs to uppercase to facilitate comparisons
 eval set -- "${validArgs}"
 while [ : ]; do
     case "${1}" in
@@ -82,21 +87,15 @@ while [ : ]; do
             exit 1
             ;;
 
-	# -p or --partition replaces REQUESTED_PARTITON w/ the user's choice
-	-p | --partition)
-	    sedCmd="s/REQUESTED_PARTITION/${2}/"
-	    shift 2
-	    ;;
-
 	# -q or --quick runs a quick set of parallelization tests (for testing)
 	-q | --quick)
-	    quick="yes"
+	    quick="YES"
             shift
 	    ;;
 	
-	# -s or --scheduler selects the scheduler to use
-	-s | --scheduler)
-	    scheduler="${2^^}"
+	# -t or --tests-to-run specifies the type of tests to run
+	-t | --tests-to-run)
+            testsToRun="${2^^}"
             shift 2
             ;;
 
@@ -106,46 +105,42 @@ while [ : ]; do
     esac
 done
 
-# Error check parallelization tests root path
-if [[ "x${ptRoot}" == "xnone" ]]; then
+#=============================================================================
+# Sanity-check user input
+#=============================================================================
+
+# Get the site name from the node name
+site=$(get_site_name)
+
+# Error check integration tests root path
+if [[ "X${ptRoot}" == "X" ]]; then
     echo "ERROR: The parallelization test root directory has not been specified!"
     echo "${usage}"
     exit 1
 fi
 
-# Error check environment file
-if [[ "x${envFile}" == "xnone" ]]; then
-    echo "ERROR: The enviroment file (module loads) has not been specified!"
+# Error check the type of tests to run
+if [[ "X${testsToRun}" == "X" ]]; then
+    echo "ERROR: You must specify the test type: compile|all"
+    echo "${usage}"
+    exit 1
+fi
+if [[ "X${testsToRun}" != "XCOMPILE" && "X${testsToRun}" != "XALL" ]]; then
+    echo "ERROR: Invalid selction for tests-to-run, must be: compile|all"
     echo "${usage}"
     exit 1
 fi
 
-# Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xSLURM" && "x${sedCmd}" == "xnone" ]]; then
-    echo "ERROR: You must specify a partition for SLURM."
-    echo "${usage}"
-    exit 1
-fi
+# Error checks for tests that include compile & run phases
+if [[ "X${testsToRun}" == "XALL" ]]; then
+    
+    # Use the default environment file for Cannon if not specified
+    if [[ "X${site}" == "XCANNON" && "X${envFile}" == "X" ]]; then
+	envFile=$(get_default_gcc_env_file)
+    fi
 
-# Exit if no partition has been selected for SLURM
-if [[ "x${scheduler}" == "xLSF" && "x${sedCmd}" == "xnone" ]]; then
-    echo "ERROR: You must specify a partition for LSF."
-    echo "${usage}"
-    exit 1
-fi
-
-#=============================================================================
-# Load file with utility functions to setup configuration files
-#=============================================================================
-
-# Current directory
-thisDir=$(pwd -P)
-
-# Load common functions
-if [[ -f "../../shared/commonFunctionsForTests.sh" ]]; then
-    . "${thisDir}/../../shared/commonFunctionsForTests.sh"
-elif [[ -f "${thisDir}/commonFunctionsForTests.sh" ]]; then
-    . "${thisDir}/commonFunctionsForTests.sh"
+    # Get the sed command that will replace the partition name
+    sedPartitionCmd=$(get_sed_partition_cmd_from_site "${site}")
 fi
 
 #=============================================================================
@@ -155,8 +150,14 @@ fi
 # Convert parallelization test root folder to an absolute path
 ptRoot=$(absolute_path "${ptRoot}")
 
+# Prevent running integration tests in the source code directory tree
+if [[ "$(absolute_path ${thisDir})" =~ "${ptRoot}" ]]; then
+    echo "ERROR: You cannot run parallel tests in the source code directory!"
+    exit 1
+fi
+
 # Create GEOS-Chem run directories in the parallelization test root folder
-./parallelTestCreate.sh "${ptRoot}" "${envFile}" "${quick}"
+./parallelTestCreate.sh "${ptRoot}" "${envFile}" "${testsToRun}" "${quick}"
 if [[ $? -ne 0 ]]; then
    echo "ERROR: Could not create parallelization test run directories!"
    exit 1
@@ -178,12 +179,21 @@ scriptsDir="${ptRoot}/${SCRIPTS_DIR}"
 cd "${logsDir}"
 
 #=============================================================================
-# Compile the code and run the parallelization tests
+# Run the tests
 #=============================================================================
-if [[ "x${scheduler}" == "xSLURM" ]]; then
+if [[ "X${testsToRun}" == "XCOMPILE" ]]; then
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run via SLURM
+    # Compilation-only tests (scheduler is not used)
+    #-------------------------------------------------------------------------
+    echo ""
+    echo "Compiliation tests are running..."
+    ${scriptsDir}/parallelTestCompile.sh &    
+
+elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCANNON" ]]; then
+
+    #-------------------------------------------------------------------------
+    # Compilation and execution tests on Harvard Cannon (via SLURM)
     #-------------------------------------------------------------------------
 
     # Remove LSF #BSUB tags
@@ -209,8 +219,8 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
 	"${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
     output=$(sbatch ${scriptsDir}/parallelTestCompile.sh)
@@ -226,10 +236,10 @@ if [[ "x${scheduler}" == "xSLURM" ]]; then
     echo "Compilation tests submitted as SLURM job ${cmpId}"
     echo "Execution   tests submitted as SLURM job ${exeId}"
 
-elif [[ "x${scheduler}" == "xLSF" ]]; then
+elif [[ "X${testsToRun}" == "XALL" && "X${site}" == "XCOMPUTE1" ]]; then
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run via LSF
+    # Compilation and execution tests on WashU Compute1 (via LSF)
     #-------------------------------------------------------------------------
 
     # Remove SLURM #SBATCH tags
@@ -248,8 +258,8 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
     sed_ie '/#SBATCH --mail-type=END/d'        "${scriptsDir}/parallelTestExecute.sh"
 
     # Replace "REQUESTED_PARTITION" with the partition name
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestCompile.sh"
-    sed_ie "${sedCmd}" "${scriptsDir}/parallelTestExecute.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestCompile.sh"
+    sed_ie "${sedPartitionCmd}" "${scriptsDir}/parallelTestExecute.sh"
 
     # Submit compilation tests script
     output=$(bsub $scriptsDir}/parallelTestCompile.sh)
@@ -268,13 +278,12 @@ elif [[ "x${scheduler}" == "xLSF" ]]; then
 else
 
     #-------------------------------------------------------------------------
-    # Parallelization tests will run interactively
+    # Exit with error
     #-------------------------------------------------------------------------
-
-    # Run compilation tests
     echo ""
-    echo "Compiliation tests are running..."
-    ${scriptsDir}/parallelTestCompile.sh &
+    echo "ERROR! Invalid choice of arguments!"
+    echo "${usage}"
+    exit 1
 
 fi
 

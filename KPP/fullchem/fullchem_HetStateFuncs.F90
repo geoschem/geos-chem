@@ -463,7 +463,11 @@ CONTAINS
     !=======================================================================
     ! Fraction of SALACL in total fine sea salt
     !=======================================================================
-    H%frac_SALACL = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
+    IF ((  C(ind_SALACL) + C(ind_NIT) + C(ind_SO4)) > 0.0_dp) THEN
+       H%frac_SALACL = C(ind_SALACL) / ( C(ind_SALACL) + C(ind_NIT) + C(ind_SO4) )
+    ELSE 
+       H%frac_SALACL = 0.0_dp
+    ENDIF
 
   END SUBROUTINE Halide_Conc
 !EOC

@@ -27,7 +27,6 @@
 ###############################################################################
 
 ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
-METDIR:                      ${RUNDIR_MET_DIR}
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
@@ -179,25 +178,25 @@ Mask fractions:              false
 #      aren't included in the Tier 1 CAPS file/
 #==============================================================================
 (((NEI2016_MONMEAN
-0 EPA16_CO__airportsCO           $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__airportsCO           $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__airportsCOus         -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__airportsCOoth        -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__nonptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__nonptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__nonptCOus            -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__nonptCOoth           -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__nonroadCO            $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__nonroadCO            $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__nonroadCOus          -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__nonroadCOoth         -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__npogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__npogCO               $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__npogCOus             -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__npogCOoth            -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__onroadCO             $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__onroadCO             $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__onroadCOus           -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__onroadCOoth          -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__onroad_caCO          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__onroad_caCO          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__onroad_caCOus        -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__onroad_caCOoth       -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__railCO               $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__railCO               $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__railCOus             -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__railCOoth            -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
 0 EPA16_CO__c1c2CO               $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
@@ -215,16 +214,16 @@ Mask fractions:              false
 0 EPA16_CO__ptnonipmCO           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__ptnonipmCOus         -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__ptnonipmCOoth        -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__onroad_canCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__onroad_canCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__onroad_canCOus       -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__onroad_canCOoth      -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__onroad_mexCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__onroad_mexCO         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__onroad_mexCOus       -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__onroad_mexCOoth      -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__otharCO              $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__otharCO              $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__otharCOus            -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__otharCOoth           -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
-0 EPA16_CO__othptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xyz  kg/m2/s    CO     26/211/252/1007        1 50
+0 EPA16_CO__othptCO              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO         2002-2020/1-12/1/0 RF xy   kg/m2/s    CO     26/211/252/1007        1 50
 0 EPA16_CO__othptCOus            -                                                                                     -          -                  -  -    -          COus   26/211/252/1007/1100   1 50
 0 EPA16_CO__othptCOoth           -                                                                                     -          -                  -  -    -          COoth  26/211/252/1007/1103   1 50
 )))NEI2016_MONMEAN
@@ -434,9 +433,11 @@ Mask fractions:              false
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS.rc
 )))CEDS_GBDMAPS
 (((CEDS_GBDMAPS_byFuelType
-(((.not.CEDS_GBDMAPS.and..not.CEDSv2
+(((.not.CEDS_GBDMAPS
+(((.not.CEDSv2
 >>>include $ROOT/CEDS/v2020-08/HEMCO_Config.CEDS_GBD-MAPS_byFuelType.rc
-))).not.CEDS_GBDMAPS.and..not.CEDSv2
+))).not.CEDSv2
+))).not.CEDS_GBDMAPS
 )))CEDS_GBDMAPS_byFuelType
 
 #==============================================================================

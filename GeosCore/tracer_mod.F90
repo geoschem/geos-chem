@@ -66,7 +66,7 @@ CONTAINS
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
     USE Time_Mod,         ONLY : Get_Ts_Chem
-    USE UnitConv_Mod,     ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 
 #if defined( MODEL_GEOS ) || defined( MODEL_GCHP )
     USE ESMF
@@ -99,8 +99,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER                :: I, J,  L
-    INTEGER                :: N, DT
+    INTEGER                :: I, J, L, N, DT
+    INTEGER                :: origUnit
     REAL(fp)               :: Local_Tally
     REAL(fp)               :: Total_Area
     REAL(fp)               :: Total_Spc
@@ -111,7 +111,6 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255)     :: ErrMsg,  ThisLoc
-    CHARACTER(LEN=63)      :: OrigUnit
 
     ! Arrays
     REAL(fp)               :: Mask(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -147,8 +146,14 @@ CONTAINS
     !=======================================================================
     ! Convert species units to v/v dry
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
+         origUnit   = origUnit,                                              &
+         RC         = RC                                                    )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -263,8 +268,8 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Set mask to zero outside of pressure levels
-             IF ( State_Met%PEDGE(I,J,L+1) < SpcInfo%Src_PresMin   .and. &
-                  State_Met%PEDGE(I,J,L)   > SpcInfo%Src_PresMax ) THEN
+             IF ( .not. ( State_Met%PMID(I,J,L) >= SpcInfo%Src_PresMin   .and. &
+                          State_Met%PMID(I,J,L) <= SpcInfo%Src_PresMax ) ) THEN
                 Mask(I,J,L) = 0.0_fp
              ENDIF
 
@@ -412,8 +417,14 @@ CONTAINS
     !=======================================================================
     ! Convert species units back to original unit
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         outUnit    = origUnit,                                              &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

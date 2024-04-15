@@ -31,7 +31,7 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
   USE State_Grid_Mod,     ONLY : GrdState
   USE State_Met_Mod,      ONLY : MetState
 #ifdef TOMAS
-  USE TOMAS_MOD,          ONLY : IBINS, ICOMP, IDIAG   !(win, 7/9/09)
+  USE TOMAS_MOD,          ONLY : ICOMP, IDIAG
 #endif
 
   IMPLICIT NONE
@@ -81,8 +81,8 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
      ! add space in diag array for TOMAS aerosol mass (win, 7/14/09)
      ! Now use State_Chm%nDryDep for # dry depositing species
      ! (ewl, 10/14/15)
-     IF ( Ind_('NK1') > 1 ) THEN
-        NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* IBINS
+     IF ( Ind_('NK01') > 1 ) THEN
+        NMAX = State_Chm%nDryDep + ( ICOMP - IDIAG )* State_Chm%nTomasBins
      ELSE
         NMAX = State_Chm%nDryDep
      ENDIF
@@ -100,35 +100,35 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
      LD59 = MIN( ND59, State_Grid%NZ )
 
      ! Number emission
-     ALLOCATE( AD59_NUMB( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_NUMB( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_NUMB' )
 
-     ALLOCATE( AD59_SULF( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_SULF( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SULF' )
 
-     ALLOCATE( AD59_SALT( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_SALT( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_SALT' )
 
-     ALLOCATE( AD59_ECIL( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_ECIL( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECIL' )
 
-     ALLOCATE( AD59_ECOB( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_ECOB( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_ECOB' )
 
-     ALLOCATE( AD59_OCIL( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_OCIL( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCIL' )
 
-     ALLOCATE( AD59_OCOB( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_OCOB( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_OCOB' )
 
-     ALLOCATE( AD59_DUST( State_Grid%NX, State_Grid%NY, 2, IBINS ), &
+     ALLOCATE( AD59_DUST( State_Grid%NX, State_Grid%NY, 2, State_Chm%nTomasBins ), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD59_DUST' )
   ENDIF
@@ -142,36 +142,36 @@ SUBROUTINE NDXX_SETUP( Input_Opt, State_Chm, State_Grid, RC )
   IF ( ND60 > 0 ) THEN
      LD60 = MIN( ND60, State_Grid%NZ )
 
-     ! Now the array dimension is IBINS*(ICOMP-IDIAG+1) because
+     ! Now the array dimension is State_Chm%nTomasBins*(ICOMP-IDIAG+1) because
      ! we need it for all prognostic mass species + 1 for number
      ! IDIAG = # of diagnostic species.  (win, 9/27/08)
      !Condensation rate
-     ALLOCATE( AD60_COND(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_COND(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COND' )
 
      !Coagulation rate
-     ALLOCATE( AD60_COAG(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_COAG(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_COAG' )
 
      !Nucleation rate
-     ALLOCATE( AD60_NUCL(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_NUCL(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_NUCL' )
 
      !Aqueous oxidation rate
-     ALLOCATE( AD60_AQOX(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_AQOX(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_AQOX' )
 
      !Accumulated error-fudging
-     ALLOCATE( AD60_ERROR(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_ERROR(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_ERROR' )
 
      !SOA Condensation rate
-     ALLOCATE( AD60_SOA(1,State_Grid%NY,LD60,IBINS*(ICOMP-IDIAG+1)), &
+     ALLOCATE( AD60_SOA(1,State_Grid%NY,LD60,State_Chm%nTomasBins*(ICOMP-IDIAG+1)), &
                STAT=AS )
      IF ( AS /= 0 ) CALL ALLOC_ERR( 'AD60_SOA' )
   ENDIF

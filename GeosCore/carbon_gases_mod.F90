@@ -32,10 +32,6 @@ MODULE Carbon_Gases_Mod
   PUBLIC :: Init_Carbon_Gases
   PUBLIC :: Cleanup_Carbon_Gases
 !
-! !PUBLIC DATA MEMBERS:
-!
-  REAL(fp), ALLOCATABLE, PUBLIC :: CH4_EMIS_J(:,:,:)      ! [kg/m2/s]
-!
 ! !REVISION HISTORY:
 !  04 Apr 2022 - M.S. Long   - Initial version, based on work by B. Bukosa
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -116,13 +112,6 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  WARNING: Soil absorption has to be the 15th field in CH4_EMIS
-!  Also: the ND58 diagnostics have now been removed.  We still need to
-!  read the HEMCO manual diagnostics into CH4_EMIS for the analytical
-!  inversion.  Therefore, we will keep EmissCh4 for the time-being
-!  but only remove the bpch diagnostic.
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -179,102 +168,6 @@ CONTAINS
 
     ! Emission timestep
     dtSrce = HcoState%TS_EMIS
-
-    !========================================================================
-    ! CH4 emissions
-    !
-    ! --> All emission calculations are now done through HEMCO
-    ! HEMCO stores emissions of all species internally in the HEMCO
-    ! state object. Here, we pass these emissions into module array
-    ! CH4_EMIS in units kg/m2/s. These values are then either added to
-    ! the species array (full mixing scheme) or used later on in
-    ! vdiff_mod.F90 if the non-local PBL mixing scheme is used.
-    !
-    ! The CH4_EMIS array is mostly used for backwards compatibility
-    ! (especially the diagnostics). It is also used to ensure that
-    ! in a multi-species simulation, species 1 (total CH4) is properly
-    ! defined.
-    !                                              (ckeller, 9/12/2013)
-    !========================================================================
-    IF ( id_CH4 > 0 ) THEN
-
-       ! Initialize
-       CH4_EMIS_J   = 0.0_fp
-       CH4scale     = 1.0_hp
-       CH4diag(1)   = 'CH4'
-       CH4diag(2)   = 'CH4_OIL'
-       CH4diag(3)   = 'CH4_GAS'
-       CH4diag(4)   = 'CH4_COAL'
-       CH4diag(5)   = 'CH4_LIVESTOCK'
-       CH4diag(6)   = 'CH4_LANDFILLS'
-       CH4diag(7)   = 'CH4_WASTEWATER'
-       CH4diag(8)   = 'CH4_RICE'
-       CH4diag(9)   = 'CH4_ANTHROTHER'
-       CH4diag(10)  = 'CH4_BIOMASS'
-       CH4diag(11)  = 'CH4_WETLAND'
-       CH4diag(12)  = 'CH4_SEEPS'
-       CH4diag(13)  = 'CH4_LAKES'
-       CH4diag(14)  = 'CH4_TERMITES'
-       CH4diag(15)  = 'CH4_SOILABSORB'    ! CH4 soilabsorb values are negative!
-       CH4diag(16)  = 'CH4_RESERVOIRS'
-       CH4scale(15) = -1.0_hp             ! Need to convert to positive
-
-       ! Loop over manual CH4 diagnostics
-       DO N = 2, N_CH4_DIAGS
-
-          ! Get a pointer to the emissions
-          CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, CH4diag(N),           &
-                                .FALSE.,   RC,         Ptr2D=Ptr2D          )
-
-          ! Trap potential errors
-          IF ( RC /= HCO_SUCCESS ) THEN
-             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. ASSOCIATED( Ptr2D ) ) THEN
-             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM(CH4diag(N))
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
-
-          ! Store emissions in CH4_EMIS_J [kg/m2/s]
-          ! CH4scale is either -1 (for soil absorption) or 1 (everything else)
-          CH4_EMIS_J(:,:,N) = Ptr2D * CH4scale(N)
-
-          ! Free pointer for next iteration
-          Ptr2D => NULL()
-       ENDDO
-
-       !---------------------------------------------------------------------
-       ! Total emission: sum of all emissions - (2*soil absorption)
-       ! We have to substract soil absorption twice because it is added
-       ! to other emissions in the SUM function. (ccc, 7/23/09)
-       !---------------------------------------------------------------------
-       CH4_EMIS_J(:,:,1) = SUM( CH4_EMIS_J, 3 )                              &
-                         - ( 2.0_fp * CH4_EMIS_J(:,:,15) )
-
-       IF ( Input_Opt%Verbose ) THEN
-          WRITE(*,*) 'CH4_EMIS (kg/m2/s):'
-          WRITE(*,*) 'Total        : ', SUM( CH4_EMIS_J(:,:,1 ) )
-          WRITE(*,*) 'Oil          : ', SUM( CH4_EMIS_J(:,:,2 ) )
-          WRITE(*,*) 'Gas          : ', SUM( CH4_EMIS_J(:,:,3 ) )
-          WRITE(*,*) 'Coal         : ', SUM( CH4_EMIS_J(:,:,4 ) )
-          WRITE(*,*) 'Livestock    : ', SUM( CH4_EMIS_J(:,:,5 ) )
-          WRITE(*,*) 'Landfills    : ', SUM( CH4_EMIS_J(:,:,6 ) )
-          WRITE(*,*) 'Wastewater   : ', SUM( CH4_EMIS_J(:,:,7 ) )
-          WRITE(*,*) 'Rice         : ', SUM( CH4_EMIS_J(:,:,8 ) )
-          WRITE(*,*) 'Other anth   : ', SUM( CH4_EMIS_J(:,:,9 ) )
-          WRITE(*,*) 'Biomass burn : ', SUM( CH4_EMIS_J(:,:,10) )
-          WRITE(*,*) 'Wetlands     : ', SUM( CH4_EMIS_J(:,:,11) )
-          WRITE(*,*) 'Seeps        : ', SUM( CH4_EMIS_J(:,:,12) )
-          WRITE(*,*) 'Lakes        : ', SUM( CH4_EMIS_J(:,:,13) )
-          WRITE(*,*) 'Termites     : ', SUM( CH4_EMIS_J(:,:,14) )
-          WRITE(*,*) 'Soil absorb  : ', SUM( CH4_EMIS_J(:,:,15) )
-          WRITE(*,*) 'Reservoirs   : ', SUM( CH4_EMIS_J(:,:,16) )
-       ENDIF
-
-    ENDIF
 
     !========================================================================
     ! CO2 production from CO oxidation
@@ -391,7 +284,6 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Chem
-    USE Timers_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -442,7 +334,7 @@ CONTAINS
     INTEGER                :: HcoID,    I
     INTEGER                :: J,        L
     INTEGER                :: NA,       N
-    INTEGER                :: IERR,     threadNum
+    INTEGER                :: IERR
     REAL(fp)               :: dtChem,   facDiurnal
     REAL(fp)               :: tsPerDay
 
@@ -474,14 +366,6 @@ CONTAINS
     !@@@ PrevCH4 stores CH4 before chemistry, for later distribution
     !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
     REAL(fp) :: PREVCH4(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-#endif
-
-
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    ! For GEOS-Chem Classic timers
-    INTEGER,     EXTERNAL  :: OMP_GET_THREAD_NUM
-#endif
 #endif
 
     !========================================================================
@@ -622,11 +506,6 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, N                                               )&
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-    !$OMP PRIVATE( threadNum                                                )&
-#endif
-#endif
     !$OMP COLLAPSE( 3                                                       )&
     !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
@@ -645,22 +524,6 @@ CONTAINS
        TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
        K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
        SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
-#ifdef MODEL_CLASSIC
-#ifndef NO_OMP
-       threadNum      = OMP_GET_THREAD_NUM() + 1   ! OpenMP thread number
-#endif
-#endif
-
-       !=====================================================================
-       ! Start KPP main timer
-       !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        !=====================================================================
        ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
@@ -684,24 +547,6 @@ CONTAINS
        ! Update reaction rates
        !===================================================================
 
-       ! Stop KPP timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
-
-       ! Start RCONST timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        ! Compute the rate constants that will be used
        CALL carbon_ComputeRateConstants(                                     &
             I                = I,                                            &
@@ -724,27 +569,9 @@ CONTAINS
        ! Update the array of rate constants for the KPP solver
        CALL Update_RCONST()
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     RCONST",                                    &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        =  RC                                              )
-       ENDIF
-
        !=====================================================================
        ! Call the KPP integrator
        !=====================================================================
-
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start(                                                  &
-               timerName = "     Integrate 1",                               &
-               inLoop    =  .TRUE.,                                          &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        ! Integrate the mechanism forward in time
        CALL Integrate(                                                       &
@@ -753,26 +580,8 @@ CONTAINS
             ICNTRL_U = ICNTRL,                                               &
             IERR_U   = IERR                                                 )
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "     Integrate 1",                               &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
-
        ! Trap potential errors
        IF ( IERR /= 1 ) failed = .TRUE.
-
-       ! Start KPP timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName = "  -> KPP",                                       &
-               inLoop    = .TRUE.,                                           &
-               threadNum = ThreadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -835,24 +644,6 @@ CONTAINS
             xnumol_CO2   = xnumol_CO2,                                       &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met                                        )
-
-       IF ( Input_Opt%useTimers ) THEN
-
-          ! Stop main KPP timer
-          CALL Timer_End(                                                    &
-               timerName  = "  -> KPP",                                      &
-               inLoop     = .TRUE.,                                          &
-               threadNum  = threadNum,                                        &
-               RC         = RC                                              )
-
-          ! Start Prod/Loss timer
-          CALL Timer_Start(                                                  &
-               timerName = "  -> Prod/loss diags",                           &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-
-       ENDIF
 
 #ifdef ACTIVATE_TAGGED_SPECIES
        !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
@@ -944,15 +735,6 @@ CONTAINS
           State_Diag%Loss(I,J,L,16) = ( COfrom_OH / STTCO / DTCHEM )
        ENDIF
 #endif
-
-       ! Stop Prod/Loss timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End(                                                    &
-               timerName =  "  -> Prod/loss diags",                          &
-               inLoop    = .TRUE.,                                           &
-               threadNum = threadNum,                                        &
-               RC        = RC                                               )
-       ENDIF
 
     ENDDO
     ENDDO
@@ -1398,27 +1180,6 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     sumOfCosSza = 0.0_fp
 
-    !========================================================================
-    ! Initialize variables for CH4 chemistry
-    !========================================================================
-    IF ( id_CH4 > 0 ) THEN
-       ALLOCATE( CH4_EMIS_J( State_Grid%NX, State_Grid%NY, N_CH4_DIAGS ),    &
-            STAT=RC )
-       CALL GC_CheckVar( 'carbon_gases_mod.F90:CH4_EMIS', 0, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       CH4_EMIS_J = 0.0_fp
-    ENDIF
-
-    !========================================================================
-    ! Initialize variables for CO2 chemistry
-    !========================================================================
-    ! none yet
-
-    !========================================================================
-    ! Initialize variables for OCS chemistry
-    !========================================================================
-    ! none yet
-
   END SUBROUTINE Init_Carbon_Gases
 !EOC
 !------------------------------------------------------------------------------
@@ -1453,13 +1214,6 @@ CONTAINS
 
     ! Initialize
     RC = GC_SUCCESS
-
-    ! Deallocate
-    IF ( ALLOCATED( CH4_EMIS_J ) ) THEN
-       DEALLOCATE( CH4_EMIS_J, STAT=RC )
-       CALL GC_CheckVar( 'carbon_gases_mod.F90:CH4_EMIS', 2, RC )
-       RETURN
-    ENDIF
 
     IF ( ALLOCATED( sumOfCosSza ) ) THEN
        DEALLOCATE( sumOfCosSza, STAT=RC )
