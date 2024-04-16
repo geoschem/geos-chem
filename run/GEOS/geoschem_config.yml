@@ -61,7 +61,7 @@ operations:
     activate: true
     input_directories:
       fastjx_input_dir: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/FAST_JX/v2023-10/
-      cloudj_input_dir: /discover/nobackup/ewlundgr/data/ExtData/CLOUD_J/v2023-05/
+      cloudj_input_dir: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/CLOUD_J/v2023-05/
     overhead_O3:
       use_online_O3_from_model: true
       use_column_O3_from_met: true

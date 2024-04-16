@@ -1,4 +1,4 @@
-###############################################################################
+b###############################################################################
 ###  HISTORY.rc file for GEOS-Chem carbon simulation                   ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -101,7 +101,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              'SpeciesConcMND_?ADV?          ',
+                              ##'SpeciesConcMND_?ADV?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -116,24 +116,30 @@ COLLECTIONS: 'Restart',
   Budget.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:                'time-averaged'
-  Budget.fields:              'BudgetEmisDryDepFull_?ADV?    ',
-                              'BudgetEmisDryDepTrop_?ADV?    ',
-                              'BudgetEmisDryDepPBL_?ADV?     ',
-                              'BudgetChemistryFull_?ADV?     ',
-                              'BudgetChemistryTrop_?ADV?     ',
-                              'BudgetChemistryPBL_?ADV?      ',
-                              'BudgetTransportFull_?ADV?     ',
-                              'BudgetTransportTrop_?ADV?     ',
-                              'BudgetTransportPBL_?ADV?      ',
-                              'BudgetMixingFull_?ADV?        ',
-                              'BudgetMixingTrop_?ADV?        ',
-                              'BudgetMixingPBL_?ADV?         ',
-                              'BudgetConvectionFull_?ADV?    ',
-                              'BudgetConvectionTrop_?ADV?    ',
-                              'BudgetConvectionPBL_?ADV?     ',
-                              'BudgetWetDepFull_?WET?        ',
-                              'BudgetWetDepTrop_?WET?        ',
-                              'BudgetWetDepPBL_?WET?         ',
+  Budget.fields:              'BudgetEmisDryDepFull_?ADV?           ',
+                              'BudgetEmisDryDepTrop_?ADV?           ',
+                              'BudgetEmisDryDepPBL_?ADV?            ',
+                              'BudgetEmisDryDepLevs1to35_?ADV?      ',
+                              'BudgetChemistryFull_?ADV?            ',
+                              'BudgetChemistryTrop_?ADV?            ',
+                              'BudgetChemistryPBL_?ADV?             ',
+                              'BudgetChemistryLevs1to35_?ADV?       ',
+                              'BudgetTransportFull_?ADV?            ',
+                              'BudgetTransportTrop_?ADV?            ',
+                              'BudgetTransportPBL_?ADV?             ',
+                              'BudgetTransportLevs1to35_?ADV?       ',
+                              'BudgetMixingFull_?ADV?               ',
+                              'BudgetMixingTrop_?ADV?               ',
+                              'BudgetMixingPBL_?ADV?                ',
+                              'BudgetMixingLevs1to35_?ADV?          ',
+                              'BudgetConvectionFull_?ADV?           ',
+                              'BudgetConvectionTrop_?ADV?           ',
+                              'BudgetConvectionPBL_?ADV?            ',
+                              'BudgetConvectionLevs1to35_?ADV?      ',
+                              'BudgetWetDepFull_?WET?               ',
+                              'BudgetWetDepTrop_?WET?               ',
+                              'BudgetWetDepPBL_?WET?                ',
+                              'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
 # %%%%% THE Carbon COLLECTION %%%%%

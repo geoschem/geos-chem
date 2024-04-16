@@ -193,6 +193,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetWetDepFull,               &
@@ -204,6 +205,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetWetDepLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetWetDepLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             isWetDep    = .TRUE.,                                            &
@@ -298,6 +302,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetWetDepFull,               &
@@ -309,6 +314,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetWetDepPBL,                &
             diagPBL     = State_Diag%BudgetWetDepPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetWetDepPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetWetDepLevs,               &
+            diagLevs    = State_Diag%BudgetWetDepLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetWetDepLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             isWetDep    = .TRUE.,                                            &

@@ -4163,85 +4163,6 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Input data for CH4 simulations only
-    !
-    ! If we have turned on CH4 options in geoschem_config.yml, then we
-    ! also need to toggle switches so that HEMCO reads the appropriate data.
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM) THEN
-
-       IF ( Input_Opt%DoAnalyticalInv ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( AnalyticalInv )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'AnalyticalInv not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'AnalyticalInv is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseEmisSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'Emis_ScaleFactor', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( Emis_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'Emis_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'Emis_ScaleFactor is set to false in HEMCO_Config.rc '// &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseOHSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'OH_ScaleFactor',           &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( OH_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'OH_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'OH_ScaleFactor is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! RRTMG input data
     !
     ! If we have turned on the RRTMG simulation in the
@@ -4794,19 +4715,7 @@ CONTAINS
         ! Add total emissions in the PBL to the EFLX array
         ! which tracks emission fluxes.  Units are [kg/m2/s].
         !------------------------------------------------------------------
-        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,1)
-
-        ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-
-           ! CH4 emissions become stored in state_chm_mod.F90.
-           ! We use CH4_EMIS here instead of the HEMCO internal emissions
-           ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation.
-           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
-
-        ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
+        IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp

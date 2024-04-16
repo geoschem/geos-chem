@@ -3904,7 +3904,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
     USE CAM_ABORTUTILS,     ONLY : endrun
-    USE SPMD_UTILS,         ONLY : mpirun, masterprocid, mpi_success, mpi_real8
+    USE SPMD_UTILS,         ONLY : mpicom, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -4057,6 +4057,7 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
+    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
@@ -4138,7 +4139,7 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom )
+    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom, ierr )
     IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 

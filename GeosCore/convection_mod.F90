@@ -137,6 +137,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetConvectionFull,           &
@@ -148,6 +149,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
+            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -359,6 +363,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetConvectionFull,           &
@@ -370,6 +375,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetConvectionPBL,            &
             diagPBL     = State_Diag%BudgetConvectionPBL,                    &
             mapDataPBL  = State_Diag%Map_BudgetConvectionPBL,                &
+            isLevs      = State_Diag%Archive_BudgetConvectionLevs,           &
+            diagLevs    = State_Diag%BudgetConvectionLevs,                   &
+            mapDataLevs = State_Diag%Map_BudgetConvectionLevs,               &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Conv,                                           &
             RC          = RC                                                )

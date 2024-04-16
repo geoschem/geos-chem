@@ -283,8 +283,8 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Set mask to zero outside of pressure levels
-             IF ( State_Met%PEDGE(I,J,L+1) < SpcInfo%Src_PresMin   .and. &
-                  State_Met%PEDGE(I,J,L)   > SpcInfo%Src_PresMax ) THEN
+             IF ( .not. ( State_Met%PMID(I,J,L) >= SpcInfo%Src_PresMin   .and. &
+                          State_Met%PMID(I,J,L) <= SpcInfo%Src_PresMax ) ) THEN
                 Mask(I,J,L) = 0.0_fp
              ENDIF
 

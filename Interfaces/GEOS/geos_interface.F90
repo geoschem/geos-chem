@@ -278,7 +278,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -326,7 +326,7 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:)     => NULL()
     REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
     LOGICAL                      :: NeedO3
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: OrigUnit
 
     __Iam__('GEOS_RATSandOxDiags')
 
@@ -461,7 +461,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -488,8 +488,8 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                      :: IndH2O, LM 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER   :: IndH2O, LM 
+    INTEGER   :: OrigUnit
 
     __Iam__('GEOS_SetH2O')
 
@@ -1218,7 +1218,7 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
