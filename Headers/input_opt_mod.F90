@@ -407,6 +407,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
      REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
      LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
+     LOGICAL                     :: GC_VMBarrier_Run2  = .FALSE. ! Flag for a parallelization barrier after Chem
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates

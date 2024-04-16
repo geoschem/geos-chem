@@ -1081,6 +1081,12 @@ CONTAINS
     CALL MAPL_TimerAdd(GC, NAME="GC_DIAGN" , __RC__)
     CALL MAPL_TimerAdd(GC, NAME="GC_RAD"   , __RC__)
 
+#if defined( MODEL_GEOS )
+    IF (Input_Opt%GC_VMBarrier_Run2) THEN
+       CALL MAPL_TimerAdd(GC, NAME="GC_VMBarrier_Run2"  , __RC__)
+    ENDIF
+#endif
+
     ! Generic Set Services
     ! --------------------
     CALL MAPL_GenericSetServices( GC, RC=status )
@@ -1427,6 +1433,16 @@ CONTAINS
     IF ( Input_Opt%AmIRoot ) THEN
        WRITE(*,*) 'Scale KPP tolerances in second integration attempt: ', &
                   Input_Opt%KppTolScale
+    ENDIF
+
+    ! Parallelization barrier for chemistry in GEOS (VMBarrier after Run2)
+    CALL ESMF_ConfigGetAttribute( GeosCF, DoIt, Default = -1,        &
+                                  Label   = "GC_VMBarrier_Run2:",    &
+                                  __RC__                              )
+    Input_Opt%GC_VMBarrier_Run2 = ( DoIt == 1 )
+    IF ( Input_Opt%AmIRoot ) THEN
+       WRITE(*,*) 'VMBarrier and timing after Run2: ',           &
+                  Input_Opt%GC_VMBarrier_Run2
     ENDIF
 #endif
 
@@ -2008,6 +2024,12 @@ CONTAINS
     CHARACTER(LEN=ESMF_MAXSTR)  :: Iam
     INTEGER                     :: PHASE
     INTEGER                     :: STATUS
+#if defined( MODEL_GEOS )
+    ! Optional VM Barrier for improved timing estimates
+    ! This can be set from RC (psturm, April 2024)
+    TYPE(ESMF_VM)                :: VM            ! ESMF VM object
+    TYPE(MAPL_MetaComp), POINTER :: STATE
+#endif
 
     !=======================================================================
     ! Run2 starts here
@@ -2030,6 +2052,21 @@ CONTAINS
 
     ! Call run routine stage 2
     CALL Run_ ( GC, IMPORT, EXPORT, CLOCK, PHASE, __RC__ )
+
+    ! Optional timer for run 2 (psturm, April 2024)
+    ! More realistic timing estimates can detect load imbalances in chemistry
+    ! Rather than attributing this to transport operations
+    ! This can be set from GEOSCHEMchem_GridComp.rc
+#if defined( MODEL_GEOS )
+    IF (Input_Opt%GC_VMBarrier_Run2) THEN
+       call MAPL_GetObjectFromGC(GC, STATE, __RC__)
+       call ESMF_VmGetCurrent(VM, RC=STATUS)
+       _VERIFY(STATUS)
+       call MAPL_TimerOn(STATE,"GC_VMBarrier_Run2")
+       call ESMF_VMBarrier(vm, RC=STATUS)
+       call MAPL_TimerOff(STATE,"GC_VMBarrier_Run2")
+    ENDIF
+#endif
 
     ! Return w/ success
     _RETURN(ESMF_SUCCESS)
