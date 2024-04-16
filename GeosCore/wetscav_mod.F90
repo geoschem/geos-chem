@@ -4462,6 +4462,10 @@ CONTAINS
        WETLOSS     = 0e+0_fp
        GAINED      = 0e+0_fp
        LOST        = 0e+0_fp
+#ifdef TOMAS
+       REEVAPSO2   = 0.0_fp
+       KMIN        = 0
+#endif
 
        ! Call WASHOUT to compute the fraction of
        ! species lost to washout in grid box (I,J,L)
@@ -4615,20 +4619,9 @@ CONTAINS
                 ! therefore converted to [kg] locally within AQOXID.
                 ! GAINED is now [kg/m2] ans so is multiplied
                 ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-
-
-                IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
-                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
-                ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
-                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
-                               * State_Grid%Area_M2(I,J)
-                ELSE
-                   IF ( errPrint ) THEN
-                      ErrorMsg = 'Unexpected species units: '             // &
-                                 TRIM( UNIT_STR( Spc(id_SO2)%Units ) )
-                      CALL GC_Error( ErrorMsg, RC, ThisLoc )
-                   ENDIF
-                   RETURN
+                REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
+                IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
+                   REEVAPSO2 = REEVAPSO2 * State_Grid%Area_M2(I,J)
                 ENDIF
 
                 ! NOTE: Species units are kg here
@@ -4977,36 +4970,26 @@ CONTAINS
              ! ***NOTE*** Species concentration units are currently in
              ! [kg/m2] which is incompatible with TOMAS. Units are
              ! therefore converted to [kg] locally within AQOXID.
-             ! WETLOSS is now [kg/m2] and so is multiplied
+             ! GAINED is now [kg/m2] ans so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
-             IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
-                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )
-             ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
-                REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
-                            * State_Grid%Area_M2(I,J)
-             ELSE
-                IF ( errPrint ) THEN
-                   ErrorMsg = 'Unexpected species units: '                   &
-                               // TRIM( UNIT_STR( Spc(id_SO2)%Units ) )
-                   CALL GC_Error( ErrorMsg, RC, ThisLoc )
-                ENDIF
-                Spc => NULL()
-                RETURN
+             REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )
+             IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
+                REEVAPSO2 = REEVAPSO2 * State_Grid%Area_M2(I,J)
              ENDIF
 
              CALL AqOxid(                                                    &
-                     I          = I,                                         &
-                     J          = J,                                         &
-                     L          = L,                                         &
-                     MOXID      = REEVAPSO2,                                 &
-                     KMIN       = KMIN,                                      &
-                     fromWetDep = .TRUE.,                                    &
-                     Input_Opt  = Input_Opt,                                 &
-                     State_Chm  = State_Chm,                                 &
-                     State_Grid = State_Grid,                                &
-                     State_Met  = State_Met,                                 &
-                     State_Diag = State_Diag,                                &
-                     RC         = RC                                        )
+                  I          = I,                                            &
+                  J          = J,                                            &
+                  L          = L,                                            &
+                  MOXID      = REEVAPSO2,                                    &
+                  KMIN       = KMIN,                                         &
+                  fromWetDep = .TRUE.,                                       &
+                  Input_Opt  = Input_Opt,                                    &
+                  State_Chm  = State_Chm,                                    &
+                  State_Grid = State_Grid,                                   &
+                  State_Met  = State_Met,                                    &
+                  State_Diag = State_Diag,                                   &
+                  RC         = RC                                           )
           ENDIF
           !end- added for TOMAS (win, 7/16/09)
 #endif
