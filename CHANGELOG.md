@@ -20,6 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+- Change restart file time cycle flag from `EFYO` to `CYS` for TOMAS simulations to avoid missing species error.
+- Now define `REEVAPSO2` in wetscav_mod when units are kg species; this avoids floating-point errors.
 
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions

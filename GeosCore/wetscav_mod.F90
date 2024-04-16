@@ -4615,8 +4615,10 @@ CONTAINS
                 ! therefore converted to [kg] locally within AQOXID.
                 ! GAINED is now [kg/m2] ans so is multiplied
                 ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
+
+
                 IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
-                   ! nothing
+                   REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp
                 ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                    REEVAPSO2 = GAINED * 96e+0_fp / 64e+0_fp &
                                * State_Grid%Area_M2(I,J)
@@ -4978,7 +4980,7 @@ CONTAINS
              ! WETLOSS is now [kg/m2] and so is multiplied
              ! by area prior to passing REEVAPSO2 to AQOXID (ewl, 9/30/15)
              IF ( Spc(id_SO2)%Units == KG_SPECIES ) THEN
-                ! Nothing
+                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )
              ELSE IF ( Spc(id_SO2)%Units == KG_SPECIES_PER_M2 ) THEN
                 REEVAPSO2 = - ( WETLOSS * 96e+0_fp / 64e+0_fp )              &
                             * State_Grid%Area_M2(I,J)
