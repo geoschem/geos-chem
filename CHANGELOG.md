@@ -10,9 +10,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
 - Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
 
-### Fixed
-- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
-
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
@@ -20,6 +17,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+- Fixed incorrect time refresh entries and other errors in `run/GCHP/ExtData.rc.templates/ExtData.rc.carbon`
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
