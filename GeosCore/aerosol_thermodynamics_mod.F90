@@ -498,7 +498,8 @@ CONTAINS
     !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
     !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
     !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
-    !$OMP SCHEDULE( DYNAMIC, 1                                             )
+    !$OMP COLLAPSE( 3                                                      ) &
+    !$OMP SCHEDULE( DYNAMIC, 8                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
