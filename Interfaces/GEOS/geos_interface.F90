@@ -1414,7 +1414,7 @@ CONTAINS
 
              ! Locally compute if over continuous land (formerly used LWI)
              SfcTypeIndex = MAXLOC( (/                            &
-                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDICE(I,J)  &
                 + State_Met%FRLAKE(I,J),                          &
                 State_Met%FRSEAICE(I,J),                          &
                 State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &

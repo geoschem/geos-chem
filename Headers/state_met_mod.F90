@@ -64,10 +64,12 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
      REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake [1]
      REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land [1]
-     REAL(fp), POINTER :: FRLANDIC      (:,:  ) ! Fraction of land ice [1]
      REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean [1]
      REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Sfc sea ice fraction
-     REAL(fp), POINTER :: FRSNO         (:,:  ) ! Sfc snow fraction
+     REAL(fp), POINTER :: FRLANDICE     (:,:  ) ! Fraction of land ice type in grid
+                                                ! box [1]
+     REAL(fp), POINTER :: FRSNOW        (:,:  ) ! Fraction of snow over land in
+                                                ! grid box [1]
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
@@ -373,10 +375,10 @@ CONTAINS
     State_Met%FRCLND         => NULL()
     State_Met%FRLAKE         => NULL()
     State_Met%FRLAND         => NULL()
-    State_Met%FRLANDIC       => NULL()
+    State_Met%FRLANDICE      => NULL()
     State_Met%FROCEAN        => NULL()
     State_Met%FRSEAICE       => NULL()
-    State_Met%FRSNO          => NULL()
+    State_Met%FRSNOW         => NULL()
     State_Met%GWETROOT       => NULL()
     State_Met%GWETTOP        => NULL()
     State_Met%HFLUX          => NULL()
@@ -801,15 +803,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FRLANDIC [1]
+    ! FRLANDICE [1]
     !------------------------------------------------------------------------
-    metId = 'FRLANDIC'
+    metId = 'FRLANDICE'
     CALL Init_and_Register(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Met  = State_Met,                                             &
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FRLANDIC,                                    &
+         Ptr2Data   = State_Met%FRLANDICE,                                   &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -855,15 +857,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FRSNO [1]
+    ! FRSNOW [1]
     !------------------------------------------------------------------------
-    metId = 'FRSNO'
+    metId = 'FRSNOW'
     CALL Init_and_Register(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Met  = State_Met,                                             &
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FRSNO,                                       &
+         Ptr2Data   = State_Met%FRSNOW,                                      &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3329,11 +3331,11 @@ CONTAINS
        State_Met%FRLAND => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%FRLANDIC ) ) THEN
-       DEALLOCATE( State_Met%FRLANDIC, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRLANDIC', 2, RC )
+    IF ( ASSOCIATED( State_Met%FRLANDICE ) ) THEN
+       DEALLOCATE( State_Met%FRLANDICE, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRLANDICE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FRLANDIC => NULL()
+       State_Met%FRLANDICE => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%FROCEAN ) ) THEN
@@ -3350,11 +3352,11 @@ CONTAINS
        State_Met%FRSEAICE => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%FRSNO ) ) THEN
-       DEALLOCATE( State_Met%FRSNO, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRSNO', 2, RC )
+    IF ( ASSOCIATED( State_Met%FRSNOW ) ) THEN
+       DEALLOCATE( State_Met%FRSNOW, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRSNOW', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FRSNO => NULL()
+       State_Met%FRSNOW => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%GWETROOT ) ) THEN
@@ -4575,8 +4577,8 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'FRLANDIC' )
-          IF ( isDesc  ) Desc  = 'Fraction of land ice'
+       CASE ( 'FRLANDICE' )
+          IF ( isDesc  ) Desc  = 'Fraction of land ice type in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
@@ -4590,8 +4592,8 @@ CONTAINS
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'FRSNO' )
-          IF ( isDesc  ) Desc  = 'Fraction of snow on surface'
+       CASE ( 'FRSNOW' )
+          IF ( isDesc  ) Desc  = 'Fraction of snow on land in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 

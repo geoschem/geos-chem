@@ -4816,8 +4816,8 @@ CONTAINS
              ! included emission from these surfaces and most field studies
              ! suggest Hg(0) emissions exceed deposition during sunlit hours.
              fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
-                                 State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+                                 State_Met%FRSNOW(I,J)   + &
+                                 State_Met%FRLANDICE(I,J), 1e+0_fp)
              zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
 
              IF ( zeroHg0Dep ) THEN

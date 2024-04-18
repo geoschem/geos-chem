@@ -35,7 +35,7 @@
   State_Met%FRLAND              = FRLAND                     ! 1
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
-  State_Met%FRLANDIC            = FRLANDIC                   ! 1
+  State_Met%FRLANDICE           = FRLANDIC                   ! 1
   State_Met%FRSEAICE            = FRSEAICE                   ! 1
   State_Met%FRSNO               = FRSNO                      ! 1
   State_Met%QV2M                = QV2M                       ! 1

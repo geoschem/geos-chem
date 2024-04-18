@@ -600,7 +600,7 @@ CONTAINS
     IS_OPEN_OCEAN = ( ( State_Met%FROCEAN(I,J) - &
                         State_Met%FRSEAICE(I,J) ) > 0e+0_fpp )
     IS_OPEN_LAND  = ( ( State_Met%FRLAND(I,J)  - &
-                        State_Met%FRSNO(I,J)    ) > 0e+0_fpp )
+                        State_Met%FRSNOW(I,J)    ) > 0e+0_fpp )
 
     IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
 
