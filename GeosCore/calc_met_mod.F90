@@ -297,8 +297,7 @@ CONTAINS
        FRSNOW = State_Met%FRSNOW(I,J)
 
        ! Land without snow or ice
-       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) -                &
-               (State_Met%FRLAND(I,J)*State_Met%FRSNO(I,J))
+       FRLAND_NOSNOW_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNOW(I,J)
 
        ! Water without sea ice
        FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)

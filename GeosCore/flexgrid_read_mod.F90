@@ -292,7 +292,18 @@ CONTAINS
     ! Read FRSNO
     v_name = "FRSNO"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-    State_Met%FRSNO = Q
+
+    ! The import FRSNO is fraction of land with snow cover. Convert to
+    ! fraction of grid box with snow cover for storage in State_Met.
+    !$OMP PARALLEL DO                                                     &
+    !$OMP DEFAULT( SHARED                                                )&
+    !$OMP PRIVATE( I, J                                                  )&
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       State_Met%FRSNOW(I,J) = Q(I,J) * State_Met%FRLAND(I,J)
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
