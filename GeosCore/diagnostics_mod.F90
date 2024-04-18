@@ -285,6 +285,24 @@ CONTAINS
        RETURN
     ENDIF
 
+    State_Diag%IsWater = 0.0_fp
+    State_Diag%IsLand  = 0.0_fp
+    State_Diag%IsIce   = 0.0_fp
+    State_Diag%IsSnow  = 0.0_fp
+    IF ( State_Diag%Archive_SfcType ) THEN
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED  ) &
+       !$OMP PRIVATE( I, J    )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF ( State_Met%IsWater(I,J) ) State_Diag%IsWater(I,J) = 1.0_fp
+          IF ( State_Met%IsLand(I,J)  ) State_Diag%IsLand(I,J)  = 1.0_fp
+          IF ( State_Met%IsIce(I,J)   ) State_Diag%IsIce(I,J)   = 1.0_fp
+          IF ( State_Met%IsSnow(I,J)  ) State_Diag%IsSnow(I,J)  = 1.0_fp
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
