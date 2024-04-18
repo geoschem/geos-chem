@@ -62,12 +62,13 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: EFLUX         (:,:  ) ! Latent heat flux [W/m2]
      REAL(fp), POINTER :: FLASH_DENS    (:,:  ) ! Lightning flash density [#/km2/s]
      REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
-     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake [1]
-     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land [1]
-     REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean [1]
-     REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Sfc sea ice fraction
+     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake type in grid box [1]
+     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land type in grid box [1]
      REAL(fp), POINTER :: FRLANDICE     (:,:  ) ! Fraction of land ice type in grid
                                                 ! box [1]
+     REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean in grid box [1]
+     REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Fraction of ocean covered by sea
+                                                ! ice [1]
      REAL(fp), POINTER :: FRSNOW        (:,:  ) ! Fraction of snow over land in
                                                 ! grid box [1]
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
@@ -4568,12 +4569,12 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAKE' )
-          IF ( isDesc  ) Desc  = 'Fraction of lake'
+          IF ( isDesc  ) Desc  = 'Fraction of lake type in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAND' )
-          IF ( isDesc  ) Desc  = 'Fraction of land'
+          IF ( isDesc  ) Desc  = 'Fraction of land type in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
@@ -4584,7 +4585,7 @@ CONTAINS
 
        CASE ( 'FROCEAN' )
           IF ( isUnits ) Units = '1'
-          IF ( isDesc  ) Desc  = 'Fraction of ocean'
+          IF ( isDesc  ) Desc  = 'Fraction of ocean type in grid box'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRSEAICE' )
