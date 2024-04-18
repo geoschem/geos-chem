@@ -285,11 +285,11 @@ CONTAINS
        RETURN
     ENDIF
 
-    State_Diag%IsWater = 0.0_fp
-    State_Diag%IsLand  = 0.0_fp
-    State_Diag%IsIce   = 0.0_fp
-    State_Diag%IsSnow  = 0.0_fp
     IF ( State_Diag%Archive_SfcType ) THEN
+       State_Diag%IsWater = 0.0_fp
+       State_Diag%IsLand  = 0.0_fp
+       State_Diag%IsIce   = 0.0_fp
+       State_Diag%IsSnow  = 0.0_fp
        !$OMP PARALLEL DO        &
        !$OMP DEFAULT( SHARED  ) &
        !$OMP PRIVATE( I, J    )

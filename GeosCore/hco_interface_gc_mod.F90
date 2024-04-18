@@ -2548,7 +2548,7 @@ CONTAINS
                      HMRC,     FIRST=FIRST )
 #else
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRLANDIC )
+                     HMRC,     FIRST,             State_Met%FRLANDICE )
 #endif
 
     ! Trap potential errors
