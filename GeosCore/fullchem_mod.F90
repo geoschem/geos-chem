@@ -1284,7 +1284,6 @@ CONTAINS
        ! Write chemical state to file for the kpp standalone interface
        ! No external logic needed, this subroutine exits early if the
        ! chemical state should not be printed (psturm, 03/23/24)
-#ifdef MODEL_GEOS
        CALL Write_Samples( I, J, L,      C_before_integrate,     &
                            local_RCONST, KPPH_before_integrate,  &
                            State_Grid,   State_Chm,  State_Met,  &
@@ -1299,7 +1298,6 @@ CONTAINS
        !                     State_Grid,   State_Chm,  State_Met,  &
        !                     Input_Opt,    ISTATUS(3), RC,         &
        !                     FORCE_WRITE = .TRUE., CELL_NAME = 'root')
-#endif
 
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
