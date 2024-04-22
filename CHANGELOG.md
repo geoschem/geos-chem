@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
+- Changed time range entries in HEMCO_Config.rc for met, restart, and BC files to use year, month, and day tokens instead of hardcoded range
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
