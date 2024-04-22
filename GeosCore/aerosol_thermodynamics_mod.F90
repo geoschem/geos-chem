@@ -136,7 +136,6 @@ CONTAINS
     USE TIME_MOD,             ONLY : GET_MONTH
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
-    USE IsorropiaII_Main_Mod, ONLY : Isorropia
     USE HETP_mod,             ONLY : mach_hetp_main_15cases
 !
 ! !INPUT PARAMETERS:
@@ -204,7 +203,6 @@ CONTAINS
     REAL(f8)                 :: OTHER(NOTHERA)
     REAL(f8)                 :: WI(NCOMPA)
     REAL(f8)                 :: WT(NCOMPA)
-    REAL(f8)                 :: CNTRL(NCTRLA)
     REAL(f8)                 :: AlkR !Alkalinity % depleted
     REAL(f8)                 :: Qk, PHCl, F_HCl, F_HNO3
     REAL(f8)                 :: Hplus !H+ in SALC,mol/m3
@@ -483,7 +481,7 @@ CONTAINS
     !$OMP PRIVATE( I,        J,         L,           N,         WI         ) &
     !$OMP PRIVATE( WT,       GAS,       TEMPI,       RHI,       VOL        ) &
     !$OMP PRIVATE( TSO4,     TNH3,      TNA,         TCL,       ANO3       ) &
-    !$OMP PRIVATE( GNO3,     TCA,       TMG,         TK,        CNTRL      ) &
+    !$OMP PRIVATE( GNO3,     TCA,       TMG,         TK                    ) &
     !$OMP PRIVATE( SCASI,    P_Pa,      TNO3,        AERLIQ,    AERSLD     ) &
     !$OMP PRIVATE( OTHER,    TNH4,      TNIT,        HPLUSTEMP, NUM_SAV    ) &
     !$OMP PRIVATE( GCL,      ACL,       AlkR,        NM,        PHCl       ) &
@@ -746,21 +744,6 @@ CONTAINS
 
           ENDIF
 
-          If (.not. Input_Opt%LHETP) Then
-              !---------------------------------
-              ! Call ISORROPIA
-              !---------------------------------
-
-              ! set type of ISORROPIA call
-              ! Forward problem, do not change this value
-              ! 0e+0_fp represents forward problem
-              CNTRL(1) = 0.0_fp
-
-              ! Metastable for now
-              ! 1e+0_fp represents metastable problem
-              CNTRL(2) = 1.0_fp
-          End If
-
           ! Insert concentrations [mole/m3] into WI & prevent underflow
           WI(1)    = MAX( TNA,  CONMIN )
           WI(2)    = MAX( TSO4, CONMIN )
@@ -777,7 +760,7 @@ CONTAINS
           !%%% If the C-preprocessor switch is activated then check if
           !%%% pressure and temperature are in the range that will result
           !%%% in a stable solution.  If not, then we will skip calling
-          !%%% ISORROPIA to avoid random noise in the output.
+          !%%% ISORROPIA/HETP to avoid random noise in the output.
           !%%%
           !%%% NOTE: Turning this feature on will result in differences
           !%%% with respect to prior GEOS-Chem versions.  So we'll give
@@ -826,40 +809,32 @@ CONTAINS
           ELSE
 
              ! %%% Perform aerosol thermodynamic equilibrium %%%
-             If (Input_Opt%LHETP) Then
-                 ! For safety
-                 GAS = 0.0d0
-                 AERLIQ = 0.0d0
-                 Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
-                                              WI(6), WI(7), WI(8), TEMPI, RHI,              & 
-                                              HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
-                                              HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
-                                              HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
-                                              HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
-                                              HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
-                                              HETP_frSO4, HETP_num                          )
-                 ! Spoof ISORROPIA outputs which are still used
-                 GAS(1) = HETP_NH3
-                 GAS(2) = HETP_HNO3
-                 GAS(3) = HETP_HCl
-                 ! Mostly used for diagnostics
-                 AERLIQ( 1) = HETP_H
-                 AERLIQ( 2) = HETP_Na
-                 AERLIQ( 3) = HETP_NH4
-                 AERLIQ( 4) = HETP_Cl
-                 AERLIQ( 5) = HETP_SO4
-                 AERLIQ( 6) = HETP_HSO4
-                 AERLIQ( 7) = HETP_NO3
-                 AERLIQ( 8) = HETP_LWC
-                 ! WT is used below but is identical to WI for a forward case
-                 WT(:) = WI(:)
-             Else
-                 ! ISORROPIA can be found in ISORROPIAIICODE.F
-                 ! inputs are WI, RHI, TEMPI, CNTRL
-                 CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL, &
-                                 WT,    GAS,  AERLIQ, AERSLD, &
-                                 SCASI, OTHER                 )
-             End If
+             ! For safety
+             GAS = 0.0d0
+             AERLIQ = 0.0d0
+             Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
+                                          WI(6), WI(7), WI(8), TEMPI, RHI,              &
+                                          HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
+                                          HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
+                                          HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
+                                          HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
+                                          HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
+                                          HETP_frSO4, HETP_num                          )
+             ! Spoof ISORROPIA outputs which are still used
+             GAS(1) = HETP_NH3
+             GAS(2) = HETP_HNO3
+             GAS(3) = HETP_HCl
+             ! Mostly used for diagnostics
+             AERLIQ( 1) = HETP_H
+             AERLIQ( 2) = HETP_Na
+             AERLIQ( 3) = HETP_NH4
+             AERLIQ( 4) = HETP_Cl
+             AERLIQ( 5) = HETP_SO4
+             AERLIQ( 6) = HETP_HSO4
+             AERLIQ( 7) = HETP_NO3
+             AERLIQ( 8) = HETP_LWC
+             ! WT is used below but is identical to WI for a forward case
+             WT(:) = WI(:)
 
              ! Consider mass transfer and acid limitation for coarse
              ! mode calculation
