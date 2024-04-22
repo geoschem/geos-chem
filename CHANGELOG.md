@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Diel and day-of-week scale factors for CEDS global base emissions
 - Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
 - Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
+- Added missing entry in HEMCO_Config.rc for natural gas postmeter CH4 emissions in GHGIv2 Express Extension
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
