@@ -1217,7 +1217,7 @@ CONTAINS
           dp    = PI /720e+0_fp
        ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
           dl    = 2.0e+0_fp * PI / 2304.0_fp
-          dp    = PI /720e+0_fp
+          dp    = PI /1440e+0_fp
        ENDIF
 
        dtdy  = tdt / (Re * dp)
@@ -1384,7 +1384,7 @@ CONTAINS
        dp    = PI /720.0_fp
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
        dl    = 2.0e+0_fp * PI / 2304.0_fp
-       dp    = PI /720.0_fp
+       dp    = PI /1440.0_fp
     ENDIF
 
     facty  = 0.5_fp * tdt / (Re * dp)
