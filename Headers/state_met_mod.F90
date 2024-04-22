@@ -4569,27 +4569,27 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAKE' )
-          IF ( isDesc  ) Desc  = 'Fraction of lake type in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of lake in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAND' )
-          IF ( isDesc  ) Desc  = 'Fraction of land type in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of land in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLANDICE' )
-          IF ( isDesc  ) Desc  = 'Fraction of land ice type in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of land ice in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FROCEAN' )
           IF ( isUnits ) Units = '1'
-          IF ( isDesc  ) Desc  = 'Fraction of ocean type in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of ocean in grid box'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRSEAICE' )
-          IF ( isDesc  ) Desc  = 'Fraction of sea ice'
+          IF ( isDesc  ) Desc  = 'Fraction of sea ice in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
