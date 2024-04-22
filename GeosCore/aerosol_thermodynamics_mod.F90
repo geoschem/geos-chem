@@ -6,11 +6,13 @@
 ! !MODULE: aerosol_thermodynamics_mod.F90
 !
 ! !DESCRIPTION: Module AEROSOL\_THERMODYNAMICS\_MOD contains the routines that provide
-!  the interface between ISORROPIA II/HETP and GEOS-Chem.
+!  the interface between HETP (formerly ISORROPIA II) and GEOS-Chem.
 !\\
 !\\
-!  The actual ISORROPIA II/HETP code which performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg)
-!  aerosol thermodynamic equilibrium is in \texttt{isorropiaIIcode.f} and \textt{hetp_mod.F90}.
+!  The actual HETP code which performs Na-SO4-NH3-NO3-Cl-(Ca-K-Mg) aerosol
+!  thermodynamic equilibrium is in \textt{hetp_mod.F90}, which is located
+!  in the HETerogeneous-vectorized-or-Parallel code repository alongside GEOS-Chem.
+!  See https://github.com/geoschem/HETerogeneous-vectorized-or-Parallel.
 !\\
 !\\
 ! !INTERFACE:
@@ -53,12 +55,6 @@ MODULE AEROSOL_THERMODYNAMICS_MOD
 !  For Ca,K,Mg = 0, ISORROPIA II performs exactly like ISORROPIAv1.7
 !  Ca, K, Mg, Na from dust is not currently considered
 !                                                                             .
-!  To implement ISORROPIA II into GEOS-Chem:
-!    * cleanup_isorropiaII needs to be called from cleanup.f
-!    * DO_ISORROPIA needs to be replaced with DO_ISORROPIAII in chemistry_mod.f
-!    * Change ISORROPIA to ISORROPIAII in sulfate_mod.f
-!    * add isorropiaII_mod.f, isorropiaIIcode.f, and irspia.inc to Makefile
-!                                                                             .
 !  ISORROPIA II implementation notes by Havala O.T. Pye:
 !  (1) The original isorropia code from T.Nenes is left as unmodified as
 !       possible. Original isorropia code can be found in isorropiaIIcode.f
@@ -69,6 +65,9 @@ MODULE AEROSOL_THERMODYNAMICS_MOD
 !  (2) As of Nov 2007, routines using non-zero Ca, K, and Mg do not always
 !       conserve mass. Ca, K, and Mg are set to zero.
 !                                                                             .
+!  HETP is an adaptation of ISORROPIA II for modern Fortran. It replaces
+!  ISORROPIA II starting in April 2024. (Miller et al.)
+!
 !  NOTE: ISORROPIA is Greek for "equilibrium", in case you were wondering.
 !
 ! !REVISION HISTORY:
@@ -84,10 +83,10 @@ MODULE AEROSOL_THERMODYNAMICS_MOD
   REAL(fp), ALLOCATABLE :: GAS_HNO3(:,:,:)
 
 !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-!%%% Add a C-preprocessor switch to skip calling ISORROPIA if the pressure
+!%%% Add a C-preprocessor switch to skip calling HETP if the pressure
 !%%% and/or temperature lie outside of the range that will produce a stable
 !%%% solution.  This will eliminate the random noise observed in the
-!%%% ISORROPIA output.
+!%%% HETP output.
 !%%%
 !%%% Leaving this feature deactivated will replicate the prior behavior in
 !%%% v11-01 and earlier GEOS-Chem versions.  This will become the default
@@ -108,9 +107,8 @@ CONTAINS
 !
 ! !IROUTINE: do_ate
 !
-! !DESCRIPTION: Subroutine DO\_ATE is the interface between the
-!  GEOS-Chem model and the aerosol thermodynamical equilibrium routines
-!  ISORROPIA II or HETP.
+! !DESCRIPTION: Subroutine DO\_ATE is the interface between the GEOS-Chem
+!  model and the aerosol thermodynamical equilibrium routines in HETP.
 !\\
 !\\
 ! !INTERFACE:
@@ -158,6 +156,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  Original isorropia v1.3 implmentation: (rjp, bec, bmy, 12/17/01, 8/22/05)
+!  HETPv1.0 replaces ISORROPIA II starting in GEOS-Chem 14.4.0
 !
 ! !REVISION HISTORY:
 !  24 Aug 2007 - H. O. T. Pye - Initial version
@@ -398,7 +397,7 @@ CONTAINS
 
           ELSE
 
-             ! ISORROPIA is only valid for full-chem or aerosol-only sims
+             ! HETP is only valid for full-chem or aerosol-only sims
              ErrMsg = 'Invalid simulation type!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -423,7 +422,7 @@ CONTAINS
 
           ELSE
 
-             ! ISORROPIA is only valid for full-chem or aerosol-only sims
+             ! HETP is only valid for full-chem or aerosol-only sims
              ErrMsg = 'Invalid simulation type!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -476,9 +475,8 @@ CONTAINS
     Spc => State_Chm%Species
 
     !========================================================================
-    ! Loop over grid boxes and call ISORROPIA (see comments in the
-    ! ISORROPIA routine ISORROPIAIICODE.f which describes
-    ! the input/output args)
+    ! Loop over grid boxes and call HETP (see comments in the
+    ! HETP routine hetp_mod.F90 which describes the input/output args)
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                  ) &
@@ -504,7 +502,7 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Only applying ISORROPIA II in troposphere
+       ! Only applying HETP in troposphere
        IF ( State_Met%InStratMeso(I,J,L) ) CYCLE
 
        ! Zero PRIVATE variables
@@ -606,7 +604,7 @@ CONTAINS
           ENDIF
 
           !--------------------------------
-          ! Compute quantities for ISORROPIA
+          ! Compute quantities for HETP
           !---------------------------------
 
           IF ( N == 1 ) THEN
@@ -682,8 +680,9 @@ CONTAINS
           !====================================================================
           ! NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg
           ! are non-zero. If you would like to consider Ca, K, Mg from seasalt
-          ! and dust, isorropiaIIcode.f ISRP4F routines must be debugged.
+          ! and dust, then ISORROPIA II ISRP4F routines must be debugged.
           ! (hotp, bmy, 2/1/10)
+          ! This still applies in HETP (ewl, 4/22/2024)
           !
           ! ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
           ! TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 /
@@ -795,14 +794,14 @@ CONTAINS
 #else
 
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-          !%%% Always call ISORROPIA, regardless of the values of pressure
+          !%%% Always call ISORROPIA/HETP, regardless of the values of pressure
           !%%% and temperature.  This will match the prior behavior of
           !%%% when comparing to v11-01 and earlier versions.
           !%%%
           !%%%  -- Seb Eastham and Bob Yantosca (1/25/17)
           !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-          ! Never skip calling ISORROPIA
+          ! Never skip calling ISORROPIA/HETP
           OutOfBounds = .FALSE.
 
 #endif
@@ -891,7 +890,7 @@ CONTAINS
           !---------------------------------
           ! Save back into tracer array
           !---------------------------------
-          ! Convert ISORROPIA output from [mole/m3] to [kg]
+          ! Convert HETP output from [mole/m3] to [kg]
           IF ( N == 1 ) THEN
              TSO4 = MAX( 96.e-3_fp   * VOL * TSO4, CONMIN )
              TNH4 = MAX( 18.e-3_fp   * VOL * TNH4, CONMIN )
@@ -1190,7 +1189,7 @@ CONTAINS
 !
       ! Gas concentration (mole m-3) before equilibrium
       REAL(fp),  INTENT(IN) :: GNO3, GCL
-      ! Gas concentration (mole m-3) after ISORROPIA equilibrium
+      ! Gas concentration (mole m-3) after HETP equilibrium
       REAL(fp),  INTENT(IN) :: GNO3eq, GCLeq
       ! Aerosol H+ concentration (mole m-3)
       REAL(fp),  INTENT(IN) :: Hplus
@@ -1291,9 +1290,10 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: init_isorropiaII
+! !IROUTINE: init_ate
 !
-! !DESCRIPTION: Subroutine INIT\_ISORROPIAII initializes all module arrays.
+! !DESCRIPTION: Subroutine INIT\_ATE initializes all module arrays for the
+!  aerosols thermodynamics module.
 !\\
 !\\
 ! !INTERFACE:
