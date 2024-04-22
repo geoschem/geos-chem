@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Diel and day-of-week scale factors for CEDS global base emissions
 - Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
 - Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
+- GitHub Action config file `.github/workflows/stale.yml`, which replaces StaleBot
 
 ### Changed
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
@@ -17,7 +18,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
-- Updated GitHub stalebot config file `stale.yml` with new issue/PR labels that should not go stale
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
 - `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
 - Removed tagged CH4 and CO species handling from `carbon_gases_mod.F90`
+- GitHub config files `.github/stale.yml` and `.github/no-response.yml`
 
 ## [14.3.1] - 2024-04-02
 ### Added
