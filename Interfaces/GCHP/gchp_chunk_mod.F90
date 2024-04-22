@@ -145,7 +145,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                        :: I, J, L, STATUS
+    INTEGER                        :: I, J, L, N, STATUS
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
     TYPE(ESMF_Config)              :: CF            ! Grid comp config object
 
@@ -511,11 +511,13 @@ CONTAINS
     ! units as the restart file values. Note that species concentrations
     ! are all still zero at this point since internal state values are not
     ! copied to State_Chm%Species%Conc until Run (post-initialization).
-# if defined( MODEL_GEOS )
-    State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
+    DO N = 1, State_Chm%nSpecies
+#if defined( MODEL_GEOS )
+       State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
 #else
-    State_Chm%Spc_Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
+       State_Chm%Species(N)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 #endif
+    ENDDO
 
     ! Initialize photolysis, including reading files for optical properties
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
@@ -721,7 +723,8 @@ CONTAINS
     TYPE(ESMF_Field)               :: IntField
     REAL*8                         :: DT
     CHARACTER(LEN=ESMF_MAXSTR)     :: Iam
-    INTEGER                        :: STATUS, HCO_PHASE, RST, origUnit
+    INTEGER                        :: STATUS, HCO_PHASE, RST
+    INTEGER                        :: previous_units
 #if defined( MODEL_GEOS )
     INTEGER                        :: I, J, L
 #endif
@@ -987,13 +990,13 @@ CONTAINS
 
     ! Convert to dry mixing ratio
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES_PER_KG_DRY_AIR,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
@@ -1676,7 +1679,7 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 

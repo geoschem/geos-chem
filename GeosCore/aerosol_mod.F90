@@ -133,6 +133,7 @@ CONTAINS
     USE State_Met_Mod,     ONLY : MetState
     USE UnitConv_Mod
     USE TIME_MOD,          ONLY : GET_MONTH
+    USE Timers_Mod,        ONLY : Timer_End, Timer_Start
 !
 ! !INPUT PARAMETERS:
 !
@@ -162,7 +163,7 @@ CONTAINS
     LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     ! Non-SAVEd variables
-    INTEGER             :: I, J, L, N, NA, ND, K
+    INTEGER             :: I, J, L, N, NA, ND, K, IBINS
     INTEGER             :: k_SO4
     INTEGER             :: k_ORG
     INTEGER             :: k_SSA
@@ -186,7 +187,7 @@ CONTAINS
     REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
-    INTEGER             :: OrigUnit
+    INTEGER             :: previous_units
 
 
     ! For spatially and seasonally varying OM/OC
@@ -213,24 +214,39 @@ CONTAINS
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
 
+#ifdef TOMAS
+    ! Number of size bins for TOMAS microphysics
+    IBINS   = State_Chm%nTomasBins
+#endif
     ! Set pointers
     REAA => State_Chm%Phot%REAA
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         mapping        = State_Chm%Map_Advect,                              &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error at start of AEROSOL_CONC!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Initialize pointers
@@ -930,19 +946,30 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointers

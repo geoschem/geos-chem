@@ -417,7 +417,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,10 +465,9 @@ CONTAINS
     Found   = .FALSE.
     ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
-    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!'    // &
-                 trim( UNIT_STR(State_Chm%Spc_Units) )
+    ! Make sure all units are in kg/kg dry
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -570,7 +569,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE Time_Mod,       ONLY : Get_LocalTime
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -622,8 +621,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_VVDry (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -830,7 +829,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -876,8 +875,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_MND (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_MND!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -944,7 +943,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1011,11 +1010,10 @@ CONTAINS
     colSum  = 0.0_f8
     spcMass = 0.0_f8
 
-    ! Exit if concentrations are not in [kg/kg dry]
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1763,16 +1761,17 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
     USE UnitConv_Mod,   ONLY : KG_SPECIES_PER_KG_DRY_AIR, UNIT_STR
+    USE UnitConv_Mod,   ONLY : Check_Units
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState),   INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
@@ -1899,11 +1898,10 @@ CONTAINS
     DAERSL      => State_Chm%AerMass%DAERSL
     WAERSL      => State_Chm%AerMass%WAERSL
 
-    ! Check that species units are kg/kg dry air
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 

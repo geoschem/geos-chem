@@ -301,6 +301,11 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 
+	# Change time cycle flag to allow missing species (GCClassic only)
+	if [[ "x${model}" == "xGCClassic" ]]; then
+	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
+	fi
+
 	# Remove extra species in extension settings for TOMAS15 simulations
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then
 	    sed_ie 's|\/SS16\/SS17\/SS18\/SS19\/SS20\/SS21\/SS22\/SS23\/SS24\/SS25\/SS26\/SS27\/SS28\/SS29\/SS30\/SS31\/SS32\/SS33\/SS34\/SS35\/SS36\/SS37\/SS38\/SS39\/SS40||' HEMCO_Config.rc

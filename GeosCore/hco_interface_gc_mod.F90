@@ -4482,6 +4482,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -4525,7 +4526,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S,       origUnit
+    INTEGER                 :: S,       previous_units
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4580,20 +4581,33 @@ CONTAINS
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -5013,12 +5027,20 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -5026,6 +5048,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     ! Cleanup
