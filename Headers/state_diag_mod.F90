@@ -14647,22 +14647,22 @@ CONTAINS
        IF ( isTagged  ) TagId = 'DRY'
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ISWATER' ) THEN
-       IF ( isDesc    ) Desc  = 'Water mask determined from meteorology input'
+       IF ( isDesc    ) Desc  = 'Water mask including lakes and oceans'
        IF ( isUnits   ) Units = '.'
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ISLAND' ) THEN
-       IF ( isDesc    ) Desc  = 'Land mask determined from meteorology input'
+       IF ( isDesc    ) Desc  = 'Land mask excluding ice and snow'
        IF ( isUnits   ) Units = '.'
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ISICE' ) THEN
-       IF ( isDesc    ) Desc  = 'Ice mask determined from meteorology input'
+       IF ( isDesc    ) Desc  = 'Ice mask including over land and ocean'
        IF ( isUnits   ) Units = '.'
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ISSNOW' ) THEN
-       IF ( isDesc    ) Desc  = 'Snow mask determined from meteorology input'
+       IF ( isDesc    ) Desc  = 'Snow mask over land only'
        IF ( isUnits   ) Units = '.'
        IF ( isRank    ) Rank  = 2
 

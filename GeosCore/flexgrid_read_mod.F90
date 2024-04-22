@@ -112,7 +112,7 @@ CONTAINS
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
-    ! Read FRLAND
+    ! Read FRLAND (land without lake or ice)
     v_name = "FRLAND"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAND = Q

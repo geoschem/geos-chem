@@ -296,7 +296,9 @@ CONTAINS
        ! Snow
        FRSNOW = State_Met%FRSNOW(I,J)
 
-       ! Land without snow or ice
+       ! Land without snow or ice. Note that import FRLAND is defined as land
+       ! without ice. Land with ice is in import FRLANDIC. To get land without
+       ! snow or ice we thus only subtract time-varying FRSNOW.
        FRLAND_NOSNOW_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNOW(I,J)
 
        ! Water without sea ice

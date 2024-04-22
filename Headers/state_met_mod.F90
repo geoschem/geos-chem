@@ -62,10 +62,10 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: EFLUX         (:,:  ) ! Latent heat flux [W/m2]
      REAL(fp), POINTER :: FLASH_DENS    (:,:  ) ! Lightning flash density [#/km2/s]
      REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
-     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake type in grid box [1]
-     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land type in grid box [1]
-     REAL(fp), POINTER :: FRLANDICE     (:,:  ) ! Fraction of land ice type in grid
-                                                ! box [1]
+     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake in grid box [1]
+     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land without lake or
+                                                ! ice in grid box [1]
+     REAL(fp), POINTER :: FRLANDICE     (:,:  ) ! Fraction of land ice in grid box [1]
      REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean in grid box [1]
      REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Fraction of ocean covered by sea
                                                 ! ice [1]
@@ -74,10 +74,14 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
-     LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
-     LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
-     LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
-     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
+     LOGICAL,  POINTER :: IsLand        (:,:  ) ! True if majority surface type is land,
+                                                ! without snow or ice
+     LOGICAL,  POINTER :: IsWater       (:,:  ) ! True if majority surface type is water,
+                                                ! including lake or ocean
+     LOGICAL,  POINTER :: IsIce         (:,:  ) ! True if majority surface type is ice,
+                                                ! including over land or ocean
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! True if majority surface type is snow,
+                                                ! over land only
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: PARDR         (:,:  ) ! Direct photsynthetically
@@ -4574,7 +4578,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAND' )
-          IF ( isDesc  ) Desc  = 'Fraction of land in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of land in grid box, excluding lake and ice'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
@@ -4594,7 +4598,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRSNOW' )
-          IF ( isDesc  ) Desc  = 'Fraction of snow on land in grid box'
+          IF ( isDesc  ) Desc  = 'Fraction of snow in grid box, excluding snow on ice'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 

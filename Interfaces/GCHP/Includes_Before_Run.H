@@ -32,7 +32,7 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRLAND              = FRLAND                     ! 1
+  State_Met%FRLAND              = FRLAND                     ! 1, excludes lake and ice
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
   State_Met%FRLANDICE           = FRLANDIC                   ! 1
