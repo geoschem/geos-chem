@@ -446,7 +446,7 @@ CONTAINS
       END IF
 
       ! Quit early if there's no writing to be done
-      IF (KPP_Standalone_YAML%Active_Cell .eq. .FALSE. .AND. FORCE_WRITE_AUX .eq. .FALSE.) THEN 
+      IF ( (.not. KPP_Standalone_YAML%Active_Cell) .AND. (.not. FORCE_WRITE_AUX) ) THEN
          RETURN
       END IF
 
