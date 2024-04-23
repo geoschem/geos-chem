@@ -16,7 +16,7 @@ active_cells:
    - PacificOcean
    - ElDjouf
 settings:
-  output_dir: "./OutputDir/"
+  output_dir: "./OutputDir/" # this directory should already exist
   levels: 
     - 1
     - 2
