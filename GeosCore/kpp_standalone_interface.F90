@@ -336,20 +336,28 @@ CONTAINS
       ! Do this in a portable way that works across compilers
       ! The directory specifier in inquire might be specific to ifort
       ! So instead try to open a test file within the output directory
+      ! Check ./OutputDir (which exists for GEOS-Chem and GCHP) as backup
       IU_FILE = findFreeLUN()
       open(IU_FILE,FILE=trim(v_str)//'/.test_directory_existence', &
            action = "WRITE",iostat=path_exists,access='SEQUENTIAL')
-      IF ( path_exists /= 0 ) THEN
-         IF ( Input_Opt%amIRoot )                                                       &
-            write(*,*) "KPP Standalone Interface warning: Specified output directory ", &
-                       trim(v_str), " does not exist, writing to default output path" 
-         KPP_Standalone_YAML%Output_Directory = "./"
+      ! If the specified folder doesn't exist, try OutputDir
+      IF ( path_exists /= 0 ) THEN 
+         open(IU_FILE,FILE='./OutputDir/.test_directory_existence', &
+              action = "WRITE",iostat=path_exists,access='SEQUENTIAL')
+         KPP_Standalone_YAML%Output_Directory = "./OutputDir"
+         IF ( Input_Opt%amIRoot )                                                        &
+             write(*,*) "KPP Standalone Interface warning: Specified output directory ", &
+                         trim(v_str), " was not found, trying default output path './OutputDir' "
+         ! If OutputDir doesn't exist, write to the current directory
+         IF ( (path_exists /= 0) ) THEN
+            IF ( Input_Opt%amIRoot )                                                       &
+               write(*,*) "KPP Standalone Interface warning: Specified output directory ", &
+                           trim(v_str), " and default output directory './OutputDir' " //  &
+                           "were not found, writing output to the current directory './'" 
+            KPP_Standalone_YAML%Output_Directory = "./"
+         ENDIF
       ELSE 
          KPP_Standalone_YAML%Output_Directory = trim(v_str)
-         ! Delete the file that tested the directory existence
-         ! Think that just because we're here means that it still exists?
-         ! Not with multiple CPUs deleting in parallel! Time to inquire
-         !INQUIRE( UNIT=IU_FILE, EXIST=file_exists ) 
          close(IU_FILE)
       END IF
        
