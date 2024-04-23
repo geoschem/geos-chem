@@ -1,4 +1,3 @@
-@@ -0,0 +1,81 @@
 active_cells:
    - LosAngeles
    - McMurdo
@@ -17,7 +16,7 @@ active_cells:
    - PacificOcean
    - ElDjouf
 settings:
-  output_dir: "./"
+  output_dir: "./OutputDir/"
   levels: 
     - 1
     - 2
