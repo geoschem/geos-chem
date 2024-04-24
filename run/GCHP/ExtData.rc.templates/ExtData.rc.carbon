@@ -148,6 +148,7 @@ GHGI_EE_GAS_EXPLORATION         molec/cm2/s N    Y - none none  emi_ch4_1B2b_Nat
 GHGI_EE_GAS_PROCESSING          molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Processing          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_GAS_PRODUCTION          molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_Production          ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_GAS_TRANSMISSION        molec/cm2/s N    Y - none none  emi_ch4_1B2b_Natural_Gas_TransmissionStorage ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
+GHGI_EE_GAS_POSTMETER           molec/cm2/s N    Y - none none  emi_ch4_Supp_1B2b_PostMeter                  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAL_UNDERGROUND        molec/cm2/s N    Y - none none  emi_ch4_1B1a_Underground_Coal                ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAL_SURFACE            molec/cm2/s N    Y - none none  emi_ch4_1B1a_Surface_Coal                    ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAL_ABANDONED          molec/cm2/s N    Y - none none  emi_ch4_1B1a_Abandoned_Coal                  ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
