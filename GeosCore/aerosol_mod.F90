@@ -939,6 +939,22 @@ CONTAINS
                                     * ( T(I,J,L)      / 298.0_fp    ) &
                                     * 1.0e+9_fp
        ENDIF
+
+       ! PM2.5 nitrate 
+       IF ( State_Diag%Archive_PM25nit ) THEN
+          State_Diag%PM25nit(I,J,L) = ( State_Chm%AerMass%NIT(I,J,L) * SIA_GROWTH  ) &
+                                    * ( 1013.25_fp / PMID(I,J,L) ) &
+                                    * ( T(I,J,L)   / 298.0_fp    ) &
+                                    * 1.0e+9_fp
+       ENDIF
+
+       ! PM2.5 ammonium 
+       IF ( State_Diag%Archive_PM25nh4 ) THEN
+          State_Diag%PM25nh4(I,J,L) = ( State_Chm%AerMass%NH4(I,J,L) * SIA_GROWTH  ) &
+                                    * ( 1013.25_fp / PMID(I,J,L) ) &
+                                    * ( T(I,J,L)   / 298.0_fp    ) &
+                                    * 1.0e+9_fp
+       ENDIF
 #endif
 
     ENDDO
