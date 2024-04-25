@@ -227,7 +227,7 @@ CONTAINS
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
     REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
     LOGICAL             :: UpdtMR
-    REAL(fp)            :: FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO
+    REAL(fp)            :: FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW
 
     ! Arrays
     LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
@@ -278,7 +278,7 @@ CONTAINS
     ! Pre-compute local solar time = UTC + Lon/15
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO )
+    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -294,24 +294,25 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-       ! Land without snow or ice
-       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) -                &
-               (State_Met%FRLAND(I,J)*State_Met%FRSNO(I,J))
+       ! Snow
+       FRSNOW = State_Met%FRSNOW(I,J)
+
+       ! Land without snow or ice. Note that import FRLAND is defined as land
+       ! without ice. Land with ice is in import FRLANDIC. To get land without
+       ! snow or ice we thus only subtract time-varying FRSNOW.
+       FRLAND_NOSNOW_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNOW(I,J)
 
        ! Water without sea ice
        FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
       
        ! Land ice and sea ice
-       FRICE = State_Met%FRLANDIC(I,J) + State_Met%FRSEAICE(I,J)
-      
-       ! Snow
-       FRSNO = State_Met%FRSNO(I,J)
-      
+       FRICE = State_Met%FRLANDICE(I,J) + State_Met%FRSEAICE(I,J)
+
        ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area
-       State_Met%IsLand(I,J)  = (FRLAND_NOSNO_NOICE > MAX(FRWATER, FRICE, FRSNO))
-       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNO_NOICE, FRICE, FRSNO))
-       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRSNO))
-       State_Met%IsSnow(I,J)  = (FRSNO > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRICE))
+       State_Met%IsLand(I,J)  = (FRLAND_NOSNOW_NOICE > MAX(FRWATER, FRICE, FRSNOW))
+       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNOW_NOICE, FRICE, FRSNOW))
+       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRSNOW))
+       State_Met%IsSnow(I,J)  = (FRSNOW > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRICE))
 
     ENDDO
     ENDDO

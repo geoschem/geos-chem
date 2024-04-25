@@ -1295,6 +1295,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: DTRad(:,:,:)
      LOGICAL                     :: Archive_DTRad
 
+     REAL(f4),           POINTER :: IsWater(:,:)
+     REAL(f4),           POINTER :: IsLand(:,:)
+     REAL(f4),           POINTER :: IsIce(:,:)
+     REAL(f4),           POINTER :: IsSnow(:,:)
+     LOGICAL                     :: Archive_sfcType
+
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
      ! NOTE: ObsPack archives point data, so don't register these
@@ -2509,6 +2515,12 @@ CONTAINS
 
     State_Diag%DTRad                               => NULL()
     State_Diag%Archive_DTRad                       = .FALSE.
+
+    State_Diag%IsWater                             => NULL()
+    State_Diag%IsLand                              => NULL()
+    State_Diag%IsIce                               => NULL()
+    State_Diag%IsSnow                              => NULL()
+    State_Diag%Archive_SfcType                     = .FALSE.
 
     State_Diag%Archive_RadOptics                   = .FALSE.
 
@@ -3940,6 +3952,84 @@ CONTAINS
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! Surface types
+    !-----------------------------------------------------------------------
+    diagID  = 'IsWater'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsWater,                                &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsLand'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsLand,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsIce'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsIce,                                  &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsSnow,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -12603,6 +12693,26 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'IsWater',                                     &
+                   Ptr2Data = State_Diag%IsWater,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsLand',                                      &
+                   Ptr2Data = State_Diag%IsLand,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsIce',                                       &
+                   Ptr2Data = State_Diag%IsIce,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsSnow',                                      &
+                   Ptr2Data = State_Diag%IsSnow,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnDryDep',                              &
                    Ptr2Data = State_Diag%SatDiagnDryDep,                     &
                    mapData  = State_Diag%Map_SatDiagnDryDep,                 &
@@ -14601,6 +14711,26 @@ CONTAINS
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISWATER' ) THEN
+       IF ( isDesc    ) Desc  = 'Water mask including lakes and oceans'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISLAND' ) THEN
+       IF ( isDesc    ) Desc  = 'Land mask excluding ice and snow'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISICE' ) THEN
+       IF ( isDesc    ) Desc  = 'Ice mask including over land and ocean'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISSNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Snow mask over land only'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'

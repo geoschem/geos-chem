@@ -113,11 +113,11 @@ CONTAINS
     DO I  = 1, State_Grid%NX
 
        ! Distinguish between ice/snow and snow-free land
-       FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNO(I,J)     + &
+       FRAC_SNOW_OR_ICE    = MIN( State_Met%FRSNOW(I,J)     + &
                                   State_Met%FRSEAICE(I,J)  + &
-                                  State_Met%FRLANDIC(I,J), 1e+0_fp)
+                                  State_Met%FRLANDICE(I,J), 1e+0_fp)
        FRAC_SNOWFREE_LAND  = MAX( State_Met%FRLAND(I,J)    - &
-                                  State_Met%FRSNO(I,J),    0e+0_fp)
+                                  State_Met%FRSNOW(I,J),    0e+0_fp)
 
        IS_LAND_OR_ICE      = (( FRAC_SNOWFREE_LAND > 0e+0_fp ) .OR. &
                               ( FRAC_SNOW_OR_ICE   > 0e+0_fp ))
@@ -485,7 +485,7 @@ CONTAINS
     DO I=1, State_Grid%NX
 
        FRAC_SNOWFREE_LAND = MAX( State_Met%FRLAND(I,J) - &
-                                 State_Met%FRSNO(I,J), 0e+0_fp )
+                                 State_Met%FRSNOW(I,J), 0e+0_fp )
        IS_SNOWFREE_LAND   = ( FRAC_SNOWFREE_LAND > 0e+0_fp )
 
        ! First, assume no soil emissions (e.g. for snow/water/ice)
