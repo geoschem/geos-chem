@@ -137,6 +137,7 @@ CONTAINS
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
     USE HETP_mod,             ONLY : mach_hetp_main_15cases
+    USE IsorropiaII_Main_Mod, ONLY : Isorropia
 !
 ! !INPUT PARAMETERS:
 !
@@ -198,7 +199,6 @@ CONTAINS
     REAL(fp)                 :: TNIT, TNO3, TSO4, VOL
     REAL(fp)                 :: HNO3_UGM3
     REAL(f8)                 :: AERLIQ(NIONSA+NGASAQA+2)
-    REAL(f8)                 :: AERSLD(NSLDSA)
     REAL(f8)                 :: GAS(NGASAQA)
     REAL(f8)                 :: OTHER(NOTHERA)
     REAL(f8)                 :: WI(NCOMPA)
@@ -482,7 +482,7 @@ CONTAINS
     !$OMP PRIVATE( WT,       GAS,       TEMPI,       RHI,       VOL        ) &
     !$OMP PRIVATE( TSO4,     TNH3,      TNA,         TCL,       ANO3       ) &
     !$OMP PRIVATE( GNO3,     TCA,       TMG,         TK                    ) &
-    !$OMP PRIVATE( SCASI,    P_Pa,      TNO3,        AERLIQ,    AERSLD     ) &
+    !$OMP PRIVATE( SCASI,    P_Pa,      TNO3,        AERLIQ                ) &
     !$OMP PRIVATE( OTHER,    TNH4,      TNIT,        HPLUSTEMP, NUM_SAV    ) &
     !$OMP PRIVATE( GCL,      ACL,       AlkR,        NM,        PHCl       ) &
     !$OMP PRIVATE( Qk,       n_air,     n_ssc,       Hplus,     Dcs        ) &
@@ -552,7 +552,6 @@ CONTAINS
           ! This will prevent values from prior iterations hanging around.
           ACl       = 0.0_fp
           AERLIQ    = 0.0_f8
-          AERSLD    = 0.0_f8
           AlkR      = 0.0_fp
           ANO3      = 0.0_fp
           F_HNO3    = 0.0_fp
@@ -796,7 +795,6 @@ CONTAINS
              ! and spoof the other outputs
              WT     = WI
              AERLIQ = 0.0_f8
-             AERSLD = 0.0_f8
              GAS    = 0.0_f8
              OTHER  = 0.0_f8
 

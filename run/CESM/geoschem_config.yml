@@ -365,6 +365,3 @@ aerosols:
   sulfate:
     activate: true
     metal_cat_SO2_oxidation: true
-
-  inorganic:
-    use_hetp: true
