@@ -157,18 +157,9 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
-     LOGICAL                     :: LFOSSIL
      LOGICAL                     :: LCHEMCO2
-     LOGICAL                     :: LBIODIURNAL
-     LOGICAL                     :: LBIONETCLIM
-     LOGICAL                     :: LOCEAN
-     LOGICAL                     :: LSHIP
-     LOGICAL                     :: LPLANE
-     LOGICAL                     :: LFFBKGRD
      LOGICAL                     :: LBIOSPHTAG
      LOGICAL                     :: LFOSSILTAG
-     LOGICAL                     :: LSHIPTAG
-     LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
      ! CHEMISTRY MENU fields
@@ -654,19 +645,9 @@ CONTAINS
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LFOSSIL                = .FALSE.
     Input_Opt%LCHEMCO2               = .FALSE.
-    Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIODIURNAL            = .FALSE.
-    Input_Opt%LBIONETCLIM            = .FALSE.
-    Input_Opt%LOCEAN                 = .FALSE.
-    Input_Opt%LSHIP                  = .FALSE.
-    Input_Opt%LPLANE                 = .FALSE.
-    Input_Opt%LFFBKGRD               = .FALSE.
     Input_Opt%LBIOSPHTAG             = .FALSE.
     Input_Opt%LFOSSILTAG             = .FALSE.
-    Input_Opt%LSHIPTAG               = .FALSE.
-    Input_Opt%LPLANETAG              = .FALSE.
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
