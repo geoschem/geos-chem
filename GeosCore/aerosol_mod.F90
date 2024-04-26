@@ -1794,7 +1794,7 @@ CONTAINS
                 WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)
                 ! For SO4-NIT-NH4-fine sea salt aerosol, re-calculate the wet
                 ! effective
-                ! radius using the water content from ISORROPIA.
+                ! radius using the water content from ISORROPIA/HETP.
                 ! This new effective radius will be used for surface area
                 ! used in heterogeneous chemistry. We don't use this
                 ! effective radius in the optics above (OD, scattering,
@@ -1834,7 +1834,7 @@ CONTAINS
                 ! Save aerosol water content. Assume that the increase in volume
                 ! equals the volume of pure water added, m3(H2O)/m3(air),
                 ! then convert to g/m3
-                ! Don't update SNA, keep ISORROPIA values
+                ! Don't update SNA, keep ISORROPIA/HETP values
                 IF (N.ne.1) THEN
                    State_Chm%AeroH2O(I,J,L,N+NDUST) = 1e+6_fp * &
                        State_Chm%AerMass%WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)

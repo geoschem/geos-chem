@@ -47,7 +47,7 @@ add_library(GeosCore
   hco_interface_gc_mod.F90
   hco_utilities_gc_mod.F90
   input_mod.F90
-  isorropiaII_mod.F90
+  aerosol_thermodynamics_mod.F90
   land_mercury_mod.F90
   linear_chem_mod.F90
   linoz_mod.F90
@@ -102,9 +102,9 @@ endif()
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
   ObsPack 
-  History 
-  Isorropia 
+  History
   KPP
+  HETP_core
   $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true

@@ -580,7 +580,7 @@ CONTAINS
           IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
        !===========================================================
-       ! ISORROPIA H+, pH, water, and bisulfate (eam, 06/2015)
+       ! ISORROPIA/HETP H+, pH, water, and bisulfate (eam, 06/2015)
        !===========================================================
        CASE( 'ISOR' )
 
@@ -2165,7 +2165,7 @@ CONTAINS
                 VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
              !---------------------------------------------------------------
-             ! ISORROPIA H+ and pH (eam, 06/2015)
+             ! ISORROPIA/HETP H+ and pH (eam, 06/2015)
              !---------------------------------------------------------------
              CASE( 5001 )
                 VARI(V) = State_Chm%IsorropHplus(I,J,L,1)

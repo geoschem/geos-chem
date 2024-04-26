@@ -188,7 +188,7 @@ MODULE State_Chm_Mod
                                                         !  reaction cofactors
 
      !-----------------------------------------------------------------------
-     ! For isoprene SOA via ISORROPIA
+     ! For isoprene SOA via ISORROPIA/HETP
      !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: IsorropAeropH  (:,:,:,:) ! ISORROPIA aero pH
      REAL(fp),          POINTER :: IsorropHplus   (:,:,:,:) ! H+ conc [M]

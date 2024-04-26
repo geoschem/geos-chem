@@ -34,6 +34,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update drydep mean diameters of aerosols to account for size distribution
 - Changed time range entries in HEMCO_Config.rc for met, restart, and BC files to use year, month, and day tokens instead of hardcoded range
 - Renamed `State_Met%FRSNO` and `State_Met%FRLANDIC` to `State_Met%FRSNOW` and `State_Met%FRLANDICE`
+- Renamed isorropiaII_mod.F90 to aerosol_thermodynamics_mod.F90
+- Changed aerosol thermodynamics scheme from ISORROPIA II to HETP for fullchem and APM
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -56,6 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed tagged CH4 and CO species handling from `carbon_gases_mod.F90`
 - GitHub config files `.github/stale.yml` and `.github/no-response.yml`
 - Unused CO2 and carbon simulation options from `geoschem_config.yml` (and from related code in co2_mod.F90).
+- Removed ISORROPIA
 
 ## [14.3.1] - 2024-04-02
 ### Added

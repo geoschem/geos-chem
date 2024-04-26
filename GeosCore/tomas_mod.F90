@@ -7181,7 +7181,7 @@ CONTAINS
 !     wr is the ratio of wet mass to dry mass of a particle.  Instead
 !     of calling a thermodynamic equilibrium code, this routine uses a
 !     simple curve fits to estimate wr based on the current humidity.
-!     The curve fit is based on ISORROPIA results for ammonium bisulfate
+!     The curve fit is based on ISORROPIA/HETP results for ammonium bisulfate
 !     at 273 K and sea salt at 273 K.
 !\\
 !\\
