@@ -137,7 +137,6 @@ CONTAINS
     USE TIME_MOD,             ONLY : ITS_A_NEW_MONTH
     USE TIME_MOD,             ONLY : GET_ELAPSED_SEC
     USE HETP_mod,             ONLY : mach_hetp_main_15cases
-    USE IsorropiaII_Main_Mod, ONLY : Isorropia
 !
 ! !INPUT PARAMETERS:
 !

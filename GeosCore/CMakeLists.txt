@@ -102,8 +102,7 @@ endif()
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
   ObsPack 
-  History 
-  Isorropia 
+  History
   KPP
   HETP_core
   $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs

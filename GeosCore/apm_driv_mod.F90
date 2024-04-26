@@ -359,7 +359,6 @@ CONTAINS
 
     use parkind,        only : im => kind_im, rb => kind_rb
 
-    USE IsorropiaII_Main_Mod, ONLY : Isorropia
     USE HETP_mod,             ONLY : mach_hetp_main_15cases
     use module_mosaic_therm, only: mosaic
 !
