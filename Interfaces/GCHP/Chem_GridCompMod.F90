@@ -564,7 +564,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia/HETP
+    ! after needed in RDAER
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AeroH2O_SNA',  &
        LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
@@ -859,7 +860,8 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia/HETP
+    ! after needed in RDAER
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AeroH2O_SNA',  &
        LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
