@@ -20,7 +20,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated volcano emissions from GMAO v202005 product to v202302 which extends to the end of 2022
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
-  
+- Renamed isorropiaII_mod.F90 to aerosol_thermodynamics_mod.F90
+- Changed aerosol thermodynamics scheme from ISORROPIA II to HETP for fullchem and APM
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -36,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
 - `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
 - Removed tagged CH4 and CO species handling from `carbon_gases_mod.F90`
+- Removed ISORROPIA
 
 ## [14.3.1] - 2024-04-02
 ### Added

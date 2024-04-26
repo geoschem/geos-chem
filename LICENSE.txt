@@ -38,26 +38,6 @@ Linked list code (used in v11-02 and later versions):
    Copyright © 2005 Arjen Markus <arjenmarkus@sourceforge.net>
    http://flibs.sourceforge.net/linked_list.html
 
-HETP
------------------------------------------------------------------------------
-   Copyright (C) 2023  Stefan Miller, Environment and Climate Change Canada
-                       Contact: Stefan.Miller (at) ec.gc.ca
-
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation, either version 3 of the License, or
-   (at your option) any later version.
-  
-   This program is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
-  
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <https://www.gnu.org/licenses/>.
-
-   See GPLv3 License text under The KineticPreProcessor (KPP).
-
 RRTM/RRTMG Copyright and Disclaimer:
 -----------------------------------------------------------------------------
 
@@ -107,14 +87,6 @@ Modular Earth Submodel System (MESSy) tools:
 
    See https://messy-interface.org/licence/conditions/
 
-
-ISORROPIA (Aerosol Therymodynamical Equilibrium module):
-------------------------------------------------------------------------------
-
-   COPYRIGHT 1996-2006, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY,
-   GEORGIA INSTITUTE OF TECHNOLOGY
-   WRITTEN BY ATHANASIOS NENES
-   UPDATED BY CHRISTOS FOUNTOUKIS
 
 QFYAML: Quick Fortran YAML
 ------------------------------------------------------------------------------
