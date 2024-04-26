@@ -540,7 +540,7 @@ CONTAINS
             write(IU_FILE,'(A,I0,A,E25.16)') "C",N,",",initC(N)
             CYCLE
          ENDIF
-         write(IU_FILE,'(A,A,E25.16)') trim(State_Chm%SpcData(N)%Info%Name),',',initC(N)
+         write(IU_FILE,'(A,A,E25.16)') trim(State_Chm%SpcData(SpcID)%Info%Name),',',initC(N)
       ENDDO
       DO N=1,NREACT
          write(IU_FILE,'(A,I0,A,E25.16)') 'R',N,',', localRCONST(N)
