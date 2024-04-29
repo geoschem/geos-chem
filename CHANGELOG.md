@@ -36,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Renamed `State_Met%FRSNO` and `State_Met%FRLANDIC` to `State_Met%FRSNOW` and `State_Met%FRLANDICE`
 - Renamed isorropiaII_mod.F90 to aerosol_thermodynamics_mod.F90
 - Changed aerosol thermodynamics scheme from ISORROPIA II to HETP for fullchem and APM
+- Changed input data paths in run/GEOS directory to match location change on NASA discover cluster
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
