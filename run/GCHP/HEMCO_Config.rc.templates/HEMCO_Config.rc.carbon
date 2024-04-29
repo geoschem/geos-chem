@@ -181,79 +181,80 @@ Mask fractions:              false
 # --- CH4: Gridded GHGI v2 (Maasakkers et al., submitted to ES&T, 2023) ---
 #
 # NOTES:
-# - This is the main Gridded GHGI v2 dataset based off the US GHGI published in 2020
+# - This is the main Gridded GHGI v2 dataset based off the US GHGI
+$   published in 2020
 # - Use Hier=100 to add to Canada and Mexico regional inventories
+# - Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR,
+#   Hier=5 to add to GFEI; mask=1009) ###
 #==============================================================================
 (((GHGI_v2
 ### Oil ###
-0 GHGI_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1008 1 100
-0 GHGI_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1008 1 100
-0 GHGI_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1008 1 100
-0 GHGI_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_OIL_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1008 1 100
+0 GHGI_COAST_OIL_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 51/1009 1 
+0 GHGI_OIL_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1008 1 100
+0 GHGI_COAST_OIL_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 52/1009 1 5
+0 GHGI_OIL_REFINING           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1008 1 100
+0 GHGI_COAST_OIL_REFINING     -                                                                    -                                            -                  -   -  -           CH4 53/1009 1 5
+0 GHGI_OIL_TRANSPORT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_COAST_OIL_TRANSPORT    -                                                                    -                                            -                  -   -  -           CH4 54/1009 1 5
 
 ### Gas ###
-0 GHGI_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
-0 GHGI_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
-0 GHGI_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_GAS_DISTRIBUTION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_DISTRIBUTION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
+0 GHGI_COAST_GAS_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 55/1009 2 5
+0 GHGI_GAS_PROCESSING         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_PROCESSING   -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
+0 GHGI_COAST_GAS_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 56/1009 2 5
+0 GHGI_GAS_TRANSMISSION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_TRANSMISSION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
 
 ### Coal ###
-0 GHGI_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
-0 GHGI_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
-0 GHGI_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_UNDERGROUND -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
+0 GHGI_COAL_SURFACE           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_SURFACE     -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
+0 GHGI_COAL_ABANDONED         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_ABANDONED   -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
 
 ### Livestock ###
-0 GHGI_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
-0 GHGI_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
+0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -              CH4 1009    4 1
+0 GHGI_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_COAST_LIVESTOCK_MAN    -                                                                    -                                            -                  -   -  -           CH4 57/1009 4 1
 
 ### Landfills ###
-0 GHGI_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
-0 GHGI_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
-0 GHGI_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_LANDFILLS_IND          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_IND    -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
+0 GHGI_LANDFILLS_MSW          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_MSW    -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
+0 GHGI_LANDFILLS_COMP         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_COMP   -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
 
 ### Wastewater ###
-0 GHGI_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
-0 GHGI_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_WASTEWATER_DOM         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_COAST_WASTEWATER_DOM   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
+0 GHGI_WASTEWATER_IND         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_COAST_WASTEWATER_IND   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_COAST_RICE             -                                                                   -                                             -                  -   -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
-0 GHGI_OTHER_MCOMB      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_SCOMB      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1008 8 100
-0 GHGI_OTHER_PIND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_FIND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_BURN       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1008 8 100
-0 GHGI_OTHER_ABOG       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI; mask=1009) ###
-0 GHGI_COAST_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1009 1 5
-0 GHGI_COAST_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1009 1 5
-0 GHGI_COAST_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1009 1 5
-0 GHGI_COAST_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1009 1 5
-0 GHGI_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1009 2 5
-0 GHGI_COAST_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1009 2 5
-0 GHGI_COAST_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    4 1
-0 GHGI_COAST_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1009 4 1
-0 GHGI_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    6 1
-0 GHGI_COAST_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    6 1
-0 GHGI_COAST_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1009 7 1
-0 GHGI_COAST_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1009 8 1
-0 GHGI_COAST_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1009 8 1
-0 GHGI_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
+0 GHGI_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_MCOMB      -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1008 8 100
+0 GHGI_COAST_OTHER_SCOMB      -                                                                    -                                            -                  -   -  -           CH4 50/1009 8 1
+0 GHGI_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_PIND       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_FIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_FIND       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_BURN             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1008 8 100
+0 GHGI_COAST_OTHER_BURN       -                                                                    -                                            -                  -   -  -           CH4 59/1009 8 1
+0 GHGI_OTHER_ABOG             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_ABOG       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
 )))GHGI_v2
 
 #=======================================================================================
@@ -264,79 +265,79 @@ Mask fractions:              false
 # - Uses annual source-specific spatial patterns from 2012-2018 from the main
 #   dataset to quickly incorporate more recent national methane emission estimates.
 # - Emissions for years after 2018 follow the 2018 spatial patterns.
+# - Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR,
+#   Hier=5 to add to GFEI; mask=1009) ###
 #=======================================================================================
 (((GHGI_v2_Express_Ext
 (((.not.GHGI_v2
 ### Oil ###
-0 GHGI_EE_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
-0 GHGI_EE_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
-0 GHGI_EE_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1008 1 100
-0 GHGI_EE_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_EE_OIL_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
+0 GHGI_EE_COAST_OIL_EXPLORATION  -                                                                                      -                                            -                  - -  -           CH4 51/1009 1 5
+0 GHGI_EE_OIL_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
+0 GHGI_EE_COAST_OIL_PRODUCTION   -                                                                                      -                                            -                  - -  -           CH4 52/1009 1 5
+0 GHGI_EE_OIL_REFINING           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1008 1 100
+0 GHGI_EE_COAST_OIL_REFINING     -                                                                                      -                                            -                  - -  -           CH4 53/1009 1 5
+0 GHGI_EE_OIL_TRANSPORT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_EE_COAST_OIL_TRANSPORT    -                                                                                      -                                            -                  - -  -           CH4 54/1009 1 5
 
 ### Gas ###
-0 GHGI_EE_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
-0 GHGI_EE_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1008 2 100
-0 GHGI_EE_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
-0 GHGI_EE_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1008 2 100
-0 GHGI_EE_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
-0 GHGI_EE_GAS_POSTMETER    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_Supp_1B2b_PostMeter                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_GAS_DISTRIBUTION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_DISTRIBUTION -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1008 2 100
+0 GHGI_EE_COAST_GAS_EXPLORATION  -                                                                                      -                                            -                  - -  -           CH4 55/1009 2 5
+0 GHGI_EE_GAS_PROCESSING         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_PROCESSING   -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1008 2 100
+0 GHGI_EE_COAST_GAS_PRODUCTION   -                                                                                      -                                            -                  - -  -           CH4 56/1009 2 5
+0 GHGI_EE_GAS_TRANSMISSION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_TRANSMISSION -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_POSTMETER          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_Supp_1B2b_PostMeter                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
 
-### Coal ###
-0 GHGI_EE_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
-0 GHGI_EE_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
-0 GHGI_EE_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+### Coal ###		         
+0 GHGI_EE_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_UNDERGROUND -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
+0 GHGI_EE_COAL_SURFACE           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_SURFACE     -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
+0 GHGI_EE_COAL_ABANDONED         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_ABANDONED   -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
 
-### Livestock ###
-0 GHGI_EE_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
-0 GHGI_EE_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
+### Livestock ###	         
+0 GHGI_EE_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
+0 GHGI_EE_COAST_LIVESTOCK_ENT    -                                                                                      -                                            -                  - -  -           CH4 1009    4 1
+0 GHGI_EE_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_EE_COAST_LIVESTOCK_MAN    -                                                                                      -                                            -                  - -  -           CH4 57/1009 4 1
 
-### Landfills ###
-0 GHGI_EE_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
-0 GHGI_EE_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
-0 GHGI_EE_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+### Landfills ###	         
+0 GHGI_EE_LANDFILLS_IND          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_IND    -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
+0 GHGI_EE_LANDFILLS_MSW          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_MSW    -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
+0 GHGI_EE_LANDFILLS_COMP         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_COMP   -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
 
 ### Wastewater ###
-0 GHGI_EE_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
-0 GHGI_EE_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_WASTEWATER_DOM         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_COAST_WASTEWATER_DOM   -                                                                                      -                                            -                  - -  -           CH4 1009    6 1
+0 GHGI_EE_WASTEWATER_IND         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_COAST_WASTEWATER_IND   -                                                                                      -                                            -                  - -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_EE_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_EE_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - - -           CH4 58/1009 7 1
 
 ### Other Anthro ###
-0 GHGI_EE_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
-0 GHGI_EE_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1008 8 100
-0 GHGI_EE_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI; mask=1009) ###
-0 GHGI_EE_COAST_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1009 1 5
-0 GHGI_EE_COAST_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1009 1 5
-0 GHGI_EE_COAST_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1009 1 5
-0 GHGI_EE_COAST_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1009 1 5
-0 GHGI_EE_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1009 2 5
-0 GHGI_EE_COAST_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1009 2 5
-0 GHGI_EE_COAST_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    4 1
-0 GHGI_EE_COAST_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1009 4 1
-0 GHGI_EE_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GHGI_EE_COAST_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GHGI_EE_COAST_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1009 7 1
-0 GHGI_EE_COAST_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1009 8 1
-0 GHGI_EE_COAST_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1009 8 1
-0 GHGI_EE_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_MCOMB      0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
+0 GHGI_EE_COAST_OTHER_SCOMB      -                                                                                      -                                            -                  - -  -           CH4 50/1009 8 1
+0 GHGI_EE_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_PIND       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_FIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_FIND       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_BURN             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1008 8 100
+0 GHGI_EE_COAST_OTHER_BURN       -                                                                                      -                                            -                  - -  -           CH4 59/1009 8 1
+0 GHGI_EE_OTHER_ABOG             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_ABOG       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
 ))).not.GHGI_v2
 )))GHGI_v2_Express_Ext
 
@@ -345,28 +346,28 @@ Mask fractions:              false
 #
 # NOTES:
 # - Use Hier=100 to add to Canada and USA regional inventories
+# - Make sure to include offshore/coastal emissions
+#   (Hier=1 to add to EDGAR, Hier=5 to add to GFEI)
 #==============================================================================
 (((Scarpelli_Mexico
 0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 100
+0 MEX_OIL_COAST         -                                                                    -        -          - -  -           CH4 1010    1 5
 0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 100
+0 MEX_GAS_COAST         -                                                                    -        -          - -  -           CH4 1010    2 5
 0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 100
+0 MEX_COAL_COAST        -                                                                    -        -          - -  -           CH4 1010    3 5
 0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 100
+0 MEX_LIVESTOCK_A_COAST -                                                                    -        -          - -  -           CH4 1010    4 1
 0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 100
+0 MEX_LIVESTOCK_B_COAST -                                                                    -        -          - -  -           CH4 10/1010 4 1
 0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 100
+0 MEX_LANDFILLS_COAST   -                                                                    -        -          - -  -           CH4 1010    5 1
 0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 100
+0 MEX_WASTEWATER_COAST  -                                                                    -        -          - -  -           CH4 1010    6 1
 0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 100
+0 MEX_RICE_COAST        -                                                                    -        -          - -  -           CH4 11/1010 7 1
 0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
-0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 5
-0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 5
-0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 5
-0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
-0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
-0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
-0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
-0 MEX_RICE_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-0 MEX_OTHER_COAST       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
+0 MEX_OTHER_COAST       -                                                                    -        -          - -  -           CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================
@@ -374,26 +375,26 @@ Mask fractions:              false
 #
 # NOTES:
 # - Use Hier=100 to add to USA and Mexico regional inventories
+# - Make sure to include offshore/coastal emissions
+#   (Hier=1 to add to EDGAR, Hier=5 to add to GFEI)
 #==============================================================================
 (((Scarpelli_Canada
-0 CAN_OIL_GAS_COMBUSTION  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_OIL_GAS_LEAKAGE     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_OIL_GAS_VENT_FLARE  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_COAL                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1002 3   100
-0 CAN_LIVESTOCK           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1002 4   100
-0 CAN_SOLID_WASTE         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1002 5   100
-0 CAN_WASTEWATER          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
-0 CAN_OTHER               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
-0 CAN_OIL_GAS_COMBUSTION_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_OIL_GAS_LEAKAGE_COAST     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_OIL_GAS_VENT_FLARE_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_COAL_COAST                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1011 3   5
-0 CAN_LIVESTOCK_COAST           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1011 4   1
-0 CAN_SOLID_WASTE_COAST         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1011 5   1
-0 CAN_WASTEWATER_COAST          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1011 6   1
-0 CAN_OTHER_COAST               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1011 8   1
+0 CAN_OIL_GAS_COMBUSTION        $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_COMBUSTION_COAST  -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_OIL_GAS_LEAKAGE           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_LEAKAGE_COAST     -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_OIL_GAS_VENT_FLARE        $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_VENT_FLARE_COAST  -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_COAL                      $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1002 3   100
+0 CAN_COAL_COAST                -                                                                        -                         -          - -  -       CH4 1011 3   5
+0 CAN_LIVESTOCK                 $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1002 4   100
+0 CAN_LIVESTOCK_COAST           -                                                                        -                         -          - -  -       CH4 1011 4   1
+0 CAN_SOLID_WASTE               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1002 5   100
+0 CAN_SOLID_WASTE_COAST         -                                                                        -                         -          - -  -       CH4 1011 5   1
+0 CAN_WASTEWATER                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
+0 CAN_WASTEWATER_COAST          -                                                                        -                         -          - -  -       CH4 1011 6   1
+0 CAN_OTHER                     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
+0 CAN_OTHER_COAST               -                                                                        -                         -          - -  -       CH4 1011 8   1
 )))Scarpelli_Canada
 
 #==============================================================================
@@ -1682,18 +1683,18 @@ ${RUNDIR_CO2_COPROD}
 (((USE_CH4_DATA
 
 (((Scarpelli_Mexico
-1001 MEX_MASK          $ROOT/MASKS/v2024-01/Mexico_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2024-01/Mexico_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1001 MEX_MASK          $ROOT/MASKS/v2024-04/Mexico_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2024-04/Mexico_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
 (((Scarpelli_Canada
-1002 CAN_MASK          $ROOT/MASKS/v2024-01/Canada_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1002 CAN_MASK          $ROOT/MASKS/v2024-04/Canada_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2024-04/Canada_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext
-1008 CONUS_MASK        $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
-1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1008 CONUS_MASK        $ROOT/MASKS/v2024-04/CONUS_Mask.001x001.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.001x001.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 )))USE_CH4_DATA
