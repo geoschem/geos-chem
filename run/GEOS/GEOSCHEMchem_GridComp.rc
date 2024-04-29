@@ -225,7 +225,7 @@ Bry_Cly_Family_Transport: 1
 # CO production from CO2 photolysis
 #
 CO_production_from_CO2_photolysis: 0
-CO2photolysisFile: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/StratChem/SC.J_20_12_79_72_200_45.jpl15.nc4
+CO2photolysisFile: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/StratChem/SC.J_20_12_79_72_200_45.jpl15.nc4
 
 #
 # CO2 coupling with GOCART
