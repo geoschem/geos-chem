@@ -327,7 +327,7 @@ $   published in 2020
 
 ### Other Anthro ###
 0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_COAST_OTHER_MCOMB      0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
 0 GHGI_EE_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
 0 GHGI_EE_COAST_OTHER_SCOMB      -                                                                                      -                                            -                  - -  -           CH4 50/1009 8 1
 0 GHGI_EE_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100

@@ -177,7 +177,7 @@ VerboseOnCores:              root       # Accepted values: root all
 
 ### Livestock ###
 0 GHGI_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
-0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -              CH4 1009    4 1
+0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -  -           CH4 1009    4 1
 0 GHGI_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
 0 GHGI_COAST_LIVESTOCK_MAN    -                                                                    -                                            -                  -   -  -           CH4 57/1009 4 1
 
@@ -196,8 +196,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 GHGI_COAST_WASTEWATER_IND   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
-0 GHGI_COAST_RICE             -                                                                   -                                             -                  -   -  -           CH4 58/1009 7 1
+0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_COAST_RICE             -                                                                    -                                            -                  -   -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
 0 GHGI_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
@@ -284,7 +284,7 @@ VerboseOnCores:              root       # Accepted values: root all
 
 ### Other Anthro ###
 0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_COAST_OTHER_MCOMB      0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1008    8 100
 0 GHGI_EE_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
 0 GHGI_EE_COAST_OTHER_SCOMB      -                                                                                      -                                            -                  - -  -           CH4 50/1009 8 1
 0 GHGI_EE_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
