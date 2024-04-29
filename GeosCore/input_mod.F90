@@ -2103,84 +2103,6 @@ CONTAINS
     thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Use Fossil Fuel emissions?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%fossil_fuel_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LFOSSIL = v_bool
-
-    !------------------------------------------------------------------------
-    ! Use Ocean Exchange?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%ocean_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LOCEAN = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on (balanced) biosphere with diurnal cycle?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%balanced_biosphere_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LBIODIURNAL = v_bool
-
-    !------------------------------------------------------------------------
-    ! Use Net Terrestrial Exchange Climatology?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%net_terrestrial_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LBIONETCLIM = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on Ship emissions?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%ship_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LSHIP = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on Aviation emissions?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%aviation_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LPLANE = v_bool
-
-    !------------------------------------------------------------------------
     ! Turn on CO2 3D chemical source and surface correction?
     !------------------------------------------------------------------------
     key    = "CO2_simulation_options%sources%3D_chemical_oxidation_source"
@@ -2192,19 +2114,6 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%LCHEMCO2 = v_bool
-
-    !------------------------------------------------------------------------
-    ! Background CO2 (no emissions or exchange) for Tagged-CO2 runs
-    !------------------------------------------------------------------------
-    key = "CO2_simulation_options%tagged_species%save_fossil_fuel_in_background"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LFFBKGRD = v_bool
 
     !------------------------------------------------------------------------
     ! Turn on biosphere and ocean exchange region tagged species?
@@ -2232,32 +2141,6 @@ CONTAINS
     ENDIF
     Input_Opt%LFOSSILTAG = v_bool
 
-    !------------------------------------------------------------------------
-    ! Turn on global ship emissions tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_global_ship_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LSHIPTAG = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on global aircraft emissions tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_global_aircraft_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LPLANETAG = v_bool
-
     !=================================================================
     ! Print to screen
     !=================================================================
@@ -2265,19 +2148,10 @@ CONTAINS
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'National Fossil Fuel Emission :', Input_Opt%LFOSSIL
-       WRITE( 6,100 ) 'Ocean CO2 Uptake/Emission     :', Input_Opt%LOCEAN
-       WRITE( 6,100 ) 'Biosphere seas/diurnal cycle  :', Input_Opt%LBIODIURNAL
-       WRITE( 6,100 ) 'Net Terr Exch - Climatology   :', Input_Opt%LBIONETCLIM
-       WRITE( 6,100 ) 'Intl/Domestic Ship emissions  :', Input_Opt%LSHIP
-       WRITE( 6,100 ) 'Intl/Domestic Aviation emiss  :', Input_Opt%LPLANE
        WRITE( 6,100 ) 'CO2 from oxidation (CO,CH4,..):', Input_Opt%LCHEMCO2
        WRITE( 6, 95 ) 'Tagged CO2 settings'
-       WRITE( 6,100 ) '  Save Fossil CO2 in Bckgrnd  :', Input_Opt%LFFBKGRD
        WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
        WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG
-       WRITE( 6,100 ) '  Tag Global Ship CO2         :', Input_Opt%LSHIPTAG
-       WRITE( 6,100 ) '  Tag Global Aviation CO2     :', Input_Opt%LPLANETAG
     ENDIF
 
     ! FORMAT statements
@@ -4081,6 +3955,11 @@ CONTAINS
                                                    Input_Opt%CH4BoundaryConditionIncreaseEast,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseWest
     ENDIF
+
+    ! Flag to denote if any AIRS, GOSAT, TCCON columns will be used
+    Input_Opt%Satellite_CH4_Columns = ( Input_Opt%AIRS_CH4_OBS          .or. &
+                                        Input_Opt%GOSAT_CH4_OBS         .or. &
+                                        Input_Opt%TCCON_CH4_OBS             )
 
     ! FORMAT statements
 90  FORMAT( /, A    )

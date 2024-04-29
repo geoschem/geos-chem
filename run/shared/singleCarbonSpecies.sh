@@ -116,18 +116,9 @@ function updateGeosChemConfig() {
     # If CO2 is in the exclude list, turn off CO2 options
     isItemInList "CO2" "${1}"
     if [[ $? == 0 ]]; then
-        keys=("fossil_fuel_emissions"          \
-              "ocean_exchange"                 \
-              "balanced_biosphere_exchange"    \
-              "net_terrestrial_exchange"       \
-              "ship_emissions"                 \
-              "aviation_emissions"             \
-              "3D_chemical_oxidation_source"   \
-              "save_fossil_fuel_in_background" \
+        keys=("3D_chemical_oxidation_source"   \
               "tag_bio_and_ocean_CO2"          \
-              "tag_land_fossil_fuel_CO2"       \
-              "tag_global_ship_CO2"            \
-              "tag_global_aircraft_CO2"       )
+              "tag_land_fossil_fuel_CO2"      )
         for key in ${keys[@]}; do
             keyValueUpdate "${key}" "true" "false" "${file}"
         done

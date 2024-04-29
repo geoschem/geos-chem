@@ -6,11 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
+- Added `SpcConc%Units` for species-specific unit conversion
 - Diel and day-of-week scale factors for CEDS global base emissions
+- `Input_Opt%Satellite_CH4_Columns` logical flag; Set this to true if any of AIRS, GOSAT, TCCON observational operators are selected
 - Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
 - Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
+- Added missing entry in `HEMCO_Config.rc` for natural gas postmeter CH4 emissions in GHGIv2 Express Extension
+- Added tagged species capability and PM25nit and PM25nh4 diagnostics for GEOS runs
+- Added `real*4` diagnostics for State_Met logical masks IsWater, IsLand, IsIce, and IsSnow
 
 ### Changed
+- Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
+- Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
+- Streamline `IF` statements for CH4 observational operators in `Interfaces/GCClassic/main.F90`
+- Disable parallel loop in `Do_Convection` when using TOMAS; it causes unit conversion issues.  Revisit later.
+- Add explicit handling of gravitational settling and hygroscopic growth in dry deposition
+- Added CO2, CO, and OCS single-tracer carbon simulations to the integration tests
+- GitHub Action config file `.github/workflows/stale.yml`, which replaces StaleBot
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
@@ -19,6 +31,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update drydep mean diameters of aerosols to account for size distribution
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
 - Fixed incorrect time refresh entries and other errors in `run/GCHP/ExtData.rc.templates/ExtData.rc.carbon`
+- Changed time range entries in HEMCO_Config.rc for met, restart, and BC files to use year, month, and day tokens instead of hardcoded range
+- Renamed `State_Met%FRSNO` and `State_Met%FRLANDIC` to `State_Met%FRSNOW` and `State_Met%FRLANDICE`
+- Renamed isorropiaII_mod.F90 to aerosol_thermodynamics_mod.F90
+- Changed aerosol thermodynamics scheme from ISORROPIA II to HETP for fullchem and APM
+- Changed input data paths in `run/GEOS` directory to match location change on NASA discover cluster
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -29,11 +46,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update `HEMCO_Config.rc.carbon` and `ExtData.rc.carbon` templates for consistency
 - Updated several emissions files for CO and CH4 for COARDS and MAPL compliance
 - Fixed several issues in GCHP single-species carbon simulation setup scripts
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+- Change restart file time cycle flag from `EFYO` to `CYS` for TOMAS simulations to avoid missing species error.
+- Now define `REEVAPSO2` in wetscav_mod when units are kg species; this avoids floating-point errors.
+- Fixed `State_Met%FRSNO` to be fraction of grid box with snow rather than fraction of land with snow
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
 - `IU_BPCH` logical file unit (in `GeosUtil/file_mod.F90`)
 - Removed tagged CH4 and CO species handling from `carbon_gases_mod.F90`
+- GitHub config files `.github/stale.yml` and `.github/no-response.yml`
+- Unused CO2 and carbon simulation options from `geoschem_config.yml` (and from related code in co2_mod.F90).
+- Removed ISORROPIA
 
 ## [14.3.1] - 2024-04-02
 ### Added
@@ -128,6 +153,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed references to unused met-fields RADLWG and LWGNT
 - Removed inclusion of c360 restart file in GCHP run directories
 - Reduced timers saved out to essential list used for benchmarking model performance
+- Removed `State_Chm%Spc_Units`; this is now superseded by `State_Chm%Species(:)%Units`
 
 ## [14.2.3] - 2023-12-01
 ### Added
@@ -149,7 +175,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Move OH perturbation scale factor to outside EMISSIONS logical bracket in HEMCO_Config.rc files for CH4 and carbon simulations
 
 ### Removed
-- Remove definition of METDIR from primary HEMCO_Config.rc files to ensure use of the definition in the HEMCO_Config.rc.*_metfields files
+- Remove definition of METDIR from primary `HEMCO_Config.rc` files to ensure use of the definition in the `HEMCO_Config.rc.*_metfields` files
+- Removed `State_Chm%Spc_Units`
 
 ## [14.2.2] - 2023-10-23
 ### Changed

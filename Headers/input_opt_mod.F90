@@ -157,18 +157,9 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
-     LOGICAL                     :: LFOSSIL
      LOGICAL                     :: LCHEMCO2
-     LOGICAL                     :: LBIODIURNAL
-     LOGICAL                     :: LBIONETCLIM
-     LOGICAL                     :: LOCEAN
-     LOGICAL                     :: LSHIP
-     LOGICAL                     :: LPLANE
-     LOGICAL                     :: LFFBKGRD
      LOGICAL                     :: LBIOSPHTAG
      LOGICAL                     :: LFOSSILTAG
-     LOGICAL                     :: LSHIPTAG
-     LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
      ! CHEMISTRY MENU fields
@@ -354,6 +345,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CH4 MENU fields
      !----------------------------------------
+     LOGICAL                     :: Satellite_CH4_Columns
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: AIRS_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
@@ -407,6 +399,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
      REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
      LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
+     LOGICAL                     :: GC_VMBarrier_Run2  = .FALSE. ! Flag for a parallelization barrier after Chem
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
@@ -652,19 +645,9 @@ CONTAINS
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LFOSSIL                = .FALSE.
     Input_Opt%LCHEMCO2               = .FALSE.
-    Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIODIURNAL            = .FALSE.
-    Input_Opt%LBIONETCLIM            = .FALSE.
-    Input_Opt%LOCEAN                 = .FALSE.
-    Input_Opt%LSHIP                  = .FALSE.
-    Input_Opt%LPLANE                 = .FALSE.
-    Input_Opt%LFFBKGRD               = .FALSE.
     Input_Opt%LBIOSPHTAG             = .FALSE.
     Input_Opt%LFOSSILTAG             = .FALSE.
-    Input_Opt%LSHIPTAG               = .FALSE.
-    Input_Opt%LPLANETAG              = .FALSE.
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
@@ -870,6 +853,7 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------
+    Input_Opt%Satellite_CH4_Columns             = .FALSE.
     Input_Opt%GOSAT_CH4_OBS                     = .FALSE.
     Input_Opt%AIRS_CH4_OBS                      = .FALSE.
     Input_Opt%TCCON_CH4_OBS                     = .FALSE.

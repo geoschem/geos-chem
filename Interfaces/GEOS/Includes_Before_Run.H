@@ -48,11 +48,11 @@
   State_Met%EFLUX      = LHFX                                ! W/m2
   State_Met%FRCLND     = FRLAND                              ! unitless
   State_Met%FRLAND     = FRLAND                              ! unitless
-  State_Met%FRLANDIC   = FRLANDICE                           ! unitless
+  State_Met%FRLANDICE  = FRLANDICE                           ! unitless
   State_Met%FROCEAN    = FROCEAN                             ! unitless
   State_Met%FRLAKE     = FRLAKE                              ! unitless
 !  State_Met%FRSEAICE  = not used 
-  State_Met%FRSNO      = ASNOW                               ! unitless
+  State_Met%FRSNOW     = ASNOW                               ! unitless
   State_Met%GWETTOP    = WET1                                ! unitless
   State_Met%GWETROOT   = WET2                                ! unitless
 !  State_Met%ITY        = ITY                                 ! unitless

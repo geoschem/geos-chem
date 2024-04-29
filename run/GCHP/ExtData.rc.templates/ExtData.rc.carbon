@@ -192,7 +192,6 @@ GHGI_EE_COAST_OTHER__FIND       molec/cm2/s N Y -                    none none  
 GHGI_EE_COAST_OTHER__BURN       molec/cm2/s N Y F%y4-%m2-01T00:00:00 none none  emi_ch4_3F_Field_Burning                     ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 GHGI_EE_COAST_OTHER__ABOG       molec/cm2/s N Y -                    none none  emi_ch4_1B2ab_Abandoned_Oil_Gas              ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
 
-
 # --- Scarpelli Mexico ---
 MEX_OIL                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc
 MEX_GAS                      kg/m2/s N Y - none none  emis_ch4  ./HcoDir/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc

@@ -1967,7 +1967,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_  $ROOT/SAMPLE_BCs/GC_14.3.0/fullchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
+* BC_  $ROOT/SAMPLE_BCs/GC_14.3.0/fullchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  $YYYY/$MM/$DD/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 (((CHEMISTRY_INPUT
