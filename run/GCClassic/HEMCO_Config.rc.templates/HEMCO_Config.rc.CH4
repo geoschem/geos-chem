@@ -156,11 +156,16 @@ VerboseOnCores:              root       # Accepted values: root all
 0 GHGI_COAST_OIL_TRANSPORT    -                                                                    -                                            -                  -   -  -           CH4 54/1009 1 5
 
 ### Gas ###
-0 GHGI_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
-0 GHGI_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
-0 GHGI_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_GAS_DISTRIBUTION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_DISTRIBUTION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
+0 GHGI_COAST_GAS_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 55/1009 2 5
+0 GHGI_GAS_PROCESSING         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_PROCESSING   -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
+0 GHGI_COAST_GAS_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 56/1009 2 5
+0 GHGI_GAS_TRANSMISSION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_TRANSMISSION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
 
 ### Coal ###
 0 GHGI_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
