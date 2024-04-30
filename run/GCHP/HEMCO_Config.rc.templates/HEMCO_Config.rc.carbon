@@ -182,7 +182,7 @@ Mask fractions:              false
 #
 # NOTES:
 # - This is the main Gridded GHGI v2 dataset based off the US GHGI
-$   published in 2020
+#   published in 2020
 # - Use Hier=100 to add to Canada and Mexico regional inventories
 # - Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR,
 #   Hier=5 to add to GFEI; mask=1009) ###
@@ -190,7 +190,7 @@ $   published in 2020
 (((GHGI_v2
 ### Oil ###
 0 GHGI_OIL_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1008 1 100
-0 GHGI_COAST_OIL_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 51/1009 1 
+0 GHGI_COAST_OIL_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 51/1009 1 5
 0 GHGI_OIL_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1008 1 100
 0 GHGI_COAST_OIL_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 52/1009 1 5
 0 GHGI_OIL_REFINING           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1008 1 100
@@ -1683,18 +1683,18 @@ ${RUNDIR_CO2_COPROD}
 (((USE_CH4_DATA
 
 (((Scarpelli_Mexico
-1001 MEX_MASK          $ROOT/MASKS/v2024-04/Mexico_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2024-04/Mexico_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1001 MEX_MASK          $ROOT/MASKS/v2024-04/Mexico_Mask.01x01.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2024-04/Mexico_Mask_Mirror.01x01.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
 (((Scarpelli_Canada
-1002 CAN_MASK          $ROOT/MASKS/v2024-04/Canada_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2024-04/Canada_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1002 CAN_MASK          $ROOT/MASKS/v2024-04/Canada_Mask.01x01.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2024-04/Canada_Mask_Mirror.01x01.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext
-1008 CONUS_MASK        $ROOT/MASKS/v2024-04/CONUS_Mask.001x001.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
-1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.001x001.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1008 CONUS_MASK        $ROOT/MASKS/v2024-04/CONUS_Mask.01x01.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.01x01.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 )))USE_CH4_DATA
