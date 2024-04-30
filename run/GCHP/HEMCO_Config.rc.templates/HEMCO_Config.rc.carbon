@@ -220,7 +220,7 @@ Mask fractions:              false
 
 ### Livestock ###
 0 GHGI_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
-0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -              CH4 1009    4 1
+0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -  -           CH4 1009    4 1
 0 GHGI_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
 0 GHGI_COAST_LIVESTOCK_MAN    -                                                                    -                                            -                  -   -  -           CH4 57/1009 4 1
 
