@@ -15,9 +15,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added tagged species capability and PM25nit and PM25nh4 diagnostics for GEOS runs
 - Added `real*4` diagnostics for State_Met logical masks IsWater, IsLand, IsIce, and IsSnow
 
-### Fixed
-- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
-
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
 - Halt timers during calls to `Convert_Spc_Units` so as to time unit conversions separately
@@ -32,11 +29,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
+- Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
+- Fixed incorrect time refresh entries and other errors in `run/GCHP/ExtData.rc.templates/ExtData.rc.carbon`
 - Changed time range entries in HEMCO_Config.rc for met, restart, and BC files to use year, month, and day tokens instead of hardcoded range
 - Renamed `State_Met%FRSNO` and `State_Met%FRLANDIC` to `State_Met%FRSNOW` and `State_Met%FRLANDICE`
 - Renamed isorropiaII_mod.F90 to aerosol_thermodynamics_mod.F90
 - Changed aerosol thermodynamics scheme from ISORROPIA II to HETP for fullchem and APM
-- Changed input data paths in run/GEOS directory to match location change on NASA discover cluster
+- Changed input data paths in `run/GEOS` directory to match location change on NASA discover cluster
+- Use new mask files at 0.1 x 0.1 degree resoluiton for CH4/tagCH4/carbon simulations to avoid I/O bottlenecks
+- Update config files for CH4/carbon simulations to avoid reading the same variable multiple times
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.

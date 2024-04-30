@@ -1119,21 +1119,19 @@ ${RUNDIR_GLOBAL_Cl}
 # Country/region masks
 #==============================================================================
 
-# Use updated files (v2024-01); these are COARDS-compliant.
 (((Scarpelli_Mexico
-1001 MEXICO_MASK     $ROOT/MASKS/v2024-01/Mexico_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR $ROOT/MASKS/v2024-01/Mexico_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+1001 MEXICO_MASK     $ROOT/MASKS/v2024-04/Mexico_Mask.01x01.nc           MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
+1010 MEX_MASK_MIRROR $ROOT/MASKS/v2024-04/Mexico_Mask_Mirror.01x01.nc    MASK     2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
-# Use updated files (v2024-01); these are COARDS-compliant.
 (((Scarpelli_Canada
-1002 CANADA_MASK     $ROOT/MASKS/v2024-01/Canada_Mask.001x001.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR $ROOT/MASKS/v2024-01/Canada_Mask_Mirror.001x001.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
+1002 CANADA_MASK     $ROOT/MASKS/v2024-04/Canada_Mask.01x01.nc           MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR $ROOT/MASKS/v2024-04/Canada_Mask_Mirror.01x01.nc    MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext
-1008 CONUS_MASK      $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
-1009 CONUS_MIRROR    $ROOT/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc     MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
+1008 CONUS_MASK      $ROOT/MASKS/v2024-04/CONUS_Mask.01x01.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
+1009 CONUS_MIRROR    $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.01x01.nc     MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 )))EMISSIONS
