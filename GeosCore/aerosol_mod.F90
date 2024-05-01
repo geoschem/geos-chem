@@ -1559,56 +1559,87 @@ CONTAINS
 #endif
           !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            ) &
           !$OMP PRIVATE( VDRY,     VH2O,    S,        g                   ) &
-          !$OMP SCHEDULE( DYNAMIC )
+          !$OMP SCHEDULE( DYNAMIC, 8                                      ) &
+          !$OMP COLLAPSE( 3                                               )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
 
-            ! Loop over relative humidity bins
-            IF (N == 1 .or. N == 3) THEN ! (hzhu, 08/2023)
-            ! For SNA or Organics
-               g = 1 
-               DO WHILE (State_Chm%AerMass%PDER(I,J,L) > REAA(1,N,g) .and. g < State_Chm%Phot%NDRg)
-                  ! REAA(1,N,g) is the upper limit of REFF
-                  g = g + 1
-               END DO
+             ! Zero private loop variables
+             g        = 0
+             IRH      = 0
+             AW0      = 0.0_fp
+             QW0      = 0.0_fp
+             SSW0     = 0.0_fp
+             ASYW0    = 0.0_fp
+             REFF     = 0.0_fp
+             SCALEA   = 0.0_fp
+             SCALEQ   = 0.0_fp
+             SCALESSA = 0.0_fp
+             SCALEASY = 0.0_fp
+             FRAC     = 0.0_fp
+             SCALER   = 0.0_fp
+             SCALEOD  = 0.0_fp
+             SCALEVOL = 0.0_fp
+             DRYAREA  = 0.0_fp
+             TAERVOL  = 0.0_fp
+             TK       = 0.0_fp
+             CONSEXP  = 0.0_fp
+             VPRESH2O = 0.0_fp
+             RELHUM   = 0.0_fp
+             RHOSTRAT = 0.0_fp
+             RAER     = 0.0_fp
+             SADSTRAT = 0.0_fp
+             XSASTRAT = 0.0_fp
+             VDRY     = 0.0_fp
+             VH2O     = 0.0_fp
+             S        = 0.0_fp
 
-               IF (g == 1) THEN
-                  DO R = 1, NRH
-                     ! Wet radius in aerosol LUT files
-                     RW(R) = REAA(R,N,g)
+             ! Loop over relative humidity bins
+             IF (N == 1 .or. N == 3) THEN ! (hzhu, 08/2023)
+                ! For SNA or Organics
+                g = 1
+                DO WHILE ( State_Chm%AerMass%PDER(I,J,L) > REAA(1,N,g) .and. &
+                           g < State_Chm%Phot%NDRg )
+                   ! REAA(1,N,g) is the upper limit of REFF
+                   g = g + 1
+                END DO
 
-                     ! Extinction efficiency for Q for each RH bin
-                     QW(R)   = QQAA(IWV,R,N,g)
-                     AW(R)   = ALPHAA(IWV,R,N,g)
-                     SSW(R)  = SSAA(IWV,R,N,g)
-                     ASYW(R) = ASYMAA(IWV,R,N,g)
-                  ENDDO
+                IF (g == 1) THEN
+                   DO R = 1, NRH
+                      ! Wet radius in aerosol LUT files
+                      RW(R) = REAA(R,N,g)
 
-               ELSE 
-               FRAC = (State_Chm%AerMass%PDER(I,J,L) - REAA(1,N,g-1))/  &
-                        (REAA(1,N,g) - REAA(1,N,g-1))
-               IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
-                  DO R = 1, NRH
-                     RW(R)  = FRAC*REAA(R,N,g) + &
-                        (1.d0-FRAC)*REAA(R,N,g-1) 
+                      ! Extinction efficiency for Q for each RH bin
+                      QW(R)   = QQAA(IWV,R,N,g)
+                      AW(R)   = ALPHAA(IWV,R,N,g)
+                      SSW(R)  = SSAA(IWV,R,N,g)
+                      ASYW(R) = ASYMAA(IWV,R,N,g)
+                   ENDDO
 
-                     QW(R)  = FRAC*QQAA(IWV,R,N,g) + &
-                        (1.d0-FRAC)*QQAA(IWV,R,N,g-1) 
+                ELSE
+                   FRAC = (State_Chm%AerMass%PDER(I,J,L) - REAA(1,N,g-1))/  &
+                          (REAA(1,N,g) - REAA(1,N,g-1))
+                   IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
+                   DO R = 1, NRH
+                      RW(R)  = FRAC*REAA(R,N,g) + (1.d0-FRAC)*REAA(R,N,g-1)
 
-                     AW(R)  = FRAC*ALPHAA(IWV,R,N,g)+ &
-                        (1.d0-FRAC)*ALPHAA(IWV,R,N,g-1) 
+                      QW(R)  = FRAC*QQAA(IWV,R,N,g) + &
+                              (1.d0-FRAC)*QQAA(IWV,R,N,g-1)
 
-                     SSW(R) = FRAC*SSAA(IWV,R,N,g) + &
-                        (1.d0-FRAC)*SSAA(IWV,R,N,g-1) 
+                      AW(R)  = FRAC*ALPHAA(IWV,R,N,g)+ &
+                               (1.d0-FRAC)*ALPHAA(IWV,R,N,g-1)
+
+                      SSW(R) = FRAC*SSAA(IWV,R,N,g) + &
+                               (1.d0-FRAC)*SSAA(IWV,R,N,g-1)
                         
-                     ASYW(R)= FRAC*ASYMAA(IWV,R,N,g)+ &
-                        (1.d0-FRAC)*ASYMAA(IWV,R,N,g-1) 
-                  END DO
-               END IF
+                      ASYW(R)= FRAC*ASYMAA(IWV,R,N,g)+ &
+                               (1.d0-FRAC)*ASYMAA(IWV,R,N,g-1)
+                   END DO
+                END IF
 
-            ELSE 
-            ! For other species  
+             ELSE
+               ! For other species
                DO R = 1, NRH
                   ! Wet radius in aerosol LUT files
                   RW(R) = REAA(R,N,State_Chm%Phot%DRg)
