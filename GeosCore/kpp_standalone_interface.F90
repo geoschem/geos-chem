@@ -377,8 +377,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Write_Samples( I, J, L, initC, localRCONST, initHvalue,      &
-                             State_Grid,   State_Chm, State_Met, Input_Opt, &
+   SUBROUTINE Write_Samples( I, J, L, initC, localRCONST, initHvalue, exitHvalue,  &
+                             State_Grid,   State_Chm, State_Met, Input_Opt,        &
                              KPP_TotSteps, RC, FORCE_WRITE, CELL_NAME )
       USE ErrCode_Mod
       USE State_Grid_Mod,           ONLY : GrdState
@@ -410,6 +410,7 @@ CONTAINS
       REAL(dp), INTENT(IN)          :: initC(NSPEC)               ! Initial concentrations
       REAL(dp), INTENT(IN)          :: localRCONST(NREACT)        ! Rate constants
       REAL(dp)                      :: initHvalue                 ! Initial timestep
+      REAL(dp)                      :: exitHvalue                 ! Final timestep, RSTATE(Nhexit)
 
 ! !OPTIONAL INPUT PARAMETER
       LOGICAL, OPTIONAL             :: FORCE_WRITE  ! Write even if not in an active cell
@@ -524,8 +525,8 @@ CONTAINS
       write(IU_FILE,'(a,e11.4)') 'Cloud fraction:                                  ', State_Met%CLDF(I,J,L)
       write(IU_FILE,'(a,e11.4)') 'Cosine of solar zenith angle:                    ', State_Met%SUNCOSmid(I,J)
       write(IU_FILE,'(a)'      ) 'KPP Integrator-specific parameters               '
-      write(IU_FILE,'(a,F11.4)') 'Initial KPP H val (seconds):                     ', initHvalue
-      write(IU_FILE,'(a,F11.4)') 'Final KPP H val (seconds):                       ', State_Chm%KPPHvalue(I,J,L)
+      write(IU_FILE,'(a,F11.4)') 'Init KPP Timestep (seconds):                     ', initHvalue
+      write(IU_FILE,'(a,F11.4)') 'Exit KPP Timestep (seconds):                     ', exitHvalue
       write(IU_FILE,'(a,F11.4)') 'Chemistry operator timestep (seconds):           ', DT
       write(IU_FILE,'(a,i6)'   ) 'Number of internal timesteps:                    ', KPP_TotSteps
       write(IU_File,'(a)'      ) 'CSV data of full chemical state, including species concentrations,    '

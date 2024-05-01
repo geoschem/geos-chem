@@ -237,6 +237,8 @@ CONTAINS
     ! (assuming Rosenbrock solver).  Define this locally in order to break
     ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
     INTEGER,     PARAMETER :: Nhnew = 3
+    ! Add Nhexit, the last timestep length -- Obin Sturm (30 April 2024)
+    INTEGER,     PARAMETER :: Nhexit = 2
 
     ! Suppress printing out KPP error messages after this many errors occur
     INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
@@ -1286,6 +1288,7 @@ CONTAINS
        ! chemical state should not be printed (psturm, 03/23/24)
        CALL Write_Samples( I, J, L,      C_before_integrate,     &
                            local_RCONST, KPPH_before_integrate,  &
+                           RSTATE(Nhexit),                       &
                            State_Grid,   State_Chm,  State_Met,  &
                            Input_Opt,    ISTATUS(3), RC )
 
@@ -1295,6 +1298,7 @@ CONTAINS
        ! IF ( Input_Opt%amIRoot .AND. L == 1 )                     &
        ! CALL Write_Samples( I, J, L,      C_before_integrate,     &
        !                     local_RCONST, KPPH_before_integrate,  &
+       !                     RSTATE(Nhexit),                       &
        !                     State_Grid,   State_Chm,  State_Met,  &
        !                     Input_Opt,    ISTATUS(3), RC,         &
        !                     FORCE_WRITE = .TRUE., CELL_NAME = 'root')
