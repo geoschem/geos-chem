@@ -3,6 +3,8 @@
 This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [14.x.x] - 2024-04-xx
+- Added a parameterization for dry aerosol size (Rg) for SNA and OM aerosols. Updated AOD calculation reflecting varying aerosol size.
 
 ## [Unreleased] - TBD
 ### Added
@@ -14,6 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added missing entry in `HEMCO_Config.rc` for natural gas postmeter CH4 emissions in GHGIv2 Express Extension
 - Added tagged species capability and PM25nit and PM25nh4 diagnostics for GEOS runs
 - Added `real*4` diagnostics for State_Met logical masks IsWater, IsLand, IsIce, and IsSnow
+- New parameterization for effective radius of SNA/OM aersols (see PR #2236)
+- New `FAST_JX/v2024-05` folder with updated `org.dat` and `so4.dat` files
 
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion

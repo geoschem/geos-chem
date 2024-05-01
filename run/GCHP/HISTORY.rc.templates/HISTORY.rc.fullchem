@@ -758,6 +758,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'Chem_KhetiSLAHOClHBr          ', 'GCHPchem',
                           'Chem_KhetiSLAHOBrHCl          ', 'GCHPchem',
                           'Chem_KhetiSLAHOBrHBr          ', 'GCHPchem',
+                          'PDER                          ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
