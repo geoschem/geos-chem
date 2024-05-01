@@ -43,7 +43,6 @@ MODULE PHOTOLYSIS_MOD
    ! Species ID flags
    INTEGER :: id_NIT, id_NITs, id_SALA, id_SALC
 
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -859,7 +858,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER            :: I, J, K, N
+    INTEGER            :: I, J, K, N, g
     INTEGER            :: IOS, NJ1
     LOGICAL            :: LBRC, FileExists
 
@@ -877,17 +876,17 @@ CONTAINS
     ! Pointers
     REAL*8, POINTER :: WVAA  (:,:)    
     REAL*8, POINTER :: RHAA  (:,:)    
-    REAL*8, POINTER :: RDAA  (:,:)    
-    REAL*8, POINTER :: RWAA  (:,:)    
+    REAL*8, POINTER :: RDAA  (:,:,:)    
+    REAL*8, POINTER :: RWAA  (:,:,:)    
     REAL*8, POINTER :: SGAA  (:,:)    
-    REAL*8, POINTER :: REAA  (:,:)    
+    REAL*8, POINTER :: REAA  (:,:,:)    
     REAL*8, POINTER :: NCMAA (:,:,:)  
     REAL*8, POINTER :: NRLAA (:,:,:)  
-    REAL*8, POINTER :: QQAA  (:,:,:)  
-    REAL*8, POINTER :: ALPHAA(:,:,:)  
-    REAL*8, POINTER :: SSAA  (:,:,:)  
-    REAL*8, POINTER :: ASYMAA(:,:,:)  
-    REAL*8, POINTER :: PHAA  (:,:,:,:)
+    REAL*8, POINTER :: QQAA  (:,:,:,:)  
+    REAL*8, POINTER :: ALPHAA(:,:,:,:)  
+    REAL*8, POINTER :: SSAA  (:,:,:,:)  
+    REAL*8, POINTER :: ASYMAA(:,:,:,:)  
+    REAL*8, POINTER :: PHAA  (:,:,:,:,:)
 
     !================================================================
     ! RD_AOD begins here!
@@ -997,19 +996,43 @@ CONTAINS
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
 
+       IF (k == 1 .OR. k == 3) THEN
+       ! for SO4 and ORGANICS, dry aerosol size varies, therefore all 
+       ! opt properties vary. 
+       DO g = 1, State_Chm%Phot%NDRg
        DO i = 1, State_Chm%Phot%NRAA
        DO j = 1, State_Chm%Phot%NWVAA
 
           READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
-                      RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),   &
-                      ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),         &
-                      ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
 
           ! make note of where 1000nm is for FAST-J calcs
           IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
 
        ENDDO
        ENDDO
+       ENDDO
+
+       ELSE
+       ! For other species, keep g = default Rg (DRg) 
+       g = State_Chm%Phot%DRg
+       DO i = 1, State_Chm%Phot%NRAA
+       DO j = 1, State_Chm%Phot%NWVAA
+
+          READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
+
+          ! make note of where 1000nm is for FAST-J calcs
+          IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
+
+       ENDDO
+       ENDDO
+
+       ENDIF
 
        ! Close file
        CLOSE( NJ1 )

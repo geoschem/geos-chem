@@ -149,9 +149,9 @@ CONTAINS
     real(fp) :: AMF2(2*JXL1_+1,2*JXL1_+1)
 
     ! Pointers
-    REAL*8, POINTER :: QQAA(:,:,:)
-    REAL*8, POINTER :: SSAA(:,:,:)
-    REAL*8, POINTER :: PHAA(:,:,:,:)
+    REAL*8, POINTER :: QQAA(:,:,:,:)
+    REAL*8, POINTER :: SSAA(:,:,:,:)
+    REAL*8, POINTER :: PHAA(:,:,:,:,:)
 
     ! ---------key SCATTERING arrays for clouds+aerosols------------------
     real(fp) :: OD(5,JXL1_),SSA(5,JXL1_),SLEG(8,5,JXL1_)
@@ -272,13 +272,13 @@ CONTAINS
                 IF (AOD999) THEN
                    ! Aerosol/dust (999 nm scaling)
                    ! Fixed to dry radius
-                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(10,1,IDXAER)
+                   QSCALING = QQAA(KMIE2,1,IDXAER,State_Chm%Phot%DRg)/QQAA(10,1,IDXAER,State_Chm%Phot%DRg)
                 ELSE
                    ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QQAA(KMIE2,1,IDXAER)/QQAA(5,1,IDXAER)
+                   QSCALING = QQAA(KMIE2,1,IDXAER,State_Chm%Phot%DRg)/QQAA(5,1,IDXAER,State_Chm%Phot%DRg)
                 ENDIF
                 LOCALOD    = QSCALING*AERX_COL(M,L)
-                LOCALSSA   = SSAA(KMIE2,1,IDXAER)*LOCALOD
+                LOCALSSA   = SSAA(KMIE2,1,IDXAER,State_Chm%Phot%DRg)*LOCALOD
                 OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                 SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                 DO I=1,8
@@ -295,20 +295,20 @@ CONTAINS
                 IDXAER=State_Chm%Phot%NSPAA !dust is last in LUT
                 IR=M-3
                 IF (AOD999) THEN
-                   QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
-                              QQAA(10,IR,IDXAER) !1000nm in new .dat
+                   QSCALING = QQAA(KMIE2,IR,IDXAER,State_Chm%Phot%DRg)/ &
+                              QQAA(10,IR,IDXAER,State_Chm%Phot%DRg) !1000nm in new .dat
                 ELSE
                    ! Aerosol/dust (550 nm scaling)
-                   QSCALING = QQAA(KMIE2,IR,IDXAER)/ &
-                              QQAA(5,IR,IDXAER)  !550nm in new .dat
+                   QSCALING = QQAA(KMIE2,IR,IDXAER,State_Chm%Phot%DRg)/ &
+                              QQAA(5,IR,IDXAER,State_Chm%Phot%DRg)  !550nm in new .dat
                 ENDIF
                 LOCALOD = QSCALING*AERX_COL(M,L)
-                LOCALSSA = SSAA(KMIE2,IR,IDXAER)*LOCALOD
+                LOCALSSA = SSAA(KMIE2,IR,IDXAER,State_Chm%Phot%DRg)*LOCALOD
                 OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                 SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                 DO I=1,8
                    SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                    (PHAA(KMIE2,IR,IDXAER,I)*LOCALSSA)
+                                    (PHAA(KMIE2,IR,IDXAER,I,State_Chm%Phot%DRg)*LOCALSSA)
                 ENDDO ! I (Phase function)
              ENDIF
           ENDDO ! M (Aerosol)
@@ -320,20 +320,20 @@ CONTAINS
                 IDXAER=10+(M-1)*NRH+IR
                 IF (AERX_COL(IDXAER,L).gt.0d0) THEN
                    IF (AOD999) THEN
-                      QSCALING = QQAA(KMIE2,IR,M)/ &
-                                 QQAA(10,IR,M) !1000nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M,State_Chm%Phot%DRg)/ &
+                                 QQAA(10,IR,M,State_Chm%Phot%DRg) !1000nm in new .dat
                    ELSE
                       ! Aerosol/dust (550 nm scaling)
-                      QSCALING = QQAA(KMIE2,IR,M)/ &
-                                 QQAA(5,IR,M)  !550nm in new .dat
+                      QSCALING = QQAA(KMIE2,IR,M,State_Chm%Phot%DRg)/ &
+                                 QQAA(5,IR,M,State_Chm%Phot%DRg)  !550nm in new .dat
                    ENDIF
                    LOCALOD = QSCALING*AERX_COL(IDXAER,L)
-                   LOCALSSA = SSAA(KMIE2,IR,M)*LOCALOD
+                   LOCALSSA = SSAA(KMIE2,IR,M,State_Chm%Phot%DRg)*LOCALOD
                    OD(KMIE,L) = OD(KMIE,L) + LOCALOD
                    SSA(KMIE,L)= SSA(KMIE,L) + LOCALSSA
                    DO I=1,8
                       SLEG(I,KMIE,L) = SLEG(I,KMIE,L) + &
-                                       (PHAA(KMIE2,IR,M,I)*LOCALSSA)
+                                       (PHAA(KMIE2,IR,M,I,State_Chm%Phot%DRg)*LOCALSSA)
                    ENDDO ! I (Phase function)
                 ENDIF
              ENDDO    ! IR (RH bins)

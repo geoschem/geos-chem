@@ -1842,6 +1842,7 @@ CONTAINS
     REAL(fp),      POINTER :: SOAGX       (:,:,:)
     REAL(fp),      POINTER :: PM25        (:,:,:)
     REAL(fp),      POINTER :: PM10        (:,:,:)
+    REAL(fp),      POINTER :: PDER        (:,:,:) ! H. Zhu
     REAL(fp),      POINTER :: ISOAAQ      (:,:,:)
     REAL(fp),      POINTER :: SOAS        (:,:,:)
     REAL(fp),      POINTER :: FRAC_SNA    (:,:,:,:)
@@ -1910,6 +1911,7 @@ CONTAINS
     SOAGX       => State_Chm%AerMass%SOAGX
     PM25        => State_Chm%AerMass%PM25
     PM10        => State_Chm%AerMass%PM10
+    PDER        => State_Chm%AerMass%PDER
     ISOAAQ      => State_Chm%AerMass%ISOAAQ
     SOAS        => State_Chm%AerMass%SOAS
     FRAC_SNA    => State_Chm%AerMass%FRAC_SNA
@@ -2153,6 +2155,13 @@ CONTAINS
        ENDIF
 
        !--------------------------------------
+       ! PDER [nm]
+       !--------------------------------------
+       IF ( State_Diag%Archive_PDER ) THEN
+          State_Diag%PDER(I,J,L) = PDER(I,J,L) 
+       ENDIF
+
+       !--------------------------------------
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
        IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
@@ -2232,6 +2241,7 @@ CONTAINS
     SOAGX       => NULL()
     PM25        => NULL()
     PM10        => NULL()
+    PDER        => NULL()
     ISOAAQ      => NULL()
     SOAS        => NULL()
     FRAC_SNA    => NULL()

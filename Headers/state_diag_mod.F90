@@ -673,6 +673,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM10(:,:,:)
      LOGICAL                     :: Archive_PM10
 
+     ! H. Zhu
+     REAL(f4),           POINTER :: PDER(:,:,:)
+     LOGICAL                     :: Archive_PDER
+
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
 
@@ -2125,6 +2129,10 @@ CONTAINS
     !zhaisx
     State_Diag%PM10                                => NULL()
     State_Diag%Archive_PM10                        = .FALSE.
+
+    ! Paremeterized Dry Effective radius (H. Zhu, April 05 2024)
+    State_Diag%PDER                                => NULL()
+    State_Diag%Archive_PDER                        = .FALSE.
 
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
@@ -9490,6 +9498,29 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! PDER, aka parameterized dry effective radius for SNA and OM [nm]
+       ! H. Zhu, April 05, 2024
+       !-------------------------------------------------------------------
+       diagID = 'PDER'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PDER,                                &
+            archiveData    = State_Diag%Archive_PDER,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! PM25 nitrates+ammonium
@@ -12347,6 +12378,7 @@ CONTAINS
     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
@@ -13746,6 +13778,12 @@ CONTAINS
     CALL Finalize( diagId   = 'PM10',                                        &     
                    Ptr2Data = State_Diag%PM10,                               &     
                    RC       = RC                                            )     
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+! H. Zhu
+    CALL Finalize( diagId   = 'PDER',                                        &
+                   Ptr2Data = State_Diag%PDER,                               &
+                   RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TotalOA',                                     &
@@ -15772,6 +15810,12 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM10' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 10 um'
        IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+! H. Zhu
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PDER' ) THEN
+       IF ( isDesc    ) Desc  = 'Paremeterized Effective Radius for SNA and OM'
+       IF ( isUnits   ) Units = 'um'
        IF ( isRank    ) Rank  =  3
 
 #ifdef MODEL_GEOS
