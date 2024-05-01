@@ -1558,7 +1558,7 @@ CONTAINS
           !$OMP PRIVATE( IR                                               ) &
 #endif
           !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            ) &
-          !$OMP PRIVATE( VDRY,     VH2O,    S                             ) &
+          !$OMP PRIVATE( VDRY,     VH2O,    S,        g                   ) &
           !$OMP SCHEDULE( DYNAMIC )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
