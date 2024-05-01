@@ -1549,11 +1549,12 @@ CONTAINS
 
           ! Loop over grid boxes
           !$OMP PARALLEL DO                                                 &
-          !$OMP PRIVATE( I,        J,       L,        IRH                 ) &
+          !$OMP PRIVATE( I,        J,       L,        R,        IRH       ) &
+          !$OMP PRIVATE( RW,       QW,      AW,       SSW,      ASYW      ) &
           !$OMP PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      ) &
           !$OMP PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      ) &
           !$OMP PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA,  TAERVOL   ) &
-          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM              ) &
+          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM,   BCSCAT_AE ) &
 #ifdef RRTMG
           !$OMP PRIVATE( IR                                               ) &
 #endif
@@ -1566,34 +1567,41 @@ CONTAINS
           DO I = 1, State_Grid%NX
 
              ! Zero private loop variables
-             g        = 0
-             IRH      = 0
-             AW0      = 0.0_fp
-             QW0      = 0.0_fp
-             SSW0     = 0.0_fp
-             ASYW0    = 0.0_fp
-             REFF     = 0.0_fp
-             SCALEA   = 0.0_fp
-             SCALEQ   = 0.0_fp
-             SCALESSA = 0.0_fp
-             SCALEASY = 0.0_fp
-             FRAC     = 0.0_fp
-             SCALER   = 0.0_fp
-             SCALEOD  = 0.0_fp
-             SCALEVOL = 0.0_fp
-             DRYAREA  = 0.0_fp
-             TAERVOL  = 0.0_fp
-             TK       = 0.0_fp
-             CONSEXP  = 0.0_fp
-             VPRESH2O = 0.0_fp
-             RELHUM   = 0.0_fp
-             RHOSTRAT = 0.0_fp
-             RAER     = 0.0_fp
-             SADSTRAT = 0.0_fp
-             XSASTRAT = 0.0_fp
-             VDRY     = 0.0_fp
-             VH2O     = 0.0_fp
-             S        = 0.0_fp
+             g         = 0
+             IRH       = 0
+             S         = 0
+             RW        = 0.0_fp
+             QW        = 0.0_fp
+             AW        = 0.0_fp
+             SSW       = 0.0_fp
+             ASYW      = 0.0_fp 
+             FRAC      = 0.0_fp
+             AW0       = 0.0_fp
+             QW0       = 0.0_fp
+             SSW0      = 0.0_fp
+             ASYW0     = 0.0_fp
+             REFF      = 0.0_fp
+             SCALEA    = 0.0_fp
+             SCALEQ    = 0.0_fp
+             SCALESSA  = 0.0_fp
+             SCALEASY  = 0.0_fp
+             FRAC      = 0.0_fp
+             SCALER    = 0.0_fp
+             SCALEOD   = 0.0_fp
+             SCALEVOL  = 0.0_fp
+             DRYAREA   = 0.0_fp
+             TAERVOL   = 0.0_fp
+             TK        = 0.0_fp
+             CONSEXP   = 0.0_fp
+             VPRESH2O  = 0.0_fp
+             RELHUM    = 0.0_fp
+             RHOSTRAT  = 0.0_fp
+             RAER      = 0.0_fp
+             SADSTRAT  = 0.0_fp
+             XSASTRAT  = 0.0_fp
+             VDRY      = 0.0_fp
+             VH2O      = 0.0_fp
+             BCSCAT_AE = 0.0_fp
 
              ! Loop over relative humidity bins
              IF (N == 1 .or. N == 3) THEN ! (hzhu, 08/2023)
