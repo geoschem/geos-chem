@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added missing entry in `HEMCO_Config.rc` for natural gas postmeter CH4 emissions in GHGIv2 Express Extension
 - Added tagged species capability and PM25nit and PM25nh4 diagnostics for GEOS runs
 - Added `real*4` diagnostics for State_Met logical masks IsWater, IsLand, IsIce, and IsSnow
+- Added global continental chlorine (pCl and HCl) emissions
 
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion
