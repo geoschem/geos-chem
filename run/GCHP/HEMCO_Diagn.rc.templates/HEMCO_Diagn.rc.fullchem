@@ -234,8 +234,8 @@ EmisH2O_Aircraft   H2O    0      20  -1   3   kg/m2/s  H2O_emission_flux_from_ai
 ###############################################################################
 #####  HCl emissions                                                      #####
 ###############################################################################
-EmisCl_Total      HCl    0      -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
-EmisCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
+EmisHCl_Total      HCl    0      -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
+EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
 
 ###############################################################################
 #####  HCOOH sources                                                      #####
