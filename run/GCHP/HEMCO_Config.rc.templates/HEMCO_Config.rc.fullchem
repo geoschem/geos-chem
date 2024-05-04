@@ -72,6 +72,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> XIAO_C3H8              :       ${RUNDIR_USE_XIAOC3H8}    # 1985
     --> LIANG_BROMOCARB        :       true     # 2000
     --> ORDONEZ_IODOCARB       :       true     # 2000
+    --> GT_Chlorine            :       true     # 1960-2014
     --> DECAYING_PLANTS        :       true     # 1985
     --> AFCID                  :       true     # 2015
 # ----- AIRCRAFT EMISSIONS ----------------------------------------------------
@@ -2567,6 +2568,39 @@ VerboseOnCores:              root       # Accepted values: root all
 )))ORDONEZ_IODOCARB
 
 #==============================================================================
+# --- GT_Chlorine ---
+#
+# Emission inventory for HCl and particulate Cl from continental sources
+#
+# Reference:
+#  Zhang, B., & Liu, P., et al (2022). Global Emissions of Hydrogen Chloride
+#  and Particulate Chloride from Continental Sources. Environmental Science &
+#  Technology, 56(7), 3894-3904. https://doi.org/10.1021/acs.est.1c05634 
+#
+# Notes:
+# - The HCl emission from open biomass burning (HCL_BIO, HCL_AGR) used the same
+#   activity data for GFED4 (1998-2014) and BB4CMIP (1960-2014). If your
+#   emission inventory for open biomass burning has already include HCl
+#   emissions, shut down either of them to avoid the duplicated emission sources
+# - Emissions of particulate Cl are added as HCl as ISORROPIA will reparition
+#   Cl between particle phase and gas phase. 
+#==============================================================================
+(((GT_Chlorine
+0 HCL_ENE $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ene   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
+0 HCL_IND $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ind   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
+0 HCL_RES $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_res   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
+0 HCL_WST $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_wstop 1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 HCL_BIO $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_bbop  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
+0 HCL_AGR $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_agri  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
+0 PCL_ENE $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_ene   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 PCL_IND $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_ind   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 PCL_RES $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_res   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 PCL_WST $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_wstop 1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 PCL_BIO $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_bbop  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
+0 PCL_AGR $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc pCl_agri  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
+)))GT_Chlorine
+
+#==============================================================================
 # --- Ship emissions ---
 #
 # ==> CEDS ship emissions are now the default.
@@ -3444,13 +3478,6 @@ VerboseOnCores:              root       # Accepted values: root all
 * STATE_PSC      ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_StatePSC       $YYYY/$MM/$DD/$HH EY   xyz count * - 1 1
 )))GC_RESTART
 
-#==============================================================================
-# --- GEOS-Chem boundary condition file ---
-#==============================================================================
-(((GC_BCs
-* BC_  $ROOT/SAMPLE_BCs/v2021-09/fullchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  $YYYY/$MM/$DD/* EFY xyz 1 * - 1 1
-)))GC_BCs
-
 (((CHEMISTRY_INPUT
 
 #==============================================================================
@@ -4235,14 +4262,12 @@ ${RUNDIR_TES_CLIM_N2O}
 281 COtoSOAP_burn 0.013 - - - xy 1 1
 
 #==============================================================================
-# --- QFED2 diurnal scale factors ---
+# --- Diurnal scale factors for biomass burning ---
 #
 # Fire diurnal scaling factors (% per hour) from WRAP Report to Project
 # No. 178-6, July 2005
 #==============================================================================
-(((QFED2.or.GFAS.or.BB4MIPS
 75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
-)))QFED2.or.GFAS.or.BB4MIPS
 
 #==============================================================================
 # --- NAP scale factors ---

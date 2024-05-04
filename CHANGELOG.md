@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `real*4` diagnostics for State_Met logical masks IsWater, IsLand, IsIce, and IsSnow
 - New parameterization for effective radius of SNA/OM aersols (see PR #2236)
 - New `CHEM_INPUTS/FAST_JX/v2024-05` and `CHEM_INPUTS/FAST_JX/v2024-05-Hg` folders with updated `org.dat` and `so4.dat` files
+- Added global continental chlorine (pCl and HCl) emissions
 
 ### Changed
 - Updated routines in `GeosUtil/unitconv_mod.F90` for species-specific unit conversion

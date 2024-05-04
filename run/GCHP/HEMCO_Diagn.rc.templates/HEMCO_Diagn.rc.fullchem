@@ -232,6 +232,12 @@ EmisGLYX_BioBurn   GLYX   111    -1  -1   2   kg/m2/s  GLYX_emission_flux_from_b
 EmisH2O_Aircraft   H2O    0      20  -1   3   kg/m2/s  H2O_emission_flux_from_aircraft
 
 ###############################################################################
+#####  HCl emissions                                                      #####
+###############################################################################
+EmisHCl_Total      HCl    0      -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
+EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
+
+###############################################################################
 #####  HCOOH sources                                                      #####
 ###############################################################################
 EmisHCOOH_Total    HCOOH  -1     -1  -1   3   kg/m2/s  HCOOH_emission_flux_from_all_sectors
@@ -563,6 +569,11 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvORDONEZ_CH2ICl    CH2ICl 0    1   1   2   kg/m2/s  CH2ICl_emission_flux_from_ORDONEZ_IODOCARB_inventory
 #InvORDONEZ_CH2IBr    CH2IBr 0    1   1   2   kg/m2/s  CH2IBr_emission_flux_from_ORDONEZ_IODOCARB_inventory
 #InvORDONEZ_CH3I      CH3I   0    1   1   2   kg/m2/s  CH3I_emission_flux_from_ORDONEZ_IODOCARB_inventory
+
+#=============================
+# GT_Chlorine
+#=============================
+#InvGTChlorine_HCl    HCl    0    1   1   2   kg/m2/s  HCl_emission_flux_from_GT_Chlorine_inventory
 
 #=============================
 # CEDS_SHIP
