@@ -45,13 +45,13 @@ VerboseOnCores:              root       # Accepted values: root all
 ###############################################################################
 # ExtNr ExtName                on/off  Species  Years avail.
 0       Base                   : on    *
-# ----- MAIN SWITCHES -----------------------------------------
+# ----- MAIN SWITCHES ---------------------------------------------------------
     --> EMISSIONS              :       true
     --> METEOROLOGY            :       false
     --> CHEMISTRY_INPUT        :       true
-# ----- RESTART FIELDS ----------------------------------------
+# ----- RESTART FIELDS --------------------------------------------------------
     --> GC_RESTART             :       false
-# ----- GLOBAL INVENTORIES ------------------------------------
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> CMS_FLUX               :       true
     --> FOSSIL_ODIAC           :       false    # 2000-2018
     --> FOSSIL_CDIAC           :       false    # 1980-2014
@@ -60,17 +60,49 @@ VerboseOnCores:              root       # Accepted values: root all
     --> BBIO_DIURNAL           :       false    # 1985
     --> BBIO_SIB3              :       false    # 2006-2010
     --> NET_TERR_EXCH          :       false    # 2000
-    --> AVIATION               :       false    # 2005
     --> CO2CORR                :       false    # 2000-2018
-# ----- SHIP EMISSIONS ----------------------------------------
+# ----- AIRCRAFT EMISSIONS ----------------------------------------------------
+# There are 3 switches:
+#
+#  1. AEIC2019_DAILY selects daily AEIC 2019 emissions.  For most simulations,
+#     this is not recommended due to the amount of computational overhead
+#     that will be incurred in regridding.  But this may be useful for
+#     research purposes.  Recommended setting: "AEIC2019_DAILY: false".
+#
+#  2. AEIC2019_MONMEAN selects monthly-mean AEIC 2019 emisisons, which will
+#     incur much less computational overhaead.  This options should suffice
+#     for most simulations.  Recommended setting "AEIC2019_MONMEAN: true".
+#
+#  3. AEIC_SCALE_1990_2019: If "false", the AEIC 2019 data from the year
+#     2019 alone will be used.  This will yield a "best estimate" of
+#     aviation emisssion. This could be important because simply scaling
+#     aviation emissions up and down is rather nonphysical.  But if
+#     AEIC_SCALE_1990_2019 is set to true, then aviation emissions for
+#     1990 to 2019 are estimated by:
+#
+#     a. Scaling ALL aviation emissions based on the growth in fuelburn
+#        from 1990 to 2019* estimated by Lee et al. (2021); and
+#
+#     b. Scaling aviation NOx emissions by an additional factor to reflect
+#        the changes in the NOx emissions index over the same period as
+#        reported by Lee et al. (2021).
+#
+#     Recommended setting: "AEIC_SCALE_1990_2019: true"
+#
+# See additional notes in the AEIC scale factor section below.
+#------------------------------------------------------------------------------
+    --> AEIC2019_DAILY         :       false    # 2019 (daily data)
+    --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
+    --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
+# ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       false
     --> CEDS_SHIP              :       false    # 1750-2014
     --> ICOADS_SHIP            :       false    # 2004
-# ----- NON-EMISSIONS DATA ------------------------------------
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> CO2_COPROD             :       false    # 2004-2009
     --> OLSON_LANDMAP          :       false    # 1985
     --> YUAN_MODIS_LAI         :       false    # 2000-2020
-# ----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 111     GFED                   : on    CO2/CO2bb
     --> GFED4                  :       true
     --> GFED_daily             :       true
@@ -125,7 +157,7 @@ VerboseOnCores:              root       # Accepted values: root all
 )))FOSSIL_CDIAC
 
 (((FOSSIL_ODIAC
-0 FOSSILCO2_ODIAC   $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
+0 FOSSILCO2_ODIAC   $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc   CO2 2000-2018/1-12/1/0 C xy kg/m2/s CO2   40/41/80 1 2
 0 FOSSILCO2FF_ODIAC -                                                            -   -                  - -  -       CO2ff 40/41/80 1 2
 )))FOSSIL_ODIAC
 
@@ -139,14 +171,14 @@ VerboseOnCores:              root       # Accepted values: root all
 # ---> Recommended option: scaled ocean exchange (set OCEAN_EXCH_SCALED = true)
 #==============================================================================
 (((OCEAN_EXCH_TAKA09
-0 OCEANCO2_TAKA_ANNUAL    $ROOT/CO2/v2014-09/OCEAN/Taka2009_CO2_Annual.nc      CO2 2000/1/1/0         C xy kg/m2/s CO2   - 2 1
+0 OCEANCO2_TAKA_ANNUAL    $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Annual.nc      CO2 2000/1/1/0         C xy kg/m2/s CO2   - 2 1
 0 OCEANCO2OC_TAKA_ANNUAL  -                                                    -   -                  - -  -       CO2oc - 2 1
-0 OCEANCO2_TAKA_MONTHLY   $ROOT/CO2/v2014-09/OCEAN/Taka2009_CO2_Monthly.nc     CO2 2000/1-12/1/0      C xy kg/m2/s CO2   - 2 2
+0 OCEANCO2_TAKA_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc     CO2 2000/1-12/1/0      C xy kg/m2/s CO2   - 2 2
 0 OCEANCO2OC_TAKA_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 2
 )))OCEAN_EXCH_TAKA09
 
 (((OCEAN_EXCH_SCALED
-0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2015-04/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
+0 OCEANCO2_SCALED_MONTHLY   $ROOT/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc CO2 2000-2013/1-12/1/0 C xy kg/m2/s CO2   - 2 3
 0 OCEANCO2OC_SCALED_MONTHLY -                                                    -   -                  - -  -       CO2oc - 2 3
 )))OCEAN_EXCH_SCALED
 
@@ -168,7 +200,7 @@ VerboseOnCores:              root       # Accepted values: root all
 )))BBIO_DIURNAL
 
 (((BBIO_SIB3
-0 SIB_BBIO_CO2    $ROOT/CO2/v2015-04/BIO/SiB3_3hr_NEP.nc CO2 2006-2010/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
+0 SIB_BBIO_CO2    $ROOT/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc CO2 2006-2010/1-12/1-31/0-23 C xy kg/m2/s CO2    - 3 1
 0 SIB_BBIO_CO2BAL -                                      -   -                        - -  -       CO2bal - 3 1
 )))BBIO_SIB3
 
@@ -181,7 +213,7 @@ VerboseOnCores:              root       # Accepted values: root all
 #      inversion/assimilation
 #==============================================================================
 (((NET_TERR_EXCH
-0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2015-04/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2nte - 5 1
+0 CO2_NET_TERRESTRIAL    $ROOT/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc CO2 2000/1/1/0 C xy kg/m2/s CO2nte - 5 1
 0 CO2NTE_NET_TERRESTRIAL -                                                                 -   -          - -  -       CO2    - 5 1
 )))NET_TERR_EXCH
 
@@ -197,23 +229,27 @@ VerboseOnCores:              root       # Accepted values: root all
 )))ICOADS_SHIP
 
 (((CEDS_SHIP
-0 CEDS_CO2_SHP       $ROOT/CEDS/v2018-08/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc     CO2_shp  1750-2014/1-12/1/0 C xy kg/m2/s CO2   - 6 1
+0 CEDS_CO2_SHP       $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc     CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2   - 6 1
 0 CEDS_CO2SE_SHIP    -                                                              -        -                  - -  -       CO2se - 6 1
 )))CEDS_SHIP
 
 )))SHIP
 
 #==============================================================================
-# --- AVIATION EMISSIONS ---
+# --- AEIC 2019 aircraft emissions ---
 #
-# Aviation fuel burn spatial and seaonal distribution from AEIC (Simone et al.
-# 2013) scaled with global annual CO2 emission totals calculated from the IEA
-# (Olsen et al., 2013)
+# Data files are for 2019, but scale factors from 1990-2019 can be applied
+# in order to get year-specific emissions.  See the notes in the AEIC2019
+# scale factor section below for more information.
 #==============================================================================
-(((AVIATION
-0 AEIC_CO2    $ROOT/AEIC/v2015-01/AEIC.47L.gen.1x1.nc FUELBURN 2005/1-12/1/0 C xyz kg/m2/s CO2   60/70 7 1
-0 AEIC_CO2AV  -                                       -        -             - -   -       CO2av 60/70 7 1
-)))AVIATION
+(((AEIC2019_DAILY
+0 AEIC19_DAILY_CO2   $ROOT/AEIC2019/v2022-03/2019/AEIC_2019$MM$DD.0.5x0.625.36L.nc FUELBURN 2019/1-12/1-31/0 C xyz kg/m2/s CO2   241/60 20 1
+0 AEIC19_DAILY_CO2AV -                                                             -        -                - -   -       CO2av 241/60 20 1
+)))AEIC2019_DAILY
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_CO2   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s CO2   241/60 20 1
+0 AEIC19_MONMEAN_CO2AV -                                                                          -        -             - -   -       CO2av 241/60 20 1
+)))AEIC2019_MONMEAN
 
 #==============================================================================
 # --- CO2 SURFACE CORRECTION FOR CO OXIDATION ---
@@ -230,21 +266,21 @@ VerboseOnCores:              root       # Accepted values: root all
 # to make these emissions negative, so that they will be subtracted.
 ===============================================================================
 (((CO2CORR
-0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2019-12/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
+0 FOSSILCO2_MONTHLY     $ROOT/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc CO2     2000-2018/1-12/1/0 C xy kg/m2/s CO2     10/40/41/80/90 8 1
 0 FOSSILCO2CORR_MONTHLY -                                                          -       -                  - -  -       CO2corr 10/40/41/80/90 8 1
-0 CO2_LIVESTOCK         $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_LIVESTOCK         $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_004 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_LIVESTOCK     -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_WASTE             $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_005 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_WASTE             $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_005 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_WASTE         -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_RICE              $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_007 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_RICE              $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_007 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_RICE          -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_WETLANDS          $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_010 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_WETLANDS          $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_010 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_WETLANDS      -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_NATURAL           $ROOT/CO2/v2015-04/CHEM/CH4_source.geos.2x25.nc            CH4_012 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
+0 CO2_NATURAL           $ROOT/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc            CH4_012 2004/1-12/1/0      C xy kg/m2/s CO2     20/90          8 1
 0 CO2CORR_NATURAL       -                                                          -       -                  - -  -       CO2corr 20/90          8 1
-0 CO2_ISOPRENE          $ROOT/CO2/v2015-04/CHEM/Isoprene-2004.geos.2x25.nc         ISOP    2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2_ISOPRENE          $ROOT/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc         ISOP    2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
 0 CO2CORR_ISOPRENE      -                                                          -       -                  - -  -       CO2corr 21/30/90       8 1
-0 CO2_MONOTERP          $ROOT/CO2/v2015-04/CHEM/Monoterpene-2004.geos.2x25.nc      MONOT   2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
+0 CO2_MONOTERP          $ROOT/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc      MONOT   2004/1-12/1/0      C xy kg/m2/s CO2     21/30/90       8 1
 0 CO2CORR_MONOTERP      -                                                          -       -                  - -  -       -       21/30/90       8 1
 )))CO2CORR
 
@@ -263,19 +299,19 @@ VerboseOnCores:              root       # Accepted values: root all
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
@@ -321,8 +357,8 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- GEOS-Chem restart file ---
 #==============================================================================
 (((GC_RESTART
-* SPC_           ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
-* DELPDRY        ./GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* SPC_           ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?    $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
+* DELPDRY        ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY         $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
 )))GC_RESTART
 
 #==============================================================================
@@ -568,20 +604,45 @@ VerboseOnCores:              root       # Accepted values: root all
 50 CO2_SHIP_SCALE 1.043/1.068/1.094/1.128/1.154/1.180/1.205/1.231/1.265/1.291/1.316/1.342/1.368/1.393/1.427/1.453/1.479/1.504/1.530/1.556/1.590/1.615/1.641/1.667/1.641 - 1985-2009/1/1/0 C xy 1 1
 )))ICOADS_SHIP
 
-(((AVIATION
 #==============================================================================
-# --- AVIATION FUEL BURN SCALE FACTOR ( kg C / kg fuel ) ---
-#==============================================================================
-60 AEIC_CO2_SCALE 3.155 - - - xy unitless 1
-
-#==============================================================================
-# --- AVIATION GLOBAL ANNUAL EMISSION SCALE FACTOR ---
+# --- AEIC2019 aircraft emissions scale factors ---
 #
-# AEIC global annual emissions 0.15574 TgC for 2005
-# IEA values from Olsen et al. (2013) to scale 1990-2008
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
 #==============================================================================
-70 CO2_AVIATION_SCALE 0.9034/0.8867/0.8923/0.9034/0.9759/1.0038/1.0596/1.0875/1.1154/1.1544/1.1990/1.1711/1.1711/1.1711/1.2492/1.3105/1.3273/1.3496/1.3440 - 1990-2008/1/1/0 C xy 1 1
-)))AVIATION
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+#------------------------------------------------------------------------------
+# Assume 3.159 kg CO2 from every kg of fuel burned
+# cf Hileman, Stratton, & Donohoo, _J. Propul. Power_, 26(6), 1184–1196, 2010.
+#------------------------------------------------------------------------------
+60 AEIC19_FBtoCO2 3.159 - - - xy unitless 1
+
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Lee et al.
+# (2021) only covers 1990 to 2018, so to get to 2019 it is assumed that the
+# growth from 2017 to 2018 is the same as that from 2018 to 2019.
+# So the formula is something like:
+#
+# Emissions of CO in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down.
+#
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
+)))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
 #==============================================================================
 # --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---

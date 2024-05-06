@@ -293,7 +293,7 @@ Mask fractions:              false
 0 GHGI_EE_COAST_GAS_TRANSMISSION -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
 0 GHGI_EE_GAS_POSTMETER          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_Supp_1B2b_PostMeter                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
 
-### Coal ###		         
+### Coal ###
 0 GHGI_EE_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
 0 GHGI_EE_COAST_COAL_UNDERGROUND -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
 0 GHGI_EE_COAL_SURFACE           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
@@ -301,13 +301,13 @@ Mask fractions:              false
 0 GHGI_EE_COAL_ABANDONED         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
 0 GHGI_EE_COAST_COAL_ABANDONED   -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
 
-### Livestock ###	         
+### Livestock ###
 0 GHGI_EE_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
 0 GHGI_EE_COAST_LIVESTOCK_ENT    -                                                                                      -                                            -                  - -  -           CH4 1009    4 1
 0 GHGI_EE_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
 0 GHGI_EE_COAST_LIVESTOCK_MAN    -                                                                                      -                                            -                  - -  -           CH4 57/1009 4 1
 
-### Landfills ###	         
+### Landfills ###
 0 GHGI_EE_LANDFILLS_IND          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
 0 GHGI_EE_COAST_LANDFILLS_IND    -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
 0 GHGI_EE_LANDFILLS_MSW          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
@@ -1015,19 +1015,19 @@ Mask fractions:              false
 #==============================================================================
 
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
 
