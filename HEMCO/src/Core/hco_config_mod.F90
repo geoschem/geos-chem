@@ -2202,6 +2202,7 @@ CONTAINS
 #ifndef MODEL_GEOS
 #ifndef MODEL_WRF
 #ifndef MODEL_CESM
+#ifndef MODEL_GISS
 #ifndef ESMF_
     !=======================================================================
     ! Look for met field and grid resolution.  When running the HEMCO
@@ -2246,7 +2247,8 @@ CONTAINS
 #endif
 #endif
 #endif
-
+#endif
+    
     !-----------------------------------------------------------------------
     ! Initialize error object if needed.
     ! Extract values to initialize error module and set some further

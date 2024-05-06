@@ -134,7 +134,7 @@ CONTAINS
 
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
     !-----------------------------------------------------------------------
     ! Compute the various PBL quantities with the initial met fields.
     ! This is needed so that HEMCO won't be passed a zero PBL height

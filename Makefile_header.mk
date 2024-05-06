@@ -115,6 +115,14 @@ ifeq ($(shell [[ "$(MAKECMDGOALS)" =~ "hpc" ]] && echo true),true)
   export HPC
 endif
 
+# GISS-GC compilation options
+REGEXP               := (^[Yy]|^[Yy][Ee][Ss])
+ifeq ($(shell [[ "$(GISS)" =~ $(REGEXP) ]] && echo true),true)
+  IS_HPC             :=0
+  OMP                :=no
+  USER_DEFS          += -DMODEL_GISS
+endif
+
 # %%%%% For HPC, we disable OpenMP and turn on the full vertical grid %%%%%
 # %%%%% If not HPC, then build as GEOS-Chem Classic
 REGEXP               := (^[Yy]|^[Yy][Ee][Ss])

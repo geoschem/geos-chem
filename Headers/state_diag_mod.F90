@@ -188,7 +188,7 @@ MODULE State_Diag_Mod
      LOGICAL :: Archive_CH4pseudoFlux
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
      REAL(f4),  POINTER :: KppError        (:,:,:  ) ! Kpp integration error
      LOGICAL :: Archive_KppError
 #endif
@@ -878,7 +878,7 @@ CONTAINS
     State_Diag%Archive_CH4pseudoflux               = .FALSE.
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
     State_Diag%KppError                            => NULL()
     State_Diag%Archive_KppError                    = .FALSE.
 #endif
@@ -3076,7 +3076,7 @@ CONTAINS
        ENDIF
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -7176,7 +7176,7 @@ CONTAINS
     ENDIF
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
     IF ( ASSOCIATED( State_Diag%KppError ) ) THEN
        DEALLOCATE( State_Diag%KppError, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%KppError', 2, RC )
@@ -8476,7 +8476,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'

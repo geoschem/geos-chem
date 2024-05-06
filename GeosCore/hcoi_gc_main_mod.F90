@@ -53,7 +53,7 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
   !=========================================================================
   ! These are only needed for GEOS-Chem "Classic"
   !=========================================================================
@@ -61,7 +61,10 @@ MODULE HCOI_GC_Main_Mod
   PRIVATE :: Get_Met_Fields
   PRIVATE :: Get_Boundary_Conditions
 #endif
-!
+#if defined( MODEL_GISS )
+  PRIVATE :: Get_GC_Restart
+#endif
+  !
 ! !REMARKS:
 !  This module is ignored if you are using HEMCO in an ESMF environment.
 !
@@ -836,7 +839,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
     !=======================================================================
     ! Get met fields from HEMCO (GEOS-Chem "Classic" only)
     !=======================================================================
@@ -887,6 +890,20 @@ CONTAINS
 
 #endif
 
+#ifdef MODEL_GISS
+    !=======================================================================
+    ! Get fields from GEOS-Chem restart file
+    !=======================================================================
+    IF ( Phase == 0 .and. notDryRun ) THEN
+       CALL Get_GC_Restart( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+       IF ( RC /= HCO_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Get_GC_Restart"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+#endif
+    
     !=======================================================================
     ! Do the following only if it's time to calculate emissions
     !=======================================================================
@@ -3368,7 +3385,7 @@ CONTAINS
    ! Return to calling program
  END SUBROUTINE Calc_SumCosZa
 !EOC
-#if !defined(ESMF_) && !defined( MODEL_WRF )
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -3652,6 +3669,8 @@ CONTAINS
    ENDIF
 
  END SUBROUTINE Get_Met_Fields
+#endif
+#if !defined(ESMF_) && !defined( MODEL_WRF )
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -4473,6 +4492,8 @@ CONTAINS
    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
 
  END SUBROUTINE Get_GC_Restart
+#endif
+#if !defined(ESMF_) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

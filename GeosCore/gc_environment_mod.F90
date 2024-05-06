@@ -381,7 +381,7 @@ CONTAINS
     ! Allocate State_Grid arrays
     CALL Allocate_State_Grid( Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Compute_Grid"!'
+       ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -795,7 +795,7 @@ CONTAINS
        CALL Init_Diag53( State_Grid )
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
     !--------------------------------------------------------------------
     ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
     !
