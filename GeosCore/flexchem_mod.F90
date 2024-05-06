@@ -119,7 +119,7 @@ CONTAINS
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
-    !USE Strat_Chem_Mod,       ONLY : SChem_Tend
+    USE Strat_Chem_Mod,       ONLY : SChem_Tend
     USE TIME_MOD,             ONLY : GET_TS_CHEM
     USE TIME_MOD,             ONLY : Get_Day
     USE TIME_MOD,             ONLY : Get_Month
