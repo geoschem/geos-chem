@@ -1,0 +1,88 @@
+name: Bug or Issue Report
+description: Report a bug or issue with GEOS-Chem
+title: "Put a one-line description here"
+labels: ["category: Bug"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Your name
+    validations:
+      required: true
+  - type: input
+    id: affiliation
+    attributes:
+      label: Your affiliation
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? What did you expect to happen?
+      placeholder: Describe your issue
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: What are the steps to reproduce the bug?
+      placeholder: Explain what you did
+    validations:
+      required: true
+  - type: textarea
+    id: log-files
+    attributes:
+	label: Please attach any relevant configuration and log files.
+	description: Drag and drop files like the GEOS-Chem log file, geoschem_config.rc, and HEMCO_Config.rc here. You may need to rename files to end in .txt first.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: What GEOS-Chem version were you using?
+      placeholder: ex. 14.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: machine
+    attributes:
+      label: What environment were you running GEOS-Chem on?
+      multiple: true
+      options:
+        - Local cluster
+        - AWS
+        - Personal computer
+        - Other (please explain below)
+    validations:
+      required: true
+  - type: dropdown
+    id: compiler
+    attributes:
+      label: What compiler were you using?
+      multiple: true
+      options:
+        - Intel
+        - GNU
+        - PGI
+        - Other (please specify below)
+    validations:
+      required: true
+  - type: dropdown
+    id: implemenation
+    attributes:
+      label: Will you be addressing this bug yourself?
+      description: If Yes, please also assign this issue to yourself (if possible)
+      multiple: false
+      options:
+        - "Yes"
+        - "Yes, but I will need some help"
+        - "No"
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: Please provide any additional information here that you think might be relevant.
+    validations:
+      required: false
