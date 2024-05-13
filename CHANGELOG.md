@@ -59,6 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change restart file time cycle flag from `EFYO` to `CYS` for TOMAS simulations to avoid missing species error.
 - Now define `REEVAPSO2` in wetscav_mod when units are kg species; this avoids floating-point errors.
 - Fixed `State_Met%FRSNO` to be fraction of grid box with snow rather than fraction of land with snow
+- Fixed variable definitions in the `DryDep` collection of `run/GCHP/HISTORY.rc.templates/HISTORY.rc.fullchem`
 
 ### Removed
 - Legacy binary punch diagnostic code contained within `#ifdef BPCH_DIAG` blocks
