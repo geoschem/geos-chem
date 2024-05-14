@@ -538,16 +538,16 @@ CONTAINS
       DO N=1,NSPEC
          SpcID = State_Chm%Map_KppSpc(N)
          IF ( SpcID <= 0 ) THEN
-            write(IU_FILE,'(A,I0,A,E25.16)') "C",N,",",initC(N)
+            write(IU_FILE,'(A,I0,A,E25.16E3)') "C",N,",",initC(N)
             CYCLE
          ENDIF
-         write(IU_FILE,'(A,A,E25.16)') trim(State_Chm%SpcData(SpcID)%Info%Name),',',initC(N)
+         write(IU_FILE,'(A,A,E25.16E3)') trim(State_Chm%SpcData(SpcID)%Info%Name),',',initC(N)
       ENDDO
       DO N=1,NREACT
-         write(IU_FILE,'(A,I0,A,E25.16)') 'R',N,',', localRCONST(N)
+         write(IU_FILE,'(A,I0,A,E25.16E3)') 'R',N,',', localRCONST(N)
       ENDDO
       DO N=1,NREACT
-         write(IU_FILE,'(A,I0,A,E25.16)') 'A',N,',', Aout(N)
+         write(IU_FILE,'(A,I0,A,E25.16E3)') 'A',N,',', Aout(N)
       ENDDO
       close(IU_FILE)
 
