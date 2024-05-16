@@ -617,7 +617,7 @@ cp ./gitignore                        ${rundir}/.gitignore
 # Copy file to auto-update common settings. Use adjoint version for CO2.
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -765,7 +765,6 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xTOMAS15"          ||
       "x${sim_extra_option}" == "xTOMAS40"          ||
       "x${sim_name}"         == "xPOPs"             ||
-      "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xTransportTracers" ||
       "x${sim_name}"         == "xtagO3"        ]]; then
     RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
@@ -843,7 +842,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml input.nml
-	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
 	    git add *.py
 	fi
 	printf " " >> ${version_log}

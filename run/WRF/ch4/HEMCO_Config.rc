@@ -364,8 +364,6 @@ Warnings:                    1
 # - Multiply soil absorption by -1 to get a "negative" flux.
 #   (Only apply the scaling factor when adding to the total CH4 simulation)
 # - Use updated soil absorption emissions with seasonality applied
-# - For tagged CH4 simulations soil absorption is treated as a loss and applied
-#   in mixing_mod.F
 #==============================================================================
 (((FUNG_TERMITES
 0 CH4_TERMITES     $ROOT/CH4/v2014-09/4x5/termites.geos.4x5.nc          CH4 1985/1/1/0         C xy kg/m2/s     CH4 - 13 1

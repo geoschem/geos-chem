@@ -7265,8 +7265,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     ) THEN
+         Input_Opt%ITS_A_CH4_SIM                                        ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -10766,7 +10765,6 @@ CONTAINS
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM   .or. &
          Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -10861,7 +10859,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the CH4 '         // &
-                      'and tagged CH4 specialty simulations.'
+                      'and carbon specialty simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF

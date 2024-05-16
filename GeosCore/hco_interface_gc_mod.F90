@@ -3609,7 +3609,6 @@ CONTAINS
          Input_Opt%ITS_A_CH4_SIM                                        .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
          Input_Opt%ITS_A_POPS_SIM                                       .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
          Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
          Input_Opt%ITS_A_TRACER_SIM                                     .or. &
