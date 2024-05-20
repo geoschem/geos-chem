@@ -200,8 +200,6 @@ CONTAINS
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
     REAL(dp)               :: C_before_integrate(NSPEC)
-    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-                                     State_Grid%NZ, State_Chm%nAdvect       )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC

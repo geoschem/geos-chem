@@ -66,6 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - GitHub config files `.github/stale.yml` and `.github/no-response.yml`
 - Unused CO2 and carbon simulation options from `geoschem_config.yml` (and from related code in co2_mod.F90).
 - Removed ISORROPIA
+- Removed Begin array in do_fullchem (declared but not used)
 
 ## [14.3.1] - 2024-04-02
 ### Added
