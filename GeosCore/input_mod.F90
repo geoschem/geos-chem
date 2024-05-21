@@ -233,8 +233,7 @@ CONTAINS
     !========================================================================
 
     ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_TagCH4_Sim .or. &
-         Input_Opt%Its_A_Carbon_Sim ) THEN
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -432,7 +431,6 @@ CONTAINS
          TRIM(Sim) /= 'HG'                                             .and. &
          TRIM(Sim) /= 'METALS'                                         .and. &
          TRIM(Sim) /= 'POPS'                                           .and. &
-         TRIM(Sim) /= 'TAGCH4'                                         .and. &
          TRIM(Sim) /= 'TAGCO'                                          .and. &
          TRIM(Sim) /= 'TAGO3'                                          .and. &
          TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
@@ -440,7 +438,7 @@ CONTAINS
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
                 ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
-                ' TransportTracers, TagCH4, TagCO, or TagO3.'
+                ' TransportTracers, TagCO, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -454,7 +452,6 @@ CONTAINS
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_TAGCH4_SIM     = ( TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
@@ -1275,7 +1272,6 @@ CONTAINS
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
        IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
-            Input_Opt%ITS_A_TAGCH4_SIM  .or. &
             Input_Opt%ITS_A_CO2_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
@@ -1523,8 +1519,6 @@ CONTAINS
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
-    ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-       Input_Opt%LSPLIT = .TRUE.                      ! Always tag for this sim
     ELSE
        Input_Opt%LSPLIT = .FALSE.  
     ENDIF
@@ -3304,7 +3298,6 @@ CONTAINS
 
     ! Turn off wetdep for simulations that don't need it
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM  ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
