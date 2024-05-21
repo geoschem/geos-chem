@@ -74,6 +74,60 @@ body:
         - "No"
     validations:
       required: true
+  - type: dropdown
+    id: configuration
+    attributes:
+      label: In what configuration were you running GEOS-Chem?
+      multiple: false
+      options:
+        - GCClassic
+        - GCHP
+        - CESM
+        - WRF-GC
+        - Other (please explain in additional information section below)
+    validations:
+      required: true
+  - type: dropdown
+    id: simulation
+    attributes:
+      label: What simulation were you running?
+      description: If using full chemistry, specify extra options like benchmark, complexSOA, etc. in the additional information section below
+      multiple: false
+      options:
+        - Full chemistry
+        - Aerosol
+        - Carbon 
+        - Hg
+        - POPs
+        - TagO3
+        - TransportTracers
+        - Trace metals
+        - CH4
+        - CO2
+        - TagCO
+    validations:
+      required: true
+  - type: input
+    id: resolution
+    attributes:
+      label: As what resolution were you running GEOS-Chem?
+      description: If running a nested grid simulation, please also specify the region.
+      placeholder: "e.g. 4x5, 2x2.5, 0.25x0.3125 NA, c48, c180"
+    validations:
+      required: true
+  - type: dropdown
+    id: meteorology
+    attributes:
+      label: What meterology fields did you use?
+      multiple: false
+      options:
+        - GEOS-FP
+        - GEOS-IT
+        - MERRA-2
+        - GCAP 2.0
+        - Other (please explain in additional information section below)
+    validations:
+      required: true
   - type: textarea
     id: additional-info
     attributes:
