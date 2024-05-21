@@ -26,7 +26,7 @@ body:
     attributes:
       label: Reference(s)
       description: If this is a science update, please provide a literature citation.
-      placeholder: e.g. Bey, I., D. J. Jacob, R. M. Yantosca, J. A. Logan, B. Field, A. M. Fiore, Q. Li, H. Liu, L. J. Mickley, and M. Schultz, Global modeling of tropospheric chemistry with assimilated meteorology: Model description and evaluation, J. Geophys. Res., 106, 23,073-23,096, 2001.
+      placeholder: "e.g. Bey et al., Global modeling of tropospheric chemistry with assimilated meteorology: Model description and evaluation, J. Geophys. Res., 106, 23,073-23,096, 2001."
     validations:
       required: false
   - type: dropdown

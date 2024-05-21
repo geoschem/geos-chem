@@ -32,8 +32,8 @@ body:
   - type: textarea
     id: log-files
     attributes:
-	label: Please attach any relevant configuration and log files.
-	description: Drag and drop files like the GEOS-Chem log file, geoschem_config.rc, and HEMCO_Config.rc here. You may need to rename files to end in .txt first.
+      label: Please attach any relevant configuration and log files.
+      description: Drag and drop files like the GEOS-Chem log file, geoschem_config.yml, HEMCO_Config.rc, HISTORY.rc, and build_info/summarize_build here. You may need to rename files to end in .txt first.
     validations:
       required: false
   - type: input
@@ -61,9 +61,8 @@ body:
       label: What compiler were you using?
       multiple: true
       options:
-        - Intel
         - GNU
-        - PGI
+        - Intel
         - Other (please specify below)
     validations:
       required: true
