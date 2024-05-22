@@ -9,7 +9,7 @@ mirrors:
     short_name: aws
     s3_bucket: True
     remote: s3://gcgrid
-    command: 'aws s3 cp --request-payer requester '
+    command: 'aws s3 cp '
     quote: ""
   rochester:
     short_name: ur
