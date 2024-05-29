@@ -78,12 +78,11 @@ body:
     id: configuration
     attributes:
       label: In what configuration were you running GEOS-Chem?
+      description: If you are experiencing issues with GEOS-Chem in an external model, please contact that model's support. This repository is for tracking issues related to the GEOS-Chem science code base.
       multiple: false
       options:
         - GCClassic
         - GCHP
-        - CESM
-        - WRF-GC
         - Other (please explain in additional information section below)
     validations:
       required: true
