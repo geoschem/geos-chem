@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed input data paths in `run/GEOS` directory to match location change on NASA discover cluster
 - Use new mask files at 0.1 x 0.1 degree resoluiton for CH4/tagCH4/carbon simulations to avoid I/O bottlenecks
 - Update config files for CH4/carbon simulations to avoid reading the same variable multiple times
+- Converted Github issue templates to issue forms using YAML definition files
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
