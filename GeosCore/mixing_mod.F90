@@ -271,16 +271,11 @@ CONTAINS
     INTEGER,           SAVE :: id_ALK4,  id_C2H6,  id_C3H8, id_CH2O
     INTEGER,           SAVE :: id_PRPE,  id_O3,    id_HNO3, id_BrO
     INTEGER,           SAVE :: id_Br2,   id_Br,    id_HOBr, id_HBr
-    INTEGER,           SAVE :: id_BrNO3, id_CH4_SAB, id_CO2
+    INTEGER,           SAVE :: id_BrNO3, id_CO2
 
     ! Pointers and objects
     TYPE(Species), POINTER  :: SpcInfo
     REAL(fp),      POINTER  :: DepFreq(:,:,:  )  ! IM, JM, nDryDep
-
-    ! Temporary save for total ch4 (Xueying Yu, 12/08/2017)
-    REAL(fp)                :: total_ch4_pre_soil_absorp(State_Grid%NX, &
-                                                         State_Grid%NY, &
-                                                         State_Grid%NZ)
 
     ! Strings
     CHARACTER(LEN=255)      :: ErrMsg, ErrorMsg, ThisLoc
@@ -442,7 +437,6 @@ CONTAINS
        id_HOBr = Ind_('HOBr' )
        id_HBr  = Ind_('HBr'  )
        id_BrNO3= Ind_('BrNO3')
-       id_CH4_SAB = Ind_('CH4_SAB')
 
        FIRST = .FALSE.
     ENDIF
@@ -475,14 +469,6 @@ CONTAINS
         PNOxLoss_HNO3(:,:) = Ptr2D(:,:)
       ENDIF
       Ptr2D => NULL()
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! For tagged CH4 simulations
-    ! Save the total CH4 concentration before apply soil absorption
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-       total_ch4_pre_soil_absorp = State_Chm%Species(1)%Conc(:,:,:)
     ENDIF
 
     !=======================================================================
@@ -795,41 +781,6 @@ CONTAINS
                 ENDIF
              ENDIF
 
-             !--------------------------------------------------------------
-             ! Special handling for tagged CH4 simulations
-             !
-             ! Tagged CH4 species are split off into a separate loop to
-             ! ensure we remove soil absorption from NA=1 (total CH4) first
-             !--------------------------------------------------------------
-             IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-
-                ! If we are in the chemistry grid
-                IF ( L <= EMIS_TOP ) THEN
-
-                   ! Total CH4 species
-                   IF ( NA == 1 ) THEN
-
-                      ! Get soil absorption from HEMCO. Units are [kg/m2/s].
-                      ! CH4_SAB is species #15
-                      CALL GetHcoValEmis ( Input_Opt, State_Grid, 15, I, J, L, FND, TMP )
-
-                      ! Remove soil absorption from total CH4 emissions
-                      IF ( FND ) THEN
-
-                         ! Flux: [kg/m2] = [kg m-2 s-1 ] x [s]
-                         FLUX = TMP * TS
-
-                         ! Apply soil absorption as loss
-                         State_Chm%Species(N)%Conc(I,J,L) =        &
-                         State_Chm%Species(N)%Conc(I,J,L) - FLUX
-                      ENDIF
-
-                   ENDIF
-
-                ENDIF
-
-             ENDIF
-
              ! Check for negative concentrations
              IF ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) THEN
 #ifdef TOMAS
@@ -841,19 +792,14 @@ CONTAINS
                 State_Chm%Species(N)%Conc(I,J,L) = 1e-26_fp
 #else
 
-                IF ( ( N /= id_CH4_SAB ) .and. ( N /= id_CO2 ) ) THEN
-
-                 ! KLUDGE: skip the warning message for CH4_SAB, which can be
-                 ! negative (it's a soil absorption flux).  The TagCH4
-                 ! simulation is not used regularly as of Feb 2021 -- fix this
-                 ! later if need by. (bmy, 2/25/21)
-                 Print*, 'WARNING: Negative concentration for species ',     &
-                          TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
-                 ErrorMsg = 'Negative species concentations encountered.' // &
-                            ' This may be fixed by increasing the'        // &
-                            ' background concentration or by shortening'  // &
+                IF ( N /= id_CO2 ) THEN
+                   Print*, 'WARNING: Negative concentration for species ',    &
+                            TRIM( SpcInfo%Name), ' at (I,J,L) = ', I, J, L
+                   ErrorMsg = 'Negative species concentations encountered.'// &
+                            ' This may be fixed by increasing the'        //  &
+                            ' background concentration or by shortening'  //  &
                             ' the transport time step.'
-                 RC = GC_FAILURE
+                   RC = GC_FAILURE
                 ENDIF
 #endif
              ENDIF
@@ -873,69 +819,6 @@ CONTAINS
        SpcInfo  => NULL()
 
     ENDDO !N
-
-    !--------------------------------------------------------------
-    ! Special handling for tagged CH4 simulations
-    !--------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED                   ) &
-       !$OMP PRIVATE( I, J, L, N, NA, ErrorMsg )
-       DO NA = 1, nAdvect
-
-          ! Get the species ID from the advected species ID
-          N = State_Chm%Map_Advect(NA)
-
-          ! Loop over all grid boxes
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-
-             ! Tagged CH4 tracers
-             IF ( NA >= 2 .and. NA <= nAdvect-1 ) THEN
-
-                ! Apply soil absorption to each tagged CH4 species
-                ! (Xueying Yu, 12/08/2017)
-                State_Chm%Species(N)%Conc(I,J,L) =              &
-                     SAFE_DIV(State_Chm%Species(N)%Conc(I,J,L), &
-                              total_ch4_pre_soil_absorp(I,J,L),    &
-                              0.e+0_fp) *                          &
-                     State_Chm%Species(1)%Conc(I,J,L)
-
-             ENDIF
-
-             ! Check for negative concentrations
-             ! KLUDGE: skip the warning message for CH4_SAB, which can be
-             ! negative (it's a soil absorption flux).  The TagCH4 simulation
-             ! is not used regularly as of Feb 2021 -- fix this later if
-             ! need by. (bmy, 2/25/21)
-             IF ( State_Chm%Species(N)%Conc(I,J,L) < 0.0_fp ) THEN
-                IF ( N /= id_CH4_SAB ) THEN
-                 Print*, 'WARNING: Negative concentration for species ',     &
-                         TRIM( State_Chm%SpcData(N)%Info%Name),              &
-                         ' at (I,J,L) = ', I, J, L
-                 ErrorMsg = 'Negative species concentations encountered.' // &
-                            ' This may be fixed by increasing the'        // &
-                            ' background concentration or by shortening'  // &
-                            ' the transport time step.'
-                 RC = GC_FAILURE
-                ENDIF
-             ENDIF
-
-          ENDDO
-          ENDDO
-          ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-       ! Exit with error condition
-       IF ( RC /= GC_SUCCESS ) THEN
-          CALL GC_Error( ErrorMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-
-    ENDIF
 
 #if defined( ADJOINT )  && defined ( DEBUG )
     IF (Input_Opt%is_adjoint .and. Input_Opt%IS_FD_SPOT_THIS_PET) THEN

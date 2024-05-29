@@ -77,7 +77,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_TAGCH4_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
@@ -559,7 +558,6 @@ CONTAINS
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_TAGCH4_SIM       = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.

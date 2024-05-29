@@ -334,36 +334,13 @@ function getPOPsLocal() {
 
 function getPOPsRemote() {
     #========================================================================
-    # Returns remote restart file path for the TagCH4 simulation
+    # Returns remote restart file path for the POPs simulation
     #
     # 1st argument: Remote restart file directory
     #========================================================================
     echo $(join "${1}" "${RUNDIR_restarts_pops_remote}")
     return $?
 }
-
-
-function getTagCH4Local() {
-    #========================================================================
-    # Returns local restart file path for the TagCH4 simulation
-    #
-    # 1st argument: Local restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_tagch4_local}")
-    return $?
-}
-
-
-function getTagCH4Remote() {
-    #========================================================================
-    # Returns remote restart file path for the TagCH4 simulation
-    #
-    # 1st argument: Remote restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_tagch4_remote}")
-    return $?
-}
-
 
 function getTagCOLocal() {
     #========================================================================
@@ -479,7 +456,6 @@ function setEFYOtoEYinHemcoConfig() {
           "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
           "x${sim_extra_option}" == "xAPM"              ||
           "x${sim_name}"         == "xPOPs"             ||
-          "x${sim_name}"         == "xtagCH4"           ||
           "x${sim_name}"         == "xtagO3"        ]]; then
         old="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EFYO"
         new="SpeciesRst_?ALL?    \$YYYY/\$MM/\$DD/\$HH EY  "
@@ -540,10 +516,6 @@ function copyRestartToRunDir() {
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
         remote_rst=$(getPOPsRemote "${rst_root}")
         local_rst=$(getPOPsLocal "${loc_root}")
-
-    elif [[ "x${sim_name}" == "xtagCH4" ]]; then
-        remote_rst=$(getTagCH4Remote "${rst_root}")
-        local_rst=$(getTagCH4Local "${loc_root}")
 
     elif [[ "x${sim_name}" == "xtagCO" ]]; then
         remote_rst=$(getTagCORemote "${rst_root}")
