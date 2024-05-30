@@ -339,17 +339,13 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND44
-    USE DIAG_MOD,           ONLY : AD44
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE PhysConstants,      ONLY : AVO
     USE Species_Mod,        ONLY : Species, SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
-   USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
@@ -408,9 +404,9 @@ CONTAINS
     RC      = GC_SUCCESS
 
     ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( State_Chm%Spc_Units /= KG_SPECIES ) THEN
-       MSG = 'Incorrect species units: ' // TRIM(UNIT_STR(State_Chm%Spc_Units))
-       LOC = 'Routine SETTLEDUST in dust_mod.F'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
+       MSG = 'Not all species have units "kg"!'
+       LOC = 'Routine SETTLEDUST in GeosCore/dust_mod.F90'
        CALL GC_Error( MSG, RC, LOC )
     ENDIF
 
@@ -483,27 +479,6 @@ CONTAINS
                      DT_SETTL * AVO / &
                      ( 1.e-3_fp * ThisSpc%MW_g ) / AREA_CM2
           ENDDO
-
-#ifdef BPCH_DIAG
-          !===========================================================
-          !  Dry deposition diagnostic [#/cm2/s] (bpch)
-          !===========================================================
-          IF ( ND44 > 0 ) THEN
-
-             !--------------------------------------------------------
-             ! ND44 DIAGNOSTIC (bpch)
-             ! Dry deposition flux loss [#/cm2/s]
-             !
-             ! NOTE: Bpch diagnostics are being phased out.
-             !--------------------------------------------------------
-             !%%% NOTE: Now use TOMAS_IDDEP, which replicates the
-             !%%% since-removed Input_Opt%IDDEP field (bmy, 3/17/17)
-             AD44(I,J,TOMAS_IDDEP(BIN),1) = AD44(I,J,TOMAS_IDDEP(BIN),1) +  &
-                                            FLUXN
-             AD44(I,J,NN,1) = AD44(I,J,NN,1) + FLUXD
-          ENDIF
-#endif
-
        ENDDO
        ENDDO
 
@@ -536,10 +511,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND59
-    USE DIAG_MOD,           ONLY : AD59_DUST, AD59_NUMB  !(win, 7/17/09)
-#endif
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : DEBUG_MSG
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -646,26 +617,6 @@ CONTAINS
           ENDIF
        ENDIF
 
-#ifdef BPCH_DIAG
-       IF ( ND59 > 0 ) THEN
-          DO K = 1, State_Chm%nTomasBins
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             MEMIS = Spc(id_DUST01-1+K)%Conc(I,J,1) - MINIT(I,J,1,K)
-             IF ( MEMIS == 0.e+0_fp ) GOTO 10
-
-             AD59_DUST(I,J,1,K) = AD59_DUST(I,J,1,K) + MEMIS ! kg ????
-             Spc(id_NK01-1+K)%Conc(I,J,1) = Spc(id_NK01-1+K)%Conc(I,J,1) + &
-                                     MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-
-             AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + &
-                                  MEMIS / (sqrt(Xk(K)*Xk(K+1)))
-10           CONTINUE
-          ENDDO
-          ENDDO
-          ENDDO
-       ENDIF
-#endif
     ENDIF
 
     ! Free pointers
@@ -1269,10 +1220,10 @@ CONTAINS
     INTEGER,  POINTER :: IWVSELECT  (:,:)
     REAL*8,   POINTER :: ACOEF_WV (:)
     REAL*8,   POINTER :: BCOEF_WV (:)
-    REAL*8,   POINTER :: RDAA     (:,:)
-    REAL*8,   POINTER :: QQAA     (:,:,:)
-    REAL*8,   POINTER :: SSAA     (:,:,:)
-    REAL*8,   POINTER :: ASYMAA   (:,:,:)
+    REAL*8,   POINTER :: RDAA     (:,:,:)
+    REAL*8,   POINTER :: QQAA     (:,:,:,:)
+    REAL*8,   POINTER :: SSAA     (:,:,:,:)
+    REAL*8,   POINTER :: ASYMAA   (:,:,:,:)
     REAL(fp), POINTER :: ODMDUST  (:,:,:,:,:)
 #ifdef RRTMG
     REAL*8,   POINTER :: RTODAER  (:,:,:,:,:)
@@ -1407,8 +1358,8 @@ CONTAINS
           ! dust stored in the IDST species bin of LUT variables
           ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp * &
                                  State_Met%BXHEIGHT(I,J,L) * &
-                                 DUST(I,J,L,N) * QQAA(IWV,N,IDST)  / &
-                                 ( MSDENS(N) * RDAA(N,IDST) * 1.0e-6_fp)
+                                 DUST(I,J,L,N) * QQAA(IWV,N,IDST,State_Chm%Phot%DRg)  / &
+                                 ( MSDENS(N) * RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp)
 
 #ifdef RRTMG
           !add dust optics to the RT code arrays
@@ -1416,8 +1367,8 @@ CONTAINS
           !will keep this way for uniformity for now but
           !possibly could deal with SSA and ASYM in RT module
           RTODAER(I,J,L,IWV,NAER+2+N) = ODMDUST(I,J,L,IWV,N)
-          RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST)
-          RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST)
+          RTSSAER(I,J,L,IWV,NAER+2+N) = SSAA(IWV,N,IDST,State_Chm%Phot%DRg)
+          RTASYMAER(I,J,L,IWV,NAER+2+N) = ASYMAA(IWV,N,IDST,State_Chm%Phot%DRg)
 #endif
 
        ENDDO
@@ -1454,7 +1405,7 @@ CONTAINS
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
-       ERADIUS(I,J,L,N) = RDAA(N,IDST) * 1.0e-4_fp
+       ERADIUS(I,J,L,N) = RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-4_fp
 
        TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) * &
                           DUST(I,J,L,N) / MSDENS(N)

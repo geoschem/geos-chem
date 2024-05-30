@@ -105,16 +105,15 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. Aerosols only\n"
-printf "   3. CH4\n"
-printf "   4. CO2\n"
-printf "   5. Hg\n"
-printf "   6. POPs\n"
-printf "   7. Tagged CH4\n"
-printf "   8. Tagged CO\n"
-printf "   9. Tagged O3\n"
-printf "  10. TransportTracers\n"
-printf "  11. Trace metals\n"
-printf "  12. Carbon\n"
+printf "   3. Carbon\n"
+printf "   4. Hg\n"
+printf "   5. POPs\n"
+printf "   6. Tagged O3\n"
+printf "   7. TransportTracers\n"
+printf "   8. Trace metals\n"
+printf "   9. CH4\n"
+printf "  10. CO2\n"
+printf "  11. Tagged CO\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read -p "${USER_PROMPT}" sim_num
@@ -124,25 +123,23 @@ while [ "${valid_sim}" -eq 0 ]; do
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=aerosol
     elif [[ ${sim_num} = "3" ]]; then
-	sim_name=CH4
-    elif [[ ${sim_num} = "4" ]]; then
-	sim_name=CO2
-    elif [[ ${sim_num} = "5" ]]; then
-	sim_name=Hg
-    elif [[ ${sim_num} = "6" ]]; then
-	sim_name=POPs
-    elif [[ ${sim_num} = "7" ]]; then
-	sim_name=tagCH4
-    elif [[ ${sim_num} = "8" ]]; then
-	sim_name=tagCO
-    elif [[ ${sim_num} = "9" ]]; then
-	sim_name=tagO3
-    elif [[ ${sim_num} = "10" ]]; then
-	sim_name=TransportTracers
-    elif [[ ${sim_num} = "11" ]]; then
-	sim_name=metals
-    elif [[ ${sim_num} = "12" ]]; then
 	sim_name=carbon
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=Hg
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=POPs
+    elif [[ ${sim_num} = "6" ]]; then
+	sim_name=tagO3
+    elif [[ ${sim_num} = "7" ]]; then
+	sim_name=TransportTracers
+    elif [[ ${sim_num} = "8" ]]; then
+	sim_name=metals
+    elif [[ ${sim_num} = "9" ]]; then
+	sim_name=CH4
+    elif [[ ${sim_num} = "10" ]]; then
+	sim_name=CO2
+    elif [[ ${sim_num} = "11" ]]; then
+	sim_name=tagCO
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -456,8 +453,13 @@ if [[ ${met} = "ModelE2.1" ]]; then
     # NOTE: Benchmark simulations always use the climatological emissions!
     if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
        [[ "x${sim_name}" == "xaerosol"  ]]; then
-        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
-        RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
+
+	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	fi
     fi
 
 else
@@ -473,12 +475,12 @@ else
     # NOTE: Benchmark simulations always use the climatological emissions!
     if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
        [[ "x${sim_name}" == "xaerosol"  ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
 	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 	else
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
 	fi
     fi
 
@@ -881,7 +883,7 @@ chmod 744 ${rundir}/archiveRun.sh
 # inactive species that are active in the other simulations, and this
 # causes a conflict.  Work out a better solution later.
 #  -- Bob Yantosca, 10 Dec 2021
-if [[ "x${sim_num}" == "x5" ]]; then
+if [[ "x${sim_name}" == "xHg" ]]; then
     cp -r ${gcdir}/run/shared/species_database_hg.yml ${rundir}/species_database.yml
 else
     cp -r ${gcdir}/run/shared/species_database.yml ${rundir}
@@ -917,7 +919,6 @@ cd ${rundir}
 # start year/month/day matches default initial restart file.
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
-      "x${sim_name}" == "xtagCH4" ||
       "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'

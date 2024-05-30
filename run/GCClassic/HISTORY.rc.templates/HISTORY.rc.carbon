@@ -101,7 +101,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              'SpeciesConcMND_?ADV?          ',
+                              ##'SpeciesConcMND_?ADV?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -283,10 +283,10 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',

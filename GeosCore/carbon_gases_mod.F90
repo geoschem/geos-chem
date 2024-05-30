@@ -41,19 +41,13 @@ MODULE Carbon_Gases_Mod
 !
 ! !PRIVATE TYPES:
 !
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-!@@@ TAGGED SPECIES HANDLING
-!@@@ Set a switch to activate tagged species
-!@@@ NOTE: By default, this is not supported and needs further work!
-!#define ACTIVATE_TAGGED_SPECIES
-!@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 
   ! Scalars
   LOGICAL               :: useGlobOHbmk10yr
   LOGICAL               :: useGlobOHv5
-  INTEGER               :: id_CH4,     id_CO,      id_COch4,   id_COnmvoc
-  INTEGER               :: id_COisop,  id_COch3oh, id_COmono,  id_COacet
-  INTEGER               :: id_CO2,     id_CO2ch,   id_OCS,     id_OH
+  INTEGER               :: id_CH4,     id_CH4_adv, id_CO,      id_CO_adv
+  INTEGER               :: id_CO2,     id_CO2_adv, id_OCS,     id_OCS_adv
+  INTEGER               :: id_OH
   REAL(fp)              :: xnumol_CH4, xnumol_CO,  xnumol_CO2, xnumol_OH
 
   ! Arrays
@@ -172,7 +166,7 @@ CONTAINS
     !========================================================================
     ! CO2 production from CO oxidation
     !========================================================================
-    IF ( Input_Opt%LCHEMCO2 .and. id_CO2 > 0 ) THEN
+    IF ( Input_Opt%LCHEMCO2 .and. id_CO2_adv > 0 ) THEN
 
        ! Point to chemical species array [kg/kg dry air]
        Spc => State_Chm%Species
@@ -224,16 +218,6 @@ CONTAINS
           ! Total CO2 [kg/kg dry air]
           Spc(id_CO2)%Conc(I,J,L) = Spc(id_CO2)%Conc(I,J,L) + E_CO2
 
-#ifdef ACTIVATE_TAGGED_SPECIES
-          !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-          !@@@ TAGGED SPECIES HANDLING
-          !@@@ Add chemical source of CO into the COchem species
-          !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-          IF ( Input_Opt%LSPLIT .and. id_CO2ch > 0 ) THEN
-             Spc(id_CO2ch)%Conc(I,J,L) = Spc(id_CO2ch)%Conc(I,J,L) + E_CO2
-          ENDIF
-#endif
-
        ENDDO
        ENDDO
        ENDDO
@@ -269,7 +253,6 @@ CONTAINS
     USE carbon_Funcs
     USE gckpp_Global
     USE gckpp_Integrator,     ONLY : Integrate
-   !USE gckpp_Monitor,        ONLY : Spc_Names
     USE gckpp_Parameters
     USE gckpp_Precision
     USE gckpp_Rates,          ONLY : Update_Rconst
@@ -280,7 +263,7 @@ CONTAINS
     USE rateLawUtilFuncs,     ONLY : SafeDiv
     USE Species_Mod,          ONLY : SpcConc
     USE State_Grid_Mod,       ONLY : GrdState
-    USE State_Chm_Mod,        ONLY : ChmState, Ind_
+    USE State_Chm_Mod,        ONLY : ChmState
     USE State_Diag_Mod,       ONLY : DgnState
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Chem
@@ -360,13 +343,6 @@ CONTAINS
     REAL(fp) :: PCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: PCO_fr_CH4  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
     REAL(fp) :: PCO_fr_NMVOC(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-#ifdef ACTIVATE_TAGGED_SPECIES
-    !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    !@@@ TAGGED SPECIES HANDLING
-    !@@@ PrevCH4 stores CH4 before chemistry, for later distribution
-    !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    REAL(fp) :: PREVCH4(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-#endif
 
     !========================================================================
     ! Chem_Carbon_Gases begins here!
@@ -477,17 +453,6 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
     ENDIF
-
-#ifdef ACTIVATE_TAGGED_SPECIES
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !%%% TAGGED SPECIES HANDLING
-    !%%% If there are multiple CH4 species, store the total CH4 conc
-    !%%% so that we can distribute the sink after the chemistry.
-    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
-       PrevCH4 = Spc(id_CH4)%Conc
-    ENDIF
-#endif
 
     !========================================================================
     ! Main chemistry loop -- call KPP to integrate the mechanism forward
@@ -636,65 +601,12 @@ CONTAINS
             L            = L,                                                &
             id_CH4       = id_CH4,                                           &
             id_CO        = id_CO,                                            &
-            id_COch4     = id_COch4,                                         &
-            id_COnmvoc   = id_COnmvoc,                                       &
             id_CO2       = id_CO2,                                           &
             xnumol_CO    = xnumol_CO,                                        &
             xnumol_CH4   = xnumol_CH4,                                       &
             xnumol_CO2   = xnumol_CO2,                                       &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met                                        )
-
-#ifdef ACTIVATE_TAGGED_SPECIES
-       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-       !@@@ TAGGED SPECIES HANDLING
-       !@@@ Handle trop loss by OH for regional CO species
-       !@@@ This is turned off by default -- needs further work
-       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-       IF ( Input_Opt%LSPLIT .and. id_CO > 0 ) THEN
-
-         !%%% NOTE: Un-hardwire the species IDs!
-         ! Loop over regional CO species
-         DO NA = 16, State_Chm%nAdvect-11
-
-            ! Advected species ID
-            N = State_Chm%Map_Advect(NA)
-
-            !-----------------------------------------------------
-            ! NOTE: The proper order should be:
-            !   (1) Calculate CO loss rate
-            !   (2) Update AD65 array
-            !   (3) Update the SPC array using the loss rate
-            !
-            ! Therefore, we have now moved the computation of the
-            ! ND65 diagnostic before we apply the loss to the
-            ! tagged CO concentrations stored in the SPC array.
-            !
-            !    -- Jenny Fisher (27 Mar 2017)
-            !-----------------------------------------------------
-
-            ! Update regional species
-            !<<Not   SUBROUTINE re if this is correct - MSL>>
-            IF (NA .ne. 16)                                                   &
-                 Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L) *                    &
-                 ( 1e+0_fp - K_TROP(2) * C(FixedOH) * DTCHEM )
-
-            !-----------------------------------------------------
-            ! HISTORY (aka netCDF diagnostics)
-            !
-            ! Loss of CO by OH for "tagged" species
-            !-----------------------------------------------------
-
-            ! Units: [kg/s]
-            IF ( State_Diag%Archive_Loss ) THEN
-               State_Diag%Loss(I,J,L,N) = Spc(N)%Conc(I,J,L) * k_Trop(2)     &
-                    * C(FixedOH) * DTCHEM
-               !   C(ind_CO2_OH) / DTCHEM  &
-               !   * State_Met%AIRVOL(I,J,L) * 1e+6_fp / XNUMOL_CO
-            ENDIF
-         ENDDO
-      ENDIF
-#endif
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -726,16 +638,6 @@ CONTAINS
              carbon_Get_COfromNMVOC_Flux( dtChem )
        ENDIF
 
-#ifdef ACTIVATE_TAGGED_SPECIES
-       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-       !@@@ TAGGED SPECIES HANDLING
-       !@@@ Loss of CO by OH -- tagged species; Units: [kg/s]
-       !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-       IF ( State_Diag%Archive_Loss ) THEN
-          State_Diag%Loss(I,J,L,16) = ( COfrom_OH / STTCO / DTCHEM )
-       ENDIF
-#endif
-
     ENDDO
     ENDDO
     ENDDO
@@ -746,20 +648,6 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-
-#ifdef ACTIVATE_TAGGED_SPECIES
-    !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    !@@@ TAGGED SPECIES HANDLING
-    !@@@ Allocate the CH4 chemistry sink to different tagged CH4 species
-    !@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-    IF ( Input_Opt%LSPLIT .and. id_CH4 > 0 ) THEN
-       CALL CH4_Distrib_Carbon(                                              &
-            PrevCh4    = PrevCh4,                                            &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid                                         )
-    ENDIF
-#endif
 
     ! Free pointers for safety's sake
     Spc => NULL()
@@ -973,100 +861,6 @@ CONTAINS
 
   END SUBROUTINE ReadChemInputFields
 !EOC
-#ifdef ACTIVATE_TAGGED_SPECIES
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: ch4_distrib
-!
-! !DESCRIPTION: Allocates the chemistry sink to different emission species.
-!  (Only called if there are tagged CH4 species.)
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE CH4_Distrib( PrevCh4, Input_Opt, State_Chm, State_Grid )
-!
-! !USES:
-!
-    USE ERROR_MOD,          ONLY : SAFE_DIV
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : SpcConc
-    USE State_Chm_Mod,      ONLY : ChmState
-    USE State_Grid_Mod,     ONLY : GrdState
-
-    IMPLICIT NONE
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN)    :: Input_Opt       ! Input Options object
-    TYPE(GrdState), INTENT(IN)    :: State_Grid      ! Grid State object
-    REAL(fp)                      :: PREVCH4(                                &
-                                      State_Grid%NX,                         &
-                                      State_Grid%NY,                         &
-                                      State_Grid%NZ) ! CH4 befire chemistry
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm       ! Chemistry State object
-!
-!
-! !REMARKS:
-!  This routine is only used with tagged CH4 species.
-!
-! !REVISION HISTORY:
-!  See the Git version history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER           :: I, J, L, N, NA
-
-    ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
-
-    !========================================================================
-    ! CH4_DISTRIB begins here
-    !========================================================================
-
-    ! Point to chemical species array [kg]
-    Spc => State_Chm%Species
-
-    !%%% NOTE: Need to unhardwire the species ID's
-    ! Loop over the number of advected species
-    DO NA = 2, State_Chm%nAdvect-24
-
-       ! Advected species ID
-       N = State_Chm%Map_Advect(NA)
-
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L                                               )&
-       !$OMP COLLAPSE( 3                                                    )
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-         Spc(N)%Conc(I,J,L) = &
-              SAFE_DIV( Spc(N)%Conc(I,J,L), PREVCH4(I,J,L), 0.0_fp) &
-              * Spc(id_CH4)%Conc(I,J,L)
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDDO
-
-    ! Free pointer
-    Spc => NULL()
-
-  END SUBROUTINE CH4_DISTRIB
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1134,21 +928,18 @@ CONTAINS
 
     !========================================================================
     ! Define GEOS-Chem species indices
-    ! NOTE: Some of these are for tagged species, which are deactivated
-    ! by default.  Interested users can add tagged species if they wish.
+    !
+    ! Also denote which species are advected to facilitate single-tracer runs
     !========================================================================
-    id_CH4     = Ind_( 'CH4'     )
-    id_CO      = Ind_( 'CO'      )
-    id_COacet  = Ind_( 'COacet'  )
-    id_COch3oh = Ind_( 'COch3oh' )
-    id_COch4   = Ind_( 'COch4'   )
-    id_COisop  = Ind_( 'COisop'  )
-    id_COmono  = Ind_( 'COmono'  )
-    id_COnmvoc = Ind_( 'COnmvoc' )
-    id_CO2     = Ind_( 'CO2'     )
-    id_CO2ch   = Ind_( 'CO2ch'   )
-    id_OCS     = Ind_( 'OCS'     )
-    id_OH      = Ind_( 'FixedOH' )
+    id_CH4        = Ind_( 'CH4'        )
+    id_CH4_adv    = Ind_( 'CH4',   'A' )
+    id_CO         = Ind_( 'CO'         )
+    id_CO_adv     = Ind_( 'CO',    'A' )
+    id_CO2        = Ind_( 'CO2'        )
+    id_CO2_adv    = Ind_( 'CO2',   'A' )
+    id_OCS        = Ind_( 'OCS'        )
+    id_OCS_adv    = Ind_( 'OCS',   'A' )
+    id_OH         = Ind_( 'FixedOH'    )
 
     !========================================================================
     ! Save physical parameters from the species_database.yml file into KPP

@@ -2982,7 +2982,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = UNIT_STR(State_Chm%Spc_Units)
+          TmpUnits            = UNIT_STR(State_Chm%Species(1)%Units)
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------

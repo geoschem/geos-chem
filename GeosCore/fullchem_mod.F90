@@ -175,7 +175,7 @@ CONTAINS
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: IERR,       S,         Thread
-    INTEGER                :: errorCount, origUnit
+    INTEGER                :: errorCount, previous_units
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
@@ -200,8 +200,6 @@ CONTAINS
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
     REAL(dp)               :: C_before_integrate(NSPEC)
-    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-                                     State_Grid%NZ, State_Chm%nAdvect       )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -362,14 +360,21 @@ CONTAINS
     !========================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !========================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units of all species to molec/cm3 for KPP
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLECULES_SPECIES_PER_CM3,                             &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = MOLECULES_SPECIES_PER_CM3,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
@@ -381,7 +386,6 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !========================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> Gas-phase chem", RC )
        CALL Timer_Start( "=> Photolysis", RC )
     ENDIF
 
@@ -401,9 +405,10 @@ CONTAINS
        CALL DEBUG_MSG( '### Do_FullChem: after computing J-values' )
     ENDIF
 
+    ! Start gas-phase chem and photolysis timers again
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End  ( "=> Photolysis", RC )
-       CALL Timer_Start( "=> Gas-phase chem", RC ) ! ended in Do_Chemistry
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
@@ -1505,7 +1510,6 @@ CONTAINS
        ! SO4 produced via aqueous chemistry is distributed onto 30-bin
        ! aerosol by TOMAS subroutine AQOXID.
        !-----------------------------------------------------------------
-
        CALL TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
                           State_Met, State_Diag, RC )
        IF ( Input_Opt%Verbose ) THEN
@@ -1576,18 +1580,30 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units of all species back to kg
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
     
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
        RETURN
+    ENDIF
+
+    ! Start gas-phase chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
     !=======================================================================
@@ -1678,7 +1694,7 @@ CONTAINS
     INTEGER           :: I, J, L
     INTEGER           :: k, binact1, binact2
     INTEGER           :: KMIN
-    INTEGER           :: OrigUnit
+    INTEGER           :: previous_units
     REAL(fp)          :: SO4OXID
 
     !=================================================================
@@ -1688,15 +1704,15 @@ CONTAINS
     ! Assume success
     RC  = GC_SUCCESS
 
-    ! Convert species from to [kg]
+    ! Convert species to [kg]
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -1746,8 +1762,22 @@ CONTAINS
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, State_Diag, RC )
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
        ENDIF
     ENDDO
     ENDDO
@@ -1760,7 +1790,7 @@ CONTAINS
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2821,7 +2851,7 @@ CONTAINS
 
     IF ( nFam > 0 ) THEN
 
-       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids for prod/loss diagnostic
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN

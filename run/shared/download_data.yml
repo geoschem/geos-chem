@@ -9,7 +9,7 @@ mirrors:
     short_name: aws
     s3_bucket: True
     remote: s3://gcgrid
-    command: 'aws s3 cp --request-payer requester '
+    command: 'aws s3 cp '
     quote: ""
   rochester:
     short_name: ur
@@ -50,9 +50,6 @@ restarts:
   pops:
     remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
-  tagch4:
-    remote: v2020-02/GEOSChem.Restart.CH4.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
   tagco:
     remote: v2020-02/GEOSChem.Restart.tagCO.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4 

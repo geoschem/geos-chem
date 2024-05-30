@@ -1372,6 +1372,22 @@ ORDONEZ_CH2ICL kg/m2/s Y Y F2000-%m2-01T00:00:00 none none CH2ICl ./HcoDir/IODIN
 ORDONEZ_CH2IBR kg/m2/s Y Y F2000-%m2-01T00:00:00 none none CH2IBr ./HcoDir/IODINE/v2020-02/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.nc
 #
 #==============================================================================
+# --- GT_Chlorine ---
+#==============================================================================
+HCL_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_ene   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_ind   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_res   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_wstop ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_BIO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_bbop  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_agri  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_ene   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_ind   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_res   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_wstop ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_BIO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_bbop  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_agri  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+#
+#==============================================================================
 # --- Ship emissions (SHIP) ---
 #==============================================================================
 CEDS_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_shp            ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
@@ -1781,7 +1797,7 @@ GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
+TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 #
 #==============================================================================
 # --- UV albedo (UVALBEDO) ---
@@ -2078,7 +2094,7 @@ GMI_PROD_VRP  v/v/s Y Y F2000-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-
 #==============================================================================
 # --- NOAA GMD monthly mean surface CH4 (GMD_SFC_CH4) ---
 #==============================================================================
-NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc
+NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1975-2022.1x1.nc
 #
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---

@@ -448,7 +448,7 @@ function config_options() {
     elif [[ ${dir} =~ "rrtmg" ]]; then
         options="${baseOptions} -DRRTMG=y -DEXE_FILE_NAME=${exeFileName}"
     elif [[ ${dir} =~ "tomas15" ]]; then
-        options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DBPCH_DIAG=y -DEXE_FILE_NAME=${exeFileName}"
+        options="${baseOptions} -DTOMAS=y -DTOMAS_BINS=15 -DEXE_FILE_NAME=${exeFileName}"
     else
         options="${baseOptions}"
     fi

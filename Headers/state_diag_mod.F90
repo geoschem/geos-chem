@@ -673,6 +673,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM10(:,:,:)
      LOGICAL                     :: Archive_PM10
 
+     ! H. Zhu
+     REAL(f4),           POINTER :: PDER(:,:,:)
+     LOGICAL                     :: Archive_PDER
+
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
 
@@ -1295,6 +1299,12 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: DTRad(:,:,:)
      LOGICAL                     :: Archive_DTRad
 
+     REAL(f4),           POINTER :: IsWater(:,:)
+     REAL(f4),           POINTER :: IsLand(:,:)
+     REAL(f4),           POINTER :: IsIce(:,:)
+     REAL(f4),           POINTER :: IsSnow(:,:)
+     LOGICAL                     :: Archive_sfcType
+
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
      ! NOTE: ObsPack archives point data, so don't register these
@@ -1399,8 +1409,14 @@ MODULE State_Diag_Mod
 
      !%%%%% PM2.5 diagnostics %%%%%
 
-     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
+     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrate+ammonium
      LOGICAL                     :: Archive_PM25ni
+
+     REAL(f4),           POINTER :: PM25nit(:,:,:)     ! PM25 nitrates
+     LOGICAL                     :: Archive_PM25nit
+
+     REAL(f4),           POINTER :: PM25nh4(:,:,:)     ! PM25 ammonium
+     LOGICAL                     :: Archive_PM25nh4
 
      REAL(f4),           POINTER :: PM25su(:,:,:)     ! PM25 sulfates
      LOGICAL                     :: Archive_PM25su
@@ -2114,6 +2130,10 @@ CONTAINS
     State_Diag%PM10                                => NULL()
     State_Diag%Archive_PM10                        = .FALSE.
 
+    ! Paremeterized Dry Effective radius (H. Zhu, April 05 2024)
+    State_Diag%PDER                                => NULL()
+    State_Diag%Archive_PDER                        = .FALSE.
+
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
 
@@ -2504,6 +2524,12 @@ CONTAINS
     State_Diag%DTRad                               => NULL()
     State_Diag%Archive_DTRad                       = .FALSE.
 
+    State_Diag%IsWater                             => NULL()
+    State_Diag%IsLand                              => NULL()
+    State_Diag%IsIce                               => NULL()
+    State_Diag%IsSnow                              => NULL()
+    State_Diag%Archive_SfcType                     = .FALSE.
+
     State_Diag%Archive_RadOptics                   = .FALSE.
 
     !%%%%% POPs simulation diagnostics %%%%%
@@ -2766,6 +2792,12 @@ CONTAINS
 
     State_Diag%PM25ni                              => NULL()
     State_Diag%Archive_PM25ni                      = .FALSE.
+
+    State_Diag%PM25nit                             => NULL()
+    State_Diag%Archive_PM25nit                     = .FALSE.
+
+    State_Diag%PM25nh4                             => NULL()
+    State_Diag%Archive_PM25nh4                     = .FALSE.
 
     State_Diag%PM25su                              => NULL()
     State_Diag%Archive_PM25su                      = .FALSE.
@@ -3928,6 +3960,84 @@ CONTAINS
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! Surface types
+    !-----------------------------------------------------------------------
+    diagID  = 'IsWater'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsWater,                                &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsLand'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsLand,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsIce'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsIce,                                  &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsSnow,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -7155,8 +7265,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     ) THEN
+         Input_Opt%ITS_A_CH4_SIM                                        ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -9388,9 +9497,32 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! PDER, aka parameterized dry effective radius for SNA and OM [nm]
+       ! H. Zhu, April 05, 2024
+       !-------------------------------------------------------------------
+       diagID = 'PDER'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PDER,                                &
+            archiveData    = State_Diag%Archive_PDER,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
-       ! PM25 nitrates
+       ! PM25 nitrates+ammonium
        !--------------------------------------------------------------------
        diagID = 'PM25ni'
        CALL Init_and_Register(                                               &
@@ -9402,6 +9534,50 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%PM25ni,                       &
             archiveData    = State_Diag%Archive_PM25ni,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 nitrates
+       !--------------------------------------------------------------------
+       diagID = 'PM25nit'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nit,                       &
+            archiveData    = State_Diag%Archive_PM25nit,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 ammonium
+       !--------------------------------------------------------------------
+       diagID = 'PM25nh4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nh4,                       &
+            archiveData    = State_Diag%Archive_PM25nh4,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -10589,7 +10765,6 @@ CONTAINS
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM   .or. &
          Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -10684,7 +10859,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the CH4 '         // &
-                      'and tagged CH4 specialty simulations.'
+                      'and carbon specialty simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -12201,6 +12376,7 @@ CONTAINS
     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
@@ -12544,6 +12720,26 @@ CONTAINS
     CALL Finalize( diagId   = 'DryDepVel',                                   &
                    Ptr2Data = State_Diag%DryDepVel,                          &
                    mapData  = State_Diag%Map_DryDepVel,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsWater',                                     &
+                   Ptr2Data = State_Diag%IsWater,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsLand',                                      &
+                   Ptr2Data = State_Diag%IsLand,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsIce',                                       &
+                   Ptr2Data = State_Diag%IsIce,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsSnow',                                      &
+                   Ptr2Data = State_Diag%IsSnow,                             &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -13582,6 +13778,12 @@ CONTAINS
                    RC       = RC                                            )     
     IF ( RC /= GC_SUCCESS ) RETURN
 
+! H. Zhu
+    CALL Finalize( diagId   = 'PDER',                                        &
+                   Ptr2Data = State_Diag%PDER,                               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'TotalOA',                                     &
                    Ptr2Data = State_Diag%TotalOA,                            &
                    RC       = RC                                            )
@@ -14102,6 +14304,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'PM25nit',                                     &
+                   Ptr2Data = State_Diag%PM25nit,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PM25nh4',                                     &
+                   Ptr2Data = State_Diag%PM25nh4,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'PM25su',                                      &
                    Ptr2Data = State_Diag%PM25su,                             &
                    RC       = RC                                            )
@@ -14535,6 +14747,26 @@ CONTAINS
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISWATER' ) THEN
+       IF ( isDesc    ) Desc  = 'Water mask including lakes and oceans'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISLAND' ) THEN
+       IF ( isDesc    ) Desc  = 'Land mask excluding ice and snow'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISICE' ) THEN
+       IF ( isDesc    ) Desc  = 'Ice mask including over land and ocean'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISSNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Snow mask over land only'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
@@ -15578,10 +15810,28 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
+! H. Zhu
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PDER' ) THEN
+       IF ( isDesc    ) Desc  = 'Paremeterized Effective Radius for SNA and OM'
+       IF ( isUnits   ) Units = 'um'
+       IF ( isRank    ) Rank  =  3
+
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Particulate matter with radii < 2.5 um, nitrates'
+            'Particulate matter with radii < 2.5 um, nitrates and ammonium'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NIT' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, nitrate'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, ammonium'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 

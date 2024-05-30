@@ -2548,7 +2548,7 @@ CONTAINS
                      HMRC,     FIRST=FIRST )
 #else
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRLANDIC )
+                     HMRC,     FIRST,             State_Met%FRLANDICE )
 #endif
 
     ! Trap potential errors
@@ -3609,7 +3609,6 @@ CONTAINS
          Input_Opt%ITS_A_CH4_SIM                                        .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
          Input_Opt%ITS_A_POPS_SIM                                       .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     .or. &
          Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
          Input_Opt%ITS_A_TRACER_SIM                                     .or. &
@@ -4482,6 +4481,7 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
@@ -4525,7 +4525,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S,       origUnit
+    INTEGER                 :: S,       previous_units
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4580,20 +4580,33 @@ CONTAINS
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -4816,8 +4829,8 @@ CONTAINS
              ! included emission from these surfaces and most field studies
              ! suggest Hg(0) emissions exceed deposition during sunlit hours.
              fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
-                                 State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+                                 State_Met%FRSNOW(I,J)   + &
+                                 State_Met%FRLANDICE(I,J), 1e+0_fp)
              zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
 
              IF ( zeroHg0Dep ) THEN
@@ -4974,20 +4987,6 @@ CONTAINS
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
           ! by the "frequency" setting in the "HISTORY.rc"input file.
-          ! The old bpch diagnostics archived the drydep due to chemistry
-          ! every chemistry timestep = 2X the dynamic timestep.  So in
-          ! order to avoid double-counting the drydep flux from mixing,
-          ! you had to multiply by TS_CONV / TS_CHEM.
-          !
-          ! ALSO NOTE: When comparing History output to bpch output,
-          ! you must use an updating frequency equal to the dynamic
-          ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to
-          ! turn off chemistry so as to be able to compare the drydep
-          ! fluxes due to mixing in bpch vs. History as an "apples-to-
-          ! apples" comparison.
-          !
-          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
           IF ( State_Diag%Archive_DryDepMix   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
@@ -5027,12 +5026,20 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -5040,6 +5047,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     ! Cleanup
