@@ -876,19 +876,16 @@ CONTAINS
       ! Parameterized dry effective radius for SNA and OM
       !===========================================================
       IF ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
-         IF ( Is_SimpleSOA ) THEN
-            ! dry SNA and OM mass, in unit of ug/m3
-            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L) )*1.0e+9_fp
-            ! ratio between OM and SNA, unitless
-            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L)) / State_Chm%AerMass%SO4_NH4_NIT(I,J,L)  
+         ! dry SNA and OM mass, in unit of ug/m3
+         State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + &
+                                            State_Chm%AerMass%OCPO(I,J,L) + &
+                                            State_Chm%AerMass%OCPISOA(I,J,L) ) * 1.0e+9_fp
 
-         ELSE IF ( Is_ComplexSOA ) THEN
-            ! dry SNA and OM mass, in unit of ug/m3
-            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)  ) * 1.0e+9_fp
-            ! ratio between OM and SNA, unitless
-            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L) )/ State_Chm%AerMass%SO4_NH4_NIT(I,J,L) 
-                     
-         ENDIF
+         ! ratio between OM and SNA, unitless
+         State_Chm%AerMass%R_OMSNA(I,J,L) = ( State_Chm%AerMass%OCPO(I,J,L) + &
+                                              State_Chm%AerMass%OCPISOA(I,J,L) ) / &
+                                              State_Chm%AerMass%SO4_NH4_NIT(I,J,L)
+
          ! Parameterized dry effective radius, in unit of um
          State_Chm%AerMass%PDER(I,J,L) = (exp( 4.36_fp + 0.20_fp*log(State_Chm%AerMass%SNAOM(I,J,L)) + 0.065_fp*log(State_Chm%AerMass%R_OMSNA(I,J,L)) ) *0.001_fp )/0.9_fp ;  
          
