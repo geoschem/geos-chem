@@ -763,39 +763,29 @@ CONTAINS
 
        ! Use simple SOA by default over complex SOA in calculations
        IF ( Is_SimpleSOA ) THEN
-          State_Chm%AerMass%OCPISOA(I,J,L) = ( Spc(id_OCPI)%Conc(I,J,L) * State_chm%AerMass%OCFOPOA(I,J) + &
-                             Spc(id_SOAS)%Conc(I,J,L) ) / AIRVOL(I,J,L)
+          State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPI(I,J,L) + &
+                                             State_Chm%AerMass%SOAS(I,J,L)
 
        ELSEIF ( Is_ComplexSOA ) THEN
 
-          State_Chm%AerMass%OCPISOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)   &
-                           + Spc(id_TSOA2)%Conc(I,J,L)   &
-                           + Spc(id_TSOA3)%Conc(I,J,L)   &
-                           + Spc(id_TSOA0)%Conc(I,J,L)   &
-                           + Spc(id_ASOAN)%Conc(I,J,L)   &
-                           + Spc(id_ASOA1)%Conc(I,J,L)   &
-                           + Spc(id_ASOA2)%Conc(I,J,L)   &
-                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
-                             / AIRVOL(I,J,L)
-
-          IF ( IS_OPOA ) THEN ! hotp 7/28/10
-             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) +              &
-                              ( Spc(id_OPOA1)%Conc(I,J,L)    &
-                              + Spc(id_OPOA2)%Conc(I,J,L) ) &
-                              * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
-          ENDIF
+          State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%TSOA(I,J,L) + &
+                                             State_Chm%AerMass%ASOA(I,J,L)
 
           IF ( IS_OCPI ) THEN  ! hotp 7/28/10
-             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + Spc(id_OCPI)%Conc(I,J,L) &
-                              * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
+             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
+                                                State_Chm%AerMass%OCPI(I,J,L)
           ENDIF
 
-       ENDIF
+          IF ( IS_OPOA ) THEN ! hotp 7/28/10
+             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
+                                                State_Chm%AerMass%OPOA(I,J,L)
+          ENDIF
 
-       ! Add mechanistic isoprene OA (eam, 08/2015)
-       ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
-       IF ( Is_ComplexSOA ) THEN
+          ! Add mechanistic isoprene OA (eam, 08/2015)
+          ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
+          ! Moved here (yzhang, 8 Jun 2024)
           State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)
+
        ENDIF
 
        ! Now avoid division by zero (bmy, 4/20/04)
@@ -825,13 +815,18 @@ CONTAINS
                      State_Chm%AerMass%BCPI(I,J,L)                    + &
                      State_Chm%AerMass%BCPO(I,J,L)                    + &
                      State_Chm%AerMass%OCPO(I,J,L)                    + &
-                     State_Chm%AerMass%OCPI(I,J,L)       * ORG_GROWTH + &
                      State_Chm%AerMass%SALA(I,J,L)       * SSA_GROWTH + &
                      SOILDUST(I,J,L,1)              + &
                      SOILDUST(I,J,L,2)              + &
                      SOILDUST(I,J,L,3)              + &
                      SOILDUST(I,J,L,4)              + &
                      SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
+       ! OCPI is not present in SVPOA simulation
+       ! OCPO represents all POA intead (factor*POA)
+       IF ( Is_OCPI ) THEN
+          State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + &
+                                          State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH
+       ENDIF
 
        ! Particulate matter < 10um [kg/m3]
        State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
