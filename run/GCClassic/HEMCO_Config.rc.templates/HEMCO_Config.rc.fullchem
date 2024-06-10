@@ -1931,10 +1931,10 @@ VerboseOnCores:              root       # Accepted values: root all
 #
 #==============================================================================
 (((CMIP6_AIRCRAFT
-0 CMIP6_AIR_NO     $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    NO_air            1750-2100/1-12/1/0 C xyz kg/m2/s   NO    -        20 1
-0 CMIP6_AIR_CO     $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    CO_air            1750-2100/1-12/1/0 C xyz kg/m2/s   CO    -        20 1
+0 CMIP6_AIR_NO     $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    NO_air            1750-2100/1-12/1/0 C xyz kg/m2/s   NO    -        20 1
+0 CMIP6_AIR_CO     $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    CO_air            1750-2100/1-12/1/0 C xyz kg/m2/s   CO    -        20 1
 0 CMIP6_AIR_SOAP   -                                                                                -                 -                  - -   -         SOAP  280      20 1
-0 CMIP6_AIR_SO2    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    SO2_air           1750-2100/1-12/1/0 C xyz kg/m2/s   SO2   -        20 1
+0 CMIP6_AIR_SO2    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    SO2_air           1750-2100/1-12/1/0 C xyz kg/m2/s   SO2   -        20 1
 0 CMIP6_AIR_SO4    -                                                                                -                 -                  - -   -         SO4   63       20 1
 0 CMIP6_AIR_pFe    -                                                                                -                 -                  - -   -         pFe   66       20 1
 0 CMIP6_AIR_ACET   -                                                                                -                 -                  - -   -         ACET  601      20 1
@@ -1946,10 +1946,10 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CMIP6_AIR_PRPE   -                                                                                -                 -                  - -   -         PRPE  607      20 1
 0 CMIP6_AIR_MACR   -                                                                                -                 -                  - -   -         MACR  608      20 1
 0 CMIP6_AIR_RCHO   -                                                                                -                 -                  - -   -         RCHO  609      20 1
-0 CMIP6_AIR_NH3    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    NH3_air           1750-2100/1-12/1/0 C xyz kg/m2/s   NH3   -        20 1
+0 CMIP6_AIR_NH3    $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    NH3_air           1750-2100/1-12/1/0 C xyz kg/m2/s   NH3   -        20 1
 # Assume all BC/OC is BCPI/OCPI
-0 CMIP6_AIR_BCPI   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    BC_air            1750-2100/1-12/1/0 C xyz kg/m2/s   BCPI  -        20 1
-0 CMIP6_AIR_OCPI   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAP2VERTRESL.nc4    OC_air            1750-2100/1-12/1/0 C xyz kg/m2/s   OCPI  -        20 1
+0 CMIP6_AIR_BCPI   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    BC_air            1750-2100/1-12/1/0 C xyz kg/m2/s   BCPI  -        20 1
+0 CMIP6_AIR_OCPI   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY_AIR.$GCAPVERTRES.nc4    OC_air            1750-2100/1-12/1/0 C xyz kg/m2/s   OCPI  -        20 1
 0 CMIP6_AIR_POG1   -                                                                                -                 -                  - -  -          POG1  74/76    20 1
 0 CMIP6_AIR_POG2   -                                                                                -                 -                  - -  -          POG2  74/77    20 1
 
