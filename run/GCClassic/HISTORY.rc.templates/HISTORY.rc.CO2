@@ -111,10 +111,6 @@ COLLECTIONS: 'Restart',
                        'BudgetConvectionTrop_?ADV?           ',
                        'BudgetConvectionPBL_?ADV?            ',
                        'BudgetConvectionLevs1to35_?ADV?      ',
-                       'BudgetWetDepFull_?WET?               ',
-                       'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',
-                       'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
 # %%%%% THE CO2 COLLECTION %%%%%
