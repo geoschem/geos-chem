@@ -1768,7 +1768,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : IS_POA, IS_OPOA
+    USE Aerosol_Mod,    ONLY : Is_POA, Is_OPOA, Is_OCPO, Is_OCPI
+    USE Aerosol_Mod,    ONLY : Is_ComplexSOA, Is_SimpleSOA
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species, SpcConc
@@ -2087,7 +2088,7 @@ CONTAINS
        IF ( State_Diag%Archive_AerMassPOA ) THEN
           IF ( Is_POA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
-          ELSE
+          ELSEIF ( Is_OCPO ) THEN
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
                                               kgm3_to_ugm3
           ENDIF
@@ -2158,12 +2159,13 @@ CONTAINS
        ! PDER [nm]
        !--------------------------------------
        IF ( State_Diag%Archive_PDER ) THEN
-          State_Diag%PDER(I,J,L) = PDER(I,J,L) 
+          State_Diag%PDER(I,J,L) = PDER(I,J,L)
        ENDIF
 
        !--------------------------------------
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
+       ! ComplexSOA only
        IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
           State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L) + ISOAAQ(I,J,L) ) &
                                                 * kgm3_to_ugm3
@@ -2172,34 +2174,47 @@ CONTAINS
        !--------------------------------------
        ! Sum of all organic aerosol [ug/m3]
        !--------------------------------------
+       ! Now TotalOA also works for simpleSOA
        IF ( State_Diag%Archive_TotalOA ) THEN
-          State_Diag%TotalOA(I,J,L) = ( TSOA(I,J,L) + &
-                                        ASOA(I,J,L) + &
-                                        OCPO(I,J,L) + &
-                                        OCPI(I,J,L) + &
-                                        OPOA(I,J,L) + &
-                                        ISOAAQ(I,J,L) ) * kgm3_to_ugm3
+          State_Diag%TotalOA(I,J,L) = ( OCPO(I,J,L) + &
+                                        OCPISOA(I,J,L) ) * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
        ! Sum of all organic carbon [ug/m3]
        !--------------------------------------
+       ! ComplexSOA only
+       ! since OM/OC ratio is not available for SOAS
+       ! consistent with aerosol_mod.F90
        IF ( State_Diag%Archive_TotalOC ) THEN
 
+         ! Hydrophobic OC
           IF ( Is_POA ) THEN
              State_Diag%TotalOC(I,J,L) = &
-                  ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
+                  ( ( TSOA(I,J,L) + ASOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
-
-          ELSE IF ( Is_OPOA ) THEN
+          ELSE IF ( Is_OCPO ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &
-                    / OCFOPOA(I,J) ) * kgm3_to_ugm3
+                    + OCPO(I,J,L) ) / OCFOPOA(I,J) ) * kgm3_to_ugm3
           ENDIF
 
-          IF ( Input_Opt%LSOA ) THEN
+          ! Hydrophilic OC
+          IF (Is_OCPI) THEN
+             State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                         ( OCPI(I,J,L) / OCFOPOA(I,J) * &
+                                         kgm3_to_ugm3 )
+          ENDIF
+
+          ! OPOA OC
+          IF (Is_OPOA) THEN
+            State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                        ( OPOA(I,J,L) / OCFOPOA(I,J) * &
+                                        kgm3_to_ugm3 )
+          ENDIF
+
+          ! Isoprene SOA OC
+          IF ( Is_ComplexSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
                   ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
                     ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &

@@ -783,7 +783,9 @@ CONTAINS
 
           ! Add mechanistic isoprene OA (eam, 08/2015)
           ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
-          ! Moved here (yzhang, 8 Jun 2024)
+          ! benchmark OCPISOA follows simpleSOA and
+          ! should exculde ISOAAQ to avoid double-counting
+          ! (yuanjianz, 8 Jun 2024)
           State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)
 
        ENDIF
@@ -828,13 +830,6 @@ CONTAINS
                                           State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH
        ENDIF
 
-       ! Particulate matter < 10um [kg/m3]
-       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
-                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
-                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
-                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
-                     State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
-
        ! Include either simple SOA (default) or Complex SOA in
        ! PM2.5 calculation.  In simulations where both Simple SOA and
        ! Complex SOA species are carried (i.e. "benchmark"), then
@@ -842,15 +837,9 @@ CONTAINS
        ! to avoid double-counting. (bmy, 03 Nov 2021)
        IF ( Is_SimpleSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
-          State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
 
        ELSE IF ( Is_ComplexSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L)                 + &
-                        State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
-
-          State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L)                 + &
                         State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
                         State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
                         State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
@@ -859,9 +848,15 @@ CONTAINS
           ! -- Maggie Marvin (15 Jul 2020)
           IF ( Is_OPOA ) THEN
              State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
-             State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
           ENDIF
        ENDIF
+
+       ! Particulate matter < 10um [kg/m3]
+       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
+                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
+                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
+                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
+                     State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
 
        ! Apply STP correction factor based on ideal gas law
        State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
