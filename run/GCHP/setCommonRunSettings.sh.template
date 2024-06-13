@@ -17,7 +17,7 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 #------------------------------------------------
 #   GRID RESOLUTION
 #------------------------------------------------
-# Integer representing number of grid cells per cubed-sphere face side
+# Even integer representing number of grid cells per cubed-sphere face side
 CS_RES=${RUNDIR_CS_RES}
 
 #------------------------------------------------
@@ -30,6 +30,8 @@ CS_RES=${RUNDIR_CS_RES}
 #    (4) STRETCH_FACTOR, TARGET_LAT, and TARGET_LON exactly match
 #        the global attribute values of these parameters in the
 #        initial restart file
+# NOTE: Running with stretched grid requires using winds in advection.
+#       Create a new run directory to use winds if this one uses mass fluxes.
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
