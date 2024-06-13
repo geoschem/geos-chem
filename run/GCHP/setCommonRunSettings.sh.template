@@ -498,15 +498,6 @@ replace_val NX            ${NX}                 GCHP.rc
 replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
 
-#### If # cores exceeds 1000 then write restart via o-server
-if [ ${TOTAL_CORES} -ge 1000 ]; then
-   print_msg "WARNING: write restarts by o-server is enabled since >=1000 cores"
-   replace_val WRITE_RESTART_BY_OSERVER   YES   GCHP.rc
-else
-   print_msg "WARNING: write restarts by o-server is disabled since <1000 cores"
-   replace_val WRITE_RESTART_BY_OSERVER   NO    GCHP.rc
-fi
-
 ###  Make sure adjoint diagnostics (if present) are commented out if using
 ### forward model, and uncommented if using adjoint.
 if [[ ${Model_Phase} == "FORWARD" ]]; then
