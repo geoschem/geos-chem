@@ -10,6 +10,7 @@
 #   COMPUTE RESOURCES
 #------------------------------------------------
 # Total cores must be divisible by 6
+
 TOTAL_CORES=${RUNDIR_NUM_CORES}
 NUM_NODES=${RUNDIR_NUM_NODES}
 NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
@@ -18,6 +19,11 @@ NUM_CORES_PER_NODE=${RUNDIR_CORES_PER_NODE}
 #   GRID RESOLUTION
 #------------------------------------------------
 # Even integer representing number of grid cells per cubed-sphere face side
+#
+# NOTE: If using mass flux inputs then grid resolution must be evenly divisible
+# by input mass flux resolution, or vice versa. Acceptable resolutions for GEOS-IT
+# when using mass fluxes are therefore in set [10,30,90,180,360,540,720,etc]
+
 CS_RES=${RUNDIR_CS_RES}
 
 #------------------------------------------------
@@ -30,8 +36,10 @@ CS_RES=${RUNDIR_CS_RES}
 #    (4) STRETCH_FACTOR, TARGET_LAT, and TARGET_LON exactly match
 #        the global attribute values of these parameters in the
 #        initial restart file
+#
 # NOTE: Running with stretched grid requires using winds in advection.
 #       Create a new run directory to use winds if this one uses mass fluxes.
+
 STRETCH_GRID=OFF
 STRETCH_FACTOR=2.0
 TARGET_LAT=-45.0
@@ -41,12 +49,14 @@ TARGET_LON=170.0
 #    SIMULATION DURATION
 #------------------------------------------------
 # Format is "YYYYMMDD HHmmSS". Example: "0000100 000000" for 1 month
+
 Run_Duration="${RUNDIR_SIM_DUR_YYYYMMDD} ${RUNDIR_SIM_DUR_HHmmSS}"
 
 #------------------------------------------------------------
 #    GEOS-CHEM COMPONENTS
 #------------------------------------------------------------
 # Sets values in geoschem_config.yml
+
 Do_Chemistry=true
 Do_Advection=true
 Do_Cloud_Conv=true
@@ -59,6 +69,8 @@ Do_WetDep=true
 #    DIAGNOSTICS
 #---------------------------------------------------------------------
 # Auto-update settings in HISTORY.rc for specific collections (enable with ON)
+# NOTE: you must add new collections to the list below to auto-update them.
+
 AutoUpdate_Diagnostics=OFF
 
 # Instructions to auto-update diagnostics
@@ -69,7 +81,7 @@ AutoUpdate_Diagnostics=OFF
 #        3b. Set Diag_Duration for file write frequency, format "HHmmSS"
 #        *Note that number of hours may exceed 2 digits, e.g. 744 for 744 hrs
 #   4. Edit Diag_Collections list to specify which collections to update
-#
+
 Diag_Monthly="${RUNDIR_HIST_MONTHLY_DIAG}"
 Diag_Frequency="${RUNDIR_HIST_TIME_AVG_FREQ}"
 Diag_Duration="${RUNDIR_HIST_TIME_AVG_DUR}"
@@ -107,9 +119,6 @@ Diag_Collections=(SpeciesConc    \
 #------------------------------------------------------------
 #    MID-RUN CHECKPOINT FILES
 #------------------------------------------------------------
-Midrun_Checkpoint=OFF
-Checkpoint_Freq=monthly
-
 # Instructions for configuring restart output before end of run:
 #  1. Set Midrun_Checkpoint=ON
 #  2. Set Checkpoint_Freq to either monthly or a string of format HHmmss
@@ -117,9 +126,14 @@ Checkpoint_Freq=monthly
 #     More than 2 digits for hours is permitted, e.g. "1680000" for 7 days.
 #  NOTE: Frequency of output will be measured from start date set in cap_restart.
 
+Midrun_Checkpoint=OFF
+Checkpoint_Freq=monthly
+
 #------------------------------------------------
 #   REQUIRE ALL SPECIES IN INITIAL RESTART FILE
 #------------------------------------------------
+# Set to 1 to require all species in restart; set to 0 to enable missing species.
+
 Require_Species_in_Restart=${RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED}
 
 ###################################################################
@@ -127,15 +141,55 @@ Require_Species_in_Restart=${RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED}
 ###################################################################
 
 #------------------------------------------------
-#   MODEL PHASE
+#   DOMAIN DECOMPOSITION
 #------------------------------------------------
-# FORWARD for forward model, ADJOINT for adjoint model
-Model_Phase=FORWARD
+# Enable auto-update of NX and NY based on core count by setting to ON. This
+# will make NX by NY/6 as square as possible to reduce communication overhead
+# in GCHP. Only disable this feature if using mass fluxes.
+
+AutoUpdate_NXNY=ON
+
+# Specify NX and NY below if not auto-updating. Otherwise leave blank. See rules below.
+
+NX=
+NY=
+
+# Cores are distributed across each of the six cubed sphere faces using
+# configurable parameters NX and NY. Each face is divided into NX by NY/6
+# regions and each of those regions is processed by a single core
+# independent of which node it belongs to.
+#
+# Rules and tips for setting NX and NY manually:
+#   1. NY must be an integer and a multiple of 6
+#   2. NX*NY must equal total number of cores (NUM_NODES*NUM_CORES_PER_NODE)
+#   3. NX and NY should be as close to equal as possible (maximize squareness)
+#         Good examples: (NX=4,NY=24)  -> 96  cores at 4x4
+#                        (NX=6,NY=24)  -> 144 cores at 6x4
+#         Bad examples:  (NX=8,NY=12)  -> 96  cores at 8x2
+#                        (NX=12,NY=12) -> 144 cores at 12x2
+#   4. Domain decomposition requires that CS_RES/NX >= 4 and CS_RES*6/NY >= 4,
+#      which puts an upper limit on total cores per grid resolution.
+#         c24: 216 cores   (NX=6,  NY=36 )
+#         c48: 864 cores   (NX=12, NY=72 )
+#         c90: 3174 cores  (NX=22, NY=132)
+#        c180: 12150 cores (NX=45, NY=270)
+#        c360: 48600 cores (NX=90, NY=540)
+#      Using fewer cores may still trigger a domain decomposition error, e.g.:
+#         c48: 768 cores   (NX=16, NY=48)  --> 48/16=3 will trigger FV3 error
+#   5. If using mass flux inputs then both native mass flux resolution and model
+#      run resolution must be evenly divisible by both NX and NY/6.
+#         Example of C180 fluxes (e.g. GEOS-IT) run at C90:
+#            96 cores,  NX=4, NY/6=4 -> fail    (90/4=22.5)
+#            150 cores, NX=5, NY/6=5 -> success (180/5=36, 90/5=18)
+#            216 cores, NX=6, NY/6=6 -> success (180/6=30, 90/6=15)
+#            384 cores, NX=8, NY/6=8 -> fail    (180/8=22.5)
 
 #------------------------------------------------
 #    TIMESTEPS
 #------------------------------------------------
-# Timesteps in GCHP are resolution-dependent
+# Non-RRTMG timesteps in GCHP are resolution-dependent.
+# Stretched grid timesteps are set based on the high-resolution region.
+
 CS_RES_EFFECTIVE=${CS_RES}
 if [[ ${STRETCH_GRID} == 'ON' ]]; then
     CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
@@ -157,6 +211,7 @@ RRTMG_Timestep_sec=10800
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
 # benchmarking and is resolution-dependent. We recommend using offline dust
 # instead of the online extension for GCHP science runs.
+
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
 if [[ ${dustEntry} != "missing" ]]; then
     dustSetting=(${dustEntry// / })
@@ -190,6 +245,7 @@ fi
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
 # benchmarking and is resolution-dependent. We recommend using offline dust
 # instead of the online extension for GCHP science runs.
+
 TomasDustEntry=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
 if [[ ${TomasDustEntry} != "missing" ]]; then
     TomasDustSetting=(${TomasDustEntry// / })
@@ -215,39 +271,13 @@ if [[ ${TomasDustEntry} != "missing" ]]; then
         fi
     fi
 fi
-#------------------------------------------------
-#   DOMAIN DECOMPOSITION
-#------------------------------------------------
-# Enable auto-update of NX and NY based on core count by setting to ON. This
-# will make NX by NY/6 as square as possible to reduce communication overhead
-# in GCHP.
-AutoUpdate_NXNY=ON
 
-# Specify NX and NY if not auto-updating. See rules below.
-NX=
-NY=
-# Cores are distributed across each of the six cubed sphere faces using
-# configurable parameters NX and NY. Each face is divided into NX by NY/6
-# regions and each of those regions is processed by a single core
-# independent of which node it belongs to.
-#
-# Rules and tips for setting NX and NY manually:
-#   1. NY must be an integer and a multiple of 6
-#   2. NX*NY must equal total number of cores (NUM_NODES*NUM_CORES_PER_NODE)
-#
-#         Good examples: (NX=4,NY=24)  -> 96  cores at 4x4
-#                        (NX=6,NY=24)  -> 144 cores at 6x4
-#         Bad examples:  (NX=8,NY=12)  -> 96  cores at 8x2
-#                        (NX=12,NY=12) -> 144 cores at 12x2
-#   4. Domain decomposition requires that CS_RES/NX >= 4 and CS_RES*6/NY >= 4,
-#      which puts an upper limit on total cores per grid resolution.
-#         c24: 216 cores   (NX=6,  NY=36 )
-#         c48: 864 cores   (NX=12, NY=72 )
-#         c90: 3174 cores  (NX=22, NY=132)
-#        c180: 12150 cores (NX=45, NY=270)
-#        c360: 48600 cores (NX=90, NY=540)
-#      Using fewer cores may still trigger a domain decomposition error, e.g.:
-#         c48: 768 cores   (NX=16, NY=48)  --> 48/16=3 will trigger FV3 error
+#------------------------------------------------
+#   MODEL PHASE
+#------------------------------------------------
+# FORWARD for forward model, ADJOINT for adjoint model
+
+Model_Phase=FORWARD
 
 
 ###############################
@@ -305,6 +335,13 @@ if (( ${NY}%6 != 0 )); then
    exit 1
 fi
 
+#### Check grid resolution
+if (( (${CS_RES}) % 2 != 0 )); then
+    echo "ERROR: Cubed-sphere face does not have even number of grid cells per side. Update grid resolution in setCommonRunSettings.sh to be an even number."
+    exit 1
+fi
+
+
 #### Check that domain decomposition will not trigger a FV3 domain error
 if [[ $(( ${CS_RES}/${NX} )) -lt 4 || $(( ${CS_RES}*6/${NY} )) -lt 4  ]]; then
    echo "ERROR: NX and NY are set such that face side length divided by NX or NY/6 is less than 4. The cubed sphere compute domain has a minimum requirement of 4 points in NX and NY/6. This problem occurs when grid resolution is too low for core count requested. Edit setCommonRunSettings.sh to loower total number of cores or increase your grid resolution."
@@ -343,6 +380,44 @@ if [[ ${STRETCH_GRID} == 'ON' ]]; then
 	exit 1
     elif [[ ${TARGET_LON} != *"."* ]]; then
 	echo "ERROR: Stretched grid target longitude must be float. Edit entry in setCommonRunSettings.sh."
+	exit 1
+    fi
+fi
+
+#### Mass flux checks for grid resolution and domain decomposition
+MassFlux_Entry=$(grep "MFXC" ExtData.rc || echo "missing")
+if [[ ${MassFluxEntry} != "missing" ]]; then
+
+    #### Get met grid res (assume GEOS-IT and GEOS-FP are the only options)
+    C180_Entry=$(grep "MFXC.*C180x180x6" ExtData.rc || echo "missing")
+    if [[ ${C180_Entry} != "missing" ]]; then
+	input_res=180
+    else
+	input_res=720
+    fi
+    if (( ${CS_RES} < ${input_res} )); then
+	lowest_res=${CS_RES}
+	highest_res=${input_res}
+    else
+	lowest_res=${input_res}
+	highest_res=${CS_RES}
+    fi
+
+    #### Check that not using stretched grid
+    if [[ ${STRETCH_GRID} == 'ON' ]]; then
+	echo "ERROR: Do not use stretched grid when using mass flux inputs. Create a winds run directory for stretched grid simulations."
+	exit 1
+    fi
+
+    #### Check that input and grid resolutions are evenly divisible
+    if (( (${highest_res}) % (${lowest_res}) != 0 )); then
+	echo "ERROR: Mass flux input resolution and run grid resolution must be evenly divisible. Input resolution is ${input_res} but grid resolution is ${CS_RES}."
+	exit 1
+    fi
+
+    #### Check that grid/run resolutions are evenly divisible by NX and NY/6
+    if (( ${lowest_res} % ${NX} != 0 || ${lowest_res} % (${NY}/6) != 0 )); then
+	echo "ERROR: Input and run resolutions must divide evenly by NX and NY/6 when using mass flux inputs. Manually set NX and NY in setCommonRunSettings.sh for your simulation. Current settings are input resolution ${input_res}, grid resolution ${CS_RES}, NX ${NX} and NY ${NY}."
 	exit 1
     fi
 fi
@@ -451,10 +526,11 @@ comment_line() {
 update_dyn_freq() {
 
     # String to search for
-    str="^[\t ]*$1.*MetDir"
+    str="^[\t ]*$1*[\t ]"
 
     # Check number of matches where first string is start of line, allowing for
-    # whitespace. # matches should be one; otherwise exit with an error.
+    # whitespace before and require whitespace after. # matches should be one;
+    # otherwise exit with an error.
     numlines=$(grep -c "$str" $2)
     if [[ ${numlines} == "0" ]]; then
        echo "ERROR: met-field $1 missing in $2"
@@ -698,4 +774,6 @@ if [[ ${lightningClimEntry} != "missing" ]]; then
 fi
 
 #### Done
+print_msg " "
+print_msg "setCommonRunSettings.sh done"
 print_msg " "
