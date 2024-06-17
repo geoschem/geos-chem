@@ -7,10 +7,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Removed
 - Removed `BudgetWetDep*` entries from simulations with no soluble species in `HISTORY.rc` templates
+- Remove enabling O-server in GCHP for high core counts
 
 ### Fixed
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed typo `$GCAPVERTRESL` -> `$GCAPVERTRES` in `HEMCO_Config.rc.fullchem` template file
+- Fixed GCHP ExtData.rc entry for lightning climatology files
+
+### Added
+- Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid
+- Added pre-run GCHP configuration checks to setCommonRunSettings.sh related to domain decomposition, mass fluxes, and stretched grid.
+
+### Changed
+- Changed search criteria for GCHP auto-update of met-field refresh frequency to not rely on presence of MetDir symlink in ExtData.rc file path
 
 ## [14.4.0] - 2024-05-30
 ### Added
