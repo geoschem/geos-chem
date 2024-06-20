@@ -27,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
 - Remove enabling O-server in GCHP for high core counts
 
+### Added
+- Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion
