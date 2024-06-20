@@ -71,6 +71,7 @@ operations:
 
   photolysis:
     activate: true
+    num_levs_with_cloud: 34
     input_directories:
       fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2024-05/
       cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2023-05/

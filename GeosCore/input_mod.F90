@@ -2762,6 +2762,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: v_bool
+    INTEGER                      :: v_int
     REAL(yp)                     :: v_real
 
     ! Strings
@@ -2792,6 +2793,19 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Number levels with clouds to use in photolysis
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%num_levs_with_cloud"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%NLevs_Phot_Cloud = v_int
 
     !------------------------------------------------------------------------
     ! Directories with photolysis input files
@@ -3000,6 +3014,8 @@ CONTAINS
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
+       WRITE( 6,130 ) 'Number levels with cloud    : ',                      &
+                       Input_Opt%Nlevs_Phot_Cloud
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
@@ -3031,7 +3047,8 @@ CONTAINS
 105 FORMAT( A, F8.3 )
 110 FORMAT( A, F4.2 )
 120 FORMAT( A, A    )
-
+130 FORMAT( A, I5   )
+    
     END SUBROUTINE Config_Photolysis
 !EOC
 !------------------------------------------------------------------------------
