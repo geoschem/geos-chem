@@ -4,6 +4,14 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Changed
+- Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
+
+### Removed
+- Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
+- Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion
