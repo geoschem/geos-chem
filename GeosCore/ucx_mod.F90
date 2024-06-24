@@ -4139,7 +4139,6 @@ CONTAINS
 #if defined( MODEL_CESM )
     ENDIF
 
-    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom, ierr )
     IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 
