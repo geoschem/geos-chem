@@ -1067,7 +1067,7 @@ Mask fractions:              false
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_ $ROOT/SAMPLE_BCs/v2021-07/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV? $YYYY/$MM/$DD/* EFY xyz 1 * - 1 1
+* BC_ $ROOT/SAMPLE_BCs/v2021-07/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV? 1900-2100/1-12/1-31/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 #==============================================================================

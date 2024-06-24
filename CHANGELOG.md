@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed typo `$GCAPVERTRESL` -> `$GCAPVERTRES` in `HEMCO_Config.rc.fullchem` template file
+- Use hard-coded years for met fields and BC files in HEMCO_Config.rc so they are not read hourly
 
 ## [14.4.0] - 2024-05-30
 ### Added
