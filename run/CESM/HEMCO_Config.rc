@@ -162,7 +162,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS/ACET/ALD2/MENO3/ETNO3/MOH
-102     ParaNOx                : on    NO/NO2/O3/HNO3
+102     ParaNOx                : off   NO/NO2/O3/HNO3
     --> LUT data format        :       nc
     --> LUT source dir         :       $ROOT/PARANOX/v2015-02
 103     LightNOx               : off   NO
