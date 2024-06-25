@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
 
+### Fixed
+- Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
+
 ### Removed
 - Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
 - Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
