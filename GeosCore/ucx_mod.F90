@@ -3825,6 +3825,9 @@ CONTAINS
     ! UCX_H2SO4PHOT begins here!
     !=================================================================
 
+    ! Initialize
+    PHOTDELTA = 0.0_fp
+
     ! Copy fields from species database
     SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%MW_g ! g/mol
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol

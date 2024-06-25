@@ -16,6 +16,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed `BudgetWetDep*` entries from simulations with no soluble species in `HISTORY.rc` templates
 
+### Added
+- Added initialization of PHOTDELTA in ucx_h2so4phot to avoid run-time error in CESM
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion
