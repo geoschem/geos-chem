@@ -5,13 +5,16 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
-### Removed
-- Removed `BudgetWetDep*` entries from simulations with no soluble species in `HISTORY.rc` templates
+### Changed
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation
 
 ### Fixed
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed typo `$GCAPVERTRESL` -> `$GCAPVERTRES` in `HEMCO_Config.rc.fullchem` template file
 - Use hard-coded years for met fields and BC files in HEMCO_Config.rc so they are not read hourly
+
+### Removed
+- Removed `BudgetWetDep*` entries from simulations with no soluble species in `HISTORY.rc` templates
 
 ## [14.4.0] - 2024-05-30
 ### Added

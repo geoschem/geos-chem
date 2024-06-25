@@ -94,6 +94,9 @@ operations:
       - AERI
       - ALD2
       - ALK4
+      - AONITA
+      - AROMP4
+      - AROMP5
       - ASOA1
       - ASOA2
       - ASOA3
@@ -101,9 +104,6 @@ operations:
       - ASOG1
       - ASOG2
       - ASOG3
-      - AONITA
-      - AROMP4
-      - AROMP5
       - ATOOH
       - BALD
       - BCPI
