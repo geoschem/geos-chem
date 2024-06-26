@@ -136,6 +136,44 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
+ALK4N1:
+  Formula: C4H8NO5
+  FullName: Peroxy radical from ALK4N2
+  Is_Gas: true
+  MW_g: 150.13
+ALK4N2:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+4
+  Formula: RO2NO
+  FullName: Lumped alkyl nitrate from ALK4
+  Henry_CR: 5800.0
+  Henry_K0: 1.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 119.10
+  WD_RetFactor: 2.0e-2
+ALK4O2:
+  Formula: C4H9O2
+  FullName: Peroxy radical from ALK4
+  Is_Gas: true
+  MW_g: 89.13
+ALK4P:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH2CH2CH2OOH
+  FullName: Peroxide from ALK4O2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 90.14
+  WD_RetFactor: 2.0e-2
 AONITA:
   DD_F0: 1.0
   DD_Hstar: 2.9e+3
@@ -4097,7 +4135,7 @@ R4N2:
   WD_RetFactor: 2.0e-2
 R4O2:
   Formula: C4H9O2
-  FullName: Peroxy radical from ALK4
+  FullName: Peroxy radical from isoprene and MTPA alkyl generation
   Is_Gas: true
   MW_g: 89.13
 R4P:
