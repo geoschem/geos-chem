@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added initialization of PHOTDELTA in `ucx_h2so4phot` to avoid run-time error in CESM
+- Added Cloud-J status output and error handling for it
 
 ### Changed
 - Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
