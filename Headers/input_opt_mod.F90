@@ -120,12 +120,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBCAE
      REAL(fp)                    :: BCAE_1
      REAL(fp)                    :: BCAE_2
-     ! for nitrate aerosol photolysis (TMS, 23/08/2018)
-     LOGICAL                     :: hvAerNIT
-     REAL(fp)                    :: hvAerNIT_JNIT
-     REAL(fp)                    :: hvAerNIT_JNITs
-     REAL(fp)                    :: JNITChanA
-     REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
      ! EMISSIONS fields
@@ -171,9 +165,6 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
-     LOGICAL                     :: USE_ONLINE_O3
-     LOGICAL                     :: USE_O3_FROM_MET
-     LOGICAL                     :: USE_TOMS_O3
      LOGICAL                     :: USE_AUTOREDUCE
      LOGICAL                     :: AUTOREDUCE_IS_KEEPACTIVE
      LOGICAL                     :: AUTOREDUCE_IS_KEY_THRESHOLD
@@ -192,6 +183,16 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
      CHARACTER(LEN=255)          :: CloudJ_Dir
+     INTEGER                     :: Nlevs_Phot_Cloud
+     LOGICAL                     :: USE_ONLINE_O3
+     LOGICAL                     :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_TOMS_O3
+     ! for nitrate aerosol photolysis (TMS, 23/08/2018)
+     LOGICAL                     :: hvAerNIT
+     REAL(fp)                    :: hvAerNIT_JNIT
+     REAL(fp)                    :: hvAerNIT_JNITs
+     REAL(fp)                    :: JNITChanA
+     REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -612,11 +613,6 @@ CONTAINS
     Input_Opt%P_ICE_SUPERSAT         = 0.0_fp
     Input_Opt%LPSCCHEM               = .FALSE.
     Input_Opt%LSTRATOD               = .FALSE.
-    Input_Opt%hvAerNIT               = .FALSE.
-    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
-    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
-    Input_Opt%JNITChanA              = 0.0_fp
-    Input_Opt%JNITChanB              = 0.0_fp
 
     !----------------------------------------
     ! EMISSIONS MENU fields
@@ -661,9 +657,6 @@ CONTAINS
     Input_Opt%GAMMA_HO2              = 0.0_fp
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
-    Input_Opt%USE_ONLINE_O3          = .FALSE.
-    Input_Opt%USE_O3_FROM_MET        = .FALSE.
-    Input_Opt%USE_TOMS_O3            = .FALSE.
 
     Input_Opt%USE_AUTOREDUCE                = .FALSE.
     Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD   = .TRUE.
@@ -679,6 +672,15 @@ CONTAINS
     Input_Opt%Do_Photolysis         = .FALSE.
     Input_Opt%FAST_JX_DIR           = ''
     Input_Opt%CloudJ_Dir            = ''
+    Input_Opt%Nlevs_Phot_Cloud      = 0
+    Input_Opt%USE_ONLINE_O3         = .FALSE.
+    Input_Opt%USE_O3_FROM_MET       = .FALSE.
+    Input_Opt%USE_TOMS_O3           = .FALSE.
+    Input_Opt%hvAerNIT               = .FALSE.
+    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
+    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
+    Input_Opt%JNITChanA              = 0.0_fp
+    Input_Opt%JNITChanB              = 0.0_fp
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)

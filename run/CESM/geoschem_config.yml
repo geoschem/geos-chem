@@ -46,6 +46,7 @@ operations:
 
   photolysis:
     activate: true
+    num_levs_with_cloud: 22
     input_directories:
       fastjx_input_dir: /see/namelist/file
       cloudj_input_dir: /see/namelist/file

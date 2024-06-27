@@ -59,6 +59,7 @@ operations:
 
   photolysis:
     activate: true
+    num_levs_with_cloud: 34
     input_directories:
       fastjx_input_dir: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/FAST_JX/v2023-10/
       cloudj_input_dir: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/CLOUD_J/v2023-05/
