@@ -4,6 +4,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.4.2] - TBD
+### Added
+- Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
+
+### Fixed
+- Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
+
 ## [14.4.1] - 2024-06-28
 ### Added
 - Added initialization of PHOTDELTA in `ucx_h2so4phot` to avoid run-time error in CESM
@@ -26,9 +33,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
 - Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
 - Remove enabling O-server in GCHP for high core counts
-
-### Added
-- Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
 
 ## [14.4.0] - 2024-05-30
 ### Added
