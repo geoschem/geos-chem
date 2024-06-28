@@ -4,6 +4,29 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added initialization of PHOTDELTA in `ucx_h2so4phot` to avoid run-time error in CESM
+
+### Changed
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
+- Use hard-coded years for met fields and BC files in `HEMCO_Config.rc` so they are not read hourly
+- Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
+- Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid
+- Added pre-run GCHP configuration checks to `setCommonRunSettings.sh` related to domain decomposition, mass fluxes, and stretched grid.
+- Changed search criteria for GCHP auto-update of met-field refresh frequency to not rely on presence of `MetDir` symlink in `ExtData.rc` file path
+
+### Fixed
+- Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
+- Fixed typo `$GCAPVERTRESL` -> `$GCAPVERTRES` in `HEMCO_Config.rc.fullchem` template file
+- Fixed GCHP `ExtData.rc` entry for lightning climatology files
+
+### Removed
+- Removed `BudgetWetDep*` entries from simulations with no soluble species in `HISTORY.rc` templates
+- Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
+- Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
+- Remove enabling O-server in GCHP for high core counts
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion

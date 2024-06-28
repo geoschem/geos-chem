@@ -45,85 +45,85 @@ METDIR:   ${RUNDIR_MET_DIR}
 * PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.$RES.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
 
 # --- A1 fields ---
-* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* QV2M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     QV2M     $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
-* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      $YYYY/$MM/$DD/*/+30minute EFY xy  1  * -  1 1
+* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     ALBEDO   1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     CLDTOT   1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EFLUX    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     EVAP     1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSEAICE 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     FRSNO    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GRN      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETROOT 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     GWETTOP  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     HFLUX    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     LAI      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDF    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PARDR    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PBLH     1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECANV  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECCON  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECLSC  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECSNO  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     PRECTOT  1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* QV2M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     QV2M     1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE00 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE10 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE20 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE30 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE40 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE50 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE60 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE70 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE80 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SEAICE90 1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SLP      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNODP    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SNOMAS   1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     SWGDN    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TO3      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TROPPT   1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     TS       1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     T2M      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     U10M     1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     USTAR    1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     V10M     1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.$RES.$NC     Z0M      1900-2100/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
 
 # --- A3cld fields ---
-* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
+* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  CLOUD    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  OPTDEPTH 1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QI       1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  QL       1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLI   1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.$RES.$NC  TAUCLW   1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3dyn fields ---
-* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
+* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  DTRAIN   1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  OMEGA    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  RH       1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* U         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  U        1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* V         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.$RES.$NC  V        1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3mstC fields ---
-* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
+* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRCU    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC DQRLSAN  1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPCN 1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.$RES.$NC REEVAPLS 1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- A3mstE fields ---
-* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
-* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  $YYYY/$MM/$DD/*/+90minute EFY xyz 1  * -  1 1
+* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC CMFMC    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFICU    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFILSAN  1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLCU    1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.$RES.$NC PFLLSAN  1900-2100/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
 
 # --- I3 fields ---
-* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        $YYYY/$MM/$DD/*           EFY xy  1  * -  1 1
-* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        $YYYY/$MM/$DD/*           EFY xyz 1  * -  1 1
-* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         $YYYY/$MM/$DD/*           EFY xyz 1  * -  1 1
+* PS       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     PS        1900-2100/1-12/1-31/*           EFY xy  1  * -  1 1
+* SPHU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     QV        1900-2100/1-12/1-31/*           EFY xyz 1  * -  1 1
+* TMPU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC     T         1900-2100/1-12/1-31/*           EFY xyz 1  * -  1 1
 
-* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        $YYYY/$MM/1-31/1/+1day     EFY xy  1  * -  1 1
-* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        $YYYY/$MM/1-31/1/+1day     EFY xyz 1  * -  1 1
-* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         $YYYY/$MM/1-31/1/+1day     EFY xyz 1  * -  1 1
+* PS_NEXTDAY   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC PS        1900-2100/1-12/1-31/1/+1day     EFY xy  1  * -  1 1
+* SPHU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC QV        1900-2100/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.$RES.$NC T         1900-2100/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
 
 #==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
@@ -134,8 +134,8 @@ METDIR:   ${RUNDIR_MET_DIR}
 #==============================================================================
 (((LightNOx
 (((.not.LightningClimatology
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/$YYYY/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_$YYYY_$MM.nc4  LDENS $YYYY/$MM/$DD/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/$YYYY/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_$YYYY_$MM.nc4  CTH   $YYYY/$MM/$DD/0-23/+90minute RFY3 xy  1  * -  1 1
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/$YYYY/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_$YYYY_$MM.nc4  LDENS 1900-2100/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/$YYYY/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_$YYYY_$MM.nc4  CTH   1900-2100/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 ))).not.LightningClimatology
 
 (((LightningClimatology
