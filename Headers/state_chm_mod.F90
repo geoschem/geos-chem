@@ -91,6 +91,8 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Mapping vectors to subset types of species
      !-----------------------------------------------------------------------
+     REAL(f8),          POINTER :: KPP_AbsTol (:      ) ! KPP absolute tolerance
+     REAL(f8),          POINTER :: KPP_RelTol (:      ) ! KPP relative tolerance
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
      INTEGER,           POINTER :: Map_All    (:      ) ! All species IDs
@@ -643,6 +645,10 @@ CONTAINS
     ! Add fields for APM microphysics
     State_Chm%PSO4_SO2APM2      => NULL()
 #endif
+
+    ! KPP integrator quantities
+    State_Chm%KPP_AbsTol        => NULL()
+    State_Chm%KPP_RelTol        => NULL()
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -2525,6 +2531,17 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_KppVar', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppVar = 0
+
+       ! 
+       ALLOCATE( State_Chm%KPP_AbsTol( N ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KppAbsTol', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_AbsTol = 0.0_f8
+
+       ALLOCATE( State_Chm%KPP_RelTol( N ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KppRelTol', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_RelTol = 0.0_f8
     ENDIF
 
     N = State_Chm%nKppFix + State_Chm%nOmitted
@@ -2683,6 +2700,8 @@ CONTAINS
        IF ( ThisSpc%Is_ActiveChem ) THEN
           C                       = ThisSpc%KppVarId
           State_Chm%Map_KppVar(C) = ThisSpc%ModelId
+          State_Chm%KPP_AbsTol(C) = ThisSpc%KPP_AbsTol
+          State_Chm%KPP_RelTol(C) = ThisSpc%KPP_RelTol
        ENDIF
 
        !---------------------------------------------------------------------
@@ -3086,6 +3105,20 @@ CONTAINS
     IF ( ASSOCIATED( State_Chm%Phot ) ) THEN
        CALL Cleanup_Phot_Container( State_Chm%Phot, RC )
        State_Chm%Phot => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KPP_AbsTol ) ) THEN
+       DEALLOCATE( State_Chm%KPP_AbsTol, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KPP_AbsTol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_AbsTol => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KPP_RelTol ) ) THEN
+       DEALLOCATE( State_Chm%KPP_RelTol, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KPP_RelTol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_RelTol => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_Advect ) ) THEN

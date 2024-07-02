@@ -44,7 +44,7 @@ MODULE FullChem_Mod
   INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
 #ifdef MODEL_GEOS
-  INTEGER               :: id_O3
+<  INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
   INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
   INTEGER               :: id_PRN1, id_R4N1, id_R4O2, id_TRO2, id_XRO2
@@ -468,10 +468,10 @@ CONTAINS
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
     ! Absolute tolerance
-    ATOL      = 1e-2_dp
+    ATOL      = State_Chm%KPP_AbsTol
 
     ! Relative tolerance
-    RTOL      = 0.5e-2_dp
+    RTOL      = State_Chm%KPP_RelTol
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -2822,6 +2822,19 @@ CONTAINS
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
 
+
+    !=======================================================================
+    ! Assign default values for KPP absolute and relative tolerances
+    ! for species where these have not been explicitly defined.
+    !=======================================================================
+    WHERE( State_Chm%KPP_AbsTol == MISSING_DBLE )
+       State_Chm%KPP_AbsTol = 1.0e-2_f8
+    ENDWHERE
+
+    WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
+       State_Chm%KPP_RelTol = 0.5e-2_f8
+    ENDWHERE
+
     !=======================================================================
     ! Save physical parameters from the species database into KPP arrays
     ! in gckpp_Global.F90.  These are for the hetchem routines.
@@ -2835,7 +2848,6 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
-
     !=======================================================================
     ! Allocate arrays
     !=======================================================================
