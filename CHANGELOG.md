@@ -4,6 +4,14 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Set `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
+- Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+
+### Changed
+- Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion
