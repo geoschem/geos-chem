@@ -2760,7 +2760,7 @@ LBRO2H:
   FullName: Dummy species to track oxidation of BRO2 by HO2
   Is_Gas: true
   MW_g: 159.13
-  KPP_AbsTol: 1.0e+25_8
+  KPP_AbsTol: 1.0e+25
 LBRO2N:
   FullName: Dummy species to track oxidation of BRO2 by NO
   Is_Gas: true
