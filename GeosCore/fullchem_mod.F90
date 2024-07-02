@@ -44,7 +44,7 @@ MODULE FullChem_Mod
   INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
 #endif
 #ifdef MODEL_GEOS
-<  INTEGER               :: id_O3
+  INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
   INTEGER               :: id_ETO2, id_LIMO2, id_MO2, id_PIO2, id_PO2
   INTEGER               :: id_PRN1, id_R4N1, id_R4O2, id_TRO2, id_XRO2
