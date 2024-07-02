@@ -12,6 +12,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 
+### Fixed
+- In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
+
 ## [14.4.0] - 2024-05-30
 ### Added
 - Added `SpcConc%Units` for species-specific unit conversion
