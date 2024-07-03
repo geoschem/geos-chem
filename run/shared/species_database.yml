@@ -2760,18 +2760,22 @@ LBRO2H:
   FullName: Dummy species to track oxidation of BRO2 by HO2
   Is_Gas: true
   MW_g: 159.13
+  KPP_AbsTol: 1.0e+25
 LBRO2N:
   FullName: Dummy species to track oxidation of BRO2 by NO
   Is_Gas: true
   MW_g: 159.13
+  KPP_AbsTol: 1.0e+25
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
   MW_g: 16.04
+  KPP_AbsTol: 1.0e+25
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
   MW_g: 28.01
+  KPP_AbsTol: 1.0e+25
 LIMO:
   DD_F0: 0.0
   DD_Hstar: 7.0e-2
@@ -2794,14 +2798,17 @@ LISOPNO3:
   FullName: Dummy species to track oxidation of ISOP by NO3
   Is_Gas: true
   MW_g: 68.13
+  KPP_AbsTol: 1.0e+25  
 LISOPOH:
   FullName: Dummy species to track oxidation of ISOP by OH
   Is_Gas: true
   MW_g: 68.13
+  KPP_AbsTol: 1.0e+25  
 LNRO2H:
   FullName: Dummy species to track oxidation of NRO2 by HO2
   Is_Gas: true
   MW_g: 159.17
+  KPP_AbsTol: 1.0e+25  
 LNRO2N:
   FullName: Dummy species to track oxidation of NRO2 by NO
   Is_Gas: true
@@ -2810,14 +2817,17 @@ LOx:
   FullName: Dummy species to track loss rate of Ox
   Is_Gas: true
   MW_g: 48.00
+  KPP_AbsTol: 1.0e+25  
 LTRO2H:
   FullName: Dummy species to track oxidation of TRO2 by HO2
   Is_Gas: true
   MW_g: 173.16
+  KPP_AbsTol: 1.0e+25  
 LTRO2N:
   FullName: Dummy species to track oxidation of TRO2 by NO
   Is_Gas: true
   MW_g: 173.16
+  KPP_AbsTol: 1.0e+25  
 LVOC:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -2850,10 +2860,12 @@ LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
   MW_g: 187.19
+  KPP_AbsTol: 1.0e+25  
 LXRO2N:
   FullName: Dummy species to track oxidation of XRO2 by NO
   Is_Gas: true
   MW_g: 187.19
+  KPP_AbsTol: 1.0e+25  
 MACR:
   DD_F0: 1.0
   DD_Hstar: 6.5
@@ -3818,6 +3830,7 @@ PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
   MW_g: 28.01
+  KPP_AbsTol: 1.0e+25  
 pFe:
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -3836,6 +3849,7 @@ PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
   MW_g: 34.02
+  KPP_AbsTol: 1.0e+25  
 PH2SO4:
   FullName: SO4 from gas-phase chemistry
   Is_Gas: true
@@ -4136,6 +4150,7 @@ POx:
   FullName: Dummy species to track production rate of Ox
   Is_Gas: true
   MW_g: 48.00
+  KPP_AbsTol: 1.0e+25  
 PP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -4210,6 +4225,7 @@ PSO4:
   FullName: Dummy species to track production of SO4
   Is_Gas: true
   MW_g: 96.06
+  KPP_AbsTol: 1.0e+25  
 PSO4AQ:
   FullName: SO4 from cloud chemistry
   Is_Gas: true
