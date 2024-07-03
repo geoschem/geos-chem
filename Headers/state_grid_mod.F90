@@ -37,8 +37,9 @@ MODULE State_Grid_Mod
      !----------------------------------------
      ! User-defined grid fields
      !----------------------------------------
-#if defined( MODEL_WRF )
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
      INTEGER            :: ID          ! Grid identifier number
+     INTEGER            :: ROOT_ID     ! Root grid identifier number (used in multi-domain-per-PET)
 #endif
      CHARACTER(LEN=255) :: GridRes     ! Grid resolution
      REAL(fp)           :: DX          ! Delta X         [degrees longitude]
@@ -150,8 +151,9 @@ CONTAINS
     !----------------------------------------
     ! User-defined grid fields
     !----------------------------------------
-#if defined( MODEL_WRF )
+#if defined( MODEL_WRF ) || defined( MODEL_CESM )
     State_Grid%ID           = -1
+    State_Grid%ROOT_ID      = -1
 #endif
     State_Grid%GridRes      = ''
     State_Grid%DX           = 0e+0_fp
