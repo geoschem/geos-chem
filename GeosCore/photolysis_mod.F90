@@ -183,7 +183,7 @@ CONTAINS
     ! subroutine Set_Prof_Fjx if using Fast-JX and Set_Prof_CloudJ if using
     ! Cloud-J. The data is stored in State_Chm%Phot%TREF/%OREF. Cloud-J
     ! globals variables TREF and OREF are only used for Cloud-J standalone.
-    CALL RD_PROF_NC( Input_Opt, State_Chm, RC )
+    CALL RD_PROF_NC( Input_Opt, State_Grid, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "Rd_Prof_Nc"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1500,13 +1500,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE RD_PROF_NC( Input_Opt, State_Chm, RC )
+  SUBROUTINE RD_PROF_NC( Input_Opt, State_Grid, State_Chm, RC )
 !
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE State_Chm_Mod, ONLY : ChmState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Chm_Mod,  ONLY : ChmState
 
 #if defined( MODEL_CESM )
     USE CAM_PIO_UTILS,     ONLY : CAM_PIO_OPENFILE
@@ -1529,6 +1530,7 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1589,12 +1591,17 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = ' -> at RD_PROF_NC (in module GeosCore/photolysis_mod.F90)'
 
+#if defined( MODEL_CESM )
+    ! In the CESM model, only read on the root chunk, but on all CPUs (hplin, 7/3/24)
+    IF ( State_Grid%ID .ne. State_Grid%ROOT_ID ) RETURN
+#endif
+
     ! Set pointers
     OREF => State_Chm%Phot%OREF
     TREF => State_Chm%Phot%TREF
 
     ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // '/' // 'FastJ_201204' // '/'
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204' // '/'
     nc_file = 'fastj.jv_atms_dat.nc'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
@@ -1637,6 +1644,8 @@ CONTAINS
 
     ! Open netCDF file
 #if defined( MODEL_CESM )
+    ! Note: In CESM environment, PIO_OPENFILE is a collective operation and must
+    ! be called by all CPUs. (hplin, 7/3/24)
     CALL CAM_PIO_OPENFILE( ncid, TRIM(nc_path), PIO_NOWRITE )
 #else
     CALL Ncop_Rd( fId, TRIM(nc_path) )
@@ -1661,7 +1670,7 @@ CONTAINS
     ct3d   = (/ 51, 18, 12 /)
 #if defined( MODEL_CESM )
     iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-    iret = PIO_GET_VAR(   ncid, vid, TREF          )
+    iret = PIO_GET_VAR( ncid, vid, st3d, ct3d, TREF )
 #else
     CALL NcRd( TREF, fId, TRIM(v_name), st3d, ct3d )
 
@@ -1687,7 +1696,7 @@ CONTAINS
     ct3d   = (/ 51, 18, 12 /)
 #if defined( MODEL_CESM )
     iret = PIO_INQ_VARID( ncid, trim(v_name), vid  )
-    iret = PIO_GET_VAR(   ncid, vid, OREF          )
+    iret = PIO_GET_VAR( ncid, vid, st3d, ct3d, OREF )
 #else
     CALL NcRd( OREF, fId, TRIM(v_name), st3d, ct3d )
 
