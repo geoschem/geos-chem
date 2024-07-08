@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
+- Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
 
 ## [14.4.1] - 2024-06-28
 ### Added
