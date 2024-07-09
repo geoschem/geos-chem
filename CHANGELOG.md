@@ -5,8 +5,12 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
+
 ### Fixed
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
+- Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
 
 ## [14.4.1] - 2024-06-28
 ### Added
