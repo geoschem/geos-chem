@@ -1601,7 +1601,7 @@ CONTAINS
     TREF => State_Chm%Phot%TREF
 
     ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204' // '/'
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // '/' // 'FastJ_201204' // '/'
     nc_file = 'fastj.jv_atms_dat.nc'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 

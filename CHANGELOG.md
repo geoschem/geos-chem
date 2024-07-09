@@ -4,6 +4,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased
+### Added
+- Added `State_Grid%ID` and `State_Grid%ROOT_ID` as "identifier numbers" for multiple instances of GEOS-Chem on one core in WRF and CESM
+
+### Changed
+- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
+
 ## [14.4.1] - 2024-06-28
 ### Added
 - Added initialization of PHOTDELTA in `ucx_h2so4phot` to avoid run-time error in CESM
