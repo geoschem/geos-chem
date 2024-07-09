@@ -133,7 +133,12 @@ CONTAINS
     ! FJX_j2j.dat (RD_JS_JX)
     CALL Init_CldJ(Input_Opt%amIRoot, Input_Opt%CloudJ_Dir,   &
                    State_Grid%NZ, Input_Opt%Nlevs_Phot_Cloud, &
-                   TITLEJXX, JVN_, NJXX)
+                   TITLEJXX, JVN_, NJXX, RC)
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in subroutine Init_Cldj within Cloud-J photolysis'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Store # of photolysis reactions in State_Chm object
     State_Chm%Phot%nPhotRxns = NRatJ
@@ -890,7 +895,7 @@ CONTAINS
                       REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,     &
                       AERSP,    NDXAER,   L1_,      AN_,      JVN_,      &
                       VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,      &
-                      NICA,     JCOUNT,   LDARK,    WTQCA               )
+                      NICA,     JCOUNT,   LDARK,    WTQCA,    RC         )
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -988,6 +993,12 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in subroutine Cloud_JX within Cloud-J photolysis'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Reset first-time flag
     FIRST=.FALSE.
