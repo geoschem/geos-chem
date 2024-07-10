@@ -7,10 +7,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
+- Added `State_Grid%CPU_Subdomain_ID` and `State_Grid%CPU_Subdomain_FirstID` as "identifier numbers" for multiple instances of GEOS-Chem on one core in WRF and CESM
 
 ### Fixed
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
 - Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
+
+### Changed
+- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
 
 ## [14.4.1] - 2024-06-28
 ### Added
