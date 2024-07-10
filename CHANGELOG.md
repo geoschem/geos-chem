@@ -8,9 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
 
+### Changed
+- Now reset `State_Diag%SatDiagnCount` to zero in routine`History_Write` (instead of in `History_Netcdf_Write`)
+
 ### Fixed
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
 - Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
+- Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
+- The `SatDiagnOH` diagnostic now works for the carbon simulation
+
+### Removed
+- Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.
+
 
 ## [14.4.1] - 2024-06-28
 ### Added
