@@ -1593,7 +1593,7 @@ CONTAINS
 
 #if defined( MODEL_CESM )
     ! In the CESM model, only read on the root chunk, but on all CPUs (hplin, 7/3/24)
-    IF ( State_Grid%ID .ne. State_Grid%ROOT_ID ) RETURN
+    IF ( State_Grid%CPU_Subdomain_ID .ne. State_Grid%CPU_Subdomain_FirstID ) RETURN
 #endif
 
     ! Set pointers

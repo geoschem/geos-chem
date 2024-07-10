@@ -38,10 +38,10 @@ MODULE State_Grid_Mod
      ! User-defined grid fields
      !----------------------------------------
 #if defined( MODEL_WRF ) || defined( MODEL_CESM )
-     ! Grid numbers in WRF and CESM because each PET runs multiple instances of GEOS-Chem.
-     ! The numbers are unique per PET, so a unique grid is identified by the combination of (Input_Opt%thisCPU, State_Grid%ID)
-     INTEGER            :: ID          ! Grid identifier number, unique per PET (domain number in WRF, chunk number in CESM)
-     INTEGER            :: ROOT_ID     ! Root/first grid identifier number (used in multi-domain-per-PET), unique per PET
+     ! Grid numbers for WRF and CESM, for each CPU to run multiple instances of GEOS-Chem. These numbers are unique-per-core (local).
+     ! A pair of (Input_Opt%thisCPU, State_Grid%CPU_Subdomain_ID) is needed to uniquely identify a geographical region.
+     INTEGER            :: CPU_Subdomain_ID      ! Grid identifier number (local) (WRF: domain number, CESM: chunk number/lchnk)
+     INTEGER            :: CPU_Subdomain_FirstID ! First grid identifier number (local) in this CPU
 #endif
      CHARACTER(LEN=255) :: GridRes     ! Grid resolution
      REAL(fp)           :: DX          ! Delta X         [degrees longitude]
@@ -154,8 +154,8 @@ CONTAINS
     ! User-defined grid fields
     !----------------------------------------
 #if defined( MODEL_WRF ) || defined( MODEL_CESM )
-    State_Grid%ID           = -1
-    State_Grid%ROOT_ID      = -1
+    State_Grid%CPU_Subdomain_ID           = -1
+    State_Grid%CPU_Subdomain_FirstID      = -1
 #endif
     State_Grid%GridRes      = ''
     State_Grid%DX           = 0e+0_fp
