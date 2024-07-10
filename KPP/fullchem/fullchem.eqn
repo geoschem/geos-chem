@@ -509,6 +509,7 @@ ALD2 + OH = 0.950MCO3 + 0.050CH2O +
 ALD2 + NO3 = HNO3 + MCO3 :                   GCARR_ac(1.40d-12, -1900.0d0);
 MCO3 + NO2 {+M} = PAN :                      GCJPLPR_abab(7.30d-29, 4.1d+00, 9.5d-12, 1.6d0, 0.6d0);                           {2023/04/18; JPL 19-5; KHB}
 PAN = MCO3 + NO2 :                           GCJPLEQ_acabab(9.00d-29, 14000.0d0, 7.3d-29, 4.1d0, 9.5d-12, 1.6d0, 0.6d0);       {2023/04/18; JPL 19-5; KHB}
+PAN + OH = CH2O + CO + NO2 :                 3.00d-14 ;
 MCO3 + NO = MO2 + NO2 + CO2 :                GCARR_ac(8.10d-12, 270.0d0);
 C2H6 + OH = ETO2 + H2O :                     GCARR_ac(7.66d-12, -1020.0d0);                                                    {2013/02/12; JPL 10-6; BHH,JMAO,EAM}
 ETO2 + NO = ALD2 + NO2 + HO2 :               GC_RO2NO_B2_aca(2.60d-12, 365.0d0, 2.0d0);                                        {2019/05/10; Fisher2018; JAF}
@@ -539,6 +540,7 @@ ACTA + OH = MO2 + CO2 + H2O :                GCARR_ac(3.15d-14, 920.0d0);       
 OH + RCHO = RCO3 + H2O :                     GCARR_ac(6.00d-12, 410.0d0);
 RCO3 + NO2 {+M} = PPN :                      GCJPLPR_abab(9.00d-28, 8.9d0, 7.7d-12, 0.2d0, 0.6d0);                             {JPL Eval 17}
 PPN = RCO3 + NO2 :                           GCJPLEQ_acabab(9.00d-29, 14000.0d0, 9.00d-28, 8.9d0, 7.7d-12, 0.2d0, 0.6d0);
+PPN + OH = ALD2 + CO + NO2 :                 1.27d-12 ;
 RCO3 + NO = NO2 + 0.490OTHRO2 +
  0.070A3O2 + 0.270B3O2 + CO2 :               GCARR_ac(6.70d-12, 340.0d0);                                                      {2019/05/10; Fisher2018; JAF; 2023/04/18; Bates2023; KHB}
 RCHO + NO3 = HNO3 + RCO3 :                   6.50d-15;
@@ -1545,6 +1547,8 @@ ALD2 + hv = 0.880MO2 + HO2 + 0.880CO +
 ALD2 + hv = CH4 + CO :                       PHOTOL(62);
 PAN + hv = 0.700MCO3 + 0.700NO2 +
  0.300MO2 + 0.300NO3 + 0.300CO2 :            PHOTOL(59);     {2014/05/23; Eastham2014; JMAO,SDE; 2023/04/18; Bates2023; KHB}
+PPN + hv = 0.700RCO3 + 0.700NO2 +
+ 0.300NO3 :                                  PHOTOL(167);
 RCHO + hv = 0.490OTHRO2 + HO2 + CO +
  0.070A3O2 + 0.270B3O2 :                     PHOTOL(70);     {2019/05/10; Fisher2018; JAF; 2023/04/18; Bates2023; KHB}
 ACET + hv = MCO3 + MO2 :                     PHOTOL(76);
