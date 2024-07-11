@@ -3091,6 +3091,19 @@ CONTAINS
 
     ENDDO
 
+    !=======================================================================
+    ! Cleanup & quit
+    !=======================================================================
+
+    ! If we have called History_Netcdf_Write (i.e. DoWrite == T), then
+    ! reset the satellite diagnostics counter, as we have now entered the
+    ! next diagnostic interval.  We need to do this here instead of in
+    ! History_Netcdf_Write as there are multiple satellite diagnostic
+    ! collections (SatDiagn, SatDiagnEdge).
+    IF ( State_Diag%Archive_SatDiagnCount .and. DoWrite ) THEN
+       State_Diag%SatDiagnCount = 0.0_f8
+    ENDIF
+
     ! Free pointers
     Container  => NULL()
     Collection => NULL()

@@ -620,7 +620,6 @@ COLLECTIONS: 'Restart',
                               'SatDiagnRH                     ',
                               'SatDiagnAirDen                 ',
                               'SatDiagnBoxHeight              ',
-                              'SatDiagnPEdge                  ',
                               'SatDiagnTROPP                  ',
                               'SatDiagnPBLHeight              ',
                               'SatDiagnPBLTop                 ',
@@ -676,7 +675,7 @@ COLLECTIONS: 'Restart',
   SatDiagnEdge.duration:      00000100 000000
   SatDiagnEdge.hrrange:       11.98 15.02
   SatDiagnEdge.mode:          'time-averaged'
-  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                   ',
 ::
 #==============================================================================
 # %%%%% THE StateChm COLLECTION %%%%%
