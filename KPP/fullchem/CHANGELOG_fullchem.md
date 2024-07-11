@@ -119,3 +119,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [v11-01g] - Sep 2016
 ### Added
 - Initial version for FlexChem (MSL,MJE,MPS,EWL)
+
+## [v14.4.1] - July 2024
+### Added
+- Photolysis of PPN from Horner2024 (BH)
+- PPN+OH and PAN+OH based on the structure activity relationship approach (BH)
+
