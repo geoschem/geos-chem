@@ -1548,7 +1548,7 @@ ALD2 + hv = CH4 + CO :                       PHOTOL(62);
 PAN + hv = 0.700MCO3 + 0.700NO2 +
  0.300MO2 + 0.300NO3 + 0.300CO2 :            PHOTOL(59);     {2014/05/23; Eastham2014; JMAO,SDE; 2023/04/18; Bates2023; KHB}
 PPN + hv = 0.700RCO3 + 0.700NO2 +
- 0.300NO3 :                                  PHOTOL(167);
+ 0.300NO3 :                                  PHOTOL(167);    {2024/07/11; Horner2024}
 RCHO + hv = 0.490OTHRO2 + HO2 + CO +
  0.070A3O2 + 0.270B3O2 :                     PHOTOL(70);     {2019/05/10; Fisher2018; JAF; 2023/04/18; Bates2023; KHB}
 ACET + hv = MCO3 + MO2 :                     PHOTOL(76);
