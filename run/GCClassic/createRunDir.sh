@@ -486,6 +486,11 @@ else
 
  fi
 
+# Turn off MEGAN for the aerosol-only simulation
+if [[ "x${sim_name}" == "xaerosol"  ]]; then
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
+fi
+
 #-----------------------------------------------------------------
 # Ask user to select horizontal resolution
 #-----------------------------------------------------------------
@@ -976,6 +981,7 @@ else
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
@@ -1006,6 +1012,7 @@ else
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
     fi
