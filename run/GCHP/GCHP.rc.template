@@ -68,11 +68,18 @@ GCHPchem_REFERENCE_TIME: 121000
 #-----------------------------------------------------------------
 PRINTRC: 0
 
-# Set the number of parallel I/O processes to use when
-# RESTART_TYPE and or CHECKPOINT_TYPE are set to pbinary or pnc4
-#---------------------------------------------------------------
 PARALLEL_READFORCING: 0
+
+# Set the number of parallel I/O processes to use when reading restarts.
+# Try something from 6 to 24 if reading a large restart file and have
+# poor performance
+#---------------------------------------------------------------
 NUM_READERS: 1
+
+# Set the number of parallel I/O processes to use when writing restarts.
+# Try something from 6 to 24 if writing a large restart file and have
+# poor performance
+#---------------------------------------------------------------
 NUM_WRITERS: 1
 
 # Active observer when desired
@@ -131,6 +138,8 @@ MEMORY_DEBUG_LEVEL:   0
 
 #
 # %%% Option to write restart files via o-server
+# %%% This should only be necessary with certain MPI stacks. Try changing
+# %%% this to true if writing checkpoints causes the run to hang.
 #
 WRITE_RESTART_BY_OSERVER: NO
 
