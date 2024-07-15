@@ -43,7 +43,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: do_pbl_mix
+! !IROUTINE: do_full_pbl_mixing
 !
 ! !DESCRIPTION: Subroutine DO\_PBL\_MIX is the driver routine for planetary
 !  boundary layer mixing.  The PBL layer height and related quantities are
@@ -109,7 +109,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at DO_PBL_MIX (in module GeosCore/pbl_mix_mod.F90)'
+    ThisLoc = ' -> at Do_Full_PBL_Mixing (in module GeosCore/pbl_mix_mod.F90)'
 
     !========================================================================
     ! Mixing budget diagnostics - Part 1 of 2
@@ -297,11 +297,11 @@ CONTAINS
     USE ErrCode_Mod
     USE PhysConstants,  ONLY : Scale_Height, Rd, g0
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Chm_Mod,  ONLY : ChmState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
-    USE State_Met_Mod,   ONLY : MetState
-    USE State_Diag_Mod,  ONLY : DgnState
-    USE Time_Mod,        ONLY : Get_TS_Dyn
+    USE State_Diag_Mod, ONLY : DgnState
+    USE Time_Mod,       ONLY : Get_TS_Dyn
 !
 ! !INPUT PARAMETERS:
 !
@@ -328,17 +328,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-<<<<<<< HEAD
-    LOGICAL  :: Bad_Sum
-    INTEGER  :: I,      J,      L,    LTOP
-    REAL(fp) :: Lower_Edge_Height
-=======
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
-    LOGICAL            :: Bad_Sum
-    INTEGER            :: I,      J,      L,    LTOP, TS_Dyn
-    REAL(fp)           :: BLTOP,  BLTHIK, DELP
-    REAL(f8)           :: DT_Dyn
->>>>>>> cc64cd801 (Compute mixing PBL budget diag for PBL ht change in compute_pbl_height)
+    LOGICAL  :: Bad_Sum
+    INTEGER  :: I,      J,      L,    LTOP, TS_Dyn
+    REAL(fp) :: Lower_Edge_Height
+    REAL(f8) :: DT_Dyn
 
     ! Arrays
     REAL(fp) :: P(0:State_Grid%NZ)
@@ -348,25 +342,14 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-<<<<<<< HEAD
-    RC                       = GC_SUCCESS
+    RC      = GC_SUCCESS
+    ErrMsg  = ''
+    ThisLoc = ' -> at Compute_PBL_Height (in module GeosCore/pbl_mix_mod.F90)'
+    
     Bad_Sum                  = .FALSE.
     State_Met%InPbl          = .FALSE.
     State_Met%F_of_PBL       = 0.0_fp
     State_Met%F_Under_PBLTop = 0.0_fp
-
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, LTOP, Lower_Edge_Height                         )&
-    !$OMP COLLAPSE( 2                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                              )
-=======
-    RC              = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at Compute_PBL_Height (in module GeosCore/pbl_mix_mod.F90)'
-
-    Bad_Sum         = .FALSE.
-    State_Met%InPbl = .FALSE.
 
     !------------------------------------------------------------------------
     ! Change in PBL mass for use with budget mixing PBL diagnostic - 1 of 2
@@ -405,10 +388,11 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !$OMP PARALLEL DO                                      &
-    !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP )
->>>>>>> cc64cd801 (Compute mixing PBL budget diag for PBL ht change in compute_pbl_height)
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, LTOP, Lower_Edge_Height                         )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
