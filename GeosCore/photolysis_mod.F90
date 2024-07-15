@@ -135,6 +135,11 @@ CONTAINS
     !--------------------------------------------------------------------
     IF ( Input_Opt%Do_Photolysis ) THEN
 #ifdef FASTJX
+       IF ( .not. Input_Opt%Its_A_Mercury_Sim ) THEN
+          ErrMsg = 'Legacy FAST-JX is only an option for the mercury simulation!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
        IF ( TRIM(Input_Opt%Fast_JX_Dir) == MISSING_STR ) THEN
           ErrMsg = 'Init_Photolysis: Fast-JX directory missing in ' // &
                    'in geoschem_config.yml!'
