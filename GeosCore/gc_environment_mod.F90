@@ -143,7 +143,7 @@ CONTAINS
 
 #ifdef FASTJX
     ! Throw an error if FAST-JX is used for simulations other than Hg
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CARBON_SIM ) THEN
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
        ErrMsg = 'FAST-JX is only supported in the Hg simulation!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
