@@ -142,6 +142,13 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
 #ifdef FASTJX
+    ! Throw an error if FAST-JX is used for simulations other than Hg
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CARBON_SIM ) THEN
+       ErrMsg = 'FAST-JX is only supported in the Hg simulation!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
