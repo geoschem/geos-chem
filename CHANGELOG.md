@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Now reset `State_Diag%SatDiagnCount` to zero in routine`History_Write` (instead of in `History_Netcdf_Write`)
 - Update rundir creation scripts to turn off the MEGAN extension for "standard" fullchem simulations
 - Updated emissions used in CESM to match standard emissions used in the 14.4 offline model
+- Disable support For FAST-JX for all simulations except Hg
 
 ### Fixed
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
