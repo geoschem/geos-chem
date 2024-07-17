@@ -1,0 +1,154 @@
+#------------------------------------------------------------------------------
+#                  Harmonized Emissions Component (HEMCO)                     !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Config.rc
+#
+# !DESCRIPTION: Contains configuration information for GMAO meteorology fields
+#  in HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  See The HEMCO User's Guide for file details:
+#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#
+# !REVISION HISTORY:
+#  See https://github.com/geoschem/geos-chem for complete history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+###############################################################################
+### BEGIN SECTION SETTINGS
+###############################################################################
+
+ROOT:        ${RUNDIR_DATA_ROOT}/HEMCO
+METDIR:      ${RUNDIR_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP
+HIGHRES:     ${RUNDIR_MET_DIR}
+
+### END SECTION SETTINGS ###
+
+###############################################################################
+### BEGIN SECTION BASE EMISSIONS
+###############################################################################
+
+# ExtNr	Name sourceFile	sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
+
+# --- CN fields ---
+* FRLAKE    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.025x03125.NA.$NC        FRLAKE   */1/1/0               C xy  1  * -  1 1
+* FRLAND    $METDIR/$CNYR/01/$MET.$CNYR0101.CN.025x03125.NA.$NC        FRLAND   */1/1/0               C xy  1  * -  1 1
+* FRLANDIC  $METDIR/$CNYR/01/$MET.$CNYR0101.CN.025x03125.NA.$NC        FRLANDIC */1/1/0               C xy  1  * -  1 1
+* FROCEAN   $METDIR/$CNYR/01/$MET.$CNYR0101.CN.025x03125.NA.$NC        FROCEAN  */1/1/0               C xy  1  * -  1 1
+* PHIS      $METDIR/$CNYR/01/$MET.$CNYR0101.CN.025x03125.NA.$NC        PHIS     */1/1/0               C xy  1  * -  1 1
+
+# --- A1 fields ---
+* ALBEDO    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     ALBEDO   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* CLDTOT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     CLDTOT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     EFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* EVAP      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     EVAP     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSEAICE  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     FRSEAICE 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* FRSNO     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     FRSNO    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GRN       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     GRN      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETROOT  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     GWETROOT 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* GWETTOP   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     GWETTOP  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* HFLUX     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     HFLUX    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LAI       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     LAI      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* LWGNT     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     LWGNT    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDF     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PARDF    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PARDR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PARDR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PBLH      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PBLH     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECANV   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PRECANV  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECCON   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PRECCON  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECLSC   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PRECLSC  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECSNO   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PRECSNO  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* PRECTOT   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     PRECTOT  1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* QV2M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     QV2M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE00  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE00 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE10  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE10 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE20  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE20 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE30  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE30 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE40  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE40 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE50  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE50 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE60  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE60 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE70  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE70 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE80  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE80 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SEAICE90  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SEAICE90 1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SLP       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SLP      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNODP     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SNODP    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SNOMAS    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SNOMAS   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* SWGDN     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     SWGDN    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TO3       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     TO3      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TROPPT    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     TROPPT   1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* TS        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     TS       1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* T2M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     T2M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* U10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     U10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* USTAR     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     USTAR    1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* V10M      $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     V10M     1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+* Z0M       $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1.025x03125.NA.$NC     Z0M      1980-2021/1-12/1-31/*/+30minute EFY xy  1  * -  1 1
+
+# --- A3cld fields ---
+* CLOUD     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  CLOUD    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OPTDEPTH  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  OPTDEPTH 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QI        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  QI       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* QL        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  QL       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLI    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  TAUCLI   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* TAUCLW    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3cld.025x03125.NA.$NC  TAUCLW   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3dyn fields ---
+* DTRAIN    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.025x03125.NA.$NC  DTRAIN   1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* OMEGA     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.025x03125.NA.$NC  OMEGA    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* RH        $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3dyn.025x03125.NA.$NC  RH       1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3mstC fields ---
+* DQRCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.025x03125.NA.$NC DQRCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* DQRLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.025x03125.NA.$NC DQRLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPCN  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.025x03125.NA.$NC REEVAPCN 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* REEVAPLS  $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstC.025x03125.NA.$NC REEVAPLS 1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- A3mstE fields ---
+* CMFMC     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.025x03125.NA.$NC CMFMC    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFICU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.025x03125.NA.$NC PFICU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFILSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.025x03125.NA.$NC PFILSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLCU     $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.025x03125.NA.$NC PFLCU    1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+* PFLLSAN   $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A3mstE.025x03125.NA.$NC PFLLSAN  1980-2021/1-12/1-31/*/+90minute EFY xyz 1  * -  1 1
+
+# --- I3 fields ---
+* TMPU         $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.025x03125.NA.$NC T         1980-2021/1-12/1-31/*           EFY xyz 1  * -  1 1
+* TMPU_NEXTDAY $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.I3.025x03125.NA.$NC T         1980-2021/1-12/1-31/1/+1day     EFY xyz 1  * -  1 1
+
+# --- 0.125x0.15625 fields ---
+* U            $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.A1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  UA  2021-2023/1-12/1-31/*           EFY xyz 1  * -  1 1
+* V            $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.A1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  VA  2021-2023/1-12/1-31/*           EFY xyz 1  * -  1 1
+* PS           $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.I1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  PS  2021-2023/1-12/1-31/*           EFY xy  1  * -  1 1
+* SPHU         $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.I1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  QV  2021-2023/1-12/1-31/*           EFY xyz 1  * -  1 1
+
+* PS_NEXTDAY   $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.I1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  PS  2021-2023/1-12/1-31/*/+1day     EFY xy  1  * -  1 1
+* SPHU_NEXTDAY $HIGHRES/Y$YYYY/M$MM/D$DD/GEOS.fp.asm.I1dyn.0125x015625.NA.$YYYY$MM$DD.nc4  QV  2021-2023/1-12/1-31/*/+1day     EFY xyz 1  * -  1 1
+
+#==============================================================================
+# --- Fields for lightning emissions (Extension 103) ---
+#
+# Native-resolution lightning flash rates constrained to LIS/OTD climatology
+# and convective depth are now prescribed as offline meteorology.
+#                                                    --Lee Murray (16 Jan 2019)
+#==============================================================================
+(((LightNOx
+(((.not.LightningClimatology
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+))).not.LightningClimatology
+
+(((LightningClimatology
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/CLIM/FLASH_CTH_$MET_0.25x0.3125_2014-2019.ymonmean.nc4  LDENS 2019/1-12/1/0 C xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/CLIM/FLASH_CTH_$MET_0.25x0.3125_2014-2019.ymonmean.nc4  CTH   2019/1-12/1/0 C xy  1  * -  1 1
+)))LightningClimatology
+)))LightNOx
+
+### END SECTION BASE EMISSIONS ###
+
+### END OF HEMCO INPUT FILE ###
+#EOC
