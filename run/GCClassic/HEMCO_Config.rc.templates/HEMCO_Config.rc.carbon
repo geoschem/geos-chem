@@ -70,8 +70,7 @@ Mask fractions:              false
     --> Scarpelli_Mexico       :       true     # 2015
 # ..... Global Inventories ...........
     --> GFEIv2                 :       true     # 2019
-    --> EDGARv6                :       false    # 2000-2018
-    --> EDGARv7                :       true     # 2010-2021
+    --> EDGARv8                :       true     # 2010-2022
     --> QFED2                  :       false    # 2009-2015
     --> JPL_WETCHARTS          :       true     # 2009-2017
     --> SEEPS                  :       true     # 2012
@@ -86,10 +85,6 @@ Mask fractions:              false
 # ..... Non-Emissions Data ...........
     --> CH4_LOSS_FREQ          :       true     # 1985
     --> GLOBAL_CL              :       true     # 2010-2019
-# ..... Options for the IMI ..........
-    --> AnalyticalInv          :       false
-    --> Emis_ScaleFactor       :       false
-    --> OH_ScaleFactor         :       false
 # ----- CO and CO2-only INVENTORIES AND DATA ----------------------------------
 # ..... Global inventories ...........
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
@@ -138,6 +133,11 @@ Mask fractions:              false
     --> YUAN_MODIS_LAI         :       true     # 2000-2020
     --> GLOBAL_OH_GC14         :       false    # 2010-2019
     --> GLOBAL_OH_GCv5         :       true     # 1985 (recommended for CH4)
+# ----- Options for analytical inversions -------------------------------------
+    --> AnalyticalInversion    :       false
+    --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
+    --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
+    --> OH_PosteriorSF         :       false    # Apply posterior scale factor  to global OH?
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
@@ -161,82 +161,100 @@ Mask fractions:              false
 (((USE_CH4_DATA
 
 #==============================================================================
+# ---Total CH4 emissions (all sectors) from prior simulation ---
+#==============================================================================
+(((UseTotalPriorEmis
+
+(((Emis_PosteriorSF
+0 CH4_Emis_Prior ../../prior_run/OutputDir/HEMCO_sa_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 3 1 500
+)))Emis_PosteriorSF
+
+(((.not.Emis_PosteriorSF
+0 CH4_Emis_Prior ../../prior_run/OutputDir/HEMCO_sa_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 - 1 500
+))).not.Emis_PosteriorSF
+
+)))UseTotalPriorEmis
+
+(((.not.UseTotalPriorEmis
+
+#==============================================================================
 # --- CH4: Gridded GHGI v2 (Maasakkers et al., submitted to ES&T, 2023) ---
 #
 # NOTES:
-# - This is the main Gridded GHGI v2 dataset based off the US GHGI published in 2020
+# - This is the main Gridded GHGI v2 dataset based off the US GHGI
+#   published in 2020
 # - Use Hier=100 to add to Canada and Mexico regional inventories
+# - Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR,
+#   Hier=5 to add to GFEI; mask=1009) ###
 #==============================================================================
 (((GHGI_v2
 ### Oil ###
-0 GHGI_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1008 1 100
-0 GHGI_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1008 1 100
-0 GHGI_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1008 1 100
-0 GHGI_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_OIL_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1008 1 100
+0 GHGI_COAST_OIL_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 51/1009 1 5
+0 GHGI_OIL_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1008 1 100
+0 GHGI_COAST_OIL_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 52/1009 1 5
+0 GHGI_OIL_REFINING           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1008 1 100
+0 GHGI_COAST_OIL_REFINING     -                                                                    -                                            -                  -   -  -           CH4 53/1009 1 5
+0 GHGI_OIL_TRANSPORT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_COAST_OIL_TRANSPORT    -                                                                    -                                            -                  -   -  -           CH4 54/1009 1 5
 
 ### Gas ###
-0 GHGI_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
-0 GHGI_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
-0 GHGI_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
-0 GHGI_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_GAS_DISTRIBUTION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_DISTRIBUTION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1008 2 100
+0 GHGI_COAST_GAS_EXPLORATION  -                                                                    -                                            -                  -   -  -           CH4 55/1009 2 5
+0 GHGI_GAS_PROCESSING         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_PROCESSING   -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
+0 GHGI_GAS_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1008 2 100
+0 GHGI_COAST_GAS_PRODUCTION   -                                                                    -                                            -                  -   -  -           CH4 56/1009 2 5
+0 GHGI_GAS_TRANSMISSION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    2 100
+0 GHGI_COAST_GAS_TRANSMISSION -                                                                    -                                            -                  -   -  -           CH4 1009    2 5
 
 ### Coal ###
-0 GHGI_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
-0 GHGI_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
-0 GHGI_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_UNDERGROUND -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
+0 GHGI_COAL_SURFACE           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_SURFACE     -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
+0 GHGI_COAL_ABANDONED         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    3 100
+0 GHGI_COAST_COAL_ABANDONED   -                                                                    -                                            -                  -   -  -           CH4 1009    3 5
 
 ### Livestock ###
-0 GHGI_LIVESTOCK_ENT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
-0 GHGI_LIVESTOCK_MAN    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    4 100
+0 GHGI_COAST_LIVESTOCK_ENT    -                                                                    -                                            -                  -   -  -           CH4 1009    4 1
+0 GHGI_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_COAST_LIVESTOCK_MAN    -                                                                    -                                            -                  -   -  -           CH4 57/1009 4 1
 
 ### Landfills ###
-0 GHGI_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
-0 GHGI_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
-0 GHGI_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_LANDFILLS_IND          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_IND    -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
+0 GHGI_LANDFILLS_MSW          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_MSW    -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
+0 GHGI_LANDFILLS_COMP         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    5 100
+0 GHGI_COAST_LANDFILLS_COMP   -                                                                    -                                            -                  -   -  -           CH4 1009    5 1
 
 ### Wastewater ###
-0 GHGI_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
-0 GHGI_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_WASTEWATER_DOM         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_COAST_WASTEWATER_DOM   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
+0 GHGI_WASTEWATER_IND         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    6 100
+0 GHGI_COAST_WASTEWATER_IND   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_COAST_RICE             -                                                                   -                                             -                  -   -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
-0 GHGI_OTHER_MCOMB      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_SCOMB      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1008 8 100
-0 GHGI_OTHER_PIND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_FIND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-0 GHGI_OTHER_BURN       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1008 8 100
-0 GHGI_OTHER_ABOG       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI; mask=1009) ###
-0 GHGI_COAST_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 51/1009 1 5
-0 GHGI_COAST_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 52/1009 1 5
-0 GHGI_COAST_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 53/1009 1 5
-0 GHGI_COAST_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 54/1009 1 5
-0 GHGI_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 55/1009 2 5
-0 GHGI_COAST_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 56/1009 2 5
-0 GHGI_COAST_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    2 5
-0 GHGI_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    3 5
-0 GHGI_COAST_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    4 1
-0 GHGI_COAST_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 57/1009 4 1
-0 GHGI_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    5 1
-0 GHGI_COAST_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    6 1
-0 GHGI_COAST_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    6 1
-0 GHGI_COAST_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1009 7 1
-0 GHGI_COAST_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1009 8 1
-0 GHGI_COAST_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
-0 GHGI_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1009 8 1
-0 GHGI_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1009    8 1
+0 GHGI_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_MCOMB      -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 50/1008 8 100
+0 GHGI_COAST_OTHER_SCOMB      -                                                                    -                                            -                  -   -  -           CH4 50/1009 8 1
+0 GHGI_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_PIND       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_FIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_FIND       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
+0 GHGI_OTHER_BURN             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 59/1008 8 100
+0 GHGI_COAST_OTHER_BURN       -                                                                    -                                            -                  -   -  -           CH4 59/1009 8 1
+0 GHGI_OTHER_ABOG             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
+0 GHGI_COAST_OTHER_ABOG       -                                                                    -                                            -                  -   -  -           CH4 1009    8 1
 )))GHGI_v2
 
 #=======================================================================================
@@ -247,78 +265,79 @@ Mask fractions:              false
 # - Uses annual source-specific spatial patterns from 2012-2018 from the main
 #   dataset to quickly incorporate more recent national methane emission estimates.
 # - Emissions for years after 2018 follow the 2018 spatial patterns.
+# - Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR,
+#   Hier=5 to add to GFEI; mask=1009) ###
 #=======================================================================================
 (((GHGI_v2_Express_Ext
 (((.not.GHGI_v2
 ### Oil ###
-0 GHGI_EE_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
-0 GHGI_EE_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
-0 GHGI_EE_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1008 1 100
-0 GHGI_EE_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_EE_OIL_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1008 1 100
+0 GHGI_EE_COAST_OIL_EXPLORATION  -                                                                                      -                                            -                  - -  -           CH4 51/1009 1 5
+0 GHGI_EE_OIL_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1008 1 100
+0 GHGI_EE_COAST_OIL_PRODUCTION   -                                                                                      -                                            -                  - -  -           CH4 52/1009 1 5
+0 GHGI_EE_OIL_REFINING           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1008 1 100
+0 GHGI_EE_COAST_OIL_REFINING     -                                                                                      -                                            -                  - -  -           CH4 53/1009 1 5
+0 GHGI_EE_OIL_TRANSPORT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1008 1 100
+0 GHGI_EE_COAST_OIL_TRANSPORT    -                                                                                      -                                            -                  - -  -           CH4 54/1009 1 5
 
 ### Gas ###
-0 GHGI_EE_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
-0 GHGI_EE_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1008 2 100
-0 GHGI_EE_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
-0 GHGI_EE_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1008 2 100
-0 GHGI_EE_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_GAS_DISTRIBUTION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_DISTRIBUTION -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_EXPLORATION        $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1008 2 100
+0 GHGI_EE_COAST_GAS_EXPLORATION  -                                                                                      -                                            -                  - -  -           CH4 55/1009 2 5
+0 GHGI_EE_GAS_PROCESSING         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_PROCESSING   -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_PRODUCTION         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1008 2 100
+0 GHGI_EE_COAST_GAS_PRODUCTION   -                                                                                      -                                            -                  - -  -           CH4 56/1009 2 5
+0 GHGI_EE_GAS_TRANSMISSION       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
+0 GHGI_EE_COAST_GAS_TRANSMISSION -                                                                                      -                                            -                  - -  -           CH4 1009    2 5
+0 GHGI_EE_GAS_POSTMETER          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_Supp_1B2b_PostMeter                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    2 100
 
 ### Coal ###
-0 GHGI_EE_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
-0 GHGI_EE_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
-0 GHGI_EE_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAL_UNDERGROUND       $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_UNDERGROUND -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
+0 GHGI_EE_COAL_SURFACE           $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_SURFACE     -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
+0 GHGI_EE_COAL_ABANDONED         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    3 100
+0 GHGI_EE_COAST_COAL_ABANDONED   -                                                                                      -                                            -                  - -  -           CH4 1009    3 5
 
 ### Livestock ###
-0 GHGI_EE_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
-0 GHGI_EE_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_EE_LIVESTOCK_ENT          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    4 100
+0 GHGI_EE_COAST_LIVESTOCK_ENT    -                                                                                      -                                            -                  - -  -           CH4 1009    4 1
+0 GHGI_EE_LIVESTOCK_MAN          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1008 4 100
+0 GHGI_EE_COAST_LIVESTOCK_MAN    -                                                                                      -                                            -                  - -  -           CH4 57/1009 4 1
 
 ### Landfills ###
-0 GHGI_EE_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
-0 GHGI_EE_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
-0 GHGI_EE_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_LANDFILLS_IND          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_IND    -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
+0 GHGI_EE_LANDFILLS_MSW          $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_MSW    -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
+0 GHGI_EE_LANDFILLS_COMP         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    5 100
+0 GHGI_EE_COAST_LANDFILLS_COMP   -                                                                                      -                                            -                  - -  -           CH4 1009    5 1
 
 ### Wastewater ###
-0 GHGI_EE_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
-0 GHGI_EE_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_WASTEWATER_DOM         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_COAST_WASTEWATER_DOM   -                                                                                      -                                            -                  - -  -           CH4 1009    6 1
+0 GHGI_EE_WASTEWATER_IND         $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    6 100
+0 GHGI_EE_COAST_WASTEWATER_IND   -                                                                                      -                                            -                  - -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_EE_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_EE_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - - -           CH4 58/1009 7 1
 
 ### Other Anthro ###
-0 GHGI_EE_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
-0 GHGI_EE_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-0 GHGI_EE_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1008 8 100
-0 GHGI_EE_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI; mask=1009) ###
-0 GHGI_EE_COAST_OIL_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Exploration   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 51/1009 1 5
-0 GHGI_EE_COAST_OIL_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Production    2012-2020/1-12/1/0 C xy molec/cm2/s CH4 52/1009 1 5
-0 GHGI_EE_COAST_OIL_REFINING     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Refining      2012-2020/1-12/1/0 C xy molec/cm2/s CH4 53/1009 1 5
-0 GHGI_EE_COAST_OIL_TRANSPORT    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2a_Petroleum_Systems_Transport     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 54/1009 1 5
-0 GHGI_EE_COAST_GAS_DISTRIBUTION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Distribution        2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_GAS_EXPLORATION  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Exploration         2012-2020/1-12/1/0 C xy molec/cm2/s CH4 55/1009 2 5
-0 GHGI_EE_COAST_GAS_PROCESSING   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Processing          2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_GAS_PRODUCTION   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_Production          2012-2020/1-12/1/0 C xy molec/cm2/s CH4 56/1009 2 5
-0 GHGI_EE_COAST_GAS_TRANSMISSION $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2b_Natural_Gas_TransmissionStorage 2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    2 5
-0 GHGI_EE_COAST_COAL_UNDERGROUND $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Underground_Coal                2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_COAL_SURFACE     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Surface_Coal                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_COAL_ABANDONED   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B1a_Abandoned_Coal                  2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    3 5
-0 GHGI_EE_COAST_LIVESTOCK__4A    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3A_Enteric_Fermentation              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    4 1
-0 GHGI_EE_COAST_LIVESTOCK__4B    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3B_Manure_Management                 2012-2020/1-12/1/0 C xy molec/cm2/s CH4 57/1009 4 1
-0 GHGI_EE_COAST_LANDFILLS_IND    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_Industrial             2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_LANDFILLS_MSW    $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5A1_Landfills_MSW                    2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_LANDFILLS_COMP   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5B1_Composting                       2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    5 1
-0 GHGI_EE_COAST_WASTEWATER_DOM   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Domestic     2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GHGI_EE_COAST_WASTEWATER_IND   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_5D_Wastewater_Treatment_Industrial   2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    6 1
-0 GHGI_EE_COAST_RICE             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1009 7 1
-0 GHGI_EE_COAST_OTHER__MCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__SCOMB     $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1009 8 1
-0 GHGI_EE_COAST_OTHER__PIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__FIND      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
-0 GHGI_EE_COAST_OTHER__BURN      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1009 8 1
-0 GHGI_EE_COAST_OTHER__ABOG      $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1009    8 1
+0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_MCOMB      -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_SCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Stationary             2012-2020/1-12/1/0 C xy molec/cm2/s CH4 50/1008 8 100
+0 GHGI_EE_COAST_OTHER_SCOMB      -                                                                                      -                                            -                  - -  -           CH4 50/1009 8 1
+0 GHGI_EE_OTHER_PIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2B8_Industry_Petrochemical           2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_PIND       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_FIND             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_2C2_Industry_Ferroalloy              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_FIND       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
+0 GHGI_EE_OTHER_BURN             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3F_Field_Burning                     2012-2020/1-12/1/0 C xy molec/cm2/s CH4 59/1008 8 100
+0 GHGI_EE_COAST_OTHER_BURN       -                                                                                      -                                            -                  - -  -           CH4 59/1009 8 1
+0 GHGI_EE_OTHER_ABOG             $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1B2ab_Abandoned_Oil_Gas              2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
+0 GHGI_EE_COAST_OTHER_ABOG       -                                                                                      -                                            -                  - -  -           CH4 1009    8 1
 ))).not.GHGI_v2
 )))GHGI_v2_Express_Ext
 
@@ -327,28 +346,28 @@ Mask fractions:              false
 #
 # NOTES:
 # - Use Hier=100 to add to Canada and USA regional inventories
+# - Make sure to include offshore/coastal emissions
+#   (Hier=1 to add to EDGAR, Hier=5 to add to GFEI)
 #==============================================================================
 (((Scarpelli_Mexico
 0 MEX_OIL               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    1 100
+0 MEX_OIL_COAST         -                                                                    -        -          - -  -           CH4 1010    1 5
 0 MEX_GAS               $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    2 100
+0 MEX_GAS_COAST         -                                                                    -        -          - -  -           CH4 1010    2 5
 0 MEX_COAL              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    3 100
+0 MEX_COAL_COAST        -                                                                    -        -          - -  -           CH4 1010    3 5
 0 MEX_LIVESTOCK_A       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    4 100
+0 MEX_LIVESTOCK_A_COAST -                                                                    -        -          - -  -           CH4 1010    4 1
 0 MEX_LIVESTOCK_B       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1001 4 100
+0 MEX_LIVESTOCK_B_COAST -                                                                    -        -          - -  -           CH4 10/1010 4 1
 0 MEX_LANDFILLS         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    5 100
+0 MEX_LANDFILLS_COAST   -                                                                    -        -          - -  -           CH4 1010    5 1
 0 MEX_WASTEWATER        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    6 100
+0 MEX_WASTEWATER_COAST  -                                                                    -        -          - -  -           CH4 1010    6 1
 0 MEX_RICE              $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1001 7 100
+0 MEX_RICE_COAST        -                                                                    -        -          - -  -           CH4 11/1010 7 1
 0 MEX_OTHER             $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1001    8 100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
-0 MEX_OIL_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_oil_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    1 5
-0 MEX_GAS_COAST         $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_gas_2015.nc          emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    2 5
-0 MEX_COAL_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_coal_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    3 5
-0 MEX_LIVESTOCK_A_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_A_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    4 1
-0 MEX_LIVESTOCK_B_COAST $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_livestock_B_2015.nc  emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 10/1010 4 1
-0 MEX_LANDFILLS_COAST   $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_landfill_2015.nc     emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    5 1
-0 MEX_WASTEWATER_COAST  $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_waste_2015.nc        emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    6 1
-0 MEX_RICE_COAST        $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_rice_2015.nc         emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 11/1010 7 1
-0 MEX_OTHER_COAST       $ROOT/CH4/v2022-11/Scarpelli_Mexico/MEX_Tia2020_other_anthro_2015.nc emis_ch4 2015/1/1/0 C xy molec/cm2/s CH4 1010    8 1
+0 MEX_OTHER_COAST       -                                                                    -        -          - -  -           CH4 1010    8 1
 )))Scarpelli_Mexico
 
 #==============================================================================
@@ -356,26 +375,26 @@ Mask fractions:              false
 #
 # NOTES:
 # - Use Hier=100 to add to USA and Mexico regional inventories
+# - Make sure to include offshore/coastal emissions
+#   (Hier=1 to add to EDGAR, Hier=5 to add to GFEI)
 #==============================================================================
 (((Scarpelli_Canada
-0 CAN_OIL_GAS_COMBUSTION  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_OIL_GAS_LEAKAGE     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_OIL_GAS_VENT_FLARE  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
-0 CAN_COAL                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1002 3   100
-0 CAN_LIVESTOCK           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1002 4   100
-0 CAN_SOLID_WASTE         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1002 5   100
-0 CAN_WASTEWATER          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
-0 CAN_OTHER               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
-
-### Make sure to include offshore/coastal emissions (Hier=1 to add to EDGAR, Hier=5 to add to GFEI) ###
-0 CAN_OIL_GAS_COMBUSTION_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_OIL_GAS_LEAKAGE_COAST     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_OIL_GAS_VENT_FLARE_COAST  $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1011 1/2 5
-0 CAN_COAL_COAST                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1011 3   5
-0 CAN_LIVESTOCK_COAST           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1011 4   1
-0 CAN_SOLID_WASTE_COAST         $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1011 5   1
-0 CAN_WASTEWATER_COAST          $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1011 6   1
-0 CAN_OTHER_COAST               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1011 8   1
+0 CAN_OIL_GAS_COMBUSTION        $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_combustion_2018.nc  oil_gas_combustion_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_COMBUSTION_COAST  -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_OIL_GAS_LEAKAGE           $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_leakage_2018.nc     oil_gas_leakage_total     2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_LEAKAGE_COAST     -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_OIL_GAS_VENT_FLARE        $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_oil_gas_vent_flare_2018.nc  oil_gas_vent_flare_total  2018/1/1/0 C xy kg/m2/s CH4 1002 1/2 100
+0 CAN_OIL_GAS_VENT_FLARE_COAST  -                                                                        -                         -          - -  -       CH4 1011 1/2 5
+0 CAN_COAL                      $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_coal_2018.nc                coal_total                2018/1/1/0 C xy kg/m2/s CH4 1002 3   100
+0 CAN_COAL_COAST                -                                                                        -                         -          - -  -       CH4 1011 3   5
+0 CAN_LIVESTOCK                 $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_livestock_2018.nc           livestock_total           2018/1/1/0 C xy kg/m2/s CH4 1002 4   100
+0 CAN_LIVESTOCK_COAST           -                                                                        -                         -          - -  -       CH4 1011 4   1
+0 CAN_SOLID_WASTE               $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_solid_waste_2018.nc         solid_waste_total         2018/1/1/0 C xy kg/m2/s CH4 1002 5   100
+0 CAN_SOLID_WASTE_COAST         -                                                                        -                         -          - -  -       CH4 1011 5   1
+0 CAN_WASTEWATER                $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_wastewater_2018.nc          wastewater_total          2018/1/1/0 C xy kg/m2/s CH4 1002 6   100
+0 CAN_WASTEWATER_COAST          -                                                                        -                         -          - -  -       CH4 1011 6   1
+0 CAN_OTHER                     $ROOT/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc other_minor_sources_total 2018/1/1/0 C xy kg/m2/s CH4 1002 8   100
+0 CAN_OTHER_COAST               -                                                                        -                         -          - -  -       CH4 1011 8   1
 )))Scarpelli_Canada
 
 #==============================================================================
@@ -390,81 +409,47 @@ Mask fractions:              false
 )))GFEIv2
 
 #==============================================================================
-# --- CH4: EDGAR v6.0 emissions ---
+# --- CH4: EDGAR v8.0 emissions ---
 #==============================================================================
-(((EDGARv6
-(((.not.EDGARv7
-0 EDGAR6_CH4_OIL__1B2a          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
-0 EDGAR6_CH4_OTHER__1A1_1B1_1B2 $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 1 1
-0 EDGAR6_CH4_OIL__1B2c          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 2 1
-0 EDGAR6_CH4_COAL__1B1a         $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_PRO_COAL.0.1x0.1.nc         emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 3 1
-0 EDGAR6_CH4_LIVESTOCK__4A      $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 4 1
-0 EDGAR6_CH4_LIVESTOCK__4B      $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 4 1
-0 EDGAR6_CH4_LANDFILLS__6A_6D   $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_LDF.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 5 1
-0 EDGAR6_CH4_WASTEWATER__6B     $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_WWT.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 6 1
-0 EDGAR6_CH4_RICE__4C_4D        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 7 1
-0 EDGAR6_CH4_OTHER__1A1a        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A2         $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3a_CDS    $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TNR_Aviation_CDS.0.1x0.1.nc emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3a_CRS    $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TNR_Aviation_CRS.0.1x0.1.nc emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3a_LTO    $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TNR_Aviation_LTO.0.1x0.1.nc emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3b        $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TRO_noRES.0.1x0.1.nc        emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3c_1A3e   $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TNR_Other.0.1x0.1.nc        emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A3d_1C2    $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_TNR_Ship.0.1x0.1.nc         emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__1A4         $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_RCO.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__2B          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_CHE.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__2C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__4F          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR6_CH4_OTHER__6C          $ROOT/CH4/v2022-11/EDGARv6/$YYYY/v6.0_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2000-2018/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-))).not.EDGARv7
-)))EDGARv6
-
-#==============================================================================
-# --- EDGAR v7.0 emissions ---
-#
-# NOTES:
-# - These are annual emissions. Seasonality is applied via scale factors
-#   computed from EDGARv6.0 monthly emissions.
-#==============================================================================
-(((EDGARv7
+(((EDGARv8
 ### Oil ###
-0 EDGAR7_CH4_OIL__1B2a          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_OIL.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 732 1 1
-0 EDGAR7_CH4_OTHER__1A1_1B1_1B2 $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_REF_TRF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 734 1 1
+0 EDGAR8_CH4_PRO_OIL             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_PRO_OIL_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 1 1
+0 EDGAR8_CH4_REF_TRF             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_REF_TRF_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 1 1
 
 ### Gas ###
-0 EDGAR7_CH4_OIL__1B2c          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_GAS.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 731 2 1
+0 EDGAR8_CH4_PRO_GAS             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_PRO_GAS_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 2 1
 
 ### Coal ###
-0 EDGAR7_CH4_COAL__1B1a         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_PRO_COAL.0.1x0.1.nc         emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 730 3 1
+0 EDGAR8_CH4_PRO_COAL            $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_PRO_COAL_flx.nc         emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 3 1
 
 ### Livestock ###
-0 EDGAR7_CH4_LIVESTOCK__4A      $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 724 4 1
-0 EDGAR7_CH4_LIVESTOCK__4B      $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 728 4 1
+0 EDGAR8_CH4_ENF                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_ENF_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
+0 EDGAR8_CH4_MNM                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_MNM_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
 
 ### Landfills ###
-0 EDGAR7_CH4_LANDFILLS__6A_6D   $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_LDF.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 736 5 1
+0 EDGAR8_CH4_SWD_LDF             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_LDF_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 5 1
 
 ### Wastewater ###
-0 EDGAR7_CH4_WASTEWATER__6B     $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_WWT.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 743 6 1
+0 EDGAR8_CH4_WWT                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_WWT_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 6 1
 
 ### Rice ###
-0 EDGAR7_CH4_RICE__4C_4D        $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AGS.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 720 7 1
+0 EDGAR8_CH4_AGS                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AGS_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 7 1
 
 ### Other Anthro ###
-0 EDGAR7_CH4_OTHER__1A1a        $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 723 8 1
-0 EDGAR7_CH4_OTHER__1A2         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IND.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 726 8 1
-0 EDGAR7_CH4_OTHER__1A3a_CDS    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CDS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 737 8 1
-0 EDGAR7_CH4_OTHER__1A3a_CRS    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_CRS.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 738 8 1
-0 EDGAR7_CH4_OTHER__1A3a_LTO    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Aviation_LTO.0.1x0.1.nc emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 739 8 1
-0 EDGAR7_CH4_OTHER__1A3b        $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TRO_noRES.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 742 8 1
-0 EDGAR7_CH4_OTHER__1A3c_1A3e   $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Other.0.1x0.1.nc        emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 740 8 1
-0 EDGAR7_CH4_OTHER__1A3d_1C2    $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_TNR_Ship.0.1x0.1.nc         emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 741 8 1
-0 EDGAR7_CH4_OTHER__1A4         $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_RCO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 733 8 1
-0 EDGAR7_CH4_OTHER__2B          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_CHE.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 722 8 1
-0 EDGAR7_CH4_OTHER__2C          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_IRO.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 727 8 1
-0 EDGAR7_CH4_OTHER__4F          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_AWB.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 721 8 1
-0 EDGAR7_CH4_OTHER__6C          $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_SWD_INC.0.1x0.1.nc          emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 735 8 1
-)))EDGARv7
+0 EDGAR8_CH4_ENE                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_ENE_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_IND                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_IND_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TNR_Aviation_CDS    $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TNR_Aviation_CDS_flx.nc emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TNR_Aviation_CRS    $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TNR_Aviation_CRS_flx.nc emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TNR_Aviation_LTO    $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TNR_Aviation_LTO_flx.nc emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TRO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TRO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TNR_Other           $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TNR_Other_flx.nc        emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_TNR_Ship            $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_TNR_Ship_flx.nc         emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_RCO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_RCO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_CHE                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_CHE_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_IRO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_IRO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_AWB                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AWB_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+0 EDGAR8_CH4_SWD_INC             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_INC_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+)))EDGARv8
 
 #==============================================================================
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
@@ -501,9 +486,11 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4  $ROOT/CH4/v2020-09/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
 
 #==============================================================================
@@ -522,10 +509,12 @@ Mask fractions:              false
 
 #==============================================================================
 # --- Emissions from Hydroelectric Reservoirs (Delwich et al., 2022) ---
+#
+# Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2023-04/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2023-04/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -535,8 +524,6 @@ Mask fractions:              false
 # - Multiply soil absorption by -1 to get a "negative" flux.
 #   (Only apply the scaling factor when adding to the total CH4 simulation)
 # - Use updated soil absorption emissions with seasonality applied
-# - For tagged CH4 simulations soil absorption is treated as a loss and applied
-#   in mixing_mod.F
 #==============================================================================
 (((FUNG_TERMITES
 0 CH4_TERMITES     $ROOT/CH4/v2022-11/4x5/termites.geos.4x5.nc CH4 1985/1/1/0 C xy kg/m2/s CH4 - 13 1
@@ -577,6 +564,8 @@ Mask fractions:              false
 0 RCP85_CH4  $ROOT/RCP/v2020-07/RCP_85/RCPs_anthro_CH4_2005-2100_43533.nc   ACCMIP 2005-2100/1/1/0 ID xy kg/m2/s  CH4 - 1 1
 )))RCP_85
 
+))).not.UseTotalPriorEmis
+
 )))USE_CH4_DATA
 
 #%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -610,22 +599,22 @@ Mask fractions:              false
 #      aren't included in the Tier 1 CAPS file/
 #==============================================================================
 (((NEI2016_MONMEAN
-0 EPA16_CO__airportsCO   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__nonroadCO    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__npogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroadCO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_caCO  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__railCO       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__airportsCO   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__nonptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__nonroadCO    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__npogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroadCO     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_caCO  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__railCO       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__c1c2CO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c1c2_12_0pt1degree_3D_month_$MM.ncf        CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__c3CO         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__pteguCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__ptogCO       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
 0 EPA16_CO__ptnonipmCO   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_canCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__onroad_mexCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__otharCO      $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
-0 EPA16_CO__othptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xyz  kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_canCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__onroad_mexCO $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__otharCO      $ROOT/NEI2016/v2021-06/2016fh_16j_othar_0pt1degree_month_$MM.ncf                      CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
+0 EPA16_CO__othptCO      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_othpt_0pt1degree_month_$MM.ncf                 CO  2002-2020/1-12/1/0 RF xy   kg/m2/s CO 26/211/252/2007 1 50
 )))NEI2016_MONMEAN
 
 #==============================================================================
@@ -681,13 +670,13 @@ Mask fractions:              false
 # EDGAR, HTAP or CMIP6_SFC_LAND_ANTHRO for the global base emissions %%%
 #==============================================================================
 (((CEDSv2
-0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/37/35/315 1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 26/316       1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc   CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_agr  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_tra  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_rco  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_slv  1750-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc  CO_wst  1750-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDSv2
 
 #==============================================================================
@@ -937,7 +926,7 @@ Mask fractions:              false
 )))ICOADS_SHIP
 
 (((CEDSv2_SHIP
-0 CEDS_CO2_SHP  $ROOT/CEDS/v2018-08/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc  CO2_shp  1750-2014/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+0 CEDS_CO2_SHP  $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc  CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDSv2_SHIP
 
 )))SHIP
@@ -1022,26 +1011,23 @@ Mask fractions:              false
 # --- GFED biomass burning emissions (Extension 111)
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
-(((USE_CH4_DATA.or.USE_CO2_DATA
 
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
-111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2003-2022/1-12/1-31/0  RF xy 1 * - 1 1
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
 )))GFED_daily
 
 (((GFED_3hourly
-111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2003-2022/1-12/1/0-23  RF xy 1 * - 1 1
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
-
-)))USE_CH4_DATA.or.USE_CO2_DATA
 
 )))EMISSIONS
 
@@ -1058,7 +1044,7 @@ Mask fractions:              false
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-* TIMEZONES $ROOT/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc UTC_OFFSET 2000/1/1/0 C xy count * - 1 1
+* TIMEZONES $ROOT/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc UTC_OFFSET 2017/1-12/1/0 C xy count * - 1 1
 
 #==============================================================================
 # --- Meteorology fields ---
@@ -1081,7 +1067,7 @@ Mask fractions:              false
 # --- GEOS-Chem boundary condition file ---
 #==============================================================================
 (((GC_BCs
-* BC_ $ROOT/SAMPLE_BCs/v2021-07/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV?  1980-2021/1-12/1-31/* EFY xyz 1 * - 1 1
+* BC_ $ROOT/SAMPLE_BCs/v2021-07/CH4/GEOSChem.BoundaryConditions.$YYYY$MM$DD_0000z.nc4 SpeciesBC_?ADV? 1900-2100/1-12/1-31/* EFY xyz 1 * - 1 1
 )))GC_BCs
 
 #==============================================================================
@@ -1259,36 +1245,10 @@ Mask fractions:              false
 
 #------------------------------------------------------------------------------
 # --- Files needed for analytical inversion ---
-#
-# These fields are are only used if analytical_inversion?' is activated in
-# geoschem_config.yml. These fields are obtained from HEMCO and applied in
-# GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
-# Entries below provided for examples only. Add your own here!
 #------------------------------------------------------------------------------
-(((AnalyticalInv
-
-# State vector file
-* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1
-
-)))AnalyticalInv
-
-#------------------------------------------------------------------------------
-# --- Scale factors for posterior run ---
-#
-# Enable emission scale factors by setting the use_emission_scale_factor or
-# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
-# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
-# Entries below are provided for examples only. Add your own here!
-#------------------------------------------------------------------------------
-(((Emis_ScaleFactor
-* EMIS_SF    gridded_posterior.nc  ScaleFactor  2000/1/1/0       C xy 1 * - 1 1
-)))Emis_ScaleFactor
-
-(((OH_ScaleFactor
-* OH_SF      Post_SF_OH.nc         SF_OH        2010-2017/1/1/0  E xy 1 * - 1 1
-)))OH_ScaleFactor
+(((AnalyticalInversion
+* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
+)))AnalyticalInversion
 
 )))USE_CH4_DATA
 
@@ -1302,10 +1262,18 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.47L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+
+(((OH_PosteriorSF
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
+)))OH_PosteriorSF
+
+(((.not.OH_PosteriorSF
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
+))).not.OH_PosteriorSF
+
 )))GLOBAL_OH_GCv5
 
-# --- OH from the last 10-yr benchmark [mol/mol dry air] ---
+# --- OH from the last 10-yr benchmark [mol/mol dry] ---
 (((GLOBAL_OH_GC14
 (((.not.GLOBAL_OH_GCv5
 ${RUNDIR_GLOBAL_OH}
@@ -1363,9 +1331,11 @@ ${RUNDIR_PCO_NMVOC}
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
 
+(((USE_CO2_DATA
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+)))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
 
@@ -1377,24 +1347,56 @@ ${RUNDIR_CO2_COPROD}
 
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- Multiply by -1 to get a "negative" flux.
-#==============================================================================
+#------------------------------------------------------------------------------
 1 NEGATIVE -1.0 - - - xy 1 1
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- Perturbation factors ---
 #
 # Add factors to perturb OH, emissions, and other fields here for
 # analytical inversions.
-#==============================================================================
+#------------------------------------------------------------------------------
 2 OH_pert_factor  1.0 - - - xy 1 1
 
-(((EMISSIONS
+#==============================================================================
+# --- Scale factors for posterior run ---
+#
+# Enable emission scale factors by setting the use_emission_scale_factor or
+# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
+# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
+#
+# Entries below are provided for examples only. Add your own here!
+#==============================================================================
+(((Emis_PosteriorSF
+3 EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 1
+)))Emis_PosteriorSF
+
+(((OH_PosteriorSF
+4 OH_SF      Post_SF_OH.nc         SF_OH       2010-2017/1/1/0    C xy 1 1
+)))OH_PosteriorSF
 
 #==============================================================================
-# --- Seasonal scaling factors ----
+# --- Scale factors for analytical inversions ---
 #==============================================================================
+(((AnalyticalInversion
+
+# Add perturbations to individual state vector element (N) following this format
+# Start scale factor ID at 2000 to avoid conflicts with other SFs/masks
+#200N SCALE_ELEM_000N ./Perturbations.txt - - - xy count 1
+
+)))AnalyticalInversion
+
+(((EMISSIONS
+#==============================================================================
+# --- Scale factors for CH4 emissions ----
+#==============================================================================
+(((USE_CH4_DATA
+
+#------------------------------------------------------------------------------
+# --- GHGI monthly scaling factors ---
+#------------------------------------------------------------------------------
 (((GHGI_v2.or.GHGI_v2_Express_Ext
 50 GHGI_OTH_STA_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_1A_Combustion_Stationary           2012-2018/1-12/1/0 C xy 1 1
 51 GHGI_OIL_EXP_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_1B2a_Petroleum_Systems_Exploration 2012-2018/1-12/1/0 C xy 1 1
@@ -1408,117 +1410,151 @@ ${RUNDIR_CO2_COPROD}
 59 GHGI_OTH_BUR_SF  $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_$YYYY.nc monthly_scale_factor_3F_Field_Burning                   2012-2018/1-12/1/0 C xy 1 1
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
-(((Scarpelli_Mexico.or.Scarpelli_Canada
+#------------------------------------------------------------------------------
+# --- Scarpelli et al Mexico manure & rice scale factors ---
+#------------------------------------------------------------------------------
+(((Scarpelli_Mexico
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
-11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0  C xy 1 1
-)))Scarpelli_Mexico.or.Scarpelli_Canada
+11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0      C xy 1 1
+)))Scarpelli_Mexico
 
-(((EDGARv7
-720 EDGAR_SEASONAL_SF_AGS        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AGS.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
-721 EDGAR_SEASONAL_SF_AWB        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_AWB.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
-722 EDGAR_SEASONAL_SF_CHE        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_CHE.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
-723 EDGAR_SEASONAL_SF_ENE        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENE.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1    
-724 EDGAR_SEASONAL_SF_ENF        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1    
-725 EDGAR_SEASONAL_SF_FFF        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_FFF.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1    
-726 EDGAR_SEASONAL_SF_IND        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_IND.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1    
-727 EDGAR_SEASONAL_SF_IRO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_IRO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
-728 EDGAR_SEASONAL_SF_MNM        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1   
-729 EDGAR_SEASONAL_SF_PRO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1  
-730 EDGAR_SEASONAL_SF_PRO_COAL   $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_COAL.0.1x0.1.nc         sf_ch4 2018/1-12/1/0 C xy 1 1
-731 EDGAR_SEASONAL_SF_PRO_GAS    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_GAS.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-732 EDGAR_SEASONAL_SF_PRO_OIL    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_PRO_OIL.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-733 EDGAR_SEASONAL_SF_RCO        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_RCO.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1
-734 EDGAR_SEASONAL_SF_REF_TRF    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_REF_TRF.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-735 EDGAR_SEASONAL_SF_SWD_INC    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_SWD_INC.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-736 EDGAR_SEASONAL_SF_SWD_LDF    $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_SWD_LDF.0.1x0.1.nc          sf_ch4 2018/1-12/1/0 C xy 1 1
-737 EDGAR_SEASONAL_SF_TNR_AV_CDS $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_CDS.0.1x0.1.nc sf_ch4 2018/1-12/1/0 C xy 1 1
-738 EDGAR_SEASONAL_SF_TNR_AV_CRS $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_CRS.0.1x0.1.nc sf_ch4 2018/1-12/1/0 C xy 1 1
-739 EDGAR_SEASONAL_SF_TNR_AV_LTO $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Aviation_LTO.0.1x0.1.nc sf_ch4 2018/1-12/1/0 C xy 1 1
-740 EDGAR_SEASONAL_SF_TNR_Other  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Other.0.1x0.1.nc        sf_ch4 2018/1-12/1/0 C xy 1 1
-741 EDGAR_SEASONAL_SF_TNR_SHIP   $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TNR_Ship.0.1x0.1.nc         sf_ch4 2018/1-12/1/0 C xy 1 1
-742 EDGAR_SEASONAL_SF_TRO_noRes  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_TRO_noRES.0.1x0.1.nc        sf_ch4 2018/1-12/1/0 C xy 1 1
-743 EDGAR_SEASONAL_SF_WWT        $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_WWT.0.1x0.1.nc              sf_ch4 2018/1-12/1/0 C xy 1 1
-)))EDGARv7
+)))USE_CH4_DATA
 
 #==============================================================================
-# --- Diurnal scale factors ---
+# --- Scale factors for CO2 emissions ---
 #==============================================================================
+(((USE_CO2_DATA
+
+#------------------------------------------------------------------------------
+# --- FOSSIL FUEL CO2 SURFACE CORRECTION FACTOR ---
+#
+# Fossil fuel CO2 emissions must be scaled down to avoid counting emissions
+# already accounted for by CO and CH4 oxidation to CO2.
+#
+# The necssary annual reduction in emissions related to fossil fuels is
+# determined as:  global C mass from FF (CO+CH4) / global C mass from FF CO2
+#
+# Note: GEOS-Chem v8-03-02 to v9-02, assumed: 0.0489 for all years but that
+# value seems to correspond to mid-1980s fossil fuel combustion since CO
+# emissions have held constant (Granier et al., 2011) while CO2 has risen.
+#
+# All scale factors for years 2000-2013 lumped into a single entry
+#------------------------------------------------------------------------------
+(((CO2CORR
+#410 CO2_FOSSFUEL_CORR 0.0489 - - - xy 1 1
+
+## CO2 scale factors from CO oxidation by decade (comment out for now)
+##410 CO2_FOSSFUEL_CORR 0.052815/0.054486/0.054902/0.055107/0.053166/0.051611/0.050065/0.048803/0.047060/0.046041 - 1980-1989/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.045816/0.045153/0.045541/0.045556/0.044800/0.043875/0.042910/0.042206/0.042257/0.042468 - 1990-1999/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118 - 2000-2009/1/1/0 C xy 1 1
+##410 CO2_FOSSFUEL_CORR 0.030622/0.029674/0.029029/0.028355                                                       - 2010-2013/1/1/0 C xy 1 1
+
+410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118/0.030622/0.029674/0.029029/0.028355 - 2000-2013/1/1/0 C xy 1 1
+)))CO2CORR
+
+# -----------------------------------------------------------------------------
+# --- CO2 conversion factors ---
+# -----------------------------------------------------------------------------
+420 CH4TOCO2  2.75   - - - xy 1 1
+421 CTOCO2    3.6667 - - - xy 1 1
+430 NMHCSCALE 0.3333 - - - xy 1 1
+
+#------------------------------------------------------------------------------
+# --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
+#------------------------------------------------------------------------------
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+440 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
+441 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0   C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+#------------------------------------------------------------------------------
+# --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
+#
+# Regional scale factors slightly less than 1 remove surface contribution from
+# domestic aviation in national fossil fuel emisisons, which should instead be
+# counted in the air as a 3D field. This scale factor should be applied to the
+# main/national fossil fuel emission field if using avaition emissions.
+#------------------------------------------------------------------------------
+(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+480 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
+)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+
+)))USE_CO2_DATA
+
+#==============================================================================
+# --- Scale factors for CO emissions ---
+#==============================================================================
+(((USE_CO_DATA
+
+#------------------------------------------------------------------------------
+# --- Diurnal scale factors for CO ---
+#------------------------------------------------------------------------------
 26 GEIA_TOD_FOSSIL 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy 1 1
 
-#==============================================================================
-# --- Seasonal scale factors ---
-#==============================================================================
-(((DICE_Africa
-# from GEIA:
-30 GEIA_SEASON_NOX  $ROOT/GEIA/v2014-07/GEIA_monthscal.generic.1x1.nc NOXrat 1985/1-12/1/0 C xy unitless 1
-31 GEIA_SEASON_SO2  $ROOT/GEIA/v2014-07/GEIA_monthscal.generic.1x1.nc SO2rat 1985/1-12/1/0 C xy unitless 1
-)))DICE_Africa
-
-#==============================================================================
-# Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019)
-#==============================================================================
-33 PKU_pow_NOx              0.94/0.93/0.93/0.92/0.93/0.96/0.98/0.99/0.98/1.00/1.05/1.03/1.01/1.04/1.05/1.05/1.07/1.06/1.05/1.05/1.03/1.01/0.99/0.96 - - - xy unitless 1 2009
-34 PKU_pow_SO2              0.92/0.91/0.90/0.89/0.90/0.93/0.97/0.98/0.99/1.02/1.07/1.04/1.03/1.06/1.06/1.07/1.10/1.10/1.06/1.05/1.03/1.01/0.99/0.93 - - - xy unitless 1 2009
+#------------------------------------------------------------------------------
+# --- Diurnal variablity of Chinese power plants from Liu et al. (EST, 2019) ---
+#
+# Also need to undo (Oper=-1) the global diurnal scale factors over China
+#------------------------------------------------------------------------------
 35 PKU_pow_PM_BC_POC_VOC_CO 0.95/0.93/0.92/0.91/0.90/0.93/0.97/0.97/0.99/1.03/1.04/1.03/1.02/1.03/1.05/1.07/1.07/1.07/1.06/1.04/1.03/1.02/1.00/0.97 - - - xy unitless 1 2009
-
-### These scale factors undo (Oper=-1) the global diurnal scale factors over China (Mask=2009)
-#36 EDGAR_TODNOX_UNDO $ROOT/EDGARv42/v2015-02/NO/EDGAR_hourly_NOxScal.nc NOXscale 2000/1/1/* C xy unitless -1 2009
 37 GEIA_TOD_FOSSIL_UNDO 0.45/0.45/0.6/0.6/0.6/0.6/1.45/1.45/1.45/1.45/1.4/1.4/1.4/1.4/1.45/1.45/1.45/1.45/0.65/0.65/0.65/0.65/0.45/0.45 - - - xy unitless -1 2009
 
-#==============================================================================
-# --- Scale factors used for species conversions ---
-#==============================================================================
-
-# VOC speciations
+#------------------------------------------------------------------------------
+# --- Account for CO production by VOCs ---
+#------------------------------------------------------------------------------
 (((APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 52 COPROD_FOSSIL    1.02  - - - xy unitless 1
 54 COPROD_BIOMASS   1.05  - - - xy unitless 1
 )))APEI.or.EDGARv43.or.DICE_Africa.or.QFED2
 
-# S to OCS ratio
-70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1
+#------------------------------------------------------------------------------
+# --- DICE-Africa ---
+# Charcoal production scale factor to reduce charcoal production
+# by a factor of 5 after finding error in implementation of emission factors.
+#------------------------------------------------------------------------------
+(((DICE_Africa
+320 DICE_CP_SF    0.20 - - - xy 1 1
+)))DICE_Africa
 
-# km-2 to m-2
+#------------------------------------------------------------------------------
+# --- CO: HTAP Annual scale factors ---
+#------------------------------------------------------------------------------
+(((HTAP
+506 LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
+507 LIQFUEL_1985      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
+509 LIQFUEL_2006      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2006/1/1/0      C xy 1 -1
+510 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
+528 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
+)))HTAP
+
+)))USE_CO_DATA
+
+#==============================================================================
+# --- Scale factors for OCS emissions ---
+#==============================================================================
+(((USE_OCS_DATA
+
+#------------------------------------------------------------------------------
+# --- S to OCS ratio ---
+#------------------------------------------------------------------------------
+70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1 
+
+#------------------------------------------------------------------------------
+# --- km-2 to m-2 ---
+#------------------------------------------------------------------------------
 71 Km2ToM2 1.0e-6 - - - xy unitless 1
 
-#==============================================================================
-# --- QFED2 diurnal scale factors ---
-#
-# Fire diurnal scaling factors (% per hour) from WRAP Report to Project
-# No. 178-6, July 2005
-#==============================================================================
-(((QFED2.or.GFAS.or.BB4MIPS
-75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
-)))QFED2.or.GFAS.or.BB4MIPS
+)))USE_OCS_DATA
 
 #==============================================================================
-# --- EPA NEI day-of-week scale factors ---
+# --- Inventory-specific scale factors ---
 #==============================================================================
-(((NEI2016_MONMEAN
-211 NEI99_DOW_CO  $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0 C xy 1 1
-)))NEI2016_MONMEAN
-#==============================================================================
-# --- EPA NEI2016 annual scale factors ---
-#
-# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
-# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
-# PM2.5 only had values for 2002-2020, while the remaining species had yearly
-# values for 1990-2020 (we include only 2002-2020 here).
-#
-# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
-#==============================================================================
-(((NEI2016_MONMEAN
-252 NEI2016_CO_YRSCALE 1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
-)))NEI2016_MONMEAN
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- AEIC2019 aircraft emissions scale factors ---
 #
 # See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf
-#==============================================================================
-(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
-
-#------------------------------------------------------------------------------
+#
 # Scaling factors for 1990-2019 derived from Lee et al. (2021).  Lee et al.
 # (2021) only covers 1990 to 2018, so to get to 2019 it is assumed that the
 # growth from 2017 to 2018 is the same as that from 2018 to 2019.
@@ -1536,6 +1572,9 @@ ${RUNDIR_CO2_COPROD}
 #
 # All scaling factors are included in here in HEMCO_Config.rc.
 #------------------------------------------------------------------------------
+(((AEIC2019_DAILY.or.AEIC2019_MONMEAN
+
+# If applying 1990-2019 scale factors
 (((AEIC_SCALE_1990_2019
 241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
 )))AEIC_SCALE_1990_2019
@@ -1545,116 +1584,84 @@ ${RUNDIR_CO2_COPROD}
 241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
 ))).not.AEIC_SCALE_1990_2019
 
-#------------------------------------------------------------------------------
 # Assume 3.159 kg CO2 from every kg of fuel burned
 # cf Hileman, Stratton, & Donohoo, _J. Propul. Power_, 26(6), 1184–1196, 2010.
-#------------------------------------------------------------------------------
 260 AEIC19_FBtoCO2 3.159 - - - xy unitless 1
 
 )))AEIC2019_DAILY.or.AEIC2019_MONMEAN
 
-#==============================================================================
-# --- GFAS scale factors ---
-#==============================================================================
-(((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
-)))GFAS
-
-#==============================================================================
-# --- QFED vertical partitioning ---
-# Following Fischer et al. (2014) and Travis et al. (2016), emit 35% of QFED
-# emissions above the PBL.
-#==============================================================================
-(((QFED2
-311 QFED_PBL_FRAC 0.65 - - - xy 1 1
-312 QFED_FT_FRAC  0.35 - - - xy 1 1
-)))QFED2
-
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- CEDS vertical partitioning ---
-#==============================================================================
+#------------------------------------------------------------------------------
 (((CEDSv2.or.CEDS_GBDMAPS
 315 ENERGY_LEVS   $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_energy   2017/1/1/0 C xyz 1 1
 316 INDUSTRY_LEVS $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc g_industry 2017/1/1/0 C xyz 1 1
 317 SHIP_LEVS     $ROOT/VerticalScaleFactors/v2021-05/gc_layers.nc cmv_c3     2017/1/1/0 C xyz 1 1
 )))CEDSv2.or.CEDS_GBDMAPS
 
-#==============================================================================
-# --- DICE-Africa ---
-#==============================================================================
-(((DICE_Africa
-# Charcoal production scale factor to reduce charcoal production
-# by a factor of 5 after finding error in implementation of emission factors.
-320 DICE_CP_SF    0.20 - - - xy 1 1
-)))DICE_Africa
+#------------------------------------------------------------------------------
+# --- GFAS scale factors ---
+#------------------------------------------------------------------------------
+(((GFAS
+300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
+)))GFAS
 
-#==============================================================================
-# --- FOSSIL FUEL CO2 SURFACE CORRECTION FACTOR ---
-#
-# Fossil fuel CO2 emissions must be scaled down to avoid counting emissions
-# already accounted for by CO and CH4 oxidation to CO2.
-#
-# The necssary annual reduction in emissions related to fossil fuels is
-# determined as:  global C mass from FF (CO+CH4) / global C mass from FF CO2
-#
-# Note: GEOS-Chem v8-03-02 to v9-02, assumed: 0.0489 for all years but that
-# value seems to correspond to mid-1980s fossil fuel combustion since CO
-# emissions have held constant (Granier et al., 2011) while CO2 has risen.
-#
-# All scale factors for years 2000-2013 lumped into a single entry
-#==============================================================================
-(((CO2CORR
+#------------------------------------------------------------------------------
+# --- EPA NEI2016 (monthly-mean inventory) scale factors ---
+#------------------------------------------------------------------------------
+(((NEI2016_MONMEAN
 
-#410 CO2_FOSSFUEL_CORR 0.0489 - - - xy 1 1
+# Weekday/Weekend scale factors
+211 NEI99_DOW_CO $ROOT/NEI2005/v2023-02/NEI99.dow.geos.1x1.corrected.012023.nc CO 1999/1-12/WD/0  C xy 1 1
 
-## CO2 scale factors from CO oxidation by decade (comment out for now)
-##410 CO2_FOSSFUEL_CORR 0.052815/0.054486/0.054902/0.055107/0.053166/0.051611/0.050065/0.048803/0.047060/0.046041 - 1980-1989/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.045816/0.045153/0.045541/0.045556/0.044800/0.043875/0.042910/0.042206/0.042257/0.042468 - 1990-1999/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118 - 2000-2009/1/1/0 C xy 1 1
-##410 CO2_FOSSFUEL_CORR 0.030622/0.029674/0.029029/0.028355                                                       - 2010-2013/1/1/0 C xy 1 1
+# Annual scale factors were computed from the EPA Trends Report for Tier 1 CAPS
+# (obtained 21 Sep 2021) using the "Total without wildfires" field. NH3 and
+# PM2.5 only had values for 2002-2020, while the remaining species had yearly
+# values for 1990-2020 (we include only 2002-2020 here).
+# See NEI2016/v2021-06/national_tier1_caps+HEMCOscaling.xlsx for details.
+252 NEI2016_CO_YRSCALE 1.817/1.767/1.716/1.666/1.610/1.554/1.393/1.251/1.272/1.261/1.220/1.178/1.137/1.095/1.000/0.973/0.950/0.927/0.904 - 2002-2020/1/1/0 C xy 1 1
 
-410 CO2_FOSSFUEL_CORR 0.041495/0.040525/0.040125/0.037853/0.035957/0.034686/0.033538/0.032771/0.031961/0.032118/0.030622/0.029674/0.029029/0.028355 - 2000-2013/1/1/0 C xy 1 1
-)))CO2CORR
+)))NEI2016_MONMEAN
 
-#==============================================================================
-# --- CO2 CONVERSION FACTORS ---
-#==============================================================================
-420 CH4TOCO2  2.75   - - - xy 1 1
-421 CTOCO2    3.6667 - - - xy 1 1
-430 NMHCSCALE 0.3333 - - - xy 1 1
+#------------------------------------------------------------------------------
+# --- QFED2 diurnal scale factors ---
+# Fire diurnal scaling factors (% per hour) from WRAP Report to Project
+# No. 178-6, July 2005
+#------------------------------------------------------------------------------
+(((QFED2.or.GFAS.or.BB4MIPS
+75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
+)))QFED2.or.GFAS.or.BB4MIPS
 
-#==============================================================================
-# ---- TIMES diurnal and weekly scale factors for national fossil fuel CO2 ---
-#
-# These temporal scale factors are described in Nassar et al. (2013)
-#==============================================================================
-(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-440 CO2_DIURNAL $ROOT/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc diurnal_scale_factors 2006/1/1/1-24 C xy 1 1
-441 CO2_WEEKLY  $ROOT/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc  weekly_scale_factors  2006/1/WD/0   C xy 1 1
-)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+#------------------------------------------------------------------------------
+# --- QFED vertical partitioning ---
+# Following Fischer et al. (2014) and Travis et al. (2016),
+# emit 35% of QFED emissions above the PBL.
+#------------------------------------------------------------------------------
+(((QFED2
+311 QFED_PBL_FRAC 0.65 - - - xy 1 1
+312 QFED_FT_FRAC  0.35 - - - xy 1 1
+)))QFED2
 
-#==============================================================================
-# --- DOMESTIC AVIATION SURFACE CORRECTION FACTOR ---
-#
-# Regional scale factors slightly less than 1 remove surface contribution from
-# domestic aviation in national fossil fuel emisisons, which should instead be
-# counted in the air as a 3D field. This scale factor should be applied to the
-# main/national fossil fuel emission field if using avaition emissions.
-#==============================================================================
-(((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-480 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
-)))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
+(((CEDSv2
+#=========================================================================
+# --- Sector-wise diel scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+2401 TOD_AGRICULTURE 0.599/0.599/0.599/0.599/0.599/0.649/0.748/0.898/1.098/1.247/1.447/1.597/1.796/1.746/1.696/1.547/1.347/1.098/0.898/0.748/0.649/0.599/0.599/0.599 - - - xy unitless 1
+2406 TOD_ENERGY      0.790/0.720/0.720/0.710/0.740/0.800/0.920/1.080/1.190/1.220/1.210/1.210/1.170/1.150/1.140/1.130/1.100/1.070/1.040/1.020/1.020/1.010/0.960/0.880 - - - xy unitless 1
+2407 TOD_INDUSTRY    0.750/0.750/0.780/0.820/0.880/0.950/1.020/1.090/1.160/1.220/1.280/1.300/1.220/1.240/1.250/1.160/1.080/1.010/0.950/0.900/0.850/0.810/0.780/0.750 - - - xy unitless 1
+2409 TOD_RESIDENTIAL 0.393/0.393/0.393/0.393/0.393/0.492/1.180/1.475/1.574/1.574/1.377/1.180/1.082/1.082/0.984/0.984/0.984/1.082/1.377/1.475/1.377/1.377/0.984/0.393 - - - xy unitless 1
+2411 TOD_TRANSPORT   0.190/0.090/0.060/0.050/0.090/0.220/0.860/1.840/1.860/1.410/1.240/1.200/1.320/1.440/1.450/1.590/2.030/2.080/1.510/1.060/0.740/0.620/0.610/0.440 - - - xy unitless 1
 
-#==============================================================================
-# --- CO: HTAP Annual scale factors ---
-#==============================================================================
-(((HTAP
-506 LIQFUEL_THISYR    $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985-2010/1/1/0 C xy 1  1
-507 LIQFUEL_1985      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  1985/1/1/0      C xy 1 -1
-509 LIQFUEL_2006      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2006/1/1/0      C xy 1 -1
-510 LIQFUEL_2002      $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2002/1/1/0      C xy 1 -1
-528 LIQFUEL_2008_2010 $ROOT/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc COscalar  2008-2010/1/1/0 C xy 1 -1
-)))HTAP
+#=========================================================================
+# --- Sector-wise day-of-week scale factors for CEDSv2 ---
+# These scale factors could potentially be used for other global base emissions if modified accordingly.
+#=========================================================================
+706 DOW_ENERGY      0.850/1.060/1.060/1.060/1.060/1.060/0.850 - - - xy unitless 1
+707 DOW_INDUSTRY    0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+709 DOW_RESIDENTIAL 0.800/1.080/1.080/1.080/1.080/1.080/0.800 - - - xy unitless 1
+711 DOW_TRANSPORT   0.790/1.020/1.060/1.080/1.100/1.140/0.810 - - - xy unitless 1
+)))CEDSv2
 
 )))EMISSIONS
 
@@ -1674,18 +1681,18 @@ ${RUNDIR_CO2_COPROD}
 (((USE_CH4_DATA
 
 (((Scarpelli_Mexico
-1001 MEX_MASK          $ROOT/MASKS/v2018-09/Mexico_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
-1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2018-09/Mexico_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1001 MEX_MASK          $ROOT/MASKS/v2024-04/Mexico_Mask.01x01.nc        MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
+1010 MEX_MASK_MIRROR   $ROOT/MASKS/v2024-04/Mexico_Mask_Mirror.01x01.nc MASK 2000/1/1/0 C xy 1 1 -118/17/-95/33
 )))Scarpelli_Mexico
 
 (((Scarpelli_Canada
-1002 CAN_MASK          $ROOT/MASKS/v2018-09/Canada_Mask.001x001.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
-1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2018-09/Canada_Mask_Mirror.001x001.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1002 CAN_MASK          $ROOT/MASKS/v2024-04/Canada_Mask.01x01.nc        MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
+1011 CAN_MASK_MIRROR   $ROOT/MASKS/v2024-04/Canada_Mask_Mirror.01x01.nc MASK 2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))Scarpelli_Canada
 
 (((GHGI_v2.or.GHGI_v2_Express_Ext
-1008 CONUS_MASK        $ROOT/MASKS/v2018-09/CONUS_Mask.001x001.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
-1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2018-09/CONUS_Mask_Mirror.001x001.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1008 CONUS_MASK        $ROOT/MASKS/v2024-04/CONUS_Mask.01x01.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
+1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.01x01.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 )))USE_CH4_DATA
@@ -1699,8 +1706,9 @@ ${RUNDIR_CO2_COPROD}
 2002 CANADA_MASK $ROOT/MASKS/v2018-09/Canada_mask.geos.1x1.nc            MASK     2000/1/1/0 C xy 1 1 -141/40/-52/85
 )))APEI
 
+# Renamed to avoid a namespace collision w/ GHGI mask above!!!
 (((NEI2016_MONMEAN
-2007 CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc                MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
+2007 NEI_CONUS_MASK  $ROOT/MASKS/v2018-09/CONUS_Mask.01x01.nc            MASK     2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))NEI2016_MONMEAN
 
 (((DICE_Africa

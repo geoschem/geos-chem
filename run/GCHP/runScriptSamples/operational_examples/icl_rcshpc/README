@@ -1,0 +1,11 @@
+For use with the PBS Pro system at Imperial College London's campus-wide HPC.
+
+To submit a job, type:
+
+qsub gchp.run
+
+Instructions are given to modify node/core/memory requirements in gchp.run.
+
+Contact:
+Sebastian Eastham at Imperial College London
+s.eastham@imperial.ac.uk

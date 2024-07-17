@@ -43,7 +43,6 @@ MODULE PHOTOLYSIS_MOD
    ! Species ID flags
    INTEGER :: id_NIT, id_NITs, id_SALA, id_SALC
 
-
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -657,8 +656,7 @@ CONTAINS
 !
 ! !REMARKS:
 !  NOTE: The netCDF diagnostics are attached in DO_FLEXCHEM so that we have
-!  access to the adjusted rates.  Only the bpch diagnostics are updated
-!  here.
+!  access to the adjusted rates.
 !    -- Bob Yantosca, 19 Dec 2017
 !
 !  %%%% NOTE: WE SHOULD UPDATE THE COMMENTS TO MAKE SURE THAT WE DO      %%%%
@@ -860,7 +858,7 @@ CONTAINS
 ! !LOCAL VARIABLES
 !
     ! Scalars
-    INTEGER            :: I, J, K, N
+    INTEGER            :: I, J, K, N, g
     INTEGER            :: IOS, NJ1
     LOGICAL            :: LBRC, FileExists
 
@@ -878,17 +876,17 @@ CONTAINS
     ! Pointers
     REAL*8, POINTER :: WVAA  (:,:)    
     REAL*8, POINTER :: RHAA  (:,:)    
-    REAL*8, POINTER :: RDAA  (:,:)    
-    REAL*8, POINTER :: RWAA  (:,:)    
+    REAL*8, POINTER :: RDAA  (:,:,:)    
+    REAL*8, POINTER :: RWAA  (:,:,:)    
     REAL*8, POINTER :: SGAA  (:,:)    
-    REAL*8, POINTER :: REAA  (:,:)    
+    REAL*8, POINTER :: REAA  (:,:,:)    
     REAL*8, POINTER :: NCMAA (:,:,:)  
     REAL*8, POINTER :: NRLAA (:,:,:)  
-    REAL*8, POINTER :: QQAA  (:,:,:)  
-    REAL*8, POINTER :: ALPHAA(:,:,:)  
-    REAL*8, POINTER :: SSAA  (:,:,:)  
-    REAL*8, POINTER :: ASYMAA(:,:,:)  
-    REAL*8, POINTER :: PHAA  (:,:,:,:)
+    REAL*8, POINTER :: QQAA  (:,:,:,:)  
+    REAL*8, POINTER :: ALPHAA(:,:,:,:)  
+    REAL*8, POINTER :: SSAA  (:,:,:,:)  
+    REAL*8, POINTER :: ASYMAA(:,:,:,:)  
+    REAL*8, POINTER :: PHAA  (:,:,:,:,:)
 
     !================================================================
     ! RD_AOD begins here!
@@ -916,16 +914,8 @@ CONTAINS
     ASYMAA => State_Chm%Phot%ASYMAA
     PHAA   => State_Chm%Phot%PHAA
 
-#if defined( MODEL_CESM )
-    IF ( Input_Opt%amIRoot ) THEN
-       NJ1 = findFreeLUN()
-    ELSE
-       NJ1 = 0
-    ENDIF
-#else
     ! Get a free LUN
     NJ1 = findFreeLUN()
-#endif
 
     ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
     !
@@ -946,7 +936,7 @@ CONTAINS
 
        ! Choose different set of input files for standard (trop+strat chenm)
        ! and tropchem (trop-only chem) simulations
-       THISFILE = TRIM( DATA_DIR ) // TRIM( SPECFIL(k) )
+       THISFILE = TRIM( DATA_DIR ) // '/' // TRIM( SPECFIL(k) )
 
        !--------------------------------------------------------------
        ! In dry-run mode, print file path to dryrun log and cycle.
@@ -985,11 +975,6 @@ CONTAINS
        ! If not a dry-run, read data from each species file
        !--------------------------------------------------------------
 
-#if defined( MODEL_CESM )
-       ! Only read file on root thread if using CESM
-       IF ( Input_Opt%amIRoot ) THEN
-#endif
-
        ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
 
@@ -1011,13 +996,35 @@ CONTAINS
        READ(  NJ1, '(A)' ) TITLE0
 110    FORMAT( 3x, a20 )
 
+       IF (k == 1 .OR. k == 3) THEN
+       ! for SO4 and ORGANICS, dry aerosol size varies, therefore all 
+       ! opt properties vary. 
+       DO g = 1, State_Chm%Phot%NDRg
        DO i = 1, State_Chm%Phot%NRAA
        DO j = 1, State_Chm%Phot%NWVAA
 
           READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
-                      RDAA(i,k),RWAA(i,k),SGAA(i,k),QQAA(j,i,k),   &
-                      ALPHAA(j,i,k),REAA(i,k),SSAA(j,i,k),         &
-                      ASYMAA(j,i,k),(PHAA(j,i,k,n),n=1,8)
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
+
+          ! make note of where 1000nm is for FAST-J calcs
+          IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
+
+       ENDDO
+       ENDDO
+       ENDDO
+
+       ELSE
+       ! For other species, keep g = default Rg (DRg) 
+       g = State_Chm%Phot%DRg
+       DO i = 1, State_Chm%Phot%NRAA
+       DO j = 1, State_Chm%Phot%NWVAA
+
+          READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
 
           ! make note of where 1000nm is for FAST-J calcs
           IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
@@ -1025,17 +1032,15 @@ CONTAINS
        ENDDO
        ENDDO
 
+       ENDIF
+
        ! Close file
        CLOSE( NJ1 )
-
-#if defined( MODEL_CESM )
-       ENDIF
-#endif
 
     ENDDO
     
 #if defined( MODEL_CESM )
-    IF ( Input_Opt%amIRoot ) CALL freeUnit(NJ1)
+   CALL freeUnit(NJ1)
 #endif
 
   ! Free pointers
@@ -1589,7 +1594,7 @@ CONTAINS
     TREF => State_Chm%Phot%TREF
 
     ! Directory and file names
-    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // 'FastJ_201204/'
+    nc_dir  = TRIM( Input_Opt%CHEM_INPUTS_DIR ) // '/' // 'FastJ_201204' // '/'
     nc_file = 'fastj.jv_atms_dat.nc'
     nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 

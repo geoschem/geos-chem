@@ -55,6 +55,9 @@ GRID_LABELS: #PE24x144-CF
 COLLECTIONS: 'Emissions',
              'Budget',
              'CloudConvFlux',
+             #'FV3Dynamics',
+             #'GCHPctmEnvLevCenter',
+             #'GCHPctmEnvLevEdge',
              'LevelEdgeDiags',      
              'SpeciesConc_avg',
 	     'SpeciesConc_inst',
@@ -146,24 +149,32 @@ COLLECTIONS: 'Emissions',
   Budget.frequency:           010000
   Budget.duration:            010000
   Budget.mode:                'time-averaged'
-  Budget.fields:              'BudgetEmisDryDepFull_CO2           ', 'GCHPchem',
-  			      'BudgetEmisDryDepFull_PassiveTracer ', 'GCHPchem',
-			      'BudgetEmisDryDepTrop_CO2           ', 'GCHPchem',
-			      'BudgetEmisDryDepTrop_PassiveTracer ', 'GCHPchem',
-			      'BudgetEmisDryDepPBL_CO2            ', 'GCHPchem',
-			      'BudgetEmisDryDepPBL_PassiveTracer  ', 'GCHPchem',
-			      'BudgetMixingFull_CO2               ', 'GCHPchem',
-			      'BudgetMixingFull_PassiveTracer     ', 'GCHPchem',
-			      'BudgetMixingTrop_CO2               ', 'GCHPchem',
-			      'BudgetMixingTrop_PassiveTracer     ', 'GCHPchem',
-			      'BudgetMixingPBL_CO2                ', 'GCHPchem',
-			      'BudgetMixingPBL_PassiveTracer      ', 'GCHPchem',
-			      'BudgetConvectionFull_CO2           ', 'GCHPchem',
-			      'BudgetConvectionFull_PassiveTracer ', 'GCHPchem',
-			      'BudgetConvectionTrop_CO2           ', 'GCHPchem',
-			      'BudgetConvectionTrop_PassiveTracer ', 'GCHPchem',
-			      'BudgetConvectionPBL_CO2            ', 'GCHPchem',
-			      'BudgetConvectionPBL_PassiveTracer  ', 'GCHPchem',
+  Budget.fields:              'BudgetEmisDryDepFull_CO2               ', 'GCHPchem',
+                              'BudgetEmisDryDepFull_PassiveTracer     ', 'GCHPchem',
+                              'BudgetEmisDryDepTrop_CO2               ', 'GCHPchem',
+                              'BudgetEmisDryDepTrop_PassiveTracer     ', 'GCHPchem',
+                              'BudgetEmisDryDepPBL_CO2                ', 'GCHPchem',
+                              'BudgetEmisDryDepPBL_PassiveTracer      ', 'GCHPchem',
+                              'BudgetEmisDryDepLevs1to35_CO2          ', 'GCHPchem',
+                              'BudgetEmisDryDepLevs1to35_PassiveTracer', 'GCHPchem',
+                              #
+                              'BudgetMixingFull_CO2                   ', 'GCHPchem',
+                              'BudgetMixingFull_PassiveTracer         ', 'GCHPchem',
+                              'BudgetMixingTrop_CO2                   ', 'GCHPchem',
+                              'BudgetMixingTrop_PassiveTracer         ', 'GCHPchem',
+                              'BudgetMixingPBL_CO2                    ', 'GCHPchem',
+                              'BudgetMixingPBL_PassiveTracer          ', 'GCHPchem',
+                              'BudgetMixingLevs1to35_CO2              ', 'GCHPchem',
+                              'BudgetMixingLevs1to35_PassiveTracer    ', 'GCHPchem',
+                              #
+                              'BudgetConvectionFull_CO2               ', 'GCHPchem',
+                              'BudgetConvectionFull_PassiveTracer     ', 'GCHPchem',
+                              'BudgetConvectionTrop_CO2               ', 'GCHPchem',
+                              'BudgetConvectionTrop_PassiveTracer     ', 'GCHPchem',
+                              'BudgetConvectionPBL_CO2                ', 'GCHPchem',
+                              'BudgetConvectionPBL_PassiveTracer      ', 'GCHPchem',
+                              'BudgetConvectionLevs1to35_CO2          ', 'GCHPchem',
+                              'BudgetConvectionLevs1to35_PassiveTracer', 'GCHPchem',
 ::					     
 #===============================================================================
   CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -175,6 +186,46 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.mode:           'time-averaged'
   CloudConvFlux.fields:         'CloudConvFlux_CO2           ', 'GCHPchem',
   			        'CloudConvFlux_PassiveTracer ', 'GCHPchem',
+::
+#==============================================================================
+  FV3Dynamics.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  FV3Dynamics.format:         'CFIO',
+  FV3Dynamics.timestampStart: .true.
+  FV3Dynamics.monthly:        1
+  FV3Dynamics.frequency:      010000
+  FV3Dynamics.duration:       010000
+  FV3Dynamics.mode:           'time-averaged'
+  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
+                              'DryPLE ', 'DYNAMICS',
+                              'PLEadv ', 'DYNAMICS',
+::
+#==============================================================================
+  GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  GCHPctmEnvLevEdge.format:         'CFIO',
+  GCHPctmEnvLevEdge.timestampStart: .true.
+  GCHPctmEnvLevEdge.monthly:        1
+  GCHPctmEnvLevEdge.frequency:      010000
+  GCHPctmEnvLevEdge.duration:       010000
+  GCHPctmEnvLevEdge.mode:           'time-averaged'
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
+                                    'PLE0               ', 'GCHPctmEnv',
+                                    'PLE1               ', 'GCHPctmEnv',
+                                    'DryPLE0            ', 'GCHPctmEnv',
+                                    'DryPLE1            ', 'GCHPctmEnv',
+::
+#==============================================================================
+  GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  GCHPctmEnvLevCenter.format:         'CFIO',
+  GCHPctmEnvLevCenter.timestampStart: .true.
+  GCHPctmEnvLevCenter.monthly:        1
+  GCHPctmEnvLevCenter.frequency:      010000
+  GCHPctmEnvLevCenter.duration:       010000
+  GCHPctmEnvLevCenter.mode:           'time-averaged'
+  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
+                                      'CX       ', 'GCHPctmEnv',
+                                      'CY       ', 'GCHPctmEnv',
+                                      'MFX      ', 'GCHPctmEnv',
+                                      'MFY      ', 'GCHPctmEnv',
 ::
 #==============================================================================
   LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -252,10 +303,10 @@ COLLECTIONS: 'Emissions',
                            'Met_FRCLND         ', 'GCHPchem',
                            'Met_FRLAKE         ', 'GCHPchem',
                            'Met_FRLAND         ', 'GCHPchem',
-                           'Met_FRLANDIC       ', 'GCHPchem',
+                           'Met_FRLANDICE      ', 'GCHPchem',
                            'Met_FROCEAN        ', 'GCHPchem',
                            'Met_FRSEAICE       ', 'GCHPchem',
-                           'Met_FRSNO          ', 'GCHPchem',
+                           'Met_FRSNOW         ', 'GCHPchem',
                            'Met_GWETROOT       ', 'GCHPchem',
                            'Met_GWETTOP        ', 'GCHPchem',
                            'Met_HFLUX          ', 'GCHPchem',

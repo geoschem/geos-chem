@@ -321,9 +321,6 @@ CONTAINS
     USE HCO_TYPES_MOD,        ONLY : DiagnCont
     USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
 #endif
-#ifdef BPCH_DIAG
-    USE CMN_O3_MOD,           ONLY : SAVEOA
-#endif
 #ifdef TOMAS
     USE TOMAS_MOD,            ONLY : SOACOND
     USE TOMAS_MOD,            ONLY : CHECKMN
@@ -4335,12 +4332,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-   USE CMN_DIAG_MOD             ! ND59
-   USE DIAG_MOD,           ONLY : AD59_ECIL,   AD59_ECOB
-   USE DIAG_MOD,           ONLY : AD59_OCIL,   AD59_OCOB
-   USE DIAG_MOD,           ONLY : AD59_NUMB
-#endif
    USE ERROR_MOD,          ONLY : IT_IS_NAN
    USE Input_Opt_Mod,      ONLY : OptInput
    USE Species_Mod,        ONLY : SpcConc
@@ -4573,33 +4564,6 @@ CONTAINS
          ENDIF
 
       ENDDO ! L loop
-
-      !=======================================================================
-      !  ND59 Diagnostic: Size-resolved primary emission in
-      !                 [kg/box/timestep] and the corresponding
-      !                  number emission [no./box/timestep]
-      !=======================================================================
-#ifdef BPCH_DIAG
-      IF ( ND59 > 0 ) THEN
-         DO L = 1, PBL_MAX
-         DO K = 1, IBINS
-            SELECT CASE (CTYPE)
-            CASE (1)
-               AD59_ECIL(I,J,1,K) = AD59_ECIL(I,J,1,K) + &
-                                    ( MIL1(L,K) - MIL0(L,K) )
-               AD59_ECOB(I,J,1,K) = AD59_ECOB(I,J,1,K) + &
-                                    ( MOB1(L,K) - MOB0(L,K) )
-            CASE (2)
-               AD59_OCIL(I,J,1,K) = AD59_OCIL(I,J,1,K) + &
-                                    ( MIL1(L,K) - MIL0(L,K) )
-               AD59_OCOB(I,J,1,K) = AD59_OCOB(I,J,1,K) + &
-                                    ( MOB1(L,K) - MOB0(L,K) )
-            END SELECT
-            AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + ( N1(L,K) - N0(L,K) )
-         ENDDO
-         ENDDO
-      ENDIF
-#endif
 
 100   CONTINUE
 
@@ -4930,6 +4894,7 @@ CONTAINS
    USE State_Met_Mod,        ONLY : MetState
    USE UnitConv_Mod
    USE PRESSURE_MOD,         ONLY : GET_PCENTER
+   USE Timers_Mod,           ONLY : Timer_End, Timer_Start
    USE TOMAS_MOD,            ONLY : AVGMASS, SOACOND
    USE TOMAS_MOD,            ONLY : ICOMP,     IDIAG
    USE TOMAS_MOD,            ONLY : CHECKMN
@@ -4971,7 +4936,7 @@ CONTAINS
    LOGICAL                  :: SGCOAG = .FALSE. ! bc,jrp turn off subgrid coag 18/12/23
    INTEGER                  :: L, K, EMTYPE
    INTEGER                  :: ii=53, jj=29
-   INTEGER                  :: origUnit
+   INTEGER                  :: previous_units
    LOGICAL, SAVE            :: FIRST = .TRUE. !(ramnarine 12/27/2018)
    LOGICAL, SAVE            :: USE_FIRE_NUM = .FALSE.
    LOGICAL                  :: FND !(ramnarine 1/2/2019)
@@ -5029,23 +4994,32 @@ CONTAINS
    ! Grid box aarea
    AREA = HcoState%Grid%AREA_M2%Val(:,:)
 
-   ! Convert concentration units to [kg] for TOMAS. This will be
-   ! removed once TOMAS uses mixing ratio instead of mass
-   ! as species units (ewl, 9/11/15)
-   CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+   ! Halt HEMCO timer (so that unit conv can be timed separately)
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_End( "HEMCO", RC )
+   ENDIF
+
+   ! NOTE: For TOMAS, convert all species units, in order not to
+   ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+   CALL Convert_Spc_Units(                                                   &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
    ! Trap errors
    IF ( RC /= GC_SUCCESS ) THEN
       CALL GC_Error( 'Unit conversion error', RC, &
                      'Start of EMISSCARBONTOMAS in carbon_mod.F90' )
       RETURN
+   ENDIF
+
+   ! Start HEMCO timer again
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_Start( "HEMCO", RC )
    ENDIF
 
    ! ---------FOSSIL FUEL EMISSIONS IN 3d---------------------------
@@ -5233,7 +5207,7 @@ CONTAINS
 
    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    !%%%% NOTE: BIOGENIC_SOAS is defined in hcoi_gc_diagn_mod.F90,   %%%%
-   !%%%% which is only called if BPCH_DIAG=y.(bmy, 8/7/18)          %%%%
+   !%%%% (bmy, 8/7/18)                                              %%%%
    !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
    ! READ IN directly emitted SOAS (sfarina / jkodros)
    Ptr2D => NULL()
@@ -5269,13 +5243,19 @@ CONTAINS
 
    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### EMISCARB: after SOACOND (BIOG) ' )
 
-   ! Convert concentrations back to original units (ewl, 9/11/15)
+   ! Halt HEMCO timer (so that unit conv can be timed separately)
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_End( "HEMCO", RC )
+   ENDIF
+
+   ! NOTE: For TOMAS, convert all species units, in order not to
+   ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
    CALL Convert_Spc_Units(                                                   &
         Input_Opt  = Input_Opt,                                              &
         State_Chm  = State_Chm,                                              &
         State_Grid = State_Grid,                                             &
         State_Met  = State_Met,                                              &
-        outUnit    = origUnit,                                               &
+        new_units  = previous_units,                                         &
         RC         = RC                                                     )
 
    ! Trap errors
@@ -5283,6 +5263,11 @@ CONTAINS
       CALL GC_Error('Unit conversion error', RC, &
                     'End of EMISSCARBONTOMAS in carbon_mod.F90')
       RETURN
+   ENDIF
+
+   ! Start HEMCO timer again
+   IF ( Input_Opt%useTimers ) THEN
+      CALL Timer_Start( "HEMCO", RC )
    ENDIF
 
  END SUBROUTINE EMISSCARBONTOMAS

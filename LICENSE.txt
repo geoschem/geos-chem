@@ -38,7 +38,6 @@ Linked list code (used in v11-02 and later versions):
    Copyright © 2005 Arjen Markus <arjenmarkus@sourceforge.net>
    http://flibs.sourceforge.net/linked_list.html
 
-
 RRTM/RRTMG Copyright and Disclaimer:
 -----------------------------------------------------------------------------
 
@@ -88,14 +87,6 @@ Modular Earth Submodel System (MESSy) tools:
 
    See https://messy-interface.org/licence/conditions/
 
-
-ISORROPIA (Aerosol Therymodynamical Equilibrium module):
-------------------------------------------------------------------------------
-
-   COPYRIGHT 1996-2006, UNIVERSITY OF MIAMI, CARNEGIE MELLON UNIVERSITY,
-   GEORGIA INSTITUTE OF TECHNOLOGY
-   WRITTEN BY ATHANASIOS NENES
-   UPDATED BY CHRISTOS FOUNTOUKIS
 
 QFYAML: Quick Fortran YAML
 ------------------------------------------------------------------------------

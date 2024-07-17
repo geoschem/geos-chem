@@ -78,13 +78,8 @@ CH4_simulation_options:
     TCCON: false
 
   analytical_inversion:
-    activate: false
-    state_vector_element_number: 0
-    emission_perturbation_factor: 1.0
     perturb_CH4_boundary_conditions: false
     CH4_boundary_condition_ppb_increase_NSEW: [0.0, 0.0, 0.0, 0.0]
-    use_emission_scale_factor: false
-    use_OH_scale_factors: false
 
 #============================================================================
 # Options for CO
@@ -101,20 +96,11 @@ CO_simulation_options:
 CO2_simulation_options:
 
   sources:
-    fossil_fuel_emissions: true
-    ocean_exchange: true
-    balanced_biosphere_exchange: true
-    net_terrestrial_exchange: true
-    ship_emissions: true
-    aviation_emissions: true
     3D_chemical_oxidation_source: true
 
   tagged_species:
-    save_fossil_fuel_in_background: false
     tag_bio_and_ocean_CO2: false
-    tag_land_fossil_fuel_CO2: 
-    tag_global_ship_CO2: false
-    tag_global_aircraft_CO2: false
+    tag_land_fossil_fuel_CO2: false
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)

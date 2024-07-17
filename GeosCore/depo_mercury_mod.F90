@@ -269,9 +269,9 @@ CONTAINS
     DT = GET_TS_CHEM()
 
     ! Don't let fraction be greater than 1
-    FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNO(I,J)     + &
+    FRAC_SNOW_OR_ICE = MIN( State_Met%FRSNOW(I,J)     + &
                             State_Met%FRSEAICE(I,J)  + &
-                            State_Met%FRLANDIC(I,J), 1e+0_fp)
+                            State_Met%FRLANDICE(I,J), 1e+0_fp)
     IS_SNOW_OR_ICE   = ( FRAC_SNOW_OR_ICE > 0e+0_fp )
 
     ! Ocean fraction (vs land)

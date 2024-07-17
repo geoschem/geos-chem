@@ -96,6 +96,7 @@ MODULE AEROSOL_MOD
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
   INTEGER  :: Map_NRHAER(5)
+
   
 CONTAINS
 !EOC
@@ -133,6 +134,7 @@ CONTAINS
     USE State_Met_Mod,     ONLY : MetState
     USE UnitConv_Mod
     USE TIME_MOD,          ONLY : GET_MONTH
+    USE Timers_Mod,        ONLY : Timer_End, Timer_Start
 !
 ! !INPUT PARAMETERS:
 !
@@ -162,7 +164,7 @@ CONTAINS
     LOGICAL,  SAVE      :: FIRST = .TRUE.
 
     ! Non-SAVEd variables
-    INTEGER             :: I, J, L, N, NA, ND, K
+    INTEGER             :: I, J, L, N, NA, ND, K, IBINS
     INTEGER             :: k_SO4
     INTEGER             :: k_ORG
     INTEGER             :: k_SSA
@@ -178,7 +180,7 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER   :: Spc(:)
-    REAL*8,        POINTER   :: REAA(:,:)
+    REAL*8,        POINTER   :: REAA(:,:,:)
     REAL(fp),      POINTER   :: AIRVOL(:,:,:)
     REAL(fp),      POINTER   :: PMID(:,:,:)
     REAL(fp),      POINTER   :: T(:,:,:)
@@ -186,7 +188,7 @@ CONTAINS
     REAL(fp),      POINTER   :: KG_STRAT_AER(:,:,:,:)
 
     ! Other variables
-    INTEGER             :: OrigUnit
+    INTEGER             :: previous_units
 
 
     ! For spatially and seasonally varying OM/OC
@@ -213,24 +215,39 @@ CONTAINS
     LSSALT  = Input_Opt%LSSALT
     LSULF   = Input_Opt%LSULF
 
+#ifdef TOMAS
+    ! Number of size bins for TOMAS microphysics
+    IBINS   = State_Chm%nTomasBins
+#endif
     ! Set pointers
     REAA => State_Chm%Phot%REAA
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species to [kg] for this routine
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         mapping        = State_Chm%Map_Advect,                              &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error at start of AEROSOL_CONC!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Initialize pointers
@@ -305,9 +322,9 @@ CONTAINS
        Rho_wet    = 1000e+0_fp
 
        ! Growth factor for SO4 + NIT + NH4
-       Rad_dry    = REAA(1,k_SO4)
-       Rad_wet    = REAA(1,k_SO4) + 35e+0_fp * &
-                  ( REAA(2,k_SO4) - REAA(1,k_SO4) ) / 50e+0_fp
+       Rad_dry    = REAA(1,k_SO4,State_Chm%Phot%DRg) ! DRg = 6. choice of dry size doesn't affect volume growth ratio (hzhu)
+       Rad_wet    = REAA(1,k_SO4,State_Chm%Phot%DRg) + 35e+0_fp * &
+                  ( REAA(2,k_SO4,State_Chm%Phot%DRg) - REAA(1,k_SO4,State_Chm%Phot%DRg) ) / 50e+0_fp
        Rho_dry    = State_Chm%SpcData(id_SO4)%Info%Density
        SIA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
@@ -316,9 +333,9 @@ CONTAINS
        SIA_GROWTH = 1.1_fp
 
        ! Growth factor for OCPI + SOA
-       Rad_dry    = REAA(1,k_ORG)
-       Rad_wet    = REAA(1,k_ORG) + 35e+0_fp * &
-                  ( REAA(2,k_ORG) - REAA(1,k_ORG) ) / 50e+0_fp
+       Rad_dry    = REAA(1,k_ORG,State_Chm%Phot%DRg)
+       Rad_wet    = REAA(1,k_ORG,State_Chm%Phot%DRg) + 35e+0_fp * &
+                  ( REAA(2,k_ORG,State_Chm%Phot%DRg) - REAA(1,k_ORG,State_Chm%Phot%DRg) ) / 50e+0_fp
        IF ( IS_POA ) THEN
           Rho_dry    = State_Chm%SpcData(id_POA1)%Info%Density
        ELSE IF ( IS_OCPI ) THEN
@@ -328,9 +345,9 @@ CONTAINS
                             ( Rho_wet / Rho_dry ) )
 
        ! Growth factor for SALA
-       Rad_dry    = REAA(1,k_SSA)
-       Rad_wet    = REAA(1,k_SSA) + 35e+0_fp * &
-                  ( REAA(2,k_SSA) - REAA(1,k_SSA) ) / 50e+0_fp
+       Rad_dry    = REAA(1,k_SSA,State_Chm%Phot%DRg)
+       Rad_wet    = REAA(1,k_SSA,State_Chm%Phot%DRg) + 35e+0_fp * &
+                  ( REAA(2,k_SSA,State_Chm%Phot%DRg) - REAA(1,k_SSA,State_Chm%Phot%DRg) ) / 50e+0_fp
        Rho_dry    = State_Chm%SpcData(id_SALA)%Info%Density
        SSA_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
                             ( Rho_wet / Rho_dry ) )
@@ -858,6 +875,41 @@ CONTAINS
        State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
                      ( T(I,J,L)   / 298.0_fp    )
 
+
+      !===========================================================
+      ! PDER [um] ! (hzhu, 04/05/2024)
+      ! Parameterized dry effective radius for SNA and OM
+      !===========================================================
+      IF ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
+         IF ( Is_SimpleSOA ) THEN
+            ! dry SNA and OM mass, in unit of ug/m3
+            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L) )*1.0e+9_fp
+            ! ratio between OM and SNA, unitless
+            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L)) / State_Chm%AerMass%SO4_NH4_NIT(I,J,L)  
+
+         ELSE IF ( Is_ComplexSOA ) THEN
+            ! dry SNA and OM mass, in unit of ug/m3
+            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)  ) * 1.0e+9_fp
+            ! ratio between OM and SNA, unitless
+            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L) )/ State_Chm%AerMass%SO4_NH4_NIT(I,J,L) 
+                     
+         ENDIF
+         ! Parameterized dry effective radius, in unit of um
+         State_Chm%AerMass%PDER(I,J,L) = (exp( 4.36_fp + 0.20_fp*log(State_Chm%AerMass%SNAOM(I,J,L)) + 0.065_fp*log(State_Chm%AerMass%R_OMSNA(I,J,L)) ) *0.001_fp )/0.9_fp ;  
+         
+         IF (State_Chm%AerMass%PDER(I,J,L) == 0.0_fp) THEN
+            State_Chm%AerMass%PDER(I,J,L) = 0.005_fp ! give it a small value to avoid divided by 0
+         ENDIF
+
+      ELSE
+         State_Chm%AerMass%SNAOM(I,J,L) = 0.0_fp;
+         State_Chm%AerMass%R_OMSNA(I,J,L) = 0.0_fp;
+         State_Chm%AerMass%PDER(I,J,L) = 0.005_fp;
+         
+      ENDIF
+      !===========================================================
+
+
 #ifdef MODEL_GEOS
        ! PM2.5 sulfates
        IF ( State_Diag%Archive_PM25su ) THEN
@@ -923,6 +975,22 @@ CONTAINS
                                     * ( T(I,J,L)      / 298.0_fp    ) &
                                     * 1.0e+9_fp
        ENDIF
+
+       ! PM2.5 nitrate 
+       IF ( State_Diag%Archive_PM25nit ) THEN
+          State_Diag%PM25nit(I,J,L) = ( State_Chm%AerMass%NIT(I,J,L) * SIA_GROWTH  ) &
+                                    * ( 1013.25_fp / PMID(I,J,L) ) &
+                                    * ( T(I,J,L)   / 298.0_fp    ) &
+                                    * 1.0e+9_fp
+       ENDIF
+
+       ! PM2.5 ammonium 
+       IF ( State_Diag%Archive_PM25nh4 ) THEN
+          State_Diag%PM25nh4(I,J,L) = ( State_Chm%AerMass%NH4(I,J,L) * SIA_GROWTH  ) &
+                                    * ( 1013.25_fp / PMID(I,J,L) ) &
+                                    * ( T(I,J,L)   / 298.0_fp    ) &
+                                    * 1.0e+9_fp
+       ENDIF
 #endif
 
     ENDDO
@@ -930,19 +998,30 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
+    ! Stop aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species back to original unit
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of AEROSOL_CONC in aerosol_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointers
@@ -1027,7 +1106,7 @@ CONTAINS
     LOGICAL             :: FIRST = .TRUE.
     LOGICAL             :: LINTERP
     CHARACTER(LEN=16)   :: STAMP
-    INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID
+    INTEGER             :: I, J, L, N, R, IRH, W, IRHN, NA, SpcID, g
     INTEGER             :: AA, IWV, IIWV, NWVS, IR, NRT, S
     REAL*4              :: TEMP( State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL(fp)            :: TEMP2(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
@@ -1109,11 +1188,11 @@ CONTAINS
     INTEGER,  POINTER   :: IRHARR     (:,:,:)
     REAL*8,   POINTER   :: ACOEF_WV (:)
     REAL*8,   POINTER   :: BCOEF_WV (:)
-    REAL*8,   POINTER   :: REAA     (:,:)
-    REAL*8,   POINTER   :: QQAA     (:,:,:)
-    REAL*8,   POINTER   :: ALPHAA   (:,:,:)
-    REAL*8,   POINTER   :: SSAA     (:,:,:)
-    REAL*8,   POINTER   :: ASYMAA   (:,:,:)
+    REAL*8,   POINTER   :: REAA     (:,:,:)
+    REAL*8,   POINTER   :: QQAA     (:,:,:,:)
+    REAL*8,   POINTER   :: ALPHAA   (:,:,:,:)
+    REAL*8,   POINTER   :: SSAA     (:,:,:,:)
+    REAL*8,   POINTER   :: ASYMAA   (:,:,:,:)
     REAL*8,   POINTER   :: ISOPOD   (:,:,:,:)
     REAL*8,   POINTER   :: ODAER    (:,:,:,:,:)
 #ifdef RRTMG
@@ -1468,36 +1547,119 @@ CONTAINS
           ! if RRTMG is on then IWV will be 30 wavelengths + AOD wavs,
           ! otherwise IWV will be at user input specified wavelengths
 
-          ! Loop over relative humidity bins
-          DO R = 1, NRH
-
-             ! Wet radius in aerosol LUT files
-             RW(R) = REAA(R,N)
-
-             ! Extinction efficiency for Q for each RH bin
-             QW(R)   = QQAA(IWV,R,N)
-             AW(R)   = ALPHAA(IWV,R,N)
-             SSW(R)  = SSAA(IWV,R,N)
-             ASYW(R) = ASYMAA(IWV,R,N)
-
-          ENDDO
-
           ! Loop over grid boxes
           !$OMP PARALLEL DO                                                 &
-          !$OMP PRIVATE( I,        J,       L,        IRH                 ) &
+          !$OMP PRIVATE( I,        J,       L,        R,        IRH       ) &
+          !$OMP PRIVATE( RW,       QW,      AW,       SSW,      ASYW      ) &
           !$OMP PRIVATE( AW0,      QW0,     SSW0,     ASYW0,    REFF      ) &
           !$OMP PRIVATE( SCALEA,   SCALEQ,  SCALESSA, SCALEASY, FRAC      ) &
           !$OMP PRIVATE( SCALER,   SCALEOD, SCALEVOL, DRYAREA,  TAERVOL   ) &
-          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM              ) &
+          !$OMP PRIVATE( TK,       CONSEXP, VPRESH2O, RELHUM,   BCSCAT_AE ) &
 #ifdef RRTMG
           !$OMP PRIVATE( IR                                               ) &
 #endif
           !$OMP PRIVATE( RHOSTRAT, RAER,    SADSTRAT, XSASTRAT            ) &
-          !$OMP PRIVATE( VDRY,     VH2O,    S                             ) &
-          !$OMP SCHEDULE( DYNAMIC )
+          !$OMP PRIVATE( VDRY,     VH2O,    S,        g                   ) &
+          !$OMP SCHEDULE( DYNAMIC, 8                                      ) &
+          !$OMP COLLAPSE( 3                                               )
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
+
+             ! Zero private loop variables
+             g         = 0
+             IRH       = 0
+             S         = 0
+             RW        = 0.0_fp
+             QW        = 0.0_fp
+             AW        = 0.0_fp
+             SSW       = 0.0_fp
+             ASYW      = 0.0_fp 
+             FRAC      = 0.0_fp
+             AW0       = 0.0_fp
+             QW0       = 0.0_fp
+             SSW0      = 0.0_fp
+             ASYW0     = 0.0_fp
+             REFF      = 0.0_fp
+             SCALEA    = 0.0_fp
+             SCALEQ    = 0.0_fp
+             SCALESSA  = 0.0_fp
+             SCALEASY  = 0.0_fp
+             FRAC      = 0.0_fp
+             SCALER    = 0.0_fp
+             SCALEOD   = 0.0_fp
+             SCALEVOL  = 0.0_fp
+             DRYAREA   = 0.0_fp
+             TAERVOL   = 0.0_fp
+             TK        = 0.0_fp
+             CONSEXP   = 0.0_fp
+             VPRESH2O  = 0.0_fp
+             RELHUM    = 0.0_fp
+             RHOSTRAT  = 0.0_fp
+             RAER      = 0.0_fp
+             SADSTRAT  = 0.0_fp
+             XSASTRAT  = 0.0_fp
+             VDRY      = 0.0_fp
+             VH2O      = 0.0_fp
+             BCSCAT_AE = 0.0_fp
+
+             ! Loop over relative humidity bins
+             IF (N == 1 .or. N == 3) THEN ! (hzhu, 08/2023)
+                ! For SNA or Organics
+                g = 1
+                DO WHILE ( State_Chm%AerMass%PDER(I,J,L) > REAA(1,N,g) .and. &
+                           g < State_Chm%Phot%NDRg )
+                   ! REAA(1,N,g) is the upper limit of REFF
+                   g = g + 1
+                END DO
+
+                IF (g == 1) THEN
+                   DO R = 1, NRH
+                      ! Wet radius in aerosol LUT files
+                      RW(R) = REAA(R,N,g)
+
+                      ! Extinction efficiency for Q for each RH bin
+                      QW(R)   = QQAA(IWV,R,N,g)
+                      AW(R)   = ALPHAA(IWV,R,N,g)
+                      SSW(R)  = SSAA(IWV,R,N,g)
+                      ASYW(R) = ASYMAA(IWV,R,N,g)
+                   ENDDO
+
+                ELSE
+                   FRAC = (State_Chm%AerMass%PDER(I,J,L) - REAA(1,N,g-1))/  &
+                          (REAA(1,N,g) - REAA(1,N,g-1))
+                   IF ( FRAC > 1.0d0 ) FRAC = 1.0d0
+                   DO R = 1, NRH
+                      RW(R)  = FRAC*REAA(R,N,g) + (1.d0-FRAC)*REAA(R,N,g-1)
+
+                      QW(R)  = FRAC*QQAA(IWV,R,N,g) + &
+                              (1.d0-FRAC)*QQAA(IWV,R,N,g-1)
+
+                      AW(R)  = FRAC*ALPHAA(IWV,R,N,g)+ &
+                               (1.d0-FRAC)*ALPHAA(IWV,R,N,g-1)
+
+                      SSW(R) = FRAC*SSAA(IWV,R,N,g) + &
+                               (1.d0-FRAC)*SSAA(IWV,R,N,g-1)
+                        
+                      ASYW(R)= FRAC*ASYMAA(IWV,R,N,g)+ &
+                               (1.d0-FRAC)*ASYMAA(IWV,R,N,g-1)
+                   END DO
+                END IF
+
+             ELSE
+               ! For other species
+               DO R = 1, NRH
+                  ! Wet radius in aerosol LUT files
+                  RW(R) = REAA(R,N,State_Chm%Phot%DRg)
+
+                  ! Extinction efficiency for Q for each RH bin
+                  QW(R)   = QQAA(IWV,R,N,State_Chm%Phot%DRg)
+                  AW(R)   = ALPHAA(IWV,R,N,State_Chm%Phot%DRg)
+                  SSW(R)  = SSAA(IWV,R,N,State_Chm%Phot%DRg)
+                  ASYW(R) = ASYMAA(IWV,R,N,State_Chm%Phot%DRg)
+               ENDDO
+
+            ENDIF
 
              ! Skip non-chemistry boxes
              IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -1579,6 +1741,7 @@ CONTAINS
              SCALER  = REFF / RW(1)
              SCALEOD = SCALEQ * SCALER * SCALER
 
+
              IF ( N.LE.NRHAER ) THEN
 
                 !--------------------------------------------------------
@@ -1588,35 +1751,35 @@ CONTAINS
                 !calculate optics for hyrdophillic aerosol here
                 !However MDENS in LUT was in g/cm3 not kg/m3 so x1e3
                 ODAER(I,J,L,IWV,N) = SCALEOD * BXHEIGHT(I,J,L) * 0.75d0 * &
-                                     State_Chm%AerMass%WAERSL(I,J,L,N) * QQAA(IWV,1,N)    / &
-                                     ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                     State_Chm%AerMass%WAERSL(I,J,L,N) * QW(1)   / &
+                                     ( MSDENS(N) * RW(1) * 1.0D-6 )
 
                 !Include BC absorption enhancement (xnw, 8/24/15)
                 IF (N.eq.2) THEN
 
                    IF (LBCAE) THEN
-                      BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N)
+                      BCSCAT_AE = ODAER(I,J,L,IWV,N)*SCALESSA*SSAA(IWV,1,N,State_Chm%Phot%DRg)
                       ODAER(I,J,L,IWV,N) = ODAER(I,J,L,IWV,N) * &
-                                ( BCAE_1 + SCALESSA*SSAA(IWV,1,N) - &
-                                  SCALESSA*SSAA(IWV,1,N)*BCAE_1 )
+                                ( BCAE_1 + SCALESSA*SSAA(IWV,1,N,State_Chm%Phot%DRg) - &
+                                  SCALESSA*SSAA(IWV,1,N,State_Chm%Phot%DRg)*BCAE_1 )
 
                       !now combine with hydrophilic OD as before
-                      BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N) * &
+                      BCSCAT_AE = BCSCAT_AE + SSAA(IWV,1,N,State_Chm%Phot%DRg) * &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,State_Chm%Phot%DRg) * 1.0D-6 )
                       ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
-                           (BCAE_2+SSAA(IWV,1,N) - SSAA(IWV,1,N)*BCAE_2) * &
+                           (BCAE_2+SSAA(IWV,1,N,State_Chm%Phot%DRg) - SSAA(IWV,1,N,State_Chm%Phot%DRg)*BCAE_2) * &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,State_Chm%Phot%DRg) * 1.0D-6 )
 
                    ELSE
                       !now combine with hydrophilic OD as before
                       ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
                                   0.75d0 * BXHEIGHT(I,J,L) * &
-                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                  ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                  State_Chm%AerMass%DAERSL(I,J,L,N-1) * QW(1)   / &
+                                  ( MSDENS(N) * REAA(1,N,State_Chm%Phot%DRg) * 1.0D-6 )
                    ENDIF
 
                 ENDIF
@@ -1625,15 +1788,15 @@ CONTAINS
                    !now combine with hydrophilic OD as before
                    ODAER(I,J,L,IWV,N)= ODAER(I,J,L,IWV,N) + &
                                    0.75d0 * BXHEIGHT(I,J,L) * &
-                                   State_Chm%AerMass%DAERSL(I,J,L,N-1) * QQAA(IWV,1,N)  / &
-                                   ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                   State_Chm%AerMass%DAERSL(I,J,L,N-1) * QW(1)  / &
+                                   ( MSDENS(N) * State_Chm%AerMass%PDER(I,J,L) * 1.0D-6 )
                 ENDIF
 
                 ! Get the AOD contribution from isoprene SOA only (eam, 2014)
                 IF ( N == 3 .and. Is_ComplexSOA ) THEN
                    ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 &
-                                   * State_Chm%AerMass%ISOAAQ(I,J,L) * QQAA(IWV,1,N) / &
-                                   ( MSDENS(N) * REAA(1,N) * 1.0D-6 )
+                                   * State_Chm%AerMass%ISOAAQ(I,J,L) * QW(1)  / &
+                                   ( MSDENS(N) * State_Chm%AerMass%PDER(I,J,L) * 1.0D-6 )
                 ENDIF
 
              ELSE
@@ -1656,7 +1819,7 @@ CONTAINS
                 ! radius and blowing up
 
                 ! Aerosol optical depth
-                ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT * QQAA(IWV,1,N)
+                ODAER(I,J,L,IWV,N) = BXHEIGHT(I,J,L) * XSASTRAT * QW(1) 
 
              ENDIF
 
@@ -1667,21 +1830,21 @@ CONTAINS
                 DO IR=1,3
                    RTODAER(I,J,L,IWV,N+IR-1)= ODAER(I,J,L,IWV,N)* &
                                               State_Chm%AerMass%FRAC_SNA(I,J,L,IR)
-                   RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N)
-                   RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N)
+                   RTSSAER(I,J,L,IWV,N+IR-1)   = SCALESSA*SSAA(IWV,1,N,State_Chm%Phot%DRg)
+                   RTASYMAER(I,J,L,IWV,N+IR-1) = SCALEASY*ASYMAA(IWV,1,N,State_Chm%Phot%DRg)
                 ENDDO
              ELSE
                 !RT arrays now offset from NAER by 2 (NRT=N+2 for N>1)
                 !This will automatically be added after the standard aerosol
                 !(NRHAER+1,2) but before dust
                 RTODAER(I,J,L,IWV,NRT)     = ODAER(I,J,L,IWV,N)
-                RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N)
+                RTSSAER(I,J,L,IWV,NRT)     = SCALESSA*SSAA(IWV,1,N,State_Chm%Phot%DRg)
                 !for BC SSA with absorption enhancement (xnw 8/24/15)
                 IF ((N .EQ. 2) .AND. (LBCAE)) THEN
                    RTSSAER(I,J,L,IWV,NRT)  = BCSCAT_AE / &
                                              ODAER(I,J,L,IWV,N)
                 ENDIF
-                RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N)
+                RTASYMAER(I,J,L,IWV,NRT)   = SCALEASY*ASYMAA(IWV,1,N,State_Chm%Phot%DRg)
              ENDIF
 #endif
 
@@ -1751,7 +1914,7 @@ CONTAINS
                 WERADIUS(I,J,L,N+NDUST) = ERADIUS(I,J,L,N+NDUST)
                 ! For SO4-NIT-NH4-fine sea salt aerosol, re-calculate the wet
                 ! effective
-                ! radius using the water content from ISORROPIA.
+                ! radius using the water content from ISORROPIA/HETP.
                 ! This new effective radius will be used for surface area
                 ! used in heterogeneous chemistry. We don't use this
                 ! effective radius in the optics above (OD, scattering,
@@ -1791,7 +1954,7 @@ CONTAINS
                 ! Save aerosol water content. Assume that the increase in volume
                 ! equals the volume of pure water added, m3(H2O)/m3(air),
                 ! then convert to g/m3
-                ! Don't update SNA, keep ISORROPIA values
+                ! Don't update SNA, keep ISORROPIA/HETP values
                 IF (N.ne.1) THEN
                    State_Chm%AeroH2O(I,J,L,N+NDUST) = 1e+6_fp * &
                        State_Chm%AerMass%WAERSL(I,J,L,N) / MSDENS(N) * (ScaleVol - 1d0)
