@@ -4440,6 +4440,10 @@ CONTAINS
    IF ( PHASE == 0 .or. ITS_TIME_FOR_A1() .and. &
         .not. ITS_TIME_FOR_EXIT() ) THEN
       CALL FlexGrid_Read_A1( D(1), D(2), Input_Opt, State_Grid, State_Met )
+
+      IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+         CALL FlexGrid_Read_A1dyn( D(1), D(2), Input_Opt, State_Grid, State_Met )
+      ENDIF
    ENDIF
 
    !----------------------------------
@@ -4462,41 +4466,46 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! Get delta pressure per grid box stored in restart file to allow
-      ! mass conservation across consecutive runs.
-      v_name = 'DELPDRY'
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-      IF ( FOUND ) THEN
-         State_Met%DELP_DRY = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize DELP_DRY from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-         ENDIF
-      ENDIF
-      Ptr3D => NULL()
+      ! Resolution 0.125x0.15625 uses I1dyn archive (xlwang, 06/2024)
+      IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
 
-      ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
-      ! and compute avg dry pressure near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
-      CALL AvgPole( State_Grid, State_Met%PS1_DRY )
+          ! Get delta pressure per grid box stored in restart file to allow
+          ! mass conservation across consecutive runs.
+          v_name = 'DELPDRY'
+          CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+          IF ( FOUND ) THEN
+             State_Met%DELP_DRY = Ptr3D
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE(6,*) 'Initialize DELP_DRY from restart file'
+             ENDIF
+          ELSE
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
+             ENDIF
+          ENDIF
+          Ptr3D => NULL()
 
-      ! Compute avg moist pressure near polar caps
-      CALL AvgPole( State_Grid, State_Met%PS1_WET )
+          ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+          ! and compute avg dry pressure near polar caps
+          CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
+          CALL AvgPole( State_Grid, State_Met%PS1_DRY )
 
-      ! Initialize surface pressures prior to interpolation
-      ! to allow initialization of floating pressures
-      State_Met%PSC2_WET = State_Met%PS1_WET
-      State_Met%PSC2_DRY = State_Met%PS1_DRY
-      CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
+          ! Compute avg moist pressure near polar caps
+          CALL AvgPole( State_Grid, State_Met%PS1_WET )
 
-      ! Call AIRQNT to compute initial air mass quantities
-      ! Do not update initial tracer concentrations since not read
-      ! from restart file yet (ewl, 10/28/15)
-      CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                   RC, update_mixing_ratio=.FALSE. )
+          ! Initialize surface pressures prior to interpolation
+          ! to allow initialization of floating pressures
+          State_Met%PSC2_WET = State_Met%PS1_WET
+          State_Met%PSC2_DRY = State_Met%PS1_DRY
+          CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
+
+          ! Call AIRQNT to compute initial air mass quantities
+          ! Do not update initial tracer concentrations since not read
+          ! from restart file yet (ewl, 10/28/15)
+          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       RC, update_mixing_ratio=.FALSE. )
+
+      ENDIF ! not 0.125x0.15625
 
    ENDIF
 
@@ -4506,16 +4515,87 @@ CONTAINS
       D = GET_I3_TIME()
       CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
-      ! and compute avg dry pressure near polar caps
-      CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
-      CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+      ! Resolution 0.125x0.15625 use I1dyn archive (xlwang, 06/2024)
+      IF ( TRIM(State_Grid%GridRes) .NE. '0.125x0.15625' ) THEN
 
-      ! Compute avg moist pressure near polar caps
-      CALL AvgPole( State_Grid, State_Met%PS2_WET )
+          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+          ! and compute avg dry pressure near polar caps
+          CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+          CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+
+          ! Compute avg moist pressure near polar caps
+          CALL AvgPole( State_Grid, State_Met%PS2_WET )
+
+      ENDIF ! not 0.125x0.15625
 
    ENDIF
 
+   !----------------------------------
+   ! Read 1-hr instantanous data
+   !----------------------------------
+
+   ! Resolution 0.125x0.15625 uses I1dyn archive (xlwang, 06/2024)
+   IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+
+       IF ( PHASE == 0 ) THEN
+          D = GET_FIRST_I1dyn_TIME()
+          CALL FlexGrid_Read_I1dyn_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
+
+          ! Get delta pressure per grid box stored in restart file to allow
+          ! mass conservation across consecutive runs.
+          v_name = 'DELPDRY'
+          CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
+          IF ( FOUND ) THEN
+             State_Met%DELP_DRY = Ptr3D
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE(6,*) 'Initialize DELP_DRY from restart file'
+             ENDIF
+          ELSE
+             IF ( Input_Opt%amIRoot ) THEN
+                WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
+             ENDIF
+          ENDIF
+          Ptr3D => NULL()
+
+          ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+          ! and compute avg dry pressure near polar caps
+          CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
+          CALL AvgPole( State_Grid, State_Met%PS1_DRY )
+
+          ! Compute avg moist pressure near polar caps
+          CALL AvgPole( State_Grid, State_Met%PS1_WET )
+
+          ! Initialize surface pressures prior to interpolation
+          ! to allow initialization of floating pressures
+          State_Met%PSC2_WET = State_Met%PS1_WET
+          State_Met%PSC2_DRY = State_Met%PS1_DRY
+          CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
+
+          ! Call AIRQNT to compute initial air mass quantities
+          ! Do not update initial tracer concentrations since not read
+          ! from restart file yet (ewl, 10/28/15)
+          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                       RC, update_mixing_ratio=.FALSE. )
+
+       ENDIF
+
+       ! Read in I1dyn fields at t+3hours for this timestep
+       IF ( ITS_TIME_FOR_I1dyn() .and. .not. ITS_TIME_FOR_EXIT() ) THEN
+
+          D = GET_I1dyn_TIME()
+          CALL FlexGrid_Read_I1dyn_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
+
+          ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
+          ! and compute avg dry pressure near polar caps
+          CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 2 )
+          CALL AvgPole( State_Grid, State_Met%PS2_DRY )
+
+          ! Compute avg moist pressure near polar caps
+          CALL AvgPole( State_Grid, State_Met%PS2_WET )
+
+       ENDIF
+
+    ENDIF
  END SUBROUTINE Get_Met_Fields
 !EOC
 #endif
