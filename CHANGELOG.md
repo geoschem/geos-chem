@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
+- Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
 
 ### Fixed
 - In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
