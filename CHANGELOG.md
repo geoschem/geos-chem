@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
 - Added `State_Grid%CPU_Subdomain_ID` and `State_Grid%CPU_Subdomain_FirstID` as "identifier numbers" for multiple instances of GEOS-Chem on one core in WRF and CESM
+- Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic
 
 ### Changed
 - Now reset `State_Diag%SatDiagnCount` to zero in routine`History_Write` (instead of in `History_Netcdf_Write`)

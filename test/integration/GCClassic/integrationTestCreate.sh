@@ -295,8 +295,17 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 05x0625 merra2 fullchem_47L_na
     create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
+    #=========================================================================
+    # Simulation with all diagnostics on
+    #==========================================================================
+
+    cd ${rundirsDir}/
+    cp -r gc_4x5_merra2_fullchem_benchmark gc_4x5_merra2_fullchem_alldiags
+    sed_ie "s|#'|'|"  gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+
     # Switch back to the present directory
     cd "${thisDir}"
+
 fi
 
 #=============================================================================
