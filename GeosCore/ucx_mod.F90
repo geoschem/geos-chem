@@ -22,14 +22,6 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-#if defined( MODEL_CESM )
-    USE CAM_PIO_UTILS, ONLY : CAM_PIO_OPENFILE
-    USE IOFILEMOD,     ONLY : GETFIL
-    USE PIO,           ONLY : PIO_CLOSEFILE, PIO_INQ_DIMID, PIO_INQ_DIMLEN
-    USE PIO,           ONLY : PIO_INQ_VARID, PIO_GET_VAR, PIO_NOERR
-    USE PIO,           ONLY : PIO_NOWRITE, FILE_DESC_T
-#endif
-
 #if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
@@ -647,12 +639,6 @@ CONTAINS
     REAL(fp), DIMENSION(:,:,:), POINTER   :: NOXDATA2D => NULL()
     REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
     INTEGER                               :: LSTART
-
-#if defined( MODEL_CESM )
-    INTEGER            :: iret
-    INTEGER            :: vid
-    TYPE(FILE_DESC_T)  :: ncid
-#endif
 
     !=================================================================
     ! GET_NOXCOEFF begins here!

@@ -386,7 +386,7 @@ fi
 
 #### Mass flux checks for grid resolution and domain decomposition
 MassFlux_Entry=$(grep "MFXC" ExtData.rc || echo "missing")
-if [[ ${MassFluxEntry} != "missing" ]]; then
+if [[ ${MassFlux_Entry} != "missing" ]]; then
 
     #### Get met grid res (assume GEOS-IT and GEOS-FP are the only options)
     C180_Entry=$(grep "MFXC.*C180x180x6" ExtData.rc || echo "missing")
