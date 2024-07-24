@@ -214,22 +214,13 @@ COLLECTIONS: 'Restart',
                               'SatDiagnConc_CO                ',
                               'SatDiagnConc_CO2               ',
                               'SatDiagnConc_OCS               ',
+                              'SatDiagnOH                     ',
                               'SatDiagnRH                     ',
                               'SatDiagnAirDen                 ',
                               'SatDiagnBoxHeight              ',
-                              'SatDiagnPEdge                  ',
                               'SatDiagnTROPP                  ',
                               'SatDiagnPBLHeight              ',
                               'SatDiagnPBLTop                 ',
-                              'SatDiagnTAir                   ',
-                              'SatDiagnGWETROOT               ',
-                              'SatDiagnGWETTOP                ',
-                              'SatDiagnPARDR                  ',
-                              'SatDiagnPARDF                  ',
-                              'SatDiagnPRECTOT                ',
-                              'SatDiagnSLP                    ',
-                              'SatDiagnSPHU                   ',
-                              'SatDiagnTS                     ',
                               'SatDiagnPBLTOPL                ',
                               'SatDiagnMODISLAI               ',
                               'SatDiagnColEmis_CH4            ',
@@ -248,7 +239,7 @@ COLLECTIONS: 'Restart',
   SatDiagnEdge.duration:      00000100 000000
   SatDiagnEdge.hrrange:       11.98 15.02
   SatDiagnEdge.mode:          'time-averaged'
-  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                  ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%

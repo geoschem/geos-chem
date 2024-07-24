@@ -67,6 +67,7 @@ operations:
 
   photolysis:
     input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/FAST_JX/v2021-10/
+    num_levs_with_cloud: 20
     overhead_O3:
       use_online_O3_from_model: true 
       use_column_O3_from_met: true

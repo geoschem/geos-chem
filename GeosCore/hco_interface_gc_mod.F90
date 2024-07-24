@@ -1873,7 +1873,7 @@ CONTAINS
 
 #if defined( MODEL_WRF )
     ! For WRF-GC, the FIRST call needs to be domain-ID specific.
-    FIRST = FIRST_PERID(State_Grid%ID)
+    FIRST = FIRST_PERID( State_Grid%CPU_Subdomain_ID )
 #endif
 
     !-----------------------------------------------------------------------
@@ -2811,7 +2811,7 @@ CONTAINS
     ! Not first call any more
     FIRST  = .FALSE.
 #if defined( MODEL_WRF )
-    FIRST_PERID(State_Grid%ID) = .FALSE.
+    FIRST_PERID( State_Grid%CPU_Subdomain_ID ) = .FALSE.
 #endif
     Trgt3D => NULL()
 

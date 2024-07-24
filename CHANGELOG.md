@@ -13,13 +13,34 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 
 ### Fixed
+- Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+
+## [14.4.2] - 2024-07-24
+### Added
+- Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
+- Added `State_Grid%CPU_Subdomain_ID` and `State_Grid%CPU_Subdomain_FirstID` as "identifier numbers" for multiple instances of GEOS-Chem on one core in WRF and CESM
+
+### Changed
+- Now reset `State_Diag%SatDiagnCount` to zero in routine`History_Write` (instead of in `History_Netcdf_Write`)
+- Update rundir creation scripts to turn off the MEGAN extension for "standard" fullchem simulations
+- Updated emissions used in CESM to match standard emissions used in the 14.4 offline model
+- Disable support For FAST-JX for all simulations except Hg
+- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
+
+### Fixed
 - In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
-- Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+- Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
+- Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
+- The `SatDiagnOH` diagnostic now works for the carbon simulation
+
+### Removed
+- Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.
 
 ## [14.4.1] - 2024-06-28
 ### Added
 - Added initialization of PHOTDELTA in `ucx_h2so4phot` to avoid run-time error in CESM
+- Added Cloud-J status output and error handling for it
 
 ### Changed
 - Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
