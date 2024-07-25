@@ -275,6 +275,12 @@ function update_config_files() {
         sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
+    # For ModelE2.1 fullchem runs, change frequency and duration to 20 mins
+    # in order to reduce the run time of the whole set of integration tests.
+    if grep -q "ModelE2.1" <<< "${runPath}"; then
+        sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
+    fi
+
     # Other text replacements
     sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
 }
