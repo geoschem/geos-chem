@@ -79,14 +79,12 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : Init_CMN_FJX
+#ifdef FASTJX
+    USE CMN_FJX_Mod,     ONLY : Init_CMN_FJX
+#endif
     USE ErrCode_Mod
     USE Input_Opt_Mod
-    USE State_Grid_Mod,     ONLY : GrdState
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,       ONLY : Init_CMN_DIAG
-    USE CMN_O3_Mod,         ONLY : Init_CMN_O3
-#endif
+    USE State_Grid_Mod,  ONLY : GrdState
 
     IMPLICIT NONE
 !
@@ -143,37 +141,13 @@ CONTAINS
     ThisLoc  = &
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
+#ifdef FASTJX
     ! Initialize CMN_FJX_mod.F90
-    CALL Init_CMN_FJX( Input_Opt, State_Grid, RC )
+    CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_CMN_FJX"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-#ifdef BPCH_DIAG
-    !=======================================================================
-    ! THESE ROUTINES ARE ONLY USED WHEN COMPILING GEOS-CHEM w/ BPCH_DIAG=y
-    !=======================================================================
-
-    ! Set dimensions in CMN_DEP_mod.F90 and allocate arrays
-    CALL Init_CMN_DIAG( Input_Opt, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Initialize CMN_O3_mod.F90
-    CALL Init_CMN_O3( Input_Opt, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -439,13 +413,6 @@ CONTAINS
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
-#ifdef MODEL_CLASSIC
-#ifdef BPCH_DIAG
-    ! NOTE: Restore this call until we can remove TOMAS BPCH diagnostics
-    !  -- Bob Yantosca (03 Nov 2022)
-    USE Gamap_Mod,          ONLY : Do_Gamap
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -481,7 +448,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL            :: prtDebug
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !=======================================================================
@@ -490,7 +456,6 @@ CONTAINS
 
     ! Initialize
     RC        = GC_SUCCESS
-    prtDebug  = ( Input_Opt%amIRoot .and. Input_Opt%LPRT )
     ErrMsg    = ''
     ThisLoc   = &
        ' -> at GC_Init_Extra (in module GeosCore/gc_environment_mod.F90)'
@@ -681,7 +646,7 @@ CONTAINS
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        ! Main mercury module
-       CALL Init_Mercury( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
+       CALL Init_Mercury( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Mercury"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -783,34 +748,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#ifdef MODEL_CLASSIC
-#ifdef BPCH_DIAG
-    !=================================================================
-    ! These routines are only needed when compiling GEOS-Chem
-    ! with BPCH_DIAG=y. (bmy, 10/4/19)
-    !=================================================================
-
-    !-----------------------------------------------------------------
-    ! Diagnostics
-    !-----------------------------------------------------------------
-
-    ! Allocate and initialize variables
-    CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
-
-    !--------------------------------------------------------------------
-    ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
-    !
-    ! NOTE: Do not do this for GCHP, because this will cause a file to
-    ! be written out to disk for each core.
-    !
-    ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
-    ! but we have to keep it for the time being (bmy, 4/11/18)
-    !--------------------------------------------------------------------
-    CALL Do_Gamap( Input_Opt, State_Chm, RC )
-#endif
-#endif
-
-    IF ( prtDebug ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 
   END SUBROUTINE GC_Init_Extra
 !EOC
@@ -905,14 +843,14 @@ CONTAINS
     ENDIF
 
     ! Halt with error if none of the TOMAS aerosol species are defined
-    I = MAX( Ind_('NK1'  ,'A'), 0 ) &
-      + MAX( Ind_('SF1'  ,'A'), 0 ) &
-      + MAX( Ind_('SS1'  ,'A'), 0 ) &
-      + MAX( Ind_('ECOB1','A'), 0 ) &
-      + MAX( Ind_('ECIL1','A'), 0 ) &
-      + MAX( Ind_('OCOB1','A'), 0 ) &
-      + MAX( Ind_('OCIL1','A'), 0 ) &
-      + MAX( Ind_('DUST1','A'), 0 )
+    I = MAX( Ind_('NK01'  ,'A'), 0 ) &
+      + MAX( Ind_('SF01'  ,'A'), 0 ) &
+      + MAX( Ind_('SS01'  ,'A'), 0 ) &
+      + MAX( Ind_('ECOB01','A'), 0 ) &
+      + MAX( Ind_('ECIL01','A'), 0 ) &
+      + MAX( Ind_('OCOB01','A'), 0 ) &
+      + MAX( Ind_('OCIL01','A'), 0 ) &
+      + MAX( Ind_('DUST01','A'), 0 )
 
     IF ( I == 0 ) THEN
        ErrMsg = 'None of the TOMAS aerosols are defined!'
@@ -921,30 +859,23 @@ CONTAINS
     ENDIF
 
     ! Halt with error if sulfate aerosols are not defined
-    IF( Ind_('SF1') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
+    IF( Ind_('SF01') > 0 .and. ( .not. Input_Opt%LSULF ) ) THEN
        ErrMsg = 'Need LSULF on for TOMAS-Sulfate to work (for now)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
     ! Halt with error if carbonaceous aerosols are not defined
-    I = MAX( Ind_('ECOB1','A'), 0 ) &
-      + MAX( Ind_('ECIL1','A'), 0 ) &
-      + MAX( Ind_('OCOB1','A'), 0 ) &
-      + MAX( Ind_('OCIL1','A'), 0 )
+    I = MAX( Ind_('ECOB01','A'), 0 ) &
+      + MAX( Ind_('ECIL01','A'), 0 ) &
+      + MAX( Ind_('OCOB01','A'), 0 ) &
+      + MAX( Ind_('OCIL01','A'), 0 )
 
     IF ( I > 0 .and. (.not. Input_Opt%LCARB ) ) THEN
        ErrMsg = 'Need LCARB on for TOMAS-carb to work (for now)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
-    ! Halt with error if dust aerosols are turned on.
-    ! TOMAS defines its own dust aerosol species.
-!    IF ( Ind_('DUST1') > 0 .AND. Input_Opt%LDUST ) THEN
-!       MSG = 'Need to turn off LDUST for TOMAS Dust to work'
-!       CALL ERROR_STOP( MSG, LOCATION )
-!    ENDIF
 
     !=================================================================
     ! All error checks are satisfied, so initialize TOMAS

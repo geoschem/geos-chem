@@ -21,7 +21,6 @@ MODULE State_Diag_Mod
 !
 ! USES:
 !
-  USE CMN_FJX_MOD,        ONLY : W_
   USE CMN_Size_Mod,       ONLY : NDUST
   USE DiagList_Mod
   USE Dictionary_M,       ONLY : dictionary_t
@@ -152,6 +151,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepPBL
      LOGICAL                     :: Archive_BudgetEmisDryDepPBL
 
+     REAL(f8),           POINTER :: BudgetEmisDryDepLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetEmisDryDepLevs
+     LOGICAL                     :: Archive_BudgetEmisDryDepLevs
+
      REAL(f8),           POINTER :: BudgetTransportFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetTransportFull
      LOGICAL                     :: Archive_BudgetTransportFull
@@ -163,6 +166,10 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetTransportPBL(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetTransportPBL
      LOGICAL                     :: Archive_BudgetTransportPBL
+
+     REAL(f8),           POINTER :: BudgetTransportLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetTransportLevs
+     LOGICAL                     :: Archive_BudgetTransportLevs
 
      REAL(f8),           POINTER :: BudgetMixingFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetMixingFull
@@ -176,6 +183,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetMixingPBL
      LOGICAL                     :: Archive_BudgetMixingPBL
 
+     REAL(f8),           POINTER :: BudgetMixingLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetMixingLevs
+     LOGICAL                     :: Archive_BudgetMixingLevs
+
      REAL(f8),           POINTER :: BudgetConvectionFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetConvectionFull
      LOGICAL                     :: Archive_BudgetConvectionFull
@@ -187,6 +198,10 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: BudgetConvectionPBL(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetConvectionPBL
      LOGICAL                     :: Archive_BudgetConvectionPBL
+
+     REAL(f8),           POINTER :: BudgetConvectionLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetConvectionLevs
+     LOGICAL                     :: Archive_BudgetConvectionLevs
 
      REAL(f8),           POINTER :: BudgetChemistryFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetChemistryFull
@@ -200,6 +215,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetChemistryPBL
      LOGICAL                     :: Archive_BudgetChemistryPBL
 
+     REAL(f8),           POINTER :: BudgetChemistryLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetChemistryLevs
+     LOGICAL                     :: Archive_BudgetChemistryLevs
+
      REAL(f8),           POINTER :: BudgetWetDepFull(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_BudgetWetDepFull
      LOGICAL                     :: Archive_BudgetWetDepFull
@@ -212,7 +231,13 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_BudgetWetDepPBL
      LOGICAL                     :: Archive_BudgetWetDepPBL
 
+     REAL(f8),           POINTER :: BudgetWetDepLevs(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_BudgetWetDepLevs
+     LOGICAL                     :: Archive_BudgetWetDepLevs
+
      REAL(f8),           POINTER :: BudgetColumnMass(:,:,:,:)
+     INTEGER                     :: BudgetBotLev_int
+     INTEGER                     :: BudgetTopLev_int
      LOGICAL                     :: Archive_BudgetEmisDryDep
      LOGICAL                     :: Archive_BudgetTransport
      LOGICAL                     :: Archive_BudgetMixing
@@ -289,6 +314,12 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_UvFluxNet
      LOGICAL                     :: Archive_UVFluxNet
 
+     REAL(f4),           POINTER :: OD600(:,:,:)
+     LOGICAL                     :: Archive_OD600
+
+     REAL(f4),           POINTER :: TCOD600(:,:)
+     LOGICAL                     :: Archive_TCOD600
+
      !%%%%% Chemistry %%%%%
 
      REAL(f4),           POINTER :: RxnRate(:,:,:,:)
@@ -298,6 +329,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: SatDiagnRxnRate(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnRxnRate
      LOGICAL                     :: Archive_SatDiagnRxnRate     
+
+     REAL(f4),           POINTER :: RxnConst(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_RxnConst
+     LOGICAL                     :: Archive_RxnConst
 
      REAL(f4),           POINTER :: OHreactivity(:,:,:)
      LOGICAL                     :: Archive_OHreactivity
@@ -371,6 +406,156 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: AerNumDenPSC(:,:,:)
      LOGICAL                     :: Archive_AerNumDenPSC
+
+#ifdef TOMAS
+     !%%%%% TOMAS microphysics rates %%%%%
+
+     REAL(f4),           POINTER :: TomasH2SO4(:,:,:)
+     LOGICAL                     :: Archive_TomasH2SO4
+     LOGICAL                     :: Archive_Tomas
+
+     REAL(f4),           POINTER :: TomasH2SO4mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasH2SO4mass
+     LOGICAL                     :: Archive_TomasH2SO4mass
+
+     REAL(f4),           POINTER :: TomasH2SO4number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasH2SO4number
+     LOGICAL                     :: Archive_TomasH2SO4number
+
+     REAL(f4),           POINTER :: TomasCOAG(:,:,:)
+     LOGICAL                     :: Archive_TomasCOAG
+
+     REAL(f4),           POINTER :: TomasCOAGmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasCOAGmass
+     LOGICAL                     :: Archive_TomasCOAGmass
+
+     REAL(f4),           POINTER :: TomasCOAGnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasCOAGnumber
+     LOGICAL                     :: Archive_TomasCOAGnumber
+
+     REAL(f4),           POINTER :: TomasNUCL(:,:,:)
+     LOGICAL                     :: Archive_TomasNUCL
+
+     REAL(f4),           POINTER :: TomasNUCRATEFN(:,:,:)
+     LOGICAL                     :: Archive_TomasNUCRATEFN
+
+     REAL(f4),           POINTER :: TomasNUCLmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasNUCLmass
+     LOGICAL                     :: Archive_TomasNUCLmass
+
+     REAL(f4),           POINTER :: TomasNUCLnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasNUCLnumber
+     LOGICAL                     :: Archive_TomasNUCLnumber
+
+     REAL(f4),           POINTER :: TomasNUCRATEnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasNUCRATEnumber
+     LOGICAL                     :: Archive_TomasNUCRATEnumber
+
+     REAL(f4),           POINTER :: TomasAQOX(:,:,:)
+     LOGICAL                     :: Archive_TomasAQOX
+
+     REAL(f4),           POINTER :: TomasAQOXmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasAQOXmass
+     LOGICAL                     :: Archive_TomasAQOXmass
+
+     REAL(f4),           POINTER :: TomasAQOXnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasAQOXnumber
+     LOGICAL                     :: Archive_TomasAQOXnumber
+
+     REAL(f4),           POINTER :: TomasMNFIX(:,:,:)
+     LOGICAL                     :: Archive_TomasMNFIX
+ 
+     REAL(f4),           POINTER :: TomasMNFIXmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXmass
+     LOGICAL                     :: Archive_TomasMNFIXmass
+
+     REAL(f4),           POINTER :: TomasMNFIXnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXnumber
+     LOGICAL                     :: Archive_TomasMNFIXnumber
+
+     REAL(f4),           POINTER :: TomasMNFIXh2so4mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXh2so4mass
+     LOGICAL                     :: Archive_TomasMNFIXh2so4mass
+
+     REAL(f4),           POINTER :: TomasMNFIXh2so4number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXh2so4number
+     LOGICAL                     :: Archive_TomasMNFIXh2so4number
+
+     REAL(f4),           POINTER :: TomasMNFIXcoagmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcoagmass
+     LOGICAL                     :: Archive_TomasMNFIXcoagmass
+
+     REAL(f4),           POINTER :: TomasMNFIXcoagnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcoagnumber
+     LOGICAL                     :: Archive_TomasMNFIXcoagnumber
+
+     REAL(f4),           POINTER :: TomasMNFIXaqoxmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXaqoxmass
+     LOGICAL                     :: Archive_TomasMNFIXaqoxmass
+
+     REAL(f4),           POINTER :: TomasMNFIXaqoxnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXaqoxnumber
+     LOGICAL                     :: Archive_TomasMNFIXaqoxnumber
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat1mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat1mass
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat1number
+     LOGICAL                     :: Archive_TomasMNFIXezwat1number
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat2mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat2mass
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat2number
+     LOGICAL                     :: Archive_TomasMNFIXezwat2number
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat3mass
+     LOGICAL                     :: Archive_TomasMNFIXezwat3mass
+
+     REAL(f4),           POINTER :: TomasMNFIXezwat3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXezwat3number
+     LOGICAL                     :: Archive_TomasMNFIXezwat3number
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck1mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck1mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck1mass
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck1number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck1number
+     LOGICAL                     :: Archive_TomasMNFIXcheck1number
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck2mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck2mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck2mass
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck2number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck2number
+     LOGICAL                     :: Archive_TomasMNFIXcheck2number
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck3mass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck3mass
+     LOGICAL                     :: Archive_TomasMNFIXcheck3mass
+
+     REAL(f4),           POINTER :: TomasMNFIXcheck3number(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasMNFIXcheck3number
+     LOGICAL                     :: Archive_TomasMNFIXcheck3number
+
+     REAL(f4),           POINTER :: TomasSOA(:,:,:)
+     LOGICAL                     :: Archive_TomasSOA
+
+     REAL(f4),           POINTER :: TomasSOAmass(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasSOAmass
+     LOGICAL                     :: Archive_TomasSOAmass
+
+     REAL(f4),           POINTER :: TomasSOAnumber(:,:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_TomasSOAnumber
+     LOGICAL                     :: Archive_TomasSOAnumber
+#endif
 
      !%%%%% Aerosol optical depths %%%%%
 
@@ -487,6 +672,10 @@ MODULE State_Diag_Mod
      !zhaisx
      REAL(f4),           POINTER :: PM10(:,:,:)
      LOGICAL                     :: Archive_PM10
+
+     ! H. Zhu
+     REAL(f4),           POINTER :: PDER(:,:,:)
+     LOGICAL                     :: Archive_PDER
 
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
@@ -665,6 +854,12 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: KppSmDecomps(:,:,:)
      LOGICAL                     :: Archive_KppSmDecomps
+
+     REAL(f4),           POINTER :: KppNegatives(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives
+
+     REAL(f4),           POINTER :: KppNegatives0(:,:,:)
+     LOGICAL                     :: Archive_KppNegatives0
 
      !%%%%% KPP auto-reduce solver diagnostics %%%%%
      REAL(f4),           POINTER :: KppAutoReducerNVAR(:,:,:)
@@ -1057,6 +1252,18 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: RadClrSkySWTOA(:,:,:)
      LOGICAL                     :: Archive_RadClrSkySWTOA
 
+     REAL(f4),           POINTER :: RadAllSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkyLWTrop
+
+     REAL(f4),           POINTER :: RadAllSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadAllSkySWTrop
+
+     REAL(f4),           POINTER :: RadClrSkyLWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkyLWTrop
+
+     REAL(f4),           POINTER :: RadClrSkySWTrop(:,:,:)
+     LOGICAL                     :: Archive_RadClrSkySWTrop
+
      REAL(f4),           POINTER :: RadAODWL1(:,:,:)
      LOGICAL                     :: Archive_RadAODWL1
 
@@ -1086,6 +1293,18 @@ MODULE State_Diag_Mod
 
      LOGICAL                     :: Archive_RadOptics
 
+     REAL(f8),           POINTER :: DynHeating(:,:,:)
+     LOGICAL                     :: Archive_DynHeating
+
+     REAL(f4),           POINTER :: DTRad(:,:,:)
+     LOGICAL                     :: Archive_DTRad
+
+     REAL(f4),           POINTER :: IsWater(:,:)
+     REAL(f4),           POINTER :: IsLand(:,:)
+     REAL(f4),           POINTER :: IsIce(:,:)
+     REAL(f4),           POINTER :: IsSnow(:,:)
+     LOGICAL                     :: Archive_sfcType
+
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
      ! NOTE: ObsPack archives point data, so don't register these
@@ -1100,6 +1319,7 @@ MODULE State_Diag_Mod
 
      ! ObsPack Inputs
      INTEGER                     :: ObsPack_nObs
+     CHARACTER(LEN=1),   POINTER :: ObsPack_CharArray    (:,:)
      CHARACTER(LEN=200), POINTER :: ObsPack_Id           (:  )
      INTEGER,            POINTER :: ObsPack_nSamples     (:  )
      INTEGER,            POINTER :: ObsPack_Strategy     (:  )
@@ -1181,9 +1401,6 @@ MODULE State_Diag_Mod
 
      !%%%%% Chemistry diagnostics %%%%%
 
-     REAL(f4),           POINTER :: KppError(:,:,:)
-     LOGICAL                     :: Archive_KppError
-
      REAL(f4),           POINTER :: O3concAfterChem(:,:,:)
      LOGICAL                     :: Archive_O3concAfterChem
 
@@ -1192,8 +1409,14 @@ MODULE State_Diag_Mod
 
      !%%%%% PM2.5 diagnostics %%%%%
 
-     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrates
+     REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrate+ammonium
      LOGICAL                     :: Archive_PM25ni
+
+     REAL(f4),           POINTER :: PM25nit(:,:,:)     ! PM25 nitrates
+     LOGICAL                     :: Archive_PM25nit
+
+     REAL(f4),           POINTER :: PM25nh4(:,:,:)     ! PM25 ammonium
+     LOGICAL                     :: Archive_PM25nh4
 
      REAL(f4),           POINTER :: PM25su(:,:,:)     ! PM25 sulfates
      LOGICAL                     :: Archive_PM25su
@@ -1214,6 +1437,10 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_PM25soa
 
      !%%%%% Species diagnostics %%%%%
+     REAL(f4),           POINTER :: PblCol(:,:,:)
+     TYPE(DgnMap),       POINTER :: Map_PblCol
+     LOGICAL                     :: Archive_PblCol
+
      REAL(f4),           POINTER :: TropCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TropCol
      LOGICAL                     :: Archive_TropCol
@@ -1221,12 +1448,19 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: TotCol(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_TotCol
      LOGICAL                     :: Archive_TotCol
+
+     ! Carbon stuff
+     REAL(f4),           POINTER :: COincCO2phot(:,:,:)
+     LOGICAL                     :: Archive_COincCO2phot
+
+     REAL(f4),           POINTER :: CO2photrate(:,:,:)
+     LOGICAL                     :: Archive_CO2photrate
 #endif
 
-#ifdef MODEL_WRF
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
      !----------------------------------------------------------------------
      ! The following diagnostics are only used when
-     ! GEOS-Chem is interfaced into WRF (as WRF-GC)
+     ! GEOS-Chem is interfaced into WRF (as WRF-GC) or CESM
      !----------------------------------------------------------------------
      REAL(f4),           POINTER :: KppError(:,:,:)
      LOGICAL                     :: Archive_KppError
@@ -1376,6 +1610,10 @@ CONTAINS
     State_Diag%Map_BudgetEmisDryDepPBL             => NULL()
     State_Diag%Archive_BudgetEmisDryDepPBL         = .FALSE.
 
+    State_Diag%BudgetEmisDryDepLevs                => NULL()
+    State_Diag%Map_BudgetEmisDryDepLevs            => NULL()
+    State_Diag%Archive_BudgetEmisDryDepLevs        = .FALSE.
+
     State_Diag%BudgetTransportFull                 => NULL()
     State_Diag%Map_BudgetTransportFull             => NULL()
     State_Diag%Archive_BudgetTransportFull         = .FALSE.
@@ -1388,6 +1626,10 @@ CONTAINS
     State_Diag%BudgetTransportPBL                  => NULL()
     State_Diag%Map_BudgetTransportPBL              => NULL()
     State_Diag%Archive_BudgetTransportPBL          = .FALSE.
+
+    State_Diag%BudgetTransportLevs                 => NULL()
+    State_Diag%Map_BudgetTransportLevs             => NULL()
+    State_Diag%Archive_BudgetTransportLevs         = .FALSE.
 
     State_Diag%BudgetMixingFull                    => NULL()
     State_Diag%Map_BudgetMixingFull                => NULL()
@@ -1402,6 +1644,10 @@ CONTAINS
     State_Diag%Map_BudgetMixingPBL                 => NULL()
     State_Diag%Archive_BudgetMixingPBL             = .FALSE.
 
+    State_Diag%BudgetMixingLevs                    => NULL()
+    State_Diag%Map_BudgetMixingLevs                => NULL()
+    State_Diag%Archive_BudgetMixingLevs            = .FALSE.
+
     State_Diag%BudgetConvectionFull                => NULL()
     State_Diag%Map_BudgetConvectionFull            => NULL()
     State_Diag%Archive_BudgetConvectionFull        = .FALSE.
@@ -1414,6 +1660,10 @@ CONTAINS
     State_Diag%BudgetConvectionPBL                 => NULL()
     State_Diag%Map_BudgetConvectionPBL             => NULL()
     State_Diag%Archive_BudgetConvectionPBL         = .FALSE.
+
+    State_Diag%BudgetConvectionLevs                => NULL()
+    State_Diag%Map_BudgetConvectionLevs            => NULL()
+    State_Diag%Archive_BudgetConvectionLevs        = .FALSE.
 
     State_Diag%BudgetChemistryFull                 => NULL()
     State_Diag%Map_BudgetChemistryFull             => NULL()
@@ -1428,6 +1678,10 @@ CONTAINS
     State_Diag%Map_BudgetChemistryPBL              => NULL()
     State_Diag%Archive_BudgetChemistryPBL          = .FALSE.
 
+    State_Diag%BudgetChemistryLevs                 => NULL()
+    State_Diag%Map_BudgetChemistryLevs             => NULL()
+    State_Diag%Archive_BudgetChemistryLevs         = .FALSE.
+
     State_Diag%BudgetWetDepFull                    => NULL()
     State_Diag%Map_BudgetWetDepFull                => NULL()
     State_Diag%Archive_BudgetWetDepFull            = .FALSE.
@@ -1441,8 +1695,15 @@ CONTAINS
     State_Diag%Map_BudgetWetDepPBL                 => NULL()
     State_Diag%Archive_BudgetWetDepPBL             = .FALSE.
 
+    State_Diag%BudgetWetDepLevs                    => NULL()
+    State_Diag%Map_BudgetWetDepLevs                => NULL()
+    State_Diag%Archive_BudgetWetDepLevs            = .FALSE.
+
     State_Diag%BudgetColumnMass                    => NULL()
     State_Diag%Archive_Budget                      = .FALSE.
+
+    State_Diag%BudgetTopLev_int = -999
+    State_Diag%BudgetBotLev_int = -999
 
     !%%%%% Drydep diagnostics %%%%%
 
@@ -1508,6 +1769,10 @@ CONTAINS
     State_Diag%Map_SatDiagnRxnRate                 => NULL()
     State_Diag%Archive_SatDiagnRxnRate             = .FALSE.
 
+    State_Diag%RxnConst                            => NULL()
+    State_Diag%Map_RxnConst                        => NULL()
+    State_Diag%Archive_RxnConst                    = .FALSE.
+
     State_Diag%OHreactivity                        => NULL()
     State_Diag%Archive_OHreactivity                = .FALSE.
 
@@ -1525,6 +1790,12 @@ CONTAINS
     State_Diag%UVFluxNet                           => NULL()
     State_Diag%Map_UvFluxNet                       => NULL()
     State_Diag%Archive_UVFluxNet                   = .FALSE.
+
+    State_Diag%OD600                               => NULL()
+    State_Diag%Archive_OD600                       = .FALSE.
+
+    State_Diag%TCOD600                            => NULL()
+    State_Diag%Archive_TCOD600                    = .FALSE.
 
     State_Diag%OHconcAfterChem                     => NULL()
     State_Diag%Archive_OHconcAfterChem             = .FALSE.
@@ -1592,6 +1863,157 @@ CONTAINS
 
     State_Diag%AerNumDenPSC                        => NULL()
     State_Diag%Archive_AerNumDenPSC                = .FALSE.
+
+#ifdef TOMAS
+    !%%%%% Tomas microphysical rate diagnostics %%%%%
+
+    State_Diag%TomasH2SO4                          => NULL()
+    State_Diag%Archive_TomasH2SO4                  = .FALSE.
+    State_Diag%Archive_Tomas                       = .FALSE.
+
+    State_Diag%TomasH2SO4mass                      => NULL()
+    State_Diag%Map_TomasH2SO4mass                  => NULL()
+    State_Diag%Archive_TomasH2SO4mass              = .FALSE.
+    State_Diag%Archive_Tomas                       = .FALSE.
+
+    State_Diag%TomasH2SO4number                    => NULL()
+    State_Diag%Map_TomasH2SO4number                => NULL()
+    State_Diag%Archive_TomasH2SO4number            = .FALSE.
+
+    State_Diag%TomasCOAG                           => NULL()
+    State_Diag%Archive_TomasCOAG                   = .FALSE.
+
+    State_Diag%TomasCOAGmass                       => NULL()
+    State_Diag%Map_TomasCOAGmass                   => NULL()
+    State_Diag%Archive_TomasCOAGmass               = .FALSE.
+
+    State_Diag%TomasCOAGnumber                     => NULL()
+    State_Diag%Map_TomasCOAGnumber                 => NULL()
+    State_Diag%Archive_TomasCOAGnumber             = .FALSE.
+
+    State_Diag%TomasNUCL                           => NULL()
+    State_Diag%Archive_TomasNUCL                   = .FALSE.
+
+    State_Diag%TomasNUCRATEFN                      => NULL()
+    State_Diag%Archive_TomasNUCRATEFN              = .FALSE.
+
+    State_Diag%TomasNUCLmass                       => NULL()
+    State_Diag%Map_TomasNUCLmass                   => NULL()
+    State_Diag%Archive_TomasNUCLmass               = .FALSE.
+
+    State_Diag%TomasNUCLnumber                       => NULL()
+    State_Diag%Map_TomasNUCLnumber                   => NULL()
+    State_Diag%Archive_TomasNUCLnumber               = .FALSE.
+
+    State_Diag%TomasNUCRATEnumber                       => NULL()
+    State_Diag%Map_TomasNUCRATEnumber                   => NULL()
+    State_Diag%Archive_TomasNUCRATEnumber               = .FALSE.
+
+    State_Diag%TomasAQOX                          => NULL()
+    State_Diag%Archive_TomasAQOX                  = .FALSE.
+
+    State_Diag%TomasAQOXmass                       => NULL()
+    State_Diag%Map_TomasAQOXmass                   => NULL()
+    State_Diag%Archive_TomasAQOXmass               = .FALSE.
+
+    State_Diag%TomasAQOXnumber                     => NULL()
+    State_Diag%Map_TomasAQOXnumber                 => NULL()
+    State_Diag%Archive_TomasAQOXnumber             = .FALSE.
+
+    State_Diag%TomasMNFIX                          => NULL()
+    State_Diag%Archive_TomasMNFIX                  = .FALSE.
+
+    State_Diag%TomasMNFIXmass                      => NULL()
+    State_Diag%Map_TomasMNFIXmass                  => NULL()
+    State_Diag%Archive_TomasMNFIXmass              = .FALSE.
+
+    State_Diag%TomasMNFIXnumber                    => NULL()
+    State_Diag%Map_TomasMNFIXnumber                => NULL()
+    State_Diag%Archive_TomasMNFIXnumber            = .FALSE.
+
+    State_Diag%TomasMNFIXh2so4mass                 => NULL()
+    State_Diag%Map_TomasMNFIXh2so4mass             => NULL()
+    State_Diag%Archive_TomasMNFIXh2so4mass         = .FALSE.
+
+    State_Diag%TomasMNFIXh2so4number               => NULL()
+    State_Diag%Map_TomasMNFIXh2so4number           => NULL()
+    State_Diag%Archive_TomasMNFIXh2so4number       = .FALSE.
+
+    State_Diag%TomasMNFIXcoagmass                  => NULL()
+    State_Diag%Map_TomasMNFIXcoagmass              => NULL()
+    State_Diag%Archive_TomasMNFIXcoagmass          = .FALSE.
+
+    State_Diag%TomasMNFIXcoagnumber                => NULL()
+    State_Diag%Map_TomasMNFIXcoagnumber            => NULL()
+    State_Diag%Archive_TomasMNFIXcoagnumber        = .FALSE.
+
+    State_Diag%TomasMNFIXaqoxmass                  => NULL()
+    State_Diag%Map_TomasMNFIXaqoxmass              => NULL()
+    State_Diag%Archive_TomasMNFIXaqoxmass          = .FALSE.
+
+    State_Diag%TomasMNFIXaqoxnumber                => NULL()
+    State_Diag%Map_TomasMNFIXaqoxnumber            => NULL()
+    State_Diag%Archive_TomasMNFIXaqoxnumber        = .FALSE.
+
+    State_Diag%TomasMNFIXezwat1mass                => NULL()
+    State_Diag%Map_TomasMNFIXezwat1mass            => NULL()
+    State_Diag%Archive_TomasMNFIXezwat1mass        = .FALSE.
+
+    State_Diag%TomasMNFIXezwat1number              => NULL()
+    State_Diag%Map_TomasMNFIXezwat1number          => NULL()
+    State_Diag%Archive_TomasMNFIXezwat1number      = .FALSE.
+
+    State_Diag%TomasMNFIXezwat2mass                => NULL()
+    State_Diag%Map_TomasMNFIXezwat2mass            => NULL()
+    State_Diag%Archive_TomasMNFIXezwat2mass        = .FALSE.
+
+    State_Diag%TomasMNFIXezwat2number              => NULL()
+    State_Diag%Map_TomasMNFIXezwat2number          => NULL()
+    State_Diag%Archive_TomasMNFIXezwat2number      = .FALSE.
+
+    State_Diag%TomasMNFIXezwat3mass                => NULL()
+    State_Diag%Map_TomasMNFIXezwat3mass            => NULL()
+    State_Diag%Archive_TomasMNFIXezwat3mass        = .FALSE.
+
+    State_Diag%TomasMNFIXezwat3number              => NULL()
+    State_Diag%Map_TomasMNFIXezwat3number          => NULL()
+    State_Diag%Archive_TomasMNFIXezwat3number      = .FALSE.
+ 
+    State_Diag%TomasMNFIXcheck1mass                => NULL()
+    State_Diag%Map_TomasMNFIXcheck1mass            => NULL()
+    State_Diag%Archive_TomasMNFIXcheck1mass        = .FALSE.
+
+    State_Diag%TomasMNFIXcheck1number              => NULL()
+    State_Diag%Map_TomasMNFIXcheck1number          => NULL()
+    State_Diag%Archive_TomasMNFIXcheck1number      = .FALSE.
+
+    State_Diag%TomasMNFIXcheck2mass                => NULL()
+    State_Diag%Map_TomasMNFIXcheck2mass            => NULL()
+    State_Diag%Archive_TomasMNFIXcheck2mass        = .FALSE.
+
+    State_Diag%TomasMNFIXcheck2number              => NULL()
+    State_Diag%Map_TomasMNFIXcheck2number          => NULL()
+    State_Diag%Archive_TomasMNFIXcheck2number      = .FALSE.
+
+    State_Diag%TomasMNFIXcheck3mass                => NULL()
+    State_Diag%Map_TomasMNFIXcheck3mass            => NULL()
+    State_Diag%Archive_TomasMNFIXcheck3mass        = .FALSE.
+
+    State_Diag%TomasMNFIXcheck3number              => NULL()
+    State_Diag%Map_TomasMNFIXcheck3number          => NULL()
+    State_Diag%Archive_TomasMNFIXcheck3number      = .FALSE.
+
+    State_Diag%TomasSOA                            => NULL()
+    State_Diag%Archive_TomasSOA                    = .FALSE.
+
+    State_Diag%TomasSOAmass                        => NULL()
+    State_Diag%Map_TomasSOAmass                    => NULL()
+    State_Diag%Archive_TomasSOAmass                = .FALSE.
+
+    State_Diag%TomasSOAnumber                      => NULL()
+    State_Diag%Map_TomasSOAnumber                  => NULL()
+    State_Diag%Archive_TomasSOAnumber              = .FALSE.
+#endif
 
     !%%%%% Aerosol optical depth diagnostics %%%%%
     State_Diag%AODDust                             => NULL()
@@ -1707,6 +2129,10 @@ CONTAINS
     !zhaisx
     State_Diag%PM10                                => NULL()
     State_Diag%Archive_PM10                        = .FALSE.
+
+    ! Paremeterized Dry Effective radius (H. Zhu, April 05 2024)
+    State_Diag%PDER                                => NULL()
+    State_Diag%Archive_PDER                        = .FALSE.
 
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
@@ -1880,6 +2306,12 @@ CONTAINS
     State_Diag%KppSmDecomps                        => NULL()
     State_Diag%Archive_KppSmDecomps                = .FALSE.
 
+    State_Diag%KppNegatives                        => NULL()
+    State_Diag%Archive_KppNegatives                = .FALSE.
+
+    State_Diag%KppNegatives0                       => NULL()
+    State_Diag%Archive_KppNegatives0               = .FALSE.
+
     State_Diag%KppAutoReducerNVAR                  => NULL()
     State_Diag%Archive_KppAutoReducerNVAR          = .FALSE.
 
@@ -2047,6 +2479,18 @@ CONTAINS
     State_Diag%RadClrSkySWTOA                      => NULL()
     State_Diag%Archive_RadClrSkySWTOA              = .FALSE.
 
+    State_Diag%RadAllSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkyLWTrop             = .FALSE.
+
+    State_Diag%RadAllSkySWTrop                     => NULL()
+    State_Diag%Archive_RadAllSkySWTrop             = .FALSE.
+
+    State_Diag%RadClrSkyLWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkyLWTrop             = .FALSE.
+
+    State_Diag%RadClrSkySWTrop                     => NULL()
+    State_Diag%Archive_RadClrSkySWTrop             = .FALSE.
+
     State_Diag%RadAODWL1                           => NULL()
     State_Diag%Archive_RadAODWL1                   = .FALSE.
 
@@ -2073,6 +2517,18 @@ CONTAINS
 
     State_Diag%RadAsymWL3                          => NULL()
     State_Diag%Archive_RadAsymWL3                  = .FALSE.
+
+    State_Diag%DynHeating                          => NULL()
+    State_Diag%Archive_DynHeating                  = .FALSE.
+
+    State_Diag%DTRad                               => NULL()
+    State_Diag%Archive_DTRad                       = .FALSE.
+
+    State_Diag%IsWater                             => NULL()
+    State_Diag%IsLand                              => NULL()
+    State_Diag%IsIce                               => NULL()
+    State_Diag%IsSnow                              => NULL()
+    State_Diag%Archive_SfcType                     = .FALSE.
 
     State_Diag%Archive_RadOptics                   = .FALSE.
 
@@ -2337,6 +2793,12 @@ CONTAINS
     State_Diag%PM25ni                              => NULL()
     State_Diag%Archive_PM25ni                      = .FALSE.
 
+    State_Diag%PM25nit                             => NULL()
+    State_Diag%Archive_PM25nit                     = .FALSE.
+
+    State_Diag%PM25nh4                             => NULL()
+    State_Diag%Archive_PM25nh4                     = .FALSE.
+
     State_Diag%PM25su                              => NULL()
     State_Diag%Archive_PM25su                      = .FALSE.
 
@@ -2355,6 +2817,10 @@ CONTAINS
     State_Diag%PM25soa                             => NULL()
     State_Diag%Archive_PM25soa                     = .FALSE.
 
+    State_Diag%PblCol                              => NULL()
+    State_Diag%Map_PblCol                          => NULL()
+    State_Diag%Archive_PblCol                      = .FALSE.
+
     State_Diag%TropCol                             => NULL()
     State_Diag%Map_TropCol                         => NULL()
     State_Diag%Archive_TropCol                     = .FALSE.
@@ -2362,12 +2828,18 @@ CONTAINS
     State_Diag%TotCol                              => NULL()
     State_Diag%Map_TotCol                          => NULL()
     State_Diag%Archive_TotCol                      = .FALSE.
+
+    State_Diag%COincCO2phot                        => NULL()
+    State_Diag%Archive_COincCO2phot                = .FALSE.
+
+    State_Diag%CO2photrate                         => NULL()
+    State_Diag%Archive_CO2photrate                 = .FALSE.
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
     !=======================================================================
     ! These diagnostics are only activated when running GC
-    ! either in NASA/GEOS or in WRF
+    ! either in NASA/GEOS, WRF, or CESM
     !=======================================================================
     State_Diag%KppError                            => NULL()
     State_Diag%Archive_KppError                    = .FALSE.
@@ -2465,10 +2937,10 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Write header
     !------------------------------------------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-    WRITE( 6, 10 )
- 10 FORMAT( /, 'Allocating the following fields of the State_Diag object:' )
-    WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+       WRITE( 6, 10 )
+ 10    FORMAT(/, 'Allocating the following fields of the State_Diag object:')
+       WRITE( 6, '(a)' ) REPEAT( '=', 79 )
     ENDIF
 
     !------------------------------------------------------------------------
@@ -2646,7 +3118,7 @@ CONTAINS
          TaggedDiagList = TaggedDiag_List,                                   &
          Ptr2Data       = State_Diag%ScaleICsAdj,                            &
          archiveData    = State_Diag%Archive_ScaleICsAdj,                    &
-         mapData        = State_Diag%Map_ScaleICsAdj,                            &
+         mapData        = State_Diag%Map_ScaleICsAdj,                        &
          diagId         = diagId,                                            &
          diagFlag       = 'S',                                               &
          RC             = RC                                                )
@@ -2680,7 +3152,6 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-
 
     !-----------------------------------------------------------------------
     ! Budget for emissions  (average kg/m2/s across single timestep)
@@ -2750,10 +3221,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range emissions
+    diagID  = 'BudgetEmisDryDepLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetEmisDryDepLevs,                   &
+         archiveData    = State_Diag%Archive_BudgetEmisDryDepLevs,           &
+         mapData        = State_Diag%Map_BudgetEmisDryDepLevs,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for emissions budget
     IF ( State_Diag%Archive_BudgetEmisDryDepFull .OR. &
          State_Diag%Archive_BudgetEmisDryDepTrop .OR. &
-         State_Diag%Archive_BudgetEmisDryDepPBL ) THEN
+         State_Diag%Archive_BudgetEmisDryDepLevs  .OR. &
+         State_Diag%Archive_BudgetEmisDryDepLevs ) THEN
        State_Diag%Archive_BudgetEmisDryDep = .TRUE.
     ENDIF
 
@@ -2825,10 +3320,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range transport
+    diagID  = 'BudgetTransportLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetTransportLevs,                    &
+         archiveData    = State_Diag%Archive_BudgetTransportLevs,            &
+         mapData        = State_Diag%Map_BudgetTransportLevs,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for transport budget
     IF ( State_Diag%Archive_BudgetTransportFull .OR. &
          State_Diag%Archive_BudgetTransportTrop .OR. &
-         State_Diag%Archive_BudgetTransportPBL ) THEN
+         State_Diag%Archive_BudgetTransportPBL  .OR. &
+         State_Diag%Archive_BudgetTransportLevs ) THEN
        State_Diag%Archive_BudgetTransport = .TRUE.
     ENDIF
 
@@ -2900,10 +3419,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range mixing
+    diagID  = 'BudgetMixingLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetMixingLevs,                       &
+         archiveData    = State_Diag%Archive_BudgetMixingLevs,               &
+         mapData        = State_Diag%Map_BudgetMixingLevs,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for mixing budget
     IF ( State_Diag%Archive_BudgetMixingFull .OR. &
          State_Diag%Archive_BudgetMixingTrop .OR. &
-         State_Diag%Archive_BudgetMixingPBL ) THEN
+         State_Diag%Archive_BudgetMixingPBL  .OR. &
+         State_Diag%Archive_BudgetMixingLevs ) THEN
        State_Diag%Archive_BudgetMixing = .TRUE.
     ENDIF
 
@@ -2975,10 +3518,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range convection
+    diagID  = 'BudgetConvectionLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetConvectionLevs,                   &
+         archiveData    = State_Diag%Archive_BudgetConvectionLevs,           &
+         mapData        = State_Diag%Map_BudgetConvectionLevs,               &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for convection budget
     IF ( State_Diag%Archive_BudgetConvectionFull .OR. &
          State_Diag%Archive_BudgetConvectionTrop .OR. &
-         State_Diag%Archive_BudgetConvectionPBL ) THEN
+         State_Diag%Archive_BudgetConvectionPBL  .OR. &
+         State_Diag%Archive_BudgetConvectionLevs ) THEN
        State_Diag%Archive_BudgetConvection = .TRUE.
     ENDIF
 
@@ -3050,10 +3617,34 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range chemistry
+    diagID  = 'BudgetChemistryLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetChemistryLevs,                    &
+         archiveData    = State_Diag%Archive_BudgetChemistryLevs,            &
+         mapData        = State_Diag%Map_BudgetChemistryLevs,                &
+         diagId         = diagId,                                            &
+         diagFlag       = 'A',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! Set high-level logical for archiving chemistry budget
     IF ( State_Diag%Archive_BudgetChemistryFull .OR. &
          State_Diag%Archive_BudgetChemistryTrop .OR. &
-         State_Diag%Archive_BudgetChemistryPBL ) THEN
+         State_Diag%Archive_BudgetChemistryPBL  .OR. &
+         State_Diag%Archive_BudgetChemistryLevs ) THEN
        State_Diag%Archive_BudgetChemistry = .TRUE.
     ENDIF
 
@@ -3125,11 +3716,57 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! Fixed level range wet deposition
+    diagID  = 'BudgetWetDepLevs' // &
+              TRIM( budgetBotLev_str ) // 'to' // TRIM( budgetTopLev_str )
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%BudgetWetDepLevs,                       &
+         archiveData    = State_Diag%Archive_BudgetWetDepLevs,               &
+         mapData        = State_Diag%Map_BudgetWetDepLevs,                   &
+         diagId         = diagId,                                            &
+         diagFlag       = 'W',                                               &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
     ! High-level logical for wet deposition budget
     IF ( State_Diag%Archive_BudgetWetDepFull .OR. &
          State_Diag%Archive_BudgetWetDepTrop .OR. &
-         State_Diag%Archive_BudgetWetDepPBL ) THEN
+         State_Diag%Archive_BudgetWetDepPBL  .OR. &
+         State_Diag%Archive_BudgetWetDepLevs ) THEN
        State_Diag%Archive_BudgetWetDep = .TRUE.
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! Top and bottom levels for budget level range diagnostics
+    !------------------------------------------------------------------------
+    IF (State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
+        State_Diag%Archive_BudgetTransportLevs     .or. &
+        State_Diag%Archive_BudgetMixingLevs        .or. &
+        State_Diag%Archive_BudgetConvectionLevs    .or. &
+        State_Diag%Archive_BudgetChemistryLevs     .or. &
+        State_Diag%Archive_BudgetWetDepLevs            ) THEN
+       READ( BudgetTopLev_str, '(i3)') State_Diag%BudgetTopLev_int
+       READ( BudgetBotLev_str, '(i3)') State_Diag%BudgetBotLev_int
+       IF ( ( State_Diag%BudgetBotLev_int <= 0 ) .OR. &
+            ( State_Diag%BudgetBotLev_int > State_Diag%BudgetTopLev_int ) .OR. &
+            ( State_Diag%BudgetTopLev_int > State_Grid%NZ ) ) THEN
+          errMsg = 'Budget diagnostic level range is not valid: ' // &
+               TRIM(BudgetBotLev_str) // ' to ' //                   &
+               TRIM(BudgetTopLev_str) // '. Check HISTORY.rc.'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !------------------------------------------------------------------------
@@ -3323,6 +3960,84 @@ CONTAINS
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! Surface types
+    !-----------------------------------------------------------------------
+    diagID  = 'IsWater'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsWater,                                &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsLand'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsLand,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsIce'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsIce,                                  &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsSnow,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -3888,9 +4603,9 @@ CONTAINS
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
-    ! THE Rn-Pb-Be-Passive SPECIALTY SIMULATION
+    ! THE TransportTracers SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_RnPbBe_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Emission of Pb210 from Rn222 decay
@@ -3942,7 +4657,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! the Rn-Pb-Be-Passive simulation.
+       ! the TransportTracers simulation.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -3962,7 +4677,7 @@ CONTAINS
           CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC  )
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
-                      'but this is only appropriate for Rn-Pb-Be-Passive '// &
+                      'but this is only appropriate for TransportTracers '// &
                       'simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
@@ -4466,37 +5181,42 @@ CONTAINS
 
     !------------------------------------------------------------------------
     ! Set a single logical for SatDiagn output
+    ! For ease of comparison, place fields in alphabetical order
     !------------------------------------------------------------------------
     State_Diag%Archive_SatDiagn = (                                          &
-         State_Diag%Archive_SatDiagnColEmis                             .or. &
-         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
-         State_Diag%Archive_SatDiagnOH                                  .or. &
-         State_Diag%Archive_SatDiagnRH                                  .or. &
          State_Diag%Archive_SatDiagnAirDen                              .or. &
          State_Diag%Archive_SatDiagnBoxHeight                           .or. &
-         State_Diag%Archive_SatDiagnPEdge                               .or. &
-         State_Diag%Archive_SatDiagnTROPP                               .or. &
-         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
-         State_Diag%Archive_SatDiagnPBLTop                              .or. &
-         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnColEmis                             .or. &
+         State_Diag%Archive_SatDiagnConc                                .or. &
+         State_Diag%Archive_SatDiagnDryDep                              .or. &
+         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
-         State_Diag%Archive_SatDiagnPARDR                               .or. &
-         State_Diag%Archive_SatDiagnPARDF                               .or. &
-         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
-         State_Diag%Archive_SatDiagnSLP                                 .or. &
-         State_Diag%Archive_SatDiagnSPHU                                .or. &
-         State_Diag%Archive_SatDiagnTS                                  .or. &
-         State_Diag%Archive_SatDiagnPBLTOPL                             .or. &
-         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
-         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
-         State_Diag%Archive_SatDiagnWetLossConv                         .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
          State_Diag%Archive_SatDiagnJvalO3O1D                           .or. &
          State_Diag%Archive_SatDiagnJvalO3O3P                           .or. &
-         State_Diag%Archive_SatDiagnDryDep                              .or. &
-         State_Diag%Archive_SatDiagnDryDepVel                           .or. &
-         State_Diag%Archive_SatDiagnOHreactivity                            )
+         State_Diag%Archive_SatDiagnLoss                                .or. &
+         State_Diag%Archive_SatDiagnMODISLAI                            .or. &
+         State_Diag%Archive_SatDiagnOH                                  .or. &
+         State_Diag%Archive_SatDiagnOHreactivity                        .or. &
+         State_Diag%Archive_SatDiagnPARDF                               .or. &
+         State_Diag%Archive_SatDiagnPARDR                               .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnPBLTopL                             .or. &
+         State_Diag%Archive_SatDiagnPEdge                               .or. &
+         State_Diag%Archive_SatDiagnPRECTOT                             .or. &
+         State_Diag%Archive_SatDiagnProd                                .or. &
+         State_Diag%Archive_SatDiagnRH                                  .or. &
+         State_Diag%Archive_SatDiagnRxnRate                             .or. &
+         State_Diag%Archive_SatDiagnSLP                                 .or. &
+         State_Diag%Archive_SatDiagnSPHU                                .or. &
+         State_Diag%Archive_SatDiagnSurfFlux                            .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTS                                  .or. &
+         State_Diag%Archive_SatDiagnWetLossLS                           .or. &
+         State_Diag%Archive_SatDiagnWetLossConv                             )
 
     !------------------------------------------------------------------------
     ! Satellite diagnostic: Counter
@@ -4595,6 +5315,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: All-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: All-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadAllSkySWSurf'
@@ -4630,6 +5373,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadAllSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadAllSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: All-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadAllSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadAllSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadAllSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -4687,6 +5453,29 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky LW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkyLWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkyLWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkyLWTrop,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
        ! RRTMG: Clear-sky SW rad @ surface
        !--------------------------------------------------------------------
        diagID  = 'RadClrSkySWSurf'
@@ -4722,6 +5511,29 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%RadClrSkySWTOA,                      &
             archiveData    = State_Diag%Archive_RadClrSkySWTOA,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'Z',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! RRTMG: Clear-sky SW rad @ tropopause
+       !--------------------------------------------------------------------
+       diagID  = 'RadClrSkySWTrop'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RadClrSkySWTrop,                     &
+            archiveData    = State_Diag%Archive_RadClrSkySWTrop,             &
             diagId         = diagId,                                         &
             diagFlag       = 'Z',                                            &
             RC             = RC                                             )
@@ -4921,6 +5733,42 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'DynHeating'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DynHeating,                          &
+            archiveData    = State_Diag%Archive_DynHeating,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       diagID  = 'DTRad'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%DTRad,                               &
+            archiveData    = State_Diag%Archive_DTRad,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
     ELSE
 
        !-------------------------------------------------------------------
@@ -4932,7 +5780,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 17
+       DO N = 1, 23
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -4941,44 +5789,56 @@ CONTAINS
              CASE( 2 )
                 diagID = 'RadAllSkyLWTOA'
              CASE( 3 )
-                diagID = 'RadAllSkySWSurf'
+                diagID = 'RadAllSkyLWTrop'
              CASE( 4 )
-                diagID = 'RadAllSkySWTOA'
+                diagID = 'RadAllSkySWSurf'
              CASE( 5 )
-                diagID = 'RadClrSkyLWSurf'
+                diagID = 'RadAllSkySWTOA'
              CASE( 6 )
-                diagID = 'RadClrSkyLWTOA'
+                diagID = 'RadAllSkySWTrop'
              CASE( 7 )
-                diagID = 'RadClrSkySWSurf'
+                diagID = 'RadClrSkyLWSurf'
              CASE( 8 )
-                diagID = 'RadClrSkySWTOA'
+                diagID = 'RadClrSkyLWTOA'
              CASE( 9 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkyLWTrop'
              CASE( 10 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+                diagID = 'RadClrSkySWSurf'
              CASE( 11 )
+                diagID = 'RadClrSkySWTOA'
+             CASE( 12 )
+                diagID = 'RadClrSkySWTrop'
+             CASE( 13 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 14 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
+             CASE( 15 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAOD' // TRIM( TmpWL ) // 'nm'
-             CASE( 12 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 13 )
-                TmpWL  = RadWL(2)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 14 )
-                TmpWL  = RadWL(3)
-                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
-             CASE( 15 )
-                TmpWL  = RadWL(1)
-                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
              CASE( 16 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 17 )
+                TmpWL  = RadWL(2)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 18 )
+                TmpWL  = RadWL(3)
+                diagID = 'RadSSA' // TRIM( TmpWL ) // 'nm'
+             CASE( 19 )
+                TmpWL  = RadWL(1)
+                diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 20 )
                 TmpWL  = RadWL(2)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
-             CASE( 17 )
+             CASE( 21 )
                 TmpWL  = RadWL(3)
                 diagID = 'RadAsym' // TRIM( TmpWL ) // 'nm'
+             CASE( 22 )
+                diagID = 'DynHeating'
+             CASE( 23 )
+                diagID = 'DTRad'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -5040,6 +5900,30 @@ CONTAINS
             Ptr2Data       = State_Diag%SatDiagnRxnRate,                     &
             archiveData    = State_Diag%Archive_SatDiagnRxnRate,             &
             mapData        = State_Diag%Map_SatDiagnRxnRate,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'R',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! KPP Reaction Rate Constants
+       !--------------------------------------------------------------------
+       diagID  = 'RxnConst'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%RxnConst,                            &
+            archiveData    = State_Diag%Archive_RxnConst,                    &
+            mapData        = State_Diag%Map_RxnConst,                        &
             diagId         = diagId,                                         &
             diagFlag       = 'R',                                            &
             RC             = RC                                             )
@@ -5384,6 +6268,50 @@ CONTAINS
             mapData        = State_Diag%Map_UvFluxNet,                       &
             diagId         = diagId,                                         &
             diagFlag       = 'U',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Optical depth (3D) used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'OD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%OD600,                               &
+            archiveData    = State_Diag%Archive_OD600,                       &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Total column optical depth used to compute photolysis rates (600 nm)
+       !--------------------------------------------------------------------
+       diagID  = 'TCOD600'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TCOD600,                             &
+            archiveData    = State_Diag%Archive_TCOD600,                     &
+            diagId         = diagId,                                         &
             RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
@@ -5943,6 +6871,50 @@ CONTAINS
        ENDIF
 
        !-------------------------------------------------------------------
+       ! Number of negative concentrations after KPP integration 
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives,                        &
+            archiveData    = State_Diag%Archive_KppNegatives,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of negative concentrations after first KPP integration try
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives0'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives0,                       &
+            archiveData    = State_Diag%Archive_KppNegatives0,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
        ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
        !-------------------------------------------------------------------
        diagID = 'KppAutoReducerNVAR'
@@ -6030,7 +7002,7 @@ CONTAINS
           RETURN
        ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -6065,7 +7037,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 34
+       DO N = 1, 41
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
@@ -6144,6 +7116,12 @@ CONTAINS
                 diagID = 'KppcNONZERO'
              CASE( 38 )
                 diagID = 'KppAutoReduceThres'
+             CASE( 39 )
+                diagID = 'RxnConst'
+             CASE( 40 )
+                diagID = 'KppNegatives'
+             CASE( 41 )
+                diagID = 'KppNegatives0'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -6286,8 +7264,8 @@ CONTAINS
     ! and THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        .or. &
-         Input_Opt%ITS_A_CARBON_SIM                                   ) THEN
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -6588,9 +7566,9 @@ CONTAINS
              RETURN
           ENDIF
        ENDDO
-       
+
     ENDIF
-    
+
     !=======================================================================
     ! The following diagnostic quantities are only relevant for:
     !
@@ -6600,6 +7578,918 @@ CONTAINS
     ! and THE AEROSOL-ONLY SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+#ifdef TOMAS
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Condensation
+       !--------------------------------------------------------------------
+       diagID  = 'TomasH2SO4' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasH2SO4,                          &
+            archiveData    = State_Diag%Archive_TomasH2SO4,                  &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Condensation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasH2SO4mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasH2SO4mass,                      &
+            archiveData    = State_Diag%Archive_TomasH2SO4mass,              &
+            mapData        = State_Diag%Map_TomasH2SO4mass,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Condensation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasH2SO4number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasH2SO4number,                    &
+            archiveData    = State_Diag%Archive_TomasH2SO4number,            &
+            mapData        = State_Diag%Map_TomasH2SO4number,                &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Coagulation
+       !--------------------------------------------------------------------
+       diagID  = 'TomasCOAG' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasCOAG,                           &
+            archiveData    = State_Diag%Archive_TomasCOAG,                   &
+            !mapData        = State_Diag%Map_TomasCOAG,                       &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Coagulation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasCOAGmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasCOAGmass,                       &
+            archiveData    = State_Diag%Archive_TomasCOAGmass,               &
+            mapData        = State_Diag%Map_TomasCOAGmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Coagulation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasCOAGnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasCOAGnumber,                     &
+            archiveData    = State_Diag%Archive_TomasCOAGnumber,             &
+            mapData        = State_Diag%Map_TomasCOAGnumber,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation
+       !--------------------------------------------------------------------
+       diagID  = 'TomasNUCL' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCL,                           &
+            archiveData    = State_Diag%Archive_TomasNUCL,                   &
+            !mapData        = State_Diag%Map_TomasNUCL,                       &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation
+       !--------------------------------------------------------------------
+       diagID  = 'TomasNUCRATEFN' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCRATEFN,                      &
+            archiveData    = State_Diag%Archive_TomasNUCRATEFN,              &
+            !mapData        = State_Diag%Map_TomasNUCRATEfn,                  &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasNUCLmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCLmass,                       &
+            archiveData    = State_Diag%Archive_TomasNUCLmass,               &
+            mapData        = State_Diag%Map_TomasNUCLmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasNUCLnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCLnumber,                     &
+            archiveData    = State_Diag%Archive_TomasNUCLnumber,             &
+            mapData        = State_Diag%Map_TomasNUCLnumber,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Nucleation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasNUCRATEnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasNUCRATEnumber,                  &
+            archiveData    = State_Diag%Archive_TomasNUCRATEnumber,          &
+            mapData        = State_Diag%Map_TomasNUCRATEnumber,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Aqueous Oxidation
+       !--------------------------------------------------------------------
+       diagID  = 'TomasAQOX' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasAQOX,                           &
+            archiveData    = State_Diag%Archive_TomasAQOX,                   &
+            !mapData        = State_Diag%Map_TomasAQOX,                       &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Aqueous oxidation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasAQOXmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasAQOXmass,                       &
+            archiveData    = State_Diag%Archive_TomasAQOXmass,               &
+            mapData        = State_Diag%Map_TomasAQOXmass,                   &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Aqueous oxidation rate per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasAQOXnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasAQOXnumber,                     &
+            archiveData    = State_Diag%Archive_TomasAQOXnumber,             &
+            mapData        = State_Diag%Map_TomasAQOXnumber,                 &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - Error
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIX' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIX,                          &
+            archiveData    = State_Diag%Archive_TomasMNFIX,                  &
+            !mapData        = State_Diag%Map_TomasMNFIX,                      &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXmass,                      &
+            archiveData    = State_Diag%Archive_TomasMNFIXmass,              &
+            mapData        = State_Diag%Map_TomasMNFIXmass,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXnumber,                    &
+            archiveData    = State_Diag%Archive_TomasMNFIXnumber,            &
+            mapData        = State_Diag%Map_TomasMNFIXnumber,                &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXh2so4mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXh2so4mass,                 &
+            archiveData    = State_Diag%Archive_TomasMNFIXh2so4mass,         &
+            mapData        = State_Diag%Map_TomasMNFIXh2so4mass,             &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXh2so4number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXh2so4number,               &
+            archiveData    = State_Diag%Archive_TomasMNFIXh2so4number,       &
+            mapData        = State_Diag%Map_TomasMNFIXh2so4number,           &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcoagmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcoagmass,                  &
+            archiveData    = State_Diag%Archive_TomasMNFIXcoagmass,          &
+            mapData        = State_Diag%Map_TomasMNFIXcoagmass,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcoagnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcoagnumber,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXcoagnumber,        &
+            mapData        = State_Diag%Map_TomasMNFIXcoagnumber,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXaqoxmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXaqoxmass,                  &
+            archiveData    = State_Diag%Archive_TomasMNFIXaqoxmass,          &
+            mapData        = State_Diag%Map_TomasMNFIXaqoxmass,              &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXaqoxnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXaqoxnumber,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXaqoxnumber,        &
+            mapData        = State_Diag%Map_TomasMNFIXaqoxnumber,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat1mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat1mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat1mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXezwat1mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat1number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat1number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat1number,      &
+            mapData        = State_Diag%Map_TomasMNFIXezwat1number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat2mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat2mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat2mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXezwat2mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat2number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat2number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat2number,      &
+            mapData        = State_Diag%Map_TomasMNFIXezwat2number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat3mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat3mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat3mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXezwat3mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXezwat3number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXezwat3number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXezwat3number,      &
+            mapData        = State_Diag%Map_TomasMNFIXezwat3number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck1mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck1mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck1mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXcheck1mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck1number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck1number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck1number,      &
+            mapData        = State_Diag%Map_TomasMNFIXcheck1number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck2mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck2mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck2mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXcheck2mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck2number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck2number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck2number,      &
+            mapData        = State_Diag%Map_TomasMNFIXcheck2number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck3mass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck3mass,                &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck3mass,        &
+            mapData        = State_Diag%Map_TomasMNFIXcheck3mass,            &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - ERROR per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasMNFIXcheck3number'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasMNFIXcheck3number,              &
+            archiveData    = State_Diag%Archive_TomasMNFIXcheck3number,      &
+            mapData        = State_Diag%Map_TomasMNFIXcheck3number,          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - SOA
+       !--------------------------------------------------------------------
+       diagID  = 'TomasSOA' 
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasSOA,                            &
+            archiveData    = State_Diag%Archive_TomasSOA,                    &
+            !mapData        = State_Diag%Map_TomasSOA,                        &
+            diagId         = diagId,                                         &
+            !diagFlag       = 'B',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN!
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - SOA Cond per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasSOAmass'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasSOAmass,                        &
+            archiveData    = State_Diag%Archive_TomasSOAmass,                &
+            mapData        = State_Diag%Map_TomasSOAmass,                    &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Tomas Microphysics Rate - SOA Cond per bin
+       !--------------------------------------------------------------------
+       diagID  = 'TomasSOAnumber'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%TomasSOAnumber,                      &
+            archiveData    = State_Diag%Archive_TomasSOAnumber,              &
+            mapData        = State_Diag%Map_TomasSOAnumber,                  &
+            diagId         = diagId,                                         &
+            diagFlag       = 'T',                                            &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! Dust Optical Depth
@@ -7607,9 +9497,32 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! PDER, aka parameterized dry effective radius for SNA and OM [nm]
+       ! H. Zhu, April 05, 2024
+       !-------------------------------------------------------------------
+       diagID = 'PDER'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PDER,                                &
+            archiveData    = State_Diag%Archive_PDER,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
-       ! PM25 nitrates
+       ! PM25 nitrates+ammonium
        !--------------------------------------------------------------------
        diagID = 'PM25ni'
        CALL Init_and_Register(                                               &
@@ -7621,6 +9534,50 @@ CONTAINS
             TaggedDiagList = TaggedDiag_List,                                &
             Ptr2Data       = State_Diag%PM25ni,                       &
             archiveData    = State_Diag%Archive_PM25ni,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 nitrates
+       !--------------------------------------------------------------------
+       diagID = 'PM25nit'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nit,                       &
+            archiveData    = State_Diag%Archive_PM25nit,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! PM25 ammonium
+       !--------------------------------------------------------------------
+       diagID = 'PM25nh4'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PM25nh4,                       &
+            archiveData    = State_Diag%Archive_PM25nh4,               &
             diagId         = diagId,                                         &
             RC             = RC                                             )
 
@@ -7782,6 +9739,26 @@ CONTAINS
           RETURN
        ENDIF
 
+       diagID  = 'PblCol'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PblCol,                              &
+            archiveData    = State_Diag%Archive_PblCol,                      &
+            mapData        = State_Diag%Map_PblCol,                          &
+            diagId         = diagId,                                         &
+            diagFlag       = 'S',                                            &
+            RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        diagID  = 'TropCol'
        CALL Init_and_Register(                                               &
             Input_Opt      = Input_Opt,                                      &
@@ -7796,6 +9773,50 @@ CONTAINS
             diagId         = diagId,                                         &
             diagFlag       = 'S',                                            &
             RC             = RC                                             )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO2 photolysis rate 
+       !--------------------------------------------------------------------
+       diagID = 'CO2photrate'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%CO2photrate,                         &
+            archiveData    = State_Diag%Archive_CO2photrate,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! CO relative increase due to CO2 photolysis 
+       !--------------------------------------------------------------------
+       diagID = 'COincCO2phot'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%COincCO2phot,                        &
+            archiveData    = State_Diag%Archive_COincCO2phot,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -8743,7 +10764,8 @@ CONTAINS
     !
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_CARBON_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
+         Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -8837,7 +10859,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the CH4 '         // &
-                      'and tagged CH4 specialty simulations.'
+                      'and carbon specialty simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -10239,16 +12261,25 @@ CONTAINS
     !========================================================================
     ! Print information about the registered fields (short format)
     !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 30 )
  30    FORMAT( /, &
             'Registered variables contained within the State_Diag object:' )
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+
+       ! Print registered fields
+       CALL Registry_Print( Input_Opt   = Input_Opt,                         &
+                            Registry    = State_Diag%Registry,               &
+                            ShortFormat = .TRUE.,                            &
+                            RC          = RC                                )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Registry_Print"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
-    CALL Registry_Print( Input_Opt   = Input_Opt,                            &
-                         Registry    = State_Diag%Registry,                  &
-                         ShortFormat = .TRUE.,                               &
-                         RC          = RC                                   )
 
     !========================================================================
     ! Set high-level logicals for diagnostics
@@ -10257,21 +12288,27 @@ CONTAINS
                            ( State_Diag%Archive_BudgetEmisDryDepFull    .or. &
                              State_Diag%Archive_BudgetEmisDryDepTrop    .or. &
                              State_Diag%Archive_BudgetEmisDryDepPBL     .or. &
+                             State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
                              State_Diag%Archive_BudgetTransportFull     .or. &
                              State_Diag%Archive_BudgetTransportTrop     .or. &
                              State_Diag%Archive_BudgetTransportPBL      .or. &
+                             State_Diag%Archive_BudgetTransportLevs     .or. &
                              State_Diag%Archive_BudgetMixingFull        .or. &
                              State_Diag%Archive_BudgetMixingTrop        .or. &
                              State_Diag%Archive_BudgetMixingPBL         .or. &
+                             State_Diag%Archive_BudgetMixingLevs        .or. &
                              State_Diag%Archive_BudgetConvectionFull    .or. &
                              State_Diag%Archive_BudgetConvectionTrop    .or. &
                              State_Diag%Archive_BudgetConvectionPBL     .or. &
+                             State_Diag%Archive_BudgetConvectionLevs    .or. &
                              State_Diag%Archive_BudgetChemistryFull     .or. &
                              State_Diag%Archive_BudgetChemistryTrop     .or. &
                              State_Diag%Archive_BudgetChemistryPBL      .or. &
+                             State_Diag%Archive_BudgetChemistryLevs     .or. &
                              State_Diag%Archive_BudgetWetDepFull        .or. &
                              State_Diag%Archive_BudgetWetDepTrop        .or. &
-                             State_Diag%Archive_BudgetWetDepPBL             )
+                             State_Diag%Archive_BudgetWetDepPBL         .or. &
+                             State_Diag%Archive_BudgetWetDepLevs            )
 
     State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA       .or. &
                                    State_Diag%Archive_AerMassBC         .or. &
@@ -10295,9 +12332,51 @@ CONTAINS
                                    State_Diag%Archive_TotalOC           .or. &
                                    State_Diag%Archive_TotalBiogenicOA       )
 
+#ifdef TOMAS
+    State_Diag%Archive_Tomas  = ( State_Diag%Archive_TomasH2SO4             .or. &
+                                  State_Diag%Archive_TomasH2SO4mass         .or. &
+                                  State_Diag%Archive_TomasH2SO4number       .or. &
+                                  State_Diag%Archive_TomasCOAG              .or. &
+                                  State_Diag%Archive_TomasCOAGmass          .or. &
+                                  State_Diag%Archive_TomasCOAGnumber        .or. &
+                                  State_Diag%Archive_TomasNUCRATEFN         .or. &
+                                  State_Diag%Archive_TomasNUCL              .or. &
+                                  State_Diag%Archive_TomasNUCLmass          .or. &
+                                  State_Diag%Archive_TomasNUCLnumber        .or. &
+                                  State_Diag%Archive_TomasNUCRATEnumber     .or. &
+                                  State_Diag%Archive_TomasAQOX              .or. &
+                                  State_Diag%Archive_TomasAQOXmass          .or. &
+                                  State_Diag%Archive_TomasAQOXnumber        .or. &
+                                  State_Diag%Archive_TomasMNFIX             .or. &
+                                  State_Diag%Archive_TomasMNFIXmass         .or. &
+                                  State_Diag%Archive_TomasMNFIXnumber       .or. &
+                                  State_Diag%Archive_TomasMNFIXh2so4mass    .or. &
+                                  State_Diag%Archive_TomasMNFIXh2so4number  .or. &
+                                  State_Diag%Archive_TomasMNFIXcoagmass     .or. &
+                                  State_Diag%Archive_TomasMNFIXcoagnumber   .or. &
+                                  State_Diag%Archive_TomasMNFIXaqoxmass     .or. &
+                                  State_Diag%Archive_TomasMNFIXaqoxnumber   .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat1mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat1number .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat2mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat2number .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat3mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXezwat3number .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck1mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck1number .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck2mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck2number .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck3mass   .or. &
+                                  State_Diag%Archive_TomasMNFIXcheck3number .or. &
+                                  State_Diag%Archive_TomasSOA               .or. &
+                                  State_Diag%Archive_TomasSOAmass           .or. &
+                                  State_Diag%Archive_TomasSOAnumber         )
+#endif
+
     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
@@ -10328,6 +12407,8 @@ CONTAINS
                                     State_Diag%Archive_KppLuDecomps       .or. &
                                     State_Diag%Archive_KppSubsts          .or. &
                                     State_Diag%Archive_KppSmDecomps       .or. &
+                                    State_Diag%Archive_KppNegatives       .or. &
+                                    State_Diag%Archive_KppNegatives0      .or. &
                                     State_Diag%Archive_KppAutoReducerNVAR .or. &
                                     State_Diag%Archive_KppAutoReduceThres .or. &
                                     State_Diag%Archive_KppcNONZERO        .or. &
@@ -10366,13 +12447,6 @@ CONTAINS
                                                3                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-    ENDIF
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Registry_Print"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
   END SUBROUTINE Init_State_Diag
@@ -10499,6 +12573,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetEmisDryDepLevs',                        &
+                   Ptr2Data = State_Diag%BudgetEmisDryDepLevs,               &
+                   mapData  = State_Diag%Map_BudgetEmisDryDepLevs,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetTransportFull',                         &
                    Ptr2Data = State_Diag%BudgetTransportFull,                &
                    mapData  = State_Diag%Map_BudgetTransportFull,            &
@@ -10514,6 +12594,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetTransportPBL',                          &
                    Ptr2Data = State_Diag%BudgetTransportPBL,                 &
                    mapData  = State_Diag%Map_BudgetTransportPBL,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetTransportLevs',                         &
+                   Ptr2Data = State_Diag%BudgetTransportLevs,                &
+                   mapData  = State_Diag%Map_BudgetTransportLevs,            &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10535,6 +12621,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetMixingLevs',                            &
+                   Ptr2Data = State_Diag%BudgetMixingLevs,                   &
+                   mapData  = State_Diag%Map_BudgetMixingLevs,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetConvectionFull',                        &
                    Ptr2Data = State_Diag%BudgetConvectionFull,               &
                    mapData  = State_Diag%Map_BudgetConvectionFull,           &
@@ -10550,6 +12642,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetConvectionPBL',                         &
                    Ptr2Data = State_Diag%BudgetConvectionPBL,                &
                    mapData  = State_Diag%Map_BudgetConvectionPBL,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetConvectionLevs',                        &
+                   Ptr2Data = State_Diag%BudgetConvectionLevs,               &
+                   mapData  = State_Diag%Map_BudgetConvectionLevs,           &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10571,6 +12669,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'BudgetChemistryLevs',                         &
+                   Ptr2Data = State_Diag%BudgetChemistryLevs,                &
+                   mapData  = State_Diag%Map_BudgetChemistryLevs,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'BudgetWetDepFull',                            &
                    Ptr2Data = State_Diag%BudgetWetDepFull,                   &
                    mapData  = State_Diag%Map_BudgetWetDepFull,               &
@@ -10586,6 +12690,12 @@ CONTAINS
     CALL Finalize( diagId   = 'BudgetWetDepPBL',                             &
                    Ptr2Data = State_Diag%BudgetWetDepPBL,                    &
                    mapData  = State_Diag%Map_BudgetWetDepPBL,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'BudgetWetDepLevs',                            &
+                   Ptr2Data = State_Diag%BudgetWetDepLevs,                   &
+                   mapData  = State_Diag%Map_BudgetWetDepLevs,               &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10610,6 +12720,26 @@ CONTAINS
     CALL Finalize( diagId   = 'DryDepVel',                                   &
                    Ptr2Data = State_Diag%DryDepVel,                          &
                    mapData  = State_Diag%Map_DryDepVel,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsWater',                                     &
+                   Ptr2Data = State_Diag%IsWater,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsLand',                                      &
+                   Ptr2Data = State_Diag%IsLand,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsIce',                                       &
+                   Ptr2Data = State_Diag%IsIce,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsSnow',                                      &
+                   Ptr2Data = State_Diag%IsSnow,                             &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10680,6 +12810,12 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'RxnConst',                                    &
+                   Ptr2Data = State_Diag%RxnConst,                           &
+                   mapData  = State_Diag%Map_RxnConst,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'OHreactivity',                                &
                    Ptr2Data = State_Diag%OHreactivity,                       &
                    RC       = RC                                            )
@@ -10717,6 +12853,16 @@ CONTAINS
     CALL Finalize( diagId   = 'UvFluxNet',                                   &
                    Ptr2Data = State_Diag%UvFluxNet,                          &
                    mapData  = State_Diag%Map_UvFluxNet,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'OD600',                                       &
+                   Ptr2Data = State_Diag%OD600,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TCOD600',                                     &
+                   Ptr2Data = State_Diag%TCOD600,                            &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -10969,6 +13115,26 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'RadAllSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadClrSkyLWTrop',                              &
+                   Ptr2Data = State_Diag%RadClrSkyLWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'RadAllSkySWTrop',                              &
+                   Ptr2Data = State_Diag%RadAllSkySWTrop,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'RadAODWL1',                                   &
                    Ptr2Data = State_Diag%RadAODWL1,                          &
                    RC       = RC                                            )
@@ -11043,6 +13209,231 @@ CONTAINS
                    Ptr2Data = State_Diag%CH4pseudoFlux,                      &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+#ifdef TOMAS
+    CALL Finalize( diagId   = 'TomasH2SO4',                                  &
+                   Ptr2Data = State_Diag%TomasH2SO4,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasH2SO4mass',                              &
+                   Ptr2Data = State_Diag%TomasH2SO4mass,                     &
+                   mapData  = State_Diag%Map_TomasH2SO4mass,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasH2SO4number',                            &
+                   Ptr2Data = State_Diag%TomasH2SO4number,                   &
+                   mapData  = State_Diag%Map_TomasH2SO4number,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+    CALL Finalize( diagId   = 'TomasCOAG',                                   &
+                   Ptr2Data = State_Diag%TomasCOAG,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasCOAGmass',                               &
+                   Ptr2Data = State_Diag%TomasCOAGmass,                      &
+                   mapData  = State_Diag%Map_TomasCOAGmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasCOAGnumber',                             &
+                   Ptr2Data = State_Diag%TomasCOAGnumber,                    &
+                   mapData  = State_Diag%Map_TomasCOAGnumber,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCL',                                   &
+                   Ptr2Data = State_Diag%TomasNUCL,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCRATEfn',                              &
+                   Ptr2Data = State_Diag%TomasNUCRATEfn,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCLmass',                               &
+                   Ptr2Data = State_Diag%TomasNUCLmass,                      &
+                   mapData  = State_Diag%Map_TomasNUCLmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCLnumber',                             &
+                   Ptr2Data = State_Diag%TomasNUCLnumber,                    &
+                   mapData  = State_Diag%Map_TomasNUCLnumber,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasNUCRATEnumber',                          &
+                   Ptr2Data = State_Diag%TomasNUCRATEnumber,                 &
+                   mapData  = State_Diag%Map_TomasNUCRATEnumber,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasAQOX',                                   &
+                   Ptr2Data = State_Diag%TomasAQOX,                          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasAQOXmass',                               &
+                   Ptr2Data = State_Diag%TomasAQOXmass,                      &
+                   mapData  = State_Diag%Map_TomasAQOXmass,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasAQOXnumber',                             &
+                   Ptr2Data = State_Diag%TomasAQOXnumber,                    &
+                   mapData  = State_Diag%Map_TomasAQOXnumber,                &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIX',                                  &
+                   Ptr2Data = State_Diag%TomasMNFIX,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+    CALL Finalize( diagId   = 'TomasMNFIXmass',                              &
+                   Ptr2Data = State_Diag%TomasMNFIXmass,                     &
+                   mapData  = State_Diag%Map_TomasMNFIXmass,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXnumber',                            &
+                   Ptr2Data = State_Diag%TomasMNFIXnumber,                   &
+                   mapData  = State_Diag%Map_TomasMNFIXnumber,               &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXh2so4mass',                         &
+                   Ptr2Data = State_Diag%TomasMNFIXh2so4mass,                &
+                   mapData  = State_Diag%Map_TomasMNFIXh2so4mass,            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXh2so4number',                       &
+                   Ptr2Data = State_Diag%TomasMNFIXh2so4number,              &
+                   mapData  = State_Diag%Map_TomasMNFIXh2so4number,          &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcoagmass',                          &
+                   Ptr2Data = State_Diag%TomasMNFIXcoagmass,                 &
+                   mapData  = State_Diag%Map_TomasMNFIXcoagmass,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcoagnumber',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXcoagnumber,               &
+                   mapData  = State_Diag%Map_TomasMNFIXcoagnumber,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXaqoxmass',                          &
+                   Ptr2Data = State_Diag%TomasMNFIXaqoxmass,                 &
+                   mapData  = State_Diag%Map_TomasMNFIXaqoxmass,             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXaqoxnumber',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXaqoxnumber,               &
+                   mapData  = State_Diag%Map_TomasMNFIXaqoxnumber,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat1mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat1mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat1mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat1number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat1number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat1number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat2mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat2mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat2mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat2number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat2number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat2number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat3mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat3mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat3mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXezwat3number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXezwat3number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXezwat3number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck1mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck1mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck1mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck1number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck1number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck1number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck2mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck2mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck2mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck2number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck2number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck2number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck3mass',                        &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck3mass,               &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck3mass,           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasMNFIXcheck3number',                      &
+                   Ptr2Data = State_Diag%TomasMNFIXcheck3number,             &
+                   mapData  = State_Diag%Map_TomasMNFIXcheck3number,         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasSOA',                                    &
+                   Ptr2Data = State_Diag%TomasSOA,                           &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasSOAmass',                                &
+                   Ptr2Data = State_Diag%TomasSOAmass,                       &
+                   mapData  = State_Diag%Map_TomasSOAmass,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'TomasSOAnumber',                              &
+                   Ptr2Data = State_Diag%TomasSOAnumber,                     &
+                   mapData  = State_Diag%Map_TomasSOAnumber,                 &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     CALL Finalize( diagId   = 'AODdust',                                     &
                    Ptr2Data = State_Diag%AODdust,                            &
@@ -11385,6 +13776,12 @@ CONTAINS
     CALL Finalize( diagId   = 'PM10',                                        &     
                    Ptr2Data = State_Diag%PM10,                               &     
                    RC       = RC                                            )     
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+! H. Zhu
+    CALL Finalize( diagId   = 'PDER',                                        &
+                   Ptr2Data = State_Diag%PDER,                               &
+                   RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TotalOA',                                     &
@@ -11762,6 +14159,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'KppNegatives',                                &
+                   Ptr2Data = State_Diag%KppNegatives,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'KppNegatives0',                               &
+                   Ptr2Data = State_Diag%KppNegatives0,                      &
+                   RC       = RC                                            )
+
+    IF ( RC /= GC_SUCCESS ) RETURN
     CALL Finalize( diagId   = 'AirMassColumnFull',                            &
                    Ptr2Data = State_Diag%AirMassColumnFull,                   &
                    RC       = RC                                            )
@@ -11897,6 +14304,16 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'PM25nit',                                     &
+                   Ptr2Data = State_Diag%PM25nit,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PM25nh4',                                     &
+                   Ptr2Data = State_Diag%PM25nh4,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'PM25su',                                      &
                    Ptr2Data = State_Diag%PM25su,                             &
                    RC       = RC                                            )
@@ -11938,12 +14355,28 @@ CONTAINS
                    mapData  = State_Diag%Map_TropCol,                        &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'PblCol',                                      &
+                   Ptr2Data = State_Diag%PblCol,                             &
+                   mapData  = State_Diag%Map_PblCol,                         &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'CO2photrate',                                 &
+                   Ptr2Data = State_Diag%CO2photrate,                        &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'COincCO2phot',                                &
+                   Ptr2Data = State_Diag%COincCO2phot,                       &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
-#if defined(MODEL_GEOS) || defined(MODEL_WRF)
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
     !=======================================================================
     ! These fields are only used when GEOS-Chem
-    ! is interfaced to NASA/GEOS or to WRF (as WRF-GC)
+    ! is interfaced to NASA/GEOS, WRF (as WRF-GC), or CESM
     !=======================================================================
     CALL Finalize( diagId   = 'KppError',                                    &
                    Ptr2Data = State_Diag%KppError,                           &
@@ -11998,6 +14431,7 @@ CONTAINS
 !
     USE Charpak_Mod,         ONLY : StrSplit,   To_UpperCase
     USE DiagList_Mod,        ONLY : IsFullChem, IsCarbon, IsHg
+    USE DiagList_Mod,        ONLY : budgetTopLev_str, budgetBotLev_str
     USE Registry_Params_Mod
 !
 ! !INPUT PARAMETERS:
@@ -12165,6 +14599,14 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    'in column for emissions and dry '    // &
                                    'deposition'
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETEMISDRYDEPLEVS'            &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str)                     &
+                                   // ' for emissions and dry deposition'
        
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
@@ -12178,6 +14620,13 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for transport'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTLEVS'             &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column  levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '            &
+                                   // TRIM(budgetTopLev_str) // ' for transport'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for dry deposition'
@@ -12190,6 +14639,13 @@ CONTAINS
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for dry deposition'
        
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETDRYDEPLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for dry deposition'
+       
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for mixing'
@@ -12201,7 +14657,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for mixing'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETMIXINGLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for mixing'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for convection'
@@ -12213,7 +14676,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for convection'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCONVECTIONLEVS'            &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for convection'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    ' for chemistry'
@@ -12225,7 +14695,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for chemistry'
-       
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETCHEMISTRYLEVS'             &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for chemistry'
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPFULL' ) THEN
           IF ( isDesc    ) Desc  = 'Total mass rate of change in column ' // &
                                    'for wet deposition'
@@ -12237,6 +14714,14 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for wet deposition '
+
+       ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETWETDEPLEVS'                &
+                                         // TRIM(budgetBotLev_str) // 'TO' &
+                                         // TRIM(budgetTopLev_str) ) THEN
+          IF ( isDesc    ) Desc  = 'Total mass rate of change in column levels ' &
+                                   // TRIM(budgetBotLev_str) // ' to '           &
+                                   // TRIM(budgetTopLev_str) // ' for wet deposition'
+
        ENDIF
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'DRYDEPCHM' ) THEN
@@ -12262,6 +14747,26 @@ CONTAINS
        IF ( isUnits   ) Units = 'cm s-1'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISWATER' ) THEN
+       IF ( isDesc    ) Desc  = 'Water mask including lakes and oceans'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISLAND' ) THEN
+       IF ( isDesc    ) Desc  = 'Land mask excluding ice and snow'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISICE' ) THEN
+       IF ( isDesc    ) Desc  = 'Ice mask including over land and ocean'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISSNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Snow mask over land only'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
@@ -12403,7 +14908,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNRXNRATE' ) THEN
        IF ( isDesc    ) Desc  = 'KPP equation reaction rates'
-       IF ( isUnits   ) Units = 's-1'
+       IF ( isUnits   ) Units = 'molec cm-3 s-1'
+       IF ( isRank    ) Rank  = 3
+       IF ( isTagged  ) TagId = 'RXN'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RXNCONST' ) THEN
+       IF ( isDesc    ) Desc  = 'KPP equation reaction rate constants'
+       IF ( isUnits   ) Units = '(cm3 molec-1)**(nreactants - 1) s-1'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'RXN'
 
@@ -12446,6 +14957,16 @@ CONTAINS
        IF ( isUnits   ) Units = 'W m-2'
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'UVFLX'
+
+    ELSEIF ( TRIM( Name_AllCaps ) == 'OD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSEIF ( TRIM( Name_AllCaps ) == 'TCOD600' ) THEN
+       IF ( isDesc    ) Desc  = 'Total column optical depth at 600 nm used for photolysis rates'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'ADVFLUXZONAL' ) THEN
        IF ( isDesc    ) Desc  = 'Advection of species in zonal direction'
@@ -12742,6 +15263,34 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADALLSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'All-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYLWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky long-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'RADCLRSKYSWTROP' ) THEN
+       IF ( isDesc    ) Desc  = 'Clear-sky short-wave radiation at the ' // &
+                                'tropopause'
+       IF ( isUnits   ) Units = 'W m-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'RRTMG'
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'RADAOD' // TRIM(RadWL(1)) // 'NM' ) THEN
        IF ( isDesc    ) Desc  = 'Aerosol optical depth at ' // &
                                 TRIM(RadWL(1)) // ' nm'
@@ -12805,6 +15354,18 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'RRTMG'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DYNHEATING' ) THEN
+       IF ( isDesc    ) Desc  = 'Dynamical heating rate ' // &
+                                'in baseline simulation'
+       IF ( isUnits   ) Units = 'K day-1'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'DTRAD' ) THEN
+       IF ( isDesc    ) Desc  = 'Temperature change due ' // &
+                                'to radiative heating'
+       IF ( isUnits   ) Units = 'K'
+       IF ( isRank    ) Rank  = 3
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODBCPIFROMBCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic black carbon ' // &
                                 'from hydrophobic black carbon'
@@ -12854,11 +15415,234 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'
        IF ( isRank    ) Rank  = 3
+#endif
+
+#ifdef TOMAS
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Condensation Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASH2SO4NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASH2SO4 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAG' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Coagulation Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAGMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASCOAG Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASCOAGNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASCOAG Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCL' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Nucleation Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATEFN' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Nucleation Rate'
+       IF ( isUnits   ) Units = 'number cm-3 s-1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCLNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASNUCRATENUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASNUCL Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOX' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Aqueous Oxid Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASAQOX Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASAQOXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASAQOX Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId   = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIX' ) THEN
+       IF ( isDesc    ) Desc  = 'TOMAS Error Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIX Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXH2SO4NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXH2SO4 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCOAG Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCOAGNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXAQOX Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXAQOXNUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCOND Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT1 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT2 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXEZWAT3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXEZWAT3 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK1NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK1 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK2NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK2 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3MASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASMNFIXCHECK3NUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASMNFIXCHECK3 Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOA'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOAMASS'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
+       IF ( isUnits   ) Units = 'kg kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
+
+    ELSE IF ( TRIM(Name_AllCaps) == 'TOMASSOANUMBER'  ) THEN
+       IF ( isDesc    ) Desc  = 'TOMASSOA Rate'
+       IF ( isUnits   ) Units = 'number kg-1 s-1'
+       IF ( isRank    ) Rank  =  3
+       IF ( isTagged  ) TagId = 'TOMASBIN'
 #endif
 
     ELSE IF ( TRIM(Name_AllCaps) == 'AODDUST' ) THEN
@@ -13026,10 +15810,28 @@ CONTAINS
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
+! H. Zhu
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PDER' ) THEN
+       IF ( isDesc    ) Desc  = 'Paremeterized Effective Radius for SNA and OM'
+       IF ( isUnits   ) Units = 'um'
+       IF ( isRank    ) Rank  =  3
+
 #ifdef MODEL_GEOS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NI' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Particulate matter with radii < 2.5 um, nitrates'
+            'Particulate matter with radii < 2.5 um, nitrates and ammonium'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NIT' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, nitrate'
+       IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PM25NH4' ) THEN
+       IF ( isDesc    ) Desc  = &
+            'Particulate matter with radii < 2.5 um, ammonium'
        IF ( isUnits   ) Units = 'ug m-3'
        IF ( isRank    ) Rank  =  3
 
@@ -13080,6 +15882,22 @@ CONTAINS
        IF ( isUnits   ) Units = '1.0e15 molec cm-2'
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PBLCOL' ) THEN
+       IF ( isDesc    ) Desc  = 'boundary layer column density of species'
+       IF ( isUnits   ) Units = '1.0e15 molec cm-2'
+       IF ( isRank    ) Rank  = 2
+       IF ( isTagged  ) TagId = 'ALL'
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'COINCCO2PHOT' ) THEN
+       IF ( isDesc    ) Desc  = 'Relative change of CO due to CO2 photolysis'
+       IF ( isUnits   ) Units = '1'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'CO2PHOTRATE' ) THEN
+       IF ( isDesc    ) Desc  = 'CO2 photolysis rate' 
+       IF ( isUnits   ) Units = 's-1'
+       IF ( isRank    ) Rank  =  3
 #endif
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'TERPENESOA' ) THEN
@@ -13390,6 +16208,16 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPSMDECOMPS' ) THEN
        IF ( isDesc    ) Desc  = 'Number of KPP singular matrix decompositions'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after KPP integration'
+       IF ( isUnits   ) Units = 'count'
+       IF ( isRank    ) Rank  =  3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'KPPNEGATIVES0' ) THEN
+       IF ( isDesc    ) Desc  = 'Number of negative concentrations after first KPP integration attempt'
        IF ( isUnits   ) Units = 'count'
        IF ( isRank    ) Rank  =  3
 
@@ -14025,6 +16853,8 @@ CONTAINS
           numTags = State_Chm%nDryDep
        CASE( 'DRYALT'       )
           numTags = State_Chm%nDryAlt
+       CASE( 'TOMASBIN', 'T' )
+          numTags = State_Chm%nTomasBins
        CASE( 'DUSTBIN', 'B' )
           numTags = NDUST
        CASE( 'FIX',     'F' )
@@ -14053,7 +16883,7 @@ CONTAINS
        CASE( 'PHO',     'P' )
           numTags = State_Chm%nPhotol
        CASE( 'UVFLX',   'U' )
-          numTags = W_
+          numTags = State_Chm%Phot%nWLbins
        CASE( 'PRD',     'Y' )
           numTags = State_Chm%nProd
        CASE( 'RRTMG',   'Z' )
@@ -14180,7 +17010,7 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL','ADV', 'DUSTBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL','ADV', 'DUSTBIN', 'TOMASBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -14232,6 +17062,11 @@ CONTAINS
 
     ! Special handling for certain tagID's
     SELECT CASE( TRIM( tagID ) )
+
+       ! TOMAS bins
+       CASE( 'TOMASBIN' )
+          WRITE ( Nstr, "(I2.2)" ) D
+          tagName = 'bin' // TRIM(Nstr)
 
        ! Dust bins
        CASE( 'DUSTBIN' )
@@ -15913,8 +18748,10 @@ CONTAINS
     ! RRTMG outputs are requested in HISTORY.rc.  The expected
     ! index corresponding to each flux output type is:
     !
-    !   0=BASE  1=O3  2=ME  3=SU   4=NI   5=AM
-    !   6=BC    7=OA  8=SS  9=DU  10=PM  11=ST
+    !   0=BASE and then...
+    !   1=O3  2=O3T 3=ME  4=H2O  5=CO2  6=CFC  7=N2O
+    !   8=SU  9=NI 10=AM  11=BC  12=OA  13=SS  14=DU
+    !  15=PM  16=ST
     !
     ! See wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG.
     !
@@ -15937,26 +18774,36 @@ CONTAINS
              State_Diag%RadOutInd(N) = 0
           CASE( 'O3' )
              State_Diag%RadOutInd(N) = 1
-          CASE( 'ME' )
+          CASE( 'O3T' )
              State_Diag%RadOutInd(N) = 2
-          CASE( 'SU' )
+          CASE( 'ME' )
              State_Diag%RadOutInd(N) = 3
-          CASE( 'NI' )
+          CASE( 'H2O' )
              State_Diag%RadOutInd(N) = 4
-          CASE( 'AM' )
+          CASE( 'CO2' )
              State_Diag%RadOutInd(N) = 5
-          CASE( 'BC' )
+          CASE( 'CFC' )
              State_Diag%RadOutInd(N) = 6
-          CASE( 'OA' )
+          CASE( 'N2O' )
              State_Diag%RadOutInd(N) = 7
-          CASE( 'SS' )
+          CASE( 'SU' )
              State_Diag%RadOutInd(N) = 8
-          CASE( 'DU' )
+          CASE( 'NI' )
              State_Diag%RadOutInd(N) = 9
-          CASE( 'PM' )
+          CASE( 'AM' )
              State_Diag%RadOutInd(N) = 10
-          CASE( 'ST' )
+          CASE( 'BC' )
              State_Diag%RadOutInd(N) = 11
+          CASE( 'OA' )
+             State_Diag%RadOutInd(N) = 12
+          CASE( 'SS' )
+             State_Diag%RadOutInd(N) = 13
+          CASE( 'DU' )
+             State_Diag%RadOutInd(N) = 14
+          CASE( 'PM' )
+             State_Diag%RadOutInd(N) = 15
+          CASE( 'ST' )
+             State_Diag%RadOutInd(N) = 16
           CASE DEFAULT
              ! Nothing
        END SELECT
@@ -16035,6 +18882,7 @@ CONTAINS
     ! Scalars
     LOGICAL                   :: found
     LOGICAL                   :: isDustBin
+    LOGICAL                   :: isTomasBin
     LOGICAL                   :: isLoss
     LOGICAL                   :: isProd
     LOGICAL                   :: isRxnRate
@@ -16070,12 +18918,13 @@ CONTAINS
     RC         = GC_SUCCESS
     mapName    = 'Map_ ' // TRIM( metadataId )
     mapName2   = TRIM( mapName ) // '%id'
+    isTomasBin = ( indFlag == 'T'                        )
     isDustBin  = ( indFlag == 'B'                        )
     isRxnRate  = ( indFlag == 'R'                        )
     isUvFlx    = ( indFlag == 'U'                        )
     isLoss     = ( indFlag == 'X'                        )
     isProd     = ( indFlag == 'Y'                        )
-    skipInd    = ( isRxnRate .or. isUvFlx .or. isDustBin )
+    skipInd    = ( isRxnRate .or. isUvFlx .or. isDustBin .or. isTomasBin )
     spcName    = ''
     wcName     = ''
     errMsg     = ''
@@ -16209,6 +19058,14 @@ CONTAINS
              ! bin number is the last character of the tag name
              S = LEN_TRIM( TagItem%Name )
              READ( TagItem%Name(S:S), '(I1)' ) index
+             mapData%slot2id(TagItem%index) = index
+
+          ELSEIF ( isTomasBin ) THEN
+
+             ! TomasSbin: Tag names are "bin01" .. "bin15", so the
+             ! bin number is the last 2 characters of the tag name
+             S = LEN_TRIM( TagItem%Name )
+             READ( TagItem%Name(S-1:S), '(I2.2)' ) index
              mapData%slot2id(TagItem%index) = index
 
           ELSE IF ( isLoss ) THEN
@@ -16614,7 +19471,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -16799,7 +19656,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -16980,7 +19837,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17171,7 +20028,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17356,7 +20213,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF
@@ -17534,7 +20391,7 @@ CONTAINS
     ENDIF
 
     ! Print info about diagnostic
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, 100 ) ADJUSTL( arrayID ), TRIM( diagID )
  100   FORMAT( 1x, a32, ' is registered as: ', a )
     ENDIF

@@ -56,7 +56,6 @@ MODULE History_Mod
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionName       (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFileName   (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionTemplate   (:  )
-  CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFormat     (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionFrequency  (:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionAccInterval(:  )
   CHARACTER(LEN=255),      ALLOCATABLE :: CollectionDuration   (:  )
@@ -347,17 +346,6 @@ CONTAINS
           RETURN
        ENDIF
        CollectionTemplate = UNDEFINED_STR
-    ENDIF
-
-    ! Allocate CollectionFormat
-    IF ( .not. ALLOCATED( CollectionFormat ) ) THEN
-       ALLOCATE( CollectionFormat( CollectionCount ), STAT=RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Could not allocate "CollectionFormat"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-       CollectionFormat = UNDEFINED_STR
     ENDIF
 
     ! Allocate CollectionFrequency
@@ -880,13 +868,6 @@ CONTAINS
        IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
           CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
           IF ( C > 0 ) CollectionTemplate(C) = Metadata
-       ENDIF
-
-       ! "format": Specifies the file output format (e.g. netCDF-4, CFIO)
-       Pattern = 'format'
-       IF ( INDEX( TRIM( Line ), TRIM( Pattern ) ) > 0 ) THEN
-          CALL GetCollectionMetaData( Input_Opt, Line, Pattern, MetaData, C )
-          IF ( C > 0 ) CollectionFormat(C) = Metadata
        ENDIF
 
        ! "frequency": Specifies how often diagnostics are updated,
@@ -1504,7 +1485,7 @@ CONTAINS
                                      Conventions    = 'COARDS',              &
                                      FileName       = CollectionFileName(C), &
                                      FileTemplate   = CollectionTemplate(C), &
-                                     NcFormat       = CollectionFormat(C),   &
+                                     NcFormat       = 'NetCDF-4',            &
                                      Reference      = Reference,             &
                                      Title          = Title,                 &
                                      Contact        = Contact,               &
@@ -1838,7 +1819,6 @@ CONTAINS
        DO C = 1, CollectionCount
           print*, 'Collection        ', TRIM( CollectionName       (C) )
           print*, '  -> FileName     ', TRIM( CollectionFileName   (C) )
-          print*, '  -> Format       ', TRIM( CollectionFormat     (C) )
           print*, '  -> Frequency    ', TRIM( CollectionFrequency  (C) )
           IF ( CollectionAccInterval(C) /= UNDEFINED_STR ) THEN
              print*, '  -> Acc_Interval ', TRIM( CollectionAccInterval(C) )
@@ -1877,7 +1857,7 @@ CONTAINS
        ENDDO
     ENDIF
 
-    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        ! Print information about each diagnostic collection
        CALL MetaHistContainer_Print( Input_Opt, CollectionList, RC )
     ENDIF
@@ -2623,7 +2603,7 @@ CONTAINS
        ENDIF
 
        ! Debug output
-       IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           WRITE( 6, 100 ) Container%Name
  100      FORMAT( '     - Updating collection: ', a20 )
        ENDIF
@@ -2790,7 +2770,7 @@ CONTAINS
 
 ! Uncomment more detailed debug output if you need it!
 !          ! Debug output
-!          IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+!          IF ( Input_Opt%Verbose ) THEN
 !             WRITE( 6, 110 ) TRIM(Container%Name),                        &
 !                             TRIM(Item%Name),       Item%nUpdates
 ! 110         FORMAT( a20, 1x, a20, 1x, f7.1 )
@@ -2870,6 +2850,7 @@ CONTAINS
     USE Registry_Params_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnMap, DgnState
+    USE UnitConv_Mod,          ONLY : UNIT_STR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2901,9 +2882,8 @@ CONTAINS
     LOGICAL                          :: isRestart
     INTEGER                          :: S, N
 
-
     ! Strings
-    CHARACTER(LEN=20)                :: TmpUnits
+    CHARACTER(LEN=20 )               :: TmpUnits
     CHARACTER(LEN=255)               :: ErrMsg
     CHARACTER(LEN=255)               :: ThisLoc
     CHARACTER(LEN=255)               :: cName
@@ -3002,7 +2982,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = State_Chm%Spc_Units
+          TmpUnits            = UNIT_STR(State_Chm%Species(1)%Units)
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------
@@ -3408,15 +3388,6 @@ CONTAINS
         DEALLOCATE( CollectionTemplate, STAT=RC )
         IF ( RC /= GC_SUCCESS ) THEN
            ErrMsg = 'Could not deallocate "CollectionTemplate"!'
-           CALL GC_Error( ErrMsg, RC, ThisLoc )
-           RETURN
-        ENDIF
-     ENDIF
-
-     IF ( ALLOCATED( CollectionFormat ) ) THEN
-        DEALLOCATE( CollectionFormat, STAT=RC )
-        IF ( RC /= GC_SUCCESS ) THEN
-           ErrMsg = 'Could not deallocate "CollectionFormat"!'
            CALL GC_Error( ErrMsg, RC, ThisLoc )
            RETURN
         ENDIF

@@ -37,7 +37,12 @@ MODULE FullChem_Mod
 !
   ! Species ID flags (and logicals to denote if species are present)
   INTEGER               :: id_OH,  id_HO2,  id_O3P,  id_O1D, id_CH4
-  INTEGER               :: id_PCO, id_LCH4, id_NH3
+  INTEGER               :: id_PCO, id_LCH4, id_NH3,  id_SO4
+  INTEGER               :: id_SALAAL, id_SALCAL, id_SALC, id_SALA
+  INTEGER               :: id_PSO4
+#ifdef TOMAS
+  INTEGER               :: id_NK05, id_NK08, id_NK10, id_NK20
+#endif
 #ifdef MODEL_GEOS
   INTEGER               :: id_O3
   INTEGER               :: id_A3O2, id_ATO2, id_B3O2, id_BRO2
@@ -50,7 +55,13 @@ MODULE FullChem_Mod
   INTEGER               :: id_IDHNBOO, id_IDHNDOO1, id_IDHNDOO2
   INTEGER               :: id_IHPNBOO, id_IHPNDOO, id_ICNOO, id_IDNOO
 #endif
-  INTEGER               :: id_SALAAL, id_SALCAL, id_SO4, id_SALC ! MSL
+#ifdef MODEL_CESM
+  INTEGER               :: id_TSOA0, id_TSOA1, id_TSOA2, id_TSOA3
+  INTEGER               :: id_ASOA1, id_ASOA2, id_ASOA3, id_ASOAN
+  INTEGER               :: id_TSOG0, id_TSOG1, id_TSOG2, id_TSOG3
+  INTEGER               :: id_ASOG1, id_ASOG2, id_ASOG3
+  INTEGER               :: id_NIT, id_SO4s, id_NITs, id_HNO3
+#endif
   LOGICAL               :: ok_OH, ok_HO2, ok_O1D, ok_O3P
   LOGICAL               :: Failed2x
 
@@ -91,11 +102,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD
     USE ErrCode_Mod
     USE ERROR_MOD
-    USE FAST_JX_MOD,              ONLY : PHOTRATE_ADJ, FAST_JX
-    USE FAST_JX_MOD,              ONLY : RXN_O3_1, RXN_NO2
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
@@ -112,6 +120,7 @@ CONTAINS
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
+    USE Photolysis_Mod,           ONLY : Do_Photolysis, PhotRate_Adj
     USE PhysConstants,            ONLY : AVO, AIRMW
     USE PRESSURE_MOD
     USE Species_Mod,              ONLY : Species
@@ -126,15 +135,14 @@ CONTAINS
     USE TIME_MOD,                 ONLY : Get_Month
     USE TIME_MOD,                 ONLY : Get_Year
     USE Timers_Mod
-    USE UnitConv_Mod,             ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
     USE UCX_MOD,                  ONLY : CALC_STRAT_AER
     USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
     USE UCX_MOD,                  ONLY : UCX_NOX
     USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
 #ifdef TOMAS
-#ifdef BPCH_DIAG
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
-#endif
+    USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -162,23 +170,23 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: prtDebug,   IsLocNoon, Size_Res, Failed2x
+    LOGICAL                :: IsLocNoon,  Size_Res,  Failed2x, doSuppress
     INTEGER                :: I,          J,         L,        N
     INTEGER                :: NA,         F,         SpcID,    KppID
     INTEGER                :: P,          MONTH,     YEAR,     Day
-    INTEGER                :: WAVELENGTH, IERR,      S,        Thread
+    INTEGER                :: IERR,       S,         Thread
+    INTEGER                :: errorCount, previous_units
     REAL(fp)               :: SO4_FRAC,   T,         TIN
     REAL(fp)               :: TOUT,       SR,        LWC
 
     ! Strings
-    CHARACTER(LEN=63)      :: OrigUnit
-    CHARACTER(LEN=255)     :: ErrMsg,   ThisLoc
+    CHARACTER(LEN=255)     :: errMsg,     thisLoc
 
     ! SAVEd scalars
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
     INTEGER,  SAVE         :: CH4_YEAR  = -1
 
-    ! For
+    ! Forq
 
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
@@ -191,17 +199,13 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
-    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-                                     State_Grid%NZ, State_Chm%nAdvect       )
+    REAL(dp)               :: C_before_integrate(NSPEC)
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
-
-    ! For testing purposes
-    LOGICAL                :: DO_PHOTCHEM
 
     ! OH reactivity and KPP reaction rate diagnostics
     REAL(fp)               :: OHreact
@@ -211,17 +215,18 @@ CONTAINS
     REAL(f4)               :: TROP_NOx_Tau
     REAL(f4)               :: TROPv_NOx_tau(State_Grid%NX,State_Grid%NY)
     REAL(f4)               :: TROPv_NOx_mass(State_Grid%NX,State_Grid%NY)
-    REAL(dp)               :: localC(NSPEC)
 #endif
-#ifdef MODEL_WRF
-    REAL(dp)               :: localC(NSPEC)
+
+#if defined( MODEL_CESM )
+    ! Sink rate for artificial UT/LS sink
+    REAL(dp)               :: ScaleCESMLossRate
 #endif
 
     ! Grid box integration time diagnostic
     REAL(fp)               :: TimeStart, TimeEnd
 
     ! Objects
-    TYPE(DgnMap), POINTER :: mapData => NULL()
+    TYPE(DgnMap),  POINTER :: mapData => NULL()
 !
 ! !DEFINED PARAMETERS
 !
@@ -229,7 +234,10 @@ CONTAINS
     ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
     ! (assuming Rosenbrock solver).  Define this locally in order to break
     ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
-    INTEGER,    PARAMETER :: Nhnew = 3
+    INTEGER,     PARAMETER :: Nhnew = 3
+
+    ! Suppress printing out KPP error messages after this many errors occur
+    INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -237,23 +245,20 @@ CONTAINS
     !========================================================================
 
     ! Initialize
-    RC        =  GC_SUCCESS
-    ErrMsg    =  ''
-    ThisLoc   =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
-    SpcInfo   => NULL()
-    prtDebug  =  ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
-    Day       =  Get_Day()    ! Current day
-    Month     =  Get_Month()  ! Current month
-    Year      =  Get_Year()   ! Current year
-    Thread    =  1
-    Failed2x  = .FALSE.
-
-    ! Set a switch that allows you to toggle off photolysis for testing
-    ! (default value : TRUE)
-    DO_PHOTCHEM = .TRUE.
+    RC         =  GC_SUCCESS
+    ErrMsg     =  ''
+    ThisLoc    =  ' -> at Do_FullChem (in module GeosCore/FullChem_mod.F90)'
+    SpcInfo    => NULL()
+    Day        =  Get_Day()    ! Current day
+    Month      =  Get_Month()  ! Current month
+    Year       =  Get_Year()   ! Current year
+    Thread     =  1
+    errorCount =  0
+    Failed2x   = .FALSE.
+    doSuppress = .FALSE.
 
     ! Print information the first time that DO_FULLCHEM is called
-    CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
+    CALL PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem )
 
     ! Zero diagnostic archival arrays to make sure that we don't have any
     ! leftover values from the last timestep near the top of the chemgrid
@@ -267,6 +272,7 @@ CONTAINS
     IF (State_Diag%Archive_ProdCOfromNMVOC) State_Diag%ProdCOfromNMVOC= 0.0_f4
     IF (State_Diag%Archive_OHreactivity   ) State_Diag%OHreactivity   = 0.0_f4
     IF (State_Diag%Archive_RxnRate        ) State_Diag%RxnRate        = 0.0_f4
+    IF (State_Diag%Archive_RxnConst       ) State_Diag%RxnConst       = 0.0_f4
     IF (State_Diag%Archive_SatDiagnRxnRate) State_Diag%SatDiagnRxnRate= 0.0_f4
     IF (State_Diag%Archive_KppDiags) THEN
        IF (State_Diag%Archive_KppIntCounts) State_Diag%KppIntCounts   = 0.0_f4
@@ -280,8 +286,10 @@ CONTAINS
        IF (State_Diag%Archive_KppAutoReducerNVAR)                            &
                                       State_Diag%KppAutoReducerNVAR   = 0.0_f4
        IF (State_Diag%Archive_KppcNONZERO)  State_Diag%KppcNONZERO    = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives) State_Diag%KppNegatives   = 0.0_f4
+       IF (State_Diag%Archive_KppNegatives0) State_Diag%KppNegatives0 = 0.0_f4
     ENDIF
-    
+
     ! Also zero satellite diagnostic archival arrays
     IF ( State_Diag%Archive_SatDiagnLoss ) State_Diag%SatDiagnLoss    = 0.0_f4
     IF ( State_Diag%Archive_SatDiagnProd ) State_Diag%SatDiagnProd    = 0.0_f4
@@ -316,12 +324,7 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! Zero out certain species:
-    !    - isoprene oxidation counter species (dkh, bmy, 6/1/06)
-    !    - isoprene-NO3 oxidation counter species (hotp, 6/1/10)
-    !    - if SOA or SOA_SVPOA, aromatic oxidation counter species
-    !      (dkh, 10/06/06)
-    !    - if SOA_SVPOA, LNRO2H and LNRO2N for NAP (hotp 6/25/09
+    ! Zero out certain species
     !========================================================================
     DO N = 1, State_Chm%nSpecies
 
@@ -343,10 +346,9 @@ CONTAINS
           END SELECT
        ENDIF
 
-       ! Temporary fix for CO2
-       ! CO2 is a dead species and needs to be set to zero to
-       ! match the old SMVGEAR code (mps, 6/14/16)
-       IF ( TRIM( SpcInfo%Name ) == 'CO2' ) THEN
+       ! Sulfate gas/cloud prod diagnostic species
+       IF ( TRIM( SpcInfo%Name ) == 'PH2SO4' .or. &
+            TRIM( SpcInfo%Name ) == 'PSO4AQ' ) THEN
           State_Chm%Species(N)%Conc(:,:,:) = 0.0_fp
        ENDIF
 
@@ -358,9 +360,22 @@ CONTAINS
     !========================================================================
     ! Convert species to [molec/cm3] (ewl, 8/16/16)
     !========================================================================
-    CALL Convert_Spc_Units( Input_Opt,            State_Chm,   State_Grid,   &
-                            State_Met,           'molec/cm3', RC,            &
-                            OrigUnit=OrigUnit                               )
+
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units of all species to molec/cm3 for KPP
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = MOLECULES_SPECIES_PER_CM3,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90')
@@ -371,33 +386,32 @@ CONTAINS
     ! Call photolysis routine to compute J-Values
     !========================================================================
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FlexChem",           RC )
-       CALL Timer_Start( "=> FAST-JX photolysis", RC )
+       CALL Timer_Start( "=> Photolysis", RC )
     ENDIF
 
-    ! Do Photolysis
-    WAVELENGTH = 0
-    CALL FAST_JX( WAVELENGTH, Input_Opt,  State_Chm,                         &
-                  State_Diag, State_Grid, State_Met, RC                     )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "FAST_JX"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    ! Compute J-values
+    IF ( Input_Opt%Do_Photolysis ) THEN
+       CALL Do_Photolysis( Input_Opt, State_Chm, State_Diag, &
+                           State_Grid, State_Met, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Do_Photolysis"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
     !### Debug
-    IF ( prtDebug ) THEN
-       CALL DEBUG_MSG( '### Do_FullChem: after FAST_JX' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### Do_FullChem: after computing J-values' )
     ENDIF
 
+    ! Start gas-phase chem and photolysis timers again
     IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End  ( "=> FAST-JX photolysis", RC )
-       CALL Timer_Start( "=> FlexChem",           RC ) ! ended in Do_Chemistry
+       CALL Timer_End  ( "=> Photolysis", RC )
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -454,10 +468,10 @@ CONTAINS
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
     ! Absolute tolerance
-    ATOL      = 1e-2_dp
+    ATOL      = State_Chm%KPP_AbsTol
 
     ! Relative tolerance
-    RTOL      = 0.5e-2_dp
+    RTOL      = State_Chm%KPP_RelTol
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -476,10 +490,6 @@ CONTAINS
            '       computed Y upon return:            ', f11.4, /,          &
            'Hexit, last accepted step before exit:    ', f11.4, /,          &
            'Hnew, last predicted step (not yet taken):', f11.4 )
-
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "  -> FlexChem loop", RC )
-    ENDIF
 
     !------------------------------------------------------------------------
     ! Always consider halogens as "fast" species for auto-reduce
@@ -503,24 +513,24 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,        J,        L,       N                           )&
-    !$OMP PRIVATE( ICNTRL                                                   )&
+    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
     !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
     !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
     !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
     !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
     !$OMP PRIVATE( SIZE_RES, LWC                                            )&
 #ifdef MODEL_GEOS
-    !$OMP PRIVATE( NOxTau,     NOxConc, localC                              )&
-    !$OMP PRIVATE( NOx_weight, NOx_tau_weighted                             )&
-#endif
-#ifdef MODEL_WRF
-    !$OMP PRIVATE( localC                                                   )&
+    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
 #endif
     !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( +:errorCount                                           )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Skip to the end of the loop if we have failed integration twice
+       IF ( Failed2x ) CYCLE
 
        !=====================================================================
        ! Initialize private loop variables for each (I,J,L)
@@ -546,18 +556,17 @@ CONTAINS
        K_CLD     = 0.0_dp                   ! Sulfur in-cloud rxn het rates
        K_MT      = 0.0_dp                   ! Sulfur sea salt rxn het rates
        CFACTOR   = 1.0_dp                   ! KPP conversion factor
+       SRO3      = 0.0_dp                   ! Enhanced sulfate production of
+       SRHOBr    = 0.0_dp                   !  O3, HOBr, HCl in size-resolved
+       SRHOCl    = 0.0_dp                   !  cloud droplets
 #ifdef MODEL_CLASSIC
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
 #endif
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-       localC    = 0.0_dp                   ! Local backup array for C
-#endif
 
-       ! Per discussions for Lin et al., force keepActive throughout the atmosphere
-       ! if keepActive option is enabled. (hplin, 2/9/22)
-       !keepActive = .true.
+       ! Per discussions for Lin et al., force keepActive throughout the
+       ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
 
        ! Start measuring KPP-related routine timing for this grid box
@@ -588,144 +597,175 @@ CONTAINS
        !=====================================================================
        IF ( State_Met%SUNCOSmid(I,J) > -0.1391731e+0_fp ) THEN
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "  -> Photolysis rates",          &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
+          ! Only proceed if doing photolysis
+          IF ( Input_Opt%Do_Photolysis ) THEN
 
-          ! Get the fraction of H2SO4 that is available for photolysis
-          ! (this is only valid for UCX-enabled mechanisms)
-          SO4_FRAC = SO4_PHOTFRAC( I, J, L )
+             ! Get the fraction of H2SO4 that is available for photolysis
+             ! (this is only valid for UCX-enabled mechanisms)
+             SO4_FRAC = SO4_PHOTFRAC( I, J, L, State_Chm )
 
-          ! Adjust certain photolysis rates:
-          ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
-          ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
-          ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
-          CALL PHOTRATE_ADJ( Input_Opt, State_Diag, State_Met, I,            &
-                             J,         L,          SO4_FRAC,  IERR         )
+             ! Adjust certain photolysis rates:
+             ! (1) H2SO4 + hv -> SO2 + OH + OH   (UCX-based mechanisms)
+             ! (2) O3    + hv -> O2  + O         (UCX-based mechanisms)
+             ! (2) O3    + hv -> OH  + OH        (trop-only mechanisms)
+             CALL PHOTRATE_ADJ( Input_Opt, State_Chm,  State_Diag, State_Met,&
+                                I,         J,          L,          SO4_FRAC, &
+                                IERR )
 
-          ! Loop over the FAST-JX photolysis species
-          DO N = 1, JVN_
-
-             IF ( DO_PHOTCHEM ) THEN
+             ! Loop over the FAST-JX photolysis species
+             DO N = 1, State_Chm%Phot%nMaxPhotRxns
 
                 ! Copy photolysis rate from FAST_JX into KPP PHOTOL array
-                PHOTOL(N) = ZPJ(L,N,I,J)
+                PHOTOL(N) = State_Chm%Phot%ZPJ(L,N,I,J)
 
-             ENDIF
+                !============================================================
+                ! HISTORY (aka netCDF diagnostics)
+                !
+                ! Instantaneous photolysis rates [s-1] (aka J-values)
+                ! and noontime photolysis rates [s-1]
+                !
+                !    NOTE: Attach diagnostics here instead of in module
+                !    fast_jx_mod.F90 so that we can get the adjusted photolysis
+                !    rates (output from routne PHOTRATE_ADJ above).
+                !
+                ! The mapping between the GEOS-Chem photolysis species and
+                ! the FAST-JX photolysis species is contained in the lookup
+                ! table in input file FJX_j2j.dat.
 
-             !===============================================================
-             ! HISTORY (aka netCDF diagnostics)
-             !
-             ! Instantaneous photolysis rates [s-1] (aka J-values)
-             ! and noontime photolysis rates [s-1]
-             !
-             !    NOTE: Attach diagnostics here instead of in module
-             !    fast_jx_mod.F90 so that we can get the adjusted photolysis
-             !    rates (output from routne PHOTRATE_ADJ above).
-             !
-             ! The mapping between the GEOS-Chem photolysis species and
-             ! the FAST-JX photolysis species is contained in the lookup
-             ! table in input file FJX_j2j.dat.
+                ! Some GEOS-Chem photolysis species may have multiple
+                ! branches for photolysis reactions.  These will be
+                ! represented by multiple entries in the FJX_j2j.dat
+                ! lookup table.
+                !
+                !    NOTE: For convenience, we have stored the GEOS-Chem
+                !    photolysis species index (range: 1..State_Chm%nPhotol)
+                !    for each of the FAST-JX photolysis species (range;
+                !    1..State_Chm%Phot%nMaxPhotRxns) in the GC_PHOTO_ID array
+                !============================================================
 
-             ! Some GEOS-Chem photolysis species may have multiple
-             ! branches for photolysis reactions.  These will be
-             ! represented by multiple entries in the FJX_j2j.dat
-             ! lookup table.
-             !
-             !    NOTE: For convenience, we have stored the GEOS-Chem
-             !    photolysis species index (range: 1..State_Chm%nPhotol)
-             !    for each of the FAST-JX photolysis species (range;
-             !    1..JVN_) in the GC_PHOTO_ID array (located in module
-             !    CMN_FJX_MOD.F90).
-             !===============================================================
+                ! GC photolysis species index
+                P = State_Chm%Phot%GC_Photo_Id(N)
 
-             ! GC photolysis species index
-             P = GC_Photo_Id(N)
+                ! If this FAST_JX photolysis species maps to a valid
+                ! GEOS-Chem photolysis species (for this simulation)...
+                IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
 
-             ! If this FAST_JX photolysis species maps to a valid
-             ! GEOS-Chem photolysis species (for this simulation)...
-             IF ( P > 0 .and. P <= State_Chm%nPhotol ) THEN
-
-                ! Archive the instantaneous photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_Jval ) THEN
-                   S = State_Diag%Map_Jval%id2slot(P)
-                   IF ( S > 0 ) THEN
-                      State_Diag%Jval(I,J,L,S) =                             &
-                      State_Diag%Jval(I,J,L,S) + PHOTOL(N)
-                   ENDIF
-                ENDIF
-
-                ! Satellite diagnostics
-                ! Archive the instantaneous photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Diag%Archive_SatDiagnJval ) THEN
-                   S = State_Diag%Map_SatDiagnJval%id2slot(P)
-                   IF ( S > 0 ) THEN
-                      State_Diag%SatDiagnJval(I,J,L,S) =                     &
-                      State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
-                   ENDIF
-                ENDIF
-
-                ! Archive the noontime photolysis rate
-                ! (summing over all reaction branches)
-                IF ( State_Met%IsLocalNoon(I,J) ) THEN
-                   IF ( State_Diag%Archive_JNoon ) THEN
-                      S = State_Diag%Map_JNoon%id2slot(P)
+                   ! Archive the instantaneous photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Diag%Archive_Jval ) THEN
+                      S = State_Diag%Map_Jval%id2slot(P)
                       IF ( S > 0 ) THEN
-                         State_Diag%JNoon(I,J,L,S) =                         &
-                         State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                         State_Diag%Jval(I,J,L,S) =                          &
+                         State_Diag%Jval(I,J,L,S) + PHOTOL(N)
                       ENDIF
                    ENDIF
+
+                   ! Satellite diagnostics
+                   ! Archive the instantaneous photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Diag%Archive_SatDiagnJval ) THEN
+                      S = State_Diag%Map_SatDiagnJval%id2slot(P)
+                      IF ( S > 0 ) THEN
+                         State_Diag%SatDiagnJval(I,J,L,S) =                  &
+                         State_Diag%SatDiagnJval(I,J,L,S) + PHOTOL(N)
+                      ENDIF
+                   ENDIF
+
+                   ! Archive the noontime photolysis rate
+                   ! (summing over all reaction branches)
+                   IF ( State_Met%IsLocalNoon(I,J) ) THEN
+                      IF ( State_Diag%Archive_JNoon ) THEN
+                         S = State_Diag%Map_JNoon%id2slot(P)
+                         IF ( S > 0 ) THEN
+                            State_Diag%JNoon(I,J,L,S) =                      &
+                            State_Diag%JNoon(I,J,L,S) + PHOTOL(N)
+                         ENDIF
+                      ENDIF
+                   ENDIF
+
+                ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
+
+                   ! J(O3_O1D).  This used to be stored as the nPhotol+1st
+                   ! diagnostic in Jval, but needed to be broken off
+                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                   IF ( State_Diag%Archive_JvalO3O1D ) THEN
+                      State_Diag%JvalO3O1D(I,J,L) =                          &
+                      State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                   ! J(O3_O1D) for satellite diagnostics
+                   IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
+                      State_Diag%SatDiagnJvalO3O1D(I,J,L) =                  &
+                      State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
+
+                   ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
+                   ! diagnostic in Jval, but needed to be broken off
+                   ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
+                   IF ( State_Diag%Archive_JvalO3O3P ) THEN
+                      State_Diag%JvalO3O3P(I,J,L) =                          &
+                      State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
+                   ENDIF
+
+                   ! J(O3_O3P) for satellite diagnostics
+                   IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
+                      State_Diag%SatDiagnJvalO3O3P(I,J,L) =                  &
+                      State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
+                   ENDIF
+
                 ENDIF
-
-             ELSE IF ( P == State_Chm%nPhotol+1 ) THEN
-
-                ! J(O3_O1D).  This used to be stored as the nPhotol+1st
-                ! diagnostic in Jval, but needed to be broken off
-                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JvalO3O1D ) THEN
-                   State_Diag%JvalO3O1D(I,J,L) =                             &
-                   State_Diag%JvalO3O1D(I,J,L) + PHOTOL(N)
-                ENDIF
-
-                ! J(O3_O1D) for satellite diagnostics
-                IF ( State_Diag%Archive_SatDiagnJvalO3O1D ) THEN
-                   State_Diag%SatDiagnJvalO3O1D(I,J,L) =                     &
-                   State_Diag%SatDiagnJvalO3O1D(I,J,L) + PHOTOL(N)
-                ENDIF
-
-             ELSE IF ( P == State_Chm%nPhotol+2 ) THEN
-
-                ! J(O3_O3P).  This used to be stored as the nPhotol+2nd
-                ! diagnostic in Jval, but needed to be broken off
-                ! to facilitate cleaner diagnostic indexing (bmy, 6/3/20)
-                IF ( State_Diag%Archive_JvalO3O3P ) THEN
-                   State_Diag%JvalO3O3P(I,J,L) =                             &
-                   State_Diag%JvalO3O3P(I,J,L) + PHOTOL(N)
-                ENDIF
-
-                ! J(O3_O3P) for satellite diagnostics
-                IF ( State_Diag%Archive_SatDiagnJvalO3O3P ) THEN
-                   State_Diag%SatDiagnJvalO3O3P(I,J,L) =                     &
-                   State_Diag%SatDiagnJvalO3O3P(I,J,L) + PHOTOL(N)
-                ENDIF
-
-             ENDIF
-          ENDDO
-
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "  -> Photolysis rates",            &
-                             InLoop    = .TRUE.,                             &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
+             ENDDO
           ENDIF
+
        ENDIF
+
+#if defined( MODEL_CESM )
+       !=====================================================================
+       ! Unphysical fix: Photolyze soluble aerosol tracers
+       ! This removes unphysical values of soluble tracers in the UT/LS due
+       ! to decoupling of convection and wet scavenging in CESM dynamics.
+       !
+       ! This process has to be done before InChemGrid as it is supposed to
+       ! be active everywhere, especially the stratosphere.
+       ! (hplin, 5/30/23)
+       !=====================================================================
+
+       IF ( Input_Opt%correctConvUTLS .and. L .ge. State_Met%PBL_TOP_L(I,J) ) THEN
+
+           ! We operate directly on [molec/cm3] species concentrations in State_Chm,
+           ! because they have not been copied to C() in KPP yet. But, we can use
+           ! PHOTOL(11) which is J-NO2, and scale to create the artificial sink.
+           ! This is a consistent handling based off the MOZART-TS1 mechanism
+           ! in Emmons et al., 2020 JAMES.
+           ScaleCESMLossRate = MAX(0.0_dp, 1 - PHOTOL(11) * .0004_dp * DT)
+
+           State_Chm%Species(id_TSOA0)%Conc(I,J,L) = State_Chm%Species(id_TSOA0)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA1)%Conc(I,J,L) = State_Chm%Species(id_TSOA1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA2)%Conc(I,J,L) = State_Chm%Species(id_TSOA2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOA3)%Conc(I,J,L) = State_Chm%Species(id_TSOA3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA1)%Conc(I,J,L) = State_Chm%Species(id_ASOA1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA2)%Conc(I,J,L) = State_Chm%Species(id_ASOA2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOA3)%Conc(I,J,L) = State_Chm%Species(id_ASOA3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOAN)%Conc(I,J,L) = State_Chm%Species(id_ASOAN)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG0)%Conc(I,J,L) = State_Chm%Species(id_TSOG0)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG1)%Conc(I,J,L) = State_Chm%Species(id_TSOG1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG2)%Conc(I,J,L) = State_Chm%Species(id_TSOG2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_TSOG3)%Conc(I,J,L) = State_Chm%Species(id_TSOG3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG1)%Conc(I,J,L) = State_Chm%Species(id_ASOG1)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG2)%Conc(I,J,L) = State_Chm%Species(id_ASOG2)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_ASOG3)%Conc(I,J,L) = State_Chm%Species(id_ASOG3)%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_NIT  )%Conc(I,J,L) = State_Chm%Species(id_NIT  )%Conc(I,J,L) * ScaleCESMLossRate
+           State_Chm%Species(id_NITs )%Conc(I,J,L) = State_Chm%Species(id_NITs )%Conc(I,J,L) * ScaleCESMLossRate
+
+           ! Don't apply this to sulfate as it is not applied in CAM-chem either and will affect the SO4 budget.
+           !State_Chm%Species(id_SO4  )%Conc(I,J,L) = State_Chm%Species(id_SO4  )%Conc(I,J,L) * ScaleCESMLossRate
+           !State_Chm%Species(id_SO4s )%Conc(I,J,L) = State_Chm%Species(id_SO4s )%Conc(I,J,L) * ScaleCESMLossRate
+
+        ENDIF
+
+#endif
 
        !=====================================================================
        ! Test if we need to do the chemistry for box (I,J,L),
@@ -753,16 +793,6 @@ CONTAINS
        ENDDO
 
        !=====================================================================
-       ! Start KPP main timer
-       !=====================================================================
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> KPP",                          &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
-
-       !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#1)
        !
        ! Populate KPP global variables and arrays in gckpp_global.F90
@@ -775,14 +805,6 @@ CONTAINS
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
-
        ! Copy values into the various KPP global variables
        CALL Set_Kpp_GridBox_Values( I          = I,                          &
                                     J          = J,                          &
@@ -792,14 +814,6 @@ CONTAINS
                                     State_Grid = State_Grid,                 &
                                     State_Met  = State_Met,                  &
                                     RC         = RC                         )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#2)
@@ -814,14 +828,6 @@ CONTAINS
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     RCONST",                       &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
-
        ! Compute sulfur chemistry reaction rates [1/s]
        ! If size_res = T, we'll call fullchem_HetDropChem below.
        CALL Set_Sulfur_Chem_Rates( I          = I,                           &
@@ -835,14 +841,6 @@ CONTAINS
                                    size_res   = size_res,                    &
                                    RC         = RC                          )
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     RCONST",                         &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
-
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#3)
        !
@@ -855,31 +853,19 @@ CONTAINS
        !    -- Bob Yantosca (08 Mar 2022)
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "  -> Init KPP",                     &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
-
        ! Populate fields of the State_Het object
        CALL fullchem_SetStateHet( I         = I,                             &
                                   J         = J,                             &
                                   L         = L,                             &
+                                  id_SALA   = id_SALA,                       &
+                                  id_SALAAL = id_SALAAL,                     &
+                                  id_SALC   = id_SALC,                       &
+                                  id_SALCAL = id_SALCAL,                     &
                                   Input_Opt = Input_Opt,                     &
                                   State_Chm = State_Chm,                     &
                                   State_Met = State_Met,                     &
                                   H         = State_Het,                     &
                                   RC        = RC                            )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Init KPP",                      &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! CHEMISTRY MECHANISM INITIALIZATION (#5)
@@ -899,14 +885,6 @@ CONTAINS
        !=====================================================================
        IF ( State_Met%CLDF(I,J,L) > 1.0e-4_fp ) THEN
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "     RCONST",                    &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        =  RC                              )
-          ENDIF
-
           ! Liquid water content (same formula from the old sulfate_mod.F90)
           LWC = ( State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L)              &
               *   1.0e-3_fp           / State_Met%CLDF(I,J,L)               )
@@ -922,27 +900,15 @@ CONTAINS
              CALL fullchem_HetDropChem( I         = I,                       &
                                         J         = J,                       &
                                         L         = L,                       &
-                                        SR        = SR,                      &
                                         Input_Opt = Input_Opt,               &
                                         State_Met = State_Met,               &
                                         State_Chm = State_Chm               )
-
-             ! Add result as an enhancement to O2 metal catalysis rate
-             ! as a 1st order reaction
-             K_CLD(3) = K_CLD(3) + SR
           ENDIF
 
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "     RCONST",                       &
-                             InLoop    = .TRUE.,                              &
-                             ThreadNum = Thread,                              &
-                             RC        =  RC                                 )
-          ENDIF
        ENDIF
 
        !=====================================================================
-       ! Start KPP main timer and prepare arrays
+       ! Prepare arrays
        !=====================================================================
 
        ! Zero out dummy species index in KPP
@@ -955,29 +921,13 @@ CONTAINS
        ! Update reaction rates
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     RCONST",                       &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        =  RC                                 )
-       ENDIF
-
        ! Update the array of rate constants
        CALL Update_RCONST( )
-
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     RCONST",                         &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        =  RC                                   )
-       ENDIF
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
-       ! Archive KPP reaction rates [s-1]
+       ! Archive KPP reaction rates [molec cm-3 s-1]
        ! See gckpp_Monitor.F90 for a list of chemical reactions
        !
        ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
@@ -1011,6 +961,18 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Archive KPP reaction rate constants (RCONST). The units vary.
+       ! They are already updated in Update_RCONST, and do not require
+       ! a call of Fun(). (hplin, 3/28/23)
+       IF ( State_Diag%Archive_RxnConst ) THEN
+
+          DO S = 1, State_Diag%Map_RxnConst%nSlots
+             N = State_Diag%Map_RxnConst%slot2Id(S)
+             State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+          ENDDO
+
+       ENDIF
+
        !=====================================================================
        ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
        ! This now needs to be done within the parallel loop
@@ -1024,46 +986,66 @@ CONTAINS
        ! Integrate the box forwards
        !=====================================================================
 
-       ! Start timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_Start( TimerName = "     Integrate 1",                  &
-                            InLoop    =  .TRUE.,                             &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
-       ENDIF
+       ! Store concentrations before the call to "Integrate".  This will
+       ! let us reset concentrations before calling "Integrate" a 2nd time.
+       C_before_integrate = C
 
-       ! Call the KPP integrator
+       ! Call the Rosenbrock integrator
+       ! (with optional auto-reduce functionality)
        CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
                        RCNTRL, ISTATUS, RSTATE, IERR                        )
 
-       ! Stop timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName = "     Integrate 1",                    &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
-
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-       ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-       ! Print grid box indices to screen if integrate failed
-       IF ( IERR < 0 ) THEN
-          WRITE(6,*) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
-          IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+          ! Turn off error output after a certain limit is reached
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                WRITE( 6, '(a)' ) &
+                   '### Further error output has been switched off'
+                doSuppress = .TRUE.
+             ENDIF
+          ENDIF
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+          ! Keep track of number of error boxes
+          IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+          ENDIF
+#endif
+       ENDIF
+
+#if defined( MODEL_GEOS )
+       ! Mark integration as erroneous if negative concentrations so that it will be
+       ! repeated below (cakelle2, 2023/10/26)
+       IF ( IERR >= 0 .AND. Input_Opt%KppCheckNegatives >= 0 ) THEN
+          IF ( ( Input_Opt%KppCheckNegatives==0 .AND. State_Met%InStratMeso(I,J,L) ) .OR. &
+               ( L > (  State_Grid%NZ - Input_Opt%KppCheckNegatives) ) ) THEN
+             IF ( ANY(C < 0.0_dp) ) THEN
+                IERR = -999
+                ! Include negative concentration boxes within error box diagnostic
+                IF ( State_Diag%Archive_KppError ) THEN
+                   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+                ENDIF
+             ENDIF
           ENDIF
        ENDIF
 #endif
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
+       !
+       ! !TODO: Abstract this into a separate routine
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
+          ! Check for negative concentrations after first integration
+          IF ( State_Diag%Archive_KppNegatives0 ) THEN
+             State_Diag%KppNegatives0(I,J,L) = REAL( COUNT( C < 0.0_dp ), KIND=4 )
+          ENDIF
+          
           ! # of integrator calls
           IF ( State_Diag%Archive_KppIntCounts ) THEN
              State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
@@ -1116,15 +1098,16 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
-          ! Save a copy of the C vector (GEOS and WRF only)
-          localC    = C
-#endif
-
-          ! Reset first time step and start concentrations
-          ! Retry the integration with non-optimized settings
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
+          ! C with concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
-          C         = 0.0_dp
+          C         = C_before_integrate
+
+#if defined( MODEL_GEOS )
+          ! In GEOS also inflate the error tolerances (cakelle2, 2023/10/26)
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
 
           ! Disable auto-reduce solver for the second iteration for safety
           IF ( Input_Opt%Use_AutoReduce ) THEN
@@ -1134,29 +1117,15 @@ CONTAINS
           ! Update rates again
           CALL Update_RCONST( )
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "     Integrate 2",               &
-                               InLoop    =  .TRUE.,                          &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
-
-          ! Integrate again
+          ! Call the Rosenbrock integrator (w/ auto-reduction disabled)
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
-
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "     Integrate 2",                 &
-                             InLoop    =  .TRUE.,                            &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
-          ENDIF
 
           !==================================================================
           ! HISTORY: Archive KPP solver diagnostics
           ! This time, add to the existing value
+          !
+          ! !TODO: Abstract this into a separate routine
           !==================================================================
           IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1213,42 +1182,55 @@ CONTAINS
           ! Exit upon the second failure
           !==================================================================
           IF ( IERR < 0 ) THEN
+
+             ! Print error message
              WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF )
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
-             ! Revert to start values
              ELSE
-                C = localC
+                ! Revert to concentrations prior to 1st call to "Integrate"
+                C = C_before_integrate
              ENDIF
-             IF ( ASSOCIATED(State_Diag%KppError) ) THEN
+
+             ! Keep track of error boxes
+             IF ( State_Diag%Archive_KppError ) THEN
                 State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
              ENDIF
 #else
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             ! Make sure only one thread at a time executes this block
+             !$OMP CRITICAL
+             !
              ! Set a flag to break out of loop gracefully
              ! NOTE: You can set a GDB breakpoint here to examine the error
-             !$OMP CRITICAL
              Failed2x = .TRUE.
 
-             ! Print concentrations at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             ! Print concentrations at failure grid box
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Species concentrations at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NSPEC
-                PRINT*, '### ', C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
+                PRINT*, C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
              ENDDO
 
-             ! Print rate constants at trouble box KPP error
-             PRINT*, REPEAT( '###', 79 )
+             ! Print rate constants at failure grid box
+             PRINT*, REPEAT( '#', 79 )
              PRINT*, '### KPP DEBUG OUTPUT!'
              PRINT*, '### Reaction rates at problem box ', I, J, L
-             PRINT*, REPEAT( '###', 79 )
+             PRINT*, REPEAT( '#', 79 )
              DO N = 1, NREACT
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
+             !
              !$OMP END CRITICAL
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             ! Start skipping to end of loop upon 2 failures in a row
+             CYCLE
 #endif
           ENDIF
 
@@ -1271,8 +1253,8 @@ CONTAINS
        ! file at startup (see above).
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-       ! Save cpu time spent for bulk of KPP-related routines for History archival
-       ! (hplin, 11/8/21)
+       ! Save cpu time spent for bulk of KPP-related routines for 
+       ! History archival (hplin, 11/8/21)
        IF ( State_Diag%Archive_KppTime ) THEN
           call cpu_time(TimeEnd)
           State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
@@ -1292,6 +1274,13 @@ CONTAINS
           ! Skip if this is not a GEOS-Chem species
           IF ( SpcID <= 0 ) CYCLE
 
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(N) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_f4
+             ENDIF
+          ENDIF
+
           ! Set negative concentrations to zero
           C(N) = MAX( C(N), 0.0_dp )
 
@@ -1300,54 +1289,53 @@ CONTAINS
 
        ENDDO
 
-       IF ( Input_Opt%useTimers ) THEN
+#ifdef TOMAS
+       !-----------------------------------------------------------------
+       ! FOR TOMAS MICROPHYSICS:
+       !
+       ! Obtain P/L with a unit [kg S] for tracing
+       ! gas-phase sulfur species production (SO2, SO4, MSA)
+       ! (win, 8/4/09)
+       !-----------------------------------------------------------------
 
-          ! Stop main KPP timer
-          CALL Timer_End( TimerName  = "  -> KPP",                           &
-                          InLoop     = .TRUE.,                               &
-                          ThreadNum  = Thread,                               &
-                          RC         = RC                                   )
+       ! Calculate H2SO4 production rate [kg s-1] in each
+       ! time step (win, 8/4/09)
+       H2SO4_RATE(I,J,L) = C(ind_PH2SO4) / AVO * 98.e-3_fp * &
+                           State_Met%AIRVOL(I,J,L)    * &
+                           1.0e+6_fp / DT  ! kg s-1 box-1
 
-          ! Start Prod/Loss timer
-          CALL Timer_Start( TimerName = "  -> Prod/loss diags",              &
-                            InLoop    = .TRUE.,                              &
-                            ThreadNum = Thread,                              &
-                            RC        = RC                                  )
+       IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+          H2SO4_RATE(I,J,L) = 0.0d0
        ENDIF
 
-#ifdef BPCH_DIAG
-#ifdef TOMAS
-       !always calculate rate for TOMAS
-       DO F = 1, NFAM
+       PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
+                            State_Met%AIRVOL(I,J,L)    * &
+                            1.0e+6_fp ! kg per timestep box-1
 
-          ! Determine dummy species index in KPP
-          KppID =  PL_Kpp_Id(F)
-
-          !-----------------------------------------------------------------
-          ! FOR TOMAS MICROPHYSICS:
-          !
-          ! Obtain P/L with a unit [kg S] for tracing
-          ! gas-phase sulfur species production (SO2, SO4, MSA)
-          ! (win, 8/4/09)
-          !-----------------------------------------------------------------
-
-          ! Calculate H2SO4 production rate [kg s-1] in each
-          ! time step (win, 8/4/09)
-          IF ( TRIM(FAM_NAMES(F)) == 'PSO4' ) THEN
-             ! Hard-coded MW
-             H2SO4_RATE(I,J,L) = C(KppID) / AVO * 98.e-3_fp * &
-                                 State_Met%AIRVOL(I,J,L)    * &
-                                 1.0e+6_fp / DT
-
-            IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
-              write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
-                 I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
-              H2SO4_RATE(I,J,L) = 0.0d0
-            ENDIF
-          ENDIF
-       ENDDO
-
+       IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
+               I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
+          PSO4AQ_RATE(I,J,L) = 0.0d0
+       ENDIF
 #endif
+
+#ifdef MODEL_CESM
+       !---------------------------------------------------------------------
+       ! Calculate H2SO4 production rate for coupling to CESM 
+       ! (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
+
+       ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3) = mol/molAir
+       State_Chm%H2SO4_PRDR(I,J,L) = C(id_PSO4) * AIRMW * 1e-3_fp * 1.0e+6_fp /&
+                                     (AVO * State_Met%AIRDEN(I,J,L))
+
+       IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
+          State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
+       ENDIF
 #endif
 
 #ifdef MODEL_GEOS
@@ -1469,14 +1457,6 @@ CONTAINS
 
        ENDIF
 
-       ! Stop Prod/Loss timer
-       IF ( Input_Opt%useTimers ) THEN
-          CALL Timer_End( TimerName =  "  -> Prod/loss diags",               &
-                          InLoop    = .TRUE.,                                &
-                          ThreadNum = Thread,                                &
-                          RC        = RC                                    )
-       ENDIF
-
        !====================================================================
        ! HISTORY (aka netCDF diagnostics)
        !
@@ -1487,14 +1467,6 @@ CONTAINS
        IF ( State_Diag%Archive_OHreactivity           .or.                   &
             State_Diag%Archive_SatDiagnOHreactivity ) THEN
 
-          ! Start timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( TimerName = "  -> OH reactivity diag",        &
-                               InLoop    = .TRUE.,                           &
-                               ThreadNum = Thread,                           &
-                               RC        = RC                               )
-          ENDIF
-
           ! Archive OH reactivity diagnostic
           CALL Get_OHreactivity ( C, RCONST, OHreact )
           IF ( State_Diag%Archive_OHreactivity ) THEN
@@ -1504,36 +1476,11 @@ CONTAINS
              State_Diag%SatDiagnOHreactivity(I,J,L) = OHreact
           ENDIF
 
-          ! Stop timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( TimerName = "  -> OH reactivity diag",          &
-                             InLoop    = .TRUE.,                             &
-                             ThreadNum = Thread,                             &
-                             RC        = RC                                 )
-          ENDIF
        ENDIF
     ENDDO
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Stop timer
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "  -> FlexChem loop", RC )
-    ENDIF
-
-    ! Compute sum of in-loop timers
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Sum_Loop( "  -> Init KPP",            RC )
-       CALL Timer_Sum_Loop( "  -> Het chem rates",      RC )
-       CALL Timer_Sum_Loop( "  -> Photolysis rates",    RC )
-       CALL Timer_Sum_Loop( "  -> KPP",                 RC )
-       CALL Timer_Sum_Loop( "     RCONST",              RC )
-       CALL Timer_Sum_Loop( "     Integrate 1",         RC )
-       CALL Timer_Sum_Loop( "     Integrate 2",         RC )
-       CALL Timer_Sum_Loop( "  -> Prod/loss diags",     RC )
-       CALL Timer_Sum_Loop( "  -> OH reactivity diag",  RC )
-    ENDIF
 
     !=======================================================================
     ! Return gracefully if integration failed 2x anywhere
@@ -1551,6 +1498,23 @@ CONTAINS
           State_Diag%TropNOxTau = TROPv_NOx_tau / TROPv_NOx_mass
        END WHERE
     ENDIF
+#endif
+
+
+#ifdef TOMAS
+       !-----------------------------------------------------------------
+       ! For TOMAS microphysics:
+       !
+       ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
+       !
+       ! SO4 produced via aqueous chemistry is distributed onto 30-bin
+       ! aerosol by TOMAS subroutine AQOXID.
+       !-----------------------------------------------------------------
+       CALL TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                          State_Met, State_Diag, RC )
+       IF ( Input_Opt%Verbose ) THEN
+          CALL DEBUG_MSG( '### CHEMSULFATE: a TOMAS_SO4_AQ' )
+       ENDIF
 #endif
 
     !=======================================================================
@@ -1571,7 +1535,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### Do_FullChem: after OHSAVE' )
        ENDIF
     ENDIF
@@ -1589,7 +1553,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### Do_FullChem: after Diag_Metrics' )
     ENDIF
 
@@ -1616,13 +1580,30 @@ CONTAINS
     !=======================================================================
     ! Convert species back to original units (ewl, 8/16/16)
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm,  State_Grid, State_Met, &
-                            OrigUnit,  RC )
 
+    ! Halt gas-phase chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Gas-phase chem", RC )
+    ENDIF
+
+    ! Convert units of all species back to kg
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+    
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error!'
        CALL GC_Error( ErrMsg, RC, 'fullchem_mod.F90' )
        RETURN
+    ENDIF
+
+    ! Start gas-phase chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Gas-phase chem", RC )
     ENDIF
 
     !=======================================================================
@@ -1630,22 +1611,22 @@ CONTAINS
     ! photolysis approximations outside the chemistry grid
     !=======================================================================
     CALL UCX_NOX( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_NOX' )
     ENDIF
 
     CALL UCX_H2SO4PHOT( Input_Opt, State_Chm, State_Grid, State_Met )
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### CHEMDR: after UCX_H2SO4PHOT' )
     ENDIF
 
     ! Set State_Chm arrays for surface J-values used in HEMCO and
     ! saved to restart file
-    IF ( RXN_O3_1 >= 0 ) THEN
-       State_Chm%JOH(:,:) = ZPJ(1,RXN_O3_1,:,:)
+    IF ( State_Chm%Phot%RXN_O3_1 >= 0 ) THEN
+       State_Chm%JOH(:,:) = State_Chm%Phot%ZPJ(1,State_Chm%Phot%RXN_O3_1,:,:)
     ENDIF
-    IF ( RXN_NO2 >= 0 ) THEN
-       State_Chm%JNO2(:,:) = ZPJ(1,RXN_NO2,:,:)
+    IF ( State_Chm%Phot%RXN_NO2 >= 0 ) THEN
+       State_Chm%JNO2(:,:) = State_Chm%Phot%ZPJ(1,State_Chm%Phot%RXN_NO2,:,:)
     ENDIF
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
@@ -1653,6 +1634,174 @@ CONTAINS
 
   END SUBROUTINE Do_FullChem
 !EOC
+#ifdef TOMAS
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: tomas_so4_aq
+!
+! !DESCRIPTION: Subroutine CHEM\_SO4\_AQ takes the SO4 produced via aqueous
+!  chemistry of SO2 and distribute onto the size-resolved aerosol number and
+!  sulfate mass as a part of the TOMAS aerosol microphysics module
+!  (win, 1/25/10)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE TOMAS_SO4_AQ( Input_Opt, State_Chm,  State_Grid, &
+                           State_Met, State_Diag, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE ERROR_MOD
+    USE Input_Opt_Mod,      ONLY : OptINput
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN,PSO4AQ_RATE
+    USE UnitConv_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  NOTE: This subroutine is ignored unless we compile for TOMAS microphysics.
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER           :: I, J, L
+    INTEGER           :: k, binact1, binact2
+    INTEGER           :: KMIN
+    INTEGER           :: previous_units
+    REAL(fp)          :: SO4OXID
+
+    !=================================================================
+    ! TOMAS_SO4_AQ begins here!
+    !=================================================================
+
+    ! Assume success
+    RC  = GC_SUCCESS
+
+    ! Convert species to [kg]
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'Start of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+    !$OMP PARALLEL DO        &
+    !$OMP DEFAULT( SHARED )  &
+    !$OMP PRIVATE( I, J, L ) &
+    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
+    !$OMP SCHEDULE( DYNAMIC )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+       ! Skip non-chemistry boxes
+       IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
+
+        SO4OXID = PSO4AQ_RATE(I,J,L)
+
+!        print*, 'Here is SO4OXID ',SO4OXID, I,J,L 
+
+!       SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
+!                 / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g ) ! convert v/v to kg/box
+
+       IF ( SO4OXID > 0e+0_fp ) THEN
+          ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
+          !length being used)
+#if defined( TOMAS12 )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS15 )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
+#elif defined( TOMAS30 )
+          CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK10, .FALSE., BINACT2, State_Chm, RC )
+#else
+          CALL GETACTBIN( I, J, L, id_NK20, .TRUE. , BINACT1, State_Chm, RC )
+
+          CALL GETACTBIN( I, J, L, id_NK20, .FALSE., BINACT2, State_Chm, RC )
+#endif
+
+          KMIN = ( BINACT1 + BINACT2 )/ 2.
+
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
+       ENDIF
+    ENDDO
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    ! Convert species back to original units
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       CALL GC_Error('Unit conversion error', RC, &
+                     'End of TOMAS_SO4_AQ in sulfate_mod.F90')
+       RETURN
+    ENDIF
+
+  END SUBROUTINE TOMAS_SO4_AQ
+!EOC 
+#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1665,7 +1814,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem, Do_PhotChem )
+  SUBROUTINE PrintFirstTimeInfo( Input_Opt, State_Chm, FirstChem )
 !
 ! !USES:
 !
@@ -1677,7 +1826,6 @@ CONTAINS
     TYPE(OptInput), INTENT(IN) :: Input_Opt     ! Input Options object
     TYPE(ChmState), INTENT(IN) :: State_Chm     ! Chemistry State object
     LOGICAL,        INTENT(IN) :: FirstChem     ! Is this the first call?
-    LOGICAL,        INTENT(IN) :: Do_PhotChem   ! Is photolysis turned on?
 !EOP
 !------------------------------------------------------------------------------
 !BOC
@@ -1685,8 +1833,8 @@ CONTAINS
     ! Exit if we are not on the first chemistry timestep
     IF ( .not. FirstChem ) RETURN
 
-    ! Print on the root CPU only
-    IF ( Input_Opt%AmIRoot ) THEN
+    ! Print on the root CPU only (only if debug printout is on)
+    IF ( Input_Opt%AmIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Write header
        WRITE( 6, '(a)' ) REPEAT( '=', 79 )
@@ -1712,13 +1860,17 @@ CONTAINS
  140      FORMAT( '* Sulfur in-cloud chemistry is computed in KPP' )
        ENDIF
 
-       ! Print the status of photolysis: on or off
-       IF ( Do_Photchem ) THEN
+          ! Print the status of photolysis: on or off
+       IF ( Input_Opt%Do_Photolysis ) THEN
           WRITE( 6, 150 )
+#ifdef FASTJX
  150      FORMAT(  '* Photolysis is activated -- rates computed by FAST-JX' )
+#else
+ 150      FORMAT(  '* Photolysis is activated -- rates computed by Cloud-J' )
+#endif
        ELSE
           WRITE( 6, 160 )
- 160      FORMAT(  '* Photolysis has been deactivated for testing purposes'  )
+ 160      FORMAT(  '* Photolysis is off for testing -- using zero J-values'  )
        ENDIF
 
        ! Write footer
@@ -2537,7 +2689,6 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: KppId,    N
-    LOGICAL            :: prtDebug
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
@@ -2559,10 +2710,9 @@ CONTAINS
     !=======================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Debug output
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 100 )
 100    FORMAT( '     - INIT_FULLCHEM: Allocating arrays' )
 
@@ -2579,10 +2729,17 @@ CONTAINS
     id_O3P      = Ind_( 'O'            )
     id_O1D      = Ind_( 'O1D'          )
     id_OH       = Ind_( 'OH'           )
-    id_SALAAL   = Ind_( 'SALAAL'       )
-    id_SALCAL   = Ind_( 'SALCAL'       )
     id_SO4      = Ind_( 'SO4'          )
+    id_SALA     = Ind_( 'SALA'         )
+    id_SALAAL   = Ind_( 'SALAAL'       )
     id_SALC     = Ind_( 'SALC'         )
+    id_SALCAL   = Ind_( 'SALCAL'       )
+#ifdef TOMAS
+    id_NK05     = Ind_( 'NK5'          )
+    id_NK08     = Ind_( 'NK8'          )
+    id_NK10     = Ind_( 'NK10'         )
+    id_NK20     = Ind_( 'NK20'         )
+#endif
 
 #ifdef MODEL_GEOS
     ! ckeller
@@ -2625,6 +2782,29 @@ CONTAINS
     id_IDNOO    = Ind_( 'IDNOO'        )
 #endif
 
+#ifdef MODEL_CESM
+    ! hplin
+    id_TSOA0    = Ind_('TSOA0')
+    id_TSOA1    = Ind_('TSOA1')
+    id_TSOA2    = Ind_('TSOA2')
+    id_TSOA3    = Ind_('TSOA3')
+    id_ASOA1    = Ind_('ASOA1')
+    id_ASOA2    = Ind_('ASOA2')
+    id_ASOA3    = Ind_('ASOA3')
+    id_ASOAN    = Ind_('ASOAN')
+    id_TSOG0    = Ind_('TSOG0')
+    id_TSOG1    = Ind_('TSOG1')
+    id_TSOG2    = Ind_('TSOG2')
+    id_TSOG3    = Ind_('TSOG3')
+    id_ASOG1    = Ind_('ASOG1')
+    id_ASOG2    = Ind_('ASOG2')
+    id_ASOG3    = Ind_('ASOG3')
+    id_NIT      = Ind_('NIT')
+    id_SO4s     = Ind_('SO4s')
+    id_NITs     = Ind_('NITs')
+    id_HNO3     = Ind_('HNO3')
+#endif
+
     ! Set flags to denote if each species is defined
     ok_HO2      = ( id_HO2 > 0         )
     ok_O1D      = ( id_O1D > 0         )
@@ -2642,6 +2822,19 @@ CONTAINS
                                State_Diag%Archive_O1DconcAfterChem      .or. &
                                State_Diag%Archive_O3PconcAfterChem          )
 
+
+    !=======================================================================
+    ! Assign default values for KPP absolute and relative tolerances
+    ! for species where these have not been explicitly defined.
+    !=======================================================================
+    WHERE( State_Chm%KPP_AbsTol == MISSING_DBLE )
+       State_Chm%KPP_AbsTol = 1.0e-2_f8
+    ENDWHERE
+
+    WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
+       State_Chm%KPP_RelTol = 0.5e-2_f8
+    ENDWHERE
+
     !=======================================================================
     ! Save physical parameters from the species database into KPP arrays
     ! in gckpp_Global.F90.  These are for the hetchem routines.
@@ -2655,21 +2848,22 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
-
     !=======================================================================
     ! Allocate arrays
     !=======================================================================
 
     ! Initialize
-    id_PCO =  -1
+    id_PSO4 = -1
+    id_PCO  = -1
     id_LCH4 = -1
 
     !--------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
     !--------------------------------------------------------------------
+
     IF ( nFam > 0 ) THEN
 
-       ! Allocate mapping array for KPP Ids for ND65 bpch diagnostic
+       ! Allocate mapping array for KPP Ids for prod/loss diagnostic
        ALLOCATE( PL_Kpp_Id( nFam ), STAT=RC )
        CALL GC_CheckVar( 'fullchem_mod.F90:PL_Kpp_Id', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
@@ -2687,6 +2881,10 @@ CONTAINS
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
+          ! Find the KPP Id corresponding to PSO4
+          ! so that we can save output for TOMAS simulations
+          IF ( TRIM( Fam_Names(N) ) == 'PSO4'  ) id_PSO4  = KppId
+
           ! Exit if an invalid ID is encountered
           IF ( KppId <= 0 ) THEN
              ErrMsg = 'Invalid KPP ID for prod/loss species: '            // &
@@ -2700,6 +2898,20 @@ CONTAINS
        ENDDO
 
     ENDIF
+
+#ifdef MODEL_CESM
+    !--------------------------------------------------------------------
+    ! If we are finding H2SO4_RATE from a fullchem
+    ! simulation for the CESM, throw an error if we cannot find
+    ! the PSO4 prod family in this KPP mechanism.
+    !--------------------------------------------------------------------
+    IF ( id_PSO4 < 1 ) THEN
+       ErrMsg = 'Could not find PSO4 in list of KPP families!  This   ' // &
+                'is needed for State_Chm%H2SO4_PRDR and coupling to CESM!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
 
     !--------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem

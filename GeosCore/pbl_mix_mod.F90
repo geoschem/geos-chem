@@ -67,7 +67,8 @@ CONTAINS
     USE State_Met_Mod,   ONLY : MetState
     USE Time_Mod,        ONLY : Get_Ts_Conv
     USE Time_Mod,        ONLY : Get_Ts_Dyn
-    USE UnitConv_Mod,    ONLY : Convert_Spc_Units
+    USE Timers_Mod,      ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -94,10 +95,10 @@ CONTAINS
     INTEGER            :: N
     INTEGER            :: NA
     INTEGER            :: TS_Dyn
+    INTEGER            :: previous_units
     REAL(f8)           :: DT_Dyn
 
     ! Strings
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
 
@@ -119,6 +120,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -130,6 +132,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -150,16 +155,32 @@ CONTAINS
        ! Unit conversion #1
        !=====================================================================
 
-       ! Convert species to v/v dry
-       CALL Convert_Spc_Units( Input_Opt,         State_Chm, State_Grid,     &
-                               State_Met,        'v/v dry',  RC,             &
-                               OrigUnit=OrigUnit                               )
+       ! Halt mixing timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "Boundary layer mixing", RC )
+       ENDIF
+
+       ! Convert species to [v/v dry] aka [mol/mol dry]
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            mapping        = State_Chm%Map_Advect,                           &
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+          ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol/mol dry)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+       ! Start mixing timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "Boundary layer mixing", RC )
        ENDIF
 
        !=====================================================================
@@ -177,19 +198,35 @@ CONTAINS
           RETURN
        ENDIF
 
-       !========================================================================
+       !=====================================================================
        ! Unit conversion #2
-       !========================================================================
+       !=====================================================================
+
+       ! Halt mixing timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "Boundary layer mixing", RC )
+       ENDIF
 
        ! Convert species back to original units
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,             &
-                               State_Met, OrigUnit,  RC                        )
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Grid = State_Grid,                                         &
+            State_Met  = State_Met,                                          &
+            mapping    = State_Chm%Map_Advect,                               &
+            new_units  = previous_units,                                     &
+            RC         = RC                                                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
+          ErrMsg = 'Error encountred in "Convert_Spc_Units" (from mol/mol dry)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
+       ENDIF
+
+       ! Start mixing timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "Boundary layer mixing", RC )
        ENDIF
     ENDIF
 
@@ -207,6 +244,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -218,6 +256,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = State_Diag%BudgetMixingPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = State_Diag%BudgetMixingLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )
@@ -250,6 +291,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE PhysConstants          ! Rd, g0
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants,  ONLY : Scale_Height
     USE State_Grid_Mod, ONLY : GrdState
@@ -280,7 +322,7 @@ CONTAINS
     ! Scalars
     LOGICAL  :: Bad_Sum
     INTEGER  :: I,      J,      L,    LTOP
-    REAL(fp) :: BLTOP,  BLTHIK, DELP
+    REAL(fp) :: Lower_Edge_Height
 
     ! Arrays
     REAL(fp) :: P(0:State_Grid%NZ)
@@ -290,170 +332,105 @@ CONTAINS
     !=================================================================
 
     ! Initialize
-    RC              = GC_SUCCESS
-    Bad_Sum         = .FALSE.
-    State_Met%InPbl = .FALSE.
+    RC                       = GC_SUCCESS
+    Bad_Sum                  = .FALSE.
+    State_Met%InPbl          = .FALSE.
+    State_Met%F_of_PBL       = 0.0_fp
+    State_Met%F_Under_PBLTop = 0.0_fp
 
-    !$OMP PARALLEL DO                                      &
-    !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( I, J, L, P, BLTOP, BLTHIK, LTOP, DELP )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, LTOP, Lower_Edge_Height                         )&
+    !$OMP COLLAPSE( 2                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       !----------------------------------------------
-       ! Define pressure edges:
-       ! P(L-1) = P at bottom edge of box (I,J,L)
-       ! P(L  ) = P at top    edge of box (I,J,L)
-       !----------------------------------------------
+       ! Initialize variables
+       State_Met%PBL_Top_m(I,J) = State_Met%PBLH(I,J) ! Pbl ht [m] above sfc
+       LTOP                     = 0                   ! Level w/ PBL top
+       Lower_Edge_Height        = 0.0_fp              ! Lower edge height
+                                                      !  above sfc [m]
 
-       ! Pressure at level edges [hPa]
-       DO L = 0, State_Grid%NZ
-          P(L) = State_Met%PEDGE(I,J,L+1)
-       ENDDO
-
-       !----------------------------------------------
-       ! Find PBL top and thickness [hPa]
-       !----------------------------------------------
-
-       ! BLTOP = pressure at PBL top [hPa]
-       ! Use barometric law since PBL is in [m]
-       BLTOP  = P(0) * EXP( -State_Met%PBLH(I,J) / SCALE_HEIGHT )
-
-       ! BLTHIK is PBL thickness [hPa]
-       BLTHIK = P(0) - BLTOP
-
-       !----------------------------------------------
-       ! Find model level where BLTOP occurs
-       !----------------------------------------------
-
-       ! Initialize
-       LTOP = 0
-
-       ! Loop over levels
+       ! Find PBL top level (L) and pressure (hPa)
        DO L = 1, State_Grid%NZ
 
-          ! Exit when we get to the PBL top level
-          IF ( BLTOP > P(L) ) THEN
-             LTOP = L
-             EXIT
-          ELSE
-             State_Met%InPbl(I,J,L) = .TRUE.
-          ENDIF
+         !-------------------------------------------------------------------
+         ! The PBL top occurs in this level if the condition is true
+         !-------------------------------------------------------------------
+         IF ( Lower_Edge_Height + State_Met%BXHEIGHT(I,J,L) >=               &
+              State_Met%PBLH(I,J)                                ) THEN
+
+            ! PBL top is in this level
+            LTOP = L
+
+            ! Pressure at the PBL top altitude, hPa
+            ! Use pressure lapse equation:
+            !    p(PBLH) = p(z1) * exp( -(PBLH-z1) / Scale_Height )
+            !
+            ! p(z1) = State_Met%PEDGE(I,J,L) = Pressure @ lower level edge
+            !
+            ! PBLH - z1 = (State_Met%PBLH(I,J,L) - Lower_Edge_Height) =
+            !   Height above the lower level edge
+            !
+            ! Scale_Height = Rd * Tv / g0
+            State_Met%PBL_Top_hPa(I,J) = State_Met%PEdge(I,J,L)     *        &
+                  EXP( -( State_Met%PBLH(I,J) - Lower_Edge_Height ) *        &
+                        g0 / ( Rd * State_Met%TV(I,J,L) )            )
+
+            ! Fraction of PBL mass in layer L, will be normalized below
+            State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L)               &
+                                      - State_Met%PBL_Top_hPa(I,J)
+      
+            ! Fraction of the grid cell mass under PBL top
+            State_Met%F_Under_PBLTop(I,J,L) = State_Met%F_of_PBL(I,J,L) /    &
+                 ( State_Met%PEdge(I,J,L) - State_Met%PEdge(I,J,L+1) )
+
+            ! Model level of PBL top (integer+fraction).
+            ! The top is within level CEILING(PBL_Top_L)
+            State_Met%PBL_Top_L(I,J) = ( LTOP - 1 )                          &
+                                     + State_Met%F_Under_PBLTop(I,J,L)
+
+            ! PBL Thickness from surface to top, hPa
+            State_Met%PBL_Thick(I,J) = State_Met%PEdge(I,J,1)                &
+                                     - State_Met%PBL_Top_hPa(I,J)
+
+            ! Exit Do loop after we found PBL top level
+            EXIT
+         ENDIF
+
+         !-------------------------------------------------------------------
+         ! The PBL top does not occur in this level.
+         ! Update variables and go to next level.
+         !-------------------------------------------------------------------
+
+         ! Grid cell fully within PBL
+         State_Met%inPBL(I,J,L) = .True.
+
+         ! Fraction of the grid cell mass under PBL top
+         State_Met%F_Under_PBLTop(I,J,L) = 1.0_fp
+
+         ! Fraction of PBL mass in layer L, will be normalized below
+         State_Met%F_of_PBL(I,J,L) = State_Met%PEdge(I,J,L)                  &
+                                   - State_Met%PEdge(I,J,L+1)
+
+         ! Update lower edge height, m
+         Lower_Edge_Height = Lower_Edge_Height + State_Met%BXHeight(I,J,L)
 
        ENDDO
 
-       !----------------------------------------------
-       ! Define various related quantities
-       !----------------------------------------------
-
-       ! IMIX(I,J)   is the level where the PBL top occurs at (I,J)
-       ! IMIX(I,J)-1 is the number of whole levels below the PBL top
-       State_Met%IMIX(I,J) = LTOP
-
-       ! Fraction of the IMIXth level underneath the PBL top
-       State_Met%FPBL(I,J) = 1.0_fp                                          &
-                           - ( BLTOP - P(LTOP) ) / ( P(LTOP-1) - P(LTOP) )
-
-       ! PBL top [model layers]
-       State_Met%PBL_TOP_L(I,J) = FLOAT( State_Met%IMIX(I,J) - 1 )           &
-                                + State_Met%FPBL(I,J)
-
-       ! PBL top [hPa]
-       State_Met%PBL_TOP_hPa(I,J) = BLTOP
-
-       ! Zero PBL top [m] -- compute below
-       State_Met%PBL_TOP_m(I,J) = 0.0_fp
-
-       ! PBL thickness [hPa]
-       State_Met%PBL_THICK(I,J) = BLTHIK
-
-       !==============================================================
-       ! Loop up to edge of chemically-active grid
-       !==============================================================
-       DO L = 1, State_Grid%MaxChemLev
-
-          ! Thickness of grid box (I,J,L) [hPa]
-          DELP = P(L-1) - P(L)
-
-          IF ( L < State_Met%IMIX(I,J) ) THEN
-
-             !--------------------------------------------
-             ! (I,J,L) lies completely below the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L) = DELP / BLTHIK
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = 1.0_fp
-
-             ! PBL height [m]
-             State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J) + &
-                                        State_Met%BXHEIGHT(I,J,L)
-
-          ELSE IF ( L == State_Met%IMIX(I,J) ) THEN
-
-             !--------------------------------------------
-             ! (I,J,L) straddles the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L) = ( P(L-1) - BLTOP ) / BLTHIK
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = State_Met%FPBL(I,J)
-
-             ! PBL height [m]
-             State_Met%PBL_TOP_m(I,J) = State_Met%PBL_TOP_m(I,J)             &
-                                      + ( State_Met%BXHEIGHT(I,J,L)          &
-                                      *   State_Met%FPBL(I,J)               )
-
-          ELSE
-
-             !--------------------------------------------
-             ! (I,J,L) lies completely above the PBL top
-             !--------------------------------------------
-
-             ! Fraction of grid box (I,J,L) w/in the PBL
-             State_Met%F_OF_PBL(I,J,L)       = 0.0_fp
-
-             ! Fraction of grid box (I,J,L) underneath PBL top
-             State_Met%F_UNDER_PBLTOP(I,J,L) = 0.0_fp
-
-          ENDIF
-
-          !### Debug
-          !IF ( I==23 .and. J==34 .and. L < 6 ) THEN
-          !   PRINT*, '###--------------------------------------'
-          !   PRINT*, '### COMPUTE_PBL_HEIGHT'
-          !   PRINT*, '### I, J, L     : ', I, J, L
-          !   PRINT*, '### P(L-1)      : ', P(L-1)
-          !   PRINT*, '### P(L)        : ', P(L)
-          !   PRINT*, '### F_OF_PBL    : ', State_Met%F_OF_PBL(I,J,L)
-          !   PRINT*, '### F_UNDER_TOP : ', &
-          !            State_Met%F_UNDER_PBLTOP(I,J,L)
-          !   PRINT*, '### IMIX        : ', State_Met%IMIX(I,J)
-          !   PRINT*, '### FPBL        : ', State_Met%FPBL(I,J)
-          !   PRINT*, '### PBL_TOP_hPa : ', State_Met%PBL_TOP_hPa(I,J)
-          !   PRINT*, '### PBL_TOP_L   : ', State_Met%PBL_TOP_L(I,J)
-          !   PRINT*, '### DELP        : ', DELP
-          !   PRINT*, '### BLTHIK      : ', BLTHIK
-          !   PRINT*, '### BLTOP       : ', BLTOP
-          !   PRINT*, '### BXHEIGHT    : ', State_Met%BXHEIGHT(I,J,L)
-          !   PRINT*, '### PBL_TOP_m   : ', State_Met%PBL_TOP_m(I,J)
-          !   PRINT*, '### other way m : ', &
-          !    P(0) * EXP( -State_Met%PBL_TOP_hPa(I,J) / SCALE_HEIGHT )
-          !ENDIF
-
-       ENDDO
+       ! Fraction of PBL mass in layer L, now normalize to sum of 1
+       State_Met%F_of_PBL(I,J,:) = State_Met%F_of_PBL(I,J,:)                 &
+                                 / State_Met%PBL_Thick(I,J)
 
        ! Error check
        IF ( ABS( SUM( State_Met%F_OF_PBL(I,J,:) ) - 1.0_fp) > 1.0e-3_fp) THEN
           !$OMP CRITICAL
-          PRINT*, 'bad sum at: ', I, J
+          PRINT*, 'bad sum at: ', I, J, SUM( State_Met%F_OF_PBL(I,J,:) )
           Bad_Sum = .TRUE.
           !$OMP END CRITICAL
        ENDIF
+
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
@@ -466,7 +443,7 @@ CONTAINS
     ENDIF
 
     ! Model level where PBL top occurs
-    State_Met%PBL_MAX_L = MAXVAL( State_Met%IMIX )
+    State_Met%PBL_MAX_L = MAXVAL( CEILING( State_Met%PBL_Top_L ) )
 
   END SUBROUTINE Compute_Pbl_Height
 !EOC
@@ -535,15 +512,15 @@ CONTAINS
     REAL(fp)           :: AA,   CC, CC_AA, DTCONV
 
     ! Arrays
-    REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
     REAL(fp)           :: DTC
+    REAL(fp)           :: A(State_Grid%NX,State_Grid%NY)
+    REAL(fp)           :: FPBL(State_Grid%NX,State_Grid%NY)
+    INTEGER            :: IMIX(State_Grid%NX,State_Grid%NY)
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     ! Pointers
-    INTEGER,       POINTER  :: IMIX(:,:    )
-    REAL(fp),      POINTER  :: FPBL(:,:    )
     REAL(fp),      POINTER  :: AD  (:,:,:  )
     TYPE(SpcConc), POINTER  :: TC  (:      )
 
@@ -574,9 +551,9 @@ CONTAINS
 
     ! Initalize
     AD      => State_Met%AD         ! Dry air mass
-    IMIX    => State_Met%IMIX       ! Integer level where PBL top occurs
-    FPBL    => State_Met%FPBL       ! Fractional level above IMIX to PBL top
-    TC      => State_Chm%Species ! Chemical species [v/v]
+    TC      => State_Chm%Species    ! Chemical species [v/v]
+    IMIX    = ceiling( State_Met%PBL_Top_L ) ! Integer level where PBL top occurs
+    FPBL    = State_Met%PBL_Top_L - (IMIX-1) ! Fractional level above IMIX to PBL top
 
     ! Convection timestep [s]
     DTCONV = GET_TS_CONV()
@@ -663,8 +640,6 @@ CONTAINS
 
     ! Free pointers
     AD   => NULL()
-    IMIX => NULL()
-    FPBL => NULL()
     TC   => NULL()
 
   END SUBROUTINE TurbDay

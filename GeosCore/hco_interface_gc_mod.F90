@@ -12,8 +12,8 @@
 ! to run HEMCO within GEOS-Chem.
 !\\
 !\\
-! The HEMCO driver is now present in this file as HEMCO is restructured to provide
-! a unified point-of-entry for coupling with other models.
+! The HEMCO driver is now present in this file as HEMCO is restructured to
+! provide a unified point-of-entry for coupling with other models.
 !\\
 !\\
 ! Notes:
@@ -205,7 +205,6 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_TS_EMIS, GET_TS_DYN
     USE TIME_MOD,           ONLY : GET_TS_CHEM
 #ifdef TOMAS
-    USE TOMAS_MOD,          ONLY : IBINS
     USE TOMAS_MOD,          ONLY : Xk
 #endif
 
@@ -630,7 +629,7 @@ CONTAINS
 #ifdef TOMAS
 
     ! Save # of TOMAS size bins in HcoState
-    HcoState%MicroPhys%nBins           =  IBINS
+    HcoState%MicroPhys%nBins           =  State_Chm%nTomasBins
 
     ! Point to TOMAS bin boundaries array (Xk) in HcoState
     HcoState%MicroPhys%BinBound        => Xk
@@ -1035,6 +1034,11 @@ CONTAINS
 
     !=======================================================================
     ! Get boundary conditions from HEMCO (GEOS-Chem "Classic" only)
+    ! This only retrieves boundary conditions from HEMCO and puts them into
+    ! State_Chm%BoundaryCond. It no longer applies the boundary conditions
+    ! to the species array, which is handled by Set_Boundary_Conditions().
+    ! This is so that boundary conditions can be updated at a higher frequency
+    ! than the emissions timestep. (hplin, 7/28/23)
     !=======================================================================
 
     ! Assume BCs are 3-hourly and only get from HEMCO when needed
@@ -2544,7 +2548,7 @@ CONTAINS
                      HMRC,     FIRST=FIRST )
 #else
     CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRLANDIC )
+                     HMRC,     FIRST,             State_Met%FRLANDICE )
 #endif
 
     ! Trap potential errors
@@ -2836,9 +2840,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,          ONLY : ZPJ
     USE ErrCode_Mod
-    USE FAST_JX_MOD,          ONLY : RXN_NO2, RXN_O3_1
     USE HCO_GeoTools_Mod,     ONLY : HCO_GetSUNCOS
     USE Input_Opt_Mod,        ONLY : OptInput
     USE State_Chm_Mod,        ONLY : ChmState
@@ -3600,18 +3602,17 @@ CONTAINS
     ! For most simulations (e.g. full-chem simulation, most of the
     ! specialty sims), just use the GEOS-Chem species definitions.
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM     .or.                               &
-         Input_Opt%ITS_AN_AEROSOL_SIM     .or.                               &
-         Input_Opt%ITS_A_CO2_SIM          .or.                               &
-         Input_Opt%ITS_A_CH4_SIM          .or.                               &
-         Input_Opt%ITS_A_MERCURY_SIM      .or.                               &
-         Input_Opt%ITS_A_POPS_SIM         .or.                               &
-         Input_Opt%ITS_A_RnPbBe_SIM       .or.                               &
-         Input_Opt%ITS_A_TAGO3_SIM        .or.                               &
-         Input_Opt%ITS_A_TAGCO_SIM        .or.                               &
-         Input_Opt%ITS_A_CARBON_SIM       .or.                               &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM                                   .or. &
+         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
+         Input_Opt%ITS_A_CO2_SIM                                        .or. &
+         Input_Opt%ITS_A_CH4_SIM                                        .or. &
+         Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
+         Input_Opt%ITS_A_POPS_SIM                                       .or. &
+         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
+         Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
+         Input_Opt%ITS_A_TRACER_SIM                                     .or. &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
-
 
        ! Get number of model species
        nSpc = State_Chm%nAdvect
@@ -3635,8 +3636,8 @@ CONTAINS
        ! Assign species variables
        IF ( PHASE == 2 ) THEN
 
-          ! Verbose
-          IF ( Input_Opt%amIRoot ) THEN
+          ! Verbose (only written if debug printout is requested)
+          IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
              CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
           ENDIF
@@ -3665,8 +3666,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR    = SpcInfo%Henry_CR   ! [K    ]
              HcoState%Spc(N)%HenryPKA   = SpcInfo%Henry_pKa  ! [1    ]
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, N )
+             ! Logfile output (only written if debug printout is requested)
+             IF ( Input_Opt%Verbose ) THEN
+                CALL HCO_SPEC2LOG( HcoState, N )
+             ENDIF
 
              ! Free pointer memory
              SpcInfo => NULL()
@@ -3686,8 +3689,10 @@ CONTAINS
              HcoState%Spc(N)%HenryCR     = 0.0_hp
              HcoState%Spc(N)%HenryPKa    = 0.0_hp
 
-             ! Write to logfile
-             IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG(  HcoState, N )
+             ! Logfile output (only written if debug output is requested)
+             IF ( Input_Opt%Verbose ) THEN 
+                CALL HCO_SPEC2LOG(  HcoState, N )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
@@ -3726,13 +3731,17 @@ CONTAINS
                 HcoState%Spc(M)%HenryCR    = 0.0_hp
                 HcoState%Spc(M)%HenryPKa   = 0.0_hp
 
-                ! Write to log file
-                IF ( Input_Opt%amIRoot ) CALL HCO_SPEC2LOG( HcoState, M )
+                ! Logfile output (only written if debug printout is requested)
+                IF ( Input_Opt%Verbose ) THEN
+                   CALL HCO_SPEC2LOG( HcoState, M )
+                ENDIF
              ENDDO
           ENDIF
 
           ! Add line to log-file
-          IF ( Input_Opt%amIRoot ) CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          IF ( Input_Opt%Verbose ) THEN
+             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+          ENDIF
        ENDIF ! Phase = 2
 
     !-----------------------------------------------------------------
@@ -4153,85 +4162,6 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------------
-    ! Input data for CH4 simulations only
-    !
-    ! If we have turned on CH4 options in geoschem_config.yml, then we
-    ! also need to toggle switches so that HEMCO reads the appropriate data.
-    !-----------------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-       IF ( Input_Opt%AnalyticalInv ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'AnalyticalInv', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( AnalyticalInv )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'AnalyticalInv not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'AnalyticalInv is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseEmisSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'Emis_ScaleFactor', &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( Emis_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'Emis_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'Emis_ScaleFactor is set to false in HEMCO_Config.rc '// &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-       IF ( Input_Opt%UseOHSF ) THEN
-          CALL GetExtOpt( HcoConfig, -999, 'OH_ScaleFactor',           &
-                          OptValBool=LTMP, FOUND=FOUND,  RC=HMRC )
-
-          IF ( HMRC /= HCO_SUCCESS ) THEN
-             RC     = HMRC
-             ErrMsg = 'Error encountered in "GetExtOpt( OH_ScaleFactor )"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-             RETURN
-          ENDIF
-          IF ( .not. FOUND ) THEN
-             ErrMsg = 'OH_ScaleFactor not found in HEMCO_Config.rc file!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-          IF ( .not. LTMP ) THEN
-             ErrMsg = 'OH_ScaleFactor is set to false in HEMCO_Config.rc ' // &
-                  'but should be set to true for this simulation.'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
-
-    ENDIF
-
-    !-----------------------------------------------------------------------
     ! RRTMG input data
     !
     ! If we have turned on the RRTMG simulation in the
@@ -4263,8 +4193,8 @@ CONTAINS
 
     ENDIF
 
-    ! Print value of shadow fields
-    IF ( Input_Opt%amIRoot ) THEN
+    ! Print value of shadow fields (only if debug output is requested)
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        Print*, ''
        Print*, '%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%'
        Print*, 'Switches read from HEMCO_Config.rc:'
@@ -4551,7 +4481,8 @@ CONTAINS
     USE State_Met_Mod,        ONLY : MetState
     USE Time_Mod,             ONLY : Get_Ts_Conv
     USE Time_Mod,             ONLY : Get_Ts_Emis
-    USE UnitConv_Mod,         ONLY : Convert_Spc_Units
+    USE Timers_Mod,           ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -4594,7 +4525,7 @@ CONTAINS
     INTEGER                 :: L,       NA
     INTEGER                 :: ND,      N
     INTEGER                 :: Hg_Cat,  topMix
-    INTEGER                 :: S
+    INTEGER                 :: S,       previous_units
     REAL(fp)                :: dep,     emis
     REAL(fp)                :: MW_kg,   fracNoHg0Dep
     REAL(fp)                :: tmpFlx
@@ -4602,7 +4533,6 @@ CONTAINS
     LOGICAL                 :: EmisSpec, DepSpec
 
     ! Strings
-    CHARACTER(LEN=63)       :: origUnit
     CHARACTER(LEN=255)      :: errMsg,  thisLoc
 
     ! Arrays
@@ -4648,16 +4578,35 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Convert units to v/v dry
+    ! Convert units to [v/v dry] aka [mol/mol dry]
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            'v/v dry', RC,        OrigUnit=OrigUnit         )
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -4765,20 +4714,7 @@ CONTAINS
         ! Add total emissions in the PBL to the EFLX array
         ! which tracks emission fluxes.  Units are [kg/m2/s].
         !------------------------------------------------------------------
-        IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-           ! CH4 emissions become stored in state_chm_mod.F90.
-           ! We use CH4_EMIS here instead of the HEMCO internal emissions
-           ! only to make sure that total CH4 emissions are properly defined
-           ! in a multi-tracer CH4 simulation. For a single-tracer simulation
-           ! and/or all other source types, we could use the HEMCO internal
-           ! values set above and would not need the code below.
-           ! Units are already in kg/m2/s. (ckeller, 10/21/2014)
-           !
-           !%%% NOTE: MAYBE THIS CAN BE REMOVED SOON (bmy, 5/18/19)%%%
-           eflx(I,J,NA) = State_Chm%CH4_EMIS(I,J,NA)
-
-        ELSE IF ( EmisSpec ) THEN  ! Are there emissions for these species?
+        IF ( EmisSpec ) THEN  ! Are there emissions for these species?
 
            ! Compute emissions for all other simulation
            tmpFlx = 0.0_fp
@@ -4893,8 +4829,8 @@ CONTAINS
              ! included emission from these surfaces and most field studies
              ! suggest Hg(0) emissions exceed deposition during sunlit hours.
              fracNoHg0Dep = MIN( State_Met%FROCEAN(I,J) + &
-                                 State_Met%FRSNO(I,J)   + &
-                                 State_Met%FRLANDIC(I,J), 1e+0_fp)
+                                 State_Met%FRSNOW(I,J)   + &
+                                 State_Met%FRLANDICE(I,J), 1e+0_fp)
              zeroHg0Dep   = ( fracNoHg0Dep > 0e+0_fp )
 
              IF ( zeroHg0Dep ) THEN
@@ -5051,20 +4987,6 @@ CONTAINS
           ! NOTE: we don't need to multiply by the ratio of TS_CONV /
           ! TS_CHEM, as the updating frequency for HISTORY is determined
           ! by the "frequency" setting in the "HISTORY.rc"input file.
-          ! The old bpch diagnostics archived the drydep due to chemistry
-          ! every chemistry timestep = 2X the dynamic timestep.  So in
-          ! order to avoid double-counting the drydep flux from mixing,
-          ! you had to multiply by TS_CONV / TS_CHEM.
-          !
-          ! ALSO NOTE: When comparing History output to bpch output,
-          ! you must use an updating frequency equal to the dynamic
-          ! timestep so that the drydep fluxes due to mixing will
-          ! be equivalent w/ the bpch output.  It is also recommended to
-          ! turn off chemistry so as to be able to compare the drydep
-          ! fluxes due to mixing in bpch vs. History as an "apples-to-
-          ! apples" comparison.
-          !
-          !    -- Bob Yantosca (yantosca@seas.harvard.edu)
           !-----------------------------------------------------------------
           IF ( State_Diag%Archive_DryDepMix   .or.                           &
                State_Diag%Archive_DryDep    ) THEN
@@ -5104,14 +5026,32 @@ CONTAINS
     !=======================================================================
     ! Unit conversion #2: Convert back to the original units
     !=======================================================================
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert units
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (from v/v dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     ! Cleanup

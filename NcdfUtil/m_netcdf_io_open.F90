@@ -45,11 +45,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     use m_do_err_out
-!
-    implicit none
-!
-    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !!  filname : name of netCDF file to open for reading
@@ -72,17 +69,15 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=512) :: err_msg
-    integer             :: ierr
+    character(len=512) :: err_msg
+    integer            :: ierr
 !
-    ierr = Nf_Open (filname, NF_NOWRITE, ncid)
+    ierr = Nf90_Open( filname, NF90_NOWRITE, ncid )
 
-    if (ierr /= NF_NOERR) then
+    if (ierr /= NF90_NOERR) then
        err_msg = 'In Ncop_Rd, cannot open:  ' // Trim (filname)
        call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     end if
-
-    return
 
   end subroutine Ncop_Rd
 !EOC
@@ -99,11 +94,8 @@ CONTAINS
 !
 ! !USES:
 !
+    USE netCDF
     use m_do_err_out
-!
-    implicit none
-!
-    include "netcdf.inc"
 !
 ! !INPUT PARAMETERS:
 !!  filname : name of netCDF file to open for reading
@@ -130,9 +122,9 @@ CONTAINS
     character (len=512) :: err_msg
     integer             :: ierr
 !
-    ierr = Nf_Open (filname, NF_WRITE, ncid)
+    ierr = Nf90_Open (filname, NF90_WRITE, ncid)
 
-    if (ierr /= NF_NOERR) then
+    if (ierr /= NF90_NOERR) then
        err_msg = 'In Ncop_Rd, cannot open:  ' // Trim (filname)
        call Do_Err_Out (err_msg, .true., 0, 0, 0, 0, 0.0d0, 0.0d0)
     end if

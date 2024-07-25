@@ -1,50 +1,48 @@
 #!/bin/bash
 
-# createRunDir.sh: Create GCHP run directory
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
 #
-# Optional argument: run directory name
+# !MODULE: createRunDir.sh
 #
-# If optional run directory name argument is not passed then the user
-# will be prompted to enter a name interactively, or choose to use the
-# default name gchp_{met}_{sim_name}.
+# !DESCRIPTION: Creates a GCHP run directory.
+#\\
+#\\
+# !CALLING SEQUENCE:
+#  ./createRunDir.sh [rundirname]
 #
-# Usage: ./createRunDir.sh [rundirname]
+# !REMARKS:
+#  If optional run directory name argument is not passed then the user
+#  will be prompted to enter a name interactively, or choose to use the
+#  default name gchp_{met}_{sim_name}_{sim_extra_option}.
 #
-# Initial version: E. Lundgren,10/5/2018
+# !REVISION HISTORY:
+#  Initial version: E. Lundgren,10/5/2018
+#  See the subsequent Git history with the gitk browser!
+#------------------------------------------------------------------------------
+#BOC
 
-# post registration details to api
-function post_registration() {
-    email="$1"
-    name="$2"
-    affiliation="$3"
-    site="$4"
-    git_username="$5"
-    research_interest="$6"
-    env_type="$7"
-    curl --location --request POST "https://gc-dashboard.org/registration" \
-        --header "Content-Type: text/plain" \
-        -d "{
-            \"email\": \"${email}\",
-            \"name\": \"${name}\",
-            \"affiliation\": \"${affiliation}\",
-            \"site\": \"${site}\",
-            \"git_username\": \"${git_username}\",
-            \"research_interest\": \"${research_interest}\",
-            \"model_type\": \"gchp\",
-            \"env_type\": \"${env_type}\"
-        }"
-}
-
+# Directory w/ GCHP rundir scripts (i.e. this directory)
 srcrundir=$(pwd -P)
 cd ${srcrundir}
+
+# GEOS-Chem "science codebase" directory
 cd ../..
 gcdir=$(pwd -P)
+
+# GCHP "wrapper" directory
 cd ../../../..
 wrapperdir=$(pwd -P)
+
+# Return to 
 cd ${srcrundir}
 
-# Load file with utility functions to setup configuration files
-. ${gcdir}/run/shared/setupConfigFiles.sh
+# Source common bash functions from scripts in the run/shared folder
+. ${gcdir}/run/shared/setupConfigFiles.sh      # Config file editing
+. ${gcdir}/run/shared/newUserRegistration.sh   # 1st-time user registration
+. ${gcdir}/run/shared/singleCarbonSpecies.sh   # Single carbon species setup
 
 # Initialize run directory variables
 RUNDIR_VARS=""
@@ -78,7 +76,7 @@ if [[ -z "${GC_DATA_ROOT}" ]]; then
     printf "${thinline}Enter path for ExtData:${thinline}"
     valid_path=0
     while [ "$valid_path" -eq 0 ]; do
-	read -e extdata
+	read -e -p "${USER_PROMPT}" extdata
 	if [[ ${extdata} = "q" ]]; then
 	    printf "\nExiting.\n"
 	    exit 1
@@ -97,29 +95,7 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 # --------------------------------------------------------------
 # registration for first time users
 # --------------------------------------------------------------
-if [[ -z "${GC_USER_REGISTERED}" ]]; then
-    printf "\nInitiating User Registration: You will only need to fill this out once.\n"
-    printf "${thinline}What is your email address?${thinline}"
-    read email
-    
-    if [[ ${email} != "" ]]; then
-    printf "${thinline}What is your name?${thinline}"
-    IFS='\n' read -r name
-    printf "${thinline}What is your research affiliation (University, \nResearch Group, Government Organization, Company)?${thinline}"
-    IFS='\n' read -r affiliation
-    printf "${thinline}If available, please provide the url for your affiliated \ninstitution (group website, company website, etc.)?${thinline}"
-    IFS='\n' read -r site
-    printf "${thinline}Please provide your github username (if any) so that we \ncan recognize you in submitted issues and pull requests.${thinline}"
-    IFS='\n' read -r git_username
-    printf "${thinline}Where do you plan to run GEOS-Chem (e.g. local compute cluster, AWS, other supercomputer)?${thinline}"
-    IFS='\n' read -r env_type
-    printf "${thinline}Please briefly describe how you plan on using GEOS-Chem \nso that we can add you to the GEOS-Chem People and Projects \nwebpage (https://geoschem.github.io/geos-chem-people-projects-map/).${thinline}"
-    IFS='\n' read -r research_interest
-    post_registration "$email" "$name" "$affiliation" "$site" "$git_username" "$research_interest" "$env_type"
-    fi
-    echo "export GC_USER_REGISTERED=true" >> ${HOME}/.geoschem/config
-    source ${HOME}/.geoschem/config
-fi
+[[ -z "${GC_USER_REGISTERED}" ]] && registerNewUser "gchp"
 
 #-----------------------------------------------------------------
 # Ask user to select simulation type
@@ -133,7 +109,7 @@ printf "   5. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
-    read sim_num
+    read -p "${USER_PROMPT}" sim_num
     valid_sim=1
     if [[ ${sim_num} = "1" ]]; then
 	sim_name=fullchem
@@ -172,7 +148,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     printf "  8. RRTMG\n"
     valid_sim_option=0
     while [ "${valid_sim_option}" -eq 0 ]; do
-	read sim_option
+	read -p "${USER_PROMPT}" sim_option
 	valid_sim_option=1
 	if [[ ${sim_option} = "1" ]]; then
 	    sim_extra_option=none
@@ -184,7 +160,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. Complex SOA with semivolatile POA\n"
 	    valid_soa=0
 	    while [ "${valid_soa}" -eq 0 ]; do
-		read soa_option
+		read -p "${USER_PROMPT}" soa_option
 		valid_soa=1
 		if [[ ${soa_option} = "1" ]]; then
 		    sim_extra_option="complexSOA"
@@ -205,7 +181,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    printf "  2. TOMAS with 40 bins\n"
 	    valid_tomas=0
 	    while [ "${valid_tomas}" -eq 0 ]; do
-		read tomas_option
+		read -p "${USER_PROMPT}" tomas_option
 		valid_tomas=1
 		if [[ ${tomas_option} = "1" ]]; then
 		    sim_extra_option="TOMAS15"
@@ -220,7 +196,6 @@ if [[ ${sim_name} = "fullchem" ]]; then
 	    sim_extra_option="APM"
 	elif [[ ${sim_option} = "8" ]]; then
 	    sim_extra_option="RRTMG"
-            printf "*** IMPORTANT: You must manually specify -DRRTMG=y when compiling the model. ***\n"
 	else
 	    valid_sim_option=0
 	    printf "Invalid simulation option. Try again.\n"
@@ -230,6 +205,34 @@ if [[ ${sim_name} = "fullchem" ]]; then
 # Currently no transport tracer extra options
 elif [[ ${sim_name} = "TransportTracers" ]]; then
     sim_extra_option=none
+
+# Ask user to specify carbon simulation options
+elif [[ "x${sim_name}" == "xcarbon" ]]; then
+    printf "${thinline}Do you wish to use a single advected species?${thinline}"
+    printf "  1. Use all species\n"
+    printf "  2. Use CH4 only\n"
+    printf "  3. Use CO2 only\n"
+    printf "  4. Use CO only\n"
+    printf "  5. Use OCS only\n"
+    valid=0
+    while [ "${valid}" -eq 0 ]; do
+	read -p "${USER_PROMPT}" prompt
+	valid=1
+        if [[ "x${prompt}" == "x1" ]]; then
+	    sim_extra_option="none"
+	elif [[ "x${prompt}" == "x2" ]]; then
+	    sim_extra_option="CH4"
+	elif [[ "x${prompt}" == "x3" ]]; then
+	    sim_extra_option="CO2"
+	elif [[ "x${prompt}" == "x4" ]]; then
+	    sim_extra_option="CO"
+	elif [[ "x${prompt}" == "x5" ]]; then
+	    sim_extra_option="OCS"
+	else
+	    valid=0
+	    printf "Invalid selection. Try again.\n"
+	fi
+    done
 fi
 
 RUNDIR_VARS+="RUNDIR_SIM_EXTRA_OPTION=$sim_extra_option\n"
@@ -281,12 +284,12 @@ fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -295,36 +298,206 @@ fi
 #-----------------------------------------------------------------
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
-printf "  2. GEOS-FP \n"
-printf "  3. GEOS-FP native data\n"
+printf "  2. GEOS-FP\n"
+printf "  3. GEOS-IT (Beta release)\n"
+
+metSettingsDir=${gcdir}/run/shared/settings
 
 valid_met=0
 while [ "${valid_met}" -eq 0 ]; do
-    read met_num
+    read -p "${USER_PROMPT}" met_num
     valid_met=1
+
     if [[ ${met_num} = "1" ]]; then
+
 	met="merra2"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/merra2.txt)\n"
+	RUNDIR_VARS+="$(cat ${metSettingsDir}/merra2.txt)\n"
+
     elif [[ ${met_num} = "2" ]]; then
-	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/geosfp.txt)\n"
+
+       	met="geosfp"
+
+        # Ask user to specify processed or raw files
+        printf "${thinline}Choose meteorology file type:${thinline}"
+	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
+	printf "  2. 0.25x0.3125 hourly and 3-hourly raw files produced by GEOS\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		met_file_type="processed_ll"
+	    elif [[ ${response} = "2" ]]; then
+		met_file_type="raw_ll"
+		met_desc="raw"
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
+       	# If using raw files ask user to specify meteoerology for advection.
+	if [[ ${met_file_type} = "raw_ll" ]]; then
+	    printf "${thinline}Choose meteorology for advection:${thinline}"
+	    printf "  1. 0.25x0.3125 3-hourly winds\n"
+	    printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
+	    printf "  3. C720 1-hourly mass fluxes\n"
+	    valid_response=0
+	    while [ "${valid_response}" -eq 0 ]; do
+		valid_response=1
+		read -p "${USER_PROMPT}" response
+		if [[ ${response} = "1" ]]; then
+		    adv_flux_src="wind"
+		elif [[ ${response} = "2" ]]; then
+		    adv_flux_src="derived_wind"
+		elif [[ ${response} = "3" ]]; then
+		    adv_flux_src="mass_flux"
+		else
+		    valid_response=0
+		    printf "Invalid option. Try again.\n"
+		fi
+	    done
+	fi
+	    
+	# Set ExtData.rc settings for met data. Different settings based options chosen above.
+	if [[ ${met_file_type} = "raw_ll" ]]; then
+
+	    # config file with advection meteorology
+	    if [[ ${adv_flux_src} = "wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
+		
+	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
+		
+	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
+	    fi
+
+	    # config file with everything else
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
+	    
+	elif [[ ${met_file_type} = "processed_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
+	fi
+	
     elif [[ ${met_num} = "3" ]]; then
-        read -p "Do you want to use mass fluxes for advection? (yes/no, default=no): " use_mass_fluxes
-	if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
-            use_mass_flux_derived_wind=no
-        else
-            read -p "Do you want to use mass fluxes derived winds for advection? (yes/no, default=no): " use_mass_flux_derived_wind
-        fi
-        
-        if [[ "$use_mass_fluxes" =~ ^[Yy] ]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux.txt)\n"
-        elif [[ "$use_mass_flux_derived_wind" =~ ^[Yy] ]]; then
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_mass_flux_derived_wind.txt)\n"
-        else 
-            RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp_normal_wind.txt)\n"
-        fi
-	met="geosfp"
-	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/native_geosfp.txt)\n"
+	
+	met="geosit"
+	
+ 	# Ask user to specify processed or raw files
+	printf "${thinline}Choose meteorology files:${thinline}"
+	printf "  1. Raw C180 (recommended)\n"
+	printf "  2. Raw 0.5x0.625 \n"
+	printf "  3. Pre-processed C180 (not yet available)\n"
+	printf "  4. Pre-processed 0.5x0.625 \n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		met_file_type="raw_cs"
+		met_desc="raw_cs"
+	    elif [[ ${response} = "2" ]]; then
+		met_file_type="raw_ll"
+		met_desc="raw_ll"
+	    elif [[ ${response} = "3" ]]; then
+		met_file_type="processed_cs"
+		valid_response=0
+		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
+	    elif [[ ${response} = "4" ]]; then
+		met_file_type="processed_ll"
+		met_desc="processed_ll"
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
+	# If using cubed-sphere raw files ask user to specify meteoerology for
+	# advection. If using raw lat-lon then always use winds.
+	if [[ ${met_file_type} = "raw_ll" ]]; then
+	    adv_flux_src="wind"
+	elif [[ ${met_file_type} = "raw_cs" ]]; then
+	    printf "${thinline}Choose meteorology for advection:${thinline}"
+	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
+	    printf "  2. C180 3-hourly winds\n"
+	    valid_response=0
+	    while [ "${valid_response}" -eq 0 ]; do
+	        valid_response=1
+	        read -p "${USER_PROMPT}" response
+	        if [[ ${response} = "1" ]]; then
+	    	    adv_flux_src="mass_flux"
+	        elif [[ ${response} = "2" ]]; then
+	    	    adv_flux_src="wind"
+	        else
+	    	    valid_response=0
+	    	    printf "Invalid option. Try again.\n"
+	        fi
+	    done
+	fi
+	
+	# If using raw files, ask user if they are using discover
+	if [[ ${met_file_type} = "raw_cs" || ${met_file_type} = "raw_ll" ]]; then
+	    printf "${thinline}Are you running on the NASA discover cluster? (y/n)${thinline}"
+	    valid_response=0
+	    while [ "$valid_response" -eq 0 ]; do
+		read -p "${USER_PROMPT}" use_discover
+		if [[ ${use_discover} = "y" ]]; then
+		    valid_response=1
+		elif [[ ${use_discover} = "n" ]]; then
+		    valid_response=1
+		else
+		    printf "Invalid option. Try again.\n"
+		fi
+	    done
+	else
+	    use_discover=n
+	fi
+	
+	# Set text files containing settings for met data. Different settings based options aboves.
+	if [[ ${met_file_type} = "processed_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
+	    
+	else
+	    if [[ ${use_discover} = "y" ]]; then
+		
+		# Settings for advection vars in ExtData.rc, running on discover
+	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_mass_flux.discover.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_cs.discover.txt)\n"  
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
+		fi
+		
+		# Settings for all other met vars in ExtData.rc, running on discover
+		if [[ ${met_file_type} = "raw_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
+		fi
+		
+	    elif [[ ${use_discover} = "n" ]]; then
+		
+		# Settings for advection vars in ExtData.rc, NOT running on discover
+	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_mass_flux.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_cs.txt)\n"
+	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
+	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
+		fi
+	        
+		# Settings for all other met vars in ExtData.rc, NOT running on discover
+		if [[ ${met_file_type} = "raw_cs" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
+	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
+		fi
+		
+	    fi
+	fi  # end GEOS-IT
+	
     else
 	valid_met=0
 	printf "Invalid meteorology option. Try again.\n"
@@ -337,7 +510,7 @@ done
 printf "${thinline}Enter path where the run directory will be created:${thinline}"
 valid_path=0
 while [ "$valid_path" -eq 0 ]; do
-    read -e rundir_path
+    read -e -p "${USER_PROMPT}" rundir_path
 
     # Test for quitting
     if [[ "x${rundir_path}" == "xq" ]]; then
@@ -357,7 +530,7 @@ while [ "$valid_path" -eq 0 ]; do
     if [[ ! -d ${rundir_path} ]]; then
         if [[ -d $(dirname ${rundir_path} ) ]]; then
             printf "\nWarning: ${rundir_path} does not exist,\nbut the parent directory does.\nWould you like to make this directory? (y/n/q)\n"
-            read mk_rundir
+            read -p "${USER_PROMPT}" mk_rundir
             if [[ "x${mk_rundir}" == "xy" ]]; then
                 mkdir $rundir_path
 	    elif [[ "x${mk_rundir}" == "xq" ]]; then
@@ -381,12 +554,17 @@ done
 if [ -z "$1" ]; then
     printf "${thinline}Enter run directory name, or press return to use default:\n\n"
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
-    read -e rundir_name
+    read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	if [[ "${sim_extra_option}" = "none" ]]; then
-	    rundir_name=gchp_${met}_${sim_name}
-	else
-	    rundir_name=gchp_${met}_${sim_name}_${sim_extra_option}
+	rundir_name=gchp_${met}_${sim_name}
+	if [[ "${sim_extra_option}" != "none" ]]; then
+	    rundir_name=${rundir_name}_${sim_extra_option}
+	fi
+	if [[ "x${met_desc}" != "x" ]]; then
+	    rundir_name=${rundir_name}_${met_desc}
+	fi
+	if [[ "x${adv_flux_src}" != "x" ]]; then
+	    rundir_name=${rundir_name}_using_${adv_flux_src}
 	fi
 	printf "  -- Using default directory name ${rundir_name}\n"
     fi
@@ -403,7 +581,7 @@ while [ "${valid_rundir}" -eq 0 ]; do
     if [[ -d ${rundir} ]]; then
 	printf "\nWARNING: ${rundir} already exists.\n"
         printf "Enter a different run directory name, or q to quit:\n"
-	read -e new_rundir
+	read -e -p "${USER_PROMPT}" new_rundir
 	if [[ ${new_rundir} = "q" ]]; then
 	    printf "Exiting.\n"
 	    exit 1
@@ -439,7 +617,7 @@ cp ./gitignore                        ${rundir}/.gitignore
 # Copy file to auto-update common settings. Use adjoint version for CO2.
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -467,34 +645,43 @@ fi
 ln -s ${wrapperdir} ${rundir}/CodeDir
 ln -s ${wrapperdir}/run/runScriptSamples ${rundir}/runScriptSamples
 
-# Create build directory
-mkdir ${rundir}/build
-printf "To build GCHP type:\n   cmake ../CodeDir\n   cmake . -DRUNDIR=..\n   make -j\n   make install\n" >> ${rundir}/build/README
-
 #--------------------------------------------------------------------
 # Link to initial restart files, set start in cap_restart
 #--------------------------------------------------------------------
 restarts=${GC_DATA_ROOT}/GEOSCHEM_RESTARTS
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    start_date='20190701'
-    restart_dir='GC_14.0.0'
-    restart_name="${sim_name}"
+    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+	start_date='20190701'
+	restart_dir='v2024-01'
+	restart_name="${sim_extra_option}"
+    else
+	start_date='20190701'
+	restart_dir='GC_14.3.0'
+	restart_name="${sim_name}"
+    fi
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.0.0'
+    restart_dir='GC_14.3.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
-    restart_dir='GC_14.0.0'
+    restart_dir='GC_14.2.0'
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
     restart_dir='v2023-01'
     restart_name="${sim_name}"
 fi
-for N in 24 48 90 180 360
+for N in 24 30 48 90 180
 do
+    # Do not include c24 and c48 if using GEOS-IT mass fluxes. MAPL cannot regrid
+    # C180 mass fluxes to those grid resolutions.
+    if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
+	if [[ "$N" == "24" || "$N" == "48" ]]; then
+	    continue
+	fi
+    fi
     old_prefix="GEOSChem.Restart.${restart_name}"
     new_prefix="GEOSChem.Restart"
     echo "${start_date} 000000" > ${rundir}/cap_restart
@@ -522,7 +709,13 @@ RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
 RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
 RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
-RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
+
+# Set default grid resolution
+if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
+    RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
+else
+    RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
+fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
@@ -533,10 +726,13 @@ if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='false'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
+    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
 else
     if [[ "${sim_extra_option}" == "marinePOA" ]]; then
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
+	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
@@ -559,7 +755,22 @@ else
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
-RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
+RUNDIR_VARS+="$(cat ${metSettingsDir}/gmao_hemco.txt)\n"
+if [[ "x${sim_extra_option}" == "xbenchmark"        ||
+      "x${sim_extra_option}" == "xaciduptake"       ||
+      "x${sim_extra_option}" == "xmarinePOA"        ||
+      "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
+      "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xcarbon"           ||
+      "x${sim_extra_option}" == "xTOMAS15"          ||
+      "x${sim_extra_option}" == "xTOMAS40"          ||
+      "x${sim_name}"         == "xPOPs"             ||
+      "x${sim_name}"         == "xTransportTracers" ||
+      "x${sim_name}"         == "xtagO3"        ]]; then
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
+else
+    RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='1'\n"
+fi
 
 #--------------------------------------------------------------------
 # Replace settings in config files with RUNDIR variables
@@ -576,7 +787,14 @@ ${srcrundir}/init_rd.sh ${rundir_config_log}
 # GEOS-Chem Classic and GCHP. This script mainly now adds species to 
 # geoschem_config.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
-    set_common_settings ${sim_extra_option}
+    set_common_settings "${sim_extra_option}" "GCHP"
+fi
+
+# If necessary, edit config files for a carbon single species simulation
+if [[ "x${sim_name}" == "xcarbon" ]]; then
+    if [[ "x${sim_extra_option}" != "xnone" ]]; then
+	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
+    fi
 fi
 
 # Call setCommonRunSettings.sh so that all config files are consistent with its
@@ -617,13 +835,16 @@ printf "\n  Hash: ${commit_hash}"      >> ${version_log}
 printf "${thinline}Do you want to track run directory changes with git? (y/n)${thinline}"
 valid_response=0
 while [ "$valid_response" -eq 0 ]; do
-    read enable_git
+    read -p "${USER_PROMPT}" enable_git
     if [[ ${enable_git} = "y" ]]; then
 	cd ${rundir}
 	printf "\n\nChanges to the following run directory files are tracked by git:\n\n" >> ${version_log}
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml input.nml
+	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
+	    git add *.py
+	fi
 	printf " " >> ${version_log}
 	git commit -m "Initial run directory" >> ${version_log}
 	cd ${srcrundir}
@@ -651,5 +872,39 @@ printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
+
+#---------------------------------------------------------------------------
+# Add reminders to compile with CMake options for simulations that need them
+#---------------------------------------------------------------------------
+hdr="\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n"
+
+EXTRA_CMAKE_OPTIONS=""
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+fi
+
+# Add to RUNDIR_VARS
+RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
+
+# Print a reminder to compile with extra CMake options, if necessary
+[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+
+#---------------------------------------------------------------------------
+# Create build directory README file
+#---------------------------------------------------------------------------
+mkdir -p "${rundir}/build"
+msg="To build GEOS-Chem, type:\n\n"
+msg+="$ cmake ../CodeDir\n"
+msg+="$ cmake . -DRUNDIR=.. ${EXTRA_CMAKE_OPTIONS}\n"
+msg+="$ make -j\n"
+msg+="$ make install\n"
+printf "${msg}" > ${rundir}/build/README
+unset msg
 
 exit 0

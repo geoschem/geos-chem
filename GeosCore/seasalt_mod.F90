@@ -126,8 +126,7 @@ MODULE SeaSalt_Mod
   ! Scalars
   INTEGER               :: NR
   INTEGER               :: id_MOPO,     id_MOPI
-  INTEGER               :: id_NK1,      id_SALA
-  INTEGER               :: id_SALC,     id_SS1
+  INTEGER               :: id_SALA,     id_SALC
   INTEGER               :: id_SALACL,   id_SALCCL
   INTEGER               :: id_SALAAL,   id_SALCAL
   REAL(fp)              :: REFF_accum,  REFF_coarse
@@ -199,9 +198,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Scalars
-    LOGICAL            :: prtDebug
-
     ! Strings
     CHARACTER(LEN=255) :: thisLoc
     CHARACTER(LEN=512) :: errMsg
@@ -216,7 +212,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     !========================================================================
     ! Accumulation mode (SALA) wet settling
@@ -228,7 +223,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALA)%Conc,                    &
+            spcId      = id_SALA,                                            &
             N          = 1,                                                  &
             RC         = RC                                                 )
 
@@ -238,7 +233,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum' )
        ENDIF
     ENDIF
@@ -253,7 +248,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALC)%Conc,                    &
+            spcId      = id_SALC,                                            &
             N          = 2,                                                  &
             RC         = RC                                                 )
 
@@ -263,7 +258,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse' )
        ENDIF
     ENDIF
@@ -278,7 +273,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALACL)%Conc,                  &
+            spcId      = id_SALACL,                                          &
             N          = 3,                                                  &
             RC         = RC                                                 )
 
@@ -288,7 +283,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Cl' )
        ENDIF
     ENDIF
@@ -303,7 +298,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALCCL)%Conc,                  &
+            spcId      = id_SALCCL,                                          &
             N          = 4,                                                  &
             RC         = RC                                                 )
 
@@ -313,7 +308,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Cl' )
        ENDIF
     ENDIF
@@ -328,7 +323,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALAAL)%Conc,                  &
+            spcId      = id_SALAAL,                                          &
             N          = 5,                                                  &
             RC         = RC                                                 )
 
@@ -338,7 +333,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Accum Al' )
        ENDIF
     ENDIF
@@ -353,7 +348,7 @@ CONTAINS
             State_Diag = State_Diag,                                         &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            TC         = State_Chm%Species(id_SALCAL)%Conc,                  &
+            spcId      = id_SALCAL,                                          &
             N          = 6,                                                  &
             RC         = RC                                                 )
 
@@ -363,7 +358,7 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSEASALT: WET_SET, Coarse Al' )
        ENDIF
     ENDIF
@@ -388,7 +383,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPO' )
           ENDIF
        ENDIF
@@ -408,7 +403,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSEASALT: a CHEM_MOPI' )
           ENDIF
        ENDIF
@@ -425,7 +420,9 @@ CONTAINS
     ENDDO
     CALL SRCSALTBIN( Seasalt_Ids, State_Grid, State_Met, State_Chm )
 
-    IF ( prtDebug ) CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### EMISSEASALT: Bin' )
+    ENDIF
 
     !----------------------------------------
     ! APM microphysics
@@ -454,7 +451,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE Wet_Settling( Input_Opt, State_Chm, State_Diag, State_Grid,     &
-                           State_Met, TC,        N,          RC             )
+                           State_Met, spcId,     N,          RC             )
 !
 ! !USES:
 !
@@ -462,6 +459,7 @@ CONTAINS
     USE Error_Mod,      ONLY : Debug_Msg
     USE Input_Opt_Mod,  ONLY : OptInput
     USE PhysConstants
+    USE Species_Mod,    ONLY : SpcConc
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -474,14 +472,12 @@ CONTAINS
     TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+    INTEGER,        INTENT(IN)    :: spcId       ! Sea salt species Id
     INTEGER,        INTENT(IN)    :: N           ! odd=accum; even=coarse
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    REAL(fp),       INTENT(INOUT) :: TC(State_Grid%NX, &! Sea salt [kg]
-                                        State_Grid%NY, &
-                                        State_Grid%NZ)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -500,7 +496,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: PrtDebug
     INTEGER            :: I,           J,          L
     INTEGER            :: S,           ID
     REAL(fp)           :: DELZ,        DELZ1,      REFF
@@ -519,6 +514,9 @@ CONTAINS
     REAL(fp)           :: VTS(State_Grid%NZ)
     REAL(fp)           :: TC0(State_Grid%NZ)
 
+    ! Pointers
+    REAL(fp), POINTER  :: TC(:,:,:)
+
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg
     CHARACTER(LEN=255) :: ThisLoc
@@ -534,7 +532,6 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     DTCHEM   = GET_TS_CHEM()    ! Chemistry timestep [s]
     DEN      = SS_DEN( N )      ! Sea salt density [kg/m3]
     ErrMsg   = ''
@@ -558,8 +555,13 @@ CONTAINS
        REFF = REFF_accum                  ! Eff radius of accum mode  [m]
     ENDIF
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: STARTING WET_SETTLING')
+    ENDIF
 
+    ! Point to the species concentration array in State_Chm%Species
+    TC => State_Chm%Species(spcId)%Conc
+    
 !%%% Comment out unused code (not sure who disabled this)
 !%%%    ! Sea salt radius [cm]
 !%%%    !RCM  = REFF * 100e+0_fp
@@ -823,7 +825,12 @@ CONTAINS
     ENDDO ! J
     !$OMP END PARALLEL DO
 
-    IF ( prtDebug ) CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    ! Free pointer
+    TC => NULL()
+
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG('SEASALT: ENDING WET_SETTLING')
+    ENDIF
 
   END SUBROUTINE Wet_Settling
 !EOC
@@ -1132,8 +1139,6 @@ CONTAINS
     id_MOPO   = Ind_('MOPO'  )
     id_SALA   = Ind_('SALA'  )
     id_SALC   = Ind_('SALC'  )
-    id_NK1    = Ind_('NK1'   )
-    id_SS1    = Ind_('SS1'   )
     id_SALACL = Ind_('SALACL')
     id_SALCCL = Ind_('SALCCL')
     id_SALAAL = Ind_('SALAAL')
@@ -1298,227 +1303,7 @@ CONTAINS
 
   END SUBROUTINE CleanUp_SeaSalt
 !EOC
-#ifdef TOMAS
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: srcsalt30
-!
-! !DESCRIPTION: Subroutine SRCSALT30 emits sea-salt into the 30-bin sea-salt
-!  mass and aerosol number arrays.  Sea-salt emission parameterization of
-!  Clarke et al. [2006] (win, 7/17/09)
-!\\
-!\\
-! !INTERFACE:
-
-  SUBROUTINE SRCSALT30( State_Grid, State_Met, TC1, TC2 )
-!
-! !USES:
-!
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,       ONLY : ND59
-    USE DIAG_MOD,           ONLY : AD59_NUMB, AD59_SALT
-#endif
-    USE ERROR_MOD,          ONLY : ERROR_STOP
-    USE ERROR_MOD,          ONLY : IT_IS_NAN
-    USE State_Grid_Mod,     ONLY : GrdState
-    USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_EMIS
-    USE TOMAS_MOD,          ONLY : IBINS, Xk
-!
-! !INPUT PARAMETERS:
-!
-    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
-    TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    ! TC1 : Aerosol number tracer array [no.]
-    ! TC2 (REAL(fp) ) : Sea salt tracer array [kg]
-    REAL(fp),  INTENT(INOUT) :: TC1(State_Grid%NX,State_Grid%NY,State_Grid%NZ,&
-                                    IBINS)
-    REAL(fp),  INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ,&
-                                    IBINS)
-!
-! !AUTHOR:
-!  Contact: Win Trivitayanurak (win@cmu.edu)
-!
-!  Arguments as Input/Output:
-!  ============================================================================
-!
-! !REMARKS:
-!  References:
-!  ============================================================================
-!  (1 ) Clarke, A.D., Owens, S., Zhou, J. " An ultrafine sea-salt flux from
-!        breaking waves: Implications for CCN in the remote marine atmosphere"
-!        JGR, 2006
-!
-! !REVISION HISTORY:
-!  (1 ) Originally from emisnaN3clarke.f in GISS GCM-II' (win, 7/18/07)
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    INTEGER                  :: I,      J,      L,     K
-    INTEGER                  :: NTOP
-    REAL*4                   :: FOCEAN, W10M,   DTEMIS
-    REAL(fp)                 :: F100,   W,      NUM
-    REAL(fp)                 :: DBIN(IBINS),    A(IBINS)
-    REAL(fp)                 :: A_M2,           FEMIS
-    REAL(fp)                 :: SFCWINDSQR
-
-    ! Coefficient to adjust emission in 1x1 grid (win, 4/27/08)
-    REAL(fp)                 :: COEF
-
-#if  defined( TOMAS12 ) || defined( TOMAS15 )
-
-    data Dbin / &
-#ifdef TOMAS15
-         0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,                &
-#endif
-         9.68859E-09, 1.53797E-08, 2.44137E-08, 3.87544E-08, &
-         6.15187E-08, 9.76549E-08, 1.55017E-07, 2.46075E-07, &
-         3.90620E-07, 6.20070E-07, 9.84300E-07, 3.12500E-06/
-
-    data A / &
-#ifdef TOMAS15
-         0.0e+0_fp,     0.0e+0_fp,    0.0e+0_fp, &
-#endif
-         4607513.229,   9309031.200, 12961629.010, 13602132.943, &
-         11441451.509,  9387934.311,  8559624.313,  7165322.549, &
-         4648135.263,   2447035.933,  3885009.997,  1006980.679/
-         ! make same Nk as 30 bins.
-
-#else
-    !else we are using 30 or 40 bin model
-    DATA Dbin / &
-#ifdef TOMAS40
-         0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   &
-         0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   &
-#endif
-         9.68859E-09, 1.22069E-08, 1.53797E-08, 1.93772E-08, 2.44137E-08, &
-         3.07594E-08, 3.87544E-08, 4.88274E-08, 6.15187E-08, 7.75087E-08, &
-         9.76549E-08, 1.23037E-07, 1.55017E-07, 1.95310E-07, 2.46075E-07, &
-         3.10035E-07, 3.90620E-07, 4.92150E-07, 6.20070E-07, 7.81239E-07, &
-         9.84300E-07, 1.24014E-06, 1.56248E-06, 1.96860E-06, 2.48028E-06, &
-         3.12496E-06, 3.93720E-06, 4.96056E-06, 6.24991E-06, 7.87440E-06/
-
-    DATA A / &
-#ifdef TOMAS40
-         0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   &
-         0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   0.0e+0_fp,   &
-#endif
-         1719793.975, 2887719.254, 4086059.079, 5222972.121, 6172287.155, &
-         6789341.855, 6954290.435, 6647842.508, 6030292.470, 5411159.039, &
-         4920485.633, 4467448.678, 4379031.834, 4180592.479, 3836983.331, &
-         3328339.218, 2675909.440, 1972225.823, 1384692.112, 1062343.821, &
-         913194.1118, 859176.8257, 812688.4300, 719215.3301, 580735.2991, &
-         418247.5535, 273217.6572, 183340.5653, 132174.9032,      0.0000/
-
-#endif
-
-    !=================================================================
-    ! SRCSALT30 begins here!
-    !=================================================================
-
-    ! Depending on the grid resolution
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       COEF = 1.e+0_fp
-    ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-       COEF = 1.e+0_fp
-    ELSE
-       CALL ERROR_STOP('Adjust seasalt emiss coeff for grid res.?', &
-                       'SRCSALT30: seasalt_mod.F90')
-    ENDIF
-
-    ! Emission timestep [s]
-    DTEMIS = GET_TS_EMIS()
-
-    ! Loop over grid cells
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! Grid box surface area [m2]
-       A_M2  = State_Grid%Area_M2(I,J)
-
-       ! Check if over ocean assuming only gridcells that are
-       ! at least 50% water are oceans (J. Pierce, 3/10/14)
-       IF ( State_Met%IsWater(I,J) ) THEN
-          FOCEAN = 1e+0_fp - State_Met%FRCLND(I,J)
-       ELSE
-          FOCEAN = 0.e+0_fp
-       ENDIF
-
-       IF (FOCEAN > 0.5e+0_fp) THEN
-
-          ! Wind speed at 10 m altitude [m/s]
-          SFCWINDSQR = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
-          W10M       = SQRT( SFCWINDSQR )
-
-          ! in ocean area - calc wind speed/eqm conc
-          ! calculate the fraction of whitecap coverage
-          W = 3.84E-6 * W10M ** (3.41)
-
-          ! Loop over bins
-          DO  K = 1, IBINS
-
-             F100 = A(K)
-
-             !===============================================================
-             ! Calculate sea-salt emission
-             !===============================================================
-             NUM = F100 * W * A_M2 * FOCEAN * DTEMIS * COEF
-
-             !===============================================================
-             ! Partition sea-salt emissions through boundary layer
-             !===============================================================
-
-             ! Layer in which the PBL top occurs
-             NTOP = CEILING( State_Met%PBL_TOP_L(I,J))
-
-             ! Loop thru the boundary layer
-             DO L = 1, NTOP
-
-                ! Fraction of the PBL spanned by box (I,J,L) [unitless]
-                FEMIS = State_Met%F_OF_PBL(I,J,L)
-
-                !============================================================
-                ! Add sea-salt number to the tracer array
-                !============================================================
-
-                TC1(I,J,L,K) = TC1(I,J,L,K) + ( NUM * FEMIS )
-                TC2(I,J,L,K) = TC2(I,J,L,K) + &
-                               NUM * SQRT( Xk(K) * Xk(K+1)) * FEMIS
-
-             ENDDO
-
-             !==============================================================
-             ! ND59 Diagnostic: Sea salt emission in [kg/box/timestep]
-             !==============================================================
-#ifdef BPCH_DIAG
-             IF ( ND59 > 0) THEN
-                AD59_NUMB(I,J,1,k) = AD59_NUMB(I,J,1,k) + NUM
-                AD59_SALT(I,J,1,k) = AD59_SALT(I,J,1,k) + &
-                                     NUM*sqrt(xk(k)*xk(k+1))
-             ENDIF
-#endif
-
-          ENDDO
-
-       ENDIF
-    ENDDO
-    ENDDO
-
-  END SUBROUTINE SRCSALT30
-!EOC
-#endif
 #ifdef APM
-!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -1796,7 +1581,23 @@ CONTAINS
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       MASS = 0.d0
+       ! Zero private loop variables
+       CONST = 0.0_fp
+       DELZ  = 0.0_fp
+       DELZ1 = 0.0_fp
+       DEN   = 0.0_fp
+       DP    = 0.0_fp
+       MASS  = 0.0_fp
+       OLD   = 0.0_fp
+       P     = 0.0_fp
+       PDP   = 0.0_fp
+       REFF  = 0.0_fp
+       SLIP  = 0.0_fp
+       TEMP  = 0.0_fp
+       TC0   = 0.0_fp
+       VISC  = 0.0_fp
+       VTS   = 0.0_fp
+
        DO L = 1, State_Grid%NZ
           DO N = IDTEMP1, IDTEMP2
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)

@@ -359,7 +359,7 @@ CONTAINS
 
     use parkind,        only : im => kind_im, rb => kind_rb
 
-    USE IsorropiaII_Main_Mod, ONLY : Isorropia
+    USE HETP_mod,             ONLY : mach_hetp_main_15cases
     use module_mosaic_therm, only: mosaic
 !
 ! !INPUT PARAMETERS:
@@ -497,16 +497,21 @@ CONTAINS
     REAL(fp)                   :: TNA,  TCL,  TNH3, TNH4
     REAL(fp)                   :: TNIT, TNO3, TSO4
     REAL(f8)                   :: AERLIQ(NIONSA+NGASAQA+2)
-    REAL(f8)                   :: AERSLD(NSLDSA)
     REAL(f8)                   :: GAS1(NGASAQA)
     REAL(f8)                   :: OTHER(NOTHERA)
     REAL(f8)                   :: WI(NCOMPA)
     REAL(f8)                   :: WT(NCOMPA)
-    REAL(f8)                   :: CNTRL(NCTRLA)
     CHARACTER(LEN=255)       :: X
     CHARACTER(LEN=15)        :: SCASI
     REAL*8                   :: TSO4COAT,DNH3MAX
     REAL*8                   :: TH2O,TINORG   !Yu+ 6/1/11
+    REAL*8                   :: HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4
+    REAL*8                   :: HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl
+    REAL*8                   :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
+    REAL*8                   :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
+    REAL*8                   :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
+    REAL*8                   :: HETP_frSO4, HETP_num
+
     !--------------------------------------------------------------------------
     ! These do not appear to be used anymore (bmy, 6/18/19)
     !REAL,SAVE                :: SEABIRDEM(State_Grid%NX,State_Grid%NY,2)
@@ -723,12 +728,19 @@ CONTAINS
        !$OMP DEFAULT( SHARED )                                                &
        !$OMP PRIVATE( I,    J,      L,       N,      WI,   WT,  GAS1,  TEMPI )&
        !$OMP PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  ) &
-       !$OMP PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  ) &
-       !$OMP PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             ) &
+       !$OMP PRIVATE( TCA,  TMG,    TK,      SCASI                          ) &
+       !$OMP PRIVATE( TNO3, AERLIQ, OTHER,   TNH4,   TNIT                   ) &
        !$OMP PRIVATE( TSO4COAT ,DNH3MAX            )                          &
        !$OMP PRIVATE( TH2O, XM,VRATIO)                                        &
        !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum)                               &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PRIVATE( HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4             ) &
+       !$OMP PRIVATE( HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl              ) &
+       !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
+       !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
+       !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
+       !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
+       !$OMP COLLAPSE( 3                                                      ) &
+       !$OMP SCHEDULE( DYNAMIC, 8                                             )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -830,15 +842,6 @@ CONTAINS
              ! Call ISORROPIA
              !---------------------------------
 
-             ! set type of ISORROPIA call
-             ! Forward problem, do not change this value
-             ! 0e+0_fp represents forward problem
-             CNTRL(1) = 0.0e+0_fp
-
-             ! Metastable for now
-             ! 1e+0_fp represents metastable problem
-             CNTRL(2) = 1.0e+0_fp
-
              ! Insert concentrations [mole/m3] into WI & prevent underflow
              WI(1)    = MAX( TNA,  CONMIN )
              WI(2)    = MAX( TSO4, CONMIN )
@@ -850,11 +853,32 @@ CONTAINS
              WI(8)    = MAX( TMG,  CONMIN )
 
              ! Perform aerosol thermodynamic equilibrium
-             ! ISORROPIA can be found in ISORROPIAIICODE.f
-             ! inputs are WI, RHI, TEMPI, CNTRL
-             CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL,   &
-                             WT,    GAS1,  AERLIQ, AERSLD, &
-                             SCASI, OTHER)
+             ! For safety
+             GAS = 0.0d0
+             AERLIQ = 0.0d0
+             Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
+                                          WI(6), WI(7), WI(8), TEMPI, RHI,              &
+                                          HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
+                                          HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
+                                          HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
+                                          HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
+                                          HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
+                                          HETP_frSO4, HETP_num                          )
+             ! Spoof ISORROPIA outputs which are still used
+             GAS1(1) = HETP_NH3
+             GAS1(2) = HETP_HNO3
+             GAS1(3) = HETP_HCl
+             ! Mostly used for diagnostics
+             AERLIQ( 1) = HETP_H
+             AERLIQ( 2) = HETP_Na
+             AERLIQ( 3) = HETP_NH4
+             AERLIQ( 4) = HETP_Cl
+             AERLIQ( 5) = HETP_SO4
+             AERLIQ( 6) = HETP_HSO4
+             AERLIQ( 7) = HETP_NO3
+             AERLIQ( 8) = HETP_LWC
+             ! WT is used below but is identical to WI for a forward case
+             WT(:) = WI(:)
 
              IF(IFDOISRP==1.or.IFDOISRP==3.or.IFDOISRP==4)THEN
                 TH2O = AERLIQ(8)  ! aerosol water  (mole/m3)
@@ -1036,49 +1060,51 @@ CONTAINS
        !$OMP END PARALLEL DO
     ENDIF
 
-    !$OMP PARALLEL DO                                                       &
-    !$OMP DEFAULT( SHARED )                                                 &
-    !$OMP PRIVATE( I, J, L, N )                                             &
-    !$OMP PRIVATE( SIZENUM, PRESS, TK, RHIN )                               &
-    !$OMP PRIVATE( CACID,PACID )                                            &
-    !$OMP PRIVATE( MSO4,MSO4BULK,MNIT,MNH4,SOAT)                            &
-    !$OMP PRIVATE( MBCS, MOCS, MSULFT,MDSTS,MSALTS)                         &
-    !$OMP PRIVATE( MBC, MOC, MMSA)                                          &
-    !$OMP PRIVATE( XMDST)                                                   &
-    !$OMP PRIVATE( MASS1, MASS2)                                            &
-    !$OMP PRIVATE( CSO2,CNH3,XN0,CAMINE,CAMINEEMIT,YAMINEEMIT)              &
-    !$OMP PRIVATE( CCO,CNO,CNO2,CNO3,CHNO3,CISOP,CMTPA)                     &
-    !$OMP PRIVATE( NH3EMIT)                                                 &
-    !$OMP PRIVATE( CSOG)                                                    &
-    !$OMP PRIVATE( CSOA)                                                    &
-    !$OMP PRIVATE( VOL)                                                     &
-    !$OMP PRIVATE( CLVSOG,MSULFLV,MBCLV,MOCLV,MDSTLV,MSALTLV)               &
-    !$OMP PRIVATE( XM1D,XN1D,XNOLD,TEMPOUT1,ATOM4N,AEROCOMOUT1D)            &
-    !$OMP PRIVATE( XQ,PLVSOG01,PLVSOG1,GFTOT1,GFTOT2,DENWET1,DENWET2)       &
-    !$OMP PRIVATE( IACT10,IACT20,IACT30,FCLOUD1,AERAREA1,AERDRYR1,GAMMAPM1) &
-    !$OMP PRIVATE( RACT1,RACT2,RACT3)                                       &
-    !$OMP PRIVATE( NCOAG1,NCOAG2)                                           &
-    !$OMP PRIVATE( YSPGF,XBCLIFE,XOCLIFE,XCSNH3)                            &!Yu+
-    !$OMP PRIVATE( XOH, XSINK,XAREA,XX0,XX1,DXX,ACS,XLAT, XLON,XAMINE)      &
-    !$OMP PRIVATE( KYEAR,KMON,KDAY,KHOUR,KMIN,ISITE,JSITE,NSITE)            &
-    !$OMP PRIVATE( XU,XV,TOP, TOPP)                                         &
-    !$OMP PRIVATE( KKOUT)                                                   &
-    !$OMP PRIVATE( ZBEXT,ZW,ZG)                                             &!OPT+
-    !$OMP PRIVATE( ZBABS)                                                   &!OPT+
-    !$OMP PRIVATE( YBEXT,XBEXT1k,YW,YG)                                     &!OPT+
-    !$OMP PRIVATE( IWL)                                                     &!OPT+
-    !$OMP PRIVATE( ITYP)                                                    &!mxy+
-    !$OMP PRIVATE( YCCN,YCDN,YCDNSP,YCLDF,YCLDLIQ,YCLDICE,YRCLDL,VZ)        &!Yu+ 7/2012
-    !$OMP PRIVATE( XCDN,XCDNSP )                                            &
-    !$OMP PRIVATE( YF,YC,SCOS,LOCALTIME )                                   &
-    !$OMP PRIVATE( PRESS0, YSIGMA )                                         &
-    !$OMP PRIVATE( wbar,relhum,yqc,yna,YB,YREI,YK)                          &
-    !$OMP PRIVATE( dumc, dumnc, pgam, lamc)                                 &
-    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )                                     &
-    !$OMP PRIVATE( REL,REI)                                                 &
-    !$OMP PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )   &
-    !!$OMP PRIVATE( nuci, onihf, oniimm, onidep, onimey)                    &
-    !$OMP SCHEDULE( DYNAMIC )
+! Disable this parallel loop, which causes differences in output
+! for the time being. -- Bob Yantosca (24 May 2023)
+!    !$OMP PARALLEL DO                                                       &
+!    !$OMP DEFAULT( SHARED )                                                 &
+!    !$OMP PRIVATE( I, J, L, N )                                             &
+!    !$OMP PRIVATE( SIZENUM, PRESS, TK, RHIN )                               &
+!    !$OMP PRIVATE( CACID,PACID )                                            &
+!    !$OMP PRIVATE( MSO4,MSO4BULK,MNIT,MNH4,SOAT)                            &
+!    !$OMP PRIVATE( MBCS, MOCS, MSULFT,MDSTS,MSALTS)                         &
+!    !$OMP PRIVATE( MBC, MOC, MMSA)                                          &
+!    !$OMP PRIVATE( XMDST)                                                   &
+!    !$OMP PRIVATE( MASS1, MASS2)                                            &
+!    !$OMP PRIVATE( CSO2,CNH3,XN0,CAMINE,CAMINEEMIT,YAMINEEMIT)              &
+!    !$OMP PRIVATE( CCO,CNO,CNO2,CNO3,CHNO3,CISOP,CMTPA)                     &
+!    !$OMP PRIVATE( NH3EMIT)                                                 &
+!    !$OMP PRIVATE( CSOG)                                                    &
+!    !$OMP PRIVATE( CSOA)                                                    &
+!    !$OMP PRIVATE( VOL)                                                     &
+!    !$OMP PRIVATE( CLVSOG,MSULFLV,MBCLV,MOCLV,MDSTLV,MSALTLV)               &
+!    !$OMP PRIVATE( XM1D,XN1D,XNOLD,TEMPOUT1,ATOM4N,AEROCOMOUT1D)            &
+!    !$OMP PRIVATE( XQ,PLVSOG01,PLVSOG1,GFTOT1,GFTOT2,DENWET1,DENWET2)       &
+!    !$OMP PRIVATE( IACT10,IACT20,IACT30,FCLOUD1,AERAREA1,AERDRYR1,GAMMAPM1) &
+!    !$OMP PRIVATE( RACT1,RACT2,RACT3)                                       &
+!    !$OMP PRIVATE( NCOAG1,NCOAG2)                                           &
+!    !$OMP PRIVATE( YSPGF,XBCLIFE,XOCLIFE,XCSNH3)                            &!Yu+
+!    !$OMP PRIVATE( XOH, XSINK,XAREA,XX0,XX1,DXX,ACS,XLAT, XLON,XAMINE)      &
+!    !$OMP PRIVATE( KYEAR,KMON,KDAY,KHOUR,KMIN,ISITE,JSITE,NSITE)            &
+!    !$OMP PRIVATE( XU,XV,TOP, TOPP)                                         &
+!    !$OMP PRIVATE( KKOUT)                                                   &
+!    !$OMP PRIVATE( ZBEXT,ZW,ZG)                                             &!OPT+
+!    !$OMP PRIVATE( ZBABS)                                                   &!OPT+
+!    !$OMP PRIVATE( YBEXT,XBEXT1k,YW,YG)                                     &!OPT+
+!    !$OMP PRIVATE( IWL)                                                     &!OPT+
+!    !$OMP PRIVATE( ITYP)                                                    &!mxy+
+!    !$OMP PRIVATE( YCCN,YCDN,YCDNSP,YCLDF,YCLDLIQ,YCLDICE,YRCLDL,VZ)        &!Yu+ 7/2012
+!    !$OMP PRIVATE( XCDN,XCDNSP )                                            &
+!    !$OMP PRIVATE( YF,YC,SCOS,LOCALTIME )                                   &
+!    !$OMP PRIVATE( PRESS0, YSIGMA )                                         &
+!    !$OMP PRIVATE( wbar,relhum,yqc,yna,YB,YREI,YK)                          &
+!    !$OMP PRIVATE( dumc, dumnc, pgam, lamc)                                 &
+!    !$OMP PRIVATE( CCLD,CLDLIQ,CLDICE )                                     &
+!    !$OMP PRIVATE( REL,REI)                                                 &
+!    !$OMP PRIVATE( taucloud, taucloudl, taucloudi, ssacloudl, ssacloudi )   &
+!    !!$OMP PRIVATE( nuci, onihf, oniimm, onidep, onimey)                    &
+!    !$OMP SCHEDULE( DYNAMIC )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -2139,7 +2165,9 @@ CONTAINS
 
     ENDDO
     ENDDO
-    !$OMP END PARALLEL DO
+! Disable this parallel loop, which causes differences in output.
+!  -- Bob Yantosca (24 May 2023)
+!    !$OMP END PARALLEL DO
 
     write(*,*)'LuoSSA',sum(TCOD3D(:,:,:,1))/size(TCOD3D(:,:,:,1)), &
                        sum(TCOD3D(:,:,:,5))/size(TCOD3D(:,:,:,5))

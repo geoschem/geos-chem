@@ -79,7 +79,6 @@ MODULE Vdiff_Mod
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  LOGICAL               :: prtDebug          ! Should we print debug info?
   INTEGER               :: nspcmix           ! # of species for mixing
   INTEGER               :: plev              ! # of levels
   INTEGER               :: plevp             ! # of level edges
@@ -341,7 +340,7 @@ CONTAINS
     pblh     = pblh_arg(:,lat)
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: vdiff begins' )
 
     IF (PRESENT(taux_arg )) taux  = taux_arg(:,lat)
@@ -385,7 +384,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: diffusion begins' )
 
 !-----------------------------------------------------------------------
@@ -407,7 +406,7 @@ CONTAINS
     end do
 
 !      !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: compute free atmos. diffusion' )
 
 !-----------------------------------------------------------------------
@@ -456,7 +455,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: pbldif begins' )
 
 !-----------------------------------------------------------------------
@@ -485,7 +484,7 @@ CONTAINS
     endif
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: after pbldif' )
 
 !-----------------------------------------------------------------------
@@ -652,7 +651,7 @@ CONTAINS
     end do
 
     !### Debug
-    IF ( prtDebug .and. ip < 5 .and. lat < 5 ) &
+    IF ( Input_Opt%Verbose .and. ip < 5 .and. lat < 5 ) &
          CALL DEBUG_MSG( '### VDIFF: starting diffusion' )
 
 !-----------------------------------------------------------------------
@@ -1878,8 +1877,9 @@ CONTAINS
     ENDDO
 
     ! Compute the number of PBL levels
+    ! Write out the message as debug output (bmy, 05 Dec 2022)
     npbl = MAX( 1, plev - k )
-    IF ( Input_Opt%AmIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE(6,*) 'Init_Vdiff: pbl height will be limited to bottom ',npbl,  &
             ' model levels.'
        WRITE(6,*) 'Top is ',ref_pmid(plevp-npbl),' hpa'
@@ -2020,7 +2020,9 @@ CONTAINS
     !=================================================================
 
     !### Debug info
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR begins' )
+    ENDIF
 
     ! Initialize
     RC       =  GC_SUCCESS
@@ -2085,7 +2087,9 @@ CONTAINS
 !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: after emis. and depdrp' )
+    ENDIF
 
     !--------------------------------------------------------------------
     ! Now use pointers to flip arrays in the vertical (bmy, 6/22/15)
@@ -2118,7 +2122,9 @@ CONTAINS
     p_shp              =  p_shp * 1.e-3_fp
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: before vdiff' )
+    ENDIF
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -2136,7 +2142,9 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
+    ENDIF
 
     ! Convert kg/kg -> v/v
     DO NA = 1, nAdvect
@@ -2166,7 +2174,9 @@ CONTAINS
     p_cgs    => NULL()
 
     !### Debug
-    IF ( prtDebug ) CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    IF ( Input_Opt%Verbose ) THEN
+       CALL DEBUG_MSG( '### VDIFFDR: VDIFFDR finished' )
+    ENDIF
 
   END SUBROUTINE VDIFFDR
 !EOC
@@ -2200,7 +2210,8 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 
     IMPLICIT NONE
 !
@@ -2229,12 +2240,11 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: TS_Dyn
+    INTEGER            :: previous_units
     REAL(fp)           :: DT_Dyn
 
     ! Strings
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: errMsg
     CHARACTER(LEN=255) :: thisLoc
 
@@ -2244,7 +2254,6 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS                                ! Assume success
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) ! Print debug output?
     ErrMsg   = ''
     ThisLoc  = ' -> at DO_PBL_MIX_2 (in module GeosCore/vdiff_mod.F90)'
 
@@ -2265,6 +2274,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2276,6 +2286,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -2292,16 +2305,35 @@ CONTAINS
     ! Unit conversion #1
     !=======================================================================
 
-    ! Convert species concentration to v/v dry
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, 'v/v dry', RC,                        &
-                            OrigUnit=OrigUnit                               )
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
+    ! Convert species concentration to [v/v dry] aka [mol/mol dry]
+    ! NOTE: Convert units for all all species because we will later
+    ! update mixing ratios after recomputing air quantities with AIRQNT.
+    ! This is needed in order to ensure mass conservation.
+    !   -- Bob Yantosca, Lizzie Lundgren (15 Feb 2024)
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to v/v dry)!'
+       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol.mol dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixng timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -2320,7 +2352,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( prtDebug ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after VDIFFDR' )
     ENDIF
 
@@ -2330,10 +2362,6 @@ CONTAINS
 
     ! Update air quantities and species concentrations with updated
     ! specific humidity (ewl, 10/28/15)
-    !
-    ! NOTE: Prior to October 2015, air quantities were not updated
-    ! with specific humidity modified in VDIFFDR at this point in
-    ! the model
     CALL AirQnt( Input_Opt, State_Chm, State_Grid,                           &
                  State_Met, RC,        Update_Mixing_Ratio=.TRUE.           )
 
@@ -2345,7 +2373,7 @@ CONTAINS
     ENDIF
 
     ! Debug print
-    IF( prtDebug ) THEN
+    IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
     ENDIF
 
@@ -2353,15 +2381,30 @@ CONTAINS
     ! Unit conversion #2
     !=======================================================================
 
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
     ! Convert species back to the original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,                &
-                            State_Met, OrigUnit,  RC                        )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixng timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -2378,6 +2421,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2389,6 +2433,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = State_Diag%BudgetMixingPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = State_Diag%BudgetMixingLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )

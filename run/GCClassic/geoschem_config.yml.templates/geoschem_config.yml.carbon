@@ -12,7 +12,10 @@ simulation:
   root_data_dir: ${RUNDIR_DATA_ROOT}
   met_field: ${RUNDIR_MET}
   species_database_file: ./species_database.yml
-  debug_printout: false
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
 
 #============================================================================
@@ -75,11 +78,8 @@ CH4_simulation_options:
     TCCON: false
 
   analytical_inversion:
-    activate: false
-    emission_perturbation: 1.0
-    state_vector_element_number: 0
-    use_emission_scale_factor: false
-    use_OH_scale_factors: false
+    perturb_CH4_boundary_conditions: false
+    CH4_boundary_condition_ppb_increase_NSEW: [0.0, 0.0, 0.0, 0.0]
 
 #============================================================================
 # Options for CO
@@ -96,17 +96,28 @@ CO_simulation_options:
 CO2_simulation_options:
 
   sources:
-    fossil_fuel_emissions: true
-    ocean_exchange: true
-    balanced_biosphere_exchange: true
-    net_terrestrial_exchange: true
-    ship_emissions: true
-    aviation_emissions: true
     3D_chemical_oxidation_source: true
 
   tagged_species:
-    save_fossil_fuel_in_background: false
     tag_bio_and_ocean_CO2: false
-    tag_land_fossil_fuel_CO2: 
-    tag_global_ship_CO2: false
-    tag_global_aircraft_CO2: false
+    tag_land_fossil_fuel_CO2: false
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - CH4
+      - CO
+      - CO2
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: plane.log.YYYYMMDD

@@ -7,14 +7,15 @@
 !
 ! !INTERFACE:
 !
-module m_netcdf_io_get_dimlen
+MODULE m_netcdf_io_get_dimlen
 !
-  implicit none
+  IMPLICIT NONE
+  PRIVATE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  public  Ncget_Dimlen
-  public  Ncget_Unlim_Dimlen
+  PUBLIC :: Ncget_Dimlen
+  PUBLIC :: Ncget_Unlim_Dimlen
 !
 ! !DESCRIPTION: Provides routines to obtain the length of a given dimension.
 !\\
@@ -41,15 +42,12 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  subroutine Ncget_Dimlen (ncid, dim_name, dim_len )
+  SUBROUTINE Ncget_Dimlen(ncid, dim_name, dim_len)
 !
 ! !USES:
 !
+    use netCDF
     use m_do_err_out
-!
-    implicit none
-!
-    include 'netcdf.inc'
 !
 ! !INPUT PARAMETERS:
 !!  dim_name : netCDF dimension name
@@ -77,27 +75,26 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=512) :: err_msg
-    integer             :: dimid
-    integer             :: ierr
+    CHARACTER(len=512) :: err_msg
+    INTEGER            :: dimid
+    INTEGER            :: ierr
 
-    ierr = Nf_Inq_Dimid  (ncid, dim_name, dimid)
+    ierr = NF90_Inq_Dimid(ncid, dim_name, dimid)
 
-    if (ierr /= NF_NOERR ) then
-       err_msg = 'In Ncget_Dimlen #1:  ' // Trim (dim_name) // &
-                 ', ' // Nf_Strerror (ierr)
-       call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
-    end if
+    IF (ierr /= NF90_NOERR ) THEN
+       err_msg = 'In Ncget_Dimlen #1:  ' // TRIM(dim_name) // &
+                 ', ' // NF90_Strerror (ierr)
+       CALL Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
+    ENDIF
 
-    ierr = Nf_Inq_Dimlen (ncid, dimid, dim_len)
+    ierr = NF90_Inquire_Dimension(ncid, dimid, len=dim_len)
 
-    if (ierr /= NF_NOERR) then
-       err_msg = 'In Ncget_Dimlen #2:  ' // Nf_Strerror (ierr)
-       call Do_Err_Out (err_msg, .true., 2, ncid, dimid, 0, 0.0d0, 0.0d0)
-    end if
+    IF (ierr /= NF90_NOERR) THEN
+       err_msg = 'In Ncget_Dimlen #2:  ' // NF90_Strerror (ierr)
+       CALL Do_Err_Out (err_msg, .true., 2, ncid, dimid, 0, 0.0d0, 0.0d0)
+    ENDIF
 
-    return
-  end subroutine Ncget_Dimlen
+  END SUBROUTINE Ncget_Dimlen
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -108,23 +105,20 @@ CONTAINS
 !
 ! !INTERFACE:
 !
-  subroutine Ncget_Unlim_Dimlen (ncid, udim_len)
+  SUBROUTINE Ncget_Unlim_Dimlen (ncid, udim_len)
 !
 ! !USES:
 !
-    use m_do_err_out
-!
-    implicit none
-!
-    include 'netcdf.inc'
+    USE netCDF
+    USE m_do_err_out
 !
 ! !INPUT PARAMETERS:
 !!  ncid     : netCDF file id
-    integer,           intent(in) :: ncid
+    INTEGER, INTENT(IN)  :: ncid
 !
 ! !OUTPUT PARAMETERS:
 !!  udim_len : netCDF unlimited dimension length
-    integer,           intent(out) :: udim_len
+    INTEGER, INTENT(OUT) :: udim_len
 !
 ! !DESCRIPTION: Returns the length of the unlimited netCDF dimension.
 !\\
@@ -139,26 +133,15 @@ CONTAINS
 !BOC
 !
 ! !LOCAL VARIABLES:
-    character (len=512) :: err_msg
-    integer             :: ierr
-    integer             :: udimid
-!
-    ierr = Nf_Inq_Unlimdim (ncid, udimid)
+    CHARACTER(len=512) :: err_msg
+    INTEGER            :: ierr, udim_id
 
-    if (ierr /= NF_NOERR) then
-       err_msg = 'In Ncget_Unlim_Dimlen #1:  ' // Nf_Strerror (ierr)
-       call Do_Err_Out (err_msg, .true., 1, ncid, 0, 0, 0.0d0, 0.0d0)
-    end if
+    udim_len = -1
+    ierr = NF90_Inquire(ncid, unlimitedDimId=udim_id)
+    IF ( ierr /= NF90_NOERR ) THEN
+       ierr = NF90_Inquire_Dimension( ncid, udim_id, len=udim_len )
+    ENDIF
 
-    ierr = Nf_Inq_Dimlen (ncid, udimid, udim_len)
-
-    if (ierr /= NF_NOERR) then
-       err_msg = 'In Ncget_Unlim_Dimlen #2:  ' // Nf_Strerror (ierr)
-       call Do_Err_Out (err_msg, .true., 2, ncid, udimid, 0, 0.0d0, 0.0d0)
-    end if
-
-    return
-
-  end subroutine Ncget_Unlim_Dimlen
+  END SUBROUTINE Ncget_Unlim_Dimlen
 !EOC
-end module m_netcdf_io_get_dimlen
+END MODULE m_netcdf_io_get_dimlen

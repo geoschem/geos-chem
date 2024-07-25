@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: GEOS-Chem user manual
+    url: https://geos-chem.readthedocs.io/en/stable
+    about: Click this link to read the GEOS-Chem user manual.

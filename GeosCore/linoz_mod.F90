@@ -241,9 +241,6 @@ CONTAINS
     ! from the State_Chm object. (hplin, 1/22/19)
     REAL(fp), POINTER :: TLSTT (:,:,:,:)   ! IM, JM, LM, Input_Opt%LINOZ_NFIELDS
 
-    ! Print debug output?
-    LOGICAL       :: prtDebug
-
     ! SAVED scalars
     LOGICAL, SAVE :: FIRST = .TRUE.
     INTEGER, SAVE :: id_O3
@@ -251,9 +248,6 @@ CONTAINS
     !=================================================================
     ! LINOZ_CHEM3 begins here!
     !=================================================================
-
-    ! Print debug output?
-    prtDebug   = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Assume success
     RC         = GC_SUCCESS
@@ -344,7 +338,7 @@ CONTAINS
        DO J = 1, JM
        DO I = 1, IM
 
-          !IF ( prtDebug ) THEN
+          !IF ( Input_Opt%Verbose ) THEN
           !   PRINT*, '### I: ', I, 'J: ', J
           !   CALL FLUSH(6)
           !END IF
@@ -356,7 +350,7 @@ CONTAINS
           ENDDO
           LPOS = LPOS-1
 
-          !IF ( prtDebug ) CALL DEBUG_MSG('DONE GET_PEDGE')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE GET_PEDGE')
 
 #if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
           !-----------------------------------------------------------
@@ -380,13 +374,13 @@ CONTAINS
                   Spc(1)%Conc(I,J,(L_OVERWRLD+1):State_Grid%NZ)
           ENDIF
 #endif
-          !IF ( prtDebug ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
-          !IF ( prtDebug ) CALL DEBUG_MSG('DONE TAGO3')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### LINOZ_CHEM3: at LM, LBOT')
+          !IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE TAGO3')
 
           ! Loop over levels
           DO L = LM, LBOT, -1
 
-             !IF ( prtDebug ) THEN
+             !IF ( Input_Opt%Verbose ) THEN
              !   PRINT*, '### Spc: ', Spc(NTRACER)%Conc(I,J,L)
              !   CALL FLUSH(6)
              !ENDIF
@@ -468,7 +462,7 @@ CONTAINS
        !write(6,*) 'max of columns= ',maxval(out_data)
 
     ENDDO
-    IF ( prtDebug ) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
+    IF ( Input_Opt%Verbose ) CALL DEBUG_MSG('DONE LINOZ_CHEM3')
 
     ! Free pointer
     Spc => NULL()
@@ -580,7 +574,7 @@ CONTAINS
     TLSTT          => State_Chm%TLSTT
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '#', 79 )
        WRITE( 6,  50   ) CMONTH(MONTH)
        WRITE( 6, '(a)' ) REPEAT( '#', 79 )
@@ -1143,7 +1137,7 @@ CONTAINS
 
     ! Read header
     READ ( IU_FILE, '(a)' ) HEADING
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE(6,*) TRIM( HEADING )
     ENDIF
 
@@ -1185,13 +1179,15 @@ CONTAINS
        enddo
 
        ! Write overall min & max
-       IF ( Input_Opt%amIRoot ) write (6,912) TITL1,TMIN,TMAX
+       IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
+          write (6,912) TITL1,TMIN,TMAX
+       ENDIF
 912    FORMAT('  Linoz Data:  ',a80,1p,2e10.3)
 
     enddo
 
     ! Echo info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) '$$ Finished Reading Linoz Data $$'
        WRITE( 6, '(a)' )
     ENDIF

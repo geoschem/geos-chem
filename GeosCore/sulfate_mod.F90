@@ -120,9 +120,6 @@ MODULE SULFATE_MOD
   ! LVOLC      : Number of volcanic levels (20)   [unitless]
   !========================================================================
 
-  ! Time variable
-  INTEGER                :: ELAPSED_SEC
-
   ! Allocatable arrays
   REAL(fp),  ALLOCATABLE :: DMSo(:,:)
   REAL(fp),  ALLOCATABLE :: PMSA_DMS(:,:,:)
@@ -171,7 +168,7 @@ MODULE SULFATE_MOD
   REAL(fp)               :: TS_EMIS
 
   ! Species ID flags
-  INTEGER                :: id_AS,     id_AHS,    id_AW1
+  INTEGER                :: id_AS,     id_AHS,    id_AW01
   INTEGER                :: id_DAL1,   id_DAL2,   id_DAL3
   INTEGER                :: id_DAL4,   id_DMS,    id_DST1
   INTEGER                :: id_DST2,   id_DST3,   id_DST4
@@ -179,10 +176,10 @@ MODULE SULFATE_MOD
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
   INTEGER                :: id_NH4aq,  id_NIT,    id_NITd1
   INTEGER                :: id_NITd2,  id_NITd3,  id_NITd4
-  INTEGER                :: id_NITs,   id_NK1,    id_NK5
-  INTEGER                :: id_NK8,    id_NK10,   id_NK20
+  INTEGER                :: id_NITs,   id_NK01,   id_NK05
+  INTEGER                :: id_NK08,   id_NK10,   id_NK20
   INTEGER                :: id_NO3,    id_O3,     id_OH
-  INTEGER                :: id_SALA,   id_SALC,   id_SF1
+  INTEGER                :: id_SALA,   id_SALC,   id_SF01
   INTEGER                :: id_SO2,    id_SO4,    id_SO4aq
   INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3
   INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
@@ -235,10 +232,10 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 #ifdef APM
     USE HCO_STATE_MOD,      ONLY : HCO_GetHcoID
     USE APM_DRIV_MOD,       ONLY : EMITNH3,EMITSO2
@@ -275,10 +272,9 @@ CONTAINS
     ! Scalars
     LOGICAL                  :: LGRAVSTRAT
     LOGICAL                  :: LDSTUP
-    LOGICAL                  :: prtDebug
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
-    CHARACTER(LEN=63)        :: OrigUnit
+    INTEGER                  :: previous_units
 
     ! Strings
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
@@ -305,9 +301,6 @@ CONTAINS
 
     ! Initialize pointers
     Spc                  => State_Chm%Species  ! Chemistry species [kg]
-
-    ! Should we print debug output?
-    prtDebug             = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
 
     ! Get current month
     MONTH                = GET_MONTH()
@@ -344,9 +337,6 @@ CONTAINS
 
     ENDIF
 
-    ! Store NTIME in a shadow variable
-    ELAPSED_SEC = GET_ELAPSED_SEC()
-
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM = GET_TS_CHEM()
 
@@ -369,10 +359,9 @@ CONTAINS
 
 #ifdef APM
     IDNH3 = HCO_GetHcoID( 'NH3', HcoState )
-    !$OMP PARALLEL DO              &
-    !$OMP DEFAULT( SHARED )        &
-    !$OMP PRIVATE( L, J, I, A_M2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( L, J, I, A_M2                                            )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -389,10 +378,9 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     IDSO2 = HCO_GetHcoID( 'SO2', HcoState )
-    !$OMP PARALLEL DO              &
-    !$OMP DEFAULT( SHARED )        &
-    !$OMP PRIVATE( L, J, I, A_M2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( L, J, I, A_M2                                            )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -424,8 +412,8 @@ CONTAINS
     PACL       = 0e+0_fp
     PCCL       = 0e+0_fp
 #ifdef APM
-    PSO4_SO2APM = 0d0
-    PSO4_SO2SEA = 0d0
+    PSO4_SO2APM = 0e+0_fp
+    PSO4_SO2SEA = 0e+0_fp
 #endif
 #ifdef TOMAS
     PSO4_SO2AQ = 0e+0_fp     ! For TOMAS microphysics
@@ -446,7 +434,7 @@ CONTAINS
        IF ( id_SO4s > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_SO4s,   RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4S' )
           ENDIF
        ENDIF
@@ -455,7 +443,7 @@ CONTAINS
        IF ( id_NITs > 0 ) THEN
           CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                               State_Met, id_NITs,   RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITS' )
           ENDIF
        ENDIF
@@ -469,7 +457,7 @@ CONTAINS
           IF ( id_SO4d1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d1,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
              ENDIF
           ENDIF
@@ -478,7 +466,7 @@ CONTAINS
           IF ( id_SO4d2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d2,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
              ENDIF
           ENDIF
@@ -487,7 +475,7 @@ CONTAINS
           IF ( id_SO4d3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d3,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
              ENDIF
           ENDIF
@@ -496,7 +484,7 @@ CONTAINS
           IF ( id_SO4d4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4d4,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
              ENDIF
           ENDIF
@@ -505,7 +493,7 @@ CONTAINS
           IF ( id_NITd1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd1,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
              ENDIF
           ENDIF
@@ -514,7 +502,7 @@ CONTAINS
           IF ( id_NITd2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd2,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
              ENDIF
           ENDIF
@@ -523,7 +511,7 @@ CONTAINS
           IF ( id_NITd3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd3,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
              ENDIF
           ENDIF
@@ -532,7 +520,7 @@ CONTAINS
           IF ( id_NITd4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_NITd4,  RC )
-             IF ( prtDebug ) THEN
+             IF ( Input_Opt%Verbose ) THEN
                 CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
              ENDIF
           ENDIF
@@ -542,20 +530,43 @@ CONTAINS
        IF ( LGRAVSTRAT ) THEN
           CALL SETTLE_STRAT_AER( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, STRAT' )
           ENDIF
        ENDIF
 
-       ! Convert species to [v/v dry]
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                               'v/v dry', RC, OrigUnit=OrigUnit )
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
+       ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+#ifndef TOMAS
+            mapping        = State_Chm%Map_Advect,                           &
+#endif
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
+
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( prtDebug ) THEN
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -576,7 +587,7 @@ CONTAINS
           ENDIF
 
           ! Debug info
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_DMS' )
           ENDIF
 
@@ -593,7 +604,7 @@ CONTAINS
              RETURN
           ENDIF
 
-          IF ( prtDebug ) THEN
+          IF ( Input_Opt%Verbose ) THEN
              CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_H2O2' )
           ENDIF
 
@@ -613,7 +624,7 @@ CONTAINS
        ENDIF
 
        ! Debug info
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2' )
        ENDIF
 
@@ -630,12 +641,12 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4' )
        ENDIF
 
 #ifdef TOMAS
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! For TOMAS microphysics:
        !
        ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
@@ -644,14 +655,25 @@ CONTAINS
        ! aerosol by TOMAS subroutine AQOXID.   NOTE: This may be moved
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
-       !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+       !---------------------------------------------------------------------
+       CALL CHEM_SO4_AQ( Input_Opt, State_Chm,  State_Grid,                  &
+                         State_Met, State_Diag, RC                          )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "CHEM_SO4_AQ"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       IF ( Input_Opt%Verbose ) THEN
+          CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
+       ENDIF
 #endif
 
        ! MSA
        CALL CHEM_MSA( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_MSA' )
        ENDIF
 
@@ -659,13 +681,13 @@ CONTAINS
        ! CHEM_NIT includes a source term from sea salt aerosols, so keep
        ! here.
        CALL CHEM_NIT( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_NIT' )
        ENDIF
 
        ! Calculate the HCl uptake by alkalinity, xnw
        CALL CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_CL' )
        ENDIF
 
@@ -675,15 +697,38 @@ CONTAINS
        ! FullRun = F: Just set up Cloud pH & related parameters, and exit
        !---------------------------------------------------------------------
 
-       ! Convert species to [v/v dry]
-       CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,  &
-                               'v/v dry', RC, OrigUnit=OrigUnit )
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
+       ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+#ifndef TOMAS
+            mapping        = State_Chm%Map_Advect,                           &
+#endif
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
+
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
-       IF ( prtDebug ) THEN
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
 
@@ -698,19 +743,40 @@ CONTAINS
           RETURN
        ENDIF
 
-       IF ( prtDebug ) THEN
+       IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO2 false' )
        ENDIF
 
     ENDIF ! FullRun
 
+    ! Halt aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species units back to original unit
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met,     &
-                            OrigUnit,  RC )
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+#ifndef TOMAS
+         mapping    = State_Chm%Map_Advect,                                  &
+#endif
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SULFATE in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointer
@@ -748,10 +814,11 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE TOMAS_MOD,          ONLY : IBINS,      ICOMP,   IDIAG
+    USE Timers_Mod,         ONLY : Timer_End,  Timer_Start
+    USE TOMAS_MOD,          ONLY : ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -777,41 +844,63 @@ CONTAINS
 !
     ! Fields for TOMAS simulation
     REAL*8           :: BINMASS(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                IBINS*ICOMP)
+                                State_Chm%nTomasBins*ICOMP)
+    INTEGER          :: IBINS
     INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
-    CHARACTER(LEN=63):: OrigUnit
+    INTEGER          :: previous_units
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
     ! Arrays
-    REAL(fp)         :: tempnh4(ibins)
-    REAL(fp)         :: MK_TEMP2(IBINS)
+    REAL(fp)         :: tempnh4(State_Chm%nTomasBins)
+    REAL(fp)         :: MK_TEMP2(State_Chm%nTomasBins)
 
     !=================================================================
     ! EMISSSULFATETOMAS begins here!
     !=================================================================
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species to [kg] for TOMAS. This will be removed once
     ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
     ENDIF
 
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
+    ENDIF    
+
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
-    IF (id_SF1 > 0 .and. id_NK1 > 0 ) THEN
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
+
+    IF (id_SF01 > 0 .and. id_NK01 > 0 ) THEN
 
        ! Get NH4 and aerosol water into the same array
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          BINMASS(:,:,:,M) = Spc(id_SF1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,M) = Spc(id_SF01+M-1)%Conc(:,:,:)
        ENDDO
 
        IF ( SRTNH4 > 0 ) THEN
@@ -828,7 +917,7 @@ CONTAINS
              ! Change pointer to a variable to avoid array temporary
              ! (bmy, 7/7/17)
              DO M = 1, IBINS
-                MK_TEMP2(M) = Spc(id_SF1+M-1)%Conc(I,J,L)
+                MK_TEMP2(M) = Spc(id_SF01+M-1)%Conc(I,J,L)
              ENDDO
              NH4_CONC = Spc(id_NH4)%Conc(I,J,L)
              CALL NH4BULKTOBIN( MK_TEMP2, NH4_CONC, TEMPNH4 )
@@ -844,30 +933,47 @@ CONTAINS
 
        TID = IBINS*(ICOMP-1) +1
        DO M = 1, IBINS
-          BINMASS(:,:,:,TID+M-1) = Spc(id_AW1+M-1)%Conc(:,:,:)
+          BINMASS(:,:,:,TID+M-1) = Spc(id_AW01+M-1)%Conc(:,:,:)
        ENDDO
 
-       !IF ( id_SF1 > 0 ) THEN
+       !IF ( id_SF01 > 0 ) THEN
        CALL SRCSF30( Input_Opt, State_Grid, State_Met, &
                      State_Chm, BINMASS(:,:,:,:), RC )
 
        ! Return the aerosol mass after emission subroutine to Spc
        ! excluding the NH4 aerosol and aerosol water (win, 9/27/08)
        DO M = 1, IBINS*(ICOMP-IDIAG)
-          Spc(id_SF1+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
+          Spc(id_SF01+M-1)%Conc(:,:,:) = BINMASS(:,:,:,M)
        ENDDO
     ENDIF
 
     ! Free pointer
     NULLIFY( Spc )
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species back to original units (ewl, 9/11/15)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
     ENDIF
 
   END SUBROUTINE EMISSSULFATETOMAS
@@ -890,17 +996,13 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND13 (for now)
-    USE DIAG_MOD,             ONLY : AD59_SULF,     AD59_NUMB
-#endif
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
     USE State_Grid_Mod,       ONLY : GrdState
     USE State_Met_Mod,        ONLY : MetState
     USE State_Chm_Mod,        ONLY : ChmState
-    USE TOMAS_MOD,            ONLY : IBINS, AVGMASS, ICOMP
+    USE TOMAS_MOD,            ONLY : AVGMASS, ICOMP
     USE TOMAS_MOD,            ONLY : Xk
     USE TOMAS_MOD,            ONLY : SUBGRIDCOAG, MNFIX
     USE TOMAS_MOD,            ONLY : SRTSO4, SRTNH4,  DEBUGPRINT
@@ -916,9 +1018,11 @@ CONTAINS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
-    REAL(fp), INTENT(INOUT) :: TC2(State_Grid%NX,State_Grid%NY,State_Grid%NZ, &
-                                   IBINS*ICOMP)
+    TYPE(ChmState), INTENT(IN)    :: State_Chm   ! Chemistry State object
+    REAL(fp),       INTENT(INOUT) :: TC2(State_Grid%NX, &
+                                         State_Grid%NY, &
+                                         State_Grid%NZ, &
+                                         State_Chm%nTomasBins*ICOMP)
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -941,45 +1045,25 @@ CONTAINS
     REAL*8                 :: SO4an(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
     REAL*8                 :: SO4bf(State_Grid%NX,State_Grid%NY)
     REAL*8                 :: SO4anbf(State_Grid%NX,State_Grid%NY,2)
-    REAL*8 BFRAC(IBINS)     ! Mass fraction emitted to each bin
+    REAL*8                 :: BFRAC(State_Chm%nTomasBins)
 
-#if  defined( TOMAS12) || defined( TOMAS15)
-    DATA BFRAC/ &
-# if  defined( TOMAS15)
-         0.0d0     , 0.0d0     , 0.0d0, &
-# endif
-         4.3760E-02, 6.2140E-02, 3.6990E-02, 1.8270E-02, &
-         4.2720E-02, 1.1251E-01, 1.9552E-01, 2.2060E-01, &
-         1.6158E-01, 7.6810E-02, 2.8884E-02, 2.0027E-04/
-
-#else
-
-    DATA BFRAC/ &
-# if  defined( TOMAS40)
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-         0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , 0.000d00 , &
-# endif
-         1.728d-02, 2.648d-02, 3.190d-02, 3.024d-02, 2.277d-02, &
-         1.422d-02, 9.029d-03, 9.241d-03, 1.531d-02, 2.741d-02, &
-         4.529d-02, 6.722d-02, 8.932d-02, 1.062d-01, 1.130d-01, &
-         1.076d-01, 9.168d-02, 6.990d-02, 4.769d-02, 2.912d-02, &
-         1.591d-02, 7.776d-03, 3.401d-03, 1.331d-03, 4.664d-04, &
-         1.462d-04, 4.100d-05, 1.029d-05, 2.311d-06, 4.645d-07/
-#endif
-
-    REAL(fp)               :: NDISTINIT(IBINS)
-    REAL(fp)               :: NDISTFINAL(IBINS)
-    REAL(fp)               :: MADDFINAL(IBINS)
-    REAL(fp)               :: NDIST(IBINS),  MDIST(IBINS,ICOMP)
-    REAL(fp)               :: NDIST2(IBINS), MDIST2(IBINS,ICOMP)
+    REAL(fp)               :: NDISTINIT(State_Chm%nTomasBins)
+    REAL(fp)               :: NDISTFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: MADDFINAL(State_Chm%nTomasBins)
+    REAL(fp)               :: NDIST(State_Chm%nTomasBins)
+    Real(fp)               :: MDIST(State_Chm%nTomasBins,ICOMP)
+    REAL(fp)               :: NDIST2(State_Chm%nTomasBins)
+    REAL(fp)               :: MDIST2(State_Chm%nTomasBins,ICOMP)
     REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
 
-    !REAL(fp)              :: N0(State_Grid%NZ,IBINS)
-    !REAL(fp)              :: M0(State_Grid%NZ,IBINS)
-    REAL(fp)               :: Ndiag(IBINS), Mdiag(IBINS)
+    !REAL(fp)              :: N0(State_Grid%NZ,State_Chm%nTomasBins)
+    !REAL(fp)              :: M0(State_Grid%NZ,State_Chm%nTomasBins)
+    REAL(fp)               :: Ndiag(State_Chm%nTomasBins)
+    REAL(fp)               :: Mdiag(State_Chm%nTomasBins)
     REAL(fp)               :: MADDTOTAL !optimization variable for diag
-    !REAL(fp)              :: Avginit(IBINS), Avgfinal(IBINS)
-    !REAL(fp)              :: Avginner(IBINS)
+    !REAL(fp)              :: Avginit(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avgfinal(State_Chm%nTomasBins)
+    !REAL(fp)              :: Avginner(State_Chm%nTomasBins)
 
     REAL(fp)               :: AREA(State_Grid%NX, State_Grid%NY)
     !REAL(fp)              :: AREA3D(State_Grid%NX, State_Grid%NY,2)
@@ -990,8 +1074,8 @@ CONTAINS
     TYPE(SpcConc), POINTER :: TC1(:)
 
     INTEGER                :: N_TRACERS
-
-    LOGICAL                :: ERRORSWITCH, SGCOAG = .TRUE.
+    INTEGER                :: IBINS
+    LOGICAL                :: ERRORSWITCH, SGCOAG = .FALSE. ! bc,jrp - turn off subgridcoag 18/12/23
     INTEGER                :: FLAG, ERR
     logical                :: pdbug !(temporary) win, 10/24/07
     !integer               :: ii, jj, ll
@@ -1005,7 +1089,7 @@ CONTAINS
     real*8   dummy
 
     ! For fields from Input_Opt
-    LOGICAL :: prtDebug, LNLPBL
+    LOGICAL :: LNLPBL
     LOGICAL :: jkdbg=.true.
 
     ! Strings
@@ -1022,7 +1106,6 @@ CONTAINS
     Ptr3D    => NULL()
 
     ! COpy values from Input_Opt
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     LNLPBL   = Input_Opt%LNLPBL
 
     ! Import emissions from HEMCO (through HEMCO state)
@@ -1037,20 +1120,48 @@ CONTAINS
     AREA = HcoState%Grid%AREA_M2%Val(:,:)
     !AREA3D(:,:,1) = AREA(:,:)
     !AREA3D(:,:,2) = AREA(:,:)
-
+    
+     ! comment out if shut off subgridcoag bc,14/12/23
     ! Define subgrid coagulation timescale (win, 10/28/08)
-    IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
-       TSCALE = 10.*3600.  ! 10 hours
-    ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
-       TSCALE = 5.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-       TSCALE = 1.*3600.
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       TSCALE = 0.5*3600.
-    ENDIF
+    !IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
+    !   TSCALE = 10.0_fp*3600.0_fp  ! 10 hours
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
+       TSCALE = 5.0_fp*3600.0_fp
+    !!ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    !   TSCALE = 1.0_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    !   TSCALE = 0.5_fp*3600.0_fp
+    !ENDIF
 
     ! Point to species array
     TC1 => State_Chm%Species
+
+    ! Number of bins
+    IBINS = State_Chm%nTomasBins
+
+    ! Mass fraction emitted to each bin
+#if  defined( TOMAS12) || defined( TOMAS15)
+    BFRAC = [ &
+# if  defined( TOMAS15)
+         0.0e+0,     0.0e+0,     0.0e+0,                    &
+# endif
+         4.3760e-02, 6.2140e-02, 3.6990e-02, 1.8270e-02, &
+         4.2720e-02, 1.1251e-01, 1.9552e-01, 2.2060e-01, &
+         1.6158e-01, 7.6810e-02, 2.8884e-02, 2.0027e-04 ]
+
+#else(
+    BFRAC = [ &
+# if  defined( TOMAS40)
+         0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    &
+         0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    0.0e+0,    &
+# endif
+         1.728e-02, 2.648e-02, 3.190e-02, 3.024e-02, 2.277e-02, &
+         1.422e-02, 9.029e-03, 9.241e-03, 1.531e-02, 2.741e-02, &
+         4.529e-02, 6.722e-02, 8.932e-02, 1.062e-01, 1.130e-01, &
+         1.076e-01, 9.168e-02, 6.990e-02, 4.769e-02, 2.912e-02, &
+         1.591e-02, 7.776e-03, 3.401e-03, 1.331e-03, 4.664e-04, &
+         1.462e-04, 4.100e-05, 1.029e-05, 2.311e-06, 4.645e-07 ]
+#endif
 
     !================================================================
     ! READ IN HEMCO EMISSIONS
@@ -1170,11 +1281,11 @@ CONTAINS
        !=============================================================
        IF ( SGCOAG ) THEN
 
-! ewl: TC1 = Spc(:,:,:,id_NK1:id_NK1+IBINS-1)
+! ewl: TC1 = Spc(:,:,:,id_NK01:id_NK01+IBINS-1)
 
           !save number and mass before emission
           !DO M = 1, IBINS
-          !   N0(:,M) = TC1(id_NK1+M-1)%Conc(I,J,:)
+          !   N0(:,M) = TC1(id_NK01+M-1)%Conc(I,J,:)
           !ENDDO
           !M0(:,:) = TC2(I,J,:,1:IBINS)
 
@@ -1190,7 +1301,7 @@ CONTAINS
                 !sfarina - sqrt is expensive.
                 !NDISTINIT(K) = SO4(L) * BFRAC(K) / ( SQRT( XK(K)*XK(K+1) ) )
                 !set existing number of particles
-                NDIST(K) = TC1(id_NK1+K-1)%Conc(I,J,L)
+                NDIST(K) = TC1(id_NK01+K-1)%Conc(I,J,L)
                 !sfarina - what are the chances aerosol water and ammonium
                 ! are properly equilibrated?
                 DO C = 1, ICOMP
@@ -1287,7 +1398,7 @@ CONTAINS
                                        'after SUBGRIDCOAG at ',I,J,L
 
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = NDIST2(K)
+                TC1(id_NK01+K-1)%Conc(I,J,L) = NDIST2(K)
                 DO C=1,ICOMP
                    TC2(I,J,L,K+(C-1)*IBINS) = MDIST2(K,C)
                 ENDDO
@@ -1300,7 +1411,7 @@ CONTAINS
              !
              !DO K = 1, IBINS
              !!sfarina debug
-             !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
+             !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
              ! write(*,*) '"Negative NK emis" details:'
              ! write(*,*) 'NTOP       ', NTOP
              ! write(*,*) 'S_SO4:     ', S_SO4
@@ -1308,7 +1419,7 @@ CONTAINS
              ! write(*,*) 'EFRAC(L):  ', EFRAC(L)
              ! DO Bi=1,IBINS
              !  write(*,*) 'Bin        ',Bi
-             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK1+Bi-1)%Conc(I,J,L)
+             !  write(*,*) 'n0, TC1    ', N0(l,bi),  TC1(id_NK01+Bi-1)%Conc(I,J,L)
              !  write(*,*) 'ndist1,2   ', NDIST(Bi), NDIST2(Bi)
              !  write(*,*) 'ndistfinal ', NDISTFINAL(Bi)
              !  write(*,*) 'MADDFINAL  ', MADDFINAL(Bi)
@@ -1334,40 +1445,6 @@ CONTAINS
           !                 [kg S/box/timestep] and the corresponding
           !                  number emission [no./box/timestep]
           !==============================================================
-#ifdef BPCH_DIAG
-          IF ( ND59 > 0 ) THEN
-             !print*, 'JACK IN ND59 SULFATE'
-             DO K = 1, IBINS
-                !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
-                !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
-                !     'at',I,J,L,K
-                !if(TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K), &
-                !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK1+K-1)%Conc(I,J,L),N0(L,K)
-                !end if
-
-                !sfarina - I have studied this extensively and determined that
-                !negative NK emis as defined here is not an accurate statement.
-                !The particle number in a given bin IS reduced by this
-                !subroutine, but it is not reduced by emission. Particle
-                !number is reduced by mnfix.
-                !if the bin is just about to boil over, that added sulfate mass
-                !will trigger a big particle shift in mnfix and it will look
-                !like a 'negative number emission' event as defined by this
-                !inequality
-
-                !sfarina - changing the definition of this diagnostic to ignore
-                ! changes to the distribution by mnfix
-                !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
-                !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
-                !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK1+K-1)%Conc(I,J,L)-N0(L,K) &
-                AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
-                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
-             ENDDO
-          ENDIF
-#endif
 
        ELSE
           ! Distributing primary emission without sub-grid coagulation
@@ -1379,34 +1456,12 @@ CONTAINS
           DO L = 1, State_Grid%NZ
              SO4(L) = TSO4 * EFRAC(L)
              DO K = 1, IBINS
-                TC1(id_NK1+K-1)%Conc(I,J,L) = TC1(id_NK1+K-1)%Conc(I,J,L) + &
+                TC1(id_NK01+K-1)%Conc(I,J,L) = TC1(id_NK01+K-1)%Conc(I,J,L) + &
                      ( SO4(L) * DTSRCE * BFRAC(K) / AVGMASS(K) )
                TC2(I,J,L,K) = TC2(I,J,L,K) + &
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
-
-#ifdef BPCH_DIAG
-          !==============================================================
-          ! ND59 Diagnostic: Size-resolved primary sulfate emission in
-          !                 [kg S/box/timestep] and the corresponding
-          !                  number emission [no./box/timestep]
-          !==============================================================
-          IF ( ND59 > 0 ) THEN
-             SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
-             SO4anbf(:,:,2) = SO4an(:,:,2)
-
-             DO L = 1, 2
-             DO K = 1, IBINS
-                AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) * S_SO4 * DTSRCE        )
-                AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) / AVGMASS(K) * DTSRCE   )
-             ENDDO
-             ENDDO
-
-          ENDIF
-#endif
 
        ENDIF !SGCOAG
 
@@ -1416,7 +1471,7 @@ CONTAINS
 
     NULLIFY(TC1)
 
-    IF ( prtDebug ) print *,'   ### Finish SRCSF30'
+    IF ( Input_Opt%Verbose ) print *,'   ### Finish SRCSF30'
 
   END SUBROUTINE SRCSF30
 #endif
@@ -1447,14 +1502,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,           ONLY : AD44
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1745,44 +1793,6 @@ CONTAINS
                       * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1 &
                       *  TC(I,J,L+1) )
        ENDDO
-
-       !==============================================================
-       ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
-       ! (specifically sea salt loss diagnostics)
-       !==============================================================
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-       !-----------------------------------------------------------
-       ! ND44 DIAGNOSTIC (bpch)
-       ! Dry deposition flux loss [molec/cm2/s]
-       !
-       ! NOTE: Bpch diagnostics are being phased out.
-       !-----------------------------------------------------------
-       IF ( ND44 > 0 ) THEN
-
-          ! Initialize
-          TOT1 = 0e+0_fp
-          TOT2 = 0e+0_fp
-
-          ! Compute column totals of TCO(:) and TC(I,J,:,N)
-          DO L = 1, State_Grid%NZ
-             TOT1 = TOT1 + TC0(L)
-             TOT2 = TOT2 + TC(I,J,L)
-          ENDDO
-
-          ! Surface area [cm2]
-          AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-          ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
-          FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( MW_g * 1.e-3_fp ) / AREA_CM2
-
-          ! Store in global AD44 array for bpch diagnostic output
-          AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
-
-       ENDIF
-#endif
-#endif
 
        !-----------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
@@ -2657,16 +2667,18 @@ CONTAINS
     !$OMP PRIVATE( HCHO0,    HMSc,          HMS0,      OH0,      KaqHCHO    )&
     !$OMP PRIVATE( KaqHMS,   KaqHMS2,       L7,        L7S,      L7_b       )&
     !$OMP PRIVATE( L7S_b,    L8,            L8S,       LSTOT_HMS            )&
-    !$OMP SCHEDULE( DYNAMIC, 1                                              )
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
        ! Initialize for safety's sake
-       Ld       = 0.0_fp
-       LSTOT0   = 0.0_fp
-       LSTOT    = 0.0_fp
-       LSTOT_HMS = 0.0_fp
+       Ld          = 0.0_fp
+       LSTOT0      = 0.0_fp
+       LSTOT       = 0.0_fp
+       LSTOT_HMS   = 0.0_fp
+       one_m_KRATE = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
@@ -4320,7 +4332,6 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
@@ -4792,8 +4803,8 @@ CONTAINS
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Met_Mod,      ONLY : MetState
-    USE TIME_MOD,           ONLY : GET_TS_CHEM,        GET_ELAPSED_SEC
-    USE TIME_MOD,           ONLY : GET_ELAPSED_SEC,    GET_MONTH
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+    USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
 !
 ! !INPUT PARAMETERS:
@@ -7523,8 +7534,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                       State_Met, RC )
+  SUBROUTINE CHEM_SO4( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, State_Met, RC                            )
 !
 ! !USES:
 !
@@ -7589,13 +7600,9 @@ CONTAINS
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
-#ifdef APM
-    REAL(fp), POINTER :: PSO4_SO2APM2(:,:,:)
-#endif
 
 #ifdef APM
-    REAL*8            :: MASS0, MASS, PMASS
-    REAL*8            :: RKTs, E_RKTs, DTCHEM
+    REAL(fp), PARAMETER :: AIRMW_96 = AIRMW / 96.0d0
 #endif
 
     !=================================================================
@@ -7615,37 +7622,31 @@ CONTAINS
     !------------------------------------------
     ! Call APM size-resolved drydep algorithm
     !------------------------------------------
-    CALL WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, RC )
-
-    ! Point to PSO4_SO2APM2 now moved to State_Met
-    PSO4_SO2APM2 => State_Met%PSO4_SO2APM2
+    CALL WET_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
 #endif
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
     ! Loop over chemistry grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, SO4, SO4s, SO40, SO40s ) &
-    !$OMP PRIVATE( SO4d, SO40d, SO40_dust          ) &
-    !$OMP PRIVATE( IBIN, PSO4d, IDTRC              ) &
-#ifdef APM
-    !$OMP PRIVATE( N, MASS0, MASS, PMASS, RKTs, E_RKTs ) &
-#endif
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,     J,    L,     N,         SO4,  SO4s,  SO40         )&
+    !$OMP PRIVATE( SO40s, SO4d, SO40d, SO40_dust, IBIN, PSO4d, IDTRC        )&
+    !$OMP SCHEDULE( DYNAMIC                                                 )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero loop variables
+       SO4   = 0.0_fp
+       SO4s  = 0.0_fp
+       SO40  = 0.0_fp
+       SO40s = 0.0_fp
+
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
-
-       ! Initialize for safety's sake
-       SO4  = 0e+0_fp
-       SO4s = 0e+0_fp
-       SO4d = 0e+0_fp  ! tdf 04/07/08
 
        !==============================================================
        ! Initial concentrations before chemistry
@@ -7679,13 +7680,10 @@ CONTAINS
        ! SO4 production from SO2 [v/v/timestep]
        SO4s = SO40s + PSO4_ss(I,J,L)
 
-       !tdf
+       !==============================================================
+       ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
+       !==============================================================
        IF ( LDSTUP ) THEN
-
-          !==============================================================
-          ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
-          !==============================================================
-
           IDTRC(1) = id_SO4d1
           IDTRC(2) = id_SO4d2
           IDTRC(3) = id_SO4d3
@@ -7720,55 +7718,57 @@ CONTAINS
 
 !APM_GanLuo+
 #ifdef APM
-       IF(NSO4>=1)THEN
-          DO N=1,NSO4
+       IF ( NSO4 >= 1 ) THEN
+          DO N = 1, NSO4
              ! Updated SO4 (gas phase) [v/v]
-             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)          =               &
+             Spc(APMIDS%id_SO4BIN1+N-1)%Conc(I,J,L)          +               &
+                  ( PSO4_SO2APM(I,J,L) +                                     &
+                    State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96 /               &
+                  ( g0_100 * State_Met%DELP_DRY(I,J,L)   ) ) *               &
                   FCLOUD(I,J,L,N)
           ENDDO
        ENDIF
 
-       IF(NCTBC>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTBC+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+N))
-          ENDDO
+       IF ( NCTBC >=1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTBC)%Conc(I,J,L)                    =               &
+          Spc(APMIDS%id_CTBC)%Conc(I,J,L)                    +               &
+             ( PSO4_SO2APM(I,J,L) +                                          &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96      /               &
+               ( g0_100 * State_Met%DELP_DRY(I,J,L)      ) ) *               &
+               FCLOUD(I,J,L,(NSO4+N))
        ENDIF
 
-       IF(NCTOC>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTOC+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+N))
-          ENDDO
+       IF ( NCTOC >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTOC)%Conc(I,J,L)                     =             &
+          Spc(APMIDS%id_CTOC)%Conc(I,J,L)                     +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 *State_Met%DELP_DRY(I,J,L) ) )          *             &
+             FCLOUD(I,J,L,(NSO4+N))
        ENDIF
 
-       IF(NCTDST>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTDST+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+3))
-          ENDDO
+       IF ( NCTDST >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTDST)%Conc(I,J,L)                    =             &
+          Spc(APMIDS%id_CTDST)%Conc(I,J,L)                    +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 * State_Met%DELP_DRY(I,J,L)         ) ) *             &
+             FCLOUD(I,J,L,(NSO4+3))
        ENDIF
 
-       IF(NCTSEA>=1)THEN
-          DO N=1,1
-             Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) = &
-                  Spc(APMIDS%id_CTSEA+N-1)%Conc(I,J,L) + &
-                  (PSO4_SO2APM(I,J,L)+PSO4_SO2APM2(I,J,L)*(AIRMW/96.D0)/ &
-                  (g0_100*State_Met%DELP_DRY(I,J,L)))* &
-                  FCLOUD(I,J,L,(NSO4+4)) + PSO4_SO2SEA(I,J,L)
-          ENDDO
+       IF ( NCTSEA >= 1 ) THEN
+          N = 1
+          Spc(APMIDS%id_CTSEA)%Conc(I,J,L)                    =             &
+          Spc(APMIDS%id_CTSEA)%Conc(I,J,L)                    +             &
+             ( PSO4_SO2APM(I,J,L) +                                         &
+               State_Chm%PSO4_SO2APM2(I,J,L) * AIRMW_96       /             &
+             ( g0_100 * State_Met%DELP_DRY(I,J,L)         ) ) *             &
+             FCLOUD(I,J,L,(NSO4+4))                           +             &
+             PSO4_SO2SEA(I,J,L)
        ENDIF
 #endif
 
@@ -7787,7 +7787,8 @@ CONTAINS
     !$OMP END PARALLEL DO
 
 #ifdef APM
-    PSO4_SO2APM2 = 0.D0
+    ! Reset the PSO4_SO2APM2 which tracks SO4 from wetdep
+    State_Chm%PSO4_SO2APM2 = 0.0d0
 #endif
 
     ! Free pointers
@@ -7811,7 +7812,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+  SUBROUTINE CHEM_SO4_AQ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                            State_Diag, RC )
 !
 ! !USES:
 !
@@ -7821,8 +7823,9 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Diag_Mod,     ONLY : DgnState
     USE TOMAS_MOD,          ONLY : AQOXID, GETACTBIN
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -7833,6 +7836,7 @@ CONTAINS
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diag State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -7849,11 +7853,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: I, J, L
-    INTEGER           :: k, binact1, binact2
-    INTEGER           :: KMIN
+    INTEGER           :: I,      J,       L
+    INTEGER           :: k,      binact1, binact2
+    INTEGER           :: KMIN,   previous_units
     REAL(fp)          :: SO4OXID
-    CHARACTER(LEN=63) :: OrigUnit
 
     !=================================================================
     ! CHEM_SO4_AQ begins here!
@@ -7863,40 +7866,52 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Convert species from to [kg]
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'kg', RC, OrigUnit=OrigUnit )
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of CHEM_SO4_AQ in sulfate_mod.F90')
        RETURN
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( KMIN, SO4OXID, BINACT1, BINACT2 ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, KMIN, SO4OXID, BINACT1, BINACT2                 ) 
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
+
+       ! Zero private loop variables
+       BINACT1 = 0.0_fp
+       BINACT2 = 0.0_fp
+       KMIN    = 0.0_fp
+       SO4OXID = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        SO4OXID = PSO4_SO2AQ(I,J,L) * State_Met%AD(I,J,L) &
                  / ( AIRMW / State_Chm%SpcData(id_SO4)%Info%MW_g )
-
        IF ( SO4OXID > 0e+0_fp ) THEN
           ! JKodros (6/2/15 - Set activating bin based on which TOMAS bin
           !length being used)
 #if defined( TOMAS12 )
-          CALL GETACTBIN( I, J, L, id_NK5, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK5, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK05, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS15 )
-          CALL GETACTBIN( I, J, L, id_NK8, .TRUE. , BINACT1, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .TRUE. , BINACT1, State_Chm, RC )
 
-          CALL GETACTBIN( I, J, L, id_NK8, .FALSE., BINACT2, State_Chm, RC )
+          CALL GETACTBIN( I, J, L, id_NK08, .FALSE., BINACT2, State_Chm, RC )
 #elif defined( TOMAS30 )
           CALL GETACTBIN( I, J, L, id_NK10, .TRUE. , BINACT1, State_Chm, RC )
 
@@ -7909,8 +7924,23 @@ CONTAINS
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, RC )
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
+
        ENDIF
     ENDDO
     ENDDO
@@ -7918,8 +7948,16 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original units
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SO4_AQ in sulfate_mod.F90')
@@ -8201,15 +8239,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE CHEM_CL( Input_Opt, &
-           State_Met, State_Chm, State_Grid, RC )
-
+  SUBROUTINE CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
+!
 ! !USES:
-
-#ifdef BPCH_DIAG
-        USE CMN_DIAG_MOD
-#endif
-
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -8217,15 +8250,15 @@ CONTAINS
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Grid_Mod,     ONLY : GrdState
+!
 ! !INPUT PARAMETERS:
-
-      !LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid
-
+!
 ! !INPUT/OUTPUT PARAMETERS:
-
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:
@@ -9090,7 +9123,7 @@ CONTAINS
     ! Define flags for species ID's
     id_AS    = Ind_('AS'       )
     id_AHS   = Ind_('AHS'      )
-    id_AW1   = Ind_('AW1'      )
+    id_AW01  = Ind_('AW01'     )
     id_DAL1  = Ind_('DSTAL1'   )
     id_DAL2  = Ind_('DSTAL2'   )
     id_DAL3  = Ind_('DSTAL3'   )
@@ -9115,9 +9148,9 @@ CONTAINS
     id_NITd3 = Ind_('NITD3'    )
     id_NITd4 = Ind_('NITD4'    )
     id_NITs  = Ind_('NITs'     )
-    id_NK1   = Ind_('NK1'      )
-    id_NK5   = Ind_('NK5'      )
-    id_NK8   = Ind_('NK8'      )
+    id_NK01  = Ind_('NK01'     )
+    id_NK05  = Ind_('NK05'     )
+    id_NK08  = Ind_('NK08'     )
     id_NK10  = Ind_('NK10'     )
     id_NK20  = Ind_('NK20'     )
     id_NO3   = Ind_('NO3'      )
@@ -9127,7 +9160,7 @@ CONTAINS
     id_PSO4  = Ind_('PSO4'     )
     id_SALA  = Ind_('SALA'     )
     id_SALC  = Ind_('SALC'     )
-    id_SF1   = Ind_('SF1'      )
+    id_SF01  = Ind_('SF01'     )
     id_SO2   = Ind_('SO2'      )
     id_SO4   = Ind_('SO4'      )
     id_SO4aq = Ind_('SO4aq'    )
@@ -9245,7 +9278,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: dry_settlingbin
+! !IROUTINE: wet_settlingbin
 !
 ! !DESCRIPTION: Subroutine WET\_SETTLINGBIN computes the dry settling of
 !  aerosol tracers. Modified for APM simulation. (G. Luo)
@@ -9253,8 +9286,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE WET_SETTLINGBIN( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                              State_Met, RC  )
+  SUBROUTINE WET_SETTLINGBIN( Input_Opt,  State_Chm, State_Diag,             &
+                              State_Grid, State_Met, RC                     )
 !
 ! !USES:
 !
@@ -9347,17 +9380,34 @@ CONTAINS
     IDTEMP1 = APMIDS%id_SO4BIN1
     IDTEMP2 = APMIDS%id_SO4BIN1+NSO4-1
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, N, K, DEN, REFF, DP )       &
-    !$OMP PRIVATE( CONST, VTS, TEMP, P, PDP, SLIP )     &
-    !$OMP PRIVATE( MASS, OLD, VISC, TC0, DELZ, DELZ1  ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,     J,     L,    N,    K,    DEN,  REFF               )&
+    !$OMP PRIVATE( DP,    CONST, VTS,  TEMP, P,    PDP,  SLIP               )&
+    !$OMP PRIVATE( MASS,  OLD,   VISC, TC0,  DELZ, DELZ1                    )&
+    !$OMP SCHEDULE( DYNAMIC, 1                                              )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
+       ! Zero private loop variables
+       CONST = 0.0_fp
+       DELZ  = 0.0_fp
+       DELZ1 = 0.0_fp
+       DEN   = 0.0_fp
+       DP    = 0.0_fp
+       MASS  = 0.0_fp
+       OLD   = 0.0_fp
+       P     = 0.0_fp
+       PDP   = 0.0_fp
+       REFF  = 0.0_fp
+       SLIP  = 0.0_fp
+       TEMP  = 0.0_fp
+       TC0   = 0.0_fp
+       VISC  = 0.0_fp
+       VTS   = 0.0_fp
+       
        DO L = 1, State_Grid%NZ
-          MASS(L) = 0.d8
+          !MASS(L) = 0.0d0
           DO N = IDTEMP1, IDTEMP2
              MASS(L) = MASS(L) + Spc(N)%Conc(I,J,L)
           ENDDO

@@ -20,8 +20,6 @@ MODULE ObsPack_Mod
 
   IMPLICIT NONE
   PRIVATE
-
-#include "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
@@ -115,7 +113,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: prtDebug
     INTEGER            :: N
 
     ! Strings
@@ -127,14 +124,13 @@ CONTAINS
 
     ! Initialize
     RC       =  GC_SUCCESS
-    prtDebug = ( Input_Opt%LPRT .and. Input_Opt%amIRoot )
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Init (in module ObsPack/obspack_mod.F90'
 
     ! Assume that there are ObsPack data for today
     State_Diag%Do_ObsPack = .TRUE.
 
-    IF ( prtDebug ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### OBSPACK_INIT: starting' )
     ENDIF
 
@@ -234,10 +230,11 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CharPak_Mod,            ONLY : CStrip
+    USE CharPak_Mod,            ONLY : charArr2Str, cStrip
     USE ErrCode_Mod
     USE File_Mod,               ONLY : File_Exists
     USE Input_Opt_Mod,          ONLY : OptInput
+    USE netCDF
     USE State_Diag_Mod,         ONLY : DgnState
     USE m_netcdf_io_open,       ONLY : Ncop_Rd
     USE m_netcdf_io_get_dimlen, ONLY : Ncget_Dimlen
@@ -344,6 +341,12 @@ CONTAINS
     !=======================================================================
     ! Allocate the relevant fields of State_Diag
     !=======================================================================
+
+    ALLOCATE( State_Diag%ObsPack_CharArray( CHAR_LEN_OBS, nObs ), STAT=RC )
+    CALL GC_CheckVar( 'State_Diag%ObsPack_CharArray', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Diag%ObsPack_CharArray = ACHAR(0)  ! NULL byte
+
     ALLOCATE( State_Diag%ObsPack_ID( nObs ), STAT=RC )
     CALL GC_CheckVar( 'State_Diag%ObsPack_Id', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
@@ -437,7 +440,7 @@ CONTAINS
     ! Read coordinate arrays
     !----------------------------
     st1d = (/ 1    /)
-    ct1d = (/ nobs /)
+    ct1d = (/ nObs /)
 
     varName = 'latitude'
     CALL NcRd( State_Diag%ObsPack_Latitude,  fId, TRIM(varName), st1d, ct1d )
@@ -463,34 +466,18 @@ CONTAINS
     ENDIF
 
     !----------------------------
-    ! Read ID string
-    !----------------------------
-    st2d = (/ 1,            1    /)
-    ct2d = (/ CHAR_LEN_OBS, nObs /)
-    varName = 'obspack_id'
-    CALL NcRd( State_Diag%ObsPack_Id, fId, TRIM(varName), st2d, ct2d )
-
-    ! Strip white space (e.g. TABS) from the ObsPack ID strings
-    DO N = 1, nObs
-       CALL CStrip( State_Diag%ObsPack_Id(N), KeepSpaces=.TRUE. )
-    ENDDO
-
-    !----------------------------
     ! Read time
     ! (seconds since 1970)
     !----------------------------
-    st1d = (/ 1    /)
-    ct1d = (/ nObs /)
-
     varName = 'time'
     CALL NcRd( tmp_int, fId, TRIM(varName), st1d, ct1d )
 
     ! Look for time:comment string, as this will determine if "time" is
     ! the start time or midpoint time of the averaging window.
     ! If the comment is not found, we time = start fo the averaging window.
-    RC = Nf_Inq_Varid ( fId, varName, vId )
-    RC = Nf_Get_Att_Text( fId, vId, "comment", comment )
-    IF ( RC == NF_NOERR ) THEN
+    RC = NF90_Inq_Varid( fId, varName, vId )
+    RC = NF90_Get_Att( fId, vId, "comment", comment )
+    IF ( RC == NF90_NOERR ) THEN
        N = INDEX( comment, 'midpoint of the averaging interval' )
        IF ( N > 0 ) Window_Start_Time = .FALSE.
     ENDIF
@@ -505,6 +492,23 @@ CONTAINS
        IF ( Input_Opt%amIRoot ) WRITE( 6, 50 ) 'midpoint'
     ENDIF
  50 FORMAT( '     - OBSPACK: "time" indicates ', a, ' of sample window' )
+
+    !----------------------------
+    ! Read ID string
+    !----------------------------
+    st2d = (/ 1,            1    /)
+    ct2d = (/ CHAR_LEN_OBS, nObs /)
+
+    varName = 'obspack_id'
+    CALL NcRd( State_Diag%ObsPack_CharArray, fId, TRIM(varName), st2d, ct2d )
+
+    ! Convert character array (needed to read strings from netCDF)
+    ! to a string.  Also strip white space (e.g. tab characters).
+    DO N = 1, nObs
+       State_Diag%ObsPack_Id(N) = charArr2Str(                               &
+            State_Diag%ObsPack_CharArray(:,N), CHAR_LEN_OBS                 )
+       CALL CStrip( State_Diag%ObsPack_Id(N), KeepSpaces=.TRUE. )
+    ENDDO
 
     ! Close input netCDF file
     CALL NcCl( fId )
@@ -703,6 +707,13 @@ CONTAINS
     !=======================================================================
     ! Deallocate ObsPack variables
     !=======================================================================
+   IF ( ASSOCIATED( State_Diag%ObsPack_CharArray ) ) THEN
+       DEALLOCATE( State_Diag%ObsPack_CharArray, STAT=RC )
+       CALL GC_CheckVar( 'State_Diag%ObsPack_CharArray', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%ObsPack_CharArray => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Diag%ObsPack_Id ) ) THEN
        DEALLOCATE( State_Diag%ObsPack_Id, STAT=RC )
        CALL GC_CheckVar( 'State_Diag%ObsPack_Id', 2, RC )
@@ -836,6 +847,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
+    USE netCDF
     USE State_Diag_Mod, ONLY : DgnState
     USE Time_Mod,       ONLY : Get_NHMSb
     USE Time_Mod,       ONLY : Get_NHMSe
@@ -994,7 +1006,7 @@ CONTAINS
     ENDIF
 
     ! Turn filling off
-    CALL NcSetFill( fId, NF_NOFILL, omode )
+    CALL NcSetFill( fId, NF90_NOFILL, omode )
 
     !=======================================================================
     ! Define dimensions of netCDF variables
@@ -1002,7 +1014,7 @@ CONTAINS
 
     ! Number of observations
     varName = 'obs'
-    CALL NcDef_Dimension( fId, TRIM(varName), NF_UNLIMITED,  dId_obs     )
+    CALL NcDef_Dimension( fId, TRIM(varName), NF90_UNLIMITED,  dId_obs   )
 
     ! Number of species
     varName = 'species'
@@ -1056,102 +1068,102 @@ CONTAINS
 
     ! ID
     varName = 'obspack_id'
-    CALL NcDef_Variable      ( fId, TRIM(varName), NF_CHAR, 2, dims_2d, vId )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'obspack_id'          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                   )
+    CALL NcDef_Variable      ( fId, TRIM(varName), NF90_CHAR, 2, dims_2d, vId)
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'obspack_id'           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                    )
 
     ! # of samples
     varName = 'nsamples'
-    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    CALL NcDef_Variable( fId, TRIM(varName), NF90_INT, 1, dims_1d, vId       )
     attVal = 'no. of model samples'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                   )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     '1'                    )
     attVal = 'Number of discrete model samples in average'
-    CALL NcDef_Var_Attributes( fId, vId, 'comment',   TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'comment',   TRIM(attVal)           )
 
     ! Averaging interval
     varName =  'averaging_interval'
-    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    CALL NcDef_Variable( fId, TRIM(varName), NF90_INT, 1, dims_1d, vId       )
     attVal = 'Amount of model time over which this observation is averaged'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds'             )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'seconds'              )
 
     ! Averaging interval start time
     varName = 'averaging_interval_start'
-    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    CALL NcDef_Variable( fId, TRIM(varName), NF90_INT, 1, dims_1d, vId       )
     attVal = 'Start of averaging interval'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
     attVal = 'seconds since 1970-01-01 00:00:00 UTC'
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'            )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'             )
 
     ! Averaging interval end time
     varName = 'averaging_interval_end'
-    CALL NcDef_Variable( fId, TRIM(varName), NF_INT, 1, dims_1d, vId        )
+    CALL NcDef_Variable( fId, TRIM(varName), NF90_INT, 1, dims_1d, vId       )
     attVal = 'End of averaging interval'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
     attVal = 'seconds since 1970-01-01 00:00:00 UTC'
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'            )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'calendar',  'standard'             )
 
     ! Longitude
-    CALL NcDef_Variable( fId, 'lon', NF_FLOAT, 1, dims_1d, vId              )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'           )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'        )
+    CALL NcDef_Variable( fId, 'lon', NF90_FLOAT, 1, dims_1d, vId             )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'            )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'         )
 
     ! Latitude
-    CALL NcDef_Variable( fId, 'lat', NF_FLOAT, 1, dims_1d, vId              )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'latitude'            )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north'       )
+    CALL NcDef_Variable( fId, 'lat', NF90_FLOAT, 1, dims_1d, vId             )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'latitude'             )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_north'        )
 
 !    ! Altitude
-!    CALL NcDef_Variable( fId, 'height', NF_FLOAT, 1, dims_1d, vId           )
-!    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'           )
-!    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'        )
+!    CALL NcDef_Variable( fId, 'height', NF90_FLOAT, 1, dims_1d, vId          )
+!    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'longitude'            )
+!    CALL NcDef_Var_Attributes( fId, vId, 'units',     'degrees_east'         )
 
     ! U-wind
-    CALL NcDef_Variable( fId, 'u', NF_FLOAT, 1, dims_1d, vId                )
+    CALL NcDef_Variable( fId, 'u', NF90_FLOAT, 1, dims_1d, vId               )
     attVal = 'Zonal component of wind'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'              )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'               )
 
     ! V-wind
-    CALL NcDef_Variable( fId, 'v', NF_FLOAT, 1, dims_1d, vId                )
+    CALL NcDef_Variable( fId, 'v', NF90_FLOAT, 1, dims_1d, vId               )
     attVal = 'Meridional component of wind'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'              )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm s^-1'               )
 
     ! Boundary layer height
-    CALL NcDef_Variable( fId, 'blh', NF_FLOAT, 1, dims_1d, vId              )
+    CALL NcDef_Variable( fId, 'blh', NF90_FLOAT, 1, dims_1d, vId             )
     attVal = 'Boundary layer height'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm'                   )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'm'                    )
 
     ! Specific humidity
-    CALL NcDef_Variable( fId, 'q', NF_FLOAT, 1, dims_1d, vId                )
+    CALL NcDef_Variable( fId, 'q', NF90_FLOAT, 1, dims_1d, vId               )
     attVal = 'mass_fraction_of_water_inair'
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)           )
     attVal = 'g water (kg air)^-1'
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     TRIM(attVal)           )
 
     ! Pressure
-    CALL NcDef_Variable( fId, 'pressure', NF_FLOAT, 1, dims_1d, vId         )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'pressure'            )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'                 )
+    CALL NcDef_Variable( fId, 'pressure', NF90_FLOAT, 1, dims_1d, vId        )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'pressure'             )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'hPa'                  )
 
     ! Temperature
-    CALL NcDef_Variable( fId, 'temperature', NF_FLOAT, 1, dims_1d, vId      )
-    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'temperature'         )
-    CALL NcDef_Var_Attributes( fId, vId, 'units',     'K'                   )
+    CALL NcDef_Variable( fId, 'temperature', NF90_FLOAT, 1, dims_1d, vId     )
+    CALL NcDef_Var_Attributes( fId, vId, 'long_name', 'temperature'          )
+    CALL NcDef_Var_Attributes( fId, vId, 'units',     'K'                    )
 
     ! Species concentration
     DO S = 1, State_Diag%ObsPack_nSpecies
        varName  = State_Diag%ObsPack_Species_Name(S)
        attVal = State_Diag%ObsPack_Species_LName(S)
-       CALL NcDef_Variable( fId, TRIM(varName), NF_FLOAT, 1, dims_1d, vId   )
-       CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)       )
-       CALL NcDef_Var_Attributes( fId, vId, 'units',     'mol mol-1'        )
-       CALL NcDef_Var_Attributes( fId, vId, '_FillValue', -1e34             )
+       CALL NcDef_Variable( fId, TRIM(varName), NF90_FLOAT, 1, dims_1d, vId  )
+       CALL NcDef_Var_Attributes( fId, vId, 'long_name', TRIM(attVal)        )
+       CALL NcDef_Var_Attributes( fId, vId, 'units',     'mol mol-1'         )
+       CALL NcDef_Var_Attributes( fId, vId, '_FillValue', -1e34              )
 
     ENDDO
 
@@ -1170,7 +1182,7 @@ CONTAINS
     ct2d    = (/ CHAR_LEN_OBS, nObs /)
 
     varName = 'obspack_id'
-    CALL NcWr( State_Diag%ObsPack_Id,       fId, TRIM(varName), st2d, ct2d  )
+    CALL NcWr(State_Diag%ObsPack_CharArray, fId, TRIM(varName), st2d, ct2d  )
 
     !---------------------------------------
     ! Write 1-D variables
@@ -1283,7 +1295,8 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
-    USE UnitConv_Mod,   ONLY : Convert_Spc_Units
+    USE Timers_Mod,     ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -1318,13 +1331,14 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  prtDebug, doSample
+    LOGICAL             :: prtLog,  doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
+    INTEGER             :: previous_units
     REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
-    CHARACTER(LEN=255)  :: PriorUnit, ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
 
     !=================================================================
     ! ObsPack_Sample begins here
@@ -1335,25 +1349,45 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
     prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
-    prtDebug = (Input_Opt%amIRoot .and. Input_Opt%LPRT                    )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).
     IF ( .not. State_Diag%Do_ObsPack ) RETURN
 
-    ! Ensure that units of species are "v/v dry", which is dry
-    ! air mole fraction.  Capture the InUnit value, this is
-    ! what the units are prior to this call.  After we sample
-    ! the species, we'll call this again requesting that the
-    ! species are converted back to the InUnit values.
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid,  State_Met, &
-                            'v/v dry', RC, PriorUnit )
+    !=======================================================================
+    ! Unit conversion
+    !=======================================================================
+
+    ! Halt diags timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
+    ! Ensure that units of species are [v/v dry], which is dry air mole 
+    ! fraction, aka [mol/mol dry].  Capture the InUnit value, this is what 
+    ! the units are prior to this call.  After we sample the species, we'll 
+    ! call this again requesting that the species are converted back to the 
+    ! InUnit values.
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Convert_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diags timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
     !=======================================================================
@@ -1481,16 +1515,32 @@ CONTAINS
     ! Cleanup and quit
     !=======================================================================
 
+    ! Halt diags timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Return State_Chm%Species(:)%Conc to whatever units they had
     ! coming into this routine
-    call Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            PriorUnit, RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Convert_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diags timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
   END SUBROUTINE ObsPack_Sample

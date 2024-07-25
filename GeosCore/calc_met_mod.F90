@@ -158,6 +158,7 @@ CONTAINS
     USE Time_Mod,       ONLY : Get_LocalTime
     USE Time_Mod,       ONLY : Get_LocalTime_In_Sec
     USE Time_Mod,       ONLY : Get_Ts_Dyn
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -217,15 +218,16 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    LOGICAL             :: t1,        t2
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
-    INTEGER             :: L_CG,      L_TP,       N
+    INTEGER             :: L_CG,      L_TP,       N,         units
     REAL(fp)            :: PEdge_Top, Esat 
     REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
     REAL(fp)            :: Pb,        Pt,         XH2O,      ADmoist
     LOGICAL             :: UpdtMR
-    REAL(fp)            :: FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO
+    REAL(fp)            :: FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW
 
     ! Arrays
     LOGICAL             :: IsLocNoon (State_Grid%NX,State_Grid%NY)
@@ -276,7 +278,7 @@ CONTAINS
     ! Pre-compute local solar time = UTC + Lon/15
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, FRLAND_NOSNO_NOICE, FRWATER, FRICE, FRSNO )
+    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -292,23 +294,25 @@ CONTAINS
        IsLocNoon(I,J) = ( LocTimeSec(I,J)          <= 43200  .and. &
                           LocTimeSec(I,J) + Dt_Sec >= 43200 )
 
-       ! Land without snow or ice
-       FRLAND_NOSNO_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNO(I,J)
+       ! Snow
+       FRSNOW = State_Met%FRSNOW(I,J)
+
+       ! Land without snow or ice. Note that import FRLAND is defined as land
+       ! without ice. Land with ice is in import FRLANDIC. To get land without
+       ! snow or ice we thus only subtract time-varying FRSNOW.
+       FRLAND_NOSNOW_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNOW(I,J)
 
        ! Water without sea ice
        FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
       
        ! Land ice and sea ice
-       FRICE = State_Met%FRLANDIC(I,J) + State_Met%FRSEAICE(I,J)
-      
-       ! Snow
-       FRSNO = State_Met%FRSNO(I,J)
-      
+       FRICE = State_Met%FRLANDICE(I,J) + State_Met%FRSEAICE(I,J)
+
        ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area
-       State_Met%IsLand(I,J)  = (FRLAND_NOSNO_NOICE > MAX(FRWATER, FRICE, FRSNO))
-       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNO_NOICE, FRICE, FRSNO))
-       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRSNO))
-       State_Met%IsSnow(I,J)  = (FRSNO > MAX(FRLAND_NOSNO_NOICE, FRWATER, FRICE))
+       State_Met%IsLand(I,J)  = (FRLAND_NOSNOW_NOICE > MAX(FRWATER, FRICE, FRSNOW))
+       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNOW_NOICE, FRICE, FRSNOW))
+       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRSNOW))
+       State_Met%IsSnow(I,J)  = (FRSNOW > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRICE))
 
     ENDDO
     ENDDO
@@ -669,35 +673,35 @@ CONTAINS
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
     IF ( UpdtMR ) THEN
-       !IF ( .not. PRESENT( update_mixing_ratio ) .or. update_mixing_ratio ) THEN
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
-       IF ( State_Chm%Spc_units == 'kg/kg dry' .or. &
-            State_Chm%Spc_units == 'v/v dry' ) THEN
-
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L, N )
-          DO N = 1, State_Chm%nSpecies
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             State_Chm%Species(N)%Conc(I,J,L) = &
-                                      State_Chm%Species(n)%Conc(I,J,L) * &
-                                      State_Met%DP_DRY_PREV(I,J,L)        / &
-                                      State_Met%DELP_DRY(I,J,L)
-          ENDDO
-          ENDDO
-          ENDDO
-          ENDDO
-          !$OMP END PARALLEL DO
-
-       ELSE
-          ErrMsg = 'Incorrect species units: ' // TRIM( State_Chm%Spc_Units )
+       IF ( .not. allSpeciesInDryMixingRatio( State_Chm ) ) THEN
+          ErrMsg = 'All species must be in dry mixing ratio when '      // &
+                   'update_mixing_ratio=.TRUE.!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
+
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( I, J, L, N )
+       DO N = 1, State_Chm%nSpecies
+
+          units = State_Chm%Species(N)%Units
+
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+             State_Chm%Species(N)%Conc(I,J,L) =                              &
+                                   State_Chm%Species(n)%Conc(I,J,L) *        &
+                                   State_Met%DP_DRY_PREV(I,J,L)     /        &
+                                   State_Met%DELP_DRY(I,J,L)
+          ENDDO
+          ENDDO
+          ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
     ENDIF
 
   END SUBROUTINE AIRQNT
@@ -1616,5 +1620,52 @@ CONTAINS
     !$OMP END PARALLEL DO
 
   END SUBROUTINE Set_Clock_Tracer
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: allSpeciesinDryMixingRatio
+!
+! !DESCRIPTION: Returns a logical value to indicate if all species are
+!  in dry 
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION allSpeciesInDryMixingRatio( State_Chm ) RESULT( isDryMixRatio )
+!
+! !USES:
+!
+    USE State_Chm_Mod, ONLY : ChmState
+    USE UnitConv_Mod,  ONLY : KG_SPECIES_PER_KG_DRY_AIR 
+    USE UnitConv_Mod,  ONLY : MOLES_SPECIES_PER_MOLES_DRY_AIR
+!
+! !INPUT PARAMETERS: 
+!
+    TYPE(ChmState), INTENT(IN) :: State_Chm      ! Chemistry state object
+!
+! !RETURN VALUE:
+!
+    LOGICAL                    :: isDryMixRatio  ! All species are in dry MR
+!
+! !REVISION HISTORY:
+!  21 Feb 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! allSpeciesInDryMixingRatio begins here!
+    !=================================================================
+    isDryMixRatio = (                                                        &
+       ALL( State_Chm%Species(:)%Units == KG_SPECIES_PER_KG_DRY_AIR         )&
+       .or.                                                                  &
+       ALL( State_Chm%Species(:)%Units == MOLES_SPECIES_PER_MOLES_DRY_AIR   )&
+    )
+
+  END FUNCTION allSpeciesInDryMixingRatio
 !EOC
 END MODULE CALC_MET_MOD

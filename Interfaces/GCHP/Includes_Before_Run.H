@@ -32,12 +32,11 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRLAND              = FRLAND                     ! 1
+  State_Met%FRLAND              = FRLAND                     ! 1, excludes lake and ice
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
-  State_Met%FRLANDIC            = FRLANDIC                   ! 1
+  State_Met%FRLANDICE           = FRLANDIC                   ! 1
   State_Met%FRSEAICE            = FRSEAICE                   ! 1
-  State_Met%FRSNO               = FRSNO                      ! 1
   State_Met%QV2M                = QV2M                       ! 1
   State_Met%PHIS                = PHIS / 9.80665d0           ! m
   State_Met%GWETROOT            = GWETROOT                   ! 1
@@ -62,6 +61,14 @@
   State_Met%USTAR               = USTAR                      ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
+
+  ! The import FRSNO is fraction of land with snow cover. Convert to
+  ! fraction of grid box with snow cover for storage in State_Met
+  DO J = 1, State_Grid%NY
+  DO I = 1, State_Grid%NX
+     State_Met%FRSNOW(I,J) = FRSNO(I,J) * State_Met%FRLAND(I,J)
+  ENDDO
+  ENDDO
 
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
@@ -184,6 +191,14 @@
   !=========================================================================
   State_Met%FLASH_DENS         = FLASH_DENS                  ! #/km2/s
   State_Met%CONV_DEPTH         = CONV_DEPTH                  ! m
+
+#ifdef RRTMG
+  If (Input_Opt%Read_Dyn_Heating.and.Associated(DynHeating)) Then
+     ! No longer need to flip the data
+     !State_Met%DynHeating(:,:,1:State_Grid%NZ) = DynHeating(:,:,State_Grid%NZ:1:-1) ! K/day
+     State_Met%DynHeating = DynHeating ! K/day
+  End If
+#endif
 
 #ifdef ADJOINT
   IF (ASSOCIATED(CostFuncMask)) THEN

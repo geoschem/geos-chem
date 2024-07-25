@@ -370,7 +370,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
     USE FILE_MOD,   ONLY : IOERROR
-    USE CMN_FJX_MOD
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : Species
     USE State_Chm_Mod,      ONLY : ChmState
@@ -581,7 +580,7 @@ CONTAINS
           IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
        !===========================================================
-       ! ISORROPIA H+, pH, water, and bisulfate (eam, 06/2015)
+       ! ISORROPIA/HETP H+, pH, water, and bisulfate (eam, 06/2015)
        !===========================================================
        CASE( 'ISOR' )
 
@@ -784,10 +783,10 @@ CONTAINS
            P         = -999         ! GEOS-Chem photolyis species ID
 
            ! Loop the reaciton branches and find the correct "P" index
-           DO IK = 1, JVN_
+           DO IK = 1, State_Chm%Phot%nMaxPhotRxns
 
                ! GC photolysis species index
-               P = GC_Photo_Id(NUM)
+               P = State_Chm%Phot%GC_Photo_Id(NUM)
 
                ! If this FAST_JX photolysis species maps to a valid
                ! GEOS-Chem photolysis species (for this simulation)...
@@ -1503,8 +1502,6 @@ CONTAINS
 !
 ! !USES:
 !
-    USE CMN_FJX_MOD,        ONLY : ODAER, QAA, QAA_AOD, ODMDUST
-    USE CMN_FJX_MOD,        ONLY : IWVSELECT, ACOEF_WV, BCOEF_WV
     USE CMN_SIZE_MOD,       ONLY : NDUST, NAER
     USE ErrCode_Mod
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
@@ -1520,11 +1517,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1582,7 +1574,13 @@ CONTAINS
     INTEGER             :: YEAR, MONTH, DAY, HOUR, MINUTE
 
     ! Pointers
-    TYPE(SpcConc), POINTER :: Spc(:)
+    TYPE(SpcConc), POINTER :: Spc      (:)
+    INTEGER,       POINTER :: IWVSELECT(:,:)
+    REAL*8,        POINTER :: ACOEF_WV (:)
+    REAL*8,        POINTER :: BCOEF_WV (:)
+    REAL(fp),      POINTER :: ODAER    (:,:,:,:,:)
+    REAL(fp),      POINTER :: ODMDUST  (:,:,:,:,:)
+
 !
 ! !DEFINED PARAMETERS:
 !
@@ -1606,6 +1604,13 @@ CONTAINS
 
     ! Return if there is no flighttrack data for today
     IF ( .not. DO_PF ) RETURN
+
+    ! Initialize pointers
+    IWVSELECT => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
+    ACOEF_WV  => State_Chm%Phot%ACOEF_WV    ! Coeffs for WL interpolation
+    BCOEF_WV  => State_Chm%Phot%BCOEF_WV    ! Coeffs for WL interpolation
+    ODAER     => State_Chm%Phot%ODAER       ! Aerosol optical depth
+    ODMDUST   => State_Chm%Phot%ODMDUST     ! Dust optical depth
 
     ! Update from kyu (03/2015):
     CHEMSTEP = ( MOD(GET_ELAPSED_SEC(), GET_TS_DIAG() ) == ( GET_TS_DIAG() / 2))
@@ -2160,7 +2165,7 @@ CONTAINS
                 VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
              !---------------------------------------------------------------
-             ! ISORROPIA H+ and pH (eam, 06/2015)
+             ! ISORROPIA/HETP H+ and pH (eam, 06/2015)
              !---------------------------------------------------------------
              CASE( 5001 )
                 VARI(V) = State_Chm%IsorropHplus(I,J,L,1)
@@ -2276,26 +2281,6 @@ CONTAINS
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.0_fp
 
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-             !---------------------------------------------------------------
-             ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
-             !---------------------------------------------------------------
-             CASE( 200000:299999 )
-
-                ! Remove offset from PVAR
-                N = PVAR(V) - 200000
-
-                ! Archive the microphysics rate
-                VARI(V) = AD61_INST(I,J,L,N)
-
-                IF ( Input_Opt%amIRoot ) THEN
-                   write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG', &
-                               'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
-                ENDIF
-#endif
-#endif
-
              !---------------------------------------------------------------
              ! Otherwise it's an error!
              !---------------------------------------------------------------
@@ -2323,6 +2308,13 @@ CONTAINS
 
        ENDIF
     ENDDO
+
+    ! Free pointers
+    IWVSELECT => NULL()
+    ACOEF_WV  => NULL()
+    BCOEF_WV  => NULL()
+    ODAER     => NULL()
+    ODMDUST   => NULL()
 
   END SUBROUTINE PLANEFLIGHT
 !EOC

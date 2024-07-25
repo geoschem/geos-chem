@@ -1,0 +1,228 @@
+Ext_AllowExtrap: .true.
+#
+PrimaryExports%%
+#--------|-------|------|------------|---------------|--------|-------|---------------------|
+# Export |       |      |            |___ Refresh ___|____ Factors ___|___ External File ___|
+# Name   | Units | Clim |Conservative| Time Template | Offset | Scale | Variable | Template |
+#--------|-------|------|------------|---------------|--------|-------|----------|----------|
+#
+# Notes:
+# Units should be in single quotes if they contain whitespace
+# Climatology should be Y if the file contains monthly climatology; otherwise it should be N
+# Conservative should be Y if units imply mass conservation dependency on regrid method (e.g. value per area)
+# Refresh Time Template should be:
+#    1. - if the file contains time-invariant constants
+#    2. prefixed with F if no time interpolation between data reads (F = fixed)
+#    3. 0 if data should be kept up-to-date at all times
+#    4. 0:HHMMSS if data occurs in file with frequency HHMMSS and should be updated at that frequency
+#    5. %y4-%m2-%d2T%h2:00:00, with any tokens replaced by appropriate constant time value, if multiple time
+#       values are in the same file. Note that including an F prefix indicates the data should be treated
+#       as constant until the next refresh time. Omission of the F prefix will time-interpolate between
+#       the values.
+# Minimize whitespace wherever possible to avoid surpassing the ESMF read buffer character limit,
+# applicable only for uncommented lines.
+#
+#
+#==============================================================================
+# --- Fields for lightning emissions (Extension 103) ---
+# These fields are stored in State_Met, along with the other met fields
+#==============================================================================
+FLASH_DENS 1 N N - none none LDENS /dev/null
+CONV_DEPTH 1 N N - none none CTH   /dev/null
+
+###############################################################################
+###
+### Land data (not handled by HEMCO)
+###
+###############################################################################
+#
+#==============================================================================
+# Olson land types
+#==============================================================================
+# Olson land types - conservative frac regridding of OLSON as float
+OLSON00 '1' N F;0  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON01 '1' N F;1  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON02 '1' N F;2  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON03 '1' N F;3  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON04 '1' N F;4  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON05 '1' N F;5  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON06 '1' N F;6  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON07 '1' N F;7  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON08 '1' N F;8  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON09 '1' N F;9  - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON10 '1' N F;10 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON11 '1' N F;11 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON12 '1' N F;12 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON13 '1' N F;13 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON14 '1' N F;14 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON15 '1' N F;15 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON16 '1' N F;16 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON17 '1' N F;17 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON18 '1' N F;18 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON19 '1' N F;19 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON20 '1' N F;20 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON21 '1' N F;21 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON22 '1' N F;22 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON23 '1' N F;23 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON24 '1' N F;24 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON25 '1' N F;25 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON26 '1' N F;26 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON27 '1' N F;27 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON28 '1' N F;28 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON29 '1' N F;29 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON30 '1' N F;30 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON31 '1' N F;31 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON32 '1' N F;32 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON33 '1' N F;33 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON34 '1' N F;34 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON35 '1' N F;35 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON36 '1' N F;36 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON37 '1' N F;37 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON38 '1' N F;38 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON39 '1' N F;39 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON40 '1' N F;40 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON41 '1' N F;41 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON42 '1' N F;42 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON43 '1' N F;43 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON44 '1' N F;44 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON45 '1' N F;45 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON46 '1' N F;46 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON47 '1' N F;47 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON48 '1' N F;48 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON49 '1' N F;49 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON50 '1' N F;50 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON51 '1' N F;51 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON52 '1' N F;52 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON53 '1' N F;53 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON54 '1' N F;54 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON55 '1' N F;55 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON56 '1' N F;56 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON57 '1' N F;57 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON58 '1' N F;58 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON59 '1' N F;59 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON60 '1' N F;60 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON61 '1' N F;61 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON62 '1' N F;62 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON63 '1' N F;63 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON64 '1' N F;64 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON65 '1' N F;65 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON66 '1' N F;66 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON67 '1' N F;67 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON68 '1' N F;68 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON69 '1' N F;69 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON70 '1' N F;70 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON71 '1' N F;71 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+OLSON72 '1' N F;72 - none none OLSON /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+
+#==============================================================================
+# Yuan-processed MODIS Leaf Area Index
+#==============================================================================
+# Use file with land type stored as 3rd dimension to speed up file read
+XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+
+###############################################################################
+###
+### HEMCO Base Emissions (Update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# SF6 emissions from EDGAR v4.2
+#==============================================================================
+EDGAR_SF6 1 N Y F%y4-01-01T00:00:00 none none emi_sf6 /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+
+#==============================================================================
+# --- EDGAR v4.3 (EDGARv4.3) ---
+# EDGARv4.3 is turned off by default in HEMCO_Config.rc
+#==============================================================================
+EDGAR_CO_25_POW  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
+EDGAR_CO_25_ENG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
+EDGAR_CO_25_IND  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+EDGAR_CO_25_TRO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
+EDGAR_CO_25_TNG  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
+EDGAR_CO_25_RCO  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
+EDGAR_CO_25_PPA  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
+#EDGAR_CO_25_AWB kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.AWB.0.1x0.1.nc
+EDGAR_CO_25_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
+EDGAR_CO_25_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
+
+#==============================================================================
+# --- CEDS (CEDSv2) ---
+#==============================================================================
+CEDS_CO_25_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+
+###############################################################################
+###
+### HEMCO Extensions Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+ZHANG_Rn222_EMIS  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none rnemis   /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+
+###############################################################################
+###
+### HEMCO Non-Emissions Data (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- Time zones (offset to UTC) ---
+#==============================================================================
+TIMEZONES     NA  N V - none none  UTC_OFFSET /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
+
+###############################################################################
+###
+### HEMCO Scale Factors (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# --- annual scale factors ---
+#==============================================================================
+LIQFUEL_THISYR     1 N Y F%y4-01-01T00:00:00   none none COscalar  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+LIQFUEL_2008_2010  1 N Y F%y4-01-01T00:00:00   none none COscalar  /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+
+#==============================================================================
+# --- seasonal scale factors ---
+#==============================================================================
+# --- From EDGAR 4.3.1 ---
+POW 1 Y Y F2010-%m2-01T00:00:00 none none POW /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+ENG 1 Y Y F2010-%m2-01T00:00:00 none none ENG /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+IND 1 Y Y F2010-%m2-01T00:00:00 none none IND /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+TRO 1 Y Y F2010-%m2-01T00:00:00 none none TRO /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+TNG 1 Y Y F2010-%m2-01T00:00:00 none none TNG /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+RCO 1 Y Y F2010-%m2-01T00:00:00 none none RCO /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+PPA 1 Y Y F2010-%m2-01T00:00:00 none none PPA /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+AGR 1 Y Y F2010-%m2-01T00:00:00 none none AGR /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+AWB 1 Y Y F2010-%m2-01T00:00:00 none none AWB /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+SOL 1 Y Y F2010-%m2-01T00:00:00 none none SOL /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+SWD 1 Y Y F2010-%m2-01T00:00:00 none none SWD /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+FFF 1 Y Y F2010-%m2-01T00:00:00 none none FFF /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+
+###############################################################################
+###
+### Masks (update if HEMCO_Config.rc changes)
+###
+###############################################################################
+
+#==============================================================================
+# Country/region masks
+#==============================================================================
+OCEAN_MASK 1 N Y - none none FROCEAN /gpfsm/dnb06/projects/p171/dao_ops/archive/d5294_geosit_jan18/diag/Y2018/M01/d5294_geosit_jan18.asm_const_0hr_glo_C180x180x6_slv.2018-01-01T0300Z.nc4
+
+%%
+
+DerivedExports%%
+# ---------|---------|--------------------------------------------|
+#  Export  | Primary |_________________ Mask _____________________|
+#  Name    |  Name   |    Name    |           Expression          |    
+# ---------|---------|------------|-------------------------------|
+# ---------|---------|------------|-------------------------------|
+%%

@@ -30,11 +30,12 @@ EXPID:  ./OutputDir/GEOSChem
 COLLECTIONS: 'Restart',
              'RadioNuclide',
              'SpeciesConc',
-             'Budget',
+             #'Budget',
              'CloudConvFlux',
              'DryDep',
              'LevelEdgeDiags',
 	     #'SatDiagn',
+	     #'SatDiagnEdge',
              'StateMet',
              'WetLossConv',
              'WetLossLS',
@@ -96,21 +97,27 @@ COLLECTIONS: 'Restart',
   Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
                        'BudgetEmisDryDepTrop_?ADV?           ',
                        'BudgetEmisDryDepPBL_?ADV?            ',
+                       'BudgetEmisDryDepLevs1to35_?ADV?      ',
                        'BudgetChemistryFull_?ADV?            ',
                        'BudgetChemistryTrop_?ADV?            ',
                        'BudgetChemistryPBL_?ADV?             ',
+                       'BudgetChemistryLevs1to35_?ADV?       ',
                        'BudgetTransportFull_?ADV?            ',
                        'BudgetTransportTrop_?ADV?            ',
                        'BudgetTransportPBL_?ADV?             ',
+                       'BudgetTransportLevs1to35_?ADV?       ',
                        'BudgetMixingFull_?ADV?               ',
                        'BudgetMixingTrop_?ADV?               ',
                        'BudgetMixingPBL_?ADV?                ',
+                       'BudgetMixingLevs1to35_?ADV?          ',
                        'BudgetConvectionFull_?ADV?           ',
                        'BudgetConvectionTrop_?ADV?           ',
                        'BudgetConvectionPBL_?ADV?            ',
+                       'BudgetConvectionLevs1to35_?ADV?      ',
                        'BudgetWetDepFull_?WET?               ',
                        'BudgetWetDepTrop_?WET?               ',
                        'BudgetWetDepPBL_?WET?                ',
+                       'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -171,14 +178,14 @@ COLLECTIONS: 'Restart',
   RadioNuclide.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
   RadioNuclide.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
   RadioNuclide.mode:          'time-averaged'
-  RadioNuclide.fields:        'PbFromRnDecay                 ',
-                              'RadDecay_Rn222                ',
-                              'RadDecay_Pb210                ',
-                              'RadDecay_Pb210Strat           ',
-                              'RadDecay_Be7                  ',
-                              'RadDecay_Be7Strat             ',
-                              'RadDecay_Be10                 ',
-                              'RadDecay_Be10Strat            ',
+  RadioNuclide.fields:        'PbFromRnDecay                 ',  
+                              'RadDecay_Rn222                ',  
+                              'RadDecay_Pb210                ',  
+                              'RadDecay_Pb210s               ',  
+                              'RadDecay_Be7                  ',  
+                              'RadDecay_Be7s                 ',  
+                              'RadDecay_Be10                 ',  
+                              'RadDecay_Be10s                ', 
 ::
 #==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%
@@ -231,6 +238,21 @@ COLLECTIONS: 'Restart',
                               'SatDiagnSurfFlux_Be7           ',
 ::
 #==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges)  during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+::
+#==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the LevelEdgeDiags collection)
@@ -259,10 +281,10 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',

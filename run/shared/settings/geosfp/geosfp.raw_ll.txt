@@ -1,0 +1,122 @@
+RUNDIR_MET='GEOSFP'
+RUNDIR_MET_LOWERCASE='geosfp'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/GEOS_FP"
+RUNDIR_MET_DIR_RAW="${RUNDIR_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP_Raw"
+
+RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.true.
+RUNDIR_MET_RES='025x03125'
+RUNDIR_MET_EXT='nc'
+
+RUNDIR_MET_CN_YR=2011
+RUNDIR_MET_PRES_UNIT='hPa'
+RUNDIR_MET_PRES_SCALE='1.0'
+
+RUNDIR_OFFLINE_EMIS_RES='0.25x0.3125'
+RUNDIR_OFFLINE_EMIS_LAT_RES='025'
+
+RUNDIR_METLIGHTNING='GEOSFP'
+RUNDIR_METLIGHTNING_DIR="${RUNDIR_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP_Raw"
+RUNDIR_METLIGHTNING_RES='0.25x0.3125'
+RUNDIR_LIGHTNOX_CLIM=false
+RUNDIR_MET_LCLIM='2014-2019'
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION}
+
+TMPU1     K             N Y  0        none  none T          ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+TMPU2     K             N Y  0;001000 none  none T          ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.inst3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:00:00P03:00
+
+# tavg1_2d_flx_Nx
+EFLUX     W_m-2         N Y F0;003000 none  none EFLUX      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+EVAP      kg_m-2_s-1    N Y F0;003000 none  none EVAP       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+FRSEAICE  1             N Y F0;003000 none  none FRSEAICE   ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+HFLUX     W_m-2         N Y F0;003000 none  none HFLUX      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PBLH      m             N Y F0;003000 none  none PBLH       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PRECANV   kg_m-2_s-1    N Y F0;003000 none  none PRECANV    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PRECCON   kg_m-2_s-1    N Y F0;003000 none  none PRECCON    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PRECLSC   kg_m-2_s-1    N Y F0;003000 none  none PRECLSC    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PRECSNO   kg_m-2_s-1    N Y F0;003000 none  none PRECSNO    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PRECTOT   kg_m-2_s-1    N Y F0;003000 none  none PRECTOT    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+USTAR     m_s-1         N Y F0;003000 none  none USTAR      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+Z0        m             N Y F0;003000 none  none Z0M        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_flx_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+
+# tavg1_2d_lnd_Nx
+FRSNO     1             N Y F0;003000 none  none FRSNO      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+GRN       1             N Y F0;003000 none  none GRN        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+GWETROOT  1             N Y F0;003000 none  none GWETROOT   ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+GWETTOP   1             N Y F0;003000 none  none GWETTOP    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+LAI       1             N Y F0;003000 none  none LAI        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PARDF     W_m-2         N Y F0;003000 none  none PARDF      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+PARDR     W_m-2         N Y F0;003000 none  none PARDR      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+SNODP     m             N Y F0;003000 none  none SNODP      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+SNOMAS    kg_m-2        N Y F0;003000 none  none SNOMAS     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_lnd_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+
+# tavg1_2d_rad_Nx
+ALBD      1             N Y F0;003000 none  none ALBEDO     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+CLDFRC    1             N Y F0;003000 none  none CLDTOT     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+RADSWG    W_m-2         N Y F0;003000 none  none SWGDN      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_rad_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+
+# tavg1_2d_slv_Nx
+QV2M      kg_kg-1       N Y F0;003000 none  none QV2M       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+SLP       Pa            N Y F0;003000 none  0.01 SLP        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+TS        K             N Y F0;003000 none  none T2M        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+TO3       Dobsons       N Y F0;003000 none  none TO3        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+TROPP     Pa            N Y F0;003000 none  0.01 TROPPT     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+TSKIN     K             N Y F0;003000 none  none TS         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+U10M      m_s-1         N Y F0;003000 none  none U10M       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+V10M      m_s-1         N Y F0;003000 none  none V10M       ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg1_2d_slv_Nx.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T00:30:00P01:00
+
+# tavg3_3d_asm_Nv
+OMEGA     Pa_s-1        N Y F0;013000 none  none OMEGA      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+QI        kg_kg-1       N Y F0;013000 none  none QI         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+QL        kg_kg-1       N Y F0;013000 none  none QL         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+RH        1             N Y F0;013000 none  none RH         ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+
+# tavg3_3d_cld_Nv
+DTRAIN    kg_m-2_s-1    N Y F0;013000 none  none DTRAIN     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_cld_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+TAUCLI    1             N Y F0;013000 none  none TAUCLI     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_cld_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+TAUCLW    1             N Y F0;013000 none  none TAUCLW     ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_cld_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+
+# tavg3_3d_mst_Ne
+CMFMC     kg_m-2_s-1    N Y F0;013000 none  none CMFMC      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Ne.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+PFICU     kg_m-2_s-1    N Y F0;013000 none  none PFICU      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Ne.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+PFILSAN   kg_m-2_s-1    N Y F0;013000 none  none PFILSAN    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Ne.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+PFLCU     kg_m-2_s-1    N Y F0;013000 none  none PFLCU      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Ne.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+PFLLSAN   kg_m-2_s-1    N Y F0;013000 none  none PFLLSAN    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Ne.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+
+# tavg3_3d_mst_Nv
+DQRCU     kg_kg-1_s-1   N Y F0;013000 none  none DQRCU      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+DQRLSAN   kg_kg-1_s-1   N Y F0;013000 none  none DQRLSAN    ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+REEVAPCN  kg_kg-1_s-1   N Y F0;013000 none  none REEVAPCN   ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+REEVAPLS  kg_kg-1_s-1   N Y F0;013000 none  none REEVAPLSAN ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_mst_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00
+
+# SEAICE[0-9]0 bins aren't used in GCHP
+SEAICE00 1 N Y F0;003000 none none SEAICE00 /dev/null
+SEAICE10 1 N Y F0;003000 none none SEAICE10 /dev/null
+SEAICE20 1 N Y F0;003000 none none SEAICE20 /dev/null
+SEAICE30 1 N Y F0;003000 none none SEAICE30 /dev/null
+SEAICE40 1 N Y F0;003000 none none SEAICE40 /dev/null
+SEAICE50 1 N Y F0;003000 none none SEAICE50 /dev/null
+SEAICE60 1 N Y F0;003000 none none SEAICE60 /dev/null
+SEAICE70 1 N Y F0;003000 none none SEAICE70 /dev/null
+SEAICE80 1 N Y F0;003000 none none SEAICE80 /dev/null
+SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/null
+
+# tavg3_3d_rad_Nv
+CLDF      1             N Y F0;013000 none  none CLOUD      ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_rad_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2018-01-01T01:30:00P03:00
+#
+# --- Fixed variables, from constants file ---
+FRLAKE   1 N Y - none none FRLAKE     ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FRLAND   1 N Y - none none FRLAND     ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FRLANDIC 1 N Y - none none FRLANDICE  ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+FROCEAN  1 N Y - none none FROCEAN    ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+PHIS m2_s-2 N Y - none none PHIS      ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+
+# Also include FROCEAN with name OCEAN_MASK to match HEMCO container name for ocean mask
+OCEAN_MASK 1 N Y - none none FROCEAN ./MetDir/GEOS.fp.asm.const_2d_asm_Nx.00000000_0000.V01.nc4
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+OPTDEP      TAUCLI+TAUCLW 0
+"""

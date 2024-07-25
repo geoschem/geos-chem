@@ -29,8 +29,8 @@ Separator:                   /
 Unit tolerance:              1
 Negative values:             2
 Only unitless scale factors: false
-Verbose:                     0
-Warnings:                    1
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
 
 #
 ### END SECTION SETTINGS 
@@ -69,6 +69,10 @@ Warnings:                    1
     --> DICE_AFRICA            :       false
     --> TRASH                  :       false
     --> OMI_HTAP_SO2           :       false
+# ----- AIRCRAFT EMISSIONS ------------------
+    --> AEIC                   :       false
+    --> AEIC2019_MONMEAN       :       true
+    --> AEIC_SCALE_1990_2019   :       true
 # ----- NON-EMISSIONS DATA ------------------
     --> UVALBEDO               :       true
     --> CCM_STRAT_Bry          :       true
@@ -76,8 +80,9 @@ Warnings:                    1
     --> GMI_PROD_LOSS          :       false
     --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
-    --> GMD_SFC_CH4            :       true
+    --> GMD_SFC_CH4            :       false
     --> CMIP6_SFC_CH4          :       false
+    --> GEOS_3HR_CH4           :       true
 # OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
     --> YUAN_MODIS_LAI         :       false
@@ -120,9 +125,10 @@ Warnings:                    1
     --> NH snow age            :       3.0
     --> SH snow age            :       1.5
     --> N per snowflake        :       5.0
-    --> Model sea salt Br-     :       false
+    --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
 108     MEGAN                  : on    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
+    --> MEGAN_SUFFIX           :       _GCC
     --> Isoprene scaling       :       1.0
     --> CO2 inhibition         :       true
     --> CO2 conc (ppmv)        :       390.0
@@ -474,7 +480,7 @@ Warnings:                    1
 0 CEDS_C2H6_TRA   /see/ExtData.rc                                C2H6_tra          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           3 2
 0 CEDS_C2H6_RCO   /see/ExtData.rc                                C2H6_rco          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
 0 CEDS_C2H6_SLV   /see/ExtData.rc                                C2H6_slv          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           1 2
-0 CEDS_C2H6_WST   /see/ExtData.rc                                C2H6_wst          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           4 2
+0 CEDS_C2H6_WST   /see/ExtData.rc                                C2H6_wst          2014/1-12/1/0 C xy       kg/m2/s C2H6  206/216           9 2
 )))CEDS_C2H6
 
 #=======================================================================================================================================
@@ -607,6 +613,7 @@ Warnings:                    1
 #=======================================================================================================================================
 ## --- AEIC aircraft emissions ---
 #=======================================================================================================================================
+(((AEIC
 0 AEIC_NO   ~/data/aeic_2005.geos.1x1.72L.nc  NO       2005/1-12/1/0 C xyz kg/m2/s NO   110/115    20 1
 0 AEIC_CO   ~/data/aeic_2005.geos.1x1.72L.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110        20 1
 0 AEIC_SOAP -                                 -        -             - -   -       SOAP 110/280    20 1  
@@ -623,6 +630,32 @@ Warnings:                    1
 0 AEIC_PRPE -                                 -        -             - -   -       PRPE 114/107/49 20 1
 0 AEIC_MACR -                                 -        -             - -   -       MACR 114/108/83 20 1
 0 AEIC_RCHO -                                 -        -             - -   -       RCHO 114/109/69 20 1
+)))AEIC 
+    
+(((AEIC2019_MONMEAN
+0 AEIC19_MONMEAN_NO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO       2019/1-12/1/0 C xyz kg/m2/s NO   241/240     20 1
+0 AEIC19_MONMEAN_NO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc NO2      2019/1-12/1/0 C xyz kg/m2/s NO2  241/240     20 1
+0 AEIC19_MONMEAN_HONO $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HONO     2019/1-12/1/0 C xyz kg/m2/s HNO2 241/240     20 1
+0 AEIC19_MONMEAN_CO   $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc CO       2019/1-12/1/0 C xyz kg/m2/s CO   241         20 1
+0 AEIC19_MONMEAN_SOAP -                                                                          -        -             - -   -       SOAP 241/280     20 1
+0 AEIC19_MONMEAN_SO2  $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc FUELBURN 2019/1-12/1/0 C xyz kg/m2/s SO2  241/111     20 1
+0 AEIC19_MONMEAN_pFe  -                                                                          -        -             - -   -       pFe  241/111/66  20 1
+0 AEIC19_MONMEAN_SO4  -                                                                          -        -             - -   -       SO4  241/112     20 1
+0 AEIC19_MONMEAN_H2O  -                                                                          -        -             - -   -       H2O  241/120     20 1
+0 AEIC19_MONMEAN_BCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc BC       2019/1-12/1/0 C xyz kg/m2/s BCPI 241         20 1
+0 AEIC19_MONMEAN_OCPI $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc OC       2019/1-12/1/0 C xyz kg/m2/s OCPI 241         20 1
+0 AEIC19_MONMEAN_POG1 -                                                                          -        -             - -   -       POG1 241/74/76   20 1
+0 AEIC19_MONMEAN_POG2 -                                                                          -        -             - -   -       POG2 241/74/77   20 1
+0 AEIC19_MONMEAN_ACET $ROOT/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019$MM.0.5x0.625.36L.nc HC       2019/1-12/1/0 C xyz kg/m2/s ACET 241/114/101 20 1
+0 AEIC19_MONMEAN_ALD2 -                                                                          -        -             - -   -       ALD2 241/114/102 20 1
+0 AEIC19_MONMEAN_ALK4 -                                                                          -        -             - -   -       ALK4 241/114/103 20 1
+0 AEIC19_MONMEAN_C2H6 -                                                                          -        -             - -   -       C2H6 241/114/104 20 1
+0 AEIC19_MONMEAN_C3H8 -                                                                          -        -             - -   -       C3H8 241/114/105 20 1
+0 AEIC19_MONMEAN_CH2O -                                                                          -        -             - -   -       CH2O 241/114/106 20 1
+0 AEIC19_MONMEAN_PRPE -                                                                          -        -             - -   -       PRPE 241/114/107 20 1
+0 AEIC19_MONMEAN_MACR -                                                                          -        -             - -   -       MACR 241/114/108 20 1
+0 AEIC19_MONMEAN_RCHO -                                                                          -        -             - -   -       RCHO 241/114/109 20 1
+)))AEIC2019_MONMEAN
 
 #==============================================================================
 # --- Emissions from decaying plants ---
@@ -854,17 +887,37 @@ Warnings:                    1
 0 QFED_NH3_BO_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/315/543 8 1
 0 QFED_NH3_GL_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/544     8 1
 0 QFED_NH3_SV_FT    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_nh3.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NH3  75/312/544     8 1
-# NO
-0 QFED_NO_TF_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/545     8 1
-0 QFED_NO_TP_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/314/546 8 1
-0 QFED_NO_BO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/315/547 8 1
-0 QFED_NO_SV_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548     8 1
-0 QFED_NO_GL_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548     8 1
-0 QFED_NO_TF_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/545     8 1
-0 QFED_NO_TP_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/314/546 8 1
-0 QFED_NO_BO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/315/547 8 1
-0 QFED_NO_SV_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548     8 1
-0 QFED_NO_GL_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548     8 1
+# NO/PAN/HNO3                
+0 QFED_NO_TF_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/545/592     8 1
+0 QFED_PAN_TF_SFC   -                                                                 -          -                     - -               -       PAN  75/311/545/593     8 1
+0 QFED_HNO3_TF_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/545/594     8 1
+0 QFED_NO_TP_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/314/546/592 8 1
+0 QFED_PAN_TP_SFC   -                                                                 -          -                     - -               -       PAN  75/311/314/546/593 8 1
+0 QFED_HNO3_TP_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/314/546/594 8 1
+0 QFED_NO_BO_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/315/547/592 8 1
+0 QFED_PAN_BO_SFC   -                                                                 -          -                     - -               -       PAN  75/311/315/547/593 8 1
+0 QFED_HNO3_BO_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/315/547/594 8 1
+0 QFED_NO_SV_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548/592     8 1
+0 QFED_PAN_SV_SFC   -                                                                 -          -                     - -               -       PAN  75/311/548/593     8 1
+0 QFED_HNO3_SV_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/548/594     8 1
+0 QFED_NO_GL_SFC    $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s NO   75/311/548/592     8 1
+0 QFED_PAN_GL_SFC   -                                                                 -          -                     - -               -       PAN  75/311/548/593     8 1
+0 QFED_HNO3_GL_SFC  -                                                                 -          -                     - -               -       HNO3 75/311/548/594     8 1
+0 QFED_NO_TF_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_tf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/545/592     8 1
+0 QFED_PAN_TF_FT    -                                                                 -          -                     - -               -       PAN  75/312/545/593     8 1
+0 QFED_HNO3_TF_FT   -                                                                 -          -                     - -               -       HNO3 75/312/545/594     8 1
+0 QFED_NO_TP_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/314/546/592 8 1
+0 QFED_PAN_TP_FT    -                                                                 -          -                     - -               -       PAN  75/312/314/546/593 8 1
+0 QFED_HNO3_TP_FT   -                                                                 -          -                     - -               -       HNO3 75/312/314/546/594 8 1
+0 QFED_NO_BO_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_xf 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/315/547/592 8 1
+0 QFED_PAN_BO_FT    -                                                                 -          -                     - -               -       PAN  75/312/315/547/593 8 1
+0 QFED_HNO3_BO_FT   -                                                                 -          -                     - -               -       HNO3 75/312/315/547/594 8 1
+0 QFED_NO_SV_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_sv 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548/592     8 1
+0 QFED_PAN_SV_FT    -                                                                 -          -                     - -               -       PAN  75/312/548/593     8 1
+0 QFED_HNO3_SV_FT   -                                                                 -          -                     - -               -       HNO3 75/312/548/594     8 1
+0 QFED_NO_GL_FT     $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_no.006.$YYYY$MM$DD.nc4   biomass_gl 2000-2018/1-12/1-31/0 C xyL=PBL:5500m   kg/m2/s NO   75/312/548/592     8 1
+0 QFED_PAN_GL_FT    -                                                                 -          -                     - -               -       PAN  75/312/548/593     8 1
+0 QFED_HNO3_GL_FT   -                                                                 -          -                     - -               -       HNO3 75/312/548/594     8 1
 # SO2
 0 QFED_SO2_TF_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311/549     8 1
 0 QFED_SO2_TP_SFC   $ROOT/QFED/v2014-09/$YYYY/$MM/qfed2.emis_so2.006.$YYYY$MM$DD.nc4  biomass 2000-2018/1-12/1-31/0 C xyL=1:PBL       kg/m2/s SO2  75/311/314/550 8 1
@@ -1007,36 +1060,36 @@ Warnings:                    1
 #       with a specified MW of 12g/mol. This is the case for OCPI, ISOP and ACET.
 (((MEGAN
 (((HEMCO_RESTART
-108  T_DAVG                       ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  T_PREVDAY                    ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
-108  LAI_PREVDAY                  ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
-108  PARDR_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
-108  PARDF_DAVG                   ./HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  T_DAVG                       ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_DAVG                  $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  T_PREVDAY                    ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                T_PREVDAY               $YYYY/$MM/$DD/$HH EY xy K        * - 1 1
+108  LAI_PREVDAY                  ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                LAI_PREVDAY             $YYYY/$MM/$DD/$HH EY xy 1        * - 1 1
+108  PARDR_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDR_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
+108  PARDF_DAVG                   ./Restarts/HEMCO_restart.$YYYY$MM$DD$HH00.nc                PARDF_DAVG              $YYYY/$MM/$DD/$HH EY xy W/m2     * - 1 1
 )))HEMCO_RESTART
-108  MEGAN_AEF_ISOP               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_ISOPRENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-108 MEGAN_AEF_MBOX               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_MBO                 1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  MEGAN_AEF_BPIN               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_BETA_PINENE         1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  MEGAN_AEF_CARE               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_CARENE              1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  MEGAN_AEF_LIMO               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_LIMONENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  MEGAN_AEF_OCIM               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_OCIMENE             1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  MEGAN_AEF_SABI               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_SABINENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
-108  CLM4_PFT_BARE                ~/data/CLM4_PFT.geos.1x1.nc    PFT_BARE                2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_NDLF_EVGN_TMPT_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_NDLF_EVGN_BORL_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_NDLF_DECD_BORL_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_DECD_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_EVGN_TROP_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_TROP_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_EVGN_TMPT_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_DECD_TROP_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TROP_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_DECD_TMPT_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_DECD_BORL_TREE ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_EVGN_SHRB      ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_SHRB      2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_DECD_TMPT_SHRB ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TMPT_SHRB 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_BDLF_DECD_BORL_SHRB ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_BORL_SHRB 2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_C3_ARCT_GRSS        ~/data/CLM4_PFT.geos.1x1.nc    PFT_C3_ARCT_GRSS        2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_C3_NARC_GRSS        ~/data/CLM4_PFT.geos.1x1.nc    PFT_C3_NARC_GRSS        2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_C4_GRSS             ~/data/CLM4_PFT.geos.1x1.nc    PFT_C4_GRSS             2000/1/1/0    C xy 1        * - 1 1
-108  CLM4_PFT_CROP                ~/data/CLM4_PFT.geos.1x1.nc    PFT_CROP                2000/1/1/0    C xy 1        * - 1 1
-108  MEGAN_ORVC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_ISOP_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_ISOPRENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
+108 MEGAN_AEF_MBOX_GCC                ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_MBO                 1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_BPIN_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_BETA_PINENE         1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_CARE_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_CARENE              1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_LIMO_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_LIMONENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_OCIM_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_OCIMENE             1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  MEGAN_AEF_SABI_GCC               ~/data/MEGAN2.1_EF.geos.1x1.nc AEF_SABINENE            1985/1/1/0    C xy kgC/m2/s * - 1 1
+108  CLM4_PFT_BARE_GCC                ~/data/CLM4_PFT.geos.1x1.nc    PFT_BARE                2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_NDLF_EVGN_TMPT_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_NDLF_EVGN_BORL_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_EVGN_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_NDLF_DECD_BORL_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_NDLF_DECD_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_EVGN_TROP_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_TROP_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_EVGN_TMPT_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_DECD_TROP_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TROP_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_DECD_TMPT_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TMPT_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_DECD_BORL_TREE_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_BORL_TREE 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_EVGN_SHRB_GCC      ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_EVGN_SHRB      2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_DECD_TMPT_SHRB_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_TMPT_SHRB 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_BDLF_DECD_BORL_SHRB_GCC ~/data/CLM4_PFT.geos.1x1.nc    PFT_BDLF_DECD_BORL_SHRB 2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_C3_ARCT_GRSS_GCC        ~/data/CLM4_PFT.geos.1x1.nc    PFT_C3_ARCT_GRSS        2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_C3_NARC_GRSS_GCC        ~/data/CLM4_PFT.geos.1x1.nc    PFT_C3_NARC_GRSS        2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_C4_GRSS_GCC             ~/data/CLM4_PFT.geos.1x1.nc    PFT_C4_GRSS             2000/1/1/0    C xy 1        * - 1 1
+108  CLM4_PFT_CROP_GCC                ~/data/CLM4_PFT.geos.1x1.nc    PFT_CROP                2000/1/1/0    C xy 1        * - 1 1
+108  MEGAN_ORVC_GCC                   ~/data/NVOC.geos.1x1.nc        OCPI                    1990/1-12/1/0 C xy kgC/m2/s * - 1 1
 )))MEGAN
 
 #==============================================================================
@@ -1307,6 +1360,14 @@ Warnings:                    1
 * NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 C xy ppbv * - 1 1 
 )))GMD_SFC_CH4
 
+#==============================================================================
+# --- GEOS 3-hourly CH4 (within PBL) ---
+#==============================================================================
+(((GEOS_3HR_CH4
+* GEOS_CH4   /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz v/v * - 1 1
+* CH4_OFFSET /see/extdata CH4_offset    2021-2024/1-12/1/0    C xy  v/v * - 1 1
+)))GEOS_3HR_CH4
+
 (((SfcVMR
 #==============================================================================
 # --- CMIP6 files ---
@@ -1359,6 +1420,18 @@ Warnings:                    1
 * surf_salinity   $ROOT/OCEAN_O3_DRYDEP/v2020-02/WOA_2013_salinity.nc                                                s_mn                   1985/1/1/0    C xy 1 * - 1 1
 * surf_iodide     $ROOT/OCEAN_O3_DRYDEP/v2020-02/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc   Ensemble_Monthly_mean  1970/1-12/1/0 C xy 1 * - 1 1
 )))OCEAN_O3_DRYDEP
+
+
+#==============================================================================
+# --- Imports for GEOS handled through HEMCO ---
+#==============================================================================
+# CH4 boundary conditions
+(((GEOS_3HR_CH4
+* GEOS_CH4 /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1 
+)))GEOS_3HR_CH4
+
+# GEOS analysis fields 
+#* GEOSIT_O3 /see/extdata ozone 1979-2099/1-12/1-31/0 C xyz ppmv * - 1 1 
 
 ### END SECTION BASE EMISSIONS 
 
@@ -1498,22 +1571,63 @@ Warnings:                    1
 97 NOXtoNO  0.9 - - - xy 1 1
 98 NOXtoNO2 0.1 - - - xy 1 1
 
-# --- AEIC aircraft emissions ---
-101 AEICACET    3.69e-3 - - - xy unitless 1
-102 AEICALD2    4.27e-2 - - - xy unitless 1
-103 AEICALK4    2.14e-1 - - - xy unitless 1
-104 AEICC2H6    5.22e-3 - - - xy unitless 1
-105 AEICC3H8    7.81e-4 - - - xy unitless 1
-106 AEICCH2O    1.23e-1 - - - xy unitless 1
-107 AEICPRPE    1.78e-1 - - - xy unitless 1
-108 AEICMACR    5.36e-2 - - - xy unitless 1
-109 AEICRCHO    3.68e-2 - - - xy unitless 1
-110 AEICNOCO    1.00e-3 - - - xy unitless 1
-111 AEICSO2     1.18e-3 - - - xy unitless 1
-112 AEICSO4     3.60e-5 - - - xy unitless 1
-113 AEICBC      3.00e-5 - - - xy unitless 1
-114 AEICHC      1.16e-3 - - - xy unitless 1
+# Conversion factor from NO2 to NO
 115 NO2toNO     6.52e-1 - - - xy unitless 1
+
+# --- AEIC aircraft emissions ---                                                                
+# See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf 
+101 AEICACET 3.693477e-3 - - - xy unitless 1
+102 AEICALD2 4.271822e-2 - - - xy unitless 1                                                     
+103 AEICALK4 2.137911e-1 - - - xy unitless 1                                                     
+104 AEICC2H6 5.214505e-3 - - - xy unitless 1                                                     
+105 AEICC3H8 7.808710e-4 - - - xy unitless 1                                                     
+106 AEICCH2O 1.230811e-1 - - - xy unitless 1                                                     
+107 AEICPRPE 1.780418e-1 - - - xy unitless 1                                                     
+108 AEICMACR 5.362609e-2 - - - xy unitless 1                                                     
+109 AEICRCHO 3.676944e-2 - - - xy unitless 1                                                     
+111 AEICSO2  1.176000e-3 - - - xy unitless 1
+112 AEICSO4  3.600000e-5 - - - xy unitless 1
+113 AEICBC   3.000000e-5 - - - xy unitless 1
+114 AEICHC   1.160000e+0 - - - xy unitless 1
+120 FB2H2O   1.231000e+0 - - - xy unitless 1
+
+#------------------------------------------------------------------------------
+# Scaling factors for 1990-2019 derived from Lee et al. (2021).  Increase      
+# from 2018 to 2019 is estimated based on the growth from 2017 to 2018.
+# Lee et al. (2021) only covers 1990 to 2018, so to get to 2019 it is
+# assumed that the growth from 2017 to 2018 is the same as that from 2018
+# to 2019. So the formula is something like:
+#
+# Emissions of CO  in 2009 = AEIC 2019 emissions of CO
+#                          * (Lee 2017 CO        / Lee 2018 fuel burn)   
+#                          * (Lee 2009 fuel burn / Lee 2018 fuel burn)
+#
+# So in this case, we use the Lee 2017/Lee 2018 value to scale AEIC’s
+# emissions to the “2018” values, and then scale directly using the Lee et al
+# fuel burn. This ensures that, when running with year 2019, you get an
+# unadjusted version of the AEIC2019 inventory, and all previous years are
+# scaled down. For NOx, the same procedure is applied but with an additional
+# factor to account for changes in NOx EI:
+#
+# Emissions of NOx in 2009 = [ AEIC 2019 emissions of NOx
+#                          *   (Lee 2017 CO        / Lee 2018 fuel burn)
+#                          *   (Lee 2009 fuel burn / Lee 2018 fuel burn) ]
+#                          * [ (Lee 2017 NOx EI    / Lee 2018 NOx EI)
+#                          *   (Lee 2009 NOx EI    / Lee 2018 NOx EI)    ]
+#
+# In this case though the Lee et al 2018 and 2017 NOx EIs are identical.
+# All scaling factors are included in here in HEMCO_Config.rc.
+#------------------------------------------------------------------------------
+(((AEIC_SCALE_1990_2019
+240 AC_EINOX   0.852/0.852/0.852/0.859/0.866/0.873/0.881/0.888/0.896/0.903/0.911/0.916/0.922/0.927/0.932/0.937/0.950/0.962/0.974/0.987/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000/1.000 - 1990-2019/1/1/0 C xy 1 1
+241 AC_FBMULT  0.506/0.489/0.490/0.493/0.517/0.529/0.553/0.570/0.581/0.600/0.631/0.607/0.608/0.608/0.646/0.678/0.686/0.706/0.703/0.666/0.700/0.721/0.728/0.749/0.773/0.815/0.854/0.905/0.952/1.000 - 1990-2019/1/1/0 C xy 1 1
+)))AEIC_SCALE_1990_2019
+
+# If not applying 1990-2019 scale factors, use 1.0
+(((.not.AEIC_SCALE_1990_2019
+240 AC_EINOX  1.000000e+0 - -  - xy 1 1
+241 AC_FBMULT 1.000000e+0 - -  - xy 1 1
+))).not.AEIC_SCALE_1990_2019
 
 # --- SNAP scale factors from TNO report ---
 # Binning: 
@@ -1684,6 +1798,13 @@ Warnings:                    1
 546 QFED2_NO_TP_SCAL 0.45            -                -          - xy 1 1
 547 QFED2_NO_BO_SCAL 0.57            -                -          - xy 1 1
 548 QFED2_NO_SV_SCAL 0.64            -                -          - xy 1 1
+
+# Partition NO emissions into 40%NO, 40%PAN, and 20%HNO3 (on a N basis).
+# For PAN:  0.4 * 121.05 / 30.01 = 1.614
+# For HNO3: 0.2 * 63.012 / 30.01 = 0.420
+592 QFED2_NO_SCAL    0.400           -                -          - xy 1 1
+593 QFED2_NOtoPAN    1.614           -                -          - xy 1 1
+594 QFED2_NOtoHNO3   0.420           -                -          - xy 1 1
 
 #==============================================================================
 # Scale the CMIP6 values in pptv to ppbv

@@ -28,18 +28,19 @@
 # -----------------
 # Example 2: LSF
 # 
+#BSUB -G compute-rvmartin
 #BSUB -q rvmartin
-#BSUB -n 72
-#BSUB -W 2:00
-#BSUB -R "rusage[mem=120GB] span[ptile=36] select[mem < 2TB]"
-#BSUB -a 'docker(geoschem/gchp:13.0.0-beta.1-13-g924e47f)
+#BSUB -n 24
+#BSUB -W 168:00
+#BSUB -R "rusage[mem=300GB] span[ptile=36] select[mem < 2TB]"
+#BSUB -a 'docker(geoschem/gchp:14.3.0)'
 #BSUB -o lsf-%J.txt
 #
 # DESCRIPTION      Sample GCHP batch job script for Compute1 (Docker-based environments)
 # SCHEDULER        LSF
 # DATE             2021-02-19
 # SIMULATION       C90, 2019-01-01 to 2019-01-02
-# RESOURCES        2 nodes, 36 processes per node
+# RESOURCES        1 nodes, 24 processes per node
 # SEE ALSO         bsub man pages, http://gchp.rtfd.io/
 #
 # -----------------
@@ -48,7 +49,7 @@
 #SBATCH -n 60
 #SBATCH -N 2
 #SBATCH -t 2:00:00
-#SBATCH -p seas_compute
+#SBATCH -p huce_intel,seas_compute,shared
 #SBATCH --mem=110G
 #SBATCH --mail-type=ALL
 #
@@ -133,7 +134,11 @@ source checkRunSettings.sh
 #
 # Example 2: LSF
 #
-#    mpiexec -n 72 ./gchp > ${log}
+#/bin/bash
+#
+#      . /etc/bashrc
+#
+#    mpiexec -n 24 ./gchp > ${log}
 #
 # Example 3: SLURM
 #
@@ -144,14 +149,32 @@ source checkRunSettings.sh
 #
 # POST-RUN COMMANDS
 #
-# If new start time in cap_restart is okay, rename and move restart file
+
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done
+
+# If new start time in cap_restart is okay, rename restart file
 # and update restart symlink
 new_start_str=$(sed 's/ /_/g' cap_restart)
 if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
-   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
-   exit 1
+    echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+    rm -f Restarts/gcchem_internal_checkpoint
+    exit 1
 else
-    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
-    mv gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi

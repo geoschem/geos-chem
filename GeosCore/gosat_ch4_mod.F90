@@ -366,7 +366,8 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -399,6 +400,7 @@ CONTAINS
     INTEGER            :: IIJJ(2), I,      J,     N
     INTEGER            :: L,       LL,     LGOS
     INTEGER            :: JLOOP,   NOBS,   IND
+    INTEGER            :: previous_units
     INTEGER            :: INDS(MAXGOS)
     REAL(fp)           :: REF_DATE, TIME
     REAL(fp)           :: GC_PRES(State_Grid%NZ)
@@ -455,7 +457,6 @@ CONTAINS
     INTEGER            :: IOS
     INTEGER, SAVE      :: TotalObs = 0
     CHARACTER(LEN=255) :: FILENAME
-    CHARACTER(LEN=63)  :: OrigUnit
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
     INTEGER            :: RC
@@ -582,13 +583,31 @@ CONTAINS
     print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
     print*, ' found # GOSAT observations: ', NOBS
 
-    ! Convert species units to [v/v] (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC,        OrigUnit=OrigUnit )
+    ! Halt diagnostics timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
+    ! Convert species units to [v/v dry] aka [mol/mol dry]
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diagnostics timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
     !! need to update this in order to do i/o with this loop parallel
@@ -932,13 +951,30 @@ CONTAINS
     ! Update cost function
     COST_FUNC = COST_FUNC + SUM(NEW_COST(:))
 
+    ! Halt diagnostics timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Convert species units back to original unit (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diagnostics timer
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
 283 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,  &

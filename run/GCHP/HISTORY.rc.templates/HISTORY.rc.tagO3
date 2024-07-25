@@ -1,7 +1,7 @@
-
 EXPID:  OutputDir/GEOSChem
 EXPDSC: GEOS-Chem_devel
 CoresPerNode: 6
+Allow_Overwrite: .true.
 VERSION: 1
 
 #==============================================================================
@@ -13,14 +13,16 @@ VERSION: 1
 # in the collections section of this file.
 #
 # See the examples below for defining different types of grid at different
-# resolutions.
+# resolutions. See the collections section later on in this file for
+# instructions on using an alternative grid for output.
 #
-# See the collections section later on in this file for instructions on
-# using an alternative grid for output.
+# Beware that the online regridding is area-conserving. Only diagnostics
+# independent of grid cell area should be output on a custom grid. For more
+# information see the HISTORY.rc page at gchp.readthedocs.io/.
 #==============================================================================
-GRID_LABELS: PE24x144-CF
-             PC360x181-DC
-             REGIONAL1x1
+GRID_LABELS: #PE24x144-CF
+             #PC360x181-DC
+             #REGIONAL1x1
     ::
 
     # Example of cubed-sphere grid at c24 resolution

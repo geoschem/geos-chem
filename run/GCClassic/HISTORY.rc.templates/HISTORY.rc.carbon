@@ -1,4 +1,4 @@
-###############################################################################
+b###############################################################################
 ###  HISTORY.rc file for GEOS-Chem carbon simulation                   ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -35,7 +35,9 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'LevelEdgeDiags',
-             #'StateMet',
+             #'SatDiagn',
+             #'SatDiagnEdge',
+             'StateMet',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -99,7 +101,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              'SpeciesConcMND_?ADV?          ',
+                              ##'SpeciesConcMND_?ADV?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -114,24 +116,26 @@ COLLECTIONS: 'Restart',
   Budget.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:                'time-averaged'
-  Budget.fields:              'BudgetEmisDryDepFull_?ADV?    ',
-                              'BudgetEmisDryDepTrop_?ADV?    ',
-                              'BudgetEmisDryDepPBL_?ADV?     ',
-                              'BudgetChemistryFull_?ADV?     ',
-                              'BudgetChemistryTrop_?ADV?     ',
-                              'BudgetChemistryPBL_?ADV?      ',
-                              'BudgetTransportFull_?ADV?     ',
-                              'BudgetTransportTrop_?ADV?     ',
-                              'BudgetTransportPBL_?ADV?      ',
-                              'BudgetMixingFull_?ADV?        ',
-                              'BudgetMixingTrop_?ADV?        ',
-                              'BudgetMixingPBL_?ADV?         ',
-                              'BudgetConvectionFull_?ADV?    ',
-                              'BudgetConvectionTrop_?ADV?    ',
-                              'BudgetConvectionPBL_?ADV?     ',
-                              'BudgetWetDepFull_?WET?        ',
-                              'BudgetWetDepTrop_?WET?        ',
-                              'BudgetWetDepPBL_?WET?         ',
+  Budget.fields:              'BudgetEmisDryDepFull_?ADV?           ',
+                              'BudgetEmisDryDepTrop_?ADV?           ',
+                              'BudgetEmisDryDepPBL_?ADV?            ',
+                              'BudgetEmisDryDepLevs1to35_?ADV?      ',
+                              'BudgetChemistryFull_?ADV?            ',
+                              'BudgetChemistryTrop_?ADV?            ',
+                              'BudgetChemistryPBL_?ADV?             ',
+                              'BudgetChemistryLevs1to35_?ADV?       ',
+                              'BudgetTransportFull_?ADV?            ',
+                              'BudgetTransportTrop_?ADV?            ',
+                              'BudgetTransportPBL_?ADV?             ',
+                              'BudgetTransportLevs1to35_?ADV?       ',
+                              'BudgetMixingFull_?ADV?               ',
+                              'BudgetMixingTrop_?ADV?               ',
+                              'BudgetMixingPBL_?ADV?                ',
+                              'BudgetMixingLevs1to35_?ADV?          ',
+                              'BudgetConvectionFull_?ADV?           ',
+                              'BudgetConvectionTrop_?ADV?           ',
+                              'BudgetConvectionPBL_?ADV?            ',
+                              'BudgetConvectionLevs1to35_?ADV?      ',
 ::
 #==============================================================================
 # %%%%% THE Carbon COLLECTION %%%%%
@@ -143,9 +147,9 @@ COLLECTIONS: 'Restart',
   Carbon.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   Carbon.mode:           'time-averaged'
   Carbon.fields:         'OHconcAfterChem               ',
-                         'ProdCOfromCH4                 ', 
-                         'ProdCOfromNMVOC               ', 
-                         'ProdCO2fromCO                 ',  
+                         'ProdCOfromCH4                 ',
+                         'ProdCOfromNMVOC               ',
+                         'ProdCO2fromCO                 ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -194,6 +198,59 @@ COLLECTIONS: 'Restart',
                               'Met_PFLLSAN                   ',
 ::
 #==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_CH4               ',
+                              'SatDiagnConc_CO                ',
+                              'SatDiagnConc_CO2               ',
+                              'SatDiagnConc_OCS               ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnPEdge                  ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnColEmis_CH4            ',
+                              'SatDiagnSurfFlux_CH4           ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+::
+#==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the LevelEdgeDiags collection)
@@ -222,15 +279,14 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
                               'Met_LAI                       ',
-                              'Met_LWI                       ',
                               'Met_PARDR                     ',
                               'Met_PARDF                     ',
                               'Met_PBLTOPL                   ',

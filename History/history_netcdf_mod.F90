@@ -21,8 +21,6 @@ MODULE History_Netcdf_Mod
 
   IMPLICIT NONE
   PRIVATE
-
-# include "netcdf.inc"
 !
 ! !PUBLIC MEMBER FUNCTIONS
 !
@@ -181,6 +179,7 @@ CONTAINS
     USE JulDay_Mod,             ONLY : CalDate
     USE MetaHistItem_Mod,       ONLY : MetaHistItem
     USE Ncdf_Mod
+    USE netCDF,                 ONLY : NF90_UNLIMITED
     USE Registry_Params_Mod,    ONLY : KINDVAL_F4
 !
 ! !INPUT PARAMETERS:
@@ -380,7 +379,7 @@ CONTAINS
                           nLat           = Container%nY,                     &
                           nLev           = nLev,                             &
                           nIlev          = nILev,                            &
-                          nTime          = NF_UNLIMITED,                     &
+                          nTime          = NF90_UNLIMITED,                   &
                           nBounds        = 2,                                &
                           NcFormat       = Container%NcFormat,               &
                           Conventions    = Container%Conventions,            &
@@ -727,13 +726,13 @@ CONTAINS
     INTEGER                     :: St2d(2),          Ct2d(2)
     INTEGER                     :: St3d(3),          Ct3d(3)
     INTEGER                     :: St4d(4),          Ct4d(4)
-    REAL(f4),       ALLOCATABLE :: NcData_1d4(:    )
-    REAL(f4),       ALLOCATABLE :: NcData_2d4(:,:  )
-    REAL(f4),       ALLOCATABLE :: NcData_3d4(:,:,:)
-    REAL(f8),       ALLOCATABLE :: NcData_1d8(:    )
-    REAL(f8),       ALLOCATABLE :: NcData_2d8(:,:  )
-    REAL(f8),       ALLOCATABLE :: NcData_3d8(:,:,:)
-    REAL(f8)                    :: NcTimeVal (1    )
+    REAL(f4),       ALLOCATABLE :: NcData_2d4(:,:    )
+    REAL(f4),       ALLOCATABLE :: NcData_3d4(:,:,:  )
+    REAL(f4),       ALLOCATABLE :: NcData_4d4(:,:,:,:)
+    REAL(f8),       ALLOCATABLE :: NcData_2d8(:,:    )
+    REAL(f8),       ALLOCATABLE :: NcData_3d8(:,:,:  )
+    REAL(f8),       ALLOCATABLE :: NcData_4d8(:,:,:,:)
+    REAL(f8)                    :: NcTimeVal (1      )
 
     ! Objects
     TYPE(MetaHistItem), POINTER :: Current
@@ -793,7 +792,7 @@ CONTAINS
     Container%TimeStamp = Container%TimeStamp / SECONDS_PER_MINUTE
 
     ! Debug output
-    IF ( Input_Opt%LPRT .and. Input_opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 110 ) TRIM( Container%name ), Container%TimeStamp
 110    FORMAT( '     - Writing data to ', a, '; timestamp = ', f13.4 )
     ENDIF
@@ -860,10 +859,11 @@ CONTAINS
              ENDIF
 
              ! Allocate the 4-byte or 8-byte output array
+             ! Need a singleton 4th dimension for netCDF-F90
              IF ( output4bytes ) THEN
-                ALLOCATE( NcData_3d4( Dim1, Dim2, Dim3 ), STAT=RC )
+                ALLOCATE( NcData_4d4( Dim1, Dim2, Dim3, 1 ), STAT=RC )
              ELSE
-                ALLOCATE( NcData_3d8( Dim1, Dim2, Dim3 ), STAT=RC )
+                ALLOCATE( NcData_4d8( Dim1, Dim2, Dim3, 1 ), STAT=RC )
              ENDIF
 
              ! Copy or average the data and store in a 4-byte or 8-byte array
@@ -871,9 +871,9 @@ CONTAINS
 
                 !%%% Instantaneous output %%%
                 IF ( output4Bytes ) THEN
-                   NcData_3d4 = Item%Data_3d
+                   NcData_4d4(:,:,:,1) = Item%Data_3d
                 ELSE
-                   NcData_3d8 = Item%Data_3d
+                   NcData_4d8(:,:,:,1) = Item%Data_3d
                 ENDIF
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -883,9 +883,9 @@ CONTAINS
                 !%%% Time-averaged output %%%
                 Item%Data_3d  = Item%Data_3d / Item%nUpdates
                 IF ( output4Bytes ) THEN
-                   NcData_3d4 = Item%Data_3d
+                   NcData_4d4(:,:,:,1) = Item%Data_3d
                 ELSE
-                   NcData_3d8 = Item%Data_3d
+                   NcData_4d8(:,:,:,1) = Item%Data_3d
                 ENDIF
                 Item%Data_3d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -898,11 +898,11 @@ CONTAINS
 
              ! Write data to disk and deallocate output array
              IF ( output4bytes ) THEN
-                CALL NcWr( NcData_3d4, NcFileId, Item%Name, St4d, Ct4d )
-                DEALLOCATE( NcData_3d4, STAT=RC )
+                CALL NcWr( NcData_4d4, NcFileId, Item%Name, St4d, Ct4d )
+                DEALLOCATE( NcData_4d4, STAT=RC )
              ELSE
-                CALL NcWr( NcData_3d8, NcFileId, Item%Name, St4d, Ct4d )
-                DEALLOCATE( NcData_3d8, STAT=RC )
+                CALL NcWr( NcData_4d8, NcFileId, Item%Name, St4d, Ct4d )
+                DEALLOCATE( NcData_4d8, STAT=RC )
              ENDIF
 
           !------------------------------------------------------------------
@@ -921,10 +921,11 @@ CONTAINS
              ENDIF
 
              ! Allocate the 4-byte or 8-byte output array
+             ! Need a singleton 3rd dimension for netCDF-F90
              IF ( output4bytes ) THEN
-                ALLOCATE( NcData_2d4( Dim1, Dim2 ), STAT=RC )
+                ALLOCATE( NcData_3d4( Dim1, Dim2, 1 ), STAT=RC )
              ELSE
-                ALLOCATE( NcData_2d8( Dim1, Dim2 ), STAT=RC )
+                ALLOCATE( NcData_3d8( Dim1, Dim2, 1 ), STAT=RC )
              ENDIF
 
              ! Copy or average the data and store in a 4-byte or 8-byte array
@@ -932,9 +933,9 @@ CONTAINS
 
                 !%%% Instantaneous output %%%
                 IF ( output4bytes ) THEN
-                   NcData_2d4 = Item%Data_2d
+                   NcData_3d4(:,:,1) = Item%Data_2d
                 ELSE
-                   NcData_2d8 = Item%Data_2d
+                   NcData_3d8(:,:,1) = Item%Data_2d
                 ENDIF
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -944,9 +945,9 @@ CONTAINS
                 !%%% Time-averaged output %%%
                 Item%Data_2d  = Item%Data_2d / Item%nUpdates
                 IF ( output4bytes ) THEN
-                   NcData_2d4 = Item%Data_2d
+                   NcData_3d4(:,:,1) = Item%Data_2d
                 ELSE
-                   NcData_2d8 = Item%Data_2d
+                   NcData_3d8(:,:,1) = Item%Data_2d
                 ENDIF
                 Item%Data_2d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -959,11 +960,11 @@ CONTAINS
 
              ! Write data to disk
              IF ( output4bytes ) THEN
-                CALL NcWr( NcData_2d4, NcFileId, Item%Name, St3d, Ct3d )
-                DEALLOCATE( NcData_2d4, STAT=RC )
+                CALL NcWr( NcData_3d4, NcFileId, Item%Name, St3d, Ct3d )
+                DEALLOCATE( NcData_3d4, STAT=RC )
              ELSE
-                CALL NcWr( NcData_2d8, NcFileId, Item%Name, St3d, Ct3d )
-                DEALLOCATE( NcData_2d8, STAT=RC )
+                CALL NcWr( NcData_3d8, NcFileId, Item%Name, St3d, Ct3d )
+                DEALLOCATE( NcData_3d8, STAT=RC )
              ENDIF
 
           !------------------------------------------------------------------
@@ -975,10 +976,11 @@ CONTAINS
              Dim1 = SIZE( Item%Data_1d, 1 )
 
              ! Allocate the 4-byte or 8-byte output array
+             ! Need a singleton 2nd dimension for netCDF-F90
              IF ( output4bytes ) THEN
-                ALLOCATE( NcData_1d4( Dim1 ), STAT=RC )
+                ALLOCATE( NcData_2d4( Dim1, 1 ), STAT=RC )
              ELSE
-                ALLOCATE( NcData_1d8( Dim1 ), STAT=RC )
+                ALLOCATE( NcData_2d8( Dim1, 1 ), STAT=RC )
              ENDIF
 
              ! Copy or average the data and store in a 4-byte or 8-byte array
@@ -986,9 +988,9 @@ CONTAINS
 
                 !%%% Instantaneous output %%%
                 IF ( output4bytes ) THEN
-                   NcData_1d4 = Item%Data_1d
+                   NcData_2d4(:,1) = Item%Data_1d
                 ELSE
-                   NcData_1d8 = Item%Data_1d
+                   NcData_2d8(:,1) = Item%Data_1d
                 ENDIF
                 Item%Data_1d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -998,9 +1000,9 @@ CONTAINS
                 ! %%% Time-averaged output %%%
                 Item%Data_1d  = Item%Data_1d / Item%nUpdates
                 IF ( output4bytes ) THEN
-                   NcData_1d4 = Item%Data_1d
+                   NcData_2d4(:,1) = Item%Data_1d
                 ELSE
-                   NcData_1d8 = Item%Data_1d
+                   NcData_2d8(:,1) = Item%Data_1d
                 ENDIF
                 Item%Data_1d  = 0.0_f8
                 Item%nUpdates = 0.0_f8
@@ -1013,11 +1015,11 @@ CONTAINS
 
              ! Write data to disk
              IF ( output4bytes ) THEN
-                CALL NcWr( NcData_1d4, NcFileId, Item%Name, St2d, Ct2d )
-                DEALLOCATE( NcData_1d4, STAT=RC )
+                CALL NcWr( NcData_2d4, NcFileId, Item%Name, St2d, Ct2d )
+                DEALLOCATE( NcData_2d4, STAT=RC )
              ELSE
-                CALL NcWr( NcData_1d8, NcFileId, Item%Name, St2d, Ct2d )
-                DEALLOCATE( NcData_1d8, STAT=RC )
+                CALL NcWr( NcData_2d8, NcFileId, Item%Name, St2d, Ct2d )
+                DEALLOCATE( NcData_2d8, STAT=RC )
              ENDIF
 
        END SELECT

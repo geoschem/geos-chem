@@ -156,13 +156,23 @@ MODULE DRYDEP_MOD
   !========================================================================
 
   ! Scalars
-  INTEGER                        :: NUMDEP,   NWATER
-  INTEGER                        :: DRYHg0,   DRYHg2,   DryHgP
-  INTEGER                        :: id_ACET,  id_ALD2,  id_O3
-  INTEGER                        :: id_MENO3, id_ETNO3, id_MOH
-  INTEGER                        :: id_NK1,   id_Hg0
-  INTEGER                        :: id_HNO3,  id_PAN,   id_IHN1
-  INTEGER                        :: id_H2O2,  id_SO2,   id_NH3
+  INTEGER                        :: NUMDEP,     NWATER
+  INTEGER                        :: DRYHg0,     DRYHg2,     DryHgP
+  INTEGER                        :: id_ACET,    id_ALD2,    id_O3
+  INTEGER                        :: id_MENO3,   id_ETNO3,   id_MOH
+  INTEGER                        :: id_NK01,    id_Hg0
+  INTEGER                        :: id_HNO3,    id_PAN,     id_IHN1
+  INTEGER                        :: id_H2O2,    id_SO2,     id_NH3
+  INTEGER                        :: idd_BCPO,   idd_BCPI,   idd_BrSALC
+  INTEGER                        :: idd_BrSALA, idd_DST1,   idd_DST2
+  INTEGER                        :: idd_DST3,   idd_DST4,   idd_DSTAL1
+  INTEGER                        :: idd_DSTAL2, idd_DSTAL3, idd_DSTAL4
+  INTEGER                        :: idd_ISALA,  idd_ISALC,  idd_NH4
+  INTEGER                        :: idd_NIT,    idd_NITD1,  idd_NITD2
+  INTEGER                        :: idd_NITD3,  idd_NITD4,  idd_NITs
+  INTEGER                        :: idd_SALA,   idd_SALC,   idd_SO4
+  INTEGER                        :: idd_SO4D1,  idd_SO4D2,  idd_SO4D3
+  INTEGER                        :: idd_SO4D4,  idd_SO4s
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    ) = 0.0_fp
@@ -342,7 +352,7 @@ CONTAINS
 #endif
 
     !### Debug
-    IF ( Input_Opt%LPRT .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_DRYDEP: after dry dep' )
     ENDIF
 
@@ -477,9 +487,9 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------------------
-          ! Special treatment for snow vs. ice
+          ! Special treatment for snow and ice
           !-----------------------------------------------------------
-          IF ( State_Met%isSnow(I,J) ) THEN
+          IF ( (State_Met%isSnow(I,J)) .OR. (State_Met%isIce(I,J))) THEN
 
              !-------------------------------------
              ! %%% SURFACE IS SNOW OR ICE %%%
@@ -903,14 +913,15 @@ CONTAINS
     REAL(f8) :: SP
     REAL(f8) :: SFCWINDSQR
 
-    !=================================================================
+    !========================================================================
     ! METERO begins here!
-    !=================================================================
+    !========================================================================
 
     ! Loop over surface grid boxes
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, THIK, SP, SFCWINDSQR )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, THIK, SP, SFCWINDSQR                               )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -928,7 +939,7 @@ CONTAINS
        PRESSU(I,J) = SP * 1.e+2_f8
 
        !==============================================================
-       ! Return meterological quantities as 1-D arrays for DEPVEL
+       ! Return meterological quantities for DEPVEL
        !==============================================================
 
        ! Roughness height [m]
@@ -957,7 +968,7 @@ CONTAINS
        !  changed to 98% due to vapor pressure lowering above sea water
        !  (Lewis & Schwartz, 2004)
        !  jaegle (5/11/11)
-       RHB(I,J)    = MIN( 0.98e+0_f8, State_Met%RH(I,J,1) * 1.e-2_f8 )
+       RHB(I,J)    = MIN( 0.98_f8, State_Met%RH(I,J,1) * 1.0e-2_f8 )
 
        ! 10m windspeed [m/s] (jaegle 5/11/11)
        SFCWINDSQR  = State_Met%U10M(I,J)**2 + State_Met%V10M(I,J)**2
@@ -1163,7 +1174,7 @@ CONTAINS
     REAL(f8) :: RDC,RLUXX,RGSX,RCL,DTMP1,DTMP2,DTMP3,DTMP4
     REAL(f8) :: CZH,CKUSTR,REYNO,CORR1,CORR2,Z0OBK
     REAL(f8) :: RA,RB,DUMMY1,DUMMY2,DUMMY3,DUMMY4
-    REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC
+    REAL(f8) :: XMWH2O,DAIR,TEMPK,TEMPC,F0_K
     INTEGER  :: IOLSON,II,IW
     INTEGER  :: K,LDT
     REAL(f8) :: RCLX,RIXX    !,BIOFIT
@@ -1178,8 +1189,8 @@ CONTAINS
 #ifdef TOMAS
     ! For TOMAS aerosol (win, 7/15/09)
     INTEGER  :: BIN
-    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,IBINS)
-    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,IBINS)
+    REAL(f8) :: SIZ_DIA(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
+    REAL(f8) :: SIZ_DEN(State_Grid%NX,State_Grid%NY,State_Chm%nTomasBins)
 #endif
 
     ! Loop indices (bmy, 3/29/12)
@@ -1224,6 +1235,10 @@ CONTAINS
 !
     ! Small number
     REAL(fp), PARAMETER :: SMALL = 1.0e-10_f8
+
+    ! Gravitational Settling velocity (yli, 3/28/2024)
+    REAL(f8)  :: VTSoutput ! Used in AERO_SFCRSII, ADUST_SFCRSII and DUST_SFCRSII for a specific aerosol species and a specific land type
+    REAL(f8)  :: VTSoutput_ (NUMDEP,NTYPE) ! For all deposited aerosol species and all land types
 
     !=================================================================
     ! DEPVEL begins here!
@@ -1314,9 +1329,9 @@ CONTAINS
     ! depending on the internally-mixed composition (win, 7/15/09)
     !=================================================================
 
-    IF ( id_NK1 > 0 ) THEN
+    IF ( id_NK01 > 0 ) THEN
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
-                         SIZ_DIA, SIZ_DEN, RC )
+                         State_Diag, SIZ_DIA, SIZ_DEN, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in call to "AERO_DIADEN"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1325,47 +1340,91 @@ CONTAINS
     ENDIF
 #endif
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( CZ,      TEMPK,   TEMPC,   K,      VD                ) &
-    !$OMP PRIVATE( LDT,     RSURFC,  C1,      XNU,    RT,      IOLSON   ) &
-    !$OMP PRIVATE( II,      RI,      RLU,     RAC,    RGSS,    RGSO     ) &
-    !$OMP PRIVATE( RCLS,    RCLO,    RAD0,    RIX,    GFACT,   GFACI    ) &
-    !$OMP PRIVATE( RDC,     XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX     ) &
-    !$OMP PRIVATE( DTMP1,   DTMP2,   DTMP3,   DTMP4,  VDS,     CZH      ) &
-    !$OMP PRIVATE( CKUSTR,  REYNO,   CORR1,   CORR2,  Z0OBK,   RA       ) &
-    !$OMP PRIVATE( Z0OBK_Alt, RA_Alt,DUMMY2_Alt,      DUMMY4_Alt        ) &
-    !$OMP PRIVATE( DUMMY1,  DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB       ) &
-    !$OMP PRIVATE( C1X,     VK,      I,       J,      IW                ) &
-    !$OMP PRIVATE( DIAM,    DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP ) &
-    !$OMP PRIVATE( N_SPC,   alpha,   DEPVw                              ) &
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( CZ,        TEMPK,   TEMPC,   K,      VD                  )&
+    !$OMP PRIVATE( LDT,       RSURFC,  C1,      XNU,    RT,      IOLSON     )&
+    !$OMP PRIVATE( II,        RI,      RLU,     RAC,    RGSS,    RGSO       )&
+    !$OMP PRIVATE( RCLS,      RCLO,    RAD0,    RIX,    GFACT,   GFACI      )&
+    !$OMP PRIVATE( RDC,       XMWH2O,  RIXX,    RLUXX,  RGSX,    RCLX       )&
+    !$OMP PRIVATE( DTMP1,     DTMP2,   DTMP3,   DTMP4,  VDS,     CZH        )&
+    !$OMP PRIVATE( CKUSTR,    REYNO,   CORR1,   CORR2,  Z0OBK,   RA         )&
+    !$OMP PRIVATE( Z0OBK_Alt, RA_Alt,  DUMMY2_Alt,      DUMMY4_Alt          )&
+    !$OMP PRIVATE( DUMMY1,    DUMMY2,  DUMMY3,  DUMMY4, DAIR,    RB         )&
+    !$OMP PRIVATE( C1X,       VK,      I,       J,      IW                  )&
+    !$OMP PRIVATE( DIAM,      DEN,     XLAI_FP, SUNCOS_FP,       CFRAC_FP   )&
+    !$OMP PRIVATE( N_SPC,     alpha,   DEPVw,   VTSoutput,       VTSoutput_ )&
 #ifdef TOMAS
-    !$OMP PRIVATE( BIN                                                  ) &
+    !$OMP PRIVATE( BIN                                                      )&
 #endif
-    !$OMP PRIVATE( SpcId,  SpcInfo                                      )
+    !$OMP PRIVATE( SpcId,   SpcInfo,    F0_K                                )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       ! Initialize
+       ! Zero variables that aren't zeroed below
+       VD         = 0.0_f8
+       RSURFC     = 0.0_f8
+       II         = 0.0
+       RI         = 0.0_f8
+       RLU        = 0.0_f8
+       RAC        = 0.0_f8
+       RGSS       = 0.0_f8
+       RGSO       = 0.0_f8
+       RCLS       = 0.0_f8
+       RCLO       = 0.0_f8
+       RAD0       = 0.0_f8
+       RIX        = 0.0_f8
+       GFACT      = 0.0_f8
+       GFACI      = 0.0_f8
+       RDC        = 0.0_f8
+       XMWH2O     = 0.0_f8
+       RIXX       = 0.0_f8
+       RLUXX      = 0.0_f8
+       RGSX       = 0.0_f8
+       RCLX       = 0.0_f8
+       DTMP1      = 0.0_f8
+       DTMP2      = 0.0_f8
+       DTMP3      = 0.0_f8
+       DTMP4      = 0.0_f8
+       VDS        = 0.0_f8
+       CZH        = 0.0_f8
+       CKUSTR     = 0.0_f8
+       REYNO      = 0.0_f8
+       CORR1      = 0.0_f8
+       CORR2      = 0.0_f8
+       Z0OBK      = 0.0_f8
+       RA         = 0.0_f8
        Z0OBK_Alt  = 0.0_f8
+       RA_Alt     = 0.0_f8
        DUMMY2_Alt = 0.0_f8
        DUMMY4_Alt = 0.0_f8
-       RA_Alt     = 0.0_f8
+       DUMMY1     = 0.0_f8
+       DUMMY2     = 0.0_f8
+       DUMMY3     = 0.0_f8
+       DUMMY4     = 0.0_f8
+       DAIR       = 0.0_f8
+       RB         = 0.0_f8
+       C1X        = 0.0_f8
+       VK         = 0.0_f8
+       DIAM       = 0.0_f8
+       DEN        = 0.0_f8
+       XLAI_FP    = 0.0_f8
+       SUNCOS_FP  = 0.0_f8
+       CFRAC_FP   = 0.0_f8
+       N_SPC      = 0
+       alpha      = 0.0_f8
+       DEPVw      = 0.0_f8
+       F0_K       = 0.0_f8
+       VTSoutput  = 0.0_fp
+       VTSoutput_ = 0.0_fp
 
        !** CZ is Altitude (m) at which deposition velocity is computed
-       CZ = CZ1(I,J)
+       CZ    = CZ1(I,J)
 
        !** TEMPK and TEMPC are surface air temperatures in K and in C
        TEMPK = TEMP(I,J)
        TEMPC = TEMP(I,J)-273.15e+0_f8
-
-       !* Initialize variables
-       DO K = 1,NUMDEP
-          VD(K) = 0.0e+0_f8
-          DO LDT = 1,NTYPE
-             RSURFC(K,LDT) = 0.e+0_f8
-          END DO
-       END DO
 
        !** Calculate the kinematic viscosity XNU (m2 s-1) of air
        !** as a function of temperature.
@@ -1375,7 +1434,7 @@ CONTAINS
        !** The expression for the temperature dependence of XNU
        !** is from the FORTRAN code in Appendix II of Wesely [1988];
        !** I wasn't able to find an original reference but it seems benign enough.
-       C1 = TEMPK/273.15e+0_f8
+       C1  = TEMPK/273.15e+0_f8
        XNU = 0.151e+0_f8*(C1**1.77e+0_f8)*1.0e-04_f8
 
        !* Compute bulk surface resistance for gases.
@@ -1422,7 +1481,7 @@ CONTAINS
           !** If the surface to be snow or ice;
           !** set II to 1 instead.
           !
-          IF(State_Met%isSnow(I,J)) II=1
+          IF((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
           !* Read the internal resistance RI (minimum stomatal resistance for
           !* water vapor,per unit area of leaf) from the IRI array; a '9999'
@@ -1534,6 +1593,10 @@ CONTAINS
           !*
           DO 160  K = 1,NUMDEP
 
+             ! Save F0(K) in a private variable to avoid diffs due
+             ! to parallelization -- Bob Yantosca (17 May 2023)
+             F0_K = F0(K)
+
              !** exit for non-depositing species or aerosols.
              IF (.NOT. LDEP(K) .OR. AIROSOL(K)) GOTO 155
 
@@ -1563,23 +1626,32 @@ CONTAINS
 
                 ENDIF
 
-             ! currently messy test for if surface is snow/ice to change O3
-             ! surface resistance to an updated value
-             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (State_Met%isSnow(I,J))) THEN
+             ! Test for if surface is snow/ice to change O3
+             ! surface resistance to an observation derived value
+             ELSE IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 1)) THEN
                  RSURFC(K,LDT) = 10000.0_f8
              ELSE
-                ! Check latitude and longitude, alter F0 only for Amazon rainforest for Hg0
-                ! (see reference: Feinberg et al., ESPI, 2022: Evaluating atmospheric mercury (Hg) uptake by vegetation in a
-                ! chemistry-transport model)
-                IF (N_SPC .EQ. ID_Hg0) THEN ! Check for Hg0
-                   IF ( II .EQ. 6 .AND. & ! if rainforest land type
-                        State_Grid%XMid(I,J) > -82 .AND. & ! bounding box of Amazon
-                        State_Grid%XMid(I,J) < -33  .AND. &
-                        State_Grid%YMid(I,J) >  -34  .AND. &
-                        State_Grid%YMid(I,J) <  14 ) THEN
-                      F0(K) = 2.0e-01_f8 ! increase reactivity, as inferred from observations
-                   ELSE
-                      F0(K) = 3.0e-05_f8 ! elsewhere, lower reactivity 
+                ! Check latitude and longitude, alter F0 only for Amazon
+                ! rainforest for Hg0 (see reference: Feinberg et al., ESPI,
+                ! 2022: Evaluating atmospheric mercury (Hg) uptake by
+                ! vegetation in a chemistry-transport model)
+                !
+                ! Remove IF/ELSE block using never-nesting technique.
+                !   - Bob Yantosca (17 May 2023)
+                IF ( N_SPC == ID_Hg0 ) THEN
+
+                   ! Assume lower reactivity 
+                   F0_K = 3.0e-05_f8 
+                   
+                   ! But if this is the rainforest land type and we fall
+                   ! within the bounding box of the Amazon rainforest,
+                   ! then increase reactivity as inferred from observations.
+                   IF ( II                   ==  6         .AND.             &
+                        State_Grid%XMid(I,J) >  -82.0_f8   .AND.             &
+                        State_Grid%XMid(I,J) <  -33.0_f8   .AND.             &
+                        State_Grid%YMid(I,J) >  -34.0_f8   .AND.             &
+                        State_Grid%YMid(I,J) <   14.0_f8 ) THEN
+                      F0_K = 2.0e-01_f8
                    ENDIF
                 ENDIF
 
@@ -1588,25 +1660,25 @@ CONTAINS
 #ifdef LUO_WETDEP
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0(K))
+                     + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #else
                 RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
                      DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                     + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0(K))
+                     + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #endif
                 RLUXX = 1.e+12_f8
                 IF (RLU(LDT).LT.9999.e+0_f8) &
 #ifdef LUO_WETDEP
-                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0_K)
 #else
-                     RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0_K)
 #endif
 
                 ! If POPs simulation, scale cuticular resistances with octanol-
                 ! air partition coefficient (Koa) instead of HSTAR
                 ! (clf, 1/3/2011)
                 IF (IS_POPS) &
-                     RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0(K))
+                     RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0_K)
 
                 !*
                 !* To prevent virtually zero resistance to species with huge
@@ -1620,14 +1692,14 @@ CONTAINS
                 !*
 #ifdef LUO_WETDEP
                 RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
-                       F0(K)/RGSO(LDT))
+                       F0_K/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
-                       F0(K)/RCLO(LDT))
+                       F0_K/RCLO(LDT))
 #else
                 RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) + &
-                       F0(K)/RGSO(LDT))
+                       F0_K/RGSO(LDT))
                 RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) + &
-                       F0(K)/RCLO(LDT))
+                       F0_K/RCLO(LDT))
 #endif
                 !*
                 !** Get the bulk surface resistance of the canopy, RSURFC, from
@@ -1665,7 +1737,11 @@ CONTAINS
                                               USTAR(I,J),          &
                                               RHB(I,J),            &
                                               W10(I,J),            &
-                                              Input_Opt )
+                                              VTSoutput,           &
+                                              Input_Opt,           & 
+                                              State_Chm )
+
+                VTSoutput_(K,LDT) = VTSoutput  
 
              ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
 
@@ -1696,7 +1772,7 @@ CONTAINS
                    ! evolves with time.  We have to save these in the
                    ! DIAM and DEN variables so that we can hold these
                    ! PRIVATE for the parallel loop.
-                   BIN  = NTRAIND(K) - id_NK1 + 1
+                   BIN  = NTRAIND(K) - id_NK01 + 1
                    DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
                    DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
 
@@ -1708,6 +1784,26 @@ CONTAINS
 
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
+
+                IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
+                     K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
+                   DIAM = 0.66895E-6
+                ENDIF
+
+                IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.              &
+                     K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
+                   DIAM = 2.4907E-6
+                ENDIF
+
+                IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.              &
+                     K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
+                   DIAM = 4.164E-6
+                ENDIF
+
+                IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.              &
+                     K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
+                   DIAM = 6.677E-6
+                ENDIF
 
                 ! Particle density [kg/m3]
                 DEN   = A_DEN(K)
@@ -1749,7 +1845,10 @@ CONTAINS
                                               TEMPK,               &
                                               USTAR(I,J),          &
                                               DIAM,                &
-                                              DEN )
+                                              DEN,                 &
+                                              VTSoutput )
+
+                VTSoutput_(K,LDT) = VTSoutput
 
              ELSE
 
@@ -1772,7 +1871,11 @@ CONTAINS
                 !   (-CZH)**0.6667D0
 
                 RSURFC(K, LDT) = ADUST_SFCRSII(K, II, PRESSU(I,J)*1e-3_f8, &
-                                            TEMPK, USTAR(I,J))
+                                            TEMPK, USTAR(I,J), &
+                                            VTSoutput, RHB(I,J), &
+                                            State_Chm)
+
+                VTSoutput_(K,LDT) = VTSoutput
 
                 !*
                 !*    Set VDS to be less than VDSMAX (entry in input file
@@ -2127,6 +2230,24 @@ CONTAINS
              IF (.NOT.LDEP(K)) GOTO 400
              VK(K) = VD(K)
              VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+
+             IF (AIROSOL (K)) THEN
+                 SpcId   =  NTRAIND(K)
+                 SpcInfo => State_Chm%SpcData(SpcId)%Info
+
+                 IF ( SpcInfo%DD_AeroDryDep ) THEN
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ELSE
+                     VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
+       /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                 ENDIF
+             ELSE
+                 VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
+             ENDIF
 400       CONTINUE
 500    CONTINUE
 
@@ -2651,7 +2772,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
 130    FORMAT( '%% Successfully read ',       a, ' [', a, ']' )
     ENDIF
@@ -2683,7 +2804,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2711,7 +2832,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2753,7 +2874,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2781,7 +2902,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2809,7 +2930,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2841,7 +2962,7 @@ CONTAINS
     IRI(3) = 200
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2869,7 +2990,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2897,7 +3018,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2925,7 +3046,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2953,7 +3074,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -2981,7 +3102,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3009,7 +3130,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3037,7 +3158,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, 130 ) TRIM(v_name), TRIM(a_val)
     ENDIF
 
@@ -3053,7 +3174,7 @@ CONTAINS
 #endif
 
     ! Echo info to stdout
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%Verbose ) THEN
        WRITE( 6, '(a)' ) REPEAT( '%', 79 )
     ENDIF
 
@@ -3074,12 +3195,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, W10, Input_Opt ) &
+  FUNCTION AERO_SFCRSII( K, II, PRESS, TEMP, USTAR, RHB, W10, VTSout, Input_Opt, State_Chm ) &
        RESULT(RS)
 !
 ! !USES:
 !
     USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : Species
+    USE State_Chm_Mod,      ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -3091,6 +3214,13 @@ CONTAINS
     REAL(f8),       INTENT(IN) :: RHB   ! Relative humidity (fraction)
     REAL(f8),       INTENT(IN) :: W10   ! 10 m windspeed [m/s]
     TYPE(OptInput), INTENT(IN) :: Input_Opt ! Input Options object
+    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8),       INTENT(OUT) :: VTSout    ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -3173,6 +3303,7 @@ CONTAINS
     REAL(f8)      :: DEDGE
     REAL(f8)      :: DEN1, WTP
     INTEGER       :: ID,NR
+    REAL(f8)      :: drydepRadius
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -3347,11 +3478,23 @@ CONTAINS
     NR = INT((( Input_Opt%SALC_REDGE_um(2) - Input_Opt%SALA_REDGE_um(1) ) &
          / DR ) + 0.5e+0_f8 )
 
+    drydepRadius = A_RADI(K)
+
+    ! Coarse seasalt
+    IF ( K == idd_NITS    .or. K == idd_SALC .or. K == idd_SO4S .or.         &
+         K == idd_BRSALC  .or. K == idd_ISALC                        ) THEN
+       drydepRadius = 0.74025E-6
+    ENDIF
+
+    IF ( K == idd_SALA .OR. K == idd_BRSALA .or. K == idd_ISALA ) THEN
+       drydepRadius = 0.114945E-6
+    ENDIF
+
     ! Particle radius [cm]
     ! Bug fix: The Gerber [1985] growth should use the dry radius
     ! in micromenters and not cm. Replace RCM with RUM (jaegle 5/11/11)
     !RCM  = A_RADI(K) * 1.d2
-    RUM  = A_RADI(K) * 1.e+6_f8
+    RUM  = drydepRadius * 1.e+6_f8
 
     ! Exponential factors used for hygroscopic growth
     ! Replace RCM with RUM (jaegle 5/11/11)
@@ -3377,7 +3520,7 @@ CONTAINS
 
     ! Use equation 5 in Lewis and Schwartz (2006) for sea salt growth [m]
     ! (jaegle 5/11/11)
-    RWET = A_RADI(K) * (4.e+0_f8 / 3.7e+0_f8) * &
+    RWET = drydepRadius * (4.e+0_f8 / 3.7e+0_f8) * &
           ( (2.e+0_f8 - RHBL)/(1.e+0_f8 - RHBL) )**(1.e+0_f8/3.e+0_f8)
 
     ! Ratio dry over wet radii at the cubic power
@@ -3395,7 +3538,7 @@ CONTAINS
     ! wet aerosol (kg/m3)
     ! (bec, 6/17/10, jaegle 5/11/11)
     ! Redefine RATIO_R
-    RATIO_R = A_RADI(K) / RWET
+    RATIO_R = drydepRadius / RWET
 
     ! Assume an initial density of 1000 kg/m3
     DEN  = 1000.e+0_f8
@@ -3475,19 +3618,20 @@ CONTAINS
        ! Calculate mass of wet aerosol (Dw = wet diameter, D = dry diamter):
        ! Overall = dM/dDw = dV/dlnD * Rwet/Rdry * DEN /Rw
        IF (DMID(ID) .ge. D0 .and. DMID(ID) .le. D1 ) THEN
-          DMIDW = DMID(ID) * RWET/A_RADI(K)   ! wet radius [um]
-          SALT_MASS   = SALT_V(ID) * RWET/A_RADI(K) * DEN / &
+          DMIDW = DMID(ID) * RWET/drydepRadius   ! wet radius [um]
+          SALT_MASS   = SALT_V(ID) * RWET/drydepRadius * DEN / &
                         (DMIDW*0.5e+0_f8)
           VTS_WEIGHT  = VTS_WEIGHT + &
                         SALT_MASS * VTS * (DMIDW/(RWET*1d6*2e+0_f8) )** &
-                        2e+0_f8 * (2e+0_f8 * DR *  RWET/A_RADI(K))
+                        2e+0_f8 * (2e+0_f8 * DR *  RWET/drydepRadius)
           SALT_MASS_TOTAL = SALT_MASS_TOTAL+SALT_MASS * &
-                            (2e+0_f8 * DR *  RWET/A_RADI(K))
+                            (2e+0_f8 * DR *  RWET/drydepRadius)
        ENDIF
     ENDDO
 
     ! Final mass weighted setting velocity:
     VTS = VTS_WEIGHT/SALT_MASS_TOTAL
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * PI * VISC * DIAM)
@@ -3837,7 +3981,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR ) RESULT( RS )
+  FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR, &
+                          VTSout, RHB, State_Chm ) RESULT( RS )
+!
+! !USES: 
+!
+      USE Species_Mod,        ONLY : Species
+      USE State_Chm_Mod,      ONLY : ChmState
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -3846,6 +3997,14 @@ CONTAINS
     REAL(f8), INTENT(IN) :: PRESS ! Pressure [kPa] (1 mb = 100 Pa = 0.1 kPa)
     REAL(f8), INTENT(IN) :: TEMP  ! Temperature [K]
     REAL(f8), INTENT(IN) :: USTAR ! Friction velocity [m/s]
+    REAL(f8), INTENT(IN) :: RHB   ! Relative humidity (fraction)
+    TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -3888,6 +4047,8 @@ CONTAINS
     REAL(f8)  :: DIAM, DEN
 
     REAL(f8)  :: EB, EIM, EIN, R1, AA, VTS
+
+    REAL(f8)  :: RHBL        ! Relative humidity local
 
     !=======================================================================
     !   #  LUC [Zhang et al., 2001]                GEOS-CHEM LUC (Corr. #)
@@ -4024,7 +4185,44 @@ CONTAINS
     !=================================================================
 
     ! Particle diameter [m] hotp 10/26/07
-    DIAM  = 0.5e-6_f8
+    DIAM  = 0.17378e-6_f8
+
+    ! Hygroscopic growth following Latimer and Martin (2019) ACP (yanshun)
+    ! Added safety check for LOG (phs, 6/11/08)
+    RHBL    = MAX( TINY(RHB), RHB )
+
+    ! Over oceans the RH in the viscous sublayer is set to 98%,
+    ! following
+    ! Lewis and Schwartz (2004), see discussion above (jaegle 5/11/11)
+    IF (LUC == 14) THEN
+        RHBL = 0.98
+    ENDIF
+
+    ! SIA
+    IF ( K == idd_NIT .or. K == idd_NH4 .or. K == idd_SO4 ) THEN
+        ! Efflorescence transtions
+        IF (RHBL .LT. 0.35) THEN
+           ! DIAM is not changed
+        ELSE IF ((RHBL .GE. 0.35) .AND. (RHBL .LE. 0.40)) THEN
+           ! Linear hygroscopic growth
+            DIAM = DIAM + (DIAM * ((1.0_fp + 0.61_fp * 0.40_fp /             &
+                   (1.0_fp - 0.40_fp)) ** (1.0_fp / 3.0_fp)) - DIAM) /       &
+                   (0.40_fp - 0.35_fp) * (RHBL - 0.35_fp)
+        ELSE
+           ! Kohler hygroscopic growth
+            DIAM = DIAM * ((1.0_fp + 0.61_fp * RHBL / (1.0_fp - RHBL))       &
+                   ** (1.0_fp / 3.0_fp))
+        ENDIF
+
+    !BC
+    ELSE IF ( K == idd_BCPI .OR. K == idd_BCPO )  THEN
+       ! DIAM is not changed
+    
+    !OA
+    ELSE
+        DIAM = DIAM * ((1.0_fp + 0.1_fp * RHBL / (1.0_fp - RHBL))            &
+             ** (1.0_fp / 3.0_fp))
+    ENDIF
 
     ! Particle density [kg/m3] hotp 10/26/07
     DEN   = 1500
@@ -4068,6 +4266,7 @@ CONTAINS
 
     ! Settling velocity [m/s]
     VTS  = CONST * SLIP / VISC
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * Pi * VISC * DIAM)
@@ -4126,8 +4325,8 @@ CONTAINS
 ! !INTERFACE:
 !
 
-  FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR, DIAM, DEN ) &
-       RESULT( RS )
+  FUNCTION DUST_SFCRSII( K, II, PRESS, TEMP, USTAR, DIAM, &
+                         DEN, VTSout) RESULT( RS )
 !
 ! !INPUT PARAMETERS:
 !
@@ -4138,6 +4337,12 @@ CONTAINS
     REAL(f8), INTENT(IN) :: USTAR   ! Friction velocity [m/s]
     REAL(f8), INTENT(IN) :: DIAM    ! Particle diameter [m]
     REAL(f8), INTENT(IN) :: DEN     ! Particle density [kg/m3]
+
+!
+! !OUTPUT PARAMETERS: 
+!
+    REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
+
 !
 ! !RETURN VALUE:
 !
@@ -4353,6 +4558,7 @@ CONTAINS
 
     ! Settling velocity [m/s]
     VTS  = CONST * SLIP / VISC
+    VTSout = VTS
 
     ! Brownian diffusion constant for particle (m2/s)
     DIFF = BOLTZ * TEMP * SLIP / (3.e+0_f8 * Pi * VISC * DIAM)
@@ -4532,6 +4738,38 @@ CONTAINS
     id_H2O2   = Ind_('H2O2'  )
     id_SO2    = Ind_('SO2'   )
     id_NH3    = Ind_('NH3'   )
+    id_NK01   = Ind_('NK01'  )
+
+    ! Drydep ID flags
+    idd_BCPO   = Ind_('BCPI',   'D')
+    idd_BCPO   = Ind_('BCPO',   'D')
+    idd_BrSALC = Ind_('BrSALC', 'D')
+    idd_BrSALA = Ind_('BrSALA', 'D')
+    idd_DST1   = Ind_('DST1',   'D')
+    idd_DST2   = Ind_('DST2',   'D')
+    idd_DST3   = Ind_('DST3',   'D')
+    idd_DST4   = Ind_('DST4',   'D')
+    idd_DSTAL1 = Ind_('DSTAL1', 'D')
+    idd_DSTAL2 = Ind_('DSTAL2', 'D')
+    idd_DSTAL3 = Ind_('DSTAL3', 'D')
+    idd_DSTAL4 = Ind_('DSTAL4', 'D')
+    idd_ISALA  = Ind_('ISALA',  'D')
+    idd_ISALC  = Ind_('ISALC',  'D')
+    idd_NH4    = Ind_('NH4',    'D')
+    idd_NIT    = Ind_('NIT',    'D')
+    idd_NITD1  = Ind_('NITD1',  'D')
+    idd_NITD2  = Ind_('NITD2',  'D')
+    idd_NITD3  = Ind_('NITD3',  'D')
+    idd_NITD4  = Ind_('NITD4',  'D')
+    idd_NITs   = Ind_('NITs',   'D')
+    idd_SALA   = Ind_('SALA',   'D')
+    idd_SALC   = Ind_('SALC',   'D')
+    idd_SO4    = Ind_('SO4',    'D')
+    idd_SO4D1  = Ind_('SO4D1',  'D')
+    idd_SO4D2  = Ind_('SO4D2',  'D')
+    idd_SO4D3  = Ind_('SO4D3',  'D')
+    idd_SO4D4  = Ind_('SO4D4',  'D')
+    idd_SO4s   = Ind_('SO4S',   'D')
 
     !===================================================================
     ! Arrays that hold information about dry-depositing species
@@ -4758,9 +4996,6 @@ CONTAINS
        SpcInfo => NULL()
     ENDDO
 
-    ! For TOMAS
-    id_NK1   = Ind_('NK1'  )
-
     !=================================================================
     ! Allocate arrays
     ! add allocation for SALT_V and DMID (jaegle 5/11/11)
@@ -4778,7 +5013,7 @@ CONTAINS
     !=================================================================
     ! Echo information to stdout
     !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot .and. Input_Opt%Verbose ) THEN
 
        ! Line 1
        MSG = 'INIT_DRYDEP: List of dry deposition species:'

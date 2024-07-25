@@ -15,11 +15,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
 ! !USES:
 !
-  USE AEROSOL_MOD,             ONLY : CLEANUP_AEROSOL
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
   USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
   USE CO2_MOD,                 ONLY : CLEANUP_CO2
-  USE CMN_FJX_Mod,             ONLY : Cleanup_CMN_FJX
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
   USE DUST_MOD,                ONLY : CLEANUP_DUST
@@ -30,7 +28,7 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE Input_Opt_Mod,           ONLY : OptInput
-  USE ISORROPIAII_MOD,         ONLY : CLEANUP_ISORROPIAII
+  USE AEROSOL_THERMODYNAMICS_MOD, ONLY : CLEANUP_ATE
   USE LAND_MERCURY_MOD,        ONLY : CLEANUP_LAND_MERCURY
   USE LINEAR_CHEM_MOD,         ONLY : CLEANUP_LINEAR_CHEM
   USE MERCURY_MOD,             ONLY : CLEANUP_MERCURY
@@ -44,14 +42,9 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
   USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
-  USE UCX_MOD,                 ONLY : CLEANUP_UCX
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
-#ifdef BPCH_DIAG
-  USE CMN_O3_Mod,              ONLY : Cleanup_CMN_O3
-  USE DIAG_MOD,                ONLY : CLEANUP_DIAG
-#endif
 #ifdef TOMAS
   USE TOMAS_MOD,               ONLY : CLEANUP_TOMAS  !sfarina, 1/16/13
 #endif
@@ -118,11 +111,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
-  ! UCX needs to be cleaned up before emissions, because the UCX
-  ! restart variables needs to be passed to the HEMCO diagnostics
-  ! first.
-  CALL CLEANUP_UCX()
-
   !=================================================================
   ! Cleanup HEMCO
   !=================================================================
@@ -134,12 +122,11 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   !=================================================================
   ! Call cleanup routines from individual F90 modules
   !=================================================================
-  CALL CLEANUP_AEROSOL()
   CALL CLEANUP_CARBON()
   CALL CLEANUP_CO2()
   CALL CLEANUP_DRYDEP()
   CALL CLEANUP_DUST()
-  CALL CLEANUP_ISORROPIAII()
+  CALL CLEANUP_ATE()
   CALL CLEANUP_PJC_PFIX()
   CALL CLEANUP_PRESSURE()
   CALL CLEANUP_SEASALT()
@@ -183,13 +170,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      RETURN
   ENDIF
 
-  CALL Cleanup_CMN_FJX( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_CMN_FJX"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
   CALL CLEANUP_MERCURY()
   CALL CLEANUP_OCEAN_MERCURY()
   CALL CLEANUP_DEPO_MERCURY()
@@ -216,16 +196,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF
-
-#ifdef BPCH_DIAG
-
-  CALL Cleanup_CMN_O3( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_CMN_O3"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-#endif
 
 #ifdef RRTMG
   CALL Cleanup_RRTMG_Rad_Transfer( RC )

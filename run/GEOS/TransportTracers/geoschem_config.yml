@@ -1,0 +1,63 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for GCHP simulations using the TransportTracers mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: TransportTracers
+  chem_inputs_dir: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/
+  species_database_file: ./species_database.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true
+
+  pbl_mixing:
+     activate: false
+     use_non_local_pbl: false
+
+  transport:
+    activate: true
+    transported_species:
+      -  Rn222
+      -  Pb210
+      -  Pb210s
+      -  Be7
+      -  Be7s
+      -  Be10
+      -  Be10s
+      -  aoa
+      -  aoa_bl
+      -  aoa_nh
+      -  CH3I
+      -  CO_25
+      -  CO_50
+      -  e90
+      -  e90_n
+      -  e90_s
+      -  nh_5
+      -  nh_50
+      -  PassiveTracer
+      -  SF6
+      -  st80_25
+
+  wet_deposition:
+    activate: true

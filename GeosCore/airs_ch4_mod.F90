@@ -149,7 +149,7 @@ CONTAINS
     ! READ_AIRS_CH4_OBS begins here!
     !=================================================================
 
-    caller = 'READ_AIRS_CH4_OBS in airs_ch4_mod.F90'
+    caller = 'READ_AIRS_CH4_OBS in GeosCore/airs_ch4_mod.F90'
 
     ! Get current year
     WRITE( CYEAR, '(i4)' ) GET_YEAR()
@@ -370,7 +370,8 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
+    USE UnitConv_Mod
 !
 ! !INPUT PARAMETERS:
 !
@@ -429,7 +430,7 @@ CONTAINS
     INTEGER            :: IOS
     INTEGER, SAVE      :: TotalObs = 0
     CHARACTER(LEN=255) :: FILENAME
-    CHARACTER(LEN=63)  :: OrigUnit
+    INTEGER            :: previous_units
     CHARACTER(LEN=255) :: ThisLoc
     CHARACTER(LEN=512) :: ErrMsg
     INTEGER            :: RC
@@ -444,7 +445,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
-    ThisLoc = ' -> at CALC_AIRS_CH4_FORCE (in gosat_ch4_mod.F)'
+    ThisLoc = ' -> at CALC_AIRS_CH4_FORCE (in GeosCore/airs_ch4_mod.F90)'
 
     ! Initialize species ID flag
     id_CH4     = Ind_('CH4'       )
@@ -516,13 +517,31 @@ CONTAINS
     print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
     print*, ' found # AIRS observations: ', NOBS
 
+    ! Halt diagnostics timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Convert species units to [v/v] (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            'v/v dry', RC,        OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diagnostics timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
     !! need to update this in order to do i/o with this loop parallel 
@@ -686,13 +705,31 @@ CONTAINS
     ENDDO  ! NT
     !!$OMP END PARALLEL DO
 
+    ! Halt diagnostics timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Diagnostics", RC )
+    ENDIF
+
     ! Convert species units back to original unit (mps, 6/12/2020)
-    CALL Convert_Spc_Units( Input_Opt, State_Chm, State_Grid, State_Met, &
-                            OrigUnit,  RC ) 
+    CALL Convert_Spc_Units(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
+
+    ! Trap errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start diagnostics timer
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
 283 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,I2,2x,I2,2x,I2, &

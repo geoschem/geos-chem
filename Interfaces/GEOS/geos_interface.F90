@@ -19,7 +19,7 @@ MODULE GEOS_Interface
   ! MAPL/ESMF
   USE ESMF     
   USE MAPL_Mod 
-  ! GEOS-Chem
+  ! GEOS-Chem stuff
   USE Precision_Mod
   USE ErrCode_Mod                                    ! Error numbers
   USE PHYSCONSTANTS
@@ -38,6 +38,7 @@ MODULE GEOS_Interface
   PUBLIC   :: MetVars_For_Lightning_Run  
   PUBLIC   :: GEOS_CheckRATSandOx
   PUBLIC   :: GEOS_RATSandOxDiags
+  PUBLIC   :: GEOS_SetH2O
   PUBLIC   :: GEOS_Diagnostics 
   PUBLIC   :: GEOS_CalcTotOzone
   PUBLIC   :: GEOS_InitFromFile
@@ -193,7 +194,7 @@ CONTAINS
            RESTART            = MAPL_RestartSkip,                           &
            VLOCATION          = MAPL_VLocationCenter,                       &
                                                   __RC__ )
-        if(am_I_Root) write(*,*) 'OX added to internal: Friendly to: ANALYSIS, DYNAMICS, TURBULENCE'
+        if(am_I_Root) write(*,*) 'OX added to internal: Friendly to: ANALYSIS, DYNAMICS, TURBULENCE, MOIST'
 
        call MAPL_AddExportSpec(GC,                 &
           SHORT_NAME = 'O3',                       &
@@ -220,6 +221,41 @@ CONTAINS
                                            __RC__ )
     ENDIF !DoANOX
 
+    !============================================
+    ! General diagnostics that can always be used
+    !============================================
+    call MAPL_AddExportSpec(GC,                                  &
+        SHORT_NAME = 'GCC_H2O_TEND',                             &
+        LONG_NAME  = 'GEOSCHEMCHEM_tendency_of_water_vapor_mixing_ratio',&
+        UNITS      = 'kg kg-1 s-1',                               &
+        DIMS       = MAPL_DimsHorzVert,                           &
+        VLOCATION  = MAPL_VLocationCenter,                        &
+                                            __RC__ )
+
+    call MAPL_AddExportSpec(GC,                                     &
+        SHORT_NAME         = 'GCC_O3',                            &
+        LONG_NAME          = 'GEOSCHEMCHEM_ozone_mass_mixing_ratio_total_air', &
+        UNITS              = 'kg kg-1',                           &
+        DIMS               = MAPL_DimsHorzVert,                   &
+        VLOCATION          = MAPL_VLocationCenter,                &
+                                            __RC__ )
+
+    call MAPL_AddExportSpec(GC,                                       &
+        SHORT_NAME         = 'GCC_O3PPMV',                          &
+        LONG_NAME          = 'GEOSCHEMCHEM_ozone_volume_mixing_ratio_total_air', &
+        UNITS              = 'ppmv',                                &
+        DIMS               = MAPL_DimsHorzVert,                     &
+        VLOCATION          = MAPL_VLocationCenter,                  &
+                                            __RC__  )
+
+    call MAPL_AddExportSpec(GC,                 &
+        SHORT_NAME = 'GCC_OX_TEND',                  &
+        LONG_NAME  = 'GEOSCHEMCHEM_tendency_of_odd_oxygen_mixing_ratio',&
+        UNITS      = 'mol mol-1 s-1',            &
+        DIMS       = MAPL_DimsHorzVert,          &
+        VLOCATION  = MAPL_VLocationCenter,       &
+                                            __RC__ )
+
     ! All done
     RETURN_(ESMF_SUCCESS)
 
@@ -242,6 +278,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -276,23 +313,30 @@ CONTAINS
     REAL, PARAMETER              :: OMW = 16.0
     ! 
     INTEGER                      :: I, LM, IndSpc, IndO3
-    REAL, POINTER                :: Ptr3D(:,:,:)    => NULL()
-    REAL(fp), POINTER            :: PTR_O3(:,:,:)   => NULL()
-    REAL, POINTER                :: OX_TEND(:,:,:)  => NULL()
-    REAL, POINTER                :: OX(:,:,:)       => NULL()
-    REAL, POINTER                :: O3(:,:,:)       => NULL()
-    REAL, POINTER                :: O3PPMV(:,:,:)   => NULL()
-    REAL, POINTER                :: GCO3(:,:,:)     => NULL()
-    REAL, POINTER                :: GCO3PPMV(:,:,:) => NULL()
-    REAL, POINTER                :: PTR_O3P(:,:,:)  => NULL()
-    REAL, POINTER                :: PTR_O1D(:,:,:)  => NULL()
+    REAL, POINTER                :: Ptr3D(:,:,:)       => NULL()
+    REAL(fp), POINTER            :: PTR_O3(:,:,:)      => NULL()
+    REAL, POINTER                :: OX_TEND(:,:,:)     => NULL()
+    REAL, POINTER                :: GCC_OX_TEND(:,:,:) => NULL()
+    REAL, POINTER                :: OX(:,:,:)          => NULL()
+    REAL, POINTER                :: O3(:,:,:)          => NULL()
+    REAL, POINTER                :: O3PPMV(:,:,:)      => NULL()
+    REAL, POINTER                :: GCO3(:,:,:)        => NULL()
+    REAL, POINTER                :: GCO3PPMV(:,:,:)    => NULL()
+    REAL, POINTER                :: PTR_O3P(:,:,:)     => NULL()
+    REAL, POINTER                :: PTR_O1D(:,:,:)     => NULL()
     REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
     LOGICAL                      :: NeedO3
+    INTEGER                      :: OrigUnit
 
     __Iam__('GEOS_RATSandOxDiags')
 
     ! Start here
     LM = State_Grid%NZ
+
+    ! Make sure that species are in kg/kg total. This should be the case already,
+    ! but better be safe!
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
 
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
@@ -322,6 +366,15 @@ CONTAINS
        IF ( Stage == 2 ) Ptr3D = ( State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1)-Ptr3D ) / tsChem 
     ENDIF 
 
+    ! Check for H2O tendency
+    CALL MAPL_GetPointer ( EXPORT, Ptr3D, 'GCC_H2O_TEND', NotFoundOK=.TRUE., __RC__ )
+    IF ( ASSOCIATED(Ptr3D) ) THEN
+       IndSpc = Ind_('H2O')
+       ASSERT_(IndSpc>0)
+       IF ( Stage == 1 ) Ptr3D = State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1) 
+       IF ( Stage == 2 ) Ptr3D = ( State_Chm%Species(IndSpc)%Conc(:,:,LM:1:-1)-Ptr3D ) / tsChem 
+    ENDIF 
+
     !=======================================================================
     ! Ozone diagnostics for GEOS coupling with other components. Do these
     ! via the export state directly, rather than using the State_Diag obj.
@@ -335,7 +388,8 @@ CONTAINS
     !      O3: mass mixing ratio
     !  O3PPMV: volume mixing ratio in ppm
     ! Get pointers to analysis OX exports
-    CALL MAPL_GetPointer ( EXPORT,  OX_TEND, 'OX_TEND'    , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,      OX_TEND, 'OX_TEND'     , NotFoundOK=.TRUE., __RC__ )
+    CALL MAPL_GetPointer ( EXPORT,  GCC_OX_TEND, 'GCC_OX_TEND' , NotFoundOK=.TRUE., __RC__ )
     IF ( Stage == 2 ) THEN
        CALL MAPL_GetPointer ( INTERNAL,     OX, 'OX'         , NotFoundOK=.TRUE., __RC__ )
        CALL MAPL_GetPointer ( EXPORT,       O3, 'O3'         , NotFoundOK=.TRUE., __RC__ )
@@ -344,12 +398,13 @@ CONTAINS
        CALL MAPL_GetPointer ( EXPORT, GCO3PPMV, 'GCC_O3PPMV' , NotFoundOK=.TRUE., __RC__ )
     ENDIF
     NeedO3 = .FALSE.
-    IF ( ASSOCIATED(OX      )) NeedO3 = .TRUE.
-    IF ( ASSOCIATED(OX_TEND )) NeedO3 = .TRUE.
-    IF ( ASSOCIATED(O3      )) NeedO3 = .TRUE.
-    IF ( ASSOCIATED(O3PPMV  )) NeedO3 = .TRUE.
-    IF ( ASSOCIATED(GCO3    )) NeedO3 = .TRUE.
-    IF ( ASSOCIATED(GCO3PPMV)) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(OX          )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(OX_TEND     )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(GCC_OX_TEND )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(O3          )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(O3PPMV      )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(GCO3        )) NeedO3 = .TRUE.
+    IF ( ASSOCIATED(GCO3PPMV    )) NeedO3 = .TRUE.
     IF ( NeedO3 ) THEN
        IndO3 = Ind_('O3')
        ASSERT_(IndO3>0)
@@ -357,9 +412,9 @@ CONTAINS
     ENDIF
     IF ( ASSOCIATED(O3)       ) O3       = PTR_O3
     IF ( ASSOCIATED(GCO3)     ) GCO3     = PTR_O3
-    IF ( ASSOCIATED(O3PPMV  ) ) GCO3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
-    IF ( ASSOCIATED(GCO3PPMV) ) O3PPMV   = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
-    IF ( ASSOCIATED(OX) .OR. ASSOCIATED(OX_TEND) ) THEN
+    IF ( ASSOCIATED(O3PPMV  ) ) O3PPMV   = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(GCO3PPMV) ) GCO3PPMV = PTR_O3 * MAPL_AIRMW / MAPL_O3MW * 1.00E+06
+    IF ( ASSOCIATED(OX) .OR. ASSOCIATED(OX_TEND) .OR. ASSOCIATED(GCC_OX_TEND) ) THEN
        ALLOCATE(OXLOCAL(State_Grid%NX,State_Grid%NY,State_Grid%NZ))
        OXLOCAL = PTR_O3 * MAPL_AIRMW / MAPL_O3MW
        IndSpc = Ind_('O')
@@ -373,13 +428,99 @@ CONTAINS
           IF ( Stage==1 ) OX_TEND = OXLOCAL
           IF ( Stage==2 ) OX_TEND = ( OXLOCAL - OX_TEND ) / tsChem 
        ENDIF
+       IF ( ASSOCIATED(GCC_OX_TEND) ) THEN
+          IF ( Stage==1 ) GCC_OX_TEND = OXLOCAL
+          IF ( Stage==2 ) GCC_OX_TEND = ( OXLOCAL - GCC_OX_TEND ) / tsChem 
+       ENDIF
        DEALLOCATE(OXLOCAL)
     ENDIF
+
+    ! Convert back to original unit
+    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                             OutUnit=OrigUnit, RC=RC )
 
     ! All done
     RETURN_(ESMF_SUCCESS)
 
   END SUBROUTINE GEOS_RATSandOxDiags
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Model                            !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: GEOS_SetH2O
+!
+! !DESCRIPTION: GEOS_SetH2O sets the GEOS-Chem H2O species to Q or vice versa.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE GEOS_SetH2O( GC, Input_Opt, State_Met, &
+                          State_Chm, State_Grid, Q, Direction, RC ) 
+!
+! !USES:
+!
+    USE UnitConv_Mod
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ESMF_GridComp), INTENT(INOUT)         :: GC        ! Ref. to this GridComp
+    TYPE(OptInput)                             :: Input_Opt
+    TYPE(MetState)                             :: State_Met
+    TYPE(ChmState)                             :: State_Chm
+    TYPE(GrdState)                             :: State_Grid
+    REAL,                INTENT(INOUT)         :: Q(:,:,:)
+    INTEGER,             INTENT(IN)            :: Direction ! 1:Q-->H2O; -1:H2O-->Q 
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,             INTENT(OUT)           :: RC       ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  13 Jul 2022 - C. Keller   - Initial version (from Chem_GridCompMod)
+!  See https://github.com/geoschem/geos-chem for history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! LOCAL VARIABLES:
+!
+    INTEGER   :: IndH2O, LM 
+    INTEGER   :: OrigUnit
+
+    __Iam__('GEOS_SetH2O')
+
+    ! Only do if H2O is a species 
+    IndH2O = Ind_('H2O')
+    IF ( IndH2O > 0 ) THEN
+       ! Make sure that species are in kg/kg total. This should be the case already,
+       ! but better be safe!
+       CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
+  
+       ! Sync Q and H2O concentration array. Q is in kg/kg total, so is H2O. 
+       LM = State_Grid%NZ
+       ! Set GEOS-Chem H2O from Q
+       IF ( Direction == 1 ) THEN
+          State_Chm%Species(IndH2O)%Conc(:,:,LM:1:-1) = Q(:,:,1:LM)
+       ! Set Q to GEOS-Chem H2O. This is possible because Q is friendly to
+       ! CHEMISTRY
+       ELSEIF ( Direction == -1 ) THEN
+          Q(:,:,1:LM) = State_Chm%Species(IndH2O)%Conc(:,:,LM:1:-1)
+       ENDIF   
+
+       ! Convert back to original unit
+       CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
+                                outUnit=OrigUnit, RC=RC )
+    ENDIF
+
+    ! All done
+    RETURN_(ESMF_SUCCESS)
+
+  END SUBROUTINE GEOS_SetH2O
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
@@ -1077,7 +1218,7 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1135,7 +1276,7 @@ CONTAINS
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: previous_units
 
     __Iam__('GEOS_Diagnostics')
 
@@ -1170,14 +1311,25 @@ CONTAINS
     ! Move 'regular' GEOS-Chem diagnostics from gchp_chunk_mod.F90 to here to
     ! make sure that these diagnostics see any post-run updates.
     ! Diagnostics routine expects units of kg/kg dry. 
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg dry', RC, OrigUnit=OrigUnit )
+    CALL Convert_Spc_Units( &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OrigUnit, RC )
+    CALL Convert_Spc_Units( &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
@@ -1191,7 +1343,8 @@ CONTAINS
     !=======================================================================
 
     ! Total ozone and total tropospheric ozone for export [dobsons]. 2.69E+20 per dobson.
-    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL GEOS_CalcTotOzone( am_I_Root, State_Met, State_Chm, State_Diag, &
+                            PLE, TROPP, __RC__ )
 
     ! O3 mass in kg/m2
     IF ( State_Diag%Archive_O3_MASS .AND. ASSOCIATED(State_Diag%O3_MASS) ) THEN
@@ -1210,7 +1363,7 @@ CONTAINS
     !=======================================================================
     ! Total and tropospheric columns
     !=======================================================================
-    CALL CalcColumns_( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, __RC__ )
+    CALL CalcColumns_( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, __RC__ )
 
     !=======================================================================
     ! Derived met. diagnostics relevant to chemistry processes
@@ -1272,11 +1425,11 @@ CONTAINS
 
              ! Locally compute if over continuous land (formerly used LWI)
              SfcTypeIndex = MAXLOC( (/                            &
-                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDICE(I,J)  &
                 + State_Met%FRLAKE(I,J),                          &
                 State_Met%FRSEAICE(I,J),                          &
                 State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &
-             /) )
+             /), 1 )
 
              ! If there are HEMCO lightning emissions in current grid box set
              ! lightning potential accordingly
@@ -1389,14 +1542,18 @@ CONTAINS
     IF ( State_Diag%Archive_GCCTTO3 .AND. &
          ASSOCIATED(State_Diag%GCCTTO3) ) TTO3  => State_Diag%GCCTTO3
 
-    ! Nothing to do if neither of the arrays is associated
+    ! Nothing to do if none of the arrays are associated
     IF ( .NOT. ASSOCIATED(TO3) .AND. .NOT. ASSOCIATED(TTO3) .AND. .NOT. ASSOCIATED(TO3fp) ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
 
-    ! Get O3 from species array (kg/kg total)
+    ! Get O3 from species array (kg/kg total). Do nothing if ozone is not a species.
     indO3 = Ind_('O3')
+    IF ( indO3 < 0 ) THEN
+       RC = ESMF_SUCCESS
+       RETURN
+    ENDIF
     O3 => State_Chm%Species(indO3)%Conc(:,:,:)
 
     ! Grid size
@@ -1449,9 +1606,6 @@ CONTAINS
 
   END SUBROUTINE GEOS_CalcTotOzone
 !EOC
-
-
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -1811,7 +1965,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Chm, State_Diag, PLE, TROPP, RC )
+  SUBROUTINE CalcColumns_ ( am_I_Root, Input_Opt, State_Met, State_Chm, State_Diag, PLE, TROPP, RC )
 !
 ! !USES:
 !
@@ -1821,6 +1975,7 @@ CONTAINS
 !
     LOGICAL,          INTENT(IN)            :: am_I_Root
     TYPE(OptInput),   INTENT(INOUT)         :: Input_Opt
+    TYPE(MetState),   INTENT(INOUT)         :: State_Met 
     TYPE(ChmState),   INTENT(INOUT)         :: State_Chm
     TYPE(DgnState),   INTENT(INOUT)         :: State_Diag
     REAL,             POINTER               :: PLE  (:,:,:)
@@ -1838,6 +1993,7 @@ CONTAINS
 !
     REAL,  POINTER               :: ExpTOTCOL(:,:)
     REAL,  POINTER               :: ExpTRPCOL(:,:)
+    REAL,  POINTER               :: ExpPBLCOL(:,:)
     REAL(fp), POINTER            :: Spc3D    (:,:,:)
     REAL,  ALLOCATABLE           :: DUsLayerL(:,:)! Dobsons in a layer, 
                                                   !  for total ozone
@@ -1845,13 +2001,14 @@ CONTAINS
                                                   !  for total ozone
     REAL                         :: MW, const
     INTEGER                      :: I, J, IM, JM, LM, LB, L, STATUS
-    INTEGER                      :: ID, TotID, TropID
+    INTEGER                      :: ID, TotID, TropID, PblID
     CHARACTER(LEN=ESMF_MAXSTR)   :: Iam
     CHARACTER(LEN=15)            :: ISPEC
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapTotCol  => NULL()
     TYPE(DgnMap), POINTER :: mapTropCol => NULL()
+    TYPE(DgnMap), POINTER :: mapPblCol  => NULL()
 
     !=======================================================================
     ! CalcColumns_ begins here
@@ -1861,8 +2018,9 @@ CONTAINS
     Iam = 'CalcColumns_'
 
     ! Nothing to do if not active
-    IF ( .NOT. State_Diag%Archive_TotCol .AND. &
-         .NOT. State_Diag%Archive_TropCol       ) THEN
+    IF ( .NOT. State_Diag%Archive_TotCol  .AND. &
+         .NOT. State_Diag%Archive_TropCol .AND. &
+         .NOT. State_Diag%Archive_PblCol         ) THEN
        RC = ESMF_SUCCESS
        RETURN
     ENDIF
@@ -1882,6 +2040,10 @@ CONTAINS
        mapTropCol => State_Diag%Map_TropCol
        State_Diag%TropCol(:,:,:) = 0.0
     ENDIF
+    IF ( State_Diag%Archive_PblCol ) THEN
+       mapPblCol => State_Diag%Map_PblCol
+       State_Diag%PblCol(:,:,:) = 0.0
+    ENDIF
 
     ! Allocate local variables
     ALLOCATE(DUsLayerL(IM,JM), STAT=STATUS)
@@ -1894,20 +2056,33 @@ CONTAINS
 
        ! Check if total column and/or trop. column requested for this species
        TotID = -1
-       DO J = 1,mapTotCol%nSlots
-           IF ( mapTotCol%slot2id(J)==I ) THEN
-              TotID = J
-              EXIT
-           ENDIF
-       ENDDO
+       IF ( State_Diag%Archive_TotCol ) THEN 
+          DO J = 1,mapTotCol%nSlots
+             IF ( mapTotCol%slot2id(J)==I ) THEN
+                TotID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
        TropID = -1
-       DO J = 1,mapTropCol%nSlots
-           IF ( mapTropCol%slot2id(J)==I ) THEN
-              TropID = J
-              EXIT
-           ENDIF
-       ENDDO
-       IF ( (TotID<0) .AND. (TropID<0) ) CYCLE
+       IF ( State_Diag%Archive_TropCol ) THEN
+          DO J = 1,mapTropCol%nSlots
+             IF ( mapTropCol%slot2id(J)==I ) THEN
+                TropID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+       PblID = -1
+       IF ( State_Diag%Archive_PblCol ) THEN
+          DO J = 1,mapPblCol%nSlots
+             IF ( mapPblCol%slot2id(J)==I ) THEN
+                PblID = J
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
+       IF ( (TotID<0) .AND. (TropID<0) .AND. (PblID<0)  ) CYCLE
 
        ! Species info
        ISPEC = State_Chm%SpcData(I)%Info%Name
@@ -1937,6 +2112,13 @@ CONTAINS
              wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-TROPP(:,:)) &
                  / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
              State_Diag%TropCol(:,:,TropID) = State_Diag%TropCol(:,:,TropID) &
+                                            + DUsLayerL(:,:)*wgt(:,:)
+          END IF
+          ! Add to PBL column
+          IF ( PblID > 0 ) THEN
+             wgt = MAX(0.0,MIN(1.0,(PLE(:,:,L+LB)-(State_Met%PBL_TOP_hPa(:,:)*100.0)) &
+                 / (PLE(:,:,L+LB)-PLE(:,:,L+LB-1))))
+             State_Diag%PblCol(:,:,PblID) = State_Diag%PblCol(:,:,PblID) &
                                             + DUsLayerL(:,:)*wgt(:,:)
           END IF
        END DO
@@ -2157,10 +2339,15 @@ CONTAINS
              ENDIF
           ENDIF
           PtrTmp => State_Chm%Species(N)%Conc(:,:,LM:1:-1)
-          IF ( STATUS /= ESMF_SUCCESS ) THEN
-             WRITE(*,*) 'Error reading ',TRIM(SpcName)
-             VERIFY_(STATUS)
-          ENDIF
+
+          ! uncomment below to output more family species information 
+!          IF ( am_I_Root .AND. FIRST ) THEN
+!             write(*,*) 'First GCC species diagnostics: ', TRIM(SpcName), MW
+!             IF ( IsNOy   ) write(*,*) '--> Is part of NOy'
+!             IF ( IsBry   ) write(*,*) '--> Is part of Bry: ', BrCoeff
+!             IF ( IsCly   ) write(*,*) '--> Is part of Cly: ', ClCoeff
+!             IF ( IsOrgCl ) write(*,*) '--> Is part of OrgCl: ', OrgClCoeff
+!          ENDIF
 
           ! NOy concentration
           IF ( IsNOy ) NOy = NOy + PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
@@ -2174,6 +2361,10 @@ CONTAINS
           ! OrgCl concentration
           IF ( IsOrgCl ) OrgCl = OrgCl + OrgClCoeff * PtrTmp * ( MAPL_AIRMW / MW ) / ( 1.0 - Q )
        ENDIF
+
+       
+
+
     ENDDO
 
     !=======================================================================
