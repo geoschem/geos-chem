@@ -21,10 +21,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
 - Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
 - The `SatDiagnOH` diagnostic now works for the carbon simulation
+- Restored missing fields for `UVFlux` collection in `run/GCClassic/HISTORY.rc.templates/HISTORY.rc.fullchem`
 
 ### Removed
 - Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.
-
 
 ### Changed
 - Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it

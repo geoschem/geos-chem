@@ -394,7 +394,11 @@ COLLECTIONS: 'Restart',
 #
 # Available for all full-chemistry simulations with photolysis
 #==============================================================================
-  UVFlux.template:           'UVFluxDiffuse_?UVFLX?         ',
+  UVFlux.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  UVFlux.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
+  UVFlux.duration:           ${RUNDIR_HIST_TIME_AVG_DUR}
+  UVFlux.mode:               'time-averaged'
+  UVFlux.fields:             'UVFluxDiffuse_?UVFLX?         ',
                              'UVFluxDirect_?UVFLX?          ',
                              'UVFluxNet_?UVFLX?             ',
 ::
