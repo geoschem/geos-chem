@@ -72,22 +72,11 @@ cd "${superProjectDir}"
 
 # GEOS-Chem and HEMCO submodule directories
 geosChemDir="${superProjectDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem"
-hemcoDir="${superProjectDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO"
-
-# Get the Git commit of the superproject and submodules
-head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-            git -C "${superProjectDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${geosChemDir}" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GCHP Integration Tests\n\n"
-printf "GCHP      #${head_gchp}\n"
-printf "GEOS_Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
+print_submodule_head_commits "10" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================

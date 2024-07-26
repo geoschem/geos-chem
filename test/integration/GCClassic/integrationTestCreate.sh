@@ -71,22 +71,11 @@ cd ${superProjectDir}
 
 # GEOS-Chem and HEMCO submodule directories
 geosChemDir="${superProjectDir}/src/GEOS-Chem"
-hemcoDir="${superProjectDir}/src/HEMCO"
-
-# Get the Git commit of the superproject and submodules
-head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${superProjectDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${geosChemDir}" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GEOS-Chem Classic Integration Tests\n\n"
-printf "GCClassic #${head_gcc}\n"
-printf "GEOS-Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
+print_submodule_head_commits "10" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
@@ -299,9 +288,15 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Simulation with all diagnostics on
     #==========================================================================
 
+    # Copy the fullchem_benchmark rundir to fullchem_alldiags
     cd ${rundirsDir}/
     cp -r gc_4x5_merra2_fullchem_benchmark gc_4x5_merra2_fullchem_alldiags
-    sed_ie "s|#'|'|"  gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+
+    # Turn on all collections except RRTMG and Tomas collections (which
+    # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    sed_ie "s|#'|'|"             gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'RRTMG'|#'RRTMG'|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'Tomas'|#'Tomas'|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"

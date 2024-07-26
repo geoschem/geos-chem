@@ -811,7 +811,7 @@ function print_submodule_head_commits() {
 		    else
 			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head" >> "${3}"
 		    fi
-			
+
 		fi
 	    fi
 	fi

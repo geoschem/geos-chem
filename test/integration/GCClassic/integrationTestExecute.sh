@@ -54,14 +54,6 @@ site=$(get_site_name)
 . ~/.bashrc > /dev/null 2>&1
 [[ "X${site}" == "XCANNON" ]] && . ${envDir}/gcclassic.env > /dev/null 2>&1
 
-# Get the Git commit of the superproject and submodules
-head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${codeDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${codeDir}/src/GEOS-Chem" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${codeDir}/src/HEMCO" log --oneline --no-decorate -1)
-
 # Site-specific settings
 if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
@@ -117,9 +109,7 @@ rm -f "${results}"
 print_to_log "${SEP_MAJOR}"                                "${results}"
 print_to_log "GEOS-Chem Classic: Execution Test Results"   "${results}"
 print_to_log ""                                            "${results}"
-print_to_log "GCClassic #${head_gcc}"                      "${results}"
-print_to_log "GEOS-Chem #${head_gc}"                       "${results}"
-print_to_log "HEMCO     #${head_hco}"                      "${results}"
+print_submodule_head_commits "10" "${codeDir}"             "${results}"
 print_to_log ""                                            "${results}"
 print_to_log "Using ${OMP_NUM_THREADS} OpenMP threads"     "${results}"
 print_to_log "Number of execution tests: ${numTests}"      "${results}"
