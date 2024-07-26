@@ -289,14 +289,16 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     #==========================================================================
 
     # Copy the fullchem_benchmark rundir to fullchem_alldiags
-    cd ${rundirsDir}/
+    echo "... ${itRoot}/rundirs/gc_4x5_merra2_fullchem_alldiags"
+    cd "${rundirsDir}"
     cp -r gc_4x5_merra2_fullchem_benchmark gc_4x5_merra2_fullchem_alldiags
 
     # Turn on all collections except RRTMG and Tomas collections (which
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
-    sed_ie "s|#'|'|"             gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'RRTMG'|#'RRTMG'|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'Tomas'|#'Tomas'|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|#'|'|"               gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'RRTMG'|#'RRTMG'|"   gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'Tomas'|#'Tomas'|"   gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'DynHeat|#'DynHeat|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"

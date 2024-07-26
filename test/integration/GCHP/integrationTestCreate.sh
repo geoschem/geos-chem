@@ -224,6 +224,23 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # c24 merra2 fullchem_TOMAS15
     create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
+    #=========================================================================
+    # Simulation with all diagnostics on
+    #==========================================================================
+
+    # Copy the fullchem_benchmark rundir to fullchem_alldiags
+    echo "... ${itRoot}/rundirs/gchp_merra2_fullchem_alldiags"
+    cd "${rundirsDir}"
+    cp -r gchp_merra2_fullchem_benchmark gchp_merra2_fullchem_alldiags
+
+    # Turn on all collections except RRTMG and Tomas collections.
+    # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    sed_ie "s|#'|'|"               gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|#'|'|"               gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'RRTMG'|#'RRTMG'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'Tomas'|#'Tomas'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'DynHeat|#'DynHeat|" gchp_merra2_fullchem_alldiags/HISTORY.rc
+
     # Switch back to the present directory
     cd "${thisDir}"
 fi
