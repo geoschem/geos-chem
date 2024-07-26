@@ -76,9 +76,9 @@ geosChemDir="${superProjectDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem"
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GCHP Integration Tests\n\n"
-print_submodule_head_commits "10" "${superProjectDir}" ""
+print_submodule_head_commits "14" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
-
+exit 1
 #=============================================================================
 # Create integration test folder and subdirectories
 #=============================================================================

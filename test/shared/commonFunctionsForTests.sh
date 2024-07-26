@@ -801,11 +801,11 @@ function print_submodule_head_commits() {
     submods=${submods//path = /}
     for submod in ${submods[@]}; do
 	if [[ "X${submod}" != "X" ]]; then
-	    # Skip the geos-chem-shared-docs output
 	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
 		if [[ -d "${2}/$submod" ]]; then
 		    head=$(git -C "${2}/$submod" log --oneline -1)
 		    y=$(basename $submod)
+		    y=${y/_GridComp/}
 		    if [[ "X${3}" == "X" ]]; then
 			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
 		    else
