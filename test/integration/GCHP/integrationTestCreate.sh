@@ -78,7 +78,7 @@ printf "${SEP_MAJOR}\n"
 printf "Creating GCHP Integration Tests\n\n"
 print_submodule_head_commits "14" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
-exit 1
+
 #=============================================================================
 # Create integration test folder and subdirectories
 #=============================================================================
