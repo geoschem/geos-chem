@@ -39,8 +39,8 @@ SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
 SED_HEMCO_CONF_3='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 010000/'
 SED_HEMCO_CONF_4='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 002000/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
-SED_HISTORY_RC_1='s/00000100 000000/00000000 010000/'
-SED_HISTORY_RC_N='s/00000100 000000/00000000 002000/'
+SED_HISTORY_RC_1='s/00000... 0..000/00000000 010000/'
+SED_HISTORY_RC_N='s/00000... 0..000/00000000 002000/'
 CMP_PASS_STR='Configure & Build.....PASS'
 CMP_FAIL_STR='Configure & Build.....FAIL'
 EXE_PASS_STR='Execute Simulation....PASS'
@@ -267,14 +267,17 @@ function update_config_files() {
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 
-    # For nested-grid fullchem runs, change frequency and duration to 20 mins
-    # in order to reduce the run time of the whole set of integration tests.
     if grep -q "05x0625" <<< "${runPath}"; then
-        sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
-    fi
 
-    # Other text replacements
-    sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
+	# For nested-grid fullchem runs, change frequency and duration
+	# to 20 mins to reduce the run time of the whole set of tests.
+	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
+
+    else
+
+	# Otherwise change frequency & duration to 1 hour
+	sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
+    fi
 }
 
 
@@ -780,4 +783,37 @@ function get_default_gchp_env_file() {
     envFile=$(realpath "../../../run/GCHP/runScriptSamples/operational_examples/harvard_cannon/gchp.gcc10_openmpi4_cannon_rocky.env")
     echo "$envFile"
     return 0
+}
+
+
+function print_submodule_head_commits() {
+    #========================================================================
+    # Print the head commits for each Git submodule #####
+    #
+    # 1st argument: Number of pad characters before commit line starts
+    # 2nd argument: Path to top-level code directory
+    # 3rd argument: Log file where output will be written
+    #========================================================================
+    export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+    n_pad=${1}
+    pad="                       "
+    submods=$(grep path "${2}/.gitmodules")
+    submods=${submods//path = /}
+    for submod in ${submods[@]}; do
+	if [[ "X${submod}" != "X" ]]; then
+	    # Skip the geos-chem-shared-docs output
+	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
+		if [[ -d "${2}/$submod" ]]; then
+		    head=$(git -C "${2}/$submod" log --oneline -1)
+		    y=$(basename $submod)
+		    if [[ "X${3}" == "X" ]]; then
+			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
+		    else
+			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head" >> "${3}"
+		    fi
+			
+		fi
+	    fi
+	fi
+    done
 }

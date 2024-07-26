@@ -839,8 +839,8 @@ COLLECTIONS: 'Restart',
   Tomas.format:         'CFIO',
   Tomas.timestampStart: .true.
   Tomas.monthly:        0
-  Tomas.frequency:      010000
-  Tomas.duration:       010000
+  Tomas.frequency:      00000100 000000
+  Tomas.duration:       00000100 000000
   Tomas.mode:           'time-averaged'
   Tomas.fields:         'TomasH2SO4               ',
                         'TomasH2SO4mass_bin01     ',
