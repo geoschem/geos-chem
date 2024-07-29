@@ -102,7 +102,7 @@ extra_diagnostics:
   obspack:
     activate: false
     quiet_logfile_output: false
-    input_file: ./obspack_dummy_input_for_testing.20190701.nc
+    input_file: ./obspack_input_for_testing.20190701.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
       - POPG_${RUNDIR_POP_SPC}
