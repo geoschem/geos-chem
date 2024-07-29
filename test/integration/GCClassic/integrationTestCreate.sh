@@ -290,12 +290,10 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Configuration files
     allDiagsDir="gc_4x5_merra2_fullchem_alldiags"
-    extDataDir=$(grep "GC_DATA_ROOT" "~/.geoschem/config")
+    extDataDir=$(grep "GC_DATA_ROOT" "${HOME}/.geoschem/config")
     extDataDir=${extDataDir/export GC_DATA_ROOT\=/}
     pfDat="${geosChemDir}/test/shared/alldiags/Planeflight.dat.20190701"
-    obsPk=\
-  "${extDataDir}/Data_for_Int_Tests/obspack_input_for_testing.20190701.nc"
-
+    obsPk="${extDataDir}/Data_for_Int_Tests/obspack_input_for_testing.20190701.nc"
     # Copy the fullchem_benchmark rundir to fullchem_alldiags
     echo "... ${itRoot}/rundirs/${allDiagsDir}"
     cd "${rundirsDir}"
