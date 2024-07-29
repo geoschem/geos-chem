@@ -796,10 +796,12 @@ function print_submodule_head_commits() {
     #========================================================================
     export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
     n_pad=${1}
+    baseDir=$(basename "${2}")
     pad="                       "
 
     # Get submodule names from .gitmodules in the superproject folder
-    submods=$(grep path "${2}/.gitmodules")
+    submods=(.)
+    submods+=$(grep path "${2}/.gitmodules")
     submods=${submods//path = /}
 
     # Loop over submodules
@@ -815,6 +817,7 @@ function print_submodule_head_commits() {
 		    head=$(git -C "${2}/$submod" log --oneline -1)
 		    y=$(basename $submod)
 		    y=${y/_GridComp/}
+		    y=${y/\./${baseDir}}
 		    if [[ "X${3}" == "X" ]]; then
 			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
 		    else
