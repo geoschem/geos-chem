@@ -797,11 +797,20 @@ function print_submodule_head_commits() {
     export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
     n_pad=${1}
     pad="                       "
+
+    # Get submodule names from .gitmodules in the superproject folder
     submods=$(grep path "${2}/.gitmodules")
     submods=${submods//path = /}
+
+    # Loop over submodules
+    # Skip blank entries and geos-chem-shared-docs
     for submod in ${submods[@]}; do
 	if [[ "X${submod}" != "X" ]]; then
 	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
+
+		# Get the head commit for each submodule and create a
+		# display string to print either to log file or to stdout.
+		# For clarity, remove _GridComp from FVdycoreCubed_GridComp.
 		if [[ -d "${2}/$submod" ]]; then
 		    head=$(git -C "${2}/$submod" log --oneline -1)
 		    y=$(basename $submod)
@@ -816,4 +825,28 @@ function print_submodule_head_commits() {
 	    fi
 	fi
     done
+}
+
+
+function toggle_geoschem_config_option() {
+
+    #===================================================================
+    # Toggles the "activate " option in geoschem_config.yml
+    # for a given YAML tag to either "true " or "false".
+    #
+    # 1st argument: geoschem_config.yml file
+    # 2nd argument: YAML tag (e.g. "planeflight")
+    # 3rd argument: Replacement
+    #===================================================================
+
+    # Replace newlines with formfeed and save to a temporary file
+    cat "${1}" | tr '\n' '\t' > "tmp.${1}"
+
+    # Replace the activate value (one line below the option name)
+    # to the value specified.  Must have 5 characters!
+    sed -i -e "s/${2}:\t    activate: ...../${2}:\t    activate: ${3}/g" "tmp.${1}"
+
+    # Replace form feed with new line and delete temporary file
+    cat "tmp.${1}" | tr '\t' '\n' > "${1}"
+    rm -f "tmp.${1}"
 }

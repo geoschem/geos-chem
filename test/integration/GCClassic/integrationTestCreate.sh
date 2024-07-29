@@ -288,17 +288,34 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Simulation with all diagnostics on
     #==========================================================================
 
+    # Configuration files
+    allDiagsDir="gc_4x5_merra2_fullchem_alldiags"
+    extDataDir=$(grep "GC_DATA_ROOT" "~/.geoschem/config")
+    extDataDir=${extDataDir/export GC_DATA_ROOT\=/}
+    pfDat="${geosChemDir}/test/shared/alldiags/Planeflight.dat.20190701"
+    obsPk=\
+  "${extDataDir}/Data_for_Int_Tests/obspack_dummy_input_for_testing.20190701.nc"
+
     # Copy the fullchem_benchmark rundir to fullchem_alldiags
-    echo "... ${itRoot}/rundirs/gc_4x5_merra2_fullchem_alldiags"
+    echo "... ${itRoot}/rundirs/${allDiagsDir}"
     cd "${rundirsDir}"
-    cp -r gc_4x5_merra2_fullchem_benchmark gc_4x5_merra2_fullchem_alldiags
+    cp -r "gc_4x5_merra2_fullchem_benchmark" "${allDiagsDir}"
+    cd "${allDiagsDir}"
 
     # Turn on all collections except RRTMG and Tomas collections (which
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
-    sed_ie "s|#'|'|"               gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'RRTMG'|#'RRTMG'|"   gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'Tomas'|#'Tomas'|"   gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'DynHeat|#'DynHeat|" gc_4x5_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|#'|'|"               "HISTORY.rc"
+    sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
+    sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
+    sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
+
+    # Activate the planeflight diagnostic
+    cp -r "${pfDat}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "planeflight" "true "
+
+    # Activate the ObsPack diagnostic
+    cp -r "${obsPk}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "obspack"     "true "
 
     # Switch back to the present directory
     cd "${thisDir}"
@@ -310,15 +327,19 @@ fi
 #=============================================================================
 
 # Free local variables
+unset allDiagsDir
 unset binDir
 unset buildDir
 unset commonFuncs
 unset dir
 unset envDir
+unset extDataDir
 unset geosChemDir
 unset itRoot
 unset log
 unset logsDir
+unset pfDat
+unset obsPk
 unset rundirsDir
 unset superProjectDir
 unset scriptsDir
