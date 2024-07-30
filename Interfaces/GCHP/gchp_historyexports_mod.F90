@@ -371,7 +371,7 @@ CONTAINS
        HistoryConfig%ConfigFileRead = .TRUE.
     ELSE
        CALL GC_ERROR( ErrMsg, RC, Iam )
-       _ASSERT(.FALSE., 'informative message here')
+       _ASSERT(.FALSE., 'Error in routine Init_HistoryExport!  This could indicate an error or typo in HISTORY.rc.')
        RETURN
     ENDIF
 

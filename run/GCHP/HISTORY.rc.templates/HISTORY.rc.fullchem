@@ -2574,28 +2574,28 @@ COLLECTIONS: @#'DefaultCollection',
                       #'Met_Z0              ', 'GCHPchem',
                       #'FracOfTimeInTrop    ', 'GCHPchem',
 ::
-@#==============================================================================
-@# %%%%% THE StratBM COLLECTION %%%%%
-@#
-@# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
-@#
-@# Available for full-chemistry simulations
-@#==============================================================================
-@  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
-@  StratBM.format:         'CFIO',
-@  StratBM.timestampStart: .true.
-@  StratBM.monthly:        1
-@  StratBM.frequency:      010000
-@  StratBM.duration:       240000
-@  StratBM.mode:           'time-averaged'
-@  StratBM.fields:         'SpeciesConcVV_NO2 ', 'GCHPchem',
-@                          'SpeciesConcVV_O3  ', 'GCHPchem',
-@                          'SpeciesConcVV_ClO ', 'GCHPchem',
-@                          'Met_PSC2WET       ', 'GCHPchem',
-@                          'Met_BXHEIGHT      ', 'GCHPchem',
-@                          'Met_AIRDEN        ', 'GCHPchem',
-@                          'Met_AD            ', 'GCHPchem',
-@::
+#==============================================================================
+# %%%%% THE StratBM COLLECTION %%%%%
+#
+# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
+#
+# Available for full-chemistry simulations
+#==============================================================================
+  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StratBM.format:         'CFIO',
+  StratBM.timestampStart: .true.
+  StratBM.monthly:        1
+  StratBM.frequency:      010000
+  StratBM.duration:       240000
+  StratBM.mode:           'time-averaged'
+  StratBM.fields:         'SpeciesConcVV_NO2 ', 'GCHPchem',
+                          'SpeciesConcVV_O3  ', 'GCHPchem',
+                          'SpeciesConcVV_ClO ', 'GCHPchem',
+                          'Met_PSC2WET       ', 'GCHPchem',
+                          'Met_BXHEIGHT      ', 'GCHPchem',
+                          'Met_AIRDEN        ', 'GCHPchem',
+                          'Met_AD            ', 'GCHPchem',
+::
 #==============================================================================
 # %%%%% THE Tomas Microphysics Rate COLLECTION %%%%%
 #
