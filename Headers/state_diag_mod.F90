@@ -17134,6 +17134,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE CharPak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -17168,11 +17169,11 @@ CONTAINS
     RC      = GC_SUCCESS
     bin     = -1
     errMsg  = ''
-    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+    thisLoc = ' -> at Get_UVFlux_Bin (in module Headers/state_diag_mod.F90)'
 
     ! Get the index for the tagname
     DO N = 1, 18
-       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+       IF ( TRIM( tagName ) == To_UpperCase( TRIM( UVFlux_Tag_Names(N))) ) THEN
           bin = N
           EXIT
        ENDIF
