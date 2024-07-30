@@ -764,7 +764,7 @@ COLLECTIONS: @#'DefaultCollection',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
-# due to a single component (e.g. chemistry); default = ozone only; add more
+# due to a single component (e.g. chemistry); default = SO4 only; add more
 # species as needed (advected only)
 #==============================================================================
   Budget.template:        '%y4%m2%d2_%h2%n2z.nc4',
@@ -774,29 +774,29 @@ COLLECTIONS: @#'DefaultCollection',
   Budget.frequency:       010000
   Budget.duration:        010000
   Budget.mode:            'time-averaged'
-  Budget.fields:          'BudgetWetDepFull_O3          ', 'GCHPchem',
-                          'BudgetChemistryFull_O3       ', 'GCHPchem',
-                          'BudgetConvectionFull_O3      ', 'GCHPchem',
-                          'BudgetMixingFull_O3          ', 'GCHPchem',
-                          'BudgetEmisDryDepFull_O3      ', 'GCHPchem',
+  Budget.fields:          'BudgetWetDepFull_SO4         ', 'GCHPchem',
+                          'BudgetChemistryFull_SO4      ', 'GCHPchem',
+                          'BudgetConvectionFull_SO4     ', 'GCHPchem',
+                          'BudgetMixingFull_SO4         ', 'GCHPchem',
+                          'BudgetEmisDryDepFull_SO4     ', 'GCHPchem',
                           #
-                          'BudgetWetDepLevs1to35_O3     ', 'GCHPchem',
-                          'BudgetChemistryLevs1to35_O3  ', 'GCHPchem',
-                          'BudgetConvectionLevs1to35_O3 ', 'GCHPchem',
-                          'BudgetMixingLevs1to35_O3     ', 'GCHPchem',
-                          'BudgetEmisDryDepLevs1to35_O3 ', 'GCHPchem',
+                          'BudgetWetDepLevs1to35_SO4    ', 'GCHPchem',
+                          'BudgetChemistryLevs1to35_SO4 ', 'GCHPchem',
+                          'BudgetConvectionLevs1to35_SO4', 'GCHPchem',
+                          'BudgetMixingLevs1to35_SO4    ', 'GCHPchem',
+                          'BudgetEmisDryDepLevs1to35_SO4', 'GCHPchem',
                            #
-                          'BudgetWetDepTrop_O3          ', 'GCHPchem',
-                          'BudgetChemistryTrop_O3       ', 'GCHPchem',
-                          'BudgetConvectionTrop_O3      ', 'GCHPchem',
-                          'BudgetMixingTrop_O3          ', 'GCHPchem',
-                          'BudgetEmisDryDepTrop_O3      ', 'GCHPchem',
+                          'BudgetWetDepTrop_SO4         ', 'GCHPchem',
+                          'BudgetChemistryTrop_SO4      ', 'GCHPchem',
+                          'BudgetConvectionTrop_SO4     ', 'GCHPchem',
+                          'BudgetMixingTrop_SO4         ', 'GCHPchem',
+                          'BudgetEmisDryDepTrop_SO4     ', 'GCHPchem',
                            #
-                          'BudgetWetDepPBL_O3           ', 'GCHPchem',
-                          'BudgetChemistryPBL_O3        ', 'GCHPchem',
-                          'BudgetConvectionPBL_O3       ', 'GCHPchem',
-                          'BudgetMixingPBL_O3           ', 'GCHPchem',
-                          'BudgetEmisDryDepPBL_O3       ', 'GCHPchem',
+                          'BudgetWetDepPBL_SO4          ', 'GCHPchem',
+                          'BudgetChemistryPBL_SO4       ', 'GCHPchem',
+                          'BudgetConvectionPBL_SO4      ', 'GCHPchem',
+                          'BudgetMixingPBL_SO4          ', 'GCHPchem',
+                          'BudgetEmisDryDepPBL_SO4      ', 'GCHPchem',
 ::
 #=============================================================================
 #%%%%% THE CloudConvFlux COLLECTION %%%%%
