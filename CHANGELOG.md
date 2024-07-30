@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Set `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
 - Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+- Auto-update GCHP HEMCO_Diagn.rc settings at run-time to ensure seasalt, dust, soil NOx, and biogenic emissions match settings in HEMCO_Config.rc
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
@@ -15,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+- Fix HEMCO_Diagn.rc setting for biogenic MOH diagnostic to use offline values unless running benchmark
 
 ## [14.4.2] - 2024-07-24
 ### Added
