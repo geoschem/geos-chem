@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated emissions used in CESM to match standard emissions used in the 14.4 offline model
 - Disable support For FAST-JX for all simulations except Hg
 - Replace calls to `GEOS_CHEM_STOP` with calls to `GC_Error` in `planeflight_mod.F90`
+- Script `test/integration/GCHP/integrationTestExecute.sh` now resets `cap_restart` time to `000000`, to facilitate for manual restart
 
 ### Fixed
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology

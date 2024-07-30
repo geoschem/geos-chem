@@ -191,6 +191,10 @@ for runDir in *; do
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
+	    # Also reset cap_restart to 00:00:00 UTC,
+	    # in case we are restarting the tests maually
+	    sed_ie 's/ ....00/ 000000/g' cap_restart
+
             # Link to the environment file
             ./setEnvironmentLink.sh "${envDir}/gchp.env"
 
