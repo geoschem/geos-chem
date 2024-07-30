@@ -233,15 +233,13 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     cd "${rundirsDir}"
     cp -r gchp_merra2_fullchem_benchmark gchp_merra2_fullchem_alldiags
 
-    # Turn on all collections except RRTMG, DynHeat, Tomas, and StratBM.
+    # Turn on all collections except RRTMG, DynHeat, Tomas.
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
-    # StratBM is only needed for 10-year benchmarks, so we can skip here.
     sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'RRTMG'|#'RRTMG'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'StratBM'|#'StratBM'|" gchp_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"
