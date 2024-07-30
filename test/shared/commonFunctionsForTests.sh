@@ -32,6 +32,7 @@ SED_CONFIG_3='s/end_date: \[20160201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_4='s/end_date: \[20160101, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_5='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
+SED_CONFIG_7='s/end_date: \[20900801, 000000\]/end_date: \[20900701, 002000\]/'
 SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
 SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
@@ -229,6 +230,7 @@ function update_config_files() {
     sed_ie "${SED_CONFIG_4}" "${runPath}/geoschem_config.yml"
     sed_ie "${SED_CONFIG_5}" "${runPath}/geoschem_config.yml"
     sed_ie "${SED_CONFIG_6}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_7}" "${runPath}/geoschem_config.yml"
 
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc
@@ -270,6 +272,12 @@ function update_config_files() {
     # For nested-grid fullchem runs, change frequency and duration to 20 mins
     # in order to reduce the run time of the whole set of integration tests.
     if grep -q "05x0625" <<< "${runPath}"; then
+        sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
+    fi
+
+    # For ModelE2.1 fullchem runs, change frequency and duration to 20 mins
+    # in order to reduce the run time of the whole set of integration tests.
+    if grep -q "ModelE2.1" <<< "${runPath}"; then
         sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
     fi
 
