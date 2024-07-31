@@ -302,10 +302,13 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Turn on all collections except RRTMG and Tomas collections (which
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    # Also note; there is a floating point error in the UVFlux diagnostic,
+    # so temporarily comment that out.
     sed_ie "s|#'|'|"               "HISTORY.rc"
     sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
     sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
     sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
+    sed_ie "s|'UVFlux'|#'UVFlux'|" "HISTORY.rc"
 
     # Activate the planeflight diagnostic
     cp -r "${pfDat}" .

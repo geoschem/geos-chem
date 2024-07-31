@@ -25,9 +25,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
 - The `SatDiagnOH` diagnostic now works for the carbon simulation
 - Restored missing fields for `UVFlux` collection in `run/GCClassic/HISTORY.rc.templates/HISTORY.rc.fullchem`
+- Comment out `UVFlux` diagnostic in the "alldiags" integration test, there is a floating point error.  Look at this later.
 - Now use SO4 instead of O3 in the GCHP fullchem budget diagnostic (SO4 is soluble, O3 is not)
 - Convert `UVFlux_Tag_Names` to uppercase in the comparison in `Get_UVFlux_Bin`(located in`Headers/state_diag_mod.F90`)
 - Fixed typo (missing `_` character) in GCHP `DryDep` collection diagnostic entries
+- Commented out with `###` emissions diagnostics in the GCHP `HISTORY.rc.fullchem` template that are not present in the corresponding `HEMCO_DIAGN.rc` template
 
 ### Removed
 - Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.

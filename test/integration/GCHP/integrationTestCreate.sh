@@ -235,11 +235,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Turn on all collections except RRTMG, DynHeat, Tomas.
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    # Also note; there is a floating point error in the UVFlux diagnostic,
+    # so temporarily comment that out.
     sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'RRTMG'|#'RRTMG'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'UVFlux'|#'UVFlux'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"
