@@ -1068,6 +1068,11 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
+    ! ewl temporary debug code
+    LOGICAL, SAVE      :: FIRST = .TRUE.
+    INTEGER, SAVE, ALLOCATABLE      :: topLevArr_prev(:,:)
+    INTEGER            :: topLevArr_new(State_Grid%NX, State_Grid%NY)
+
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
     !====================================================================
@@ -1200,6 +1205,31 @@ CONTAINS
        PriorGlobalMass(4) = sum( colMass(:,:,:,4) )
     ENDIf
 
+    ! Temporary debug code starts here
+    IF ( FIRST ) THEN
+       ALLOCATE(topLevArr_prev(State_Grid%NX, State_Grid%NY), stat = RC )
+    ENDIF
+    
+    ! ewl debug
+    !$OMP PARALLEL DO                               &
+    !$OMP DEFAULT( SHARED                          )&
+    !$OMP PRIVATE( I, J                   )
+    DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF ( isPBL ) THEN
+             topLevArr_new(I,J) = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
+             IF ( FIRST ) topLevArr_prev(I,J) = topLevArr_new(I,J)
+             IF ( topLevArr_prev(I,J) /= topLevArr_new(I,J) ) THEN
+                print *, "ewl: topLevArr_new not equal to topLevArr_prev at I,J = ", I, J, topLevArr_new(I,J), topLevArr_prev(I,J)
+             ENDIF
+             topLevArr_prev(I,J) = topLevArr_new(I,J)
+          ENDIF
+       ENDDO
+    ENDDO
+    
+    IF ( FIRST ) FIRST = .FALSE.
+    ! End temporary debug code
+    
     ! Loop over NX and NY dimensions
     !$OMP PARALLEL DO                               &
     !$OMP DEFAULT( SHARED                          )&
@@ -1320,7 +1350,7 @@ CONTAINS
 
           ! Top level of column is where PBL top occurs
           topLev = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-
+          
           ! Loop over # of diagnostic slots
           DO S = 1, mapDataPBL%nSlots
 
