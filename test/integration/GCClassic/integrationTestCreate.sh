@@ -71,22 +71,11 @@ cd ${superProjectDir}
 
 # GEOS-Chem and HEMCO submodule directories
 geosChemDir="${superProjectDir}/src/GEOS-Chem"
-hemcoDir="${superProjectDir}/src/HEMCO"
-
-# Get the Git commit of the superproject and submodules
-head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${superProjectDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${geosChemDir}" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GEOS-Chem Classic Integration Tests\n\n"
-printf "GCClassic #${head_gcc}\n"
-printf "GEOS-Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
+print_submodule_head_commits "10" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
@@ -302,8 +291,43 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 05x0625 merra2 fullchem_47L_na
     create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
+    #=========================================================================
+    # Simulation with all diagnostics on
+    #==========================================================================
+
+    # Configuration files
+    allDiagsDir="gc_4x5_merra2_fullchem_alldiags"
+    extDataDir=$(grep "GC_DATA_ROOT" "${HOME}/.geoschem/config")
+    extDataDir=${extDataDir/export GC_DATA_ROOT\=/}
+    pfDat="${geosChemDir}/test/shared/alldiags/Planeflight.dat.20190701"
+    obsPk="${extDataDir}/Data_for_Int_Tests/obspack_input_for_testing.20190701.nc"
+    # Copy the fullchem_benchmark rundir to fullchem_alldiags
+    echo "... ${itRoot}/rundirs/${allDiagsDir}"
+    cd "${rundirsDir}"
+    cp -r "gc_4x5_merra2_fullchem_benchmark" "${allDiagsDir}"
+    cd "${allDiagsDir}"
+
+    # Turn on all collections except RRTMG and Tomas collections (which
+    # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    # Also note; there is a floating point error in the UVFlux diagnostic,
+    # so temporarily comment that out.
+    sed_ie "s|#'|'|"               "HISTORY.rc"
+    sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
+    sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
+    sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
+    sed_ie "s|'UVFlux'|#'UVFlux'|" "HISTORY.rc"
+
+    # Activate the planeflight diagnostic
+    cp -r "${pfDat}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "planeflight" "true "
+
+    # Activate the ObsPack diagnostic
+    cp -r "${obsPk}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "obspack"     "true "
+
     # Switch back to the present directory
     cd "${thisDir}"
+
 fi
 
 #=============================================================================
@@ -311,15 +335,19 @@ fi
 #=============================================================================
 
 # Free local variables
+unset allDiagsDir
 unset binDir
 unset buildDir
 unset commonFuncs
 unset dir
 unset envDir
+unset extDataDir
 unset geosChemDir
 unset itRoot
 unset log
 unset logsDir
+unset pfDat
+unset obsPk
 unset rundirsDir
 unset superProjectDir
 unset scriptsDir
