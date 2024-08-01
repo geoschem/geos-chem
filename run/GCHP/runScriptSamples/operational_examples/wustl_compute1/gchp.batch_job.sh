@@ -1,14 +1,17 @@
 #!/bin/bash
 
+#BSUB -G compute-rvmartin
 #BSUB -q rvmartin
 #BSUB -n 24
 #BSUB -W 168:00
 #BSUB -R "rusage[mem=300GB] span[ptile=36] select[mem < 2TB]"
-#BSUB -a 'docker(registry.gsc.wustl.edu/sleong/esm:intel-2021.1.2)'
+#BSUB -a 'docker(geoschem/gchp:14.3.0)'
 #BSUB -o lsf-%J.txt
 #
 #
 # source bashrc
+/bin/bash
+
       . /etc/bashrc
 #
 
@@ -51,7 +54,10 @@ source checkRunSettings.sh
 # LAUNCH GCHP 
 #
 #
-    mpiexec -n 24 ./gchp > ${log}
+   mpiexec -n 24 ./gchp > ${log}
+   
+   # For OpenMPI, enable oversubscription to allow more ranks to be assigned to a host than the number of slots that are available
+   # mpiexec --oversubscribe -n 24 ./gchp > ${log}
 #
 
 #################################################################

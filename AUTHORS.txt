@@ -1,5 +1,5 @@
 List of Developers for GEOS-Chem, HEMCO, and Related Software
-(11 Jul 2023)
+(23 May 2024)
 ===============================================================================
 
 ADAMS, Peter
@@ -23,6 +23,7 @@ BONILLA, Eimy
 BOVY, Benoit
 BOWMAN, Kevin
 BOYS, Brian
+BRANFORD, Simon
 BRATTICH, Erika
 BREIDER, Tom
 BREWER, Jared
@@ -290,6 +291,7 @@ SUTHERLAND, Bethany
 SUTO, Kimito
 SZELAG, Monika
 TAI, Amos
+TANG, Yidan
 TANIMOTO, Hiroshi
 TANNAHILL, John
 TAO, Shu
@@ -312,6 +314,7 @@ VAN DONKELAAR, Aaron
 VAROTSOS, Kostas
 VINKEN, Geert
 VITT, Francis
+VOHRA, Karn
 WAGSTROM, Kristina
 WALKER, Thomas
 WANG, James
@@ -359,6 +362,7 @@ ZHANG, Li
 ZHANG, Lin
 ZHANG, Qiang
 ZHANG, Yanxu
+ZHU, Haihui
 ZHU, Lei
 ZHU, Liye
 ZHUANG, Jiawei

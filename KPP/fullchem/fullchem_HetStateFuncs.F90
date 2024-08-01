@@ -139,7 +139,7 @@ CONTAINS
     H%frac_HSO3_aq  = SafeDiv( H%HSO3_aq, H%TSO3_aq, 0.0_dp )
     H%frac_SO3_aq   = SafeDiv( H%SO3_aq,  H%TSO3_aq, 0.0_dp )
 
-    ! Concentrations from ISORROPIA
+    ! Concentrations from ISORROPIA/HETP
     H%HSO4_molal    = State_Chm%IsorropBisulfate(I,J,L)
     H%NO3_molal     = State_Chm%IsorropNitrate(I,J,L,1)
     H%SO4_molal     = State_Chm%IsorropSulfate(I,J,L)

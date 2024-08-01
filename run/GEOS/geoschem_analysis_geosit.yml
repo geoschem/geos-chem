@@ -1,0 +1,37 @@
+### geoschem_analysis.yml
+
+#============================================================================
+# General settings 
+#============================================================================
+general:
+  runphase: 2 
+  nspecies: 1
+
+#============================================================================
+# List of used analysis species 
+#============================================================================
+species:
+  Spc001:
+    SpeciesName: O3
+    Active: true
+    AnalysisFreq: 6
+    AnalysisHour: 0
+    AnalysisMinute: 0
+    ForwardLooking: true
+    FldNameHco: GEOSIT_O3
+    FileVarUnit: ppmv
+    DryFlag: 0 
+    IsIncrement: false
+    InStrat: true 
+    InTrop: false
+    IAU: false
+    AnaL1: 1
+    AnaL2: 1
+    AnaL3: 72
+    AnaL4: 72
+    StratSponge: 2
+    AnaFraction: 1.0
+    MaxChangeStrat: -1.0
+    MaxChangeTrop:  -1.0
+    HasSpec2: 0
+    ErrorMode: 1

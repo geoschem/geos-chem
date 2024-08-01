@@ -59,6 +59,7 @@ MODULE AerMass_Container_Mod
      ! SOAIE       : SOA product of IEPOX & HMML        [kg/m3]
      ! PM25        : Particulate matter < 2.5 um        [kg/m3]
      ! PM10        : Particulate matter < 10 um        [kg/m3]
+     ! PDER        : Parameterized effective Radius for SNA and OM [nm] - used for AOD calcualtion (H. Zhu)
      ! ISOAAQ      : Isoprene SOA (aqueous formation)   [kg/m3]
      ! SOAS        : Simple SOA                         [kg/m3]
      ! FRAC_SNA    :
@@ -88,6 +89,9 @@ MODULE AerMass_Container_Mod
      REAL(fp), POINTER :: SOAGX      (:,:,:)
      REAL(fp), POINTER :: PM25       (:,:,:)
      REAL(fp), POINTER :: PM10       (:,:,:)
+     REAL(fp), POINTER :: PDER       (:,:,:) !H. Zhu
+     REAL(fp), POINTER :: SNAOM         (:,:,:) !H. Zhu
+     REAL(fp), POINTER :: R_OMSNA       (:,:,:) !H. Zhu
      REAL(fp), POINTER :: ISOAAQ     (:,:,:)
      REAL(fp), POINTER :: SOAS       (:,:,:)
      REAL(fp), POINTER :: FRAC_SNA   (:,:,:,:)
@@ -372,6 +376,34 @@ CONTAINS
        RETURN
     ENDIF
     Aer%PM10 = 0.0_fp
+    ! H. Zhu
+    ALLOCATE( Aer%PDER( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'PDER', 0, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error allocating array PDER!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Aer%PDER = 0.0_fp
+    ! H. Zhu
+    ALLOCATE( Aer%SNAOM( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'SNAOM', 0, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error allocating array SNAOM!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Aer%SNAOM = 0.0_fp    
+    ! H. Zhu
+    ALLOCATE( Aer%R_OMSNA( NX, NY, NZ ), STAT=RC )
+    CALL GC_CheckVar( 'R_OMSNA', 0, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error allocating array R_OMSNA!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Aer%R_OMSNA = 0.0_fp
+
 
     ALLOCATE( Aer%SOAGX( NX, NY, NZ ), STAT=RC )
     CALL GC_CheckVar( 'SOAGX', 0, RC )
@@ -630,6 +662,27 @@ CONTAINS
        CALL GC_CheckVar( 'Aer%PM10', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Aer%PM10 => NULL()
+    ENDIF
+    ! H. Zhu
+    IF ( ASSOCIATED( Aer%PDER ) ) THEN
+       DEALLOCATE( Aer%PDER, STAT=RC )
+       CALL GC_CheckVar( 'Aer%PDER', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%PDER => NULL()
+    ENDIF
+    ! H. Zhu
+    IF ( ASSOCIATED( Aer%SNAOM ) ) THEN
+       DEALLOCATE( Aer%SNAOM, STAT=RC )
+       CALL GC_CheckVar( 'Aer%SNAOM', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%SNAOM => NULL()
+    ENDIF    
+    ! H. Zhu
+    IF ( ASSOCIATED( Aer%R_OMSNA ) ) THEN
+       DEALLOCATE( Aer%R_OMSNA, STAT=RC )
+       CALL GC_CheckVar( 'Aer%R_OMSNA', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       Aer%R_OMSNA => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Aer%ISOAAQ ) ) THEN

@@ -1,0 +1,14 @@
+Use dep_data_file.cdl to generate the netcdf file for inputting Henry's Law coefficients
+and molectular weights to CESM for use in deposition. This file must be updated every time
+a new wet or dry deposited species is added to GEOS-Chem. Once created, the netcdf file
+should be renamed to include GEOS-Chem version number and data created, and then copied
+to the location set in cam/bld/namelist_files/namelist_defaults_cam.xml.
+
+Instructions to using ncgen:
+ncgen x.cdl          # checks syntax
+ncgen -b x.cdl       # writes x.nc
+ncgen -o y.nc x.cdl  # writes y.nc
+
+Notes:
+- Added OX since shr_drydep_mod maps dry deposited species O3 to OX in the deposition file.
+  Parameters for OX are the same as O3.

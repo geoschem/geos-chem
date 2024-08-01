@@ -172,13 +172,51 @@ ALK4:
   Is_Advected: true
   Is_Gas: true
   MW_g: 58.12
+ALK4N1:
+  Formula: C4H8NO5
+  FullName: Peroxy radical from ALK4N2
+  Is_Gas: true
+  MW_g: 150.13
+ALK4N2:
+  DD_F0: 1.0
+  DD_Hstar: 1.7e+4
+  Formula: RO2NO
+  FullName: Lumped alkyl nitrate from ALK4
+  Henry_CR: 5800.0
+  Henry_K0: 1.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 119.10
+  WD_RetFactor: 2.0e-2
+ALK4O2:
+  Formula: C4H9O2
+  FullName: Peroxy radical from ALK4
+  Is_Gas: true
+  MW_g: 89.13
+ALK4P:
+  DD_F0: 1.0
+  DD_Hstar: 2.94e+2
+  Formula: CH3CH2CH2CH2OOH
+  FullName: Peroxide from ALK4O2
+  Henry_CR: 5200.0
+  Henry_K0: 2.94e+2
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 90.14
+  WD_RetFactor: 2.0e-2
 ALK7:
   FullName: Lumped >= C6 Alkanes
   Is_Advected: true
   Formula: C7H16
   Is_Gas: true
   MW_g: 100.20
-  aoa_PROP: &aoaproperties
+aoa_PROP: &aoaproperties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
@@ -224,6 +262,38 @@ AONITA:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [0.8, 0.0, 0.8]
   WD_RetFactor: 2.0e-2
+APINP:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C10H18O3
+  FullName: Hydroperoxide from APIN
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+APINN:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
+  FullName: 1st gen organic nitrate from APIN
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
+  WD_RetFactor: 2.0e-2
+APINO2:
+  Formula: C10H17O3
+  FullName: Peroxy radical from APIN
+  Is_Gas: true
+  MW_g: 185.27  
 AROMP4:
   DD_F0: 1.0
   DD_Hstar: 4.1e+5
@@ -493,6 +563,83 @@ BENZP:
   Is_WetDep: true
   MW_g: 110.11
   WD_RetFactor: 2.0e-2
+BPINN:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
+  FullName: Saturated 1st gen BPIN organic nitrate
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
+  WD_RetFactor: 2.0e-2
+BPINO:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+3
+  Formula: C9H14O
+  FullName: Ketone from BPIN
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+BPINO2:
+  Formula: C10H17O3
+  FullName: Peroxy radical from BPIN
+  Is_Gas: true
+  MW_g: 185.27
+BPINOO2:
+  Formula: C10H17O3
+  FullName: 2nd-gen peroxy radical from BPIN
+  Is_Gas: true
+  MW_g: 185.27
+BPINOOH:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C9H14O3
+  FullName: 2nd-gen peroxide from BPIN
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+BPINON:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C9H13NO4
+  FullName: Saturated 2nd gen BPIN organic nitrate
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
+  WD_RetFactor: 2.0e-2
+BPINP:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C10H18O3
+  FullName: Peroxide from BPIN
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
 Br:
   Formula: Br
   FullName: Atomic bromine
@@ -705,6 +852,38 @@ C4HVP2:
   FullName: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
   MW_g: 103.11
+C96N:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C9H15NO4
+  FullName: Saturated 2nd gen monoterpene organic nitrate
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
+  WD_RetFactor: 2.0e-2
+C96O2:
+  Formula: C10H17O3
+  FullName: 2nd-gen peroxy radical from APIN
+  Is_Gas: true
+  MW_g: 185.27
+C96O2H:
+  DD_F0: 1.0
+  DD_Hstar: 3.14e+5
+  Formula: C9H16O3
+  FullName: Peroxide from APIN 2nd gen
+  Henry_CR: 6039.0
+  Henry_K0: 3.14e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
 CaF1:
   << : *DST1properties
   Formula: Ca
@@ -2890,197 +3069,53 @@ LBRO2H:
   FullName: Dummy species to track oxidation of BRO2 by HO2
   Is_Gas: true
   MW_g: 159.13
+  KPP_AbsTol: 1.0e+25
 LBRO2N:
   FullName: Dummy species to track oxidation of BRO2 by NO
   Is_Gas: true
   MW_g: 159.13
+  KPP_AbsTol: 1.0e+25
 LCH4:
   FullName: Dummy species to track loss rate of CH4
   Is_Gas: true
   MW_g: 16.04
+  KPP_AbsTol: 1.0e+25
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
   MW_g: 28.01
-APINP:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C10H18O3
-  FullName: Hydroperoxide from APIN
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-APINN:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C10H17NO4
-  FullName: 1st gen organic nitrate from APIN
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-PINAL: 
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+3
-  Formula: C10H16O2
-  FullName: Pinonaldehyde
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+3
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-PINONIC:
-  DD_F0: 1.0
-  DD_Hstar: 3.14e+5
-  Formula: C10H18O3
-  FullName: Pinonic acid
-  Henry_CR: 6039.0
-  Henry_K0: 3.14e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-PINPAN:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C10H17NO4
-  FullName: PAN from pinonaldehyde
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-PINO3H:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C10H18O4
-  FullName: Pinonic peracid
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-C96O2H:
-  DD_F0: 1.0
-  DD_Hstar: 3.14e+5
-  Formula: C9H16O3
-  FullName: Peroxide from APIN 2nd gen
-  Henry_CR: 6039.0
-  Henry_K0: 3.14e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-C96N:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C9H15NO4
-  FullName: Saturated 2nd gen monoterpene organic nitrate
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-BPINO:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+3
-  Formula: C9H14O
-  FullName: Ketone from BPIN
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+3
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-BPINN:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C10H17NO4
-  FullName: Saturated 1st gen BPIN organic nitrate
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-BPINP:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C10H18O3
-  FullName: Peroxide from BPIN
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-BPINOOH:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C9H14O3
-  FullName: 2nd-gen peroxide from BPIN
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-BPINON:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C9H13NO4
-  FullName: Saturated 2nd gen BPIN organic nitrate
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
+  KPP_AbsTol: 1.0e+25
 LIMAL:
   DD_F0: 1.0
   DD_Hstar: 1.0e+3
   Formula: C10H16O2
   FullName: Aldehyde from limonene
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+LIMKB:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+3
+  Formula: C10H16O3
+  FullName: 2nd gen ketone from limonene
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+LIMKET:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+3
+  Formula: C10H16O2
+  FullName: Ketone from limonene
   Henry_CR: 6039.0
   Henry_K0: 1.0e+3
   Is_Advected: true
@@ -3102,32 +3137,6 @@ LIMN:
   Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-LIMKET:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+3
-  Formula: C10H16O2
-  FullName: Ketone from limonene
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+3
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-LIMKB:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+3
-  Formula: C10H16O3
-  FullName: 2nd gen ketone from limonene
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+3
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
   WD_RetFactor: 2.0e-2
 LIMNB:
   DD_F0: 1.0
@@ -3156,6 +3165,19 @@ LIMO2H:
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
+LIMO3H:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C10H18O4
+  FullName: Peracid from LIMO
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
 LIMPAN:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -3170,89 +3192,9 @@ LIMPAN:
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
-LIMO3H:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C10H18O4
-  FullName: Peracid from LIMO
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-MYRCO:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+3
-  Formula: C10H18O3
-  FullName: Aldehyde or ketone from myrcene
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+3
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
-PIN:
-  DD_F0: 1.0
-  DD_Hstar: 2.0e+6
-  Formula: C10H17NO4
-  FullName: Saturated 1st gen monoterpene organic nitrate
-  Henry_CR: 9200.0
-  Henry_K0: 1.7e+4
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Photolysis: true
-  Is_WetDep: true
-  MW_g: 215.28
-  WD_RetFactor: 2.0e-2
-APINO2:
-  Formula: C10H17O3
-  FullName: Peroxy radical from APIN
-  Is_Gas: true
-  MW_g: 185.27
-PINO3:
-  Formula: C10H17O3
-  FullName: Acylperoxy radical from APIN
-  Is_Gas: true
-  MW_g: 185.27
-C96O2:
-  Formula: C10H17O3
-  FullName: 2nd-gen peroxy radical from APIN
-  Is_Gas: true
-  MW_g: 185.27
-BPINO2:
-  Formula: C10H17O3
-  FullName: Peroxy radical from BPIN
-  Is_Gas: true
-  MW_g: 185.27
-BPINOO2:
-  Formula: C10H17O3
-  FullName: 2nd-gen peroxy radical from BPIN
-  Is_Gas: true
-  MW_g: 185.27
 LIMKO2:
   Formula: C10H17O3
   FullName: 2nd-gen peroxy radical from LIMO
-  Is_Gas: true
-  MW_g: 185.27
-LIMO3:
-  Formula: C10H17O3
-  FullName: Acylperoxy radical from LIMO
-  Is_Gas: true
-  MW_g: 185.27
-LIMO2:
-  Formula: C10H17O3
-  FullName: Peroxy radical from LIMO
-  Is_Gas: true
-  MW_g: 185.27
-PIO2:
-  Formula: C10H17O3
-  FullName: Peroxy radical from MTPA
   Is_Gas: true
   MW_g: 185.27
 LIMO:
@@ -3273,18 +3215,26 @@ LIMO2:
   FullName: Peroxy radical from LIMO
   Is_Gas: true
   MW_g: 185.27
+LIMO3:
+  Formula: C10H17O3
+  FullName: Acylperoxy radical from LIMO
+  Is_Gas: true
+  MW_g: 185.27
 LISOPNO3:
   FullName: Dummy species to track oxidation of ISOP by NO3
   Is_Gas: true
   MW_g: 68.13
+  KPP_AbsTol: 1.0e+25  
 LISOPOH:
   FullName: Dummy species to track oxidation of ISOP by OH
   Is_Gas: true
   MW_g: 68.13
+  KPP_AbsTol: 1.0e+25  
 LNRO2H:
   FullName: Dummy species to track oxidation of NRO2 by HO2
   Is_Gas: true
   MW_g: 159.17
+  KPP_AbsTol: 1.0e+25  
 LNRO2N:
   FullName: Dummy species to track oxidation of NRO2 by NO
   Is_Gas: true
@@ -3293,14 +3243,17 @@ LOx:
   FullName: Dummy species to track loss rate of Ox
   Is_Gas: true
   MW_g: 48.00
+  KPP_AbsTol: 1.0e+25  
 LTRO2H:
   FullName: Dummy species to track oxidation of TRO2 by HO2
   Is_Gas: true
   MW_g: 173.16
+  KPP_AbsTol: 1.0e+25  
 LTRO2N:
   FullName: Dummy species to track oxidation of TRO2 by NO
   Is_Gas: true
   MW_g: 173.16
+  KPP_AbsTol: 1.0e+25  
 LVOC:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -3333,10 +3286,12 @@ LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
   MW_g: 187.19
+  KPP_AbsTol: 1.0e+25  
 LXRO2N:
   FullName: Dummy species to track oxidation of XRO2 by NO
   Is_Gas: true
   MW_g: 187.19
+  KPP_AbsTol: 1.0e+25  
 MACR:
   DD_F0: 1.0
   DD_Hstar: 6.5
@@ -3837,6 +3792,19 @@ MVKPC:
   Is_WetDep: true
   MW_g: 118.10
   WD_RetFactor: 2.0e-2
+MYRCO:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+3
+  Formula: C10H18O3
+  FullName: Aldehyde or ketone from myrcene
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
 N:
   Background_VV: 4.0e-20
   Formula: N
@@ -4319,6 +4287,7 @@ PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
   MW_g: 28.01
+  KPP_AbsTol: 1.0e+25  
 pFe:
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -4337,6 +4306,7 @@ PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
   MW_g: 34.02
+  KPP_AbsTol: 1.0e+25  
 PH2SO4:
   FullName: SO4 from gas-phase chemistry
   Is_Gas: true
@@ -4367,6 +4337,78 @@ PHEN:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 94.11
+  WD_RetFactor: 2.0e-2
+PIN:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
+  FullName: Saturated 1st gen monoterpene organic nitrate
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
+  WD_RetFactor: 2.0e-2
+PINAL: 
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+3
+  Formula: C10H16O2
+  FullName: Pinonaldehyde
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+3
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+PINO3:
+  Formula: C10H17O3
+  FullName: Acylperoxy radical from APIN
+  Is_Gas: true
+  MW_g: 185.27
+PINO3H:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C10H18O4
+  FullName: Pinonic peracid
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+PINONIC:
+  DD_F0: 1.0
+  DD_Hstar: 3.14e+5
+  Formula: C10H18O3
+  FullName: Pinonic acid
+  Henry_CR: 6039.0
+  Henry_K0: 3.14e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
+PINPAN:
+  DD_F0: 1.0
+  DD_Hstar: 2.0e+6
+  Formula: C10H17NO4
+  FullName: PAN from pinonaldehyde
+  Henry_CR: 9200.0
+  Henry_K0: 1.7e+4
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true
+  Is_WetDep: true
+  MW_g: 215.28
   WD_RetFactor: 2.0e-2
 PIO2:
   Formula: C10H17O3
@@ -4651,6 +4693,7 @@ POx:
   FullName: Dummy species to track production rate of Ox
   Is_Gas: true
   MW_g: 48.00
+  KPP_AbsTol: 1.0e+25  
 PP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -4725,6 +4768,7 @@ PSO4:
   FullName: Dummy species to track production of SO4
   Is_Gas: true
   MW_g: 96.06
+  KPP_AbsTol: 1.0e+25  
 PSO4AQ:
   FullName: SO4 from cloud chemistry
   Is_Gas: true
@@ -4797,7 +4841,7 @@ R7N2:
   WD_RetFactor: 2.0e-2
 R4O2:
   Formula: C4H9O2
-  FullName: Peroxy radical from ALK4
+  FullName: Peroxy radical from isoprene and MTPA alkyl generation
   Is_Gas: true
   MW_g: 89.13
 R4P:

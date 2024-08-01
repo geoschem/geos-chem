@@ -278,7 +278,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -326,7 +326,7 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:)     => NULL()
     REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
     LOGICAL                      :: NeedO3
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: OrigUnit
 
     __Iam__('GEOS_RATSandOxDiags')
 
@@ -461,7 +461,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -488,8 +488,8 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-    INTEGER                      :: IndH2O, LM 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER   :: IndH2O, LM 
+    INTEGER   :: OrigUnit
 
     __Iam__('GEOS_SetH2O')
 
@@ -1218,7 +1218,7 @@ CONTAINS
 ! !USES:
 !
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
-    USE UnitConv_Mod,       ONLY : Convert_Spc_Units
+    USE UnitConv_Mod
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1276,7 +1276,7 @@ CONTAINS
     REAL, POINTER                :: LFR(:,:)      => NULL()
     REAL, POINTER                :: CNV_FRC(:,:)  => NULL()
 
-    CHARACTER(LEN=ESMF_MAXSTR)   :: OrigUnit
+    INTEGER                      :: previous_units
 
     __Iam__('GEOS_Diagnostics')
 
@@ -1311,14 +1311,25 @@ CONTAINS
     ! Move 'regular' GEOS-Chem diagnostics from gchp_chunk_mod.F90 to here to
     ! make sure that these diagnostics see any post-run updates.
     ! Diagnostics routine expects units of kg/kg dry. 
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             outUnit=KG_SPECIES_PER_KG_DRY_AIR, OrigUnit=OrigUnit, RC=RC )
+    CALL Convert_Spc_Units( &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
     CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm, State_Diag, &
                                         State_Grid, State_Met, RC )
     _ASSERT(RC==GC_SUCCESS, 'Error calling Set_Diagnostics_EndofTimestep')
-    CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             outUnit=OrigUnit, RC=RC )
+    CALL Convert_Spc_Units( &
+         Input_Opt  = Input_Opt,                                             &
+         State_Chm  = State_Chm,                                             &
+         State_Grid = State_Grid,                                            &
+         State_Met  = State_Met,                                             &
+         new_units  = previous_units,                                        &
+         RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
 
     !=======================================================================
@@ -1414,7 +1425,7 @@ CONTAINS
 
              ! Locally compute if over continuous land (formerly used LWI)
              SfcTypeIndex = MAXLOC( (/                            &
-                State_Met%FRLAND(I,J) + State_Met%FRLANDIC(I,J)   &
+                State_Met%FRLAND(I,J) + State_Met%FRLANDICE(I,J)  &
                 + State_Met%FRLAKE(I,J),                          &
                 State_Met%FRSEAICE(I,J),                          &
                 State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)  &

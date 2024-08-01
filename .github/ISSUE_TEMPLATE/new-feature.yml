@@ -1,0 +1,50 @@
+name: Feature Request
+description: Request a new GEOS-Chem feature
+title: "Put a one-line description here"
+labels: ["category: Feature Request"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Your name
+    validations:
+      required: true
+  - type: input
+    id: affiliation
+    attributes:
+      label: Your affiliation
+    validations:
+      required: true
+  - type: textarea
+    id: feature-description
+    attributes:
+      label: Provide a clear and concise overview of the new feature requested.
+    validations:
+      required: true
+  - type: textarea
+    id: reference
+    attributes:
+      label: Reference(s)
+      description: If this is a science update, please provide a literature citation.
+      placeholder: "e.g. Bey et al., Global modeling of tropospheric chemistry with assimilated meteorology: Model description and evaluation, J. Geophys. Res., 106, 23,073-23,096, 2001."
+    validations:
+      required: false
+  - type: dropdown
+    id: implemenation
+    attributes:
+      label: Will you be implementing this feature yourself?
+      description: If Yes, please also assign this issue to yourself (if possible)
+      multiple: false
+      options:
+        - "Yes"
+        - "Yes, but I will need some help"
+        - "No"
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: Please provide any additional information here that you think might be relevant.
+    validations:
+      required: false

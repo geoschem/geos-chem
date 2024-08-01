@@ -17,7 +17,10 @@ ulimit -v unlimited          # vmemoryuse
 ulimit -s unlimited          # stacksize
 
 # Exit if command fails, and log all commands
-set -xe
+set -e
+
+# Debug option to print all commands executed in this script
+#set -x
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)

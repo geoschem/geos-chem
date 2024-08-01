@@ -121,7 +121,7 @@
      REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume [cm3/cm3]
      REAL(dp) :: aIce           ! Ice surface area [cm2/cm3]
      REAL(dp) :: aLiq           ! Liquid surface area [cm2/cm3]
-     REAL(dp) :: aWater(2)      ! ISORROPIA aerosol water (fine & coarse)
+     REAL(dp) :: aWater(2)      ! ISORROPIA/HETP aerosol water (fine & coarse)
      REAL(dp) :: Br_conc_CldA   ! Br- in cloud (A=fine SSA) [mol/kg H2O]
      REAL(dp) :: Br_conc_CldC   ! Br- in cloud (C=coarse SSA) [mol/kg H2O]
      REAL(dp) :: Br_conc_CldG   ! Br- in cloud (G=gas-phase) [mol/kg H2O]
@@ -192,8 +192,8 @@
      REAL(dp) :: vAir           ! Volume of air [cm3]
      REAL(dp) :: vIce           ! Ice volume [cm3]
      REAL(dp) :: vLiq           ! Liquid volume [cm3]
-     REAL(dp) :: wetArea(14)    ! Aerosol specific wet sfc area [cm3/cm3]
-     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area  [cm3/cm3]
+     REAL(dp) :: wetArea(14)    ! Aerosol specific wet sfc area [cm2/cm3]
+     REAL(dp) :: xArea(14)      ! Aerosol specific sfc area  [cm2/cm3]
      REAL(dp) :: xH2O(14)       ! Aerosol water content [cm3/cm3]
      REAL(dp) :: xRadi(14)      ! Aerosol effective radius [cm]
      REAL(dp) :: xVol(14)       ! Aerosol specific volume [cm3/cm3]

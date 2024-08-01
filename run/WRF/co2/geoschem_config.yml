@@ -52,20 +52,11 @@ operations:
 CO2_simulation_options:
 
   sources:
-    fossil_fuel_emissions: true
-    ocean_exchange: true
-    balanced_biosphere_exchange: true
-    net_terrestrial_exchange: true
-    ship_emissions: true
-    aviation_emissions: true
     3D_chemical_oxidation_source: true
 
   tagged_species:
-    save_fossil_fuel_in_background: false
     tag_bio_and_ocean_CO2: false
     tag_land_fossil_fuel_CO2: 
-    tag_global_ship_CO2: false
-    tag_global_aircraft_CO2: false
     
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)

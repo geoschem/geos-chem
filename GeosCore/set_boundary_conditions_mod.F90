@@ -117,19 +117,19 @@ CONTAINS
    ! simulation.  Otherwise the BoundaryCond field won't be allocated.
    IF ( .not. State_Grid%NestedGrid ) RETURN
 
-   ! Ensure species array is in kg/kg as State_Chm%BoundaryCond is in kg/kg dry
-   IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-      IF ( Input_Opt%amIRoot ) THEN
+   ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+   IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       IF ( Input_Opt%amIRoot ) THEN
           WRITE(6, '(a)') 'Unit check failure: Current units are '        // &
-               UNIT_STR(State_Chm%Spc_Units)                              // &
+               UNIT_STR(State_Chm%Species(1)%Units)                       // &
                ', expected kg/kg dry'
-      ENDIF
-      errMsg = 'Unit check failure: Cannot apply nested-grid boundary '   // &
-               'conditions if units are not kg/kg dry. Your run may '     // &
-               ' have failed previous to this error.'
-      CALL GC_Error( errMsg, RC, thisLoc )
-      RETURN
-   ENDIF
+       ENDIF
+       errMsg = 'Unit check failure: Cannot apply nested-grid boundary '  // &
+                'conditions if units are not kg/kg dry. Your run may '    // &
+                ' have failed previous to this error.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
    !=========================================================================
    ! Loop over grid boxes and apply BCs to the specified buffer zone

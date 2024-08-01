@@ -28,18 +28,19 @@
 # -----------------
 # Example 2: LSF
 # 
+#BSUB -G compute-rvmartin
 #BSUB -q rvmartin
-#BSUB -n 72
-#BSUB -W 2:00
-#BSUB -R "rusage[mem=120GB] span[ptile=36] select[mem < 2TB]"
-#BSUB -a 'docker(geoschem/gchp:13.0.0-beta.1-13-g924e47f)
+#BSUB -n 24
+#BSUB -W 168:00
+#BSUB -R "rusage[mem=300GB] span[ptile=36] select[mem < 2TB]"
+#BSUB -a 'docker(geoschem/gchp:14.3.0)'
 #BSUB -o lsf-%J.txt
 #
 # DESCRIPTION      Sample GCHP batch job script for Compute1 (Docker-based environments)
 # SCHEDULER        LSF
 # DATE             2021-02-19
 # SIMULATION       C90, 2019-01-01 to 2019-01-02
-# RESOURCES        2 nodes, 36 processes per node
+# RESOURCES        1 nodes, 24 processes per node
 # SEE ALSO         bsub man pages, http://gchp.rtfd.io/
 #
 # -----------------
@@ -133,7 +134,11 @@ source checkRunSettings.sh
 #
 # Example 2: LSF
 #
-#    mpiexec -n 72 ./gchp > ${log}
+#/bin/bash
+#
+#      . /etc/bashrc
+#
+#    mpiexec -n 24 ./gchp > ${log}
 #
 # Example 3: SLURM
 #

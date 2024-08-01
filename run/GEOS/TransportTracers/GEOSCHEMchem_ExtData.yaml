@@ -1,36 +1,36 @@
 Collections:
   TT_AnnualScalar.geos.1x1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
   TT_CO-em-anthro_CMIP_CEDS_%y4.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
   TT_Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
   TT_EDGAR_v42_SF6_IPCC_2.generic.01x01.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
   TT_EDGAR_v43.CO.ENG.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
   TT_EDGAR_v43.CO.FFF.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
   TT_EDGAR_v43.CO.IND.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
   TT_EDGAR_v43.CO.POW.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
   TT_EDGAR_v43.CO.PPA.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
   TT_EDGAR_v43.CO.RCO.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
   TT_EDGAR_v43.CO.SWD.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
   TT_EDGAR_v43.CO.TNG.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
   TT_EDGAR_v43.CO.TRO.0.1x0.1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
   TT_EDGAR_v43.Seasonal.1x1.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
   TT_Olson_2001_Land_Map.025x025.generic.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
   TT_Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
-    template: /gpfsm/dnb52/projects/p10/dasilva/fvInput/ExtData/chemistry/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
   TT_timezones_esmf.2x25.nc:
     template: /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
 

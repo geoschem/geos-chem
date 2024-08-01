@@ -2210,6 +2210,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
     IMPLICIT NONE
@@ -2240,7 +2241,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: TS_Dyn
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     REAL(fp)           :: DT_Dyn
 
     ! Strings
@@ -2273,6 +2274,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2284,6 +2286,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = NULL(),                                            &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = NULL(),                                            &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
             RC          = RC                                                )
@@ -2300,21 +2305,35 @@ CONTAINS
     ! Unit conversion #1
     !=======================================================================
 
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
     ! Convert species concentration to [v/v dry] aka [mol/mol dry]
+    ! NOTE: Convert units for all all species because we will later
+    ! update mixing ratios after recomputing air quantities with AIRQNT.
+    ! This is needed in order to ensure mass conservation.
+    !   -- Bob Yantosca, Lizzie Lundgren (15 Feb 2024)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol.mol dry)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixng timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -2343,10 +2362,6 @@ CONTAINS
 
     ! Update air quantities and species concentrations with updated
     ! specific humidity (ewl, 10/28/15)
-    !
-    ! NOTE: Prior to October 2015, air quantities were not updated
-    ! with specific humidity modified in VDIFFDR at this point in
-    ! the model
     CALL AirQnt( Input_Opt, State_Chm, State_Grid,                           &
                  State_Met, RC,        Update_Mixing_Ratio=.TRUE.           )
 
@@ -2366,13 +2381,18 @@ CONTAINS
     ! Unit conversion #2
     !=======================================================================
 
+    ! Halt mixing timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "Boundary layer mixing", RC )
+    ENDIF
+
     ! Convert species back to the original units
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     ! Trap potential errors
@@ -2380,6 +2400,11 @@ CONTAINS
        ErrMsg = 'Error encountred in "Convert_Spc_Units"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
+    ENDIF
+
+    ! Start mixng timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "Boundary layer mixing", RC )
     ENDIF
 
     !=======================================================================
@@ -2396,6 +2421,7 @@ CONTAINS
        CALL Compute_Budget_Diagnostics(                                      &
             Input_Opt   = Input_Opt,                                         &
             State_Chm   = State_Chm,                                         &
+            State_Diag  = State_Diag,                                        &
             State_Grid  = State_Grid,                                        &
             State_Met   = State_Met,                                         &
             isFull      = State_Diag%Archive_BudgetMixingFull,               &
@@ -2407,6 +2433,9 @@ CONTAINS
             isPBL       = State_Diag%Archive_BudgetMixingPBL,                &
             diagPBL     = State_Diag%BudgetMixingPBL,                        &
             mapDataPBL  = State_Diag%Map_BudgetMixingPBL,                    &
+            isLevs      = State_Diag%Archive_BudgetMixingLevs,               &
+            diagLevs    = State_Diag%BudgetMixingLevs,                       &
+            mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
             RC          = RC                                                )

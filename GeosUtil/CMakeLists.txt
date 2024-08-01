@@ -6,7 +6,6 @@ target_link_libraries(JulDay
 )
 
 add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
-	bpch2_mod.F90
 	error_mod.F90
 	file_mod.F90
 	gc_grid_mod.F90

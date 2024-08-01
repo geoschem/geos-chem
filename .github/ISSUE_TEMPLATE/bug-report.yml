@@ -1,0 +1,136 @@
+name: Bug or Issue Report
+description: Report a bug or issue with GEOS-Chem
+title: "Put a one-line description here"
+labels: ["category: Bug"]
+body:
+  - type: input
+    id: name
+    attributes:
+      label: Your name
+    validations:
+      required: true
+  - type: input
+    id: affiliation
+    attributes:
+      label: Your affiliation
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened? What did you expect to happen?
+      placeholder: Describe your issue
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: What are the steps to reproduce the bug?
+      placeholder: Explain what you did
+    validations:
+      required: true
+  - type: textarea
+    id: log-files
+    attributes:
+      label: Please attach any relevant configuration and log files.
+      description: Drag and drop files like the GEOS-Chem log file, geoschem_config.yml, HEMCO_Config.rc, HISTORY.rc, and build_info/summarize_build here. You may need to rename files to end in .txt first.
+    validations:
+      required: false
+  - type: input
+    id: version
+    attributes:
+      label: What GEOS-Chem version were you using?
+      placeholder: e.g. 14.4.0
+    validations:
+      required: true
+  - type: dropdown
+    id: machine
+    attributes:
+      label: What environment were you running GEOS-Chem on?
+      multiple: true
+      options:
+        - Local cluster
+        - AWS
+        - Personal computer
+        - Other (please explain below)
+    validations:
+      required: true
+  - type: input
+    id: compiler-version
+    attributes:
+      label: What compiler and version were you using?
+      placeholder: e.g. gcc 10.2.0, ifort 19.0.5.281
+    validations:
+      required: true
+  - type: dropdown
+    id: implemenation
+    attributes:
+      label: Will you be addressing this bug yourself?
+      description: If Yes, please also assign this issue to yourself (if possible)
+      multiple: false
+      options:
+        - "Yes"
+        - "Yes, but I will need some help"
+        - "No"
+    validations:
+      required: true
+  - type: dropdown
+    id: configuration
+    attributes:
+      label: In what configuration were you running GEOS-Chem?
+      description: If you are experiencing issues with GEOS-Chem in an external model, please contact that model's support. This repository is for tracking issues related to the GEOS-Chem science code base.
+      multiple: false
+      options:
+        - GCClassic
+        - GCHP
+        - Other (please explain in additional information section below)
+    validations:
+      required: true
+  - type: dropdown
+    id: simulation
+    attributes:
+      label: What simulation were you running?
+      description: If using full chemistry, specify extra options like benchmark, complexSOA, etc. in the additional information section below
+      multiple: false
+      options:
+        - Full chemistry
+        - Aerosol
+        - Carbon 
+        - Hg
+        - POPs
+        - TagO3
+        - TransportTracers
+        - Trace metals
+        - CH4
+        - CO2
+        - TagCO
+    validations:
+      required: true
+  - type: input
+    id: resolution
+    attributes:
+      label: As what resolution were you running GEOS-Chem?
+      description: If running a nested grid simulation, please also specify the region.
+      placeholder: "e.g. 4x5, 2x2.5, 0.25x0.3125 NA, c48, c180"
+    validations:
+      required: true
+  - type: dropdown
+    id: meteorology
+    attributes:
+      label: What meterology fields did you use?
+      multiple: false
+      options:
+        - GEOS-FP
+        - GEOS-IT
+        - MERRA-2
+        - GCAP 2.0
+        - Other (please explain in additional information section below)
+    validations:
+      required: true
+  - type: textarea
+    id: additional-info
+    attributes:
+      label: Additional information
+      description: Please provide any additional information here that you think might be relevant.
+    validations:
+      required: false

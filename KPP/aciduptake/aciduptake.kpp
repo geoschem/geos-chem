@@ -115,7 +115,7 @@ PH2O2 : H2O2;
      REAL(dp) :: aClVol         ! Fine SSA+SNA aerosol volume [cm3/cm3]
      REAL(dp) :: aIce           ! Ice surface area [cm2/cm3]
      REAL(dp) :: aLiq           ! Liquid surface area [cm2/cm3]
-     REAL(dp) :: aWater(2)      ! ISORROPIA aerosol water (fine & coarse)
+     REAL(dp) :: aWater(2)      ! ISORROPIA/HETP aerosol water (fine & coarse)
      REAL(dp) :: Br_conc_CldA   ! Br- in cloud (A=fine SSA) [mol/kg H2O]
      REAL(dp) :: Br_conc_CldC   ! Br- in cloud (C=coarse SSA) [mol/kg H2O]
      REAL(dp) :: Br_conc_CldG   ! Br- in cloud (G=gas-phase) [mol/kg H2O]

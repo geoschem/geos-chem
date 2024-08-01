@@ -112,7 +112,7 @@ CONTAINS
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAKE = Q
 
-    ! Read FRLAND
+    ! Read FRLAND (land without lake or ice)
     v_name = "FRLAND"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
     State_Met%FRLAND = Q
@@ -120,7 +120,7 @@ CONTAINS
     ! Read FRLANDIC
     v_name = "FRLANDIC"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
-    State_Met%FRLANDIC = Q
+    State_Met%FRLANDICE = Q
 
     ! Read FROCEAN
     v_name = "FROCEAN"
@@ -217,6 +217,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: t_index            ! Time index
+    INTEGER            :: I, J
     CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
     CHARACTER(LEN=255) :: v_name             ! netCDF variable name
     CHARACTER(LEN=255) :: errMsg             ! Error message
@@ -292,7 +293,18 @@ CONTAINS
     ! Read FRSNO
     v_name = "FRSNO"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
-    State_Met%FRSNO = Q
+
+    ! The import FRSNO is fraction of land with snow cover. Convert to
+    ! fraction of grid box with snow cover for storage in State_Met.
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED  )&
+    !$OMP PRIVATE( I, J    )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       State_Met%FRSNOW(I,J) = Q(I,J) * State_Met%FRLAND(I,J)
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
 
     !--------------------------------------------------------------------------
     ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
@@ -543,9 +555,6 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_A3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -604,11 +613,6 @@ CONTAINS
     !======================================================================
     ! Cleanup and quit
     !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times that A3 fields have been read
-    CALL Set_Ct_A3( INCREMENT=.TRUE. )
-#endif
 
     ! Save date & time for next iteration
     lastDate = YYYYMMDD
@@ -1165,9 +1169,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_I3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1295,15 +1296,6 @@ CONTAINS
     State_Met%T         = State_Met%TMPU1
     State_Met%SPHU      = State_Met%SPHU1
 
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times I3 fields have been read
-    CALL Set_Ct_I3( INCREMENT=.TRUE. )
-#endif
-
   END SUBROUTINE FlexGrid_Read_I3_1
 !EOC
 !------------------------------------------------------------------------------
@@ -1328,9 +1320,6 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Get_Met_Mod
-#ifdef BPCH_DIAG
-    USE Time_Mod,           ONLY : Set_Ct_I3
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1465,15 +1454,6 @@ CONTAINS
        ! Convert PS2_WET from [Pa] to [hPa]
        State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
     ENDIF
-
-    !======================================================================
-    ! Diagnostics, cleanup, and quit
-    !======================================================================
-
-#ifdef BPCH_DIAG
-    ! Increment the # of times I3 fields have been read
-    CALL Set_Ct_I3( INCREMENT=.TRUE. )
-#endif
 
   END SUBROUTINE FlexGrid_Read_I3_2
 !EOC

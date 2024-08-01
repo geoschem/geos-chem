@@ -285,6 +285,24 @@ CONTAINS
        RETURN
     ENDIF
 
+    IF ( State_Diag%Archive_SfcType ) THEN
+       State_Diag%IsWater = 0.0_fp
+       State_Diag%IsLand  = 0.0_fp
+       State_Diag%IsIce   = 0.0_fp
+       State_Diag%IsSnow  = 0.0_fp
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED  ) &
+       !$OMP PRIVATE( I, J    )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF ( State_Met%IsWater(I,J) ) State_Diag%IsWater(I,J) = 1.0_fp
+          IF ( State_Met%IsLand(I,J)  ) State_Diag%IsLand(I,J)  = 1.0_fp
+          IF ( State_Met%IsIce(I,J)   ) State_Diag%IsIce(I,J)   = 1.0_fp
+          IF ( State_Met%IsSnow(I,J)  ) State_Diag%IsSnow(I,J)  = 1.0_fp
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
@@ -417,7 +435,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,10 +483,9 @@ CONTAINS
     Found   = .FALSE.
     ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
-    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!'    // &
-                 trim( UNIT_STR(State_Chm%Spc_Units) )
+    ! Make sure all units are in kg/kg dry
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -570,7 +587,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE Time_Mod,       ONLY : Get_LocalTime
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -622,8 +639,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_VVDry (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -830,7 +847,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -876,8 +893,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_MND (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_MND!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -927,12 +944,14 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,   State_Chm, State_Grid, &
-                                         State_Met,   isFull,    diagFull,   &
-                                         mapDataFull, isTrop,    diagTrop,   &
-                                         mapDataTrop, isPBL,     diagPBL,    &
-                                         mapDataPBL,  colMass,   RC,         &
-                                         timeStep,    isWetDep,  before_op  )
+  SUBROUTINE Compute_Budget_Diagnostics( Input_Opt,  State_Chm, State_Diag,  &
+                                         State_Grid, State_Met,              &
+                                         isFull,     diagFull, mapDataFull,  &
+                                         isTrop,     diagTrop, mapDataTrop,  &
+                                         isPBL,      diagPBL,  mapDataPBL,   &
+                                         isLevs,     diagLevs, mapDataLevs,  &
+                                         colMass,    RC,       timeStep,     &
+                                         isWetDep,   before_op              )
 !
 ! !USES:
 !
@@ -942,11 +961,12 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt        ! Input options object
+    TYPE(DgnState), INTENT(IN)    :: State_Diag       ! Diagnostic state object
     TYPE(GrdState), INTENT(IN)    :: State_Grid       ! Grid state object
     TYPE(MetState), INTENT(IN)    :: State_Met        ! Meteorology state obj
     LOGICAL,        INTENT(IN)    :: isFull           ! T if full col diag on
@@ -955,6 +975,8 @@ CONTAINS
     TYPE(DgnMap),   POINTER       :: mapDataTrop      ! Map to species indexes
     LOGICAL,        INTENT(IN)    :: isPBL            ! T if PBL col diag on
     TYPE(DgnMap),   POINTER       :: mapDataPBL       ! Map to species indexes
+    LOGICAL,        INTENT(IN)    :: isLevs           ! T if fixed levels diag on
+    TYPE(DgnMap),   POINTER       :: mapDataLevs      ! Map to species indexes
     LOGICAL,        OPTIONAL      :: isWetDep         ! T = wetdep budgets
     LOGICAL,        OPTIONAL      :: before_op        ! T = before operation
     REAL(f8),       OPTIONAL      :: timestep         ! F = after operation
@@ -965,6 +987,7 @@ CONTAINS
     REAL(f8),       POINTER       :: diagFull(:,:,:)  ! ptr to full col diag
     REAL(f8),       POINTER       :: diagTrop(:,:,:)  ! ptr to trop col diag
     REAL(f8),       POINTER       :: diagPBL(:,:,:)   ! ptr to pbl col diag
+    REAL(f8),       POINTER       :: diagLevs(:,:,:)  ! ptr to levs col diag
     REAL(f8),       POINTER       :: colMass(:,:,:,:) ! Initial column mass
                                                       ! (I,J,spc,col region)
                                                       ! 1:full, 2:trop, 3:pbl
@@ -984,8 +1007,8 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: after,  before, wetDep
-    INTEGER            :: I,      J,      L,       N
-    INTEGER            :: numSpc, region, topLev,  S
+    INTEGER            :: I,      J,      L,       N,      S
+    INTEGER            :: numSpc, region, topLev,  botLev
     REAL(f8)           :: colSum, dt
 
     ! Arrays
@@ -1005,11 +1028,10 @@ CONTAINS
     colSum  = 0.0_f8
     spcMass = 0.0_f8
 
-    ! Exit if concentrations are not in [kg/kg dry]
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1078,6 +1100,20 @@ CONTAINS
        ENDIF
     ENDIF
 
+    ! Make sure mapDataLevs and diagLevs are not undefined
+    IF ( isLevs ) THEN
+       IF ( .not. ASSOCIATED( mapDataLevs ) ) THEN
+          errMsg = 'The mapDataLevs object is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       IF ( after .and. ( .not. ASSOCIATED( diagLevs ) ) ) THEN
+          errMsg = 'The diagLevs array is undefined!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Make sure the colMass array is not undefined
     IF ( .not. ASSOCIATED( colMass ) ) THEN
        errMsg = 'The colMass array is undefined!'
@@ -1086,7 +1122,7 @@ CONTAINS
     ENDIF
 
     !====================================================================
-    ! Before operation: Compute column masses (full, trop, PBL)
+    ! Before operation: Compute column masses (full, trop, PBL, levs)
     !
     ! After operation:  Compute column differences (final-initial)
     !                   and them update diagnostic arrays
@@ -1099,9 +1135,10 @@ CONTAINS
     ENDIF
 
     ! Loop over NX and NY dimensions
-    !$OMP PARALLEL DO                                        &
-    !$OMP DEFAULT( SHARED                                  ) &
-    !$OMP PRIVATE( I, J, colSum, spcMass, topLev, S, N, L  )
+    !$OMP PARALLEL DO                               &
+    !$OMP DEFAULT( SHARED                          )&
+    !$OMP PRIVATE( I, J, S, N, L                   )&
+    !$OMP PRIVATE( colSum, spcMass, topLev, botLev )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -1251,6 +1288,55 @@ CONTAINS
           ENDDO
        ENDIF
 
+       !---------------------------------------------------------------------
+       ! Levs-only budget for each requested species
+       !---------------------------------------------------------------------
+       IF ( isLevs ) THEN
+         
+          ! Top and bottom levels of column
+          topLev = State_Diag%BudgetTopLev_int
+          botLev = State_Diag%BudgetBotLev_int
+
+          ! Loop over # of diagnostic slots
+          DO S = 1, mapDataLevs%nSlots
+
+             ! Initialize column-specfic variables
+             colSum  = 0.0_f8
+             spcMass = 0.0_f8
+
+             ! For wetdep budgets, translate wetdep ID to modelId
+             ! Otherwise, get the modelId from the slotId
+             IF ( wetDep ) THEN
+                N = State_Chm%Map_WetDep(mapDataLevs%slot2Id(S))
+             ELSE
+                N = mapDataLevs%slot2Id(S)
+             ENDIF
+
+             ! Compute mass at each grid box in the column [kg]
+             DO L = botLev, topLev
+                spcMass(L) = State_Chm%Species(N)%Conc(I,J,L) * &
+                             State_Met%AD(I,J,L)
+             ENDDO
+
+             ! Compute column mass in Levs region [kg]
+             colSum = SUM( spcMass(botLev:topLev) )
+
+             ! Before operation: Compute initial Levs-column mass
+             ! After operation: Compute change in column mass (final-initial),
+             ! convert to [kg/s], and store in the diagLevs array.
+             IF ( before ) THEN
+                colMass(I,J,N,3) = colSum
+             ELSE
+#ifdef MODEL_GEOS
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                               / State_Grid%AREA_M2(I,J)
+#else
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+#endif
+             ENDIF
+          ENDDO
+       ENDIF
+
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
@@ -1339,9 +1425,12 @@ CONTAINS
             Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
           id_OH  = Ind_('OH')
           IF ( id_OH < 0 ) THEN
-             errMsg = 'OH is not a defined species in this simulation!!!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
+             id_OH = Ind_('FixedOH')
+             IF ( id_OH < 0 ) THEN
+                errMsg = 'OH is not a defined species in this simulation!!!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
        first= .FALSE.
@@ -1672,8 +1761,7 @@ CONTAINS
 !
 ! !IROUTINE: set_aermass_diagnostic
 !
-! !DESCRIPTION: Computes the aerosol mass diagnostic (formerly ND42 bpch
-!  diagnostic).
+! !DESCRIPTION: Computes the aerosol mass diagnostic.
 !\\
 !\\
 ! !INTERFACE:
@@ -1683,7 +1771,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : IS_POA, IS_OPOA
+    USE Aerosol_Mod,    ONLY : Is_POA, Is_OPOA, Is_OCPO, Is_OCPI
+    USE Aerosol_Mod,    ONLY : Is_ComplexSOA, Is_SimpleSOA
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species, SpcConc
@@ -1694,24 +1783,22 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
     USE UnitConv_Mod,   ONLY : KG_SPECIES_PER_KG_DRY_AIR, UNIT_STR
+    USE UnitConv_Mod,   ONLY : Check_Units
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState),   INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  NOTE: This diagnostic mimics the bpch diagnostic routine "DIAG42".
 !
 ! !REVISION HISTORY:
 !  05 Feb 2018 - R. Yantosca - Initial version
@@ -1759,6 +1846,7 @@ CONTAINS
     REAL(fp),      POINTER :: SOAGX       (:,:,:)
     REAL(fp),      POINTER :: PM25        (:,:,:)
     REAL(fp),      POINTER :: PM10        (:,:,:)
+    REAL(fp),      POINTER :: PDER        (:,:,:) ! H. Zhu
     REAL(fp),      POINTER :: ISOAAQ      (:,:,:)
     REAL(fp),      POINTER :: SOAS        (:,:,:)
     REAL(fp),      POINTER :: FRAC_SNA    (:,:,:,:)
@@ -1827,17 +1915,17 @@ CONTAINS
     SOAGX       => State_Chm%AerMass%SOAGX
     PM25        => State_Chm%AerMass%PM25
     PM10        => State_Chm%AerMass%PM10
+    PDER        => State_Chm%AerMass%PDER
     ISOAAQ      => State_Chm%AerMass%ISOAAQ
     SOAS        => State_Chm%AerMass%SOAS
     FRAC_SNA    => State_Chm%AerMass%FRAC_SNA
     DAERSL      => State_Chm%AerMass%DAERSL
     WAERSL      => State_Chm%AerMass%WAERSL
 
-    ! Check that species units are kg/kg dry air
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1926,8 +2014,7 @@ CONTAINS
 
     !=======================================================================
     ! Compute Aerosol mass and PM2.5 diagnostics using concentrations
-    ! from the end of the chemistry timestep, which should be more
-    ! consistent with the legacy ND42 bpch diagnostics
+    ! from the end of the chemistry timestep.
     !=======================================================================
 
     ! Point to fields of State_Chm and State_Met
@@ -2004,7 +2091,7 @@ CONTAINS
        IF ( State_Diag%Archive_AerMassPOA ) THEN
           IF ( Is_POA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
-          ELSE
+          ELSEIF ( Is_OCPO ) THEN
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
                                               kgm3_to_ugm3
           ENDIF
@@ -2072,8 +2159,16 @@ CONTAINS
        ENDIF
 
        !--------------------------------------
+       ! PDER [nm]
+       !--------------------------------------
+       IF ( State_Diag%Archive_PDER ) THEN
+          State_Diag%PDER(I,J,L) = PDER(I,J,L)
+       ENDIF
+
+       !--------------------------------------
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
+       ! ComplexSOA only
        IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
           State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L) + ISOAAQ(I,J,L) ) &
                                                 * kgm3_to_ugm3
@@ -2082,34 +2177,47 @@ CONTAINS
        !--------------------------------------
        ! Sum of all organic aerosol [ug/m3]
        !--------------------------------------
+       ! Now TotalOA also works for simpleSOA
        IF ( State_Diag%Archive_TotalOA ) THEN
-          State_Diag%TotalOA(I,J,L) = ( TSOA(I,J,L) + &
-                                        ASOA(I,J,L) + &
-                                        OCPO(I,J,L) + &
-                                        OCPI(I,J,L) + &
-                                        OPOA(I,J,L) + &
-                                        ISOAAQ(I,J,L) ) * kgm3_to_ugm3
+          State_Diag%TotalOA(I,J,L) = ( OCPO(I,J,L) + &
+                                        OCPISOA(I,J,L) ) * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
        ! Sum of all organic carbon [ug/m3]
        !--------------------------------------
+       ! ComplexSOA only
+       ! since OM/OC ratio is not available for SOAS
+       ! consistent with aerosol_mod.F90
        IF ( State_Diag%Archive_TotalOC ) THEN
 
+         ! Hydrophobic OC
           IF ( Is_POA ) THEN
              State_Diag%TotalOC(I,J,L) = &
-                  ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
+                  ( ( TSOA(I,J,L) + ASOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
-
-          ELSE IF ( Is_OPOA ) THEN
+          ELSE IF ( Is_OCPO ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &
-                    / OCFOPOA(I,J) ) * kgm3_to_ugm3
+                    + OCPO(I,J,L) ) / OCFOPOA(I,J) ) * kgm3_to_ugm3
           ENDIF
 
-          IF ( Input_Opt%LSOA ) THEN
+          ! Hydrophilic OC
+          IF (Is_OCPI) THEN
+             State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                         ( OCPI(I,J,L) / OCFOPOA(I,J) * &
+                                         kgm3_to_ugm3 )
+          ENDIF
+
+          ! OPOA OC
+          IF (Is_OPOA) THEN
+            State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                        ( OPOA(I,J,L) / OCFOPOA(I,J) * &
+                                        kgm3_to_ugm3 )
+          ENDIF
+
+          ! Isoprene SOA OC
+          IF ( Is_ComplexSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
                   ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
                     ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &
@@ -2151,6 +2259,7 @@ CONTAINS
     SOAGX       => NULL()
     PM25        => NULL()
     PM10        => NULL()
+    PDER        => NULL()
     ISOAAQ      => NULL()
     SOAS        => NULL()
     FRAC_SNA    => NULL()

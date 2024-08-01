@@ -359,7 +359,7 @@ CONTAINS
 
     use parkind,        only : im => kind_im, rb => kind_rb
 
-    USE IsorropiaII_Main_Mod, ONLY : Isorropia
+    USE HETP_mod,             ONLY : mach_hetp_main_15cases
     use module_mosaic_therm, only: mosaic
 !
 ! !INPUT PARAMETERS:
@@ -497,16 +497,21 @@ CONTAINS
     REAL(fp)                   :: TNA,  TCL,  TNH3, TNH4
     REAL(fp)                   :: TNIT, TNO3, TSO4
     REAL(f8)                   :: AERLIQ(NIONSA+NGASAQA+2)
-    REAL(f8)                   :: AERSLD(NSLDSA)
     REAL(f8)                   :: GAS1(NGASAQA)
     REAL(f8)                   :: OTHER(NOTHERA)
     REAL(f8)                   :: WI(NCOMPA)
     REAL(f8)                   :: WT(NCOMPA)
-    REAL(f8)                   :: CNTRL(NCTRLA)
     CHARACTER(LEN=255)       :: X
     CHARACTER(LEN=15)        :: SCASI
     REAL*8                   :: TSO4COAT,DNH3MAX
     REAL*8                   :: TH2O,TINORG   !Yu+ 6/1/11
+    REAL*8                   :: HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4
+    REAL*8                   :: HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl
+    REAL*8                   :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
+    REAL*8                   :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
+    REAL*8                   :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
+    REAL*8                   :: HETP_frSO4, HETP_num
+
     !--------------------------------------------------------------------------
     ! These do not appear to be used anymore (bmy, 6/18/19)
     !REAL,SAVE                :: SEABIRDEM(State_Grid%NX,State_Grid%NY,2)
@@ -723,12 +728,19 @@ CONTAINS
        !$OMP DEFAULT( SHARED )                                                &
        !$OMP PRIVATE( I,    J,      L,       N,      WI,   WT,  GAS1,  TEMPI )&
        !$OMP PRIVATE( RHI,  VOL,    TSO4,    TNH3,   TNA,  TCL, ANO3, GNO3  ) &
-       !$OMP PRIVATE( TCA,  TMG,    TK,      CNTRL,  SCASI                  ) &
-       !$OMP PRIVATE( TNO3, AERLIQ, AERSLD,  OTHER,  TNH4, TNIT             ) &
+       !$OMP PRIVATE( TCA,  TMG,    TK,      SCASI                          ) &
+       !$OMP PRIVATE( TNO3, AERLIQ, OTHER,   TNH4,   TNIT                   ) &
        !$OMP PRIVATE( TSO4COAT ,DNH3MAX            )                          &
        !$OMP PRIVATE( TH2O, XM,VRATIO)                                        &
        !$OMP PRIVATE( SO4_bin_sum, SEA_bin_sum)                               &
-       !$OMP SCHEDULE( DYNAMIC )
+       !$OMP PRIVATE( HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4             ) &
+       !$OMP PRIVATE( HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl              ) &
+       !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
+       !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
+       !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
+       !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
+       !$OMP COLLAPSE( 3                                                      ) &
+       !$OMP SCHEDULE( DYNAMIC, 8                                             )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -830,15 +842,6 @@ CONTAINS
              ! Call ISORROPIA
              !---------------------------------
 
-             ! set type of ISORROPIA call
-             ! Forward problem, do not change this value
-             ! 0e+0_fp represents forward problem
-             CNTRL(1) = 0.0e+0_fp
-
-             ! Metastable for now
-             ! 1e+0_fp represents metastable problem
-             CNTRL(2) = 1.0e+0_fp
-
              ! Insert concentrations [mole/m3] into WI & prevent underflow
              WI(1)    = MAX( TNA,  CONMIN )
              WI(2)    = MAX( TSO4, CONMIN )
@@ -850,11 +853,32 @@ CONTAINS
              WI(8)    = MAX( TMG,  CONMIN )
 
              ! Perform aerosol thermodynamic equilibrium
-             ! ISORROPIA can be found in ISORROPIAIICODE.f
-             ! inputs are WI, RHI, TEMPI, CNTRL
-             CALL ISORROPIA( WI,    RHI,  TEMPI,  CNTRL,   &
-                             WT,    GAS1,  AERLIQ, AERSLD, &
-                             SCASI, OTHER)
+             ! For safety
+             GAS = 0.0d0
+             AERLIQ = 0.0d0
+             Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
+                                          WI(6), WI(7), WI(8), TEMPI, RHI,              &
+                                          HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
+                                          HETP_NH3,   HETP_NO3,  HETP_HNO3,  HETP_Cl,   &
+                                          HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
+                                          HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
+                                          HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
+                                          HETP_frSO4, HETP_num                          )
+             ! Spoof ISORROPIA outputs which are still used
+             GAS1(1) = HETP_NH3
+             GAS1(2) = HETP_HNO3
+             GAS1(3) = HETP_HCl
+             ! Mostly used for diagnostics
+             AERLIQ( 1) = HETP_H
+             AERLIQ( 2) = HETP_Na
+             AERLIQ( 3) = HETP_NH4
+             AERLIQ( 4) = HETP_Cl
+             AERLIQ( 5) = HETP_SO4
+             AERLIQ( 6) = HETP_HSO4
+             AERLIQ( 7) = HETP_NO3
+             AERLIQ( 8) = HETP_LWC
+             ! WT is used below but is identical to WI for a forward case
+             WT(:) = WI(:)
 
              IF(IFDOISRP==1.or.IFDOISRP==3.or.IFDOISRP==4)THEN
                 TH2O = AERLIQ(8)  ! aerosol water  (mole/m3)

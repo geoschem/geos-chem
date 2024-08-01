@@ -2972,7 +2972,7 @@ CONTAINS
     ! Uptake by stratospheric sulfate (aerosol type 13)
     ! and by irregular ice cloud (aerosol type 14)
     gamma = 1.0e-4_dp
-    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO2 in cloud (liquid branch only)
@@ -3050,7 +3050,7 @@ CONTAINS
     ! Uptake by stratospheric sulfate liquid aerosol
     ! and by irregular ice cloud
     gamma = 0.1_dp
-    k = k + H%xArea(SLA) * gamma
+    k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
     k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
 
     ! Uptake of NO3 in cloud (liquid and ice branches)
@@ -3451,7 +3451,7 @@ CONTAINS
        k = k + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gamma, srMw )
        k = k + Ars_L1k( H%xArea(SSA), H%xRadi(SSA), gamma, srMw )
        k = k + Ars_L1k( H%xArea(SSC), H%xRadi(SSC), gamma, srMw )
-       k = k + H%xArea(SLA) * gamma
+       k = k + Ars_L1k( H%xArea(SLA), H%xRadi(SLA), gamma, srMw )
        k = k + Ars_L1k( H%xArea(IIC), H%xRadi(IIC), gamma, srMw )
     ENDIF
   END FUNCTION VOCuptk1stOrd

@@ -157,7 +157,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(64)
+    CHARACTER(LEN=17)           :: tags(66)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -208,6 +208,11 @@ CONTAINS
              "Density          ",  &
              "Formula          ",  &
              "FullName         ",  &
+             "Henry_CR         ",  &
+             "Henry_CR_Luo     ",  &
+             "Henry_K0         ",  &
+             "Henry_K0_Luo     ",  &
+             "Henry_pKa        ",  &
              "Is_Aerosol       ",  &
              "Is_DryAlt        ",  &
              "Is_DryDep        ",  &
@@ -218,13 +223,10 @@ CONTAINS
              "Is_HgP           ",  &
              "Is_Photolysis    ",  &
              "Is_RadioNuclide  ",  &
-             "Is_Tracer        ",  &
              "Is_WetDep        ",  &
-             "Henry_CR         ",  &
-             "Henry_CR_Luo     ",  &
-             "Henry_K0         ",  &
-             "Henry_K0_Luo     ",  &
-             "Henry_pKa        ",  &
+             "Is_Tracer        ",  &
+             "KPP_AbsTol       ",  &
+             "KPP_RelTol       ",  &
              "MP_SizeResAer    ",  &
              "MP_SizeResNum    ",  &
              "MW_g             ",  &
@@ -611,6 +613,16 @@ CONTAINS
                 ThisSpc%Is_WetDep = v_bool
              ENDIF
 
+          ELSE IF ( INDEX( key, "%KPP_AbsTol" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%KPP_AbsTol = Cast_and_RoundOff( v_str, -1 )
+
+          ELSE IF ( INDEX( key, "%KPP_RelTol" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%KPP_RelTol = Cast_and_RoundOff( v_str, -1 )
+
           ELSE IF ( INDEX( key, "%MP_SizeResAer" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
@@ -640,8 +652,8 @@ CONTAINS
              a_str = MISSING_STR
              CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Snk_LatMin = Cast_and_RoundOff( a_str(1), places=4 )
-             ThisSpc%Snk_LatMax = Cast_and_RoundOff( a_str(2), places=4 )
+             ThisSpc%Snk_LatMin = Cast_and_RoundOff( a_str(1), 4 )
+             ThisSpc%Snk_LatMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Snk_Mode" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -677,8 +689,8 @@ CONTAINS
              a_str = MISSING_STR
              CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Src_LatMin = Cast_and_RoundOff( a_str(1), places=4 )
-             ThisSpc%Src_LatMax = Cast_and_RoundOff( a_str(2), places=4 )
+             ThisSpc%Src_LatMin = Cast_and_RoundOff( a_str(1), 4 )
+             ThisSpc%Src_LatMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Src_Mode" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -689,8 +701,8 @@ CONTAINS
              a_str = MISSING_STR
              CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
-             ThisSpc%Src_PresMin = Cast_and_RoundOff( a_str(1), places=4 )
-             ThisSpc%Src_PresMax = Cast_and_RoundOff( a_str(2), places=4 )
+             ThisSpc%Src_PresMin = Cast_and_RoundOff( a_str(1), 4 )
+             ThisSpc%Src_PresMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Src_Units" ) > 0 ) THEN
              CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
@@ -839,7 +851,8 @@ CONTAINS
              ThisSpc%Is_Gas = .TRUE.
           ELSE
              errMsg = "Is_Gas and Is_Aerosol are both FALSE for species " // &
-                      TRIM( spc ) // "!"
+                      TRIM( spc ) // "!This species may not be included " // &
+                      "in species_database.yml. Please check that file."
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
           ENDIF
@@ -1358,8 +1371,8 @@ CONTAINS
        ENDDO
 
     !=======================================================================
-    ! For specialty simulations, we do not have KPP species.  Thus, the
-    ! of species is just the list of advected species from geoschem_config.yml
+    ! For speciality simulations that do not use KPP-built mechanisms,
+    ! we can just use the advected species list from geoschem_config.yml
     !=======================================================================
     ELSE
 
