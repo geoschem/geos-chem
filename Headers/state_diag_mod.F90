@@ -12476,13 +12476,13 @@ CONTAINS
 
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
-    ! 4th dimension is column region: Full, Trop, PBL respectively
+    ! 4th dimension is column region: Full, Trop, PBL, fixed Levs
     !========================================================================
     IF ( State_Diag%Archive_Budget ) THEN
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
                                                State_Grid%NY,                &
                                                State_Chm%nAdvect,            &
-                                               3                 ), STAT=RC )
+                                               4                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF

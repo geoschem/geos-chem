@@ -1063,7 +1063,7 @@ CONTAINS
 
     ! Arrays
     REAL(f8)           :: spcMass(State_Grid%NZ)
-    REAL(f8)           :: rerr(3),  PriorGlobalMass(3)
+    REAL(f8)           :: rerr(4),  PriorGlobalMass(4)
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
@@ -1197,7 +1197,8 @@ CONTAINS
        PriorGlobalMass(1) = sum( colMass(:,:,:,1) )
        PriorGlobalMass(2) = sum( colMass(:,:,:,2) )
        PriorGlobalMass(3) = sum( colMass(:,:,:,3) )
-    ENDIF
+       PriorGlobalMass(4) = sum( colMass(:,:,:,4) )
+    ENDIf
 
     ! Loop over NX and NY dimensions
     !$OMP PARALLEL DO                               &
@@ -1400,14 +1401,16 @@ CONTAINS
              ! After operation: Compute change in column mass (final-initial),
              ! convert to [kg/s], and store in the diagLevs array.
              IF ( before ) THEN
-                colMass(I,J,N,3) = colSum
+                colMass(I,J,N,4) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,4) ) / timeStep &
                                / State_Grid%AREA_M2(I,J)
 #else
-                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,4) ) / timeStep
 #endif
+                ! Save to enable budget consistency check
+                colMass(I,J,N,4) = colSum
              ENDIF
           ENDDO
        ENDIF
@@ -1425,6 +1428,7 @@ CONTAINS
           rerr(1) = ABS( SUM( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
           rerr(2) = ABS( SUM( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
           rerr(3) = ABS( SUM( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
+          rerr(4) = ABS( SUM( colMass(:,:,:,4) ) / PriorGlobalMass(4) - 1 )
 
           ! Relative error tolarance, errors larger than this will halt the model
           rtol = 0.001
@@ -1440,6 +1444,10 @@ CONTAINS
           IF ( rerr(3) > rtol .and. Input_Opt%amIRoot) THEN
              PRINT *, 'Budget Diagnostic Warning: PBL-column tracer mass changed ', &
                       ' unexpectedly, rerr=', rerr(3)
+          ENDIF
+          IF ( rerr(4) > rtol .and. Input_Opt%amIRoot) THEN
+             PRINT *, 'Budget Diagnostic Warning: Fix levels tracer mass changed ', &
+                      ' unexpectedly, rerr=', rerr(4)
           ENDIF
 
           IF ( ANY( rerr > rtol ) ) THEN
