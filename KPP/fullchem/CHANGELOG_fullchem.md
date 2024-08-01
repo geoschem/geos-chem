@@ -4,6 +4,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 # Mechanism history
 
+## [14.5.0] - TBD
+- Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
+- Added ALK4N1 and ALK4N2 to Ox family in KPP
+
 ## [14.4.0] - 2024-05-30
 - Bug fix: Change `3.4.e-31` to `3.4.d-31` in `NO2 + O = NO + O2` rxn
 - Update rxns with zero Arrhenius `B` parameters to use function `GCARR_ac` instead of `GCARR_abc`
