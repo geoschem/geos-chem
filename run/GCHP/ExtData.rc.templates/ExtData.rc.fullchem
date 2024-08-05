@@ -1190,6 +1190,22 @@ CEDS_HCOOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_rco  ./HcoDir/C
 CEDS_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 #
+CEDS_TMB_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_agr  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_ene  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_ind  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_tra  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_rco  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_slv  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_wst  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+#
+CEDS_OTH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_agr  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_ene  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_ind  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_tra  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_rco  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_slv  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_wst  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+#
 #==============================================================================
 # --- EDGAR v4.3 (EDGARv43) ---
 # EDGARv4.3 is off by default in HEMCO_Config.rc
