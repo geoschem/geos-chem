@@ -378,6 +378,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
 - Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
 
+## [Unreleased] - TBD
+### Added
+- Tropopause pressure field in the satellite diagnostic (by @eamarais)
+
 ## [14.1.0] - 2023-02-01
 ### Added
 - Added dry deposition updates to Hg0 from Feinberg22 ESPI publication + AMAP emissions
