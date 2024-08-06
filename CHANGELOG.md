@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Added brackets around `exempt-issue-labels` list in `.github/workflows/stale.yml`
 
+### Removed
+- Removed `XNUMOL_H2O2 / CM3PERM3` in routine `Chem_H2O2`, which removes an unnecessary unit conversion for the aerosol-only simulation
+
 ## [14.4.2] - 2024-07-24
 ### Added
 - Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
