@@ -2255,7 +2255,7 @@ CONTAINS
     ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
     F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
-    ! Evaluate offline fields from HEMCO for P(H2O2)
+    ! Evaluate offline fields from HEMCO for P(H2O2) [molec/cm3/s]
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PH2O2', PH2O2m, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for PH2O2 from HEMCO!'
@@ -2263,7 +2263,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Evaluate offline fields from HEMCO for J(H2O2)
+    ! Evaluate offline fields from HEMCO for J(H2O2) [1/s]
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'JH2O2', JH2O2, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for JH2O2 from HEMCO!'
@@ -2274,55 +2274,49 @@ CONTAINS
     !=================================================================
     ! Loop over tropopsheric grid boxes and do chemistry
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 ) &
-    !$OMP PRIVATE( PHOTJ )  &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, PHOTJ  )&
+    !$OMP SCHEUDLE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L  = 1, State_Grid%NZ
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
 
        ! Initialize for safety's sake
-       FREQ = 0e+0_fp
+       FREQ  = 0.0_fp
+       PHOTJ = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        ! Density of air [molec/cm3]
-       M     = State_Met%AIRDEN(I,J,L) * f
+       M     = State_Met%AIRDEN(I,J,L) * F
 
        ! Initial H2O2 [v/v]
        H2O20 = Spc(id_H2O2)%Conc(I,J,L)
 
        ! Loss frequenty due to OH oxidation [s-1]
-       KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * &
+       KOH   = A * EXP( -160.0_fp / State_Met%T(I,J,L) ) * &
                GET_OH( I, J, L, Input_Opt, State_Chm, State_Met )
-
-       ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-       FREQ = 0.e+0_fp
 
        ! Impose a diurnal variation of jH2O2 by multiplying COS of
        ! solar zenith angle normalized by maximum solar zenith angle
        ! because the archived JH2O2 is for local noon time
-       IF ( COSZM(I,J) > 0.e+0_fp ) THEN
+       IF ( COSZM(I,J) > 0.0_fp ) THEN
           PHOTJ = JH2O2(I,J,L) * State_Met%SUNCOS(I,J) / COSZM(I,J)
-          PHOTJ = MAX( PHOTJ, 0e+0_fp )
-       ELSE
-          PHOTJ = 0e+0_fp
+          PHOTJ = MAX( PHOTJ, 0.0_fp )
        ENDIF
 
        ! Compute loss fraction from OH, photolysis, drydep [unitless].
-       ALPHA = 1.e+0_fp + ( KOH + PHOTJ + FREQ ) * DT
+       ALPHA = 1.0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
-       ! PH2O2m is in kg/m3 (from HEMCO), convert to molec/cm3/s (mps,9/18/14)
-       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS * XNUMOL_H2O2 / CM3PERM3 ) &
-               * DT / ( ALPHA * M )
+       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS ) * DT / ( ALPHA * M )
 
        ! Final H2O2 [v/v]
        H2O2  = ( H2O20 / ALPHA + DH2O2 )
-       IF ( H2O2 < SMALLNUM ) H2O2 = 0e+0_fp
+       IF ( H2O2 < SMALLNUM ) H2O2 = 0.0_fp
 
        ! Store final H2O2 in Spc
        Spc(id_H2O2)%Conc(I,J,L) = H2O2
