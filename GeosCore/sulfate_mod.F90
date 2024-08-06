@@ -2277,7 +2277,7 @@ CONTAINS
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, PHOTJ  )&
-    !$OMP SCHEUDLE( DYNAMIC, 8                                              )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
     !$OMP COLLAPSE( 3                                                       )
     DO L  = 1, State_Grid%NZ
     DO J  = 1, State_Grid%NY
