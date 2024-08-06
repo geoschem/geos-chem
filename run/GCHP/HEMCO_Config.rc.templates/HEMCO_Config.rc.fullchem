@@ -1643,8 +1643,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_OTH_RCO    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_rco     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
 0 CEDS_OTH_SLV    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_slv     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
 0 CEDS_OTH_WST    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_wst     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
-
-0 )))CEDSv2
+)))CEDSv2
 
 #==============================================================================
 # --- CEDS GBD-MAPS ---
