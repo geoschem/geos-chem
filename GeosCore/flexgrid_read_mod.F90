@@ -35,6 +35,7 @@ MODULE FlexGrid_Read_Mod
   PUBLIC  :: FlexGrid_Read_CN
   PUBLIC  :: FlexGrid_Read_A1
   PUBLIC  :: FlexGrid_Read_A3
+  PUBLIC  :: FlexGrid_Read_Dyn
   PUBLIC  :: FlexGrid_Read_I3_1
   PUBLIC  :: FlexGrid_Read_I3_2
   PUBLIC  :: Copy_I3_Fields
@@ -516,6 +517,111 @@ CONTAINS
     lastTime = HHMMSS
 
   END SUBROUTINE FlexGrid_Read_A1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_Dyn
+!
+! !DESCRIPTION: Routine to read DynHeating variables and attributes from a NetCDF
+!  file containing 3-hr time-averaged (Dyn) data (based on flexgrid_read_a1)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_Dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  14 Mar 2024 - C. Barker - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Saved scalars
+    INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
+    INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
+
+    ! Arrays
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY,State_Grid%NZ)     ! Temporary data array
+
+    !======================================================================
+    ! Skip if we have already read data for this date & time
+    !======================================================================
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - FLEXGRID DynHeating met fields for ', a,  &
+               ' have been read already'                  )
+       RETURN
+    ENDIF
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    !caller  = "FlexGrid_Read_A3cld (flexgrid_read_mod.F90)"
+
+    ! Stop w/ error if the t_index is not a multiple of 3.
+    !IF (MOD(HHMMSS, 030000) == 0) THEN
+    !   WRITE( errMsg, 100 )
+    !100   FORMAT( 'Time_index value must be an integer!' )
+    !   CALL ERROR_STOP( errMsg, caller )
+    !ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+    ! Read DynHeating
+    v_name = "DynHeating"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=1 )
+    State_Met%DynHeating = Q
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all DynH   met fields for ', a )
+
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
+  END SUBROUTINE FlexGrid_Read_Dyn
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
