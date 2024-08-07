@@ -185,8 +185,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
-- Removed State_Chm%CH4_EMIS
+- Removed `State_Chm%CH4_EMIS`
 
+## [14.3.0] - 2024-02-07
 ### Added
 - Added capability for TOMAS simulations in GCHP
 - Added State_Chm%nTomasBins to replace hardcoded bins in TOMAS diagnostics
