@@ -5286,7 +5286,7 @@ TiF2:
   MW_g: 47.87
 TLFUO2:
   Formula: C5H7O5
-  Is_Gas:true
+  Is_Gas: true
   MW_g: 147.1
 TLFUONE:
   DD_F0: 1.0
