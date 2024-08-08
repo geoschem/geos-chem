@@ -1662,11 +1662,11 @@ PROGRAM GEOS_Chem
           If ( Input_Opt%RRTMG_FDH ) THEN
              Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
              IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
-             DT_3D(:,:,:) = 0.0e+0_fp
+             DT_3D(:,:,:) = 0
 
              Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
              IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc )
-             HR_3D(:,:,:) = 0.0e+0_fp
+             HR_3D(:,:,:) = 0
 
              ! Read in dynamical heating rates if necessary
              IF (Input_Opt%Read_Dyn_Heating) THEN
