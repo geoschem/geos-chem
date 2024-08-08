@@ -278,8 +278,18 @@ if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
     RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
     RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='false'\n"
 else
-    RUNDIR_VARS+="RUNDIR_USE_NLPBL='true'\n"
     RUNDIR_VARS+="RUNDIR_USE_ONLINE_O3='true'\n"
+
+    # Quick fix: VDIFF does not conserve mass, which is a problem
+    # for long-lived species.  Use TURBDAY in the carbon gases
+    # simulations until we can fix this issue.
+    # See: https://github.com/geoschem/geos-chem/issues/2409
+    if [[ "x${sim_name}" == "xcarbon" ]] || \
+       [[ "x${sim_name}" == "xCO2"    ]]; then
+        RUNDIR_VARS+="RUNDIR_USE_NLPBL='false'\n"
+    else
+        RUNDIR_VARS+="RUNDIR_USE_NLPBL='true '\n"
+    fi
 fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
