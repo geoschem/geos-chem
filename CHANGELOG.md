@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Added brackets around `exempt-issue-labels` list in `.github/workflows/stale.yml`
+- Quick fix: Use TURBDAY PBL mixing instead of VDIFF in carbon-gases simulations (see discussion in #2409)
 
 ## [14.4.2] - 2024-07-24
 ### Added
