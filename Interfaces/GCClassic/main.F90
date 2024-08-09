@@ -255,6 +255,7 @@ PROGRAM GEOS_Chem
 #ifdef RRTMG
   ! For stratospheric adjustment
   REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
+  REAL(f8), ALLOCATABLE          :: DT_3D_UPDATE(:,:,:)
   REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
 #endif
 
@@ -1662,7 +1663,21 @@ PROGRAM GEOS_Chem
           If ( Input_Opt%RRTMG_FDH ) THEN
              Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
              IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
-             DT_3D(:,:,:) = 0
+
+             ! If using seasonally evolving FDH, need to grab the internal
+             ! state temperature adjustment array
+             IF (Input_Opt%RRTMG_SEFDH) THEN
+                ! DT_3D will be updated by the first call to RRTMG; also need to
+                ! store the "current" value
+                Allocate(DT_3D_UPDATE(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
+                IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D_UPDATE', ThisLoc )
+                ! Store the adjustment as previously projected to this time point
+                DT_3D(:,:,:) = State_Chm%TStrat_Adj(:,:,:)
+                ! This will just hold the end-of-step value
+                DT_3D_UPDATE(:,:,:) = 0
+             ELSE
+                DT_3D(:,:,:) = 0
+             END IF
 
              Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
              IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc )
@@ -1784,7 +1799,12 @@ PROGRAM GEOS_Chem
              CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
           ENDIF
 
-          ! Store temperature change and heating rate from RRTMG in diagnostics (crb, 14/02/24)
+          ! Copy the adjustment back to DT_3D as calculated in the baseline calculation
+          IF (Input_Opt%RRTMG_SEFDH) THEN
+              DT_3D(:,:,:) = DT_3D_UPDATE(:,:,:)
+          END IF
+
+          ! Store temperature change THEN heating rate from RRTMG in diagnostics (crb, 14/02/24)
           If (Input_Opt%RRTMG_FDH) Then
              IF (State_Diag%Archive_DynHeating) THEN
                 State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
@@ -1794,13 +1814,18 @@ PROGRAM GEOS_Chem
              IF (State_Diag%Archive_DTRad     ) THEN
                 State_Diag%DTRad(:,:,:)      = DT_3D(:,:,:)
              ENDIF
-             RC = 0 
+             IF (Input_Opt%RRTMG_SEFDH) THEN
+                State_Chm%TStrat_Adj(:,:,:) = DT_3D(:,:,:)
+             END IF
           ENDIF
 
+          RC = 0
           IF (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
           IF ( RC /= 0 ) Call Error_Stop( 'Error deallocating DT_3D', ThisLoc )
           IF (Allocated(HR_3D)) Deallocate(HR_3D, STAT=RC)
           IF ( RC /= 0 ) Call Error_Stop( 'Error deallocating HR_3D', ThisLoc )
+          IF (Allocated(DT_3D_UPDATE)) Deallocate(DT_3D_UPDATE, STAT=RC)
+          IF ( RC /= 0 ) Call Error_Stop( 'Error deallocating DT_3D_UPDATE', ThisLoc )
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "RRTMG", RC )
