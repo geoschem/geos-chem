@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added multiphase sulfate chemistry and cloud Hplus diagnostic for Travis et al. (2025)
 - Added `IONIC` output argument in calls to HETP driver routine `MACH_HETP_Main15Cases`
 - Added APM restart file paths to `run/shared/download_data.yml`
+- Added the option to use stratospheric-adjusted radiative forcing with RRTMG in GC-Classic
 
 ### Changed
 - Renamed `State_Chm%Isorrop*` fields to `State_Chm%Ate*` (aerosol thermodynamical equilibrium), as ISORROPIA is no longer used

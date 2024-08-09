@@ -218,7 +218,11 @@ PROGRAM GEOS_Chem
   CHARACTER(LEN=255)       :: Argv
 
 #ifdef RRTMG
-  LOGICAL, SAVE            :: FIRST_RT = .TRUE.
+  ! Variables for RRTMG radiative transfer
+  LOGICAL,  SAVE           :: FIRST_RT = .TRUE.
+  REAL(f8), ALLOCATABLE    :: DT_3D(:,:,:)
+  REAL(f8), ALLOCATABLE    :: DT_3D_UPDATE(:,:,:)
+  REAL(f8), ALLOCATABLE    :: HR_3D(:,:,:)
 #endif
 
   !-----------------------------
@@ -248,12 +252,6 @@ PROGRAM GEOS_Chem
   ! is not called when connecting G-C to an external GCM.
   ! (mlong, bmy, 7/30/12)
   LOGICAL, PARAMETER       :: am_I_Root = .TRUE.
-
-#ifdef RRTMG
-  ! For stratospheric adjustment
-  REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
-  REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
-#endif
 
   !==========================================================================
   ! GEOS-CHEM starts here!
@@ -559,6 +557,9 @@ PROGRAM GEOS_Chem
      ! Settings
      State_Chm%RRTMG_iCld  = 0
      State_Chm%RRTMG_iSeed = 10
+
+     ! Allocate local arrays for stratosphere-adjusted radiative forcing
+     CALL Init_RRTMG_Strat_Adj_RF( Input_Opt, State_Grid, RC )
   ENDIF
 #endif
 
@@ -1609,25 +1610,27 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Allocate temperature difference arrays (crb, 14/02/24)
-          If ( Input_Opt%RRTMG_FDH ) THEN
-             Allocate(DT_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
-             IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
-             DT_3D(:,:,:) = 0
+          IF ( Input_Opt%RRTMG_FDH ) THEN
 
-             Allocate(HR_3D(State_Grid%NX,State_Grid%NY,State_Grid%NZ),Stat=RC)
-             IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc )
-             HR_3D(:,:,:) = 0
+             ! If using seasonally evolving FDH, need to grab the internal
+             ! state temperature adjustment array
+             IF ( Input_Opt%RRTMG_SEFDH ) THEN
+
+                ! DT_3D will be updated by the first call to RRTMG; also need to
+                ! store the "current" value
+                ! Store the adjustment as previously projected to this time point
+                DT_3D        = State_Chm%TStrat_Adj
+
+                ! This will just hold the end-of-step value
+                DT_3D_UPDATE = 0.0_f8
+             ELSE
+                DT_3D        = 0.0_f8
+             ENDIF
 
              ! Read in dynamical heating rates if necessary
-             IF (Input_Opt%Read_Dyn_Heating) THEN
-                HR_3D(:,:,:) = State_Met%DynHeating(:,:,:)
+             IF ( Input_Opt%Read_Dyn_Heating ) THEN
+                HR_3D = State_Met%DynHeating
              ENDIF
-          ELSE
-             ! Safer
-             Allocate(DT_3D(0,0,0),Stat=RC)
-             IF ( RC /= 0 ) Call Error_Stop( 'Error allocating DT_3D', ThisLoc )
-             Allocate(HR_3D(0,0,0),Stat=RC)
-             IF ( RC /= 0 ) Call Error_Stop( 'Error allocating HR_3D', ThisLoc ) 
           ENDIF
 
           State_Chm%RRTMG_iSeed = State_Chm%RRTMG_iSeed + 15
@@ -1696,9 +1699,11 @@ PROGRAM GEOS_Chem
 
           ! Calculate for rest of outputs, if any
           DO N = 2, State_Diag%nRadOut
+
              ! This time around, DT_3D is read in but not overwritten
              WRITE( 6, 520 ) State_Diag%RadOutName(N), State_Diag%RadOutInd(N)
              CALL Set_SpecMask( State_Diag%RadOutInd(N), State_Chm )
+
              ! This call will NOT update DT_3D, so we can just reuse the array
              CALL Do_RRTMG_Rad_Transfer( ThisDay    = Day,                    &
                                          ThisMonth  = Month,                  &
@@ -1714,6 +1719,7 @@ PROGRAM GEOS_Chem
                                          DT_3D      = DT_3D,                  &
                                          HR_3D      = HR_3D,                  &
                                          RC         = RC          )
+
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
                          'for RRTMG output = ' // &
@@ -1729,23 +1735,26 @@ PROGRAM GEOS_Chem
              CALL Debug_Msg( '### MAIN: a DO_RRTMG_RAD_TRANSFER' )
           ENDIF
 
-          ! Store temperature change and heating rate from RRTMG in diagnostics (crb, 14/02/24)
-          If (Input_Opt%RRTMG_FDH) Then
-             IF (State_Diag%Archive_DynHeating) THEN
-                State_Diag%DynHeating(:,:,:) = HR_3D(:,:,:)
-             ENDIF
-             ! NB: DT_3D is the temperature adjustment either after equilibration (pure FDH)
-             ! or at the start of the NEXT radiation time step (SEFDH)
-             IF (State_Diag%Archive_DTRad     ) THEN
-                State_Diag%DTRad(:,:,:)      = DT_3D(:,:,:)
-             ENDIF
-             RC = 0 
+          ! Copy the adjustment back to DT_3D
+          ! as calculated in the baseline calculation
+          IF ( Input_Opt%RRTMG_SEFDH ) THEN
+             DT_3D = DT_3D_UPDATE
           ENDIF
 
-          IF (Allocated(DT_3D)) Deallocate(DT_3D, STAT=RC)
-          IF ( RC /= 0 ) Call Error_Stop( 'Error deallocating DT_3D', ThisLoc )
-          IF (Allocated(HR_3D)) Deallocate(HR_3D, STAT=RC)
-          IF ( RC /= 0 ) Call Error_Stop( 'Error deallocating HR_3D', ThisLoc )
+          ! Store temperature change THEN heating rate from  RRTMG in diagnostics
+          ! NB: DT_3D is the temperature adjustment either after equilibration
+          ! (pure FDH) or at the start of the NEXT radiation time step (SEFDH)
+          If ( Input_Opt%RRTMG_FDH ) Then
+             IF ( State_Diag%Archive_DynHeating ) THEN
+                State_Diag%DynHeating = HR_3D
+             ENDIF
+             IF ( State_Diag%Archive_DTRad ) THEN
+                State_Diag%DTRad = DT_3D
+             ENDIF
+             IF ( Input_Opt%RRTMG_SEFDH ) THEN
+                State_Chm%TStrat_Adj  = DT_3D
+             ENDIF
+          ENDIF
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "RRTMG", RC )
@@ -2185,6 +2194,11 @@ PROGRAM GEOS_Chem
   ! Clean up arrays for APM microphysics, etc.
   CALL CLEANUP_APMARRAYS()
   CALL CLEANUP_APM3D( Input_Opt, RC )
+#endif
+
+#ifdef RRTMG
+  ! Free arrays for stratospheric-adjusted RF w/ RRTMG
+  CALL Cleanup_RRTMG_Strat_Adj_RF( RC )
 #endif
 
   !-----------------------------------------------------------------------------
@@ -2692,5 +2706,113 @@ CONTAINS
 
   END SUBROUTINE Print_Dry_Run_Warning
 !EOC
+#ifdef RRTMG
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_RRTMG_Strat_Adj_RF
+!
+! !DESCRIPTION: Allocates arrays needed for the stratosphere-adjusted
+!  radiative forcing option with RRTMG
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_RRTMG_Strat_Adj_RF( Input_Opt, State_Grid, RC )
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt    ! Input Options object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid   ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  20 Feb 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: NX, NY, NZ
+
+    !========================================================================
+    ! Init_Strat_Adj_RF begins here!
+    !========================================================================
+
+    ! Save grid variables for convenience
+    NX = State_Grid%NX
+    NY = State_Grid%NY
+    NZ = State_Grid%NZ
+
+    ! Allocate arrays only if we are using the fixed dynamic heating
+    ! (FDH) or seasonally-evolving fixed-dyanmic heating (SEFDH) options
+    IF ( Input_Opt%RRTMG_FDH ) THEN
+
+       ALLOCATE( DT_3D( NX, NY, NZ ), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          CALL Error_Stop( 'Error allocating DT_3D', ThisLoc )
+       ENDIF
+       DT_3D = 0.0_f8
+
+       IF ( Input_Opt%RRTMG_SEFDH ) THEN
+
+          ALLOCATE( DT_3D_UPDATE( NX, NY, NZ ), STAT=RC)
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL Error_Stop( 'Error allocating DT_3D_UPDATE', ThisLoc )
+          ENDIF
+          DT_3D_UPDATE = 0.0_f8
+
+          ALLOCATE( HR_3d( NX, NY, NZ ), STAT=RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             CALL Error_Stop( 'Error allocating HR_3D', ThisLoc )
+          ENDIF
+          HR_3D = 0.0_f8
+
+       ENDIF
+    ENDIF
+
+  END SUBROUTINE Init_RRTMG_Strat_Adj_RF
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Cleanup_RRTMG_Strat_Adj_RF
+!
+! !DESCRIPTION: Deallocates arrays needed for the stratosphere-adjusted
+!  radiative forcing option with RRTMG
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Cleanup_RRTMG_Strat_Adj_RF( RC )
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER, INTENT(OUT) :: RC    ! Success or failure?
+!
+! !REVISION HISTORY:
+!  20 Feb 2026 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    RC = GC_SUCCESS
+    IF ( ALLOCATED( DT_3D        ) ) DEALLOCATE( DT_3D        )
+    IF ( ALLOCATED( DT_3D_UPDATE ) ) DEALLOCATE( DT_3D_UPDATE )
+    IF ( ALLOCATED( HR_3D        ) ) DEALLOCATE( HR_3D        )
+
+  END SUBROUTINE Cleanup_RRTMG_Strat_Adj_RF
+#endif
 END PROGRAM GEOS_Chem
 #endif
