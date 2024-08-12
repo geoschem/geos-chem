@@ -15,9 +15,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
+- CEDS 0.1 x 0.1 degree emissions are now the default instead of CEDSv2
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+
+### Removed
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 
 ## [14.4.2] - 2024-07-24
 ### Added
@@ -95,7 +99,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Switch from fixed to monthly timezones, which account for daylight savings time more accurately when computing emissions
 - Updated NOAA GMD surface CH4 boundary conditions through 2022
 - Rename `NITs_Jscale_JHNO3` to `NITs_Jscale` and `NIT_Jscale_JHNO2` to `NIT_Jscale` in `geoschem_config.yml` templates
-<<<<<<< HEAD
 - Updated volcano emissions from GMAO v202005 product to v202401 which extends to the end of 2024
 - Use local scale height and level thickness to determine the PBL to determine the PBL top level and PBL pressure thickness
 - Update drydep mean diameters of aerosols to account for size distribution
@@ -109,9 +112,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Use new mask files at 0.1 x 0.1 degree resoluiton for CH4/tagCH4/carbon simulations to avoid I/O bottlenecks
 - Update config files for CH4/carbon simulations to avoid reading the same variable multiple times
 - Converted Github issue templates to issue forms using YAML definition files
-=======
-- CEDS 0.1 x 0.1 degree emissions are now the default instead of CEDSv2
->>>>>>> f8c9e3535 (Edit HEMCO_Config.rc.fullchem for CEDS 0.1 degree emisisons)
 
 ### Fixed
 - Corrected the formula for 1st order heterogeneous chemical loss on stratospheric aerosol for NO2, NO3, and VOC.
@@ -187,7 +187,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
-- Removed State_Chm%CH4_EMIS
+- Removed `State_Chm%CH4_EMIS`
 
 ## [14.3.0] - 2024-02-07
 ### Added
