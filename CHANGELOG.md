@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
 - Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic (including Planeflight + ObsPack) and GCHP
 - Added descriptive error message in `Interfaces/GCHP/gchp_historyexportsmod.F90`
+- Auto-update GCHP HEMCO_Diagn.rc settings at run-time to ensure seasalt, dust, soil NOx, and biogenic emissions match settings in HEMCO_Config.rc
 
 ### Fixed
 - Added brackets around `exempt-issue-labels` list in `.github/workflows/stale.yml`
