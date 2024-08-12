@@ -667,13 +667,13 @@ Mask fractions:              false
 # %%% for the global base emissions.                                   %%%
 #==============================================================================
 (((CEDS_01x01
-0 CEDS_CO_AGR  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2401                 1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2406/706/315         1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2407/707/316         1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2411/711             1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2409/709             1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2407/707             1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy   kg/m2/s CO    26                   1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2401                 1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2406/706/315         1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2407/707/316         1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2411/711             1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2409/709             1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2407/707             1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy   kg/m2/s CO    26                   1 5
 )))CEDS_01x01
 
 #==============================================================================
@@ -742,7 +742,7 @@ Mask fractions:              false
 )))HTAP_SHIP
 
 (((CEDS_01x01_SHIP
-0 CEDS_CO_SHP $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc CO_shp 1980-2019/1-12/1/0 C xy kg/m2/s CO 26 10 5
+0 CEDS_CO_SHP $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc CO_shp 1980-2019/1-12/1/0 C xy kg/m2/s CO 26 10 5
 )))CEDS_01x01_SHIP
 
 #==============================================================================
@@ -899,7 +899,7 @@ Mask fractions:              false
 )))ICOADS_SHIP
 
 (((CEDS_01x01_SHIP
-0 CEDS01_CO2_SHP  $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+0 CEDS_CO2_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDS_01x01_SHIP
 )))SHIP
 

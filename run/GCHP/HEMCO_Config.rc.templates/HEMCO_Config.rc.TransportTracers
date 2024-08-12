@@ -98,21 +98,21 @@ VerboseOnCores:              root       # Accepted values: root all
 # Choose CEDS, EDGAR, or HTAP
 #==============================================================================
 (((CEDS_01x01
-0 CEDS_CO_25_AGR   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_AGR   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_AGR   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_ENE   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_ENE   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_ENE   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_IND   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_IND   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_IND   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_TRA   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_TRA   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_TRA   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_RCO   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_RCO   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_RCO   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_SLV   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_SLV   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_SLV   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_WST   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_WST   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_WST   -                                                   -       -                  - -  -       CO_50 26 1 5
-0 CEDS_CO_25_SHP   $ROOT/CEDS/v2023-04/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
+0 CEDS_CO_25_SHP   $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO_25 26 1 5
 0 CEDS_CO_50_SHP   -                                                   -       -                  - -  -       CO_50 26 1 5
 )))CEDS_01x01
 
