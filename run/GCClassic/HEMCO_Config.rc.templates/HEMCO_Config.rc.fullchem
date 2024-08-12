@@ -2746,7 +2746,7 @@ VerboseOnCores:              root       # Accepted values: root all
 
 (((CEDS_01x01_SHIP
 0 CEDS_NO_SHP $ROOT/CEDS/v2024-06/$YYYY/CEDS_NO_0.1x0.1_$YYYY.nc NO_shp 1980-2019/1-12/1/0 C xy kg/m2/s NO 25 10 5
-)))CEDS_0.1x0.1_SHIP
+)))CEDS_01x01_SHIP
 
 (((CMIP6_SHIP
 102 CMIP6_NO_SHP $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4 NO_shp 1750-2100/1-12/1/0 C xy kg/m2/s NO 25   10 5
