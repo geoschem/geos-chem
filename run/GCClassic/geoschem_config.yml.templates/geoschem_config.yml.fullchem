@@ -89,9 +89,16 @@ operations:
   photolysis:
     activate: true
     num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
+    cloud_scheme_flag: 3
+    opt_depth_increase_factor: 1.050
+    min_top_inserted_cloud_OD: 0.005
+    cloud_overlap_correlation: 0.33
+    num_cloud_overlap_blocks: 6
+    num_wavelength_bins: 18
+    use_H2O_UV_absorption: true
     input_directories:
       fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2024-05/
-      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2023-05/
+      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2024-08/
     overhead_O3:
       use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
       use_column_O3_from_met: true

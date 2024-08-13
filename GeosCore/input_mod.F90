@@ -2795,7 +2795,7 @@ CONTAINS
     Input_Opt%Do_Photolysis = v_bool
 
     !------------------------------------------------------------------------
-    ! Number levels with clouds to use in photolysis
+    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
     !------------------------------------------------------------------------
     key   = "operations%photolysis%num_levs_with_cloud"
     v_int = MISSING_INT
@@ -2806,6 +2806,109 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%NLevs_Phot_Cloud = v_int
+
+    !------------------------------------------------------------------------
+    ! Cloud-J cloud scheme flag (Cloud-J var CLDFLAG)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud_scheme_flag"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Flag = v_int
+
+    !------------------------------------------------------------------------
+    ! Factor increase in cloud OD from layer to next below (Cloud-J var ATAU)
+    ! NOTE: used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%opt_depth_increase_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%OD_Increase_Factor = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Minimum cloud OD in uppermost inserted layer (Cloud-J var ATAU0)
+    ! NOTE: used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%min_top_inserted_cloud_OD"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Min_Cloud_OD = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Cloud correlation between max-overlap blocks (will set Cloud-J var CLDCOR)
+    ! NOTE:
+    !  - only used for cloud schemes 5 and above
+    !  - 0.00 = random
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud_overlap_correlation"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Corr = Cast_and_RoundOff( v_str, places=3 )
+
+    !------------------------------------------------------------------------
+    ! Number of blocks with correlated cloud overlap (will set Cloud-J var LNRG)
+    ! NOTE:
+    !  - only used for cloud schemes 5 and above
+    !  - limited values possible: 0 = max-ran @ gaps, 3 = alt blocks, 6 = max-overlap
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%num_cloud_overlap_blocks"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_Max_Overlap = v_int
+
+    !------------------------------------------------------------------------
+    ! Number of wavelength bins in UV-Vis (will set Cloud-J var NWBIN)
+    ! NOTE: limited values possible
+    !  18 = standard full Fast-J
+    !  12 = trop-only (0% err in trop, 33% performance savings)
+    !   8 = trop-only (1-2% error in J-02 and J-OCS in upper trop, big savings)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%num_wavelength_bins"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_WV_Bins = v_int
+
+    !------------------------------------------------------------------------
+    ! Whether to use absorption of UV by water vapor
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%use_H2O_UV_absorption"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%USE_H2O_UV_Abs = v_bool
 
     !------------------------------------------------------------------------
     ! Directories with photolysis input files
@@ -3014,12 +3117,19 @@ CONTAINS
        WRITE( 6,90  ) 'PHOTOLYSIS SETTINGS'
        WRITE( 6,95  ) '-------------------'
        WRITE( 6,100 ) 'Turn on photolysis?         : ', Input_Opt%Do_Photolysis
-       WRITE( 6,130 ) 'Number levels with cloud    : ',                      &
-                       Input_Opt%Nlevs_Phot_Cloud
        WRITE( 6,120 ) 'FAST-JX input directory     : ',                      &
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
                        TRIM( Input_Opt%CloudJ_Dir )
+       WRITE( 6,130 ) 'Number levels with cloud    : ',                      &
+                       Input_Opt%Nlevs_Phot_Cloud
+       WRITE( 6,130 ) 'Cloud-J cloud flag          : ', Input_Opt%Cloud_Flag
+       WRITE( 6,105 ) 'Layer OD increase factor    : ', Input_Opt%OD_Increase_Factor
+       WRITE( 6,105 ) 'Min cloud OD at top         : ', Input_Opt%Min_Cloud_OD
+       WRITE( 6,105 ) 'Cloud correlation           : ', Input_Opt%Cloud_Corr
+       WRITE( 6,130 ) 'Max # of overlap bins       : ', Input_Opt%Num_Max_Overlap
+       WRITE( 6,130 ) 'Number of wavelength bins   : ', Input_Opt%Num_WV_Bins
+       WRITE( 6,100 ) 'Use H2O UV absorption?      : ', Input_Opt%USE_H2O_UV_Abs
        WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
        WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET

@@ -131,9 +131,21 @@ CONTAINS
     ! Initialize Cloud-J. Includes reading input data files
     ! FJX_spec.dat (RD_XXX), FJX_scat-aer.dat (RD_MIE), and 
     ! FJX_j2j.dat (RD_JS_JX)
-    CALL Init_CldJ(Input_Opt%amIRoot, Input_Opt%CloudJ_Dir,   &
-                   State_Grid%NZ, Input_Opt%Nlevs_Phot_Cloud, &
-                   TITLEJXX, JVN_, NJXX, RC)
+    CALL Init_CldJ(Input_Opt%amIRoot,            &
+                   Input_Opt%CloudJ_Dir,         &
+                   State_Grid%NZ,                &
+                   Input_Opt%Nlevs_Phot_Cloud,   &
+                   TITLEJXX,                     &
+                   JVN_,                         &
+                   Input_Opt%OD_Increase_Factor, &
+                   Input_Opt%Min_Cloud_OD,       &
+                   Input_Opt%Num_WV_Bins,        &
+                   Input_Opt%Cloud_Flag,         &
+                   Input_Opt%Cloud_Corr,         &
+                   Input_Opt%Num_Max_Overlap,    &
+                   Input_Opt%Use_H2O_UV_Abs,     &
+                   NJXX,                         &
+                   RC)
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in subroutine Init_Cldj within Cloud-J photolysis'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
