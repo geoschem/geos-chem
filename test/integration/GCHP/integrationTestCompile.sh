@@ -65,16 +65,6 @@ site=$(get_site_name)
 # All integration tests will use debugging features
 baseOptions="-DCMAKE_BUILD_TYPE=Debug -DRUNDIR='' -DINSTALLCOPY=${binDir}"
 
-# Get the Git commit of the superproject and submodules
-head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${codeDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${codeDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem" \
-          log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${codeDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO" \
-           log --oneline --no-decorate -1)
-
 # Site-specific settings
 if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
 
@@ -135,9 +125,7 @@ rm -f "${results}"
 print_to_log "${SEP_MAJOR}"                               "${results}"
 print_to_log "GCHP: Compilation Test Results"             "${results}"
 print_to_log ""                                           "${results}"
-print_to_log "GCHP      #${head_gchp}"                    "${results}"
-print_to_log "GEOS-Chem #${head_gc}"                      "${results}"
-print_to_log "HEMCO     #${head_hco}"                     "${results}"
+print_submodule_head_commits "14" "${codeDir}"            "${results}"
 print_to_log ""                                           "${results}"
 print_to_log "Number of compilation tests: ${numTests}"   "${results}"
 print_to_log ""                                           "${results}"
