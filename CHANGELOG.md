@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - TBD
+## [14.4.3] - 2024-08-13
 ### Added
 - Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
 - Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic (including Planeflight + ObsPack) and GCHP
@@ -449,7 +449,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
 - Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
 
-## [Unreleased] - TBD
+## [14.4.3] - 2024-08-13
 ### Added
 - Tropopause pressure field in the satellite diagnostic (by @eamarais)
 
