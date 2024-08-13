@@ -10,13 +10,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
 - ALK4N1 and ALK4N2 to Ox family in KPP
+- CEDS 0.1 x 0.1 degree emissions, see issue #1717 and PR #2171 for details
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
+- CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`) are now the default instead of CEDSv2
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+
+### Removed
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 
 ## [14.4.2] - 2024-07-24
 ### Added
@@ -182,7 +187,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
-- Removed State_Chm%CH4_EMIS
+- Removed `State_Chm%CH4_EMIS`
 
 ## [14.3.0] - 2024-02-07
 ### Added
