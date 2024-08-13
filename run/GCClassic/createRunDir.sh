@@ -504,6 +504,9 @@ if [[ "x${met}" == "xModelE2.1" || "x${met}" == "xModelE2.2" ]]; then
 elif [[ ${met} = "geosit" ]]; then
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
+    if [[ "${sim_name}" = "TransportTracers" ]]; then
+	printf "  3. 0.5  x 0.625\n"
+    fi
 else
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
@@ -543,7 +546,7 @@ while [ "${valid_res}" -eq 0 ]; do
     fi
 done
 
-if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
+if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" = "025x03125" ]]; then
     printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"

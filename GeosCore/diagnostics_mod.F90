@@ -1522,6 +1522,13 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
+       ! Tropopause level [unitless]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTropLev ) THEN
+          State_Diag%SatDiagnTropLev(I,:) = State_Met%TropLev(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
        ! PBL Height [m]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPBLHeight ) THEN
