@@ -2286,6 +2286,23 @@ CONTAINS
        RETURN
     ENDIF
 
+    ! TSOIL1
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL', &
+                    HMRC,      FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL1_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%TSOIL1 )
+#endif
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( TSOIL1_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
     ! GWETROOT
 #if defined( MODEL_CLASSIC )
     CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT', &
