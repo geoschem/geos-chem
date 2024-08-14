@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
 - Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
+- Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.

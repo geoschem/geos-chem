@@ -1587,6 +1587,20 @@ CONTAINS
     thisLoc = ' -> at Config_Aerosol (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
+    ! Directories with aerosol optical property input files
+    !------------------------------------------------------------------------
+
+    key   = "aerosols%optics%input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AER_OPTICS_DIR = TRIM( v_str )
+
+    !------------------------------------------------------------------------
     ! Use online carbon aerosols?
     !------------------------------------------------------------------------
     key    = "aerosols%carbon%activate"
@@ -1910,6 +1924,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 90  ) 'AEROSOL SETTINGS'
        WRITE( 6, 95  ) '----------------'
+       WRITE( 6, 125 ) 'Aerosol optical property dir: ', Input_Opt%AER_OPTICS_DIR
        WRITE( 6, 100 ) 'Online SULFATE AEROSOLS?    : ', Input_Opt%LSULF
        WRITE( 6, 100 ) 'Metal catalyzed SO2 ox.?    : ', Input_Opt%LMETALCATSO2
        WRITE( 6, 100 ) 'Online CARBON AEROSOLS?     : ', Input_Opt%LCARB
@@ -1946,6 +1961,7 @@ CONTAINS
 105 FORMAT( A, f8.2              )
 110 FORMAT( A, f8.2, ' - ', f8.2 )
 120 FORMAT( A, f8.2, 'K'         )
+125 FORMAT( A, A    )
 
   END SUBROUTINE Config_Aerosol
 !EOC

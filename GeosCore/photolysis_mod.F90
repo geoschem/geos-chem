@@ -897,7 +897,7 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = ' -> at RD_AOD (in module GeosCore/photolysis_mod.F90)'
     LBRC     = Input_Opt%LBRC
-    DATA_DIR = TRIM( Input_Opt%FAST_JX_DIR )
+    DATA_DIR = TRIM( Input_Opt%AER_OPTICS_DIR )
 
     ! Set Pointers
     WVAA   => State_Chm%Phot%WVAA
