@@ -27,8 +27,11 @@ MODULE AEROSOL_MOD
   PUBLIC :: INIT_AEROSOL
   PUBLIC :: AEROSOL_CONC
   PUBLIC :: RDAER
-  PUBLIC :: RD_AOD
-  PUBLIC :: CALC_AOD
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PRIVATE :: RD_AOD
+  PRIVATE :: CALC_AOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -2500,6 +2503,27 @@ CONTAINS
        SpcInfo => NULL()
 
     ENDDO
+
+    !------------------------------------------------------------------------
+    ! Read in AOD data
+    !------------------------------------------------------------------------
+    CALL RD_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "RD_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    IF (Input_Opt%amIRoot) WRITE(6,*) 'Wavelength optics read successfully'
+
+    !------------------------------------------------------------------------
+    ! Compute the required wavelengths in the LUT to calculate requested AOD
+    !------------------------------------------------------------------------
+    CALL CALC_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "CALC_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE INIT_AEROSOL
 !EOC
