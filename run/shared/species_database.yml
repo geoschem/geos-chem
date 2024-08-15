@@ -216,7 +216,7 @@ ALK7:
   Formula: C7H16
   Is_Gas: true
   MW_g: 100.20
-  aoa_PROP: &aoaproperties
+aoa_PROP: &aoaproperties
   Is_Advected: true
   Is_Gas: true
   Is_Tracer: true
