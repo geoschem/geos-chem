@@ -27,11 +27,8 @@ MODULE AEROSOL_MOD
   PUBLIC :: INIT_AEROSOL
   PUBLIC :: AEROSOL_CONC
   PUBLIC :: RDAER
-!
-! !PUBLIC MEMBER FUNCTIONS:
-!
-  PRIVATE :: RD_AOD
-  PRIVATE :: CALC_AOD
+  PUBLIC :: RD_AOD   ! Public for use in legacy FAST-JX initialization
+  PUBLIC :: CALC_AOD ! needed for Hg simulation
 !
 ! !PUBLIC DATA MEMBERS:
 !
