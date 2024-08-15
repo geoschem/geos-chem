@@ -2608,7 +2608,7 @@ ch
 # Reference:
 #  Zhang, B., & Liu, P., et al (2022). Global Emissions of Hydrogen Chloride
 #  and Particulate Chloride from Continental Sources. Environmental Science &
-#  Technology, 56(7), 3894-3904. https://doi.org/10.1021/acs.est.1c05634 
+#  Technology, 56(7), 3894-3904. https://doi.org/10.1021/acs.est.1c05634
 #
 # Notes:
 # - The HCl emission from open biomass burning (HCL_BIO, HCL_AGR) used the same
@@ -2616,12 +2616,12 @@ ch
 #   emission inventory for open biomass burning has already include HCl
 #   emissions, shut down either of them to avoid the duplicated emission sources
 # - Emissions of particulate Cl are added as HCl as ISORROPIA will reparition
-#   Cl between particle phase and gas phase. 
+#   Cl between particle phase and gas phase.
 #==============================================================================
 (((GT_Chlorine
-0 HCL_ENE $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ene   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
-0 HCL_IND $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ind   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
-0 HCL_RES $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_res   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1 
+0 HCL_ENE $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ene   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 HCL_IND $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_ind   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
+0 HCL_RES $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_res   1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
 0 HCL_WST $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_wstop 1960-2014/1-12/1/0 C xy kg/m2/s HCl 26 1/2 1
 0 HCL_BIO $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_bbop  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
 0 HCL_AGR $ROOT/GT_Chlorine/v2024-05/GT_Chlorine_01_01_$YYYY_V1.0.0.nc HCl_agri  1960-2014/1-12/1/0 C xy kg/m2/s HCl 75 1/2 1
