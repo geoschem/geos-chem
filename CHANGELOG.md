@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
 - Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
 - Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
+- Call RD_AOD and CALC_AOD from Init_Aerosol rather than Init_Photolysis
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
