@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [14.4.3] - 2024-08-13
 ### Added
+- Tropopause pressure field in the satellite diagnostic (by @eamarais)
 - Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
 - Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic (including Planeflight + ObsPack) and GCHP
 - Added descriptive error message in `Interfaces/GCHP/gchp_historyexportsmod.F90`
@@ -459,15 +460,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed a bug in routine GET_IJ where X and Y were swapped in an IF comparison.
 - Fixed bug in GFAS pFe by applying work-around in config files
 
-
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
 - Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
 - Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
-
-## [14.4.3] - 2024-08-13
-### Added
-- Tropopause pressure field in the satellite diagnostic (by @eamarais)
 
 ## [14.1.0] - 2023-02-01
 ### Added
