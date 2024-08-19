@@ -97,12 +97,14 @@ operations:
       - AERI
       - ALD2
       - ALK4
+      - ALK4N2
       - ALK4P
       - ALK7
       - AONITA
       - APAN
       - APINP
       - APINN
+      - AROMCHO
       - AROMP4
       - AROMP5
       - AROMPN
@@ -180,6 +182,7 @@ operations:
       - FURA
       - GLYC
       - GLYX
+      - HACTA
       - H1211
       - H1301
       - H2402
@@ -349,6 +352,7 @@ operations:
       - SOAP
       - SOAS
       - STYR
+      - TLFUONE
       - TMB
       - TOLU
       - XYLE

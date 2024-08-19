@@ -3045,7 +3045,7 @@ KF1:
   Fullname: Potassium on dust. Reff = 0.7 microns
   MW_g: 39.10
   WD_CoarseAer: true
-<KF2:
+KF2:
   << : *DST2properties
   Formula: K
   Fullname: Potassium on dust, Reff = 1.4 microns
