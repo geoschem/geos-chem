@@ -105,18 +105,30 @@ operations:
     transported_species:
       - ACET
       - ACTA
+      - ACR
       - AERI
       - ALD2
       - ALK4
+      - ALK4P
+      - ALK7
       - AONITA
+      - APAN
+      - APINP
+      - APINN
       - AROMP4
       - AROMP5
+      - AROMPN
       - ATOOH
       - BALD
       - BCPI
       - BCPO
       - BENZ
       - BENZP
+      - BPINO
+      - BPINN
+      - BPINP
+      - BPINOOH
+      - BPINON
       - Br
       - Br2
       - BrCl
@@ -126,12 +138,16 @@ operations:
       - BrSALA
       - BrSALC
       - BUTDI
+      - BUTN
       - BZCO3H
       - BZPAN
+      - C96O2H
+      - C96N
       - C2H2
       - C2H4
       - C2H6
       - C3H8
+      - C4H6
       - CCl4
       - CFC11
       - CFC113
@@ -166,6 +182,7 @@ operations:
       - DST2
       - DST3
       - DST4
+      - EBZ
       - EOH
       - ETHLN
       - ETHN
@@ -241,7 +258,15 @@ operations:
       - ISOP
       - ITCN
       - ITHN
+      - LIMAL
+      - LIMKB
+      - LIMKET
+      - LIMN
+      - LIMNB
       - LIMO
+      - LIMO2H
+      - LIMO3H
+      - LIMPAN
       - LVOC
       - LVOCOA
       - MACR
@@ -254,6 +279,7 @@ operations:
       - MCRHP
       - MCT
       - MEK
+      - MEKPN
       - MENO3
       - MGLY
       - MOH
@@ -273,6 +299,7 @@ operations:
       - MVKHP
       - MVKN
       - MVKPC
+      - MYRCO
       - N2O
       - N2O5
       - NH3
@@ -292,7 +319,13 @@ operations:
       - OIO
       - PAN
       - pFe
+      - PHAN
       - PHEN
+      - PIN
+      - PINAL
+      - PINONIC
+      - PINO3H
+      - PINPAN
       - PIP
       - PP
       - PPN
@@ -302,13 +335,17 @@ operations:
       - PYAC
       - R4N2
       - R4P
+      - R7N2
+      - R7P
       - RA3P
       - RB3P
       - RCHO
+      - RCOOH
       - RIPA
       - RIPB
       - RIPC
       - RIPD
+      - RNO3
       - RP
       - SALA
       - SALAAL
@@ -323,6 +360,8 @@ operations:
       - SOAIE
       - SOAP
       - SOAS
+      - STYR
+      - TMB
       - TOLU
       - XYLE
 

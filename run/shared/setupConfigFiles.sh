@@ -156,8 +156,8 @@ function set_common_settings() {
        [[ ${sim_extra_option}    =~ "complexSOA" ]] || \
        [[ "x${sim_extra_option}" == "xAPM"       ]]; then
 
-	# Add complex SOA species ASOA* and ASOG* following AROMP5
-        prev_line='      - AROMP5'
+	# Add complex SOA species ASOA* and ASOG* following AROMPN
+        prev_line='      - AROMPN'
         new_line='\      - ASOA1\
       - ASOA2\
       - ASOA3\
