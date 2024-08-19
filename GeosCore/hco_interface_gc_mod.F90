@@ -674,6 +674,7 @@ CONTAINS
 
     ! Soil NOx
     Input_Opt%LSOILNOX      = ( ExtState%SoilNOx > 0 )
+    Input_Opt%UseSoilTemp   = ExtState%TSOIL1%DoUse
 
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux > 0 ) THEN

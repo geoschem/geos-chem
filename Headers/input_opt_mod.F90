@@ -135,6 +135,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
      LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
+     LOGICAL                     :: UseSoilTemp
 
      ! For HEMCO "intermediate" grid (hplin, 6/2/20)
      LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
@@ -626,6 +627,7 @@ CONTAINS
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
+    Input_Opt%UseSoilTemp            = .FALSE.
     Input_Opt%LIMGRID                = .FALSE.
     Input_Opt%IMGRID_XSCALE          = 1
     Input_Opt%IMGRID_YSCALE          = 1

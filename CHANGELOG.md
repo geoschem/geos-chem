@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## Unreleased
 ### Added
-- Added TSOIL1 field to State_Met for use in HEMCO soil NOx extension
+- Added TSOIL1 field to State_Met for use in HEMCO soil NOx extension. This should only be read in when the `UseSoilTemperature` option is true in HEMCO config.
 
 ## [14.4.2] - 2024-07-24
 ### Added
