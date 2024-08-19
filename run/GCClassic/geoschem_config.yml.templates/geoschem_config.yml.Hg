@@ -110,6 +110,14 @@ operations:
     activate: true
     
 #============================================================================
+# Settings for GEOS-Chem aerosols
+#============================================================================
+aerosols:
+
+  optics:
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2024-08/
+
+#============================================================================
 # Settings specific to the Hg simulation
 #============================================================================
 Hg_simulation_options:
