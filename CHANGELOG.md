@@ -15,9 +15,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
 - Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
+- Removed unused `VDIFFAR` routine from `vdiff_mod.F90`.
+- Update MW for CH4 and OH in `global_ch4_mod.F90`.
+- Do not convert from kg/kg to mol/mol before passing State_Chm to PBL mixing in `vdiff_mod.F90`.
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+- In the mass conservation adjustment in `vdiff_mod.F90`, use a mass tendency with units of `kg species/kg dry air`.
+- In `vdiff_mod.F90`, convert the top pressure edge from hPa to Pa.
 
 ## [14.4.3] - 2024-08-13
 ### Added
