@@ -65,7 +65,7 @@ COLLECTIONS: @#'DefaultCollection',
              @#'CloudConvFlux',
              @#'ConcAboveSfc',
              @#'ConcAfterChem',
-             @#'DryDep',
+             #'DryDep',
              #'Emissions',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
@@ -1283,7 +1283,10 @@ COLLECTIONS: @#'DefaultCollection',
 #
 # UV fluxes (from the photolysis module)
 #
-# Available for all full-chemistry simulations with photolysis
+# Available for all full-chemistry simulations with photolysis.
+#
+# NOTE: There seems to be an issue with this diagnostic in GCHP.
+# We recommend that you leave the UVFlux collection turned off.
 #==============================================================================
   UVFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
   UVFlux.format:         'CFIO',
