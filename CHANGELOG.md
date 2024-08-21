@@ -4,33 +4,66 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## [Unreleased] - TBD
 ### Added
+- Set `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
+- Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+- Four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
+- ALK4N1 and ALK4N2 to Ox family in KPP
 - Added TSOIL1 field to State_Met for use in HEMCO soil NOx extension. This should only be read in when the `UseSoilTemperature` option is true in HEMCO config.
+
+### Changed
+- Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
+- Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
+- Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
+
+### Fixed
+- Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+
+## [14.4.3] - 2024-08-13
+### Added
+- Tropopause pressure field in the satellite diagnostic (by @eamarais)
+- Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
+- Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic (including Planeflight + ObsPack) and GCHP
+- Added descriptive error message in `Interfaces/GCHP/gchp_historyexportsmod.F90`
+- Auto-update GCHP HEMCO_Diagn.rc settings at run-time to ensure seasalt, dust, soil NOx, and biogenic emissions match settings in HEMCO_Config.rc
+
+### Fixed
+- Added brackets around `exempt-issue-labels` list in `.github/workflows/stale.yml`
+
+### Removed
+- Removed `XNUMOL_H2O2 / CM3PERM3` in routine `Chem_H2O2`, which removes an unnecessary unit conversion for the aerosol-only simulation
 
 ## [14.4.2] - 2024-07-24
 ### Added
 - Added number of levels with clouds for photolysis to geoschem_config.yml and Input_Opt to pass to Cloud-J
 - Added `State_Grid%CPU_Subdomain_ID` and `State_Grid%CPU_Subdomain_FirstID` as "identifier numbers" for multiple instances of GEOS-Chem on one core in WRF and CESM
+- Added transport tracer run directory option for global half-degree GC-Classic run with GEOS-IT 0.5x0.625 fields
 
 ### Changed
 - Now reset `State_Diag%SatDiagnCount` to zero in routine`History_Write` (instead of in `History_Netcdf_Write`)
 - Update rundir creation scripts to turn off the MEGAN extension for "standard" fullchem simulations
 - Updated emissions used in CESM to match standard emissions used in the 14.4 offline model
 - Disable support For FAST-JX for all simulations except Hg
+- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
+- Replace calls to `GEOS_CHEM_STOP` with calls to `GC_Error` in `planeflight_mod.F90`
+- Script `test/integration/GCHP/integrationTestExecute.sh` now resets `cap_restart` time to `000000`, to facilitate manual restart
 
 ### Fixed
+- In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
 - Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
 - Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
 - The `SatDiagnOH` diagnostic now works for the carbon simulation
+- Restored missing fields for `UVFlux` collection in `run/GCClassic/HISTORY.rc.templates/HISTORY.rc.fullchem`
+- Comment out `UVFlux` diagnostic in the "alldiags" integration test, there is a floating point error.  Look at this later.
+- Now use SO4 instead of O3 in the GCHP fullchem budget diagnostic (SO4 is soluble, O3 is not)
+- Convert `UVFlux_Tag_Names` to uppercase in the comparison in `Get_UVFlux_Bin`(located in`Headers/state_diag_mod.F90`)
+- Fixed typo (missing `_` character) in GCHP `DryDep` collection diagnostic entries
+- Commented out with `###` emissions diagnostics in the GCHP `HISTORY.rc.fullchem` template that are not present in the corresponding `HEMCO_DIAGN.rc` template
 
 ### Removed
 - Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.
-
-
-### Changed
-- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
 
 ## [14.4.1] - 2024-06-28
 ### Added
@@ -55,6 +88,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
 - Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
 - Remove enabling O-server in GCHP for high core counts
+
+### Fixed
+- In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
 
 ## [14.4.0] - 2024-05-30
 ### Added
@@ -425,7 +461,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Prevent a warning from being generated when compiling `gckpp_Jacobian.F90`
 - Fixed a bug in routine GET_IJ where X and Y were swapped in an IF comparison.
 - Fixed bug in GFAS pFe by applying work-around in config files
-
 
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts

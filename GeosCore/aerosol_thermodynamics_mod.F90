@@ -673,29 +673,17 @@ CONTAINS
           ! Total Cl- [mole/m3]
           TCL = ACL + GCL
 
-          !====================================================================
-          ! NOTE: As of 11/2007, ISORROPIAII does not conserve mass when Ca,K,Mg
-          ! are non-zero. If you would like to consider Ca, K, Mg from seasalt
-          ! and dust, then ISORROPIA II ISRP4F routines must be debugged.
-          ! (hotp, bmy, 2/1/10)
-          ! This still applies in HETP (ewl, 4/22/2024)
-          !
-          ! ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-          ! TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 /
-          !                            ( 40.08e+0_fp  * VOL  )
-          !
-          ! ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-          ! TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.d3 /
-          !                            ( 39.102e+0_fp * VOL  )
-          !
-          ! ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-          ! TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.d3 /
-          !                            ( 24.312e+0_fp * VOL  )
-          !====================================================================
-          !! Set Ca, K, Mg to zero for time being (hotp, bmy, 2/1/10)
-          !TCA      = 0e+0_fp
-          !TK       = 0e+0_fp
-          !TMG      = 0e+0_fp
+          ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
+          TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 / &
+                                     ( 40.08e+0_fp  * VOL  )
+
+          ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
+          TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.d3 / &
+                                     ( 39.102e+0_fp * VOL  )
+
+          ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
+          TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.d3 / &
+                                     ( 24.312e+0_fp * VOL  )
 
           ! Compute gas-phase NO3
           IF ( id_HNO3 > 0 ) THEN

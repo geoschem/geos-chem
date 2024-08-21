@@ -763,39 +763,31 @@ CONTAINS
 
        ! Use simple SOA by default over complex SOA in calculations
        IF ( Is_SimpleSOA ) THEN
-          State_Chm%AerMass%OCPISOA(I,J,L) = ( Spc(id_OCPI)%Conc(I,J,L) * State_chm%AerMass%OCFOPOA(I,J) + &
-                             Spc(id_SOAS)%Conc(I,J,L) ) / AIRVOL(I,J,L)
+          State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPI(I,J,L) + &
+                                             State_Chm%AerMass%SOAS(I,J,L)
 
        ELSEIF ( Is_ComplexSOA ) THEN
 
-          State_Chm%AerMass%OCPISOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)   &
-                           + Spc(id_TSOA2)%Conc(I,J,L)   &
-                           + Spc(id_TSOA3)%Conc(I,J,L)   &
-                           + Spc(id_TSOA0)%Conc(I,J,L)   &
-                           + Spc(id_ASOAN)%Conc(I,J,L)   &
-                           + Spc(id_ASOA1)%Conc(I,J,L)   &
-                           + Spc(id_ASOA2)%Conc(I,J,L)   &
-                           + Spc(id_ASOA3)%Conc(I,J,L) ) &
-                             / AIRVOL(I,J,L)
-
-          IF ( IS_OPOA ) THEN ! hotp 7/28/10
-             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) +              &
-                              ( Spc(id_OPOA1)%Conc(I,J,L)    &
-                              + Spc(id_OPOA2)%Conc(I,J,L) ) &
-                              * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
-          ENDIF
+          State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%TSOA(I,J,L) + &
+                                             State_Chm%AerMass%ASOA(I,J,L)
 
           IF ( IS_OCPI ) THEN  ! hotp 7/28/10
-             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + Spc(id_OCPI)%Conc(I,J,L) &
-                              * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
+             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
+                                                State_Chm%AerMass%OCPI(I,J,L)
           ENDIF
 
-       ENDIF
+          IF ( IS_OPOA ) THEN ! hotp 7/28/10
+             State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
+                                                State_Chm%AerMass%OPOA(I,J,L)
+          ENDIF
 
-       ! Add mechanistic isoprene OA (eam, 08/2015)
-       ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
-       IF ( Is_ComplexSOA ) THEN
+          ! Add mechanistic isoprene OA (eam, 08/2015)
+          ! Skip adding this for Simple SOA (jaf, clh, bmy, 5/17/18)
+          ! benchmark OCPISOA follows simpleSOA and
+          ! should exculde ISOAAQ to avoid double-counting
+          ! (yuanjianz, 8 Jun 2024)
           State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)
+
        ENDIF
 
        ! Now avoid division by zero (bmy, 4/20/04)
@@ -825,20 +817,18 @@ CONTAINS
                      State_Chm%AerMass%BCPI(I,J,L)                    + &
                      State_Chm%AerMass%BCPO(I,J,L)                    + &
                      State_Chm%AerMass%OCPO(I,J,L)                    + &
-                     State_Chm%AerMass%OCPI(I,J,L)       * ORG_GROWTH + &
                      State_Chm%AerMass%SALA(I,J,L)       * SSA_GROWTH + &
                      SOILDUST(I,J,L,1)              + &
                      SOILDUST(I,J,L,2)              + &
                      SOILDUST(I,J,L,3)              + &
                      SOILDUST(I,J,L,4)              + &
                      SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
-
-       ! Particulate matter < 10um [kg/m3]
-       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
-                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
-                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
-                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
-                     State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
+       ! OCPI is not present in SVPOA simulation
+       ! OCPO represents all POA intead (factor*POA)
+       IF ( Is_OCPI ) THEN
+          State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + &
+                                          State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH
+       ENDIF
 
        ! Include either simple SOA (default) or Complex SOA in
        ! PM2.5 calculation.  In simulations where both Simple SOA and
@@ -847,15 +837,9 @@ CONTAINS
        ! to avoid double-counting. (bmy, 03 Nov 2021)
        IF ( Is_SimpleSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
-          State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
 
        ELSE IF ( Is_ComplexSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L)                 + &
-                        State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
-
-          State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L)                 + &
                         State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
                         State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
                         State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
@@ -864,9 +848,15 @@ CONTAINS
           ! -- Maggie Marvin (15 Jul 2020)
           IF ( Is_OPOA ) THEN
              State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
-             State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
           ENDIF
        ENDIF
+
+       ! Particulate matter < 10um [kg/m3]
+       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
+                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
+                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
+                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
+                     State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
 
        ! Apply STP correction factor based on ideal gas law
        State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
@@ -881,19 +871,16 @@ CONTAINS
       ! Parameterized dry effective radius for SNA and OM
       !===========================================================
       IF ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) > 0e+0_fp ) THEN
-         IF ( Is_SimpleSOA ) THEN
-            ! dry SNA and OM mass, in unit of ug/m3
-            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L) )*1.0e+9_fp
-            ! ratio between OM and SNA, unitless
-            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%SOAS(I,J,L)) / State_Chm%AerMass%SO4_NH4_NIT(I,J,L)  
+         ! dry SNA and OM mass, in unit of ug/m3
+         State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + &
+                                            State_Chm%AerMass%OCPO(I,J,L) + &
+                                            State_Chm%AerMass%OCPISOA(I,J,L) ) * 1.0e+9_fp
 
-         ELSE IF ( Is_ComplexSOA ) THEN
-            ! dry SNA and OM mass, in unit of ug/m3
-            State_Chm%AerMass%SNAOM(I,J,L) = ( State_Chm%AerMass%SO4_NH4_NIT(I,J,L) + State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L)  ) * 1.0e+9_fp
-            ! ratio between OM and SNA, unitless
-            State_Chm%AerMass%R_OMSNA(I,J,L) = (State_Chm%AerMass%OCPO(I,J,L) + State_Chm%AerMass%OCPI(I,J,L) + State_Chm%AerMass%TSOA(I,J,L) + State_Chm%AerMass%ASOA(I,J,L) + State_Chm%AerMass%ISOAAQ(I,J,L) )/ State_Chm%AerMass%SO4_NH4_NIT(I,J,L) 
-                     
-         ENDIF
+         ! ratio between OM and SNA, unitless
+         State_Chm%AerMass%R_OMSNA(I,J,L) = ( State_Chm%AerMass%OCPO(I,J,L) + &
+                                              State_Chm%AerMass%OCPISOA(I,J,L) ) / &
+                                              State_Chm%AerMass%SO4_NH4_NIT(I,J,L)
+
          ! Parameterized dry effective radius, in unit of um
          State_Chm%AerMass%PDER(I,J,L) = (exp( 4.36_fp + 0.20_fp*log(State_Chm%AerMass%SNAOM(I,J,L)) + 0.065_fp*log(State_Chm%AerMass%R_OMSNA(I,J,L)) ) *0.001_fp )/0.9_fp ;  
          

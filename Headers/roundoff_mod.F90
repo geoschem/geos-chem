@@ -167,7 +167,10 @@ CONTAINS
     ENDIF
 
     ! Cast to real*8 and roundoff (if the number isn't too large)
-    v_dble = RoundOff( DBLE( v_real ), places )
+    v_dble = DBLE( v_real )
+    IF ( places > 0 ) THEN
+       v_dble = RoundOff( v_dble, places )
+    ENDIF
 
   END FUNCTION Cast_And_RoundOff_Real2Dble
 !EOC
