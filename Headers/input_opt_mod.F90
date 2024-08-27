@@ -189,6 +189,7 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: Min_Cloud_OD       ! Cloud-J var ATAU0
      REAL(fp)                    :: Cloud_Corr         ! Cloud-J var CLDCOR
      INTEGER                     :: Num_Max_Overlap    ! Cloud-J var LNRG
+     INTEGER                     :: Sphere_Correction  ! Cloud-J var ATM0
      INTEGER                     :: Num_WV_Bins        ! Cloud-J var NWBIN
      LOGICAL                     :: USE_H2O_UV_Abs     ! Cloud-J var USEH2OUV
      LOGICAL                     :: USE_ONLINE_O3
@@ -685,6 +686,7 @@ CONTAINS
     Input_Opt%Min_Cloud_OD          = 0.0_fp
     Input_Opt%Cloud_Corr            = 0
     Input_Opt%Num_Max_Overlap       = 0
+    Input_Opt%Sphere_Correction     = 0
     Input_Opt%Num_WV_Bins           = 0
     Input_Opt%USE_H2O_UV_Abs        = .FALSE.
     Input_Opt%USE_ONLINE_O3         = .FALSE.

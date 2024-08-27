@@ -143,6 +143,7 @@ CONTAINS
                    Input_Opt%Cloud_Flag,         &
                    Input_Opt%Cloud_Corr,         &
                    Input_Opt%Num_Max_Overlap,    &
+                   Input_Opt%Sphere_Correction,  &
                    Input_Opt%Use_H2O_UV_Abs,     &
                    NJXX,                         &
                    RC)
