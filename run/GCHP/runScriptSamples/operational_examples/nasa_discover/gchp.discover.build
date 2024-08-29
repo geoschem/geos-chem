@@ -1,18 +1,16 @@
 #!/bin/bash
 
 # For discover
-#SBATCH --time 00:45:00
-#SBATCH --nodes=1 --ntasks-per-node=12
-#SBATCH --job-name=gchp_build
-#SBATCH --constraint=sky
-#SBATCH --account=s1043
+#SBATCH --time 00:30:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem=6G
+#SBATCH --job-name=gchp.build
+#SBATCH --constraint=mil # Edit as needed
+#SBATCH --account=s____  # Fill in
+##SBATCH --qos=___       # Fill in and uncomment if using
 
-rundir=$(pwd -P)
-blddir=../build
-
-source ${rundir}/gchp.env
-cd ${blddir}
-cmake ${rundir}/CodeDir -DRUNDIR=${rundir}
-make -j > build.log
-make install >> build.log
-cd ${rundir}
+source gchp.env
+cd build
+cmake ../CodeDir -DRUNDIR=..
+make -j
+make install

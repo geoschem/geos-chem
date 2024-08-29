@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed unused `VDIFFAR` routine from `vdiff_mod.F90`.
 - Update MW for CH4 and OH in `global_ch4_mod.F90`.
 - Do not convert from kg/kg to mol/mol before passing State_Chm to PBL mixing in `vdiff_mod.F90`.
+- Updated GC-Classic and GCHP run scripts and environment files for NASA discover cluster
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
