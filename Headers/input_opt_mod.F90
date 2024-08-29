@@ -184,7 +184,15 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
      CHARACTER(LEN=255)          :: CloudJ_Dir
-     INTEGER                     :: Nlevs_Phot_Cloud
+     INTEGER                     :: Nlevs_Phot_Cloud   ! Cloud-J var LWEPAR
+     INTEGER                     :: Cloud_Flag         ! Cloud-J var CLDFLAG
+     REAL(fp)                    :: OD_Increase_Factor ! Cloud-J var ATAU
+     REAL(fp)                    :: Min_Cloud_OD       ! Cloud-J var ATAU0
+     REAL(fp)                    :: Cloud_Corr         ! Cloud-J var CLDCOR
+     INTEGER                     :: Num_Max_Overlap    ! Cloud-J var LNRG
+     INTEGER                     :: Sphere_Correction  ! Cloud-J var ATM0
+     INTEGER                     :: Num_WV_Bins        ! Cloud-J var NWBIN
+     LOGICAL                     :: USE_H2O_UV_Abs     ! Cloud-J var USEH2OUV
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
@@ -675,6 +683,14 @@ CONTAINS
     Input_Opt%FAST_JX_DIR           = ''
     Input_Opt%CloudJ_Dir            = ''
     Input_Opt%Nlevs_Phot_Cloud      = 0
+    Input_Opt%Cloud_Flag            = 0
+    Input_Opt%OD_Increase_Factor    = 0.0_fp
+    Input_Opt%Min_Cloud_OD          = 0.0_fp
+    Input_Opt%Cloud_Corr            = 0
+    Input_Opt%Num_Max_Overlap       = 0
+    Input_Opt%Sphere_Correction     = 0
+    Input_Opt%Num_WV_Bins           = 0
+    Input_Opt%USE_H2O_UV_Abs        = .FALSE.
     Input_Opt%USE_ONLINE_O3         = .FALSE.
     Input_Opt%USE_O3_FROM_MET       = .FALSE.
     Input_Opt%USE_TOMS_O3           = .FALSE.

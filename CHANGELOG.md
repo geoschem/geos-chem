@@ -11,6 +11,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
 - ALK4N1 and ALK4N2 to Ox family in KPP
 - PPN photolysis from Horner et al (2024)
+- Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+- Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
+- Added new species ALK4N1 and ALK4N2 to Ox family in KPP
+- Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
+- Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
