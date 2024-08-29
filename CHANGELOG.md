@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Do not convert from kg/kg to mol/mol before passing State_Chm to PBL mixing in `vdiff_mod.F90`.
 - Updated GC-Classic and GCHP run scripts and environment files for NASA discover cluster
 - Updated `GFED4_Climatology` entries to point to the climatology file for 2010-2023
+- Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
+- Call `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.

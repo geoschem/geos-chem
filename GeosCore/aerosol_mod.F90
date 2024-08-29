@@ -27,6 +27,8 @@ MODULE AEROSOL_MOD
   PUBLIC :: INIT_AEROSOL
   PUBLIC :: AEROSOL_CONC
   PUBLIC :: RDAER
+  PUBLIC :: RD_AOD   ! Public for use in legacy FAST-JX initialization
+  PUBLIC :: CALC_AOD ! needed for Hg simulation
 !
 ! !PUBLIC DATA MEMBERS:
 !
@@ -2499,6 +2501,594 @@ CONTAINS
 
     ENDDO
 
+    !------------------------------------------------------------------------
+    ! Read in AOD data
+    !------------------------------------------------------------------------
+    CALL RD_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "RD_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    IF (Input_Opt%amIRoot) WRITE(6,*) 'Wavelength optics read successfully'
+
+    !------------------------------------------------------------------------
+    ! Compute the required wavelengths in the LUT to calculate requested AOD
+    !------------------------------------------------------------------------
+    CALL CALC_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "CALC_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
   END SUBROUTINE INIT_AEROSOL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: rd_aod
+!
+! !DESCRIPTION: Subroutine RD\_AOD reads aerosol phase functions that are
+!  used to scale diagnostic output to an arbitrary wavelengh.  This
+!  facilitates comparing with satellite observations.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE RD_AOD( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE InquireMod,    ONLY : FindFreeLUN
+    USE State_Chm_Mod, ONLY : ChmState
+#if defined( MODEL_CESM )
+    USE UNITS,         ONLY : freeUnit
+#endif
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  The .dat files for each species contain the optical properties
+!  at multiple wavelengths to be used in the online calculation of the aerosol
+!  optical depth diagnostics.
+!  These properties have been calculated using the same size and optical
+!  properties as the FJX_spec.dat file used for the FAST-J photolysis
+!  calculations (which is now redundant for aerosols, the values in the .dat
+!  files here are now used). The file currently contains 11 wavelengths
+!  for Fast-J and other commonly used wavelengths for satellite and
+!  AERONET retrievals. 30 wavelengths follow that map onto RRTMG
+!  wavebands for radiaitive flux calculations (not used if RRTMG is off).
+!  A complete set of optical properties from 250-2000 nm for aerosols is
+!  available at:
+!  ftp://ftp.as.harvard.edu/geos-chem/data/aerosol_optics/hi_spectral_res
+!                                                                             .
+!     -- Colette L. Heald, 05/10/10)
+!     -- David A. Ridley, 05/10/13 (update for new optics files)
+!
+! !REVISION HISTORY:
+!  10 May 2010 - C. Heald      - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    ! Scalars
+    INTEGER            :: I, J, K, N, g
+    INTEGER            :: IOS, NJ1
+    LOGICAL            :: LBRC, FileExists
+
+    ! Strings
+    CHARACTER(LEN=78 ) :: TITLE0
+    CHARACTER(LEN=255) :: DATA_DIR
+    CHARACTER(LEN=255) :: THISFILE
+    CHARACTER(LEN=255) :: FileMsg
+    CHARACTER(LEN=255) :: ErrMsg
+    CHARACTER(LEN=255) :: ThisLoc
+
+    ! String arrays
+    CHARACTER(LEN=30)  :: SPECFIL(8)
+
+    ! Pointers
+    REAL*8, POINTER :: WVAA  (:,:)
+    REAL*8, POINTER :: RHAA  (:,:)
+    REAL*8, POINTER :: RDAA  (:,:,:)
+    REAL*8, POINTER :: RWAA  (:,:,:)
+    REAL*8, POINTER :: SGAA  (:,:)
+    REAL*8, POINTER :: REAA  (:,:,:)
+    REAL*8, POINTER :: NCMAA (:,:,:)
+    REAL*8, POINTER :: NRLAA (:,:,:)
+    REAL*8, POINTER :: QQAA  (:,:,:,:)
+    REAL*8, POINTER :: ALPHAA(:,:,:,:)
+    REAL*8, POINTER :: SSAA  (:,:,:,:)
+    REAL*8, POINTER :: ASYMAA(:,:,:,:)
+    REAL*8, POINTER :: PHAA  (:,:,:,:,:)
+
+    !================================================================
+    ! RD_AOD begins here!
+    !================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = ' -> at RD_AOD (in module GeosCore/photolysis_mod.F90)'
+    LBRC     = Input_Opt%LBRC
+    DATA_DIR = TRIM( Input_Opt%AER_OPTICS_DIR )
+
+    ! Set Pointers
+    WVAA   => State_Chm%Phot%WVAA
+    RHAA   => State_Chm%Phot%RHAA
+    RDAA   => State_Chm%Phot%RDAA
+    RWAA   => State_Chm%Phot%RWAA
+    SGAA   => State_Chm%Phot%SGAA
+    REAA   => State_Chm%Phot%REAA
+    NRLAA  => State_Chm%Phot%NRLAA
+    NCMAA  => State_Chm%Phot%NCMAA
+    QQAA   => State_Chm%Phot%QQAA
+    ALPHAA => State_Chm%Phot%ALPHAA
+    SSAA   => State_Chm%Phot%SSAA
+    ASYMAA => State_Chm%Phot%ASYMAA
+    PHAA   => State_Chm%Phot%PHAA
+
+    ! Get a free LUN
+    NJ1 = findFreeLUN()
+
+    ! IMPORTANT: aerosol_mod.F and dust_mod.F expect aerosols in this order
+    !
+    ! Treating strat sulfate with GADS data but modified to match
+    ! the old Fast-J values size (r=0.09um, sg=0.6) - I think there's
+    ! evidence that this is too smale and narrow e.g. Deshler et al. 2003
+    ! NAT should really be associated with something like cirrus cloud
+    ! but for now we are just treating the NAT like the sulfate... limited
+    ! info but ref index is similar e.g. Scarchilli et al. (2005)
+    !(DAR 05/2015)
+    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
+                  "ssa.dat","ssc.dat",            &
+                  "h2so4.dat","h2so4.dat",        &
+                  "dust.dat"/
+
+    ! Loop over the array of filenames
+    DO k = 1, State_Chm%Phot%NSPAA
+
+       ! Choose different set of input files for standard (trop+strat chenm)
+       ! and tropchem (trop-only chem) simulations
+       THISFILE = TRIM( DATA_DIR ) // '/' // TRIM( SPECFIL(k) )
+
+       !--------------------------------------------------------------
+       ! In dry-run mode, print file path to dryrun log and cycle.
+       ! Otherwise, print file path to stdout and continue.
+       !--------------------------------------------------------------
+
+       ! Test if the file exists
+       INQUIRE( FILE=TRIM( ThisFile ), EXIST=FileExists )
+
+       ! Test if the file exists and define an output string
+       IF ( FileExists ) THEN
+          FileMsg = 'PHOTOLYSIS (RD_AOD): Opening'
+       ELSE
+          FileMsg = 'PHOTOLYSIS (RD_AOD): REQUIRED FILE NOT FOUND'
+       ENDIF
+
+       ! Write to stdout for both regular and dry-run simulations
+       IF ( Input_Opt%amIRoot ) THEN
+          WRITE( 6, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+300       FORMAT( a, ' ', a )
+       ENDIF
+
+       ! For dry-run simulations, cycle to next file.
+       ! For regular simulations, throw an error if we can't find the file.
+       IF ( Input_Opt%DryRun ) THEN
+          CYCLE
+       ELSE
+          IF ( .not. FileExists ) THEN
+             WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !--------------------------------------------------------------
+       ! If not a dry-run, read data from each species file
+       !--------------------------------------------------------------
+
+       ! Open file
+       OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
+
+       ! Error check
+       IF ( RC /= 0 ) THEN
+          ErrMsg = 'Error opening file: ' // TRIM( ThisFile )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+       ! Read header lines
+       READ(  NJ1, '(A)' ) TITLE0
+       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+
+       ! Second header line added for more info
+       READ(  NJ1, '(A)' ) TITLE0
+       IF ( Input_Opt%amIRoot ) WRITE( 6, '(1X,A)' ) TITLE0
+
+       READ(  NJ1, '(A)' ) TITLE0
+110    FORMAT( 3x, a20 )
+
+       IF (k == 1 .OR. k == 3) THEN
+       ! for SO4 and ORGANICS, dry aerosol size varies, therefore all
+       ! opt properties vary.
+       DO g = 1, State_Chm%Phot%NDRg
+       DO i = 1, State_Chm%Phot%NRAA
+       DO j = 1, State_Chm%Phot%NWVAA
+
+          READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
+
+          ! make note of where 1000nm is for FAST-J calcs
+          IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
+
+       ENDDO
+       ENDDO
+       ENDDO
+
+       ELSE
+       ! For other species, keep g = default Rg (DRg)
+       g = State_Chm%Phot%DRg
+       DO i = 1, State_Chm%Phot%NRAA
+       DO j = 1, State_Chm%Phot%NWVAA
+
+          READ(NJ1,*) WVAA(j,k),RHAA(i,k),NRLAA(j,i,k),NCMAA(j,i,k), &
+                      RDAA(i,k,g),RWAA(i,k,g),SGAA(i,k),QQAA(j,i,k,g),   &
+                      ALPHAA(j,i,k,g),REAA(i,k,g),SSAA(j,i,k,g),         &
+                      ASYMAA(j,i,k,g),(PHAA(j,i,k,n,g),n=1,8)
+
+          ! make note of where 1000nm is for FAST-J calcs
+          IF (WVAA(j,k).EQ.1000.0) State_Chm%Phot%IWV1000=J
+
+       ENDDO
+       ENDDO
+
+       ENDIF
+
+       ! Close file
+       CLOSE( NJ1 )
+
+    ENDDO
+
+#if defined( MODEL_CESM )
+   CALL freeUnit(NJ1)
+#endif
+
+  ! Free pointers
+    WVAA   => NULL()
+    RHAA   => NULL()
+    RDAA   => NULL()
+    RWAA   => NULL()
+    SGAA   => NULL()
+    REAA   => NULL()
+    NCMAA  => NULL()
+    NRLAA  => NULL()
+    QQAA   => NULL()
+    ALPHAA => NULL()
+    SSAA   => NULL()
+    ASYMAA => NULL()
+    PHAA   => NULL()
+
+  END SUBROUTINE RD_AOD
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: calc_aod
+!
+! !DESCRIPTION: Subroutine CALC\_AOD works out the closest tie points
+! in the optics LUT wavelengths and the coefficients required to
+! calculate the angstrom exponent for interpolating optics to the requested
+! wavelength. If the wavelength requested matches a standard wavelength
+! in the LUT then we skip the interpolation (DAR 09/2013)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE CALC_AOD( Input_Opt, State_Chm, RC )
+!
+! !USES:
+!
+    USE Input_Opt_Mod, ONLY : OptInput
+#ifdef RRTMG
+    USE PARRRTM,       ONLY : NBNDLW
+#endif
+    USE State_Chm_Mod, ONLY : ChmState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: RC
+!
+! !REMARKS:
+!  Now the user is able to select any 3 wavelengths for optics
+!  output in the geoschem_config.yml file we need to be able to interpolate
+!  to those wavelengths based on what is available in the optics
+!  look-up table.
+!                                                                             .
+!  The standard lookup table currently has values for
+!  11 common wavelengths followed by 30 that are required by RRTMG.
+!  Only those required to interpolate to user requested
+!  wavelengths are selected from the standard wavelengths. RRTMG
+!  wavelengths are not used in the interpolation for AOD output
+!  (DAR 10/2013)
+!                                                                             .
+!   UPDATE: because the RT optics output doesnt have access to the
+!   standard wavelengths we now calculate two sets of values: one
+!   for the ND21 and diag3 outputs that use the standard wavelengths
+!   and one for RRTMG diagnostics that interpolate the optics from RRTMG
+!   wavelengths. Perhaps a switch needs adding to switch off the RT
+!   optics output (and interpolation) if this ends up costing too
+!   much and is not used, but it is ideal to have an optics output
+!   that matches exactly what RRTMG uses to calculate the fluxes
+!
+! !REVISION HISTORY:
+!  18 Jun 2013 - D. Ridley   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES
+!
+    INTEGER             :: MINWV, MAXWV, N, N0, N1, W, NSTEP
+    INTEGER             :: NWVAA, NWVAA0, NWVREQUIRED, NRTWVREQUIRED
+    REAL(fp)            :: WVDIF
+
+    ! Pointers
+    INTEGER, POINTER :: IWVREQUIRED  (:)
+    INTEGER, POINTER :: IRTWVREQUIRED(:)
+    INTEGER, POINTER :: IWVSELECT    (:,:)
+    INTEGER, POINTER :: IRTWVSELECT  (:,:)
+    REAL*8,  POINTER :: ACOEF_WV     (:)
+    REAL*8,  POINTER :: BCOEF_WV     (:)
+    REAL*8,  POINTER :: CCOEF_WV     (:)
+    REAL*8,  POINTER :: ACOEF_RTWV   (:)
+    REAL*8,  POINTER :: BCOEF_RTWV   (:)
+    REAL*8,  POINTER :: CCOEF_RTWV   (:)
+    REAL*8,  POINTER :: WVAA         (:,:)
+
+    !================================================================
+    ! CALC_AOD begins here!
+    !================================================================
+
+    ! Constants State_Chm%Phot
+    NWVAA         = State_Chm%Phot%NWVAA
+    NWVAA0        = State_Chm%Phot%NWVAA0
+
+    ! Scalars in State_Chm%Phot that will be set in this subroutine
+    NWVREQUIRED   = State_Chm%Phot%NWVREQUIRED
+    NRTWVREQUIRED = State_Chm%Phot%NRTWVREQUIRED
+
+    ! Set pointers
+    IWVREQUIRED   => State_Chm%Phot%IWVREQUIRED
+    IRTWVREQUIRED => State_Chm%Phot%IRTWVREQUIRED
+    IWVSELECT     => State_Chm%Phot%IWVSELECT
+    IRTWVSELECT   => State_Chm%Phot%IRTWVSELECT
+    ACOEF_WV      => State_Chm%Phot%ACOEF_WV
+    BCOEF_WV      => State_Chm%Phot%BCOEF_WV
+    CCOEF_WV      => State_Chm%Phot%CCOEF_WV
+    ACOEF_RTWV    => State_Chm%Phot%ACOEF_RTWV
+    BCOEF_RTWV    => State_Chm%Phot%BCOEF_RTWV
+    CCOEF_RTWV    => State_Chm%Phot%CCOEF_RTWV
+    WVAA          => State_Chm%Phot%WVAA
+
+    !cycle over standard wavelengths
+    N0=1
+    N1=NWVAA0
+    NSTEP=1
+    NWVREQUIRED=0
+    DO W=1,Input_Opt%NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP ! 1 to 11
+          WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
+          IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+             MINWV = WVDIF
+             IWVSELECT(1,W)=N
+          ENDIF
+          IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+             MAXWV = WVDIF
+             IWVSELECT(2,W)=N
+          ENDIF
+       ENDDO
+       IF (IWVSELECT(2,W).EQ.IWVSELECT(1,W)) THEN
+          !we have a match!
+          MINWV=0
+          MAXWV=0
+          !add this wavelength to those for output
+          NWVREQUIRED=NWVREQUIRED+1
+          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+       ELSE
+          !we are going to have to interpolate to the requested wavelength
+          NWVREQUIRED=NWVREQUIRED+1
+          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+          NWVREQUIRED=NWVREQUIRED+1
+          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(2,W)
+       ENDIF
+
+       !Error check - ensure we have a match or requested wavelength
+       !falls within two LUT tie points
+       IF (MINWV.EQ.-999) THEN
+          ! requested wavelength is shorter than min wv in LUT
+          ! set to min
+          write(6,*) 'ERROR requested wavelength is too short!!'
+          write(6,*) 'Defaulting to LUT min: ',WVAA(1,1)
+          IWVSELECT(1,W)=1
+          IWVSELECT(2,W)=1 !300nm
+          NWVREQUIRED=NWVREQUIRED-1
+          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+       ENDIF
+       IF (MAXWV.EQ.999) THEN
+          ! requested wavelength is longer than min wv in LUT
+          ! set to max
+          write(6,*) 'ERROR requested wavelength is too long!!'
+          write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0,1)
+          IWVSELECT(1,W)=NWVAA0
+          IWVSELECT(2,W)=NWVAA0 !1020nm
+          NWVREQUIRED=NWVREQUIRED-1
+          IWVREQUIRED(NWVREQUIRED)=IWVSELECT(1,W)
+       ENDIF
+
+       !now calcualte the angstrom exponent coefs for interpolation -
+       !this is done here to save time and repetition in aerosol_mod.F
+       IF (IWVSELECT(1,W).NE.IWVSELECT(2,W)) THEN
+          ACOEF_WV(W) = WVAA(IWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
+          BCOEF_WV(W) =1.0d0/(LOG(WVAA(IWVSELECT(2,W),1)/ &
+                                  WVAA(IWVSELECT(1,W),1)))
+          !relative location of selected wavelength between tie points
+          !for interpolating SSA and ASYM for output in aerosol_mod.F and
+          !dust_mod.F
+          CCOEF_WV(W) =(Input_Opt%WVSELECT(W)-WVAA(IWVSELECT(1,W),1))/ &
+                      (WVAA(IWVSELECT(2,W),1)-WVAA(IWVSELECT(1,W),1))
+       ENDIF
+       IF ( Input_Opt%amIRoot ) THEN
+          write(6,*) 'N WAVELENGTHS: ',Input_Opt%NWVSELECT
+          write(6,*) 'WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
+          write(6,*) 'WAVELENGTH REQUIRED:', NWVREQUIRED
+          !write(6,*) IWVSELECT(1,W),WVAA(IWVSELECT(1,W),1)
+          !write(6,*) IWVSELECT(2,W),WVAA(IWVSELECT(2,W),1)
+          !write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+          write(6,*) '*********************************'
+       ENDIF
+    ENDDO !Input_Opt%NWVSELECT
+#ifdef RRTMG
+    !repeat for RRTMG wavelengths to get the closest wavelength
+    !indices and the interpolation coefficients
+    !Indices are relative to all wavelengths in the LUT i.e. the RRTMG
+    !wavelengths start at NWVAA0+1
+    N0=NWVAA0+1
+    N1=NWVAA
+    NSTEP=1
+    NRTWVREQUIRED=0
+    DO W=1,Input_Opt%NWVSELECT
+       MINWV     = -999
+       MAXWV     =  999
+       DO N=N0,N1,NSTEP
+          WVDIF = WVAA(N,1)-Input_Opt%WVSELECT(W)
+          IF ((WVDIF.LE.0).AND.(WVDIF.GT.MINWV)) THEN
+             MINWV = WVDIF
+             IRTWVSELECT(1,W)=N
+          ENDIF
+          IF ((WVDIF.GE.0).AND.(WVDIF.LT.MAXWV)) THEN
+             MAXWV = WVDIF
+             IRTWVSELECT(2,W)=N
+          ENDIF
+       ENDDO
+       IF (IRTWVSELECT(2,W).EQ.IRTWVSELECT(1,W)) THEN
+          !we have a match!
+          MINWV=0
+          MAXWV=0
+          !add this wavelength to those for output
+          NRTWVREQUIRED=NRTWVREQUIRED+1
+          IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+       ELSE
+          !we are going to have to interpolate to the requested
+          !wavelength
+          NRTWVREQUIRED=NRTWVREQUIRED+1
+          IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+          NRTWVREQUIRED=NRTWVREQUIRED+1
+          IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(2,W)
+       ENDIF
+
+       !Error check - ensure we have a match or requested wavelength
+       !falls within two LUT tie points
+       IF (MINWV.EQ.-999) THEN
+          ! requested wavelength is shorter than min wv in LUT
+          ! set to min
+          write(6,*) 'ERROR requested wavelength is too short!!'
+          write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA-1,1)
+          IRTWVSELECT(1,W)=NWVAA-1
+          IRTWVSELECT(2,W)=NWVAA-1
+          NRTWVREQUIRED=NRTWVREQUIRED-1
+          IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+       ENDIF
+       IF (MAXWV.EQ.999) THEN
+          ! requested wavelength is longer than min wv in LUT
+          ! set to max
+          write(6,*) 'ERROR requested wavelength is too long!!'
+          write(6,*) 'Defaulting to LUT min: ',WVAA(NWVAA0+1,1)
+          IRTWVSELECT(1,W)=NWVAA0+1
+          IRTWVSELECT(2,W)=NWVAA0+1
+          NRTWVREQUIRED=NRTWVREQUIRED-1
+          IRTWVREQUIRED(NRTWVREQUIRED)=IRTWVSELECT(1,W)
+       ENDIF
+
+       !now calcualte the angstrom exponent coefs for interpolation -
+       !this is done here to save time and repetition in aerosol_mod.F
+       IF (IRTWVSELECT(1,W).NE.IRTWVSELECT(2,W)) THEN
+          ACOEF_RTWV(W) = WVAA(IRTWVSELECT(2,W),1)/Input_Opt%WVSELECT(W)
+          BCOEF_RTWV(W) =1.0d0/(LOG(WVAA(IRTWVSELECT(2,W),1)/ &
+                                    WVAA(IRTWVSELECT(1,W),1)))
+          !relative location of selected wavelength between tie points
+          !for interpolating SSA and ASYM for output in aerosol_mod.F and
+          !dust_mod.F
+          CCOEF_RTWV(W) =(Input_Opt%WVSELECT(W)-WVAA(IRTWVSELECT(1,W),1))/ &
+                      (WVAA(IRTWVSELECT(2,W),1)-WVAA(IRTWVSELECT(1,W),1))
+       ENDIF
+       !convert wavelength index to that required by rrtmg_rad_transfer
+       !i.e. without the standard and LW wavelengths
+       IRTWVSELECT(1,W) = IRTWVSELECT(1,W) - NWVAA0 - NBNDLW
+       IRTWVSELECT(2,W) = IRTWVSELECT(2,W) - NWVAA0 - NBNDLW
+       IF ( Input_Opt%amIRoot ) THEN
+          write(6,*) 'N RT WAVELENGTHS: ',Input_Opt%NWVSELECT
+          write(6,*) 'RT WAVELENGTH REQUESTED:',Input_Opt%WVSELECT(W)
+          write(6,*) 'RT WAVELENGTH REQUIRED:', NRTWVREQUIRED
+          write(6,*) IRTWVSELECT(1,W),WVAA(IRTWVSELECT(1,W)+NWVAA0+NBNDLW,1)
+          write(6,*) IRTWVSELECT(2,W),WVAA(IRTWVSELECT(2,W)+NWVAA0+NBNDLW,1)
+          write(6,*) ACOEF_WV(W),BCOEF_WV(W),CCOEF_WV(W)
+          write(6,*) '*********************************'
+       ENDIF
+    ENDDO !Input_Opt%NWVSELECT
+#endif
+
+    ! Copy values back into State_Chm
+    State_Chm%Phot%NWVREQUIRED   = NWVREQUIRED
+    State_Chm%Phot%NRTWVREQUIRED = NRTWVREQUIRED
+
+    ! Free pointers
+    IWVREQUIRED   => NULL()
+    IRTWVREQUIRED => NULL()
+    IWVSELECT     => NULL()
+    IRTWVSELECT   => NULL()
+    ACOEF_WV      => NULL()
+    BCOEF_WV      => NULL()
+    CCOEF_WV      => NULL()
+    ACOEF_RTWV    => NULL()
+    BCOEF_RTWV    => NULL()
+    CCOEF_RTWV    => NULL()
+    WVAA          => NULL()
+
+  END SUBROUTINE CALC_AOD
 !EOC
 END MODULE AEROSOL_MOD

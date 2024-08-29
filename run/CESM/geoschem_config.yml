@@ -374,6 +374,9 @@ operations:
 #============================================================================
 aerosols:
 
+  optics:
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2024-08/
+
   carbon:
     activate: true
     brown_carbon: false
