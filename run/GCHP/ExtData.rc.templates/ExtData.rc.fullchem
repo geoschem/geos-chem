@@ -1430,7 +1430,7 @@ CEDS_ALD2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_shp          ./Hc
 CEDS_MEK_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_HCOOH_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_TMB_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_shp           ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_OTH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_shp     ./HcoDir/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc
+CEDS_OTH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_shp     ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
 #
 # --- if not ParaNOx ---
 # --- if EMEP_SHIP and not ParaNOx ---
