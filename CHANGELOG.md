@@ -10,15 +10,33 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
 - ALK4N1 and ALK4N2 to Ox family in KPP
+- PPN photolysis from Horner et al (2024)
+- Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+- Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
+- Added new species ALK4N1 and ALK4N2 to Ox family in KPP
+- Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
+- Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
 - Added TSOIL1 field to State_Met for use in HEMCO soil NOx extension. This should only be read in when the `UseSoilTemperature` option is true in HEMCO config.
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
 - Change previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations
 - Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
+- Activate the `DryDep` collection for GCClassic & GCHP fullchem benchmarks
+- Reduce the GCHP `DryDep` collection to only the necessary species for benchmarks
+- Removed unused `VDIFFAR` routine from `vdiff_mod.F90`.
+- Update MW for CH4 and OH in `global_ch4_mod.F90`.
+- Do not convert from kg/kg to mol/mol before passing State_Chm to PBL mixing in `vdiff_mod.F90`.
+- Updated GC-Classic and GCHP run scripts and environment files for NASA discover cluster
+- Updated `GFED4_Climatology` entries to point to the climatology file for 2010-2023
+- Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
+- Call `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
+- In the mass conservation adjustment in `vdiff_mod.F90`, use a mass tendency with units of `kg species/kg dry air`.
+- In `vdiff_mod.F90`, convert the top pressure edge from hPa to Pa.
+- PPN is now correctly listed with `Is_Photolysis: true` in the species database
 
 ## [14.4.3] - 2024-08-13
 ### Added
@@ -207,7 +225,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
-- Removed State_Chm%CH4_EMIS
+- Removed `State_Chm%CH4_EMIS`
 
 ## [14.3.0] - 2024-02-07
 ### Added
