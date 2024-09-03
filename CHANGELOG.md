@@ -35,6 +35,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
 - In the mass conservation adjustment in `vdiff_mod.F90`, use a mass tendency with units of `kg species/kg dry air`.
 - In `vdiff_mod.F90`, convert the top pressure edge from hPa to Pa.
+- PPN is now correctly listed with `Is_Photolysis: true` in the species database
 
 ## [14.4.3] - 2024-08-13
 ### Added

@@ -4721,6 +4721,7 @@ PPN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 135.08
   WD_RetFactor: 2.0e-2
