@@ -36,6 +36,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - In the mass conservation adjustment in `vdiff_mod.F90`, use a mass tendency with units of `kg species/kg dry air`.
 - In `vdiff_mod.F90`, convert the top pressure edge from hPa to Pa.
 - PPN is now correctly listed with `Is_Photolysis: true` in the species database
+- Changed PPN photolysis reaction rate constant to `PHOTOL(167)`
+- Changed photolysis reactions from Travis et al (2024) rate constnats
+  to`PHOTOL(168:177)`
 
 ## [14.4.3] - 2024-08-13
 ### Added

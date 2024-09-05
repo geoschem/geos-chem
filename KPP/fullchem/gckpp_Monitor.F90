@@ -1236,19 +1236,19 @@ MODULE gckpp_Monitor
      '           BZCO3H --> CO2 + BENZO2 + OH                                                             ', & ! index 1044
      '            BENZP --> BENZO                                                                         ', & ! index 1045
      '            NPHEN --> CO2 + PCO + AROMP4 + HNO2 + CO + HO2                                          ', & ! index 1046
-     '            APINP --> PINAL + HO2 + OH                                                              ', & ! index 1047
-     '            PINAL --> PCO + C96O2 + CO + HO2                                                        ', & ! index 1048
-     '           PINO3H --> CO2 + C96O2 + OH                                                              ', & ! index 1049
-     '          PINONIC --> CO2 + C96O2 + OH                                                              ' /) ! index up to 1050
+     '              PPN --> 0.3 POx + 0.7 RCO3 + 0.7 NO2 + 0.3 NO3                                        ', & ! index 1047
+     '            APINP --> PINAL + HO2 + OH                                                              ', & ! index 1048
+     '            PINAL --> PCO + C96O2 + CO + HO2                                                        ', & ! index 1049
+     '           PINO3H --> CO2 + C96O2 + OH                                                              ' /) ! index up to 1050
   CHARACTER(LEN=100), PARAMETER, DIMENSION(8) :: EQN_NAMES_35 = (/ &
-     '           C96O2H --> AROMRO2 + 0.5 MEK + ACET + RCO3 + CH2O + OH                                   ', & ! index 1051
-     '            BPINP --> BPINO + CH2O + HO2 + OH                                                       ', & ! index 1052
-     '          BPINOOH --> 0.27 LIMO3 + 0.6 ACET + 0.6 RCHO + 0.6 R4O2 + HO2 + OH                        ', & ! index 1053
-     '           LIMO3H --> CO2 + RCHO + 0.8 R4O2 + MCO3 + 0.4 CH2O + OH                                  ', & ! index 1054
-     '           LIMO2H --> CO2 + RCHO + 0.8 R4O2 + MCO3 + 0.4 CH2O + OH                                  ', & ! index 1055
-     '              PIP --> 0.675 MYRCO + 0.45 ACET + 0.45 MVK + 0.1 CH2O + HO2 + OH                      ', & ! index 1056
-     '            LIMAL --> PCO + 0.9 LIMO3 + CO + HO2                                                    ', & ! index 1057
-     '              PPN --> 0.3 POx + 0.7 RCO3 + 0.7 NO2 + 0.3 NO3                                        ' /) ! index up to 1058
+     '          PINONIC --> CO2 + C96O2 + OH                                                              ', & ! index 1051
+     '           C96O2H --> AROMRO2 + 0.5 MEK + ACET + RCO3 + CH2O + OH                                   ', & ! index 1052
+     '            BPINP --> BPINO + CH2O + HO2 + OH                                                       ', & ! index 1053
+     '          BPINOOH --> 0.27 LIMO3 + 0.6 ACET + 0.6 RCHO + 0.6 R4O2 + HO2 + OH                        ', & ! index 1054
+     '           LIMO3H --> CO2 + RCHO + 0.8 R4O2 + MCO3 + 0.4 CH2O + OH                                  ', & ! index 1055
+     '           LIMO2H --> CO2 + RCHO + 0.8 R4O2 + MCO3 + 0.4 CH2O + OH                                  ', & ! index 1056
+     '              PIP --> 0.675 MYRCO + 0.45 ACET + 0.45 MVK + 0.1 CH2O + HO2 + OH                      ', & ! index 1057
+     '            LIMAL --> PCO + 0.9 LIMO3 + CO + HO2                                                    ' /) ! index up to 1058
   CHARACTER(LEN=100), PARAMETER, DIMENSION(1058) :: EQN_NAMES = (/&
     EQN_NAMES_0, EQN_NAMES_1, EQN_NAMES_2, EQN_NAMES_3, EQN_NAMES_4, &
     EQN_NAMES_5, EQN_NAMES_6, EQN_NAMES_7, EQN_NAMES_8, EQN_NAMES_9, &
