@@ -21,6 +21,7 @@ DEVELOPERS (initials and email/GitHub)
 ===============================================================================
 
 * BA   :  Becky Alexander          : @beckyalexander
+* BH   :  Rebekah (Bex) Horner     : @bexhorner
 * BHH  :  Barron Henderson         : @barronh
 * BMY  :  Bob Yantosca             : @yantosca
 * CCM  :  Christopher Chan Miller  : cmiller@fas.harvard.edu
@@ -1546,7 +1547,7 @@ NRO2 + HO2 = LNRO2H + HO2 :                  GCARR_ac(1.40d-12, 700.0d0);       
 NRO2 + NO = LNRO2N + NO :                    GCARR_ac(2.60d-12, 350.0d0);                                                      {2013/08/12; Pye2010; HOTP}
 //
 // --- RCOOH chemistry (KRT)
-RCOOH + OH = ETO2 + CO2 + H2O :              1.20d-12;                                                                         {2022/10/22; krt}
+RCOOH + OH = ETO2 + CO2 + H2O :              1.20d-12;                                                                         {2024/08/20; Travis2024; KRT}
 //
 // ----- STYR/EBZ/TMB chemistry (Bates et al., 2021)
 STYR + OH = 0.300ZRO2 + 0.700AROMRO2 +
@@ -2010,21 +2011,21 @@ BZCO3H + hv = BENZO2 + OH + CO2 :            PHOTOL(164);    {2021/09/29; Bates2
 BENZP + hv = BENZO :                         PHOTOL(165);    {2021/09/29; Bates2021b; KHB,MSL}
 NPHEN + hv = HNO2 + CO +
  CO2 + AROMP4 + HO2 :                        PHOTOL(166);    {2021/09/29; Bates2021b; KHB,MSL}
-APINP + hv = PINAL + OH + HO2 :              PHOTOL(167) ;   {use the same as }
-PINAL + hv = CO + HO2 + C96O2 :              PHOTOL(168) ;
-PINO3H + hv = OH + CO2 + C96O2 :             PHOTOL(169) ;
-PINONIC + hv = OH + CO2 + C96O2 :            PHOTOL(170) ;
-C96O2H + hv = OH + AROMRO2 + ACET +
- CH2O + RCO3 + 0.5MEK :                      PHOTOL(171) ;
-BPINP + hv = OH + CH2O + HO2 + BPINO :       PHOTOL(172) ;
-BPINOOH + hv = OH + HO2 + 0.27LIMO3 +
- 0.6ACET + 0.6RCHO + 0.6R4O2 :               PHOTOL(173) ;
-LIMO3H + hv = OH + CO2 + MCO3 + RCHO +
- 0.4CH2O + 0.8R4O2 :                         PHOTOL(174) ;
-LIMO2H + hv = OH + CO2 + MCO3 + RCHO +
- 0.4CH2O + 0.8R4O2 :                         PHOTOL(175) ;
-PIP + hv = OH + HO2 + 0.450MVK + 0.45ACET +
- 0.100CH2O + 0.675MYRCO :                    PHOTOL(105) ;
-LIMAL + hv = CO + HO2 + 0.900LIMO3 :         PHOTOL(176) ;
 PPN + hv = 0.700RCO3 + 0.700NO2 +
- 0.300NO3 :                                  PHOTOL(167);    {2024/07/11; Horner2024}
+ 0.300NO3 :                                  PHOTOL(167);    {2024/07/11; Horner2024, BH}
+APINP + hv = PINAL + OH + HO2 :              PHOTOL(168);    {2024/08/20; Travis2024; KRT}
+PINAL + hv = CO + HO2 + C96O2 :              PHOTOL(169);    {2024/08/20; Travis2024; KRT}
+PINO3H + hv = OH + CO2 + C96O2 :             PHOTOL(170);    {2024/08/20; Travis2024; KRT}
+PINONIC + hv = OH + CO2 + C96O2 :            PHOTOL(171);    {2024/08/20; Travis2024; KRT}
+C96O2H + hv = OH + AROMRO2 + ACET +
+ CH2O + RCO3 + 0.5MEK :                      PHOTOL(172);    {2024/08/20; Travis2024; KRT}
+BPINP + hv = OH + CH2O + HO2 + BPINO :       PHOTOL(173);    {2024/08/20; Travis2024; KRT}
+BPINOOH + hv = OH + HO2 + 0.27LIMO3 +
+ 0.6ACET + 0.6RCHO + 0.6R4O2 :               PHOTOL(174);    {2024/08/20; Travis2024; KRT} 
+LIMO3H + hv = OH + CO2 + MCO3 + RCHO +
+ 0.4CH2O + 0.8R4O2 :                         PHOTOL(175);    {2024/08/20; Travis2024; KRT}
+LIMO2H + hv = OH + CO2 + MCO3 + RCHO +
+ 0.4CH2O + 0.8R4O2 :                         PHOTOL(176);    {2024/08/20; Travis2024; KRT}
+PIP + hv = OH + HO2 + 0.450MVK + 0.45ACET +
+ 0.100CH2O + 0.675MYRCO :                    PHOTOL(105);    {2024/08/20; Travis2024; KRT} 
+LIMAL + hv = CO + HO2 + 0.900LIMO3 :         PHOTOL(177);    {2024/08/20; Travis2024; KRT}  
