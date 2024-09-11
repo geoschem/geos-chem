@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new species ALK4N1 and ALK4N2 to Ox family in KPP
 - Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
 - Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
+- Added `Is_Photolysis: true` tags to APINP, AROMCHO, BPINOOH, BPINP, C96O2H, H2O, HO2, LIMAL, LIMO3H, PINAL, PINONIC, SO2 in `species_database.yml`
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
@@ -30,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `GFED4_Climatology` entries to point to the climatology file for 2010-2023
 - Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
 - Call `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
+- Moved PINO3H to be in alphabetical order in `species_database.yml`
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.
@@ -39,6 +41,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed PPN photolysis reaction rate constant to `PHOTOL(167)`
 - Changed photolysis reactions from Travis et al (2024) rate constnats
   to`PHOTOL(168:177)`
+
+### Removed
+- Removed `Is_Photolysis: true` tags from APINN, AROMPN, BPINN, BPINON, C96N, CHCl3, HC5A, LIMN, LIMNB, LIMPAN, MEKPN, MPAN, PHAN, PIN, PINPAN in `species_database.yml`
 
 ## [14.4.3] - 2024-08-13
 ### Added
