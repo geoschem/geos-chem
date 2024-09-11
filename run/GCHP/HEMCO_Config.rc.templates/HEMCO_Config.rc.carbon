@@ -114,6 +114,7 @@ Mask fractions:              false
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
+    --> SHIP                   :       true
     --> CEDSv2_SHIP            :       true     # 1750-2017
     --> CEDS_GBDMAPS_SHIP      :       false    # 1970-2017
     --> CEDS_GBDMAPS_SHIP_byFuelType:  false    # 1970-2017
