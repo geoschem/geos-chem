@@ -16,7 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new species ALK4N1 and ALK4N2 to Ox family in KPP
 - Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
 - Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
-- Added `Is_Photolysis: true` tags to APINP, AROMCHO, BPINOOH, BPINP, C96O2H, H2O, HO2, LIMAL, LIMO3H, PINAL, PINONIC, SO2 in `species_database.yml`
+- Added ACO3, ACR, ACRO2, ALK4N{1,2,O}2, ALK4P, ALK7, APAN, APINN, APINO2, APINP, AROCMCHO, AROMCO3, AROMPN, BPINN, BPINO2, BPINON, BPINOO2, BPINOOH, BPINP, BUTN, BUTO2, C4H6, C96N, C96O2, C9602H, EBZ, GCO3, HACTA, LIMAL, LIMKB, LIMKET, LIMKO2, LIMN, LIMNB, LIMO2H, LIMO3, LIMO3H, LIMPAN, MEKCO3, MEKPN, MYRCO, PHAN, PIN, PINAL, PINO3, PINONIC, PINPAN, R7N{1,2}, R7O2, R7P, RNO3, STYR, TLFUO2, TLFUONE, TMB, ZRO2 to `species_database.yml` following Travis et  al. 2024.
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
@@ -42,9 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed photolysis reactions from Travis et al (2024) rate constnats
   to`PHOTOL(168:177)`
 - Updated `Jval_` entries in `run/GCHP/HISTORY.rc.templates/HISTORY.rc.fullchem`
-
-### Removed
-- Removed `Is_Photolysis: true` tags from APINN, AROMPN, BPINN, BPINON, C96N, CHCl3, HC5A, LIMN, LIMNB, LIMPAN, MEKPN, MPAN, PHAN, PIN, PINPAN in `species_database.yml`
 
 ## [14.4.3] - 2024-08-13
 ### Added
