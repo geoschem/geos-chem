@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed PPN photolysis reaction rate constant to `PHOTOL(167)`
 - Changed photolysis reactions from Travis et al (2024) rate constnats
   to`PHOTOL(168:177)`
+- Updated `Jval_` entries in `run/GCHP/HISTORY.rc.templates/HISTORY.rc.fullchem`
 
 ### Removed
 - Removed `Is_Photolysis: true` tags from APINN, AROMPN, BPINN, BPINON, C96N, CHCl3, HC5A, LIMN, LIMNB, LIMPAN, MEKPN, MPAN, PHAN, PIN, PINPAN in `species_database.yml`
