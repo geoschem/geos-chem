@@ -173,6 +173,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> LightningClimatology   :       ${RUNDIR_LIGHTNOX_CLIM}
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
+    --> UseSoilTemperature     :       false
     --> Use fertilizer NOx     :       true
 105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}

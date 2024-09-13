@@ -500,6 +500,18 @@ CONTAINS
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%Z0 = Q
 
+    !======================================================================
+    ! Get fields for soil NOX extension only when needed
+    !======================================================================
+    IF ( Input_Opt%LSOILNOX .and. Input_Opt%UseSoilTemp ) THEN
+
+       ! Read TSOIL1
+       v_name = "TSOIL1"
+       CALL Get_Met_2D(Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index)
+       State_Met%TSOIL1 = Q
+
+    ENDIF
+
     ! Echo info
     stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
     WRITE( 6, 10 ) stamp
