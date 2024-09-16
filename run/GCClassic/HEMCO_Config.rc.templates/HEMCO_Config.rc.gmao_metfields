@@ -144,6 +144,15 @@ METDIR:   ${RUNDIR_MET_DIR}
 )))LightningClimatology
 )))LightNOx
 
+#==============================================================================
+# --- Fields for soil NOx emissions (Extension 104) ---
+#==============================================================================
+(((SoilNOx
+(((UseSoilTemperature
+* TSOIL1    $METDIR/$YYYY/$MM/$MET.$YYYY$MM$DD.A1soil.$RES.$NC     TSOIL1   1980-2100/1-12/1-31/*/+30minute RFY xy  1  * -  1 1
+)))UseSoilTemperature
+)))SoilNOx
+
 ### END SECTION BASE EMISSIONS ###
 
 ### END OF HEMCO INPUT FILE ###
