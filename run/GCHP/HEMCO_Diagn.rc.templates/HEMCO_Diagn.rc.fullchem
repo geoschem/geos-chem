@@ -70,6 +70,13 @@ EmisALK4_BioBurn   ALK4   111    -1  -1   2   kg/m2/s  ALK4_emission_flux_from_b
 EmisALK4_Ship      ALK4   0      10  -1   2   kg/m2/s  ALK4_emission_flux_from_ships
 
 ###############################################################################
+#####  ALK7 emissions                                                     #####
+###############################################################################
+EmisALK7_Total     ALK7   -1     -1  -1   3   kg/m2/s  ALK7_emission_flux_from_all_sectors
+EmisALK7_Anthro    ALK7   0      1   -1   3   kg/m2/s  ALK7_emission_flux_from_anthropogenic
+EmisALK7_Ship      ALK7   0      10  -1   2   kg/m2/s  ALK7_emission_flux_from_ships
+
+###############################################################################
 #####  BCPI and BCPO emissions                                            #####
 ###############################################################################
 EmisBCPI_Total     BCPI   -1     -1  -1   3   kg/m2/s  BCPI_emission_flux_from_all_sectors
@@ -527,6 +534,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 #InvCEDS_ALD2         ALD2   0    1   5   3   kg/m2/s  ALD2_emission_flux_from_CEDS_inventory
 #InvCEDS_ALK4         ALK4   0    1   5   3   kg/m2/s  ALK4_emission_flux_from_CEDS_inventory
+#InvCEDS_ALK7         ALK7   0    1   5   3   kg/m2/s  ALK7_emission_flux_from_CEDS_inventory
 #InvCEDS_BCPI         BCPI   0    1   5   3   kg/m2/s  BCPI_emission_flux_from_CEDS_inventory
 #InvCEDS_BCPO         BCPO   0    1   5   3   kg/m2/s  BCPO_emission_flux_from_CEDS_inventory
 #InvCEDS_BENZ         BENZ   0    1   5   3   kg/m2/s  BENZ_emission_flux_from_CEDS_inventory

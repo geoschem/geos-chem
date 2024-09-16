@@ -1542,13 +1542,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C5H12_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2407/707            1 5
 0 CEDS_C5H12_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  26                  1 5
 
-0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2401                1 5
-0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2406/706/315        1 5
-0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2407/707/316        1 5
-0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2411/711            1 5
-0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2409/709            1 5
-0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2407/707            1 5
-0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  26                  1 5
+0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy   kg/m2/s ALK7  2401                1 5
+0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK7  2406/706/315        1 5
+0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK7  2407/707/316        1 5
+0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy   kg/m2/s ALK7  2411/711            1 5
+0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy   kg/m2/s ALK7  2409/709            1 5
+0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy   kg/m2/s ALK7  2407/707            1 5
+0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy   kg/m2/s ALK7  26                  1 5
 
 0 CEDS_C2H4_AGR   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          1750-2019/1-12/1/0 C xy   kg/m2/s C2H4  2401                1 5
 0 CEDS_C2H4_ENE   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          1750-2019/1-12/1/0 C xyL* kg/m2/s C2H4  2406/706/315        1 5
@@ -1638,13 +1638,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_TMB_SLV    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_slv           1750-2019/1-12/1/0 C xy   kg/m2/s HCOOH 26                  1 5
 0 CEDS_TMB_WST    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_wst           1750-2019/1-12/1/0 C xy   kg/m2/s HCOOH 26                  1 5
 
-0 CEDS_OTH_AGR    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_agr     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
-0 CEDS_OTH_ENE    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ene     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6 26/315               1 5
-0 CEDS_OTH_IND    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ind     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6 26/316               1 5
-0 CEDS_OTH_TRA    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_tra     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
-0 CEDS_OTH_RCO    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_rco     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
-0 CEDS_OTH_SLV    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_slv     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
-0 CEDS_OTH_WST    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_wst     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
+0 CEDS_OTH_AGR    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_agr     1750-2019/1-12/1/0 C xy   kg/m2/s ALK7 26                   1 5
+0 CEDS_OTH_ENE    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ene     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK7 26/315               1 5
+0 CEDS_OTH_IND    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ind     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK7 26/316               1 5
+0 CEDS_OTH_TRA    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_tra     1750-2019/1-12/1/0 C xy   kg/m2/s ALK7 26                   1 5
+0 CEDS_OTH_RCO    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_rco     1750-2019/1-12/1/0 C xy   kg/m2/s ALK7 26                   1 5
+0 CEDS_OTH_SLV    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_slv     1750-2019/1-12/1/0 C xy   kg/m2/s ALK7 26                   1 5
+0 CEDS_OTH_WST    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_wst     1750-2019/1-12/1/0 C xy   kg/m2/s ALK7 26                   1 5
 )))CEDSv2
 
 #==============================================================================
@@ -2674,8 +2674,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 4
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 4
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 4
-0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     1  5
-0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     1  5
+0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 4
+0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK7  26     10 4
 )))HTAPv3_SHIP
 
 (((CEDSv2_SHIP
@@ -2709,8 +2709,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 5
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 5
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
-0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     1  5
-0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     1  5
+0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
+0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK7  26     10 5
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
