@@ -28,7 +28,6 @@ ACR:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   MW_g: 56.06
 ACTA:
   DD_F0: 1.0
@@ -79,7 +78,6 @@ APAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 133.06
   WD_RetFactor: 2.0e-2
@@ -187,7 +185,6 @@ ALK4N2:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 119.10
   WD_RetFactor: 2.0e-2
@@ -206,7 +203,6 @@ ALK4P:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 90.14
   WD_RetFactor: 2.0e-2
@@ -338,7 +334,6 @@ AROMCHO:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 130.10
   Henry_CR: 7500.0
@@ -4804,7 +4799,6 @@ RNO3:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 203.15
   WD_RetFactor: 2.0e-2
@@ -4837,7 +4831,6 @@ R7N2:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 161.2
   WD_RetFactor: 2.0e-2
@@ -4875,7 +4868,6 @@ R7P:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 132.20
   WD_RetFactor: 2.0e-2
@@ -5001,7 +4993,6 @@ RNO3:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 203.15
   WD_RetFactor: 2.0e-2

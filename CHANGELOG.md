@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed photolysis reactions from Travis et al (2024) rate constnats
   to`PHOTOL(168:177)`
 - Updated `Jval_` entries in `run/GCHP/HISTORY.rc.templates/HISTORY.rc.fullchem`
+- Updated species database Is_Photolysis entries to remove J-value diagnostics with all zeros in full chemistry simulation
 
 ## [14.4.3] - 2024-08-13
 ### Added
