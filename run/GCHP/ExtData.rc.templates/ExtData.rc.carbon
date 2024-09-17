@@ -432,6 +432,9 @@ CONUS_MASK_MIRROR 1 N Y - none none MASK ./HcoDir/MASKS/v2024-04/CONUS_Mask_Mirr
 
 # Comment these lines if you are not using any of the CEDS inventories
 CHINA_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/China_mask.generic.1x1.nc
+
+# For CH4 reservoir emissions from ResME
+SEASONAL_RES_MASK 1 N Y F%y2-%m2-01T00:00:00 - none none Mask ./HcoDir/CH4/v2024-01/ResME/reservoir_mask.01x01.nc
 %%
 
 DerivedExports%%
