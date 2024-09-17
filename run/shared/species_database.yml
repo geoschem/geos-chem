@@ -1681,7 +1681,6 @@ H2O:
   FullName: Water vapor
   Is_Advected: true
   Is_Gas: true
-  Is_Photolysis: true
   MW_g: 18.02
 H2O2:
   Background_VV: 4.0e-15
@@ -5102,7 +5101,6 @@ SO2:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 64.04
   WD_AerScavEff: 1.0
