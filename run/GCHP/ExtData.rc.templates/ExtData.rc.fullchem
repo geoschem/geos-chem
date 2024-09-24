@@ -43,6 +43,13 @@ FLASH_DENS 1 Y Y F1980-%m2-01T00:00:00 none none LDENS ./HcoDir/OFFLINE_LIGHTNIN
 CONV_DEPTH 1 Y Y F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
 #
 #==============================================================================
+# --- Fields for soil NOx emissions (Extension 104) ---
+# These fields are stored in State_Met, along with the other met fields
+# Manually uncomment this line is UseSoilTemperature is true in HEMCO config.
+#==============================================================================
+#TSOIL1 1 N Y F0;003000 none none TSOIL1   ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1soil.025x03125.nc
+#
+#==============================================================================
 # --- Fields for RRTMG ---
 # Dynamical heating data is only read in when RRTMG FDH/SEFDH is used and
 # must be generated in a reference (companion) run. The time after P at

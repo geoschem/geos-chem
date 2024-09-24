@@ -28,7 +28,6 @@ ACR:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   MW_g: 56.06
 ACTA:
   DD_F0: 1.0
@@ -79,7 +78,6 @@ APAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 133.06
   WD_RetFactor: 2.0e-2
@@ -187,7 +185,6 @@ ALK4N2:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 119.10
   WD_RetFactor: 2.0e-2
@@ -206,7 +203,6 @@ ALK4P:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 90.14
   WD_RetFactor: 2.0e-2
@@ -272,6 +268,7 @@ APINP:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -285,7 +282,6 @@ APINN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -358,7 +354,6 @@ AROMPN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 207.1
   WD_RetFactor: 2.0e-2
@@ -573,7 +568,6 @@ BPINN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -610,7 +604,6 @@ BPINON:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2  
@@ -624,6 +617,7 @@ BPINOOH:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -637,6 +631,7 @@ BPINP:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -862,7 +857,6 @@ C96N:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -881,6 +875,7 @@ C96O2H:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -1143,7 +1138,6 @@ CHCl3:
   FullName: Chloroform
   Is_Advected: true
   Is_Gas: true
-  Is_Photolysis: true
   MW_g: 119.35
 Cl:
   Formula: Cl
@@ -1755,7 +1749,6 @@ HC5A:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 100.13
   WD_RetFactor: 2.0e-2
@@ -2364,6 +2357,7 @@ HO2:
   Formula: HO2
   FullName: Hydroperoxyl radical
   Is_Gas: true
+  Is_Photolysis: true
   MW_g: 33.01
 HOBr:
   DD_F0: 0.0
@@ -3095,6 +3089,7 @@ LIMAL:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -3139,7 +3134,6 @@ LIMN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -3153,7 +3147,6 @@ LIMNB:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -3185,6 +3178,7 @@ LIMO2H:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -3203,6 +3197,7 @@ LIMO3H:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -3216,7 +3211,6 @@ LIMPAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -3459,7 +3453,6 @@ MEKPN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 151.07
   WD_RetFactor: 2.0e-2
@@ -3635,7 +3628,6 @@ MPAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 147.10
   WD_RetFactor: 2.0e-2
@@ -4321,7 +4313,6 @@ PHAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 137.0483
   WD_RetFactor: 2.0e-2
@@ -4348,7 +4339,6 @@ PIN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -4362,6 +4352,7 @@ PINAL:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -4370,6 +4361,20 @@ PINO3:
   FullName: Acylperoxy radical from APIN
   Is_Gas: true
   MW_g: 185.27
+PINO3H:
+  DD_F0: 1.0
+  DD_Hstar: 1.0e+5
+  Formula: C10H18O4
+  FullName: Pinonic peracid
+  Henry_CR: 6039.0
+  Henry_K0: 1.0e+5
+  Is_Advected: true
+  Is_DryDep: true
+  Is_Gas: true
+  Is_Photolysis: true  
+  Is_WetDep: true
+  MW_g: 186.28
+  WD_RetFactor: 2.0e-2
 PINONIC:
   DD_F0: 1.0
   DD_Hstar: 3.14e+5
@@ -4380,6 +4385,7 @@ PINONIC:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -4393,7 +4399,6 @@ PINPAN:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
@@ -4405,19 +4410,6 @@ PIO2:
   FullName: Peroxy radical from MTPA
   Is_Gas: true
   MW_g: 185.27
-PINO3H:
-  DD_F0: 1.0
-  DD_Hstar: 1.0e+5
-  Formula: C10H18O4
-  FullName: Pinonic peracid
-  Henry_CR: 6039.0
-  Henry_K0: 1.0e+5
-  Is_Advected: true
-  Is_DryDep: true
-  Is_Gas: true
-  Is_WetDep: true
-  MW_g: 186.28
-  WD_RetFactor: 2.0e-2
 PIP:
   Formula: C10H18O3
   FullName: Peroxide from MTPA
@@ -4806,7 +4798,6 @@ RNO3:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 203.15
   WD_RetFactor: 2.0e-2
@@ -4839,7 +4830,6 @@ R7N2:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 161.2
   WD_RetFactor: 2.0e-2
@@ -4877,7 +4867,6 @@ R7P:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 132.20
   WD_RetFactor: 2.0e-2
@@ -5003,7 +4992,6 @@ RNO3:
   Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 203.15
   WD_RetFactor: 2.0e-2
