@@ -214,7 +214,8 @@ EDGAR8_CH4_TNR_Ship            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_RCO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_RCO_flx.nc             
 EDGAR8_CH4_CHE                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_CHE_flx.nc             
 EDGAR8_CH4_IRO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_IRO_flx.nc             
-EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
+## Comment out to avoid double counting with GFED
+##EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
 EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_SWD_INC_flx.nc         
 
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
