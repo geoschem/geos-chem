@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Read aerosol optical properties files from new data directory specified in geoschem_config.yml rather than directory containing photolysis input files
 - Call `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Moved PINO3H to be in alphabetical order in `species_database.yml`
+- Updated ResME CH4 reservoir emissions to apply seasonality via mask file
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark.

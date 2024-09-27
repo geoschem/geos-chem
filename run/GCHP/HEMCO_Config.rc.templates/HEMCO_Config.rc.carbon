@@ -514,8 +514,8 @@ Mask fractions:              false
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -1724,6 +1724,10 @@ ${RUNDIR_CO2_COPROD}
 (((CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
 2009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc          MASK     2000/1/1/0 C xy 1 1  70/10/150/60
 )))CEDSv2.or.CEDS_GBDMAPS.or.CEDS_GBDMAPS_byFuelType
+
+(((RESERVOIRS
+1500 SEASONAL_RES_MASK $ROOT/CH4/v2024-01/ResME/reservoir_mask.01x01.nc Mask 2022/1-12/1/0 C xy 1 1 -180/-90/180/90
+)))RESERVOIRS
 
 )))EMISSIONS
 
