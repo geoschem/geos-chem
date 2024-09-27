@@ -82,6 +82,7 @@ add_library(GeosCore
   vdiff_mod.F90
   wetscav_mod.F90
   YuIMN_Code.F90
+  kpp_standalone_interface.F90
 
   # Files only included for special cases
   $<$<BOOL:${MODEL_CLASSIC}>:flexgrid_read_mod.F90 get_met_mod.F90 set_boundary_conditions_mod.F90>
