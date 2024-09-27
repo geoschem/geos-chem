@@ -1286,11 +1286,20 @@ CONTAINS
        ! Write chemical state to file for the kpp standalone interface
        ! No external logic needed, this subroutine exits early if the
        ! chemical state should not be printed (psturm, 03/23/24)
-       CALL Write_Samples( I, J, L,      C_before_integrate,     &
-                           local_RCONST, KPPH_before_integrate,  &
-                           RSTATE(Nhexit),                       &
-                           State_Grid,   State_Chm,  State_Met,  &
-                           Input_Opt,    ISTATUS(3), RC )
+       CALL Write_Samples(                                                   &
+            I            = I,                                                &
+            J            = J,                                                &
+            L            = L,                                                &
+            initC        = C_before_integrate,                               &
+            localRCONST  = local_RCONST,                                     &
+            initHvalue   = KPPH_before_integrate,                            &
+            exitHvalue   = RSTATE(Nhexit),                                   &
+            State_Grid   = State_Grid,                                       &
+            State_Chm    = State_Chm,                                        &
+            State_Met    = State_Met,                                        &
+            Input_Opt    = Input_Opt,                                        &
+            KPP_TotSteps = ISTATUS(3),                                       &
+            RC           = RC                                               )
 
        ! test the force write option on the root node
        ! example use case: printing chemical state under conditions

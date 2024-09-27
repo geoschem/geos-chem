@@ -26,8 +26,10 @@ MODULE KPP_Standalone_Interface
   PUBLIC  :: Config_KPP_Standalone
   PUBLIC  :: Write_Samples
   PUBLIC  :: Cleanup_KPP_Standalone
-
-  TYPE :: KPP_Standalone_Interface_Type
+!
+! !DERIVED TYPES:
+!
+  TYPE, PRIVATE :: KPP_Standalone_Interface_Type
      ! Scalars
      INTEGER :: NLOC
      LOGICAL :: Active_Cell
@@ -45,15 +47,25 @@ MODULE KPP_Standalone_Interface
      INTEGER,            DIMENSION(:), ALLOCATABLE :: JDX
      INTEGER,            DIMENSION(:), ALLOCATABLE :: Levels
   END TYPE KPP_Standalone_Interface_Type
+
+  TYPE, PRIVATE :: KPP_Standalone_ActiveCell_Type
+     ! Scalars
+     LOGICAL            :: Active_Cell
+     CHARACTER(LEN=255) :: Active_Cell_Name
+  END TYPE KPP_Standalone_ActiveCell_Type
 !
- 
-TYPE(KPP_Standalone_Interface_Type) :: KPP_Standalone_YAML
+! !PRIVATE DATA MEMBERS:
+!
+  TYPE(KPP_Standalone_Interface_Type),  PRIVATE :: KPP_Standalone_YAML
+  TYPE(KPP_Standalone_ActiveCell_Type), PRIVATE :: KPP_Standalone_ActiveCell
+  !$OMP THREADPRIVATE( KPP_Standalone_ActiveCell )
+
 ! !REVISION HISTORY:
-CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-! 
+CONTAINS
+!EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -118,24 +130,24 @@ CONTAINS
 ! !LOCAL VARIABLES
     INTEGER                :: K
 
-    KPP_Standalone_YAML%Active_Cell = .FALSE.
-    KPP_Standalone_YAML%Active_Cell_Name = ''
-    
     ! Early exit if there was no YAML file or no active cells
-    IF ( KPP_Standalone_YAML%SkipIt ) THEN
-       RETURN
-    END IF
+    IF ( KPP_Standalone_YAML%SkipIt ) RETURN
 
+    KPP_Standalone_ActiveCell%Active_Cell = .FALSE.
+    KPP_Standalone_ActiveCell%Active_Cell_Name = ''
+    
     IF ( ANY(L == KPP_Standalone_YAML%Levels) ) THEN
-    DO K = 1,KPP_Standalone_YAML%NLOC
-       IF ( KPP_Standalone_YAML%IDX(K) == I .AND. KPP_Standalone_YAML%JDX(K) == J ) THEN
-          KPP_Standalone_YAML%Active_Cell = .TRUE.
-          KPP_Standalone_YAML%Active_Cell_Name = KPP_Standalone_YAML%LocationName(K)
-          !write(*,*) trim(KPP_Standalone_YAML%Active_Cell_Name), " LatLon: " , State_Grid%YMid(I,J), State_Grid%XMid(I,J)
-       ENDIF
-    ENDDO
+       DO K = 1,KPP_Standalone_YAML%NLOC
+          IF ( KPP_Standalone_YAML%IDX(K) == I .AND. &
+               KPP_Standalone_YAML%JDX(K) == J ) THEN
+             KPP_Standalone_ActiveCell%Active_Cell = .TRUE.
+             KPP_Standalone_ActiveCell%Active_Cell_Name =  &
+                  KPP_Standalone_YAML%LocationName(K)
+             !write(*,*) trim(KPP_Standalone_YAML%Active_Cell_Name), " LatLon: " , State_Grid%YMid(I,J), State_Grid%XMid(I,J)
+          ENDIF
+       ENDDO
     ENDIF
-   END SUBROUTINE Check_ActiveCell
+  END SUBROUTINE Check_ActiveCell
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -244,8 +256,9 @@ CONTAINS
       IF ( RC /= GC_SUCCESS ) RETURN
       DO I = 1,KPP_Standalone_YAML%NLOC
          KPP_Standalone_YAML%LocationName(I) = TRIM( a_str(I) )
+         print*, trim(KPP_Standalone_YAML%LocationName(I))
       END DO
-      
+
       !========================================================================
       ! Read latitude and longitude of active cells
       !========================================================================
@@ -340,6 +353,7 @@ CONTAINS
       IU_FILE = findFreeLUN()
       open(IU_FILE,FILE=trim(v_str)//'/.test_directory_existence', &
            action = "WRITE",iostat=path_exists,access='SEQUENTIAL')
+
       ! If the specified folder doesn't exist, try OutputDir
       IF ( path_exists /= 0 ) THEN 
          open(IU_FILE,FILE='./OutputDir/.test_directory_existence', &
@@ -433,31 +447,28 @@ CONTAINS
       ! Strings
       CHARACTER(LEN=255)     :: YYYYMMDD_hhmmz
       CHARACTER(LEN=255)     :: level_string
-      CHARACTER(LEN=512)     :: errMsg
+      CHARACTER(LEN=512)     :: errMsg, filename
       
       ! Arrays
       REAL(dp)               :: Vloc(NVAR), Aout(NREACT)  ! For KPP reaction rate diagnostics
 
 
-      ! Did a user want to write the chemical state even if not in an active cell?
-      IF ( PRESENT(FORCE_WRITE) ) THEN
-         FORCE_WRITE_AUX = FORCE_WRITE
-      ELSE
-         FORCE_WRITE_AUX = .FALSE.
-      END IF
+      ! Did a user want to write the chemical state even if 
+      ! not in an active cell?
+      FORCE_WRITE_AUX = .FALSE.
+      IF ( PRESENT( FORCE_WRITE ) ) FORCE_WRITE_AUX = FORCE_WRITE
 
       ! Quit early if there's no writing to be done
-      IF ( (.not. KPP_Standalone_YAML%Active_Cell) .AND. (.not. FORCE_WRITE_AUX) ) THEN
+      IF ( .not. KPP_Standalone_ActiveCell%Active_Cell  .AND.               &
+           .not. FORCE_WRITE_AUX                       ) THEN
          RETURN
       END IF
 
       ! Did the call include an optional cell name?
-      IF ( PRESENT(CELL_NAME) ) THEN
-         CELL_NAME_AUX = CELL_NAME
-      ELSE
-         CELL_NAME_AUX = ''
-      END IF
+      CELL_NAME_AUX = ''
+      IF ( PRESENT( CELL_NAME ) ) CELL_NAME_AUX = CELL_NAME
 
+      ! Get KPP state
       CALL Fun( V       = initC(1:NVAR),                                     &
                 F       = initC(NVAR+1:NSPEC),                               &
                 RCT     = localRCONST,                                       &
@@ -469,21 +480,33 @@ CONTAINS
       !========================================================================
       ! Write the file
       !========================================================================
+
       ! Find a free file LUN
       IU_FILE = findFreeLUN()
       write(level_string,'(I0)') L
       write(YYYYMMDD_hhmmz,'(I0.4,I0.2,I0.2,a,I0.2,I0.2)' ) &
             Get_Year(), Get_Month(), Get_Day(),'_', Get_Hour(), Get_Minute()
-      open(IU_FILE,FILE=trim(KPP_Standalone_YAML%Output_Directory)//'/'                 &
-                      //trim(CELL_NAME_AUX)//trim(KPP_Standalone_YAML%ACTIVE_CELL_NAME) &
-                      //'_L'//trim(level_string)//'_' //trim(YYYYMMDD_hhmmz)//'.txt',   &
-                      action = "WRITE",iostat=RC,access='SEQUENTIAL')
-      IF ( RC /= 0 ) THEN
-         IF ( Input_Opt%amIRoot )                                                       &
-              errMsg = 'Error writing chemical state to KPP Standalone file' 
+
+      ! Filename for output
+      filename = TRIM( KPP_Standalone_YAML%Output_Directory             ) // &
+                 '/'                                                      // &
+                 TRIM( Cell_Name_Aux                                    ) // &
+                 TRIM( KPP_Standalone_ActiveCell%Active_Cell_Name       ) // &
+                 '_L'                                                     // &
+                 trim( level_string                                     ) // &
+                 '_'                                                      // &
+                 TRIM( YYYYMMDD_hhmmz                                   ) // &
+                 '.txt'
+
+      ! Open the file
+      open( IU_FILE,  FILE=TRIM(filename), ACTION="WRITE",                   &
+                      IOSTAT=RC,           ACCESS='SEQUENTIAL')
+      IF ( RC /= GC_SUCCESS ) THEN
+         errMsg = 'Error writing chemical state to KPP Standalone file' 
          CALL GC_Error( errMsg, RC, '' )
          RETURN
-      END IF
+      ENDIF
+
       ! Write header to file
       write(IU_FILE, '(a)') '48                                                                         '
       write(IU_FILE, '(a)') '==========================================================================='
