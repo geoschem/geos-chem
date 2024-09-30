@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Copy values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
-- Changed previously zero Ca2, K, and Mg cation values passed to HETP to scaled SALA species concentrations and updated Na:seasalt mass fraction accordingly
+- Introduced seasalt Ca, K, Mg back to aerosol thermodynamics via HETP.
 - Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
 - Activate the `DryDep` collection for GCClassic & GCHP fullchem benchmarks
 - Reduce the GCHP `DryDep` collection to only the necessary species for benchmarks
