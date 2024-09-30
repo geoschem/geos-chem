@@ -676,17 +676,35 @@ CONTAINS
           ! Total Cl- [mole/m3]
           TCL = ACL + GCL
 
-          ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-          TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 / &
-                                     ( 40.08e+0_fp  * VOL  )
+          ! Assume all Ca2+, K+, and Mg+ originate from seasalt aerosols
+          IF (N == 1) THEN
 
-          ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-          TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.d3 / &
-                                     ( 39.102e+0_fp * VOL  )
+             ! Total Ca2+ (1.16% by weight of fine-mode seasalt) [mole/m3]
+             TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 40.08e+0_fp  * VOL  )
 
-          ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-          TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.d3 / &
-                                     ( 24.312e+0_fp * VOL  )
+             ! Total K+   (1.1% by weight of fine-mode seasalt)  [mole/m3]
+             TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 39.102e+0_fp * VOL  )
+
+             ! Total Mg+  (3.69% by weight of fine-mode seasalt) [mole/m3]
+             TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 24.312e+0_fp * VOL  )
+          ELSE
+
+             ! Total Ca2+ (1.16% by weight of coarse-mode seasalt) [mole/m3]
+             TCA      = Spc(id_SALC)%Conc(I,J,L) * 0.0116e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 40.08e+0_fp  * VOL  )
+
+             ! Total K+   (1.1% by weight of coarse-mode seasalt)  [mole/m3]
+             TK       = Spc(id_SALC)%Conc(I,J,L) * 0.0110e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 39.102e+0_fp * VOL  )
+
+             ! Total Mg+  (3.69% by weight of coarse-mode seasalt) [mole/m3]
+             TMG      = Spc(id_SALC)%Conc(I,J,L) * 0.0369e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 24.312e+0_fp * VOL  )
+
+          ENDIF
 
           ! Compute gas-phase NO3
           IF ( id_HNO3 > 0 ) THEN
