@@ -13,7 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new species ALK4N1 and ALK4N2 to Ox family in KPP
 - Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
 - Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
-- Added ACO3, ACR, ACRO2, ALK4N{1,2,O}2, ALK4P, ALK7, APAN, APINN, APINO2, APINP, AROCMCHO, AROMCO3, AROMPN, BPINN, BPINO2, BPINON, BPINOO2, BPINOOH, BPINP, BUTN, BUTO2, C4H6, C96N, C96O2, C9602H, EBZ, GCO3, HACTA, LIMAL, LIMKB, LIMKET, LIMKO2, LIMN, LIMNB, LIMO2H, LIMO3, LIMO3H, LIMPAN, MEKCO3, MEKPN, MYRCO, PHAN, PIN, PINAL, PINO3, PINONIC, PINPAN, R7N{1,2}, R7O2, R7P, RNO3, STYR, TLFUO2, TLFUONE, TMB, ZRO2 to `species_database.yml` following Travis et  al. 2024
+- Added ACO3, ACR, ACRO2, ALK4N{1,2,O}2, ALK4P, ALK6, APAN, APINN, APINO2, APINP, AROCMCHO, AROMCO3, AROMPN, BPINN, BPINO2, BPINON, BPINOO2, BPINOOH, BPINP, BUTN, BUTO2, C4H6, C96N, C96O2, C9602H, EBZ, GCO3, HACTA, LIMAL, LIMKB, LIMKET, LIMKO2, LIMN, LIMNB, LIMO2H, LIMO3, LIMO3H, LIMPAN, MEKCO3, MEKPN, MYRCO, PHAN, PIN, PINAL, PINO3, PINONIC, PINPAN, R7N{1,2}, R7O2, R7P, RNO3, STYR, TLFUO2, TLFUONE, TMB, ZRO2 to `species_database.yml` following Travis et  al. 2024
 - Added TSOIL1 field to `State_Met` for use in HEMCO soil NOx extension. This should only be read in when the `UseSoilTemperature` option is true in HEMCO config
 
 ### Changed

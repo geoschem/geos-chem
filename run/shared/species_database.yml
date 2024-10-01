@@ -206,7 +206,7 @@ ALK4P:
   Is_WetDep: true
   MW_g: 90.14
   WD_RetFactor: 2.0e-2
-ALK7:
+ALK6:
   FullName: Lumped >= C6 Alkanes
   Is_Advected: true
   Formula: C7H16
@@ -4854,7 +4854,7 @@ R4P:
   WD_RetFactor: 2.0e-2
 R7O2:
   Formula: C7H15O2
-  FullName: Peroxy radical from ALK7
+  FullName: Peroxy radical from ALK6
   Is_Gas: true
   MW_g: 131.19
 R7P:

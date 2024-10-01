@@ -133,7 +133,7 @@ ALK4N1     = IGNORE; {RO2 from ALKN2}
 ALK4N2     = IGNORE; {RO2NO; >= C4 alkylnitrates from ALK4}
 ALK4O2     = IGNORE; {RO2 from ALK4}
 ALK4P      = IGNORE; {CH3CH2CH2CH2OOH; Peroxide from ALK4O2}
-ALK7       = IGNORE; {>= C6 alkanes}
+ALK6       = IGNORE; {>= C6 alkanes}
 AONITA     = IGNORE; {Aerosol-phase organic nitrate from aromatic precursors}
 APAN       = IGNORE; {C3H3NO5; Acryloyl peroxynitrate}
 AROMCHO    = IGNORE; {C5H6O4}
@@ -432,7 +432,7 @@ R4N1       = IGNORE; {RO2 from R4N2}
 R4N2       = IGNORE; {RO2NO; >= C4 alkylnitrates}
 R4O2       = IGNORE; {RO2 from >= C4 biogenic organics}
 R4P        = IGNORE; {CH3CH2CH2CH2OOH; Peroxide from R4O2}
-R7O2       = IGNORE; {RO2 from ALK7}
+R7O2       = IGNORE; {RO2 from ALK6}
 R7N1       = IGNORE; {RO2 from R7N2}
 R7P        = IGNORE; {Peroxide from R7O2}
 R7N2       = IGNORE; {RO2NO; >= C6 alkylnitrates}
@@ -585,9 +585,9 @@ C3H8 + OH = A3O2 :                           GCARR_abc(1.97d-12,1.23d0,-675.0d0)
 A3O2 + NO = NO2 + HO2 + RCHO :               GC_RO2NO_B2_aca(2.90d-12, 350.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
 A3O2 + NO = NPRNO3 :                         GC_RO2NO_A2_aca(2.90d-12, 350.0d0, 3.0d0);                                        {2019/05/10; Fisher2018; JAF}
 PO2 + NO = NO2 + HO2 + CH2O + ALD2 :         GCARR_ac(2.70d-12, 350.0d0);
-// --- ALK7 chemistry from Lurman et al., 1986
-ALK7 + OH = R7O2 :                           GCARR_ac(2.00d-11, -359.0d0);
-ALK7 + NO3 = HNO3 + R7O2 :                   6.0d-17;
+// --- ALK6 chemistry from Lurman et al., 1986
+ALK6 + OH = R7O2 :                           GCARR_ac(2.00d-11, -359.0d0);
+ALK6 + NO3 = HNO3 + R7O2 :                   6.0d-17;
 R7O2 + NO = NO2 + 0.750RCHO + 0.250R4O2 + 
  0.250MEK + 0.750HO2 :                       GC_RO2NO_B2_aca(2.70d-12, 350.0d0, 7.0d0);     
 R7O2 + NO = R7N2 :                           GC_RO2NO_A2_aca(2.70d-12, 350.0d0, 7.0d0);
