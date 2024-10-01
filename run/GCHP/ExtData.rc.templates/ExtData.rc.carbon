@@ -408,7 +408,7 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 #==============================================================================
 
 # --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
-CO2_DIURNAL 1 N    Y F%y4-%m2-%d2T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
+CO2_DIURNAL 1 N    Y F2016-01-01T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
 CO2_WEEKLY  1 2006 Y F%y4-%m2-%d2T00:00:00  none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
 
 # --- Domestic aviation surface correction factor ---
