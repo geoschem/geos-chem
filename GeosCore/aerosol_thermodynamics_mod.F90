@@ -642,7 +642,9 @@ CONTAINS
 
              ! Total Na+ (30.61% by weight of seasalt) [mole/m3]
              ! increase to account for all cations, xnw 11/26/17
-             TNA = Spc(id_SALA)%Conc(I,J,L) * 0.397_fp * 1.0e+3_fp           &
+             ! Reverted Na:SS ratio from 0.397 to 0.3061 since
+             ! cations are no longer excluded (Ca, Mg, K), 9/19/24
+             TNA = Spc(id_SALA)%Conc(I,J,L) * 0.3061_fp * 1.0e+3_fp           &
                    * AlkR / ( 23.0_fp  * VOL  )
 
              ! Total Cl- (55.04% by weight of seasalt) [mole/m3]
@@ -655,7 +657,8 @@ CONTAINS
                    ( 35.45_fp  * VOL  )
           ELSE
 
-             TNA = Spc(id_SALC)%Conc(I,J,L) * 0.378_fp * 1.0e+3_fp           &
+             ! Changed 0.378 to 0.3061 (dry mass fraction of seasalt)
+             TNA = Spc(id_SALC)%Conc(I,J,L) * 0.3061_fp * 1.0e+3_fp           &
                    * AlkR / ( 23.0_fp  * VOL  )
              ACL = Spc(id_SALCCL)%Conc(I,J,L) * 1.0e+3_fp * AlkR /           &
                    ( 35.45_fp  * VOL  )
@@ -673,17 +676,35 @@ CONTAINS
           ! Total Cl- [mole/m3]
           TCL = ACL + GCL
 
-          ! Total Ca2+ (1.16% by weight of seasalt) [mole/m3]
-          TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.d3 / &
-                                     ( 40.08e+0_fp  * VOL  )
+          ! Assume all Ca2+, K+, and Mg+ originate from seasalt aerosols
+          IF (N == 1) THEN
 
-          ! Total K+   (1.1% by weight of seasalt)  [mole/m3]
-          TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.d3 / &
-                                     ( 39.102e+0_fp * VOL  )
+             ! Total Ca2+ (1.16% by weight of fine-mode seasalt) [mole/m3]
+             TCA      = Spc(id_SALA)%Conc(I,J,L) * 0.0116e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 40.08e+0_fp  * VOL  )
 
-          ! Total Mg+  (3.69% by weight of seasalt) [mole/m3]
-          TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.d3 / &
-                                     ( 24.312e+0_fp * VOL  )
+             ! Total K+   (1.1% by weight of fine-mode seasalt)  [mole/m3]
+             TK       = Spc(id_SALA)%Conc(I,J,L) * 0.0110e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 39.102e+0_fp * VOL  )
+
+             ! Total Mg+  (3.69% by weight of fine-mode seasalt) [mole/m3]
+             TMG      = Spc(id_SALA)%Conc(I,J,L) * 0.0369e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 24.312e+0_fp * VOL  )
+          ELSE
+
+             ! Total Ca2+ (1.16% by weight of coarse-mode seasalt) [mole/m3]
+             TCA      = Spc(id_SALC)%Conc(I,J,L) * 0.0116e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 40.08e+0_fp  * VOL  )
+
+             ! Total K+   (1.1% by weight of coarse-mode seasalt)  [mole/m3]
+             TK       = Spc(id_SALC)%Conc(I,J,L) * 0.0110e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 39.102e+0_fp * VOL  )
+
+             ! Total Mg+  (3.69% by weight of coarse-mode seasalt) [mole/m3]
+             TMG      = Spc(id_SALC)%Conc(I,J,L) * 0.0369e+0_fp * 1.0e+3_fp * AlkR / &
+                        ( 24.312e+0_fp * VOL  )
+
+          ENDIF
 
           ! Compute gas-phase NO3
           IF ( id_HNO3 > 0 ) THEN

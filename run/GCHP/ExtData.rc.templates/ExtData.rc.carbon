@@ -214,7 +214,8 @@ EDGAR8_CH4_TNR_Ship            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_RCO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_RCO_flx.nc             
 EDGAR8_CH4_CHE                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_CHE_flx.nc             
 EDGAR8_CH4_IRO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_IRO_flx.nc             
-EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
+## Comment out to avoid double counting with GFED
+##EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
 EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_SWD_INC_flx.nc         
 
 # --- CH4: CEDS (historical) or Shared Socioeconomic Pathways (future) ---
@@ -432,6 +433,9 @@ CONUS_MASK_MIRROR 1 N Y - none none MASK ./HcoDir/MASKS/v2024-04/CONUS_Mask_Mirr
 
 # Comment these lines if you are not using any of the CEDS inventories
 CHINA_MASK        1 N Y - none none MASK ./HcoDir/MASKS/v2018-09/China_mask.generic.1x1.nc
+
+# For CH4 reservoir emissions from ResME
+SEASONAL_RES_MASK 1 Y Y F2022-%m2-01T00:00:00 none none Mask ./HcoDir/CH4/v2024-01/ResME/reservoir_mask.01x01.nc
 %%
 
 DerivedExports%%
