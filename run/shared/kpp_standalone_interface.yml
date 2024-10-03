@@ -1,3 +1,24 @@
+---
+# ============================================================================
+# Configuration file for KPP standalone interface
+#
+# This file specifies at which locations we will archive the model
+# state so that we can initialize KPP standalone box model simulations.
+# ============================================================================
+
+settings:
+  activate: false                    # Master on-off switch
+  output_directory: "./OutputDir/"   # this directory should already exist
+  levels:                            # Model levels to archive
+    - 1
+    - 2
+    - 10
+    - 23
+    - 35
+    - 48
+    - 56
+  timestep: 15                       # defult to heartbeat timestep
+
 active_cells:
    - LosAngeles
    - McMurdo
@@ -15,17 +36,7 @@ active_cells:
    - AtlanticOcean
    - PacificOcean
    - ElDjouf
-settings:
-  output_directory: "./OutputDir/" # this directory should already exist
-  levels:
-    - 1
-    - 2
-    - 10
-    - 23
-    - 35
-    - 48
-    - 56
-  timestep: 15 # default to heartbeat / operator splitting timestep
+
 locations:
   LosAngeles:
     longitude: -118.243

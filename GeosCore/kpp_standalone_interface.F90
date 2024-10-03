@@ -180,19 +180,20 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
       ! Scalars
-      INTEGER            :: I, N
-      INTEGER            :: IU_FILE     ! Available unit for writing
-      INTEGER            :: path_exists
-      LOGICAL            :: file_exists
+      INTEGER                      :: I, N
+      INTEGER                      :: IU_FILE     ! Available unit for writing
+      INTEGER                      :: path_exists
+      LOGICAL                      :: file_exists
+      LOGICAL                      :: v_bool
  
       ! Strings
-      CHARACTER(LEN=255) :: thisLoc
-      CHARACTER(LEN=512) :: errMsg
+      CHARACTER(LEN=255)           :: thisLoc
+      CHARACTER(LEN=512)           :: errMsg
       CHARACTER(LEN=QFYAML_NamLen) :: key
       CHARACTER(LEN=QFYAML_StrLen) :: v_str
 
       ! Objects
-      TYPE(QFYAML_t)     :: Config, ConfigAnchored
+      TYPE(QFYAML_t)               :: Config, ConfigAnchored
 
       ! Arrays
       INTEGER                      :: a_int(QFYAML_MaxArr)
@@ -201,7 +202,8 @@ CONTAINS
       CHARACTER(LEN=QFYAML_NamLen) :: a_str(QFYAML_MaxArr)
   
       ! YAML configuration file name to be read
-      CHARACTER(LEN=30), PARAMETER :: configFile = './kpp_standalone_interface.yml'
+      CHARACTER(LEN=30), PARAMETER :: configFile = &
+           './kpp_standalone_interface.yml'
   
       ! Inquire if YAML interface exists -- if not, skip initializing 
       KPP_Standalone_YAML%SkipIt = .FALSE.
@@ -227,6 +229,19 @@ CONTAINS
          CALL GC_Error( errMsg, RC, thisLoc )
          RETURN
       ENDIF
+
+      !========================================================================
+      ! Read the main on/off switch; Exit if the switch is turned off
+      !========================================================================
+      key = "settings%activate"
+      v_bool = MISSING_BOOL
+      CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         errMsg = 'Error parsing ' // TRIM( key ) // '!'
+         CALL GC_Error( errMsg, RC, thisLoc )
+         RETURN
+      ENDIF
+      KPP_Standalone_YAML%SkipIt = ( .not. v_bool )
 
       !========================================================================
       ! Read the list of active cells
