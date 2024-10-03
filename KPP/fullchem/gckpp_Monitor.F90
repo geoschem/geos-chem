@@ -49,7 +49,7 @@ MODULE gckpp_Monitor
      'TLFUONE                         ','BrNO2                           ','C2H2                            ', & ! index 58 - 60
      'H1211                           ','INO                             ','N2O                             ', & ! index 61 - 63
      'NIT                             ','NITs                            ','PINONIC                         ', & ! index 64 - 66
-     'N                               ','OCS                             ','ALK7                            ', & ! index 67 - 69
+     'N                               ','OCS                             ','ALK6                            ', & ! index 67 - 69
      'ETHN                            ','BZCO3H                          ','HACTA                           ', & ! index 70 - 72
      'HI                              ','PINO3H                          ','CHCl3                           ', & ! index 73 - 75
      'Cl2O2                           ','IBr                             ','CH2Br2                          ', & ! index 76 - 78
@@ -223,8 +223,8 @@ MODULE gckpp_Monitor
      '        A3O2 + NO --> POx + RCHO + NO2 + HO2                                                        ', & ! index 63
      '        A3O2 + NO --> NPRNO3                                                                        ', & ! index 64
      '         PO2 + NO --> POx + CH2O + ALD2 + NO2 + HO2                                                 ', & ! index 65
-     '        ALK7 + OH --> R7O2                                                                          ', & ! index 66
-     '       ALK7 + NO3 --> LOx + R7O2 + HNO3                                                             ', & ! index 67
+     '        ALK6 + OH --> R7O2                                                                          ', & ! index 66
+     '       ALK6 + NO3 --> LOx + R7O2 + HNO3                                                             ', & ! index 67
      '        R7O2 + NO --> POx + 0.25 MEK + 0.75 RCHO + 0.25 R4O2 + NO2 + 0.75 HO2                       ', & ! index 68
      '        R7O2 + NO --> R7N2                                                                          ', & ! index 69
      '       R7O2 + HO2 --> R7P                                                                           ', & ! index 70
