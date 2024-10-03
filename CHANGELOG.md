@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated species database Is_Photolysis entries to remove J-value diagnostics with all zeros in full chemistry simulation
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
+- Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
 
 ## [14.4.3] - 2024-08-13
 ### Added
