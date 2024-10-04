@@ -1977,6 +1977,32 @@ CONTAINS
    ENDIF
 
    !=========================================================================
+   ! Get delta pressure per grid box stored in restart file to allow mass
+   ! conservation across consecutive runs
+   !========================================================================
+   v_name = 'DELPDRY'
+
+   ! Get variable from HEMCO and store in local array
+   CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),  &
+        Ptr3D,     RC,         FOUND=FOUND )
+
+   IF ( FOUND ) THEN
+      State_Met%DELP_DRY = Ptr3D
+      IF ( Input_Opt%amIRoot ) THEN
+         WRITE( 6, 510 ) ADJUSTL( v_name   ),                 &
+              MINVAL(  State_Met%DELP_DRY ),                  &
+              MAXVAL(  State_Met%DELP_DRY ),                  &
+              SUM(     State_Met%DELP_DRY )
+      ENDIF
+   ELSE
+      State_Met%DELP_DRY = 0.0_fp
+      IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+   ENDIF
+
+   ! Nullify pointer
+   Ptr3D => NULL()
+
+   !=========================================================================
    ! Get variables for KPP mechanisms (right now just fullchem and Hg)
    !=========================================================================
    IF ( ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                  &

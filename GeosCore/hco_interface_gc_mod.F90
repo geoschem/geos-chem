@@ -4385,22 +4385,6 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! Get delta pressure per grid box stored in restart file to allow
-      ! mass conservation across consecutive runs.
-      v_name = 'DELPDRY'
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-      IF ( FOUND ) THEN
-         State_Met%DELP_DRY = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize DELP_DRY from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-         ENDIF
-      ENDIF
-      Ptr3D => NULL()
-
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
