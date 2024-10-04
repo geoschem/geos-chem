@@ -583,9 +583,8 @@ CONTAINS
 
        ! Check if the current grid cell in this loop should have its
        ! full chemical state printed (concentrations, rates, constants)
-       ! for use with the KPP Standalone
-       ! (psturm, 03/22/24)
-       CALL Check_ActiveCell( I, J, L, State_Grid )
+       ! for use with the KPP Standalone (psturm, 03/22/24)
+       CALL Check_ActiveCell( I, J, L )
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
