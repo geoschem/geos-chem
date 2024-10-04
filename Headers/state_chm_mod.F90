@@ -2534,12 +2534,12 @@ CONTAINS
 
        ! 
        ALLOCATE( State_Chm%KPP_AbsTol( N ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KppAbsTol', 0, RC )
+       CALL GC_CheckVar( 'State_Chm%Kpp_AbsTol', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%KPP_AbsTol = 0.0_f8
 
        ALLOCATE( State_Chm%KPP_RelTol( N ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KppRelTol', 0, RC )
+       CALL GC_CheckVar( 'State_Chm%Kpp_RelTol', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%KPP_RelTol = 0.0_f8
     ENDIF
