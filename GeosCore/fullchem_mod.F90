@@ -406,7 +406,7 @@ CONTAINS
        CALL Timer_Start( "=> Gas-phase chem", RC ) ! ended in Do_Chemistry
     ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     ! Init diagnostics
     IF ( ASSOCIATED(State_Diag%KppError) ) THEN
        State_Diag%KppError(:,:,:) = 0.0
@@ -1004,7 +1004,7 @@ CONTAINS
              ENDIF
           ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
           ! Keep track of number of error boxes
           IF ( State_Diag%Archive_KppError ) THEN
              State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
@@ -1182,7 +1182,7 @@ CONTAINS
              WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
              WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
              IF ( Input_Opt%KppStop ) THEN
                 CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
              ELSE

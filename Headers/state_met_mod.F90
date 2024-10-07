@@ -3827,7 +3827,7 @@ CONTAINS
     !  -- Lizzie Lundgren and Bob Yantosca, 05 Nov 2018
     !========================================================================
     IF ( ASSOCIATED( State_Met%IUSE ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%IUSE => NULL()
 #else
        DEALLOCATE( State_Met%IUSE, STAT=RC  )
@@ -3838,7 +3838,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%LANDTYPEFRAC ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%LANDTYPEFRAC => NULL()
 #else
        DEALLOCATE( State_Met%LANDTYPEFRAC, STAT=RC  )
@@ -3849,7 +3849,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%MODISLAI ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%MODISLAI => NULL()
 #else
        DEALLOCATE( State_Met%MODISLAI, STAT=RC  )
@@ -3863,7 +3863,7 @@ CONTAINS
     ! 3-D fields
     !------------------------------------------------------------------------
     IF ( ASSOCIATED( State_Met%AD ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%AD => NULL()
 #else
        DEALLOCATE( State_Met%AD, STAT=RC  )
@@ -3874,7 +3874,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%AIRDEN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%AIRDEN => NULL()
 #else
        DEALLOCATE( State_Met%AIRDEN, STAT=RC  )
@@ -3885,7 +3885,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%MAIRDEN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%MAIRDEN => NULL()
 #else
        DEALLOCATE( State_Met%MAIRDEN, STAT=RC  )
@@ -3896,7 +3896,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%AIRVOL ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%AIRVOL => NULL()
 #else
        DEALLOCATE( State_Met%AIRVOL, STAT=RC  )
@@ -3907,7 +3907,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%BXHEIGHT ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%BXHEIGHT => NULL()
 #else
        DEALLOCATE( State_Met%BXHEIGHT, STAT=RC  )
@@ -3918,7 +3918,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%CLDF ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%CLDF => NULL()
 #else
        DEALLOCATE( State_Met%CLDF, STAT=RC  )
@@ -3929,7 +3929,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%CMFMC ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%CMFMC => NULL()
 #else
        DEALLOCATE( State_Met%CMFMC, STAT=RC  )
@@ -3940,7 +3940,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DELP ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DELP => NULL()
 #else
        DEALLOCATE( State_Met%DELP, STAT=RC  )
@@ -3951,7 +3951,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DELP_DRY ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DELP_DRY => NULL()
 #else
        DEALLOCATE( State_Met%DELP_DRY, STAT=RC  )
@@ -3962,7 +3962,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DP_DRY_PREV ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DP_DRY_PREV => NULL()
 #else
        DEALLOCATE( State_Met%DP_DRY_PREV, STAT=RC  )
@@ -3973,7 +3973,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DQRCU ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DQRCU => NULL()
 #else
        DEALLOCATE( State_Met%DQRCU, STAT=RC  )
@@ -3984,7 +3984,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DQRLSAN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DQRLSAN => NULL()
 #else
        DEALLOCATE( State_Met%DQRLSAN, STAT=RC  )
@@ -3995,7 +3995,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%DTRAIN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%DTRAIN => NULL()
 #else
        DEALLOCATE( State_Met%DTRAIN, STAT=RC  )
@@ -4006,7 +4006,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%F_OF_PBL ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%F_OF_PBL => NULL()
 #else
        DEALLOCATE( State_Met%F_OF_PBL, STAT=RC  )
@@ -4017,7 +4017,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%F_UNDER_PBLTOP ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%F_UNDER_PBLTOP => NULL()
 #else
        DEALLOCATE( State_Met%F_UNDER_PBLTOP, STAT=RC  )
@@ -4028,7 +4028,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%OMEGA ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%OMEGA => NULL()
 #else
        DEALLOCATE( State_Met%OMEGA, STAT=RC  )
@@ -4039,7 +4039,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%OPTD ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%OPTD => NULL()
 #else
        DEALLOCATE( State_Met%OPTD, STAT=RC  )
@@ -4050,7 +4050,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PEDGE ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PEDGE => NULL()
 #else
        DEALLOCATE( State_Met%PEDGE, STAT=RC  )
@@ -4061,7 +4061,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PEDGE_DRY ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PEDGE_DRY => NULL()
 #else
        DEALLOCATE( State_Met%PEDGE_DRY, STAT=RC  )
@@ -4072,7 +4072,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFICU ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PFICU => NULL()
 #else
        DEALLOCATE( State_Met%PFICU, STAT=RC  )
@@ -4083,7 +4083,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFILSAN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PFILSAN => NULL()
 #else
        DEALLOCATE( State_Met%PFILSAN, STAT=RC  )
@@ -4094,7 +4094,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFLCU ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PFLCU => NULL()
 #else
        DEALLOCATE( State_Met%PFLCU, STAT=RC  )
@@ -4105,7 +4105,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PFLLSAN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PFLLSAN => NULL()
 #else
        DEALLOCATE( State_Met%PFLLSAN, STAT=RC  )
@@ -4116,7 +4116,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PMID ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PMID => NULL()
 #else
        DEALLOCATE( State_Met%PMID, STAT=RC  )
@@ -4127,7 +4127,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%PMID_DRY ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%PMID_DRY => NULL()
 #else
        DEALLOCATE( State_Met%PMID_DRY, STAT=RC  )
@@ -4138,7 +4138,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%QI ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%QI => NULL()
 #else
        DEALLOCATE( State_Met%QI, STAT=RC  )
@@ -4149,7 +4149,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%QL ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%QL => NULL()
 #else
        DEALLOCATE( State_Met%QL, STAT=RC  )
@@ -4160,7 +4160,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%REEVAPCN ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%REEVAPCN => NULL()
 #else
        DEALLOCATE( State_Met%REEVAPCN, STAT=RC  )
@@ -4171,7 +4171,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%REEVAPLS ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%REEVAPLS => NULL()
 #else
        DEALLOCATE( State_Met%REEVAPLS, STAT=RC  )
@@ -4182,7 +4182,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%RH ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%RH => NULL()
 #else
        DEALLOCATE( State_Met%RH, STAT=RC  )
@@ -4193,7 +4193,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%SPHU => NULL()
 #else
        DEALLOCATE( State_Met%SPHU, STAT=RC  )
@@ -4204,7 +4204,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU1 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%SPHU1 => NULL()
 #else
        DEALLOCATE( State_Met%SPHU1, STAT=RC  )
@@ -4215,7 +4215,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%SPHU2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%SPHU2 => NULL()
 #else
        DEALLOCATE( State_Met%SPHU2, STAT=RC  )
@@ -4226,7 +4226,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%T ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%T => NULL()
 #else
        DEALLOCATE( State_Met%T, STAT=RC  )
@@ -4237,7 +4237,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TMPU1 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%TMPU1 => NULL()
 #else
        DEALLOCATE( State_Met%TMPU1, STAT=RC  )
@@ -4248,7 +4248,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TMPU2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%TMPU2 => NULL()
 #else
        DEALLOCATE( State_Met%TMPU2, STAT=RC  )
@@ -4259,7 +4259,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TV ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%TV => NULL()
 #else
        DEALLOCATE( State_Met%TV, STAT=RC  )
@@ -4270,7 +4270,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TAUCLI ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%TAUCLI => NULL()
 #else
        DEALLOCATE( State_Met%TAUCLI, STAT=RC  )
@@ -4281,7 +4281,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%TAUCLW ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%TAUCLW => NULL()
 #else
        DEALLOCATE( State_Met%TAUCLW, STAT=RC  )
@@ -4292,7 +4292,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%U ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%U => NULL()
 #else
        DEALLOCATE( State_Met%U, STAT=RC  )
@@ -4303,7 +4303,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%UPDVVEL ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%UPDVVEL => NULL()
 #else
        DEALLOCATE( State_Met%UPDVVEL, STAT=RC  )
@@ -4314,7 +4314,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%V ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%V => NULL()
 #else
        DEALLOCATE( State_Met%V, STAT=RC  )
@@ -4325,7 +4325,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XLAI ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%XLAI => NULL()
 #else
        DEALLOCATE( State_Met%XLAI, STAT=RC  )
@@ -4336,7 +4336,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XLAI2 ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%XLAI2 => NULL()
 #else
        DEALLOCATE( State_Met%XLAI2, STAT=RC  )
@@ -4347,7 +4347,7 @@ CONTAINS
     ENDIF
 
     IF ( ASSOCIATED( State_Met%XLAI_NATIVE ) ) THEN
-#if defined( ESMF_ ) || defined( MODEL_WRF )
+#if defined( ESMF_ ) || defined( MODEL_WRF ) || defined( MODEL_GISS )
        State_Met%XLAI_NATIVE => NULL()
 #else
        DEALLOCATE( State_Met%XLAI_NATIVE, STAT=RC  )

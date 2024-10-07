@@ -1441,7 +1441,7 @@ MODULE State_Diag_Mod
      LOGICAL                     :: Archive_CO2photrate
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
      !----------------------------------------------------------------------
      ! The following diagnostics are only used when
      ! GEOS-Chem is interfaced into WRF (as WRF-GC) or CESM
@@ -2804,7 +2804,7 @@ CONTAINS
     State_Diag%Archive_CO2photrate                 = .FALSE.
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     !=======================================================================
     ! These diagnostics are only activated when running GC
     ! either in NASA/GEOS, WRF, or CESM
@@ -6892,7 +6892,7 @@ CONTAINS
           RETURN
        ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
        !--------------------------------------------------------------------
        ! KPP error flag
        !--------------------------------------------------------------------
@@ -14161,7 +14161,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 #endif
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     !=======================================================================
     ! These fields are only used when GEOS-Chem
     ! is interfaced to NASA/GEOS, WRF (as WRF-GC), or CESM
@@ -15183,7 +15183,7 @@ CONTAINS
        IF ( isUnits   ) Units = 'kg m-2 s-1'
        IF ( isRank    ) Rank  = 2
 
-#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
     ELSE IF ( TRIM( Name_AllCaps ) == 'KPPERROR' ) THEN
        IF ( isDesc    ) Desc  = 'KppError'
        IF ( isUnits   ) Units = '1'
