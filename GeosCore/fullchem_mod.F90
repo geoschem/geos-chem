@@ -120,6 +120,7 @@ CONTAINS
     USE GcKpp_Rates,              ONLY : UPDATE_RCONST, RCONST
     USE GcKpp_Util,               ONLY : Get_OHreactivity
     USE Input_Opt_Mod,            ONLY : OptInput
+    USE KppSa_Interface_Mod
     USE Photolysis_Mod,           ONLY : Do_Photolysis, PhotRate_Adj
     USE PhysConstants,            ONLY : AVO, AIRMW
     USE PRESSURE_MOD
@@ -140,7 +141,6 @@ CONTAINS
     USE UCX_MOD,                  ONLY : SO4_PHOTFRAC
     USE UCX_MOD,                  ONLY : UCX_NOX
     USE UCX_MOD,                  ONLY : UCX_H2SO4PHOT
-    USE KPP_Standalone_Interface
 #ifdef TOMAS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
     USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
@@ -443,11 +443,28 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Should we print the full chemical state for any grid cell on this CPU?
-    ! for use with the KPP Standalone
-    ! (psturm, 03/22/24)
+    ! Setup for the KPP standalone interface (Obin Sturm, Bob Yantosca)
+    !
+    ! NOTE: These routines return immediately if the KPP standalone
+    ! interface has been disabled (or if the *.yml file is missing.)
     !=======================================================================
-    CALL Check_Domain( RC )
+
+    ! Get the (I,J) grid box indices for active cells that are on this CPU
+    ! so that we can print the full chemical state to text files.
+    !
+    ! For computational efficency, only do this on the first call, as
+    ! this information does not change with time.
+    IF ( FirstChem ) THEN
+       CALL KppSa_Check_Domain( RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in "Check_Domain"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+    ENDIF
+
+    ! Are we within the time window for archiving model state?
+    CALL KppSa_Check_Time( RC )
 
     !========================================================================
     ! Set up integration convergence conditions and timesteps
@@ -584,7 +601,7 @@ CONTAINS
        ! Check if the current grid cell in this loop should have its
        ! full chemical state printed (concentrations, rates, constants)
        ! for use with the KPP Standalone (psturm, 03/22/24)
-       CALL Check_ActiveCell( I, J, L )
+       CALL KppSa_Check_ActiveCell( I, J, L )
 
        ! Start measuring KPP-related routine timing for this grid box
        IF ( State_Diag%Archive_KppTime ) THEN
@@ -1285,7 +1302,7 @@ CONTAINS
        ! Write chemical state to file for the kpp standalone interface
        ! No external logic needed, this subroutine exits early if the
        ! chemical state should not be printed (psturm, 03/23/24)
-       CALL Write_Samples(                                                   &
+       CALL KppSa_Write_Samples(                                             &
             I            = I,                                                &
             J            = J,                                                &
             L            = L,                                                &
@@ -2715,10 +2732,10 @@ CONTAINS
     USE Gckpp_Parameters,         ONLY : nFam, nReact
     USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,            ONLY : OptInput
+    USE KppSa_Interface_Mod,      ONLY : KppSa_Config
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
-    USE KPP_Standalone_Interface, ONLY : Config_KPP_Standalone
 !
 ! !INPUT PARAMETERS:
 !
@@ -2745,9 +2762,9 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
-    !=======================================================================
+    !========================================================================
     ! Init_FullChem begins here!
-    !=======================================================================
+    !========================================================================
 
     ! Assume success
     RC       = GC_SUCCESS
@@ -2757,9 +2774,9 @@ CONTAINS
     ! modify the IF statement accordingly to allow initialization
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
-    !=======================================================================
+    !========================================================================
     ! Initialize variables
-    !=======================================================================
+    !========================================================================
     ErrMsg   = ''
     ThisLoc  = ' -> at Init_FullChem (in module GeosCore/FullChem_mod.F90)'
 
@@ -2875,10 +2892,10 @@ CONTAINS
                                State_Diag%Archive_O3PconcAfterChem          )
 
 
-    !=======================================================================
+    !========================================================================
     ! Assign default values for KPP absolute and relative tolerances
     ! for species where these have not been explicitly defined.
-    !=======================================================================
+    !========================================================================
     WHERE( State_Chm%KPP_AbsTol == MISSING_DBLE )
        State_Chm%KPP_AbsTol = 1.0e-2_f8
     ENDWHERE
@@ -2887,10 +2904,10 @@ CONTAINS
        State_Chm%KPP_RelTol = 0.5e-2_f8
     ENDWHERE
 
-    !=======================================================================
+    !========================================================================
     ! Save physical parameters from the species database into KPP arrays
     ! in gckpp_Global.F90.  These are for the hetchem routines.
-    !=======================================================================
+    !========================================================================
     DO KppId = 1, State_Chm%nKppSpc + State_Chm%nOmitted
        N                  = State_Chm%Map_KppSpc(KppId)
        IF ( N > 0 ) THEN
@@ -2900,18 +2917,18 @@ CONTAINS
           HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
        ENDIF
     ENDDO
-    !=======================================================================
+    !========================================================================
     ! Allocate arrays
-    !=======================================================================
+    !========================================================================
 
     ! Initialize
     id_PSO4 = -1
     id_PCO  = -1
     id_LCH4 = -1
 
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Pre-store the KPP indices for each KPP prod/loss species or family
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
 
     IF ( nFam > 0 ) THEN
 
@@ -2952,11 +2969,11 @@ CONTAINS
     ENDIF
 
 #ifdef MODEL_CESM
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! If we are finding H2SO4_RATE from a fullchem
     ! simulation for the CESM, throw an error if we cannot find
     ! the PSO4 prod family in this KPP mechanism.
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( id_PSO4 < 1 ) THEN
        ErrMsg = 'Could not find PSO4 in list of KPP families!  This   ' // &
                 'is needed for State_Chm%H2SO4_PRDR and coupling to CESM!'
@@ -2965,11 +2982,11 @@ CONTAINS
     ENDIF
 #endif
 
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem
     ! simulation for the tagCO simulation, throw an error if we cannot find
     ! the PCO or LCH4 prod/loss families in this KPP mechanism.
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%Archive_ProdCOfromCH4    .or.                            &
          State_Diag%Archive_ProdCOfromNMVOC ) THEN
 
@@ -2989,9 +3006,9 @@ CONTAINS
 
     ENDIF
 
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Initialize sulfate chemistry code (cf Mike Long)
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     CALL fullchem_InitSulfurChem( RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "fullchem_InitSulfurCldChem"!'
@@ -2999,9 +3016,9 @@ CONTAINS
        RETURN
     ENDIF
 
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Initialize dust acid uptake code (Mike Long, Bob Yantosca)
-    !--------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( Input_Opt%LDSTUP ) THEN
        CALL aciduptake_InitDustChem( RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -3011,10 +3028,12 @@ CONTAINS
        ENDIF
     ENDIF
 
-    !--------------------------------------------------------------------
-    ! Initialize grid cells for input to KPP Standalone (Obin Sturm)
-    !--------------------------------------------------------------------
-    CALL Config_KPP_Standalone( Input_Opt, RC )
+    !------------------------------------------------------------------------
+    ! Initialize the KPP standalone interface, which will save model state
+    ! for the grid cells specified in kpp_standalone_interface.yml.
+    ! This is needed for input to the KPP standalone box model.
+    !------------------------------------------------------------------------
+    CALL KppSa_Config( Input_Opt, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "KPP_Standalone"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3040,7 +3059,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE KPP_Standalone_Interface,   ONLY : Cleanup_KPP_Standalone
+    USE KppSa_Interface_Mod, ONLY : KppSa_Cleanup
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3092,7 +3111,7 @@ CONTAINS
 
     ! Deallocate variables from kpp standalone module
     ! psturm, 03/22/2024
-    CALL Cleanup_KPP_Standalone( RC )
+    CALL KppSa_Cleanup( RC )
 
   END SUBROUTINE Cleanup_FullChem
 !EOC

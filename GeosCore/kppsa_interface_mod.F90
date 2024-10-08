@@ -3,7 +3,7 @@
 !------------------------------------------------------------------------------
 !BOP
 !
-! !MODULE: kpp_standalone_interface.F90
+! !MODULE: kppsa_interface_mod.F90
 !
 ! !DESCRIPTION: Contains routines to print the full chemical state
 !  which can be used as input to the KPP Standalone.
@@ -11,7 +11,7 @@
 !\\
 ! !INTERFACE:
 !
-MODULE KPP_Standalone_Interface
+MODULE KppSa_Interface_Mod
 !
 ! !USES:
 !
@@ -23,38 +23,42 @@ MODULE KPP_Standalone_Interface
 !
 ! !PUBLIC MEMBERS:
 !
-  PUBLIC  :: Check_Domain
-  PUBLIC  :: Check_ActiveCell
-  PUBLIC  :: Config_KPP_Standalone
-  PUBLIC  :: Write_Samples
-  PUBLIC  :: Cleanup_KPP_Standalone
+  PUBLIC :: KppSa_Check_ActiveCell
+  PUBLIC :: KppSa_Check_Domain
+  PUBLIC :: KppSa_Check_Time
+  PUBLIC :: KppSa_Cleanup
+  PUBLIC :: KppSa_Config
+  PUBLIC :: KppSa_Write_Samples
 !
 ! !DERIVED TYPES:
 !
   ! Type to hold information read from the YAML config file
-  TYPE, PRIVATE :: KPP_Standalone_Interface_Type
-     INTEGER                         :: NLOC
-     LOGICAL                         :: SkipIt
-     CHARACTER(LEN=255)              :: Output_Directory
-     CHARACTER(LEN=255), ALLOCATABLE :: LocationName(:)
-     REAL(hp),           ALLOCATABLE :: LocationLons(:)
-     REAL(hp),           ALLOCATABLE :: LocationLats(:)
-     INTEGER,            ALLOCATABLE :: IDX(:)
-     INTEGER,            ALLOCATABLE :: JDX(:)
-     INTEGER,            ALLOCATABLE :: Levels(:)
-  END TYPE KPP_Standalone_Interface_Type
+  TYPE, PRIVATE :: KppSa_Interface_Type
+     INTEGER                           :: NLOC
+     INTEGER                           :: Start_Output(2)
+     INTEGER                           :: Stop_Output(2)
+     LOGICAL                           :: SkipIt
+     LOGICAL                           :: SkipWriteAtThisTime
+     CHARACTER(LEN=255)                :: Output_Directory
+     CHARACTER(LEN=255),   ALLOCATABLE :: LocationName(:)
+     REAL(hp),             ALLOCATABLE :: LocationLons(:)
+     REAL(hp),             ALLOCATABLE :: LocationLats(:)
+     INTEGER,              ALLOCATABLE :: IDX(:)
+     INTEGER,              ALLOCATABLE :: JDX(:)
+     INTEGER,              ALLOCATABLE :: Levels(:)
+  END TYPE KppSa_Interface_Type
 
   ! Type to denote active cells
-  TYPE, PRIVATE :: KPP_Standalone_ActiveCell_Type
-     LOGICAL                         :: Active_Cell
-     CHARACTER(LEN=255)              :: Active_Cell_Name
-  END TYPE KPP_Standalone_ActiveCell_Type
+  TYPE, PRIVATE :: KppSa_ActiveCell_Type
+     LOGICAL                           :: Active_Cell
+     CHARACTER(LEN=255)                :: Active_Cell_Name
+  END TYPE KppSa_ActiveCell_Type
 !
 ! !PRIVATE DATA MEMBERS:
 !
-  TYPE(KPP_Standalone_Interface_Type),  PRIVATE :: KPP_Standalone_YAML
-  TYPE(KPP_Standalone_ActiveCell_Type), PRIVATE :: KPP_Standalone_ActiveCell
-  !$OMP THREADPRIVATE( KPP_Standalone_ActiveCell )
+  TYPE(KppSa_Interface_Type),  PRIVATE :: KppSa_State
+  TYPE(KppSa_ActiveCell_Type), PRIVATE :: KppSa_ActiveCell
+  !$OMP THREADPRIVATE( KppSa_ActiveCell )
 !
 ! !AUTHORS:
 !  P. Obin Sturm (psturm@usc.edu)
@@ -72,7 +76,53 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_domain
+! !IROUTINE: kppsa_check_domain
+!
+! !DESCRIPTION: Subroutine Check_Domain is used to identify if a
+!  specified latitude and longitude falls within a grid cell on the
+!  current CPU. Multiple lat/lon pairs can be checked simultaneously.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE KppSa_Check_Domain( RC )
+!
+! !USES:
+!
+    USE HCO_GeoTools_Mod, ONLY : HCO_GetHorzIJIndex
+    USE HCO_State_GC_Mod, ONLY : HcoState
+!
+! !OUTPUT PARAMETERS
+!
+    INTEGER, INTENT(out) :: RC
+!
+! !REVISION HISTORY:
+!  11 Mar 2024 - P. Obin Sturm - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Early exit if no locations
+    IF ( KppSa_State%SkipIt ) RETURN
+
+    ! Compute (I,J) indices of grid boxes
+    CALL HCO_GetHorzIJIndex( HcoState,                                       &
+                             KppSa_State%NLOC,                               &
+                             KppSa_State%LocationLons,                       &
+                             KppSa_State%LocationLats,                       &
+                             KppSa_State%IDX,                                &
+                             KppSa_State%JDX,                                &
+                             RC                                             )
+
+  END SUBROUTINE KppSa_Check_Domain
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: kppsa_check_time
 !
 ! !DESCRIPTION: Subroutine Check_Domain is used to identify if a
 ! specified latitude and longitude falls within a grid cell on the
@@ -81,16 +131,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Check_Domain( RC )
+  SUBROUTINE KppSa_Check_Time( RC )
 !
 ! !USES:
 !
-     USE HCO_GeoTools_Mod, ONLY : HCO_GetHorzIJIndex
-     USE HCO_State_GC_Mod, ONLY : HcoState
+    USE ErrCode_Mod
+    USE Time_Mod,   ONLY : Get_Nymd, Get_Nhms
 !
 ! !OUTPUT PARAMETERS
 !
-     INTEGER, INTENT(out) :: RC
+    INTEGER, INTENT(OUT) :: RC   ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  11 Mar 2024 - P. Obin Sturm - Initial version
@@ -98,34 +148,53 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: yyyymmdd, hhmmss
+
+    ! Initialize
+    RC = GC_SUCCESS
+
     ! Early exit if no locations
-    IF ( KPP_Standalone_YAML%SkipIt ) RETURN
+    IF ( KppSa_State%SkipIt ) RETURN
 
-    CALL HCO_GetHorzIJIndex( HcoState,                      &
-                             KPP_Standalone_YAML%NLOC,         &
-                             KPP_Standalone_YAML%LocationLons, &
-                             KPP_Standalone_YAML%LocationLats, &
-                             KPP_Standalone_YAML%IDX,          &
-                             KPP_Standalone_YAML%JDX,          &
-                             RC)
+    ! Assume we will not write to disk at this date/time
+    KppSa_State%SkipWriteAtThisTime  = .TRUE.
 
-   END SUBROUTINE Check_Domain
+    ! Get current date & time
+    yyyymmdd = Get_Nymd()
+    hhmmss   = Get_Nhms()
+
+    print*, '%%%', yyyymmdd, hhmmss
+
+    IF ( yyyymmdd < KppSa_State%Start_Output(1) ) RETURN
+    IF ( yyyymmdd > KppSa_State%Stop_Output(1)  ) RETURN
+    IF ( hhmmss   < KppSa_State%Start_Output(2) ) RETURN
+    IF ( hhmmss   > KppSa_State%Stop_Output(2)  ) RETURN
+
+    ! If we get this far, we're in the time window where we
+    ! archive the chemical state for the KPP standalone
+    KppSa_State%SkipWriteAtThisTime = .FALSE.
+    print*, '%%% ---> archiving this time!!!'
+
+   END SUBROUTINE KppSa_Check_Time
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_activecell
+! !IROUTINE: kppsa_check_activecell
 !
-! !DESCRIPTION: Subroutine Check_ActiveCell is used to identify if a grid cell
-! is within a specified latitude and longitude to print the full chemical state
-! (all concentrations, reaction rates, rate constants, and meteo metadata).
+! !DESCRIPTION: Identifies if a grid cell is within a specified latitude
+!  and longitude to print the full chemical state (all concentrations,
+!  reaction rates, rate constants, and meteo metadata).
 !\\
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Check_ActiveCell( I, J, L )
+   SUBROUTINE KppSa_Check_ActiveCell( I, J, L )
 !
 ! !INPUT PARAMETERS:
 !
@@ -143,31 +212,32 @@ CONTAINS
     INTEGER :: K
 
     ! Early exit if there was no YAML file or no active cells
-    IF ( KPP_Standalone_YAML%SkipIt ) RETURN
+    IF ( KppSa_State%SkipIt ) RETURN
 
     ! Initialize
-    KPP_Standalone_ActiveCell%Active_Cell      = .FALSE.
-    KPP_Standalone_ActiveCell%Active_Cell_Name = ''
+    KppSa_ActiveCell%Active_Cell      = .FALSE.
+    KppSa_ActiveCell%Active_Cell_Name = ''
 
-    IF ( ANY( L == KPP_Standalone_YAML%Levels ) ) THEN
-       DO K = 1, KPP_Standalone_YAML%NLOC
-          IF ( KPP_Standalone_YAML%IDX(K) == I  .AND.                        &
-               KPP_Standalone_YAML%JDX(K) == J ) THEN
-             KPP_Standalone_ActiveCell%Active_Cell = .TRUE.
-             KPP_Standalone_ActiveCell%Active_Cell_Name =                    &
-                  KPP_Standalone_YAML%LocationName(K)
+    ! Flag active cells
+    IF ( ANY( L == KppSa_State%Levels ) ) THEN
+       DO K = 1, KppSa_State%NLOC
+          IF ( KppSa_State%IDX(K) == I  .AND.                                &
+               KppSa_State%JDX(K) == J ) THEN
+             KppSa_ActiveCell%Active_Cell = .TRUE.
+             KppSa_ActiveCell%Active_Cell_Name =                             &
+                  KppSa_State%LocationName(K)
           ENDIF
        ENDDO
     ENDIF
 
-  END SUBROUTINE Check_ActiveCell
+  END SUBROUTINE KppSa_Check_ActiveCell
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Config_KPP_Standalone
+! !IROUTINE: kppsa_config
 !
 ! !DESCRIPTION: Subroutine Config_KPP_Standalone reads a set of gridcells
 !  to be sampled and the full chemical state printed.
@@ -175,12 +245,16 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Config_KPP_Standalone( Input_Opt, RC )
+   SUBROUTINE KppSa_Config( Input_Opt, RC )
+!
+! !USES:
+!
       USE QfYaml_Mod
       USE ErrCode_Mod
       USE Input_Opt_Mod, ONLY : OptInput
       USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
       USE inquireMod,    ONLY : findFreeLUN
+!
 ! !INPUT PARAMETERS:
 !
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
@@ -225,10 +299,10 @@ CONTAINS
            './kpp_standalone_interface.yml'
 
       ! Inquire if YAML interface exists -- if not, skip initializing
-      KPP_Standalone_YAML%SkipIt = .FALSE.
+      KppSa_State%SkipIt = .FALSE.
       INQUIRE( FILE=configFile, EXIST=file_exists )
       IF ( .NOT. file_exists ) THEN
-         KPP_Standalone_YAML%SkipIt = .TRUE.
+         KppSa_State%SkipIt = .TRUE.
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 100 ) TRIM( configFile )
  100        FORMAT( "Config file ", a ", not found, ",                       &
@@ -263,8 +337,8 @@ CONTAINS
          CALL GC_Error( errMsg, RC, thisLoc )
          RETURN
       ENDIF
-      KPP_Standalone_YAML%SkipIt = ( .not. v_bool )
-      IF ( KPP_Standalone_YAML%SkipIt ) THEN
+      KppSa_State%SkipIt = ( .not. v_bool )
+      IF ( KppSa_State%SkipIt ) THEN
          WRITE( 6, 110 )
  110     FORMAT( "KPP standalone interface was manually disabled" )
          RETURN
@@ -285,10 +359,10 @@ CONTAINS
       !========================================================================
       ! Get the number of active cells (if 0, return) and the list of names
       !========================================================================
-      KPP_Standalone_YAML%NLOC = Find_Number_of_Locations( a_str )
-      IF ( KPP_Standalone_YAML%NLOC .eq. 0 ) THEN
+      KppSa_State%NLOC = Find_Number_of_Locations( a_str )
+      IF ( KppSa_State%NLOC .eq. 0 ) THEN
          ! Set SkipIt flag to short circuit other subroutines
-         KPP_Standalone_YAML%SkipIt = .TRUE.
+         KppSa_State%SkipIt = .TRUE.
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 120 )
  120        FORMAT( "No active cells for box modeling ",                      &
@@ -296,11 +370,11 @@ CONTAINS
             RETURN
          ENDIF
       ENDIF
-      ALLOCATE( KPP_Standalone_YAML%LocationName( KPP_Standalone_YAML%NLOC ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%LocationName', 0, RC )
+      ALLOCATE( KppSa_State%LocationName( KppSa_State%NLOC ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%LocationName', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
-      DO I = 1,KPP_Standalone_YAML%NLOC
-         KPP_Standalone_YAML%LocationName(I) = TRIM( a_str(I) )
+      DO I = 1,KppSa_State%NLOC
+         KppSa_State%LocationName(I) = TRIM( a_str(I) )
       END DO
 
       !========================================================================
@@ -308,18 +382,18 @@ CONTAINS
       !========================================================================
 
       ! Allocate number of locations for lats and lons
-      ALLOCATE( KPP_Standalone_YAML%LocationLons( KPP_Standalone_YAML%NLOC ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%LocationLons', 0, RC )
+      ALLOCATE( KppSa_State%LocationLons( KppSa_State%NLOC ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%LocationLons', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
-      ALLOCATE( KPP_Standalone_YAML%LocationLats( KPP_Standalone_YAML%NLOC ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%LocationLats', 0, RC )
+      ALLOCATE( KppSa_State%LocationLats( KppSa_State%NLOC ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%LocationLats', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
       ! Read coordinates
-      DO I = 1,KPP_Standalone_YAML%NLOC
+      DO I = 1,KppSa_State%NLOC
       ! Read longitudes
-         key = "locations%"//TRIM( KPP_Standalone_YAML%LocationName(I) )//"%longitude"
+         key = "locations%"//TRIM( KppSa_State%LocationName(I) )//"%longitude"
          v_str = MISSING_STR
          CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
          IF ( RC /= GC_SUCCESS ) THEN
@@ -327,9 +401,9 @@ CONTAINS
             CALL GC_Error( errMsg, RC, thisLoc )
             RETURN
          ENDIF
-         KPP_Standalone_YAML%LocationLons( I ) = Cast_and_RoundOff( TRIM( v_str ), places=-1 )
+         KppSa_State%LocationLons( I ) = Cast_and_RoundOff( TRIM( v_str ), places=-1 )
       ! Read latitudes
-         key = "locations%"//TRIM( KPP_Standalone_YAML%LocationName(I) )//"%latitude"
+         key = "locations%"//TRIM( KppSa_State%LocationName(I) )//"%latitude"
          v_str = MISSING_STR
          CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
          IF ( RC /= GC_SUCCESS ) THEN
@@ -337,20 +411,20 @@ CONTAINS
             CALL GC_Error( errMsg, RC, thisLoc )
             RETURN
          ENDIF
-         KPP_Standalone_YAML%LocationLats( I ) = Cast_and_RoundOff( TRIM( v_str ), places=-1 )
+         KppSa_State%LocationLats( I ) = Cast_and_RoundOff( TRIM( v_str ), places=-1 )
       END DO
 
       ! Allocate IDX and JDX (masks for whether a location is on the CPU)
-      ALLOCATE( KPP_Standalone_YAML%IDX( KPP_Standalone_YAML%NLOC ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%IDX', 0, RC )
+      ALLOCATE( KppSa_State%IDX( KppSa_State%NLOC ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%IDX', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
-      ALLOCATE( KPP_Standalone_YAML%JDX( KPP_Standalone_YAML%NLOC ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%JDX', 0, RC )
+      ALLOCATE( KppSa_State%JDX( KppSa_State%NLOC ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%JDX', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
 
-      KPP_Standalone_YAML%IDX(:) = -1
-      KPP_Standalone_YAML%JDX(:) = -1
+      KppSa_State%IDX(:) = -1
+      KppSa_State%JDX(:) = -1
 
       !========================================================================
       ! Get the list of levels and number of levels
@@ -370,12 +444,35 @@ CONTAINS
          N = 1
          a_int(1) = 1
       END IF
-      ALLOCATE( KPP_Standalone_YAML%Levels( N ), STAT=RC )
-      CALL GC_CheckVar( 'KPP_Standalone_YAML%Levels', 0, RC )
+      ALLOCATE( KppSa_State%Levels( N ), STAT=RC )
+      CALL GC_CheckVar( 'KppSa_State%Levels', 0, RC )
       IF ( RC /= GC_SUCCESS ) RETURN
       DO I = 1,N
-         KPP_Standalone_YAML%Levels(I) = a_int(I)
+         KppSa_State%Levels(I) = a_int(I)
       END DO
+
+      !========================================================================
+      ! Get the start & stop date/time for which output will be printed
+      !========================================================================
+      key = "settings%start_output_at"
+      a_int = MISSING_INT
+      CALL QFYAML_Add_Get( Config, key, a_int(1:2), "", RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         errMsg = 'Error parsing ' // TRIM( key ) // '!'
+         CALL GC_Error( errMsg, RC, thisLoc )
+         RETURN
+      ENDIF
+      KppSa_State%Start_Output = a_int(1:2)
+
+      key = "settings%stop_output_at"
+      a_int = MISSING_INT
+      CALL QFYAML_Add_Get( Config, key, a_int(1:2), "", RC )
+      IF ( RC /= GC_SUCCESS ) THEN
+         errMsg = 'Error parsing ' // TRIM( key ) // '!'
+         CALL GC_Error( errMsg, RC, thisLoc )
+         RETURN
+      ENDIF
+      KppSa_State%Stop_Output = a_int(1:2)
 
       !========================================================================
       ! Set the output directory
@@ -406,7 +503,7 @@ CONTAINS
                         ACTION = "WRITE",                                    &
                         IOSTAT = path_exists,                                &
                         ACCESS ='SEQUENTIAL'                                )
-         KPP_Standalone_YAML%Output_Directory = "./OutputDir"
+         KppSa_State%Output_Directory = "./OutputDir"
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, '(a)' )                                                &
              "KPP Standalone Interface warning: Specified output directory ",&
@@ -422,11 +519,11 @@ CONTAINS
                trim(v_str),                                                  &
                " and default output directory './OutputDir' "            //  &
                "were not found, writing output to the current directory './'"
-               KPP_Standalone_YAML%Output_Directory = "./"
+               KppSa_State%Output_Directory = "./"
             ENDIF
          ENDIF
       ELSE
-         KPP_Standalone_YAML%Output_Directory = trim(v_str)
+         KppSa_State%Output_Directory = trim(v_str)
          close(IU_FILE)
       END IF
 
@@ -437,25 +534,25 @@ CONTAINS
          WRITE( 6, '(a)'   ) REPEAT( "=", 79 )
          WRITE( 6, '(a,/)' ) "KPP STANDALONE INTERFACE"
          WRITE( 6, '(a,/)' ) "Model state will be archived at these sites:"
-         DO I = 1, KPP_Standalone_YAML%NLOC
-            WRITE( 6, 150 ) KPP_Standalone_YAML%LocationName(I),             &
-                            KPP_Standalone_YAML%LocationLons(I),             &
-                            KPP_Standalone_YAML%LocationLats(I)
+         DO I = 1, KppSa_State%NLOC
+            WRITE( 6, 150 ) KppSa_State%LocationName(I),             &
+                            KppSa_State%LocationLons(I),             &
+                            KppSa_State%LocationLats(I)
  150        FORMAT( a25, "( ", f9.4, ", ", f9.4, " )")
          ENDDO
          WRITE( 6, '(/,a)'   ) "For GEOS-Chem vertical levels:"
-         WRITE( 6, '(100i4)' ) KPP_Standalone_YAML%Levels
+         WRITE( 6, '(100i4)' ) KppSa_State%Levels
          WRITE( 6, '(a)'   ) REPEAT( "=", 79 )
       ENDIF
 
-   END SUBROUTINE Config_KPP_Standalone
+   END SUBROUTINE kppSa_Config
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Write_Samples
+! !IROUTINE: kppsa_write_samples
 !
 ! !DESCRIPTION: Subroutine Write_Samples writes the full chemical state
 ! (concentrations, reaction rates and rate constants, meteorological
@@ -464,11 +561,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Write_Samples( I,           J,           L,                    &
-                             initC,       localRCONST, initHvalue,           &
-                             exitHvalue,  State_Grid,  State_Chm,            &
-                             State_Met,   Input_Opt,   KPP_TotSteps,         &
-                             RC,          FORCE_WRITE, CELL_NAME            )
+   SUBROUTINE KppSa_Write_Samples( I,           J,           L,              &
+                                   initC,       localRCONST, initHvalue,     &
+                                   exitHvalue,  State_Grid,  State_Chm,      &
+                                   State_Met,   Input_Opt,   KPP_TotSteps,   &
+                                   RC,          FORCE_WRITE, CELL_NAME      )
 !
 ! !USES:
 !
@@ -549,7 +646,7 @@ CONTAINS
       IF ( PRESENT( FORCE_WRITE ) ) FORCE_WRITE_AUX = FORCE_WRITE
 
       ! Quit early if there's no writing to be done
-      IF ( .not. KPP_Standalone_ActiveCell%Active_Cell  .AND.               &
+      IF ( .not. KppSa_ActiveCell%Active_Cell  .AND.               &
            .not. FORCE_WRITE_AUX                       ) THEN
          RETURN
       END IF
@@ -582,10 +679,10 @@ CONTAINS
          Get_Year(), Get_Month(), Get_Day(), '_', Get_Hour(), Get_Minute()
 
       ! Filename for output
-      filename = TRIM( KPP_Standalone_YAML%Output_Directory             ) // &
+      filename = TRIM( KppSa_State%Output_Directory                     ) // &
                  '/'                                                      // &
                  TRIM( Cell_Name_Aux                                    ) // &
-                 TRIM( KPP_Standalone_ActiveCell%Active_Cell_Name       ) // &
+                 TRIM( KppSa_ActiveCell%Active_Cell_Name       ) // &
                  '_L'                                                     // &
                  trim( level_string                                     ) // &
                  '_'                                                      // &
@@ -593,16 +690,9 @@ CONTAINS
                  '.txt'
 
       ! Open the file
+      ! NOTE: We cannot exit from within an !$OMP CRITICAL block
       OPEN( IU_FILE,  FILE=TRIM(filename), ACTION="WRITE",                   &
                       IOSTAT=RC,           ACCESS='SEQUENTIAL')
-
-      ! NOTE: Cannot exit from an !$OMP CRITICAL block, so comment out
-      ! for now
-      !IF ( RC /= GC_SUCCESS ) THEN
-      !   errMsg = 'Error writing chemical state to KPP Standalone file'
-      !   CALL GC_Error( errMsg, RC, '' )
-      !   RETURN
-      !ENDIF
 
       ! Write header to file
       WRITE( IU_FILE, '(a)' ) '48'
@@ -648,8 +738,8 @@ CONTAINS
          'Meteorological and general grid cell metadata    '
       WRITE( IU_FILE, '(a,a)'     )                                          &
          'Location:                                        '              // &
-          TRIM( CELL_NAME_AUX                              )              // &
-          TRIM( KPP_Standalone_ActiveCell%ACTIVE_CELL_NAME )
+          TRIM( CELL_NAME_AUX                     )                       // &
+          TRIM( KppSa_ActiveCell%ACTIVE_CELL_NAME )
       WRITE( IU_FILE, '(a,a)'     )                                          &
          'Timestamp:                                       ',                &
           TIMESTAMP_STRING()
@@ -729,14 +819,14 @@ CONTAINS
       CLOSE( IU_FILE )
       !$OMP END CRITICAL
 
-   END SUBROUTINE Write_Samples
+   END SUBROUTINE KppSa_Write_Samples
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: cleanup_kpp_standalone
+! !IROUTINE: kppsa_cleanup
 !
 ! !DESCRIPTION: Deallocates module variables that may have been allocated
 !               at run time and unnecessary files required during the process
@@ -744,7 +834,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE Cleanup_KPP_Standalone( RC )
+   SUBROUTINE KppSa_Cleanup( RC )
 !
 ! !USES:
 !
@@ -769,49 +859,49 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%LocationName ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%LocationName'
-       DEALLOCATE( KPP_Standalone_YAML%LocationName, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%LocationName ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%LocationName'
+       DEALLOCATE( KppSa_State%LocationName, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%LocationLons ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%LocationLons'
-       DEALLOCATE( KPP_Standalone_YAML%LocationLons, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%LocationLons ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%LocationLons'
+       DEALLOCATE( KppSa_State%LocationLons, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%LocationLats ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%LocationLats'
-       DEALLOCATE( KPP_Standalone_YAML%LocationLats, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%LocationLats ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%LocationLats'
+       DEALLOCATE( KppSa_State%LocationLats, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%IDX ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%IDX'
-       DEALLOCATE( KPP_Standalone_YAML%IDX, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%IDX ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%IDX'
+       DEALLOCATE( KppSa_State%IDX, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%JDX ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%JDX'
-       DEALLOCATE( KPP_Standalone_YAML%JDX, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%JDX ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%JDX'
+       DEALLOCATE( KppSa_State%JDX, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-    IF ( ALLOCATED( KPP_Standalone_YAML%Levels ) ) THEN
-       arrayId = 'kpp_standalone_interface.F90:KPP_Standalone_YAML%Levels'
-       DEALLOCATE( KPP_Standalone_YAML%Levels, STAT=RC  )
+    IF ( ALLOCATED( KppSa_State%Levels ) ) THEN
+       arrayId = 'kpp_standalone_interface.F90:KppSa_State%Levels'
+       DEALLOCATE( KppSa_State%Levels, STAT=RC  )
        CALL GC_CheckVar( arrayId, 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
 
-   END SUBROUTINE Cleanup_KPP_Standalone
+   END SUBROUTINE KppSa_Cleanup
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -880,6 +970,8 @@ CONTAINS
 ! !RETURN VALUE:
 !
     INTEGER             :: n_valid
+!
+! !REVISION HISTORY:
 !  11 Mar 2024 - P. Obin Sturm - Initial version
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
@@ -899,4 +991,4 @@ CONTAINS
 
   END FUNCTION Find_Number_of_Levels
 !EOC
-END MODULE KPP_Standalone_Interface
+END MODULE KppSa_Interface_Mod

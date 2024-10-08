@@ -6,10 +6,15 @@
 # state so that we can initialize KPP standalone box model simulations.
 # ============================================================================
 
+# ------------------------------------
+# General settngs
+# ------------------------------------
 settings:
-  activate: false                    # Master on-off switch
-  output_directory: "./OutputDir/"   # this directory should already exist
-  levels:                            # Model levels to archive
+  activate: false                      # Main on/off switch
+  start_output_at: [19000101, 000000]  # Save model state for KPP standalone
+  stop_output_at:  [21000101, 000000]  # ... if between these 2 datetimes
+  output_directory: "./OutputDir/"     # This directory should already exist
+  levels:                              # Model levels to archive
     - 1
     - 2
     - 10
@@ -17,8 +22,11 @@ settings:
     - 35
     - 48
     - 56
-  timestep: 15                       # defult to heartbeat timestep
+  timestep: 15                         # Timestep (mins) for KPP standalone
 
+# ------------------------------------
+# Where to archive model state?
+# ------------------------------------
 active_cells:
    - LosAngeles
    - McMurdo
@@ -37,6 +45,9 @@ active_cells:
    - PacificOcean
    - ElDjouf
 
+# ------------------------------------
+# Active cell geographic coordinates
+# ------------------------------------
 locations:
   LosAngeles:
     longitude: -118.243
