@@ -166,8 +166,7 @@ CONTAINS
     yyyymmdd = Get_Nymd()
     hhmmss   = Get_Nhms()
 
-    print*, '%%%', yyyymmdd, hhmmss
-
+    ! Exit if we are outside the window for archiving model state
     IF ( yyyymmdd < KppSa_State%Start_Output(1) ) RETURN
     IF ( yyyymmdd > KppSa_State%Stop_Output(1)  ) RETURN
     IF ( hhmmss   < KppSa_State%Start_Output(2) ) RETURN
@@ -176,7 +175,6 @@ CONTAINS
     ! If we get this far, we're in the time window where we
     ! archive the chemical state for the KPP standalone
     KppSa_State%SkipWriteAtThisTime = .FALSE.
-    print*, '%%% ---> archiving this time!!!'
 
    END SUBROUTINE KppSa_Check_Time
 !EOC
@@ -211,12 +209,15 @@ CONTAINS
 !
     INTEGER :: K
 
-    ! Early exit if there was no YAML file or no active cells
+    ! Early exit if KPP standalone interface is disabled
     IF ( KppSa_State%SkipIt ) RETURN
 
     ! Initialize
     KppSa_ActiveCell%Active_Cell      = .FALSE.
     KppSa_ActiveCell%Active_Cell_Name = ''
+
+    ! Skip if we are outside the time interval
+    IF ( KppSa_State%SkipWriteAtThisTime ) RETURN
 
     ! Flag active cells
     IF ( ANY( L == KppSa_State%Levels ) ) THEN
@@ -542,10 +543,14 @@ CONTAINS
          ENDDO
          WRITE( 6, '(/,a)'   ) "For GEOS-Chem vertical levels:"
          WRITE( 6, '(100i4)' ) KppSa_State%Levels
-         WRITE( 6, '(a)'   ) REPEAT( "=", 79 )
+         WRITE( 6, 160       ) KppSa_State%Start_Output
+ 160     FORMAT( "Starting at ", i8.8, 1x, i6.6 )
+         WRITE( 6, 170       ) KppSa_State%Stop_Output
+ 170     FORMAT( "Ending at   ", i8.8, 1x, i6.6 )
+         WRITE( 6, '(a)'     ) REPEAT( "=", 79 )
       ENDIF
 
-   END SUBROUTINE kppSa_Config
+   END SUBROUTINE KppSa_Config
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -646,7 +651,7 @@ CONTAINS
       IF ( PRESENT( FORCE_WRITE ) ) FORCE_WRITE_AUX = FORCE_WRITE
 
       ! Quit early if there's no writing to be done
-      IF ( .not. KppSa_ActiveCell%Active_Cell  .AND.               &
+      IF ( .not. KppSa_ActiveCell%Active_Cell  .AND.                         &
            .not. FORCE_WRITE_AUX                       ) THEN
          RETURN
       END IF
