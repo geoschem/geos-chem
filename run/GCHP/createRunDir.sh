@@ -622,6 +622,12 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     chmod 744 ${rundir}/metrics.py
 fi
 
+# Copy the KPP standalone interface config file to ther rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem"  ]]; then
+    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
+    chmod 644 ${rundir}/kpp_standalone_interface.yml
+fi
+
 # Set permissions
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
