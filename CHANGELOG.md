@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved aerosol optical properties files to a new data directory specified in geoschem_config.yml rather than specifying in photolysis input files
 - Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Updated ResME CH4 reservoir emissions to apply seasonality via mask file
+- Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) to make the the CEDS TMB emission fields actually emit TMB like they're supposed to
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark
