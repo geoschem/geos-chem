@@ -124,7 +124,6 @@ CONTAINS
 ! !USES:
 !
     USE CARBON_MOD,            ONLY : EmissCarbon
-    USE Carbon_Gases_Mod,      ONLY : Emiss_Carbon_Gases
     USE CO2_MOD,               ONLY : EmissCO2
     USE ErrCode_Mod
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
@@ -255,21 +254,6 @@ CONTAINS
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Tracer_Source_Phase"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    ! Carbon simulation (e.g. CO2-CO-CH4-OCS via KPP)
-    !
-    ! Computes CO2 production from CO oxidation
-    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
-       CALL Emiss_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,            &
-                                State_Grid, State_Met, RC                    )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Emiss_Carbon_Gases"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
