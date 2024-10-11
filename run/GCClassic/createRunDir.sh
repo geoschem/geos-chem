@@ -688,17 +688,17 @@ else
     # Use GEOS-FP values as placeholders for GEOS-IT until parameters derived
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
 	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8197e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='7.8533e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.6659e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.7586e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.5412e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8656e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.1132e-5'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
