@@ -30,7 +30,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved aerosol optical properties files to a new data directory specified in geoschem_config.yml rather than specifying in photolysis input files
 - Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Updated ResME CH4 reservoir emissions to apply seasonality via mask file
-- Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) to make the the CEDS TMB emission fields actually emit TMB like they're supposed to
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark
@@ -41,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
+- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
 
 ## [14.4.3] - 2024-08-13
 ### Added
