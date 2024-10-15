@@ -205,6 +205,7 @@ PROGRAM GEOS_Chem
   INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
   INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE,  SECOND
   INTEGER                  :: id_H2O,        id_CH4,      id_CLOCK
+  INTEGER                  :: previous_units
 
   ! Reals
   REAL(f8)                 :: TAU,           TAUb
@@ -661,7 +662,9 @@ PROGRAM GEOS_Chem
   ENDIF
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
-  ! and restart file fields
+  ! and restart file fields. State_Chm%Species fields are populated in
+  ! this step and set to either values from file or background values
+  ! in mol/mol dry air.
   TimeForEmis = .FALSE.
   CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
                       State_Met, TimeForEmis, 0,          RC )
@@ -882,6 +885,20 @@ PROGRAM GEOS_Chem
              CALL Timer_End( "Diagnostics", RC )
           ENDIF
        ENDIF
+
+       !---------------------------------------------------------------------
+       ! Convert species concentrations from v/v dry to kg/kg dry so that
+       ! the State_Chm%Species(:)%Conc unit is the same for most of the dynamic
+       ! timestep as the unit used in GCHP/GEOS GEOS-Chem Run method.
+       !---------------------------------------------------------------------
+       CALL Convert_Spc_Units(                                                  &
+            Input_Opt      = Input_Opt,                                         &
+            State_Chm      = State_Chm,                                         &
+            State_Grid     = State_Grid,                                        &
+            State_Met      = State_Met,                                         &
+            new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
+            previous_units = previous_units,                                    &
+            RC             = RC                                                )
 
        !=====================================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -1705,6 +1722,35 @@ PROGRAM GEOS_Chem
              ErrMsg = 'Error encountered in "Set_AerMass_Diagnostic"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
+
+          !------------------------------------------------------------------------
+          ! Set species concentration back to v/v dry air (mol/mol dry air)
+          ! prior to setting restart file arrays. Doing this conversion every
+          ! timestep is required for bit-for-bit reproducibility when breaking up
+          ! runs in time.
+          !------------------------------------------------------------------------
+          ! Turn off diagnostics timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Diagnostics", RC )
+          ENDIF
+
+          ! Convert units
+          CALL Convert_Spc_Units(                                                  &
+               Input_Opt  = Input_Opt,                                             &
+               State_Chm  = State_Chm,                                             &
+               State_Grid = State_Grid,                                            &
+               State_Met  = State_Met,                                             &
+               new_units  = previous_units,                                        &
+               RC         = RC                                                    )
+
+          ! Turn timer back on
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Diagnostics", RC )
+          ENDIF
+
+          ! Set diagnostics arrays in State_Diag that are in mol/mol
+          CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
+               State_Grid, State_Met, RC                 )
 
           ! Increment the timestep values by the heartbeat time
           ! This is because we need to write out data with the timestamp
