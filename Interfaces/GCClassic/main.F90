@@ -1117,26 +1117,6 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       ! Prescribe methane surface concentrations throughout PBL
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
-            id_CH4 > 0                     .and.                             &
-            notDryRun                     ) THEN
-
-          IF ( VerboseAndRoot ) THEN
-             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
-          ENDIF
-
-          ! Set CH4 concentrations
-          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                        State_Met, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in call to "SET_CH4"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-       ENDIF
-
        !=====================================================================
        !                  ***** T R A N S P O R T *****
        !=====================================================================
@@ -1364,6 +1344,27 @@ PROGRAM GEOS_Chem
 
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "HEMCO", RC )
+          ENDIF
+       ENDIF
+
+       ! Also prescribe methane surface concentrations throughout PBL
+       ! (currently done outside emissions)
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
+            id_CH4 > 0                     .and.                             &
+            notDryRun                     ) THEN
+
+          IF ( VerboseAndRoot ) THEN
+             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
+          ENDIF
+
+          ! Set CH4 concentrations
+          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                        State_Met, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in call to "SET_CH4"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
        ENDIF
 
