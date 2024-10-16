@@ -4943,9 +4943,6 @@ CONTAINS
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -4992,22 +4989,24 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
+             !$OMP PARALLEL DO            &
+             !$OMP DEFAULT( SHARED       )&
+             !$OMP PRIVATE( I, J, tmpFlx )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
-                tmpFlx = dflx(I,J,N)                                         &
-                       / MW_kg                                               &
-                       * AVO           * 1.e-4_fp                            &
+                tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
                        * GET_TS_CONV() / GET_TS_EMIS()
-
                 CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
           ENDIF
 
           ! Free species database pointer
           ThisSpc => NULL()
+
        ENDDO
-       !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================
