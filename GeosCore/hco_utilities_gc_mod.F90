@@ -1663,8 +1663,9 @@ CONTAINS
    ! FORMAT strings
 500   FORMAT( a                                                              )
 510   FORMAT( a21, ': Min = ', es15.9, '  Max = ', es15.9, '  Sum = ',es15.9 )
-520   FORMAT( a21, ': not found in GEOS-Chem restart file, setting to zero'
+520   FORMAT( a21, ': not found in GEOS-Chem restart file, setting to zero'  )
 530   FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, ', Max = ', es15.9, '  Sum = ',es15.9 )
+540   FORMAT( 'Species ', i3, ', ', a9, ': not found in restart, setting to background = ', es15.9)
 
    !=================================================================
    ! Open GEOS-Chem restart file
@@ -1721,10 +1722,8 @@ CONTAINS
          ! Print the min, max, and sum of each species as it is read from
          ! the restart file in mol/mol
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
+            WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ), &
                             MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D(:,:,1:State_Grid%NZ) )
-120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
-                    '  Max = ',es15.9, '  Sum = ',es15.9)
          ENDIF
 
          !$OMP PARALLEL DO       &
@@ -1766,9 +1765,7 @@ CONTAINS
                ! Print to log a warning that background values will be used
                IF ( Input_Opt%amIRoot .AND. &
                     I == 1 .AND. J == 1 .AND. L == 1 ) THEN
-                  WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
-140               FORMAT('Species ', i3, ', ', a9, &
-                         ': Use background = ', es15.9)
+                  WRITE( 6, 540 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
                ENDIF
 
 
