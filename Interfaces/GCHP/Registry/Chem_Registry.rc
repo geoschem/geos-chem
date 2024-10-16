@@ -25,7 +25,7 @@
 #  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
 # AIRDENS            |  kg m-3     | xyz | C |    |   |   |     |      | air_density
-  AREA               |     m2      | xy  |   |    |   |   |	|      | 
+  AREA               |     m2    | xy  |   |    |   |   |	|      | 
   FRLAKE             |     1	   | xy  |   |    |   |   |	|      | 
   FRLAND             |     1	   | xy  |   |    |   |   |	|      | 
   FRLANDIC           |     1	   | xy  |   |    |   |   |	|      | 
@@ -96,9 +96,13 @@
   TMPU1              |     1	   | xyz | C |    |   |   |	|      | 
   SPHU2              |     1	   | xyz | C |    |   |   |	|      | 
   TMPU2              |     1	   | xyz | C |    |   |   |	|      | 
-  FLASH_DENS         |     1       | xy  |   |    |   |   |     |      | lightning_flash_density
-  CONV_DEPTH         |     1       | xy  |   |    |   |   |     |      | convective_cloud_depth
-  XLAIMULTI          | cm2_cm-2    | xyz | E |    |   |   |	|      | LAI_by_type 
+  FLASH_DENS         |     1     | xy  |   |    |   |   | |      | lightning_flash_density
+  CONV_DEPTH         |     1     | xy  |   |    |   |   | |      | convective_cloud_depth
+  XLAIMULTI          | cm2_cm-2  | xyz | E |    |   |   |	|      | LAI_by_type 
+  PRECCON            |     1	   | xy  |   |    |   |   |	|      | surface convective precipitation flux
+  PRECLSC            |     1	   | xy  |   |    |   |   |	|      | surface large-scale precipitation flux
+  PRECANV            |     1	   | xy  |   |    |   |   |	|      | surface anvil precipitation flux
+  PRECTOT            |     1	   | xy  |   |    |   |   |	|      | surface total precipitation flux
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
 </ImportSpec>
 
