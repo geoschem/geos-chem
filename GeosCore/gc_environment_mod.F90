@@ -269,7 +269,7 @@ CONTAINS
                          State_Grid  = State_Grid,  &  ! Grid State
                          State_Met   = State_Met,   &  ! Meteorology State
                          RC          = RC          )   ! Success or failure?
-
+    
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_State_Met"!'
@@ -480,6 +480,7 @@ CONTAINS
        RETURN
     ENDIF
 
+#if ! defined( MODEL_GISS )
     !=======================================================================
     ! Initialize the hybrid pressure module.  Define Ap and Bp.
     !=======================================================================
@@ -489,7 +490,8 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-
+#endif
+    
     !=======================================================================
     ! Call setup routines for drydep
     !=======================================================================

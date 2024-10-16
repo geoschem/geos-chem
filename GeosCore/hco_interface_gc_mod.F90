@@ -965,7 +965,7 @@ CONTAINS
        ENDIF
     ENDIF
 
-#if !defined( ESMF_ ) && !defined( MODEL_WRF )
+#if !defined( ESMF_ ) && !defined( MODEL_WRF ) && !defined( MODEL_GISS )
     ! Check if HEMCO has already been called for this timestep
     IF ( ( Phase == 1 ) .and. ( GET_TAU() == PrevTAU ) .and. Input_Opt%amIRoot ) THEN
        Print*, 'HEMCO already called for this timestep. Returning.'
