@@ -1262,6 +1262,9 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- Global OH fields ---
 #------------------------------------------------------------------------------
+
+(((USE_CH4_DATA.or.USE_CO_DATA
+
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
 
@@ -1282,9 +1285,13 @@ ${RUNDIR_GLOBAL_OH}
 ))).not.GLOBAL_OH_GCv5
 )))GLOBAL_OH_GC14
 
+)))USE_CH4_DATA.or.USE_CO_DATA
+
 #------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
 #------------------------------------------------------------------------------
+
+(((USE_CH4_DATA
 
 # --- Global CH4 loss frequencies [1/s] -----------
 (((CH4_LOSS_FREQ
@@ -1296,9 +1303,12 @@ ${RUNDIR_CH4_LOSS}
 ${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
 
+)))USE_CH4_DATA
+
 #------------------------------------------------------------------------------
 # --- Quantities needed for CO chemistry ---
 #------------------------------------------------------------------------------
+(((USE_CO_DATA
 
 # -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [molec/cm3/s] ---
 (((PROD_CO_CH4
@@ -1310,33 +1320,25 @@ ${RUNDIR_PCO_NMVOC}
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
 # --- Units: prod [v/v/s]; loss [1/s]                         ---
-(((USE_CO_DATA
 (((GMI_PROD_LOSS
 * GMI_LOSS_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  loss  2005/1-12/1/0 C xyz s-1     CO - 1 1
 * GMI_PROD_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  prod  2005/1-12/1/0 C xyz v/v/s   CO - 1 1
 )))GMI_PROD_LOSS
-)))USE_CO_DATA
 
-# If CO is not an advected species, then just read as a chemistry input
-(((.not.USE_CO_DATA
-(((GMI_PROD_LOSS
-* GMI_LOSS_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  loss  2005/1-12/1/0 C xyz s-1     *  - 1 1
-* GMI_PROD_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  prod  2005/1-12/1/0 C xyz v/v/s   *  - 1 1
-)))GMI_PROD_LOSS
-))).not.USE_CO_DATA
+)))USE_CO_DATA
 
 #------------------------------------------------------------------------------
 # --- Quantities needed for CO2 chemistry ---
 #------------------------------------------------------------------------------
+(((USE_CO2_DATA
 
 # --- CHEMICAL PRODUCTION FROM CO OXIDATION ------
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
-
-(((USE_CO2_DATA
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+
 )))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
