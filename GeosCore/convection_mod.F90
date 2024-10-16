@@ -342,7 +342,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 #endif
 
-    ! Return if COMPUTE_F returned an error
+    ! Return if Do_Cloud_Convection returned an error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Do_Cloud_Convection"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -502,7 +502,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: AER,         IS_Hg
+    LOGICAL                :: AER,         IS_Hg,     Is_GF_Conv
     INTEGER                :: IC,          ISTEP,     K
     INTEGER                :: KTOP,        NC,        NDT
     INTEGER                :: NLAY,        NS,        CLDBASE
@@ -526,21 +526,25 @@ CONTAINS
     ! Arrays
     REAL(fp)               :: BMASS    (State_Grid%NZ)
     REAL(fp)               :: PDOWN    (State_Grid%NZ)
+    REAL(fp)               :: REEVAPCN (State_Grid%NZ)
+    REAL(fp)               :: DQRCU    (State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),      POINTER :: BXHEIGHT (:)
-    REAL(fp),      POINTER :: CMFMC    (:)
-    REAL(fp),      POINTER :: DQRCU    (:)
-    REAL(fp),      POINTER :: DTRAIN   (:)
-    REAL(fp),      POINTER :: PFICU    (:)
-    REAL(fp),      POINTER :: PFLCU    (:)
-    REAL(fp),      POINTER :: REEVAPCN (:)
-    REAL(fp),      POINTER :: DELP_DRY (:)
-    REAL(fp),      POINTER :: T        (:)
-    REAL(fp),      POINTER :: H2O2s    (:)
-    REAL(fp),      POINTER :: SO2s     (:)
-    REAL(fp),      POINTER :: Q        (:)
-    TYPE(SpcConc), POINTER :: Spc      (:)
+    REAL(fp),      POINTER :: BXHEIGHT     (:)
+    REAL(fp),      POINTER :: CMFMC        (:)
+    REAL(fp),      POINTER :: DQRCU_MET    (:)
+    REAL(fp),      POINTER :: DTRAIN       (:)
+    REAL(fp),      POINTER :: PFICU        (:)
+    REAL(fp),      POINTER :: PFLCU        (:)
+    REAL(fp),      POINTER :: REEVAPCN_MET (:)
+    REAL(fp),      POINTER :: DELP_DRY     (:)
+    REAL(fp),      POINTER :: DELP         (:)
+    REAL(fp),      POINTER :: T            (:)
+    REAL(fp),      POINTER :: H2O2s        (:)
+    REAL(fp),      POINTER :: SO2s         (:)
+    REAL(fp),      POINTER :: Q            (:)
+    REAL(fp),      POINTER :: PRECCON
+    TYPE(SpcConc), POINTER :: Spc          (:)
     TYPE(Species), POINTER :: SpcInfo
 
     !========================================================================
@@ -553,18 +557,20 @@ CONTAINS
     ThisLoc  = ' -> at Do_Cloud_Convection (in convection_mod.F90)'
 
     ! Point to columns of derived-type object fields
-    BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
-    CMFMC    => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
-                                                          ! [kg/m2/s]
-    DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
-    DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
-    REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
-    DELP_DRY => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
-    T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
-    H2O2s    => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
-    SO2s     => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
-    Spc      => State_Chm%Species              ! Chemical species vector
-    SpcInfo  => NULL()                            ! Species database entry
+    BXHEIGHT     => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
+    CMFMC        => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
+                                                              ! [kg/m2/s]
+    DQRCU_MET    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
+    DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
+    REEVAPCN_MET => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+    DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
+    DELP         => State_Met%DELP    (I,J,:        ) ! Edge P diff [hPa]
+    T            => State_Met%T       (I,J,:        ) ! Air temperature [K]
+    PRECCON      => State_Met%PRECCON (I,J          ) ! Surface precipitation flux [mm/day]
+    H2O2s        => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
+    SO2s         => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
+    Spc          => State_Chm%Species              ! Chemical species vector
+    SpcInfo      => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
     PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
@@ -584,6 +590,11 @@ CONTAINS
     ! Convection timestep [s]
     NDT      = TS_DYN
 
+    ! Is this a Hg simulation?
+    IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
+    ! GF convection scheme?
+    Is_GF_Conv = Input_Opt%Met_Conv_Is_Grell_Freitas
+
     IF ( State_Grid%NZ > 72 .or. &
          Input_Opt%MetField == "MODELE2.1" ) THEN 
        ! Higher vertical resolution runs need shorter convective timestep
@@ -596,6 +607,31 @@ CONTAINS
     NS       = MAX( NS, 1 )             ! Set lower bound to 1
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
+
+    IF ( Is_GF_Conv == .FALSE. ) THEN
+       ! RAS scheme
+       REEVAPCN(:) = REEVAPCN_MET(:)
+       DQRCU(:) = DQRCU_MET(:)
+    ELSE
+       ! GF scheme
+       ! REEVAPCN_MET is cumulative re-evaporation
+       ! DQRCU_MET is net precipitation formation (need to add re-evaporation back)
+       REEVAPCN(NLAY) = REEVAPCN_MET(NLAY)
+       DO K = 2, NLAY-1
+         ! REEVAPCN (kg/kg/s) to REEVAPCN_FLUX (kg/m2/s)
+         ! subtraction between fluxes instead
+          REEVAPCN(K) = (REEVAPCN_MET(K) * DELP(K) &
+                     - REEVAPCN_MET(K+1) * DELP(K+1) ) &
+                     / DELP(K)
+       ENDDO
+       ! Zero DQRCU and some negative REEVAPCN at surface in GF scheme
+       ! Set as zero to avoid cloud base mistakenly at surface level
+       REEVAPCN(1) = 0.0_fp
+       DQRCU(1) = 0.0_fp
+       DO K = 2, NLAY
+          DQRCU(K) = DQRCU_MET(K) + REEVAPCN(K)
+       ENDDO
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Determine location of the cloud base, which is the level where
@@ -616,24 +652,29 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Compute PDOWN and BMASS
     !-----------------------------------------------------------------
-    DO K = 1, NLAY
+    ! PDOWN is the convective precipitation leaving each
+    ! box [cm3 H2O/cm2 air/s]. This accounts for the
+    ! contribution from both liquid & ice precip.
+    ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
+    ! using water and ice densities, respectively.
+    ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
+    IF ( Is_GF_Conv == .FALSE. ) THEN
+       PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
+                +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
+    ELSE
+       PDOWN(NLAY) = 0
+       DO K = NLAY-1, 1, -1
+          PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K+1) & 
+                    * DELP(K+1) * G0_100 * 100e+0_fp 
+                    ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
+       ENDDO
+    ENDIF
 
-       ! PDOWN is the convective precipitation leaving each
-       ! box [cm3 H2O/cm2 air/s]. This accounts for the
-       ! contribution from both liquid & ice precip.
-       ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
-       ! using water and ice densities, respectively.
-       ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
-       PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) &
-                +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
-
-       ! BMASS is the dry air mass per unit area for the grid box
-       ! bounded by level K and K+1 [kg/m2]
-       ! BMASS is equivalent to deltaP (dry) * 100 / g
-       ! This is done to keep BMASS in the same units as CMFMC * SDT
-       BMASS(K) = DELP_DRY(K) * G0_100
-
-    ENDDO
+    ! BMASS is the dry air mass per unit area for the grid box
+    ! bounded by level K and K+1 [kg/m2]
+    ! BMASS is equivalent to deltaP (dry) * 100 / g
+    ! This is done to keep BMASS in the same units as CMFMC * SDT
+    BMASS(:) = DELP_DRY(:) * G0_100
 
     !-----------------------------------------------------------------
     ! Compute MB, the mass per unit area of dry air below the cloud
@@ -644,9 +685,6 @@ CONTAINS
     DO K = 1, CLDBASE-1
        MB = MB + BMASS(K)
     ENDDO
-
-    ! Is this a Hg simulation?
-    IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
     !========================================================================
     ! (1)  A d v e c t e d   S p e c i e s   L o o p
@@ -1374,18 +1412,19 @@ CONTAINS
     !================================================================
 
     ! Nullify pointers
-    NULLIFY( BXHEIGHT )
-    NULLIFY( CMFMC    )
-    NULLIFY( DQRCU    )
-    NULLIFY( DTRAIN   )
-    NULLIFY( PFICU    )
-    NULLIFY( PFLCU    )
-    NULLIFY( REEVAPCN )
-    NULLIFY( DELP_DRY )
-    NULLIFY( T        )
-    NULLIFY( H2O2s    )
-    NULLIFY( SO2s     )
-    NULLIFY( Spc      )
+    NULLIFY( BXHEIGHT     )
+    NULLIFY( CMFMC        )
+    NULLIFY( DQRCU_MET    )
+    NULLIFY( DTRAIN       )
+    NULLIFY( PFICU        )
+    NULLIFY( PFLCU        )
+    NULLIFY( REEVAPCN_MET )
+    NULLIFY( DELP_DRY     )
+    NULLIFY( DELP         )
+    NULLIFY( T            )
+    NULLIFY( H2O2s        )
+    NULLIFY( SO2s         )
+    NULLIFY( Spc          )
 
     ! Set error code to success
     RC                      = GC_SUCCESS
