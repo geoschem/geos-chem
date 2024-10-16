@@ -85,10 +85,6 @@ CONTAINS
     USE ErrCode_Mod
     USE Input_Opt_Mod
     USE State_Grid_Mod,  ONLY : GrdState
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD,    ONLY : Init_CMN_DIAG
-    USE CMN_O3_Mod,      ONLY : Init_CMN_O3
-#endif
 
     IMPLICIT NONE
 !
@@ -146,38 +142,19 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
 #ifdef FASTJX
+    ! Throw an error if FAST-JX is used for simulations other than Hg
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       ErrMsg = 'FAST-JX is only supported in the Hg simulation!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered within call to "Init_CMN_FJX"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
-#ifdef BPCH_DIAG
-    !=======================================================================
-    ! THESE ROUTINES ARE ONLY USED WHEN COMPILING GEOS-CHEM w/ BPCH_DIAG=y
-    !=======================================================================
-
-    ! Set dimensions in CMN_DEP_mod.F90 and allocate arrays
-    CALL Init_CMN_DIAG( Input_Opt, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_DIAG"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Initialize CMN_O3_mod.F90
-    CALL Init_CMN_O3( Input_Opt, State_Grid, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered within call to "Init_CMN_O3"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -443,13 +420,6 @@ CONTAINS
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
-#ifdef MODEL_CLASSIC
-#ifdef BPCH_DIAG
-    ! NOTE: Restore this call until we can remove TOMAS BPCH diagnostics
-    !  -- Bob Yantosca (03 Nov 2022)
-    USE Gamap_Mod,          ONLY : Do_Gamap
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -732,7 +702,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ! CH4
     !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
        CALL Init_Global_Ch4( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Global_CH4"!'
@@ -786,33 +756,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-#ifdef MODEL_CLASSIC
-#ifdef BPCH_DIAG
-    !=================================================================
-    ! These routines are only needed when compiling GEOS-Chem
-    ! with BPCH_DIAG=y. (bmy, 10/4/19)
-    !=================================================================
-
-    !-----------------------------------------------------------------
-    ! Diagnostics
-    !-----------------------------------------------------------------
-
-    ! Allocate and initialize variables
-    CALL Ndxx_Setup( Input_Opt, State_Chm, State_Grid, RC )
-
-    !--------------------------------------------------------------------
-    ! Write out diaginfo.dat, tracerinfo.dat files for this simulation
-    !
-    ! NOTE: Do not do this for GCHP, because this will cause a file to
-    ! be written out to disk for each core.
-    !
-    ! ALSO NOTE: Eventually we will remove the ESMF_ C-preprocessor
-    ! but we have to keep it for the time being (bmy, 4/11/18)
-    !--------------------------------------------------------------------
-    CALL Do_Gamap( Input_Opt, State_Chm, RC )
-#endif
-#endif
 
     IF ( Input_Opt%Verbose ) CALL DEBUG_MSG( '### a GC_INIT_EXTRA' )
 

@@ -2982,7 +2982,7 @@ CONTAINS
           ! Save the units of State_Chm%Species(:)%Conc in the container,
           ! so that we can redefine the unit string from "TBD".
           ! Copy into a temp variable so that Gfortran won't choke.
-          TmpUnits            = UNIT_STR(State_Chm%Spc_Units)
+          TmpUnits            = UNIT_STR(State_Chm%Species(1)%Units)
           Container%Spc_Units = TmpUnits
 
           !-----------------------------------------------------------------
@@ -3090,6 +3090,19 @@ CONTAINS
        Collection => Collection%Next
 
     ENDDO
+
+    !=======================================================================
+    ! Cleanup & quit
+    !=======================================================================
+
+    ! If we have called History_Netcdf_Write (i.e. DoWrite == T), then
+    ! reset the satellite diagnostics counter, as we have now entered the
+    ! next diagnostic interval.  We need to do this here instead of in
+    ! History_Netcdf_Write as there are multiple satellite diagnostic
+    ! collections (SatDiagn, SatDiagnEdge).
+    IF ( State_Diag%Archive_SatDiagnCount .and. DoWrite ) THEN
+       State_Diag%SatDiagnCount = 0.0_f8
+    ENDIF
 
     ! Free pointers
     Container  => NULL()

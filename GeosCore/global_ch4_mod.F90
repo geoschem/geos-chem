@@ -216,26 +216,6 @@ CONTAINS
     ENDIF
 
     !=================================================================
-    ! If multi-CH4 species, we store the CH4 total conc. to
-    ! distribute the sink after the chemistry. (ccc, 2/10/09)
-    !=================================================================
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L )
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          PREVCH4(I,J,L) = Spc(1)%Conc(I,J,L)
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
-
-    !=================================================================
     ! Calculate rate of decay of CH4 by OH oxidation.
     !=================================================================
     CALL CH4_DECAY( Input_Opt,  State_Chm, State_Diag, &
@@ -246,13 +226,6 @@ CONTAINS
     !=================================================================
     CALL CH4_STRAT( Input_Opt,  State_Chm, State_Diag, &
                     State_Grid, State_Met, RC )
-
-    !=================================================================
-    ! Distribute the chemistry sink from total CH4 to tagged species
-    !=================================================================
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-       CALL CH4_DISTRIB( Input_Opt, State_Chm, State_Grid, PREVCH4 )
-    ENDIF
 
     ! Free pointer
     Spc => NULL()
@@ -380,9 +353,6 @@ CONTAINS
 
        ! Advected species ID
        N = State_Chm%Map_Advect(NA)
-
-       ! Only do chemistry for the total CH4 tracer in tagCH4 simulations
-       IF ( Input_Opt%ITS_A_TAGCH4_SIM .and. NA > 1 ) CYCLE
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
@@ -855,9 +825,6 @@ CONTAINS
 
        ! Advected species ID
        N = State_Chm%Map_Advect(NA)
-
-       ! Only do chemistry for the total CH4 tracer in tagCH4 simulations
-       IF ( Input_Opt%ITS_A_TAGCH4_SIM .and. NA > 1 ) CYCLE
 
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &

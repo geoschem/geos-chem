@@ -46,6 +46,7 @@ operations:
 
   photolysis:
     activate: true
+    num_levs_with_cloud: 22
     input_directories:
       fastjx_input_dir: /see/namelist/file
       cloudj_input_dir: /see/namelist/file
@@ -55,8 +56,8 @@ operations:
       use_TOMS_SBUV_O3: false
     photolyze_nitrate_aerosol:
       activate: true
-      NITs_Jscale_JHNO3: 100.0
-      NIT_Jscale_JHNO2: 100.0
+      NITs_Jscale: 100.0
+      NIT_Jscale: 100.0
       percent_channel_A_HONO: 66.667
       percent_channel_B_NO2: 33.333
 
@@ -94,6 +95,9 @@ operations:
       - AERI
       - ALD2
       - ALK4
+      - AONITA
+      - AROMP4
+      - AROMP5
       - ASOA1
       - ASOA2
       - ASOA3
@@ -101,9 +105,6 @@ operations:
       - ASOG1
       - ASOG2
       - ASOG3
-      - AONITA
-      - AROMP4
-      - AROMP5
       - ATOOH
       - BALD
       - BCPI

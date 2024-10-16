@@ -285,6 +285,24 @@ CONTAINS
        RETURN
     ENDIF
 
+    IF ( State_Diag%Archive_SfcType ) THEN
+       State_Diag%IsWater = 0.0_fp
+       State_Diag%IsLand  = 0.0_fp
+       State_Diag%IsIce   = 0.0_fp
+       State_Diag%IsSnow  = 0.0_fp
+       !$OMP PARALLEL DO        &
+       !$OMP DEFAULT( SHARED  ) &
+       !$OMP PRIVATE( I, J    )
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
+          IF ( State_Met%IsWater(I,J) ) State_Diag%IsWater(I,J) = 1.0_fp
+          IF ( State_Met%IsLand(I,J)  ) State_Diag%IsLand(I,J)  = 1.0_fp
+          IF ( State_Met%IsIce(I,J)   ) State_Diag%IsIce(I,J)   = 1.0_fp
+          IF ( State_Met%IsSnow(I,J)  ) State_Diag%IsSnow(I,J)  = 1.0_fp
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
 
   END SUBROUTINE Set_Diagnostics_EndofTimestep
 !EOC
@@ -417,7 +435,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,10 +483,9 @@ CONTAINS
     Found   = .FALSE.
     ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
-    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcAdj_Diags_VVDry!'    // &
-                 trim( UNIT_STR(State_Chm%Spc_Units) )
+    ! Make sure all units are in kg/kg dry
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -570,7 +587,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE Time_Mod,       ONLY : Get_LocalTime
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -622,8 +639,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_VVDry (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_VVDry!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -830,7 +847,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -876,8 +893,8 @@ CONTAINS
          ' -> at Set_SpcConc_Diags_MND (in GeosCore/diagnostics_mod.F90)'
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       ErrMsg = 'Incorrect species units in Set_SpcConc_Diags_MND!'
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -944,7 +961,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1011,11 +1028,10 @@ CONTAINS
     colSum  = 0.0_f8
     spcMass = 0.0_f8
 
-    ! Exit if concentrations are not in [kg/kg dry]
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1409,9 +1425,12 @@ CONTAINS
             Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
           id_OH  = Ind_('OH')
           IF ( id_OH < 0 ) THEN
-             errMsg = 'OH is not a defined species in this simulation!!!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
+             id_OH = Ind_('FixedOH')
+             IF ( id_OH < 0 ) THEN
+                errMsg = 'OH is not a defined species in this simulation!!!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
        first= .FALSE.
@@ -1500,6 +1519,13 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
           State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Tropopause level [unitless]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTropLev ) THEN
+          State_Diag%SatDiagnTropLev(I,:) = State_Met%TropLev(I,:) * good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1742,8 +1768,7 @@ CONTAINS
 !
 ! !IROUTINE: set_aermass_diagnostic
 !
-! !DESCRIPTION: Computes the aerosol mass diagnostic (formerly ND42 bpch
-!  diagnostic).
+! !DESCRIPTION: Computes the aerosol mass diagnostic.
 !\\
 !\\
 ! !INTERFACE:
@@ -1764,24 +1789,22 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE PhysConstants,  ONLY : MwCarb
     USE UnitConv_Mod,   ONLY : KG_SPECIES_PER_KG_DRY_AIR, UNIT_STR
+    USE UnitConv_Mod,   ONLY : Check_Units
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
-    TYPE(ChmState),   INTENT(IN)    :: State_Chm   ! Chemistry State object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State object
     TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostic State object
 !
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  NOTE: This diagnostic mimics the bpch diagnostic routine "DIAG42".
 !
 ! !REVISION HISTORY:
 !  05 Feb 2018 - R. Yantosca - Initial version
@@ -1829,6 +1852,7 @@ CONTAINS
     REAL(fp),      POINTER :: SOAGX       (:,:,:)
     REAL(fp),      POINTER :: PM25        (:,:,:)
     REAL(fp),      POINTER :: PM10        (:,:,:)
+    REAL(fp),      POINTER :: PDER        (:,:,:) ! H. Zhu
     REAL(fp),      POINTER :: ISOAAQ      (:,:,:)
     REAL(fp),      POINTER :: SOAS        (:,:,:)
     REAL(fp),      POINTER :: FRAC_SNA    (:,:,:,:)
@@ -1897,17 +1921,17 @@ CONTAINS
     SOAGX       => State_Chm%AerMass%SOAGX
     PM25        => State_Chm%AerMass%PM25
     PM10        => State_Chm%AerMass%PM10
+    PDER        => State_Chm%AerMass%PDER
     ISOAAQ      => State_Chm%AerMass%ISOAAQ
     SOAS        => State_Chm%AerMass%SOAS
     FRAC_SNA    => State_Chm%AerMass%FRAC_SNA
     DAERSL      => State_Chm%AerMass%DAERSL
     WAERSL      => State_Chm%AerMass%WAERSL
 
-    ! Check that species units are kg/kg dry air
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       errMsg = 'State_Chm%Species units must be kg/kg dry. ' // &
-                'Incorrect units: '// TRIM( UNIT_STR(State_Chm%Spc_Units ) )
-       CALL GC_Error( errMsg, RC, ThisLoc )
+    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
+    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
@@ -1996,8 +2020,7 @@ CONTAINS
 
     !=======================================================================
     ! Compute Aerosol mass and PM2.5 diagnostics using concentrations
-    ! from the end of the chemistry timestep, which should be more
-    ! consistent with the legacy ND42 bpch diagnostics
+    ! from the end of the chemistry timestep.
     !=======================================================================
 
     ! Point to fields of State_Chm and State_Met
@@ -2142,6 +2165,13 @@ CONTAINS
        ENDIF
 
        !--------------------------------------
+       ! PDER [nm]
+       !--------------------------------------
+       IF ( State_Diag%Archive_PDER ) THEN
+          State_Diag%PDER(I,J,L) = PDER(I,J,L) 
+       ENDIF
+
+       !--------------------------------------
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
        IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
@@ -2221,6 +2251,7 @@ CONTAINS
     SOAGX       => NULL()
     PM25        => NULL()
     PM10        => NULL()
+    PDER        => NULL()
     ISOAAQ      => NULL()
     SOAS        => NULL()
     FRAC_SNA    => NULL()

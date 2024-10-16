@@ -101,7 +101,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              'SpeciesConcMND_?ADV?          ',
+                              ##'SpeciesConcMND_?ADV?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -136,10 +136,6 @@ COLLECTIONS: 'Restart',
                               'BudgetConvectionTrop_?ADV?           ',
                               'BudgetConvectionPBL_?ADV?            ',
                               'BudgetConvectionLevs1to35_?ADV?      ',
-                              'BudgetWetDepFull_?WET?               ',
-                              'BudgetWetDepTrop_?WET?               ',
-                              'BudgetWetDepPBL_?WET?                ',
-                              'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
 # %%%%% THE Carbon COLLECTION %%%%%
@@ -218,22 +214,13 @@ COLLECTIONS: 'Restart',
                               'SatDiagnConc_CO                ',
                               'SatDiagnConc_CO2               ',
                               'SatDiagnConc_OCS               ',
+                              'SatDiagnOH                     ',
                               'SatDiagnRH                     ',
                               'SatDiagnAirDen                 ',
                               'SatDiagnBoxHeight              ',
-                              'SatDiagnPEdge                  ',
                               'SatDiagnTROPP                  ',
                               'SatDiagnPBLHeight              ',
                               'SatDiagnPBLTop                 ',
-                              'SatDiagnTAir                   ',
-                              'SatDiagnGWETROOT               ',
-                              'SatDiagnGWETTOP                ',
-                              'SatDiagnPARDR                  ',
-                              'SatDiagnPARDF                  ',
-                              'SatDiagnPRECTOT                ',
-                              'SatDiagnSLP                    ',
-                              'SatDiagnSPHU                   ',
-                              'SatDiagnTS                     ',
                               'SatDiagnPBLTOPL                ',
                               'SatDiagnMODISLAI               ',
                               'SatDiagnColEmis_CH4            ',
@@ -252,7 +239,7 @@ COLLECTIONS: 'Restart',
   SatDiagnEdge.duration:      00000100 000000
   SatDiagnEdge.hrrange:       11.98 15.02
   SatDiagnEdge.mode:          'time-averaged'
-  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                  ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
@@ -283,10 +270,10 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',

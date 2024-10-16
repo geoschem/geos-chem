@@ -16,7 +16,7 @@
 # !REMARKS:
 #  If optional run directory name argument is not passed then the user
 #  will be prompted to enter a name interactively, or choose to use the
-#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
+#  default name gchp_{met}_{sim_name}_{sim_extra_option}.
 #
 # !REVISION HISTORY:
 #  Initial version: E. Lundgren,10/5/2018
@@ -284,12 +284,12 @@ fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -556,7 +556,7 @@ if [ -z "$1" ]; then
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=gchp_${sim_name}_${met}
+	rundir_name=gchp_${met}_${sim_name}
 	if [[ "${sim_extra_option}" != "none" ]]; then
 	    rundir_name=${rundir_name}_${sim_extra_option}
 	fi
@@ -617,7 +617,7 @@ cp ./gitignore                        ${rundir}/.gitignore
 # Copy file to auto-update common settings. Use adjoint version for CO2.
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -720,6 +720,7 @@ fi
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -751,6 +752,7 @@ else
 	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
     fi
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
@@ -761,10 +763,10 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xcarbon"           ||
       "x${sim_extra_option}" == "xTOMAS15"          ||
       "x${sim_extra_option}" == "xTOMAS40"          ||
       "x${sim_name}"         == "xPOPs"             ||
-      "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xTransportTracers" ||
       "x${sim_name}"         == "xtagO3"        ]]; then
     RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
@@ -842,7 +844,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml input.nml
-	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
 	    git add *.py
 	fi
 	printf " " >> ${version_log}

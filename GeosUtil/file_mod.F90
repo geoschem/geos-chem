@@ -22,15 +22,13 @@ MODULE FILE_MOD
 ! !DEFINED PARAMETERS:
 !
   !----------------------------------------------------------------
-  ! In the GEOS-5 GCM, the unit numbers cannot be PARAMETERs.
+  ! In the GEOS ESM, the unit numbers cannot be PARAMETERs.
   ! Instead,  use INQUIREs to find open LUNs at the point of
   ! request.  References to most IU_* variables have now been
-  ! made local.  IU_BPCH is the only LUN that needs to be seen
-  ! across several variables.
+  ! made local.
   !----------------------------------------------------------------
 
   ! Logical file unit numbers for ...
-  INTEGER, PUBLIC :: IU_BPCH      ! "ctm.bpch"
   INTEGER, PUBLIC :: IU_FILE
 !
 ! !PUBLIC MEMBER FUNCTIONS:
@@ -237,7 +235,6 @@ CONTAINS
 !EOP
 !------------------------------------------------------------------------------
 !BOC
-    CLOSE( IU_BPCH    )
     CLOSE( IU_FILE    )
 
   END SUBROUTINE CLOSE_FILES

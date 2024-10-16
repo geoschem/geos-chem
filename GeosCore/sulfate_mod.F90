@@ -233,6 +233,7 @@ CONTAINS
     USE TIME_MOD,           ONLY : GET_MONTH
     USE TIME_MOD,           ONLY : GET_TS_CHEM
     USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UCX_MOD,            ONLY : SETTLE_STRAT_AER
     USE UnitConv_Mod
 #ifdef APM
@@ -273,7 +274,7 @@ CONTAINS
     LOGICAL                  :: LDSTUP
     INTEGER                  :: I, J, L, N, MONTH
     REAL(fp)                 :: DTCHEM
-    INTEGER                  :: origUnit
+    INTEGER                  :: previous_units
 
     ! Strings
     CHARACTER(LEN=255)       :: ErrMsg, ThisLoc
@@ -534,21 +535,37 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
        ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                    &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+#ifndef TOMAS
+            mapping        = State_Chm%Map_Advect,                           &
+#endif
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
@@ -629,7 +646,7 @@ CONTAINS
        ENDIF
 
 #ifdef TOMAS
-       !-----------------------------------------------------------------
+       !---------------------------------------------------------------------
        ! For TOMAS microphysics:
        !
        ! SO4 from aqueous chemistry of SO2 (in-cloud oxidation)
@@ -638,9 +655,17 @@ CONTAINS
        ! aerosol by TOMAS subroutine AQOXID.   NOTE: This may be moved
        ! to tomas_mod.F90 in the future, but for now it still needs to get
        ! the PSO4_SO2AQ value while CHEMSULFATE is called
-       !-----------------------------------------------------------------
-       CALL CHEM_SO4_AQ( Input_Opt,  State_Chm, State_Grid, State_Met, &
-                         State_Diag, RC )
+       !---------------------------------------------------------------------
+       CALL CHEM_SO4_AQ( Input_Opt, State_Chm,  State_Grid,                  &
+                         State_Met, State_Diag, RC                          )
+
+       ! Trap potential errors
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error encountered in "CHEM_SO4_AQ"!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CHEM_SO4_AQ' )
        ENDIF
@@ -672,21 +697,37 @@ CONTAINS
        ! FullRun = F: Just set up Cloud pH & related parameters, and exit
        !---------------------------------------------------------------------
 
+       ! Halt aerosol chem timer (so that unit conv can be timed separately)
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_End( "=> Aerosol chem", RC )
+       ENDIF
+
        ! Convert species to [v/v dry] aka [mol/mol dry]
+       ! NOTE: For TOMAS, convert all species units, in order not to
+       ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                    &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+#ifndef TOMAS
+            mapping        = State_Chm%Map_Advect,                           &
+#endif
+            new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
 
        IF ( RC /= GC_SUCCESS ) THEN
           CALL GC_Error('Unit conversion error', RC, &
                         'Start of CHEM_SULFATE in sulfate_mod.F90')
           RETURN
        ENDIF
+
+       ! Start aerosol chem timer again
+       IF ( Input_Opt%useTimers ) THEN
+          CALL Timer_Start( "=> Aerosol chem", RC )
+       ENDIF
+
        IF ( Input_Opt%Verbose ) THEN
           CALL DEBUG_MSG( '### CHEMSULFATE: a CONVERT UNITS' )
        ENDIF
@@ -708,19 +749,34 @@ CONTAINS
 
     ENDIF ! FullRun
 
+    ! Halt aerosol chem timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "=> Aerosol chem", RC )
+    ENDIF
+
     ! Convert species units back to original unit
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+#ifndef TOMAS
+         mapping    = State_Chm%Map_Advect,                                  &
+#endif
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of CHEM_SULFATE in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start aerosol chem timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "=> Aerosol chem", RC )
     ENDIF
 
     ! Free pointer
@@ -758,6 +814,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
+    USE Timers_Mod,         ONLY : Timer_End,  Timer_Start
     USE TOMAS_MOD,          ONLY : ICOMP,   IDIAG
     USE TOMAS_MOD,          ONLY : NH4BULKTOBIN
     USE TOMAS_MOD,          ONLY : SRTNH4
@@ -792,7 +849,7 @@ CONTAINS
     INTEGER          :: TID, I, J, L, M
     INTEGER          :: ii=53, jj=29, ll=1
     REAL(fp)         :: NH4_CONC
-    INTEGER          :: origUnit
+    INTEGER          :: previous_units
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -805,22 +862,33 @@ CONTAINS
     ! EMISSSULFATETOMAS begins here!
     !=================================================================
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species to [kg] for TOMAS. This will be removed once
     ! TOMAS uses mixing ratio instead of mass as tracer units (ewl, 9/11/15)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         mapping        = State_Chm%Map_Advect,                              &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'Start of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
     ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
+    ENDIF    
 
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
@@ -882,19 +950,30 @@ CONTAINS
     ! Free pointer
     NULLIFY( Spc )
 
+    ! Halt HEMCO timer (so that unit conv can be timed separately)
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_End( "HEMCO", RC )
+    ENDIF
+
     ! Convert species back to original units (ewl, 9/11/15)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         mapping    = State_Chm%Map_Advect,                                  &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
                      'End of EMISSSULFATETOMAS in sulfate_mod.F90')
        RETURN
+    ENDIF
+
+    ! Start HEMCO timer again
+    IF ( Input_Opt%useTimers ) THEN
+       CALL Timer_Start( "HEMCO", RC )
     ENDIF
 
   END SUBROUTINE EMISSSULFATETOMAS
@@ -917,10 +996,6 @@ CONTAINS
 !
 ! !USES:
 !
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD             ! ND13 (for now)
-    USE DIAG_MOD,             ONLY : AD59_SULF,     AD59_NUMB
-#endif
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
@@ -1370,40 +1445,6 @@ CONTAINS
           !                 [kg S/box/timestep] and the corresponding
           !                  number emission [no./box/timestep]
           !==============================================================
-#ifdef BPCH_DIAG
-          IF ( ND59 > 0 ) THEN
-             !print*, 'JACK IN ND59 SULFATE'
-             DO K = 1, IBINS
-                !if(TC2(I,J,L,K)-M0(L,K) < 0d0)
-                !  print *,'Negative SF emis ',TC2(I,J,L,K)-M0(L,K), &
-                !     'at',I,J,L,K
-                !if(TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) < 0d0) then
-                !   print *,'Negative NK emis ',TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K), &
-                !     'at',I,J,L,K
-                !   print *,'tc1, N0 ',TC1(id_NK01+K-1)%Conc(I,J,L),N0(L,K)
-                !end if
-
-                !sfarina - I have studied this extensively and determined that
-                !negative NK emis as defined here is not an accurate statement.
-                !The particle number in a given bin IS reduced by this
-                !subroutine, but it is not reduced by emission. Particle
-                !number is reduced by mnfix.
-                !if the bin is just about to boil over, that added sulfate mass
-                !will trigger a big particle shift in mnfix and it will look
-                !like a 'negative number emission' event as defined by this
-                !inequality
-
-                !sfarina - changing the definition of this diagnostic to ignore
-                ! changes to the distribution by mnfix
-                !AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + &
-                !                      (TC2(I,J,L,K)-M0(L,K))*S_SO4
-                !AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) +
-                !                      TC1(id_NK01+K-1)%Conc(I,J,L)-N0(L,K) &
-                AD59_SULF(I,J,1,K) = AD59_SULF(I,J,1,K) + Mdiag(K)
-                AD59_NUMB(I,J,1,K) = AD59_NUMB(I,J,1,K) + Ndiag(K)
-             ENDDO
-          ENDIF
-#endif
 
        ELSE
           ! Distributing primary emission without sub-grid coagulation
@@ -1421,28 +1462,6 @@ CONTAINS
                      ( SO4(L) * DTSRCE * BFRAC(K)               )
              ENDDO
           ENDDO
-
-#ifdef BPCH_DIAG
-          !==============================================================
-          ! ND59 Diagnostic: Size-resolved primary sulfate emission in
-          !                 [kg S/box/timestep] and the corresponding
-          !                  number emission [no./box/timestep]
-          !==============================================================
-          IF ( ND59 > 0 ) THEN
-             SO4anbf(:,:,1) = SO4an(:,:,1) + SO4bf(:,:)
-             SO4anbf(:,:,2) = SO4an(:,:,2)
-
-             DO L = 1, 2
-             DO K = 1, IBINS
-                AD59_SULF(I,J,L,K) = AD59_SULF(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) * S_SO4 * DTSRCE        )
-                AD59_NUMB(I,J,L,K) = AD59_NUMB(I,J,L,K) + &
-                     ( SO4anbf(I,J,L) * BFRAC(K) / AVGMASS(K) * DTSRCE   )
-             ENDDO
-             ENDDO
-
-          ENDIF
-#endif
 
        ENDIF !SGCOAG
 
@@ -1484,12 +1503,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE Species_Mod,        ONLY : Species
     USE TIME_MOD,           ONLY : GET_TS_CHEM
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE DIAG_MOD,           ONLY : AD44
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1780,44 +1793,6 @@ CONTAINS
                       * ( TC(I,J,L) + DTCHEM * VTS(L+1) / DELZ1 &
                       *  TC(I,J,L+1) )
        ENDDO
-
-       !==============================================================
-       ! DIAGNOSTIC: Drydep flux [molec/cm2/s]
-       ! (specifically sea salt loss diagnostics)
-       !==============================================================
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-       !-----------------------------------------------------------
-       ! ND44 DIAGNOSTIC (bpch)
-       ! Dry deposition flux loss [molec/cm2/s]
-       !
-       ! NOTE: Bpch diagnostics are being phased out.
-       !-----------------------------------------------------------
-       IF ( ND44 > 0 ) THEN
-
-          ! Initialize
-          TOT1 = 0e+0_fp
-          TOT2 = 0e+0_fp
-
-          ! Compute column totals of TCO(:) and TC(I,J,:,N)
-          DO L = 1, State_Grid%NZ
-             TOT1 = TOT1 + TC0(L)
-             TOT2 = TOT2 + TC(I,J,L)
-          ENDDO
-
-          ! Surface area [cm2]
-          AREA_CM2 = State_Grid%Area_M2(I,J) * 1e+4_fp
-
-          ! Convert sea salt/dust flux from [kg/s] to [molec/cm2/s]
-          FLUX     = ( TOT1 - TOT2 ) / DTCHEM
-          FLUX     = FLUX * AVO / ( MW_g * 1.e-3_fp ) / AREA_CM2
-
-          ! Store in global AD44 array for bpch diagnostic output
-          AD44(I,J,DryDep_Id,1) = AD44(I,J,DryDep_Id,1) + FLUX
-
-       ENDIF
-#endif
-#endif
 
        !-----------------------------------------------------------
        ! HISTORY (aka netCDF diagnostics)
@@ -2280,7 +2255,7 @@ CONTAINS
     ! Factor to convert AIRDEN from kgair/m3 to molecules/cm3:
     F         = 1000.e+0_fp / AIRMW * AVO * 1.e-6_fp
 
-    ! Evaluate offline fields from HEMCO for P(H2O2)
+    ! Evaluate offline fields from HEMCO for P(H2O2) [molec/cm3/s]
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'PH2O2', PH2O2m, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for PH2O2 from HEMCO!'
@@ -2288,7 +2263,7 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Evaluate offline fields from HEMCO for J(H2O2)
+    ! Evaluate offline fields from HEMCO for J(H2O2) [1/s]
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'JH2O2', JH2O2, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Cannot get data for JH2O2 from HEMCO!'
@@ -2299,55 +2274,49 @@ CONTAINS
     !=================================================================
     ! Loop over tropopsheric grid boxes and do chemistry
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2 ) &
-    !$OMP PRIVATE( PHOTJ )  &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L, M, H2O20, KOH, FREQ, ALPHA, DH2O2, H2O2, PHOTJ  )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L  = 1, State_Grid%NZ
     DO J  = 1, State_Grid%NY
     DO I  = 1, State_Grid%NX
 
        ! Initialize for safety's sake
-       FREQ = 0e+0_fp
+       FREQ  = 0.0_fp
+       PHOTJ = 0.0_fp
 
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
        ! Density of air [molec/cm3]
-       M     = State_Met%AIRDEN(I,J,L) * f
+       M     = State_Met%AIRDEN(I,J,L) * F
 
        ! Initial H2O2 [v/v]
        H2O20 = Spc(id_H2O2)%Conc(I,J,L)
 
        ! Loss frequenty due to OH oxidation [s-1]
-       KOH   = A * EXP( -160.e+0_fp / State_Met%T(I,J,L) ) * &
+       KOH   = A * EXP( -160.0_fp / State_Met%T(I,J,L) ) * &
                GET_OH( I, J, L, Input_Opt, State_Chm, State_Met )
-
-       ! Now do all dry deposition in mixing_mod.F90 (ckeller, 3/5/15)
-       FREQ = 0.e+0_fp
 
        ! Impose a diurnal variation of jH2O2 by multiplying COS of
        ! solar zenith angle normalized by maximum solar zenith angle
        ! because the archived JH2O2 is for local noon time
-       IF ( COSZM(I,J) > 0.e+0_fp ) THEN
+       IF ( COSZM(I,J) > 0.0_fp ) THEN
           PHOTJ = JH2O2(I,J,L) * State_Met%SUNCOS(I,J) / COSZM(I,J)
-          PHOTJ = MAX( PHOTJ, 0e+0_fp )
-       ELSE
-          PHOTJ = 0e+0_fp
+          PHOTJ = MAX( PHOTJ, 0.0_fp )
        ENDIF
 
        ! Compute loss fraction from OH, photolysis, drydep [unitless].
-       ALPHA = 1.e+0_fp + ( KOH + PHOTJ + FREQ ) * DT
+       ALPHA = 1.0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
-       ! PH2O2m is in kg/m3 (from HEMCO), convert to molec/cm3/s (mps,9/18/14)
-       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS * XNUMOL_H2O2 / CM3PERM3 ) &
-               * DT / ( ALPHA * M )
+       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS ) * DT / ( ALPHA * M )
 
        ! Final H2O2 [v/v]
        H2O2  = ( H2O20 / ALPHA + DH2O2 )
-       IF ( H2O2 < SMALLNUM ) H2O2 = 0e+0_fp
+       IF ( H2O2 < SMALLNUM ) H2O2 = 0.0_fp
 
        ! Store final H2O2 in Spc
        Spc(id_H2O2)%Conc(I,J,L) = H2O2
@@ -7880,7 +7849,7 @@ CONTAINS
 !
     INTEGER           :: I,      J,       L
     INTEGER           :: k,      binact1, binact2
-    INTEGER           :: KMIN,   origUnit
+    INTEGER           :: KMIN,   previous_units
     REAL(fp)          :: SO4OXID
 
     !=================================================================
@@ -7891,14 +7860,16 @@ CONTAINS
     RC  = GC_SUCCESS
 
     ! Convert species from to [kg]
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = KG_SPECIES,                                            &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Grid     = State_Grid,                                        &
+         State_Met      = State_Met,                                         &
+         new_units      = KG_SPECIES,                                        &
+         previous_units = previous_units,                                    &
+         RC             = RC                                                )
 
     IF ( RC /= GC_SUCCESS ) THEN
        CALL GC_Error('Unit conversion error', RC, &
@@ -7947,9 +7918,23 @@ CONTAINS
 
           KMIN = ( BINACT1 + BINACT2 )/ 2.
 
-          CALL AQOXID( SO4OXID, KMIN, I, J, L, Input_Opt, &
-                       State_Chm, State_Grid, State_Met, &
-                       State_Diag, RC )
+          ! Indicate that we are NOT calling AqOxid from wetdep, which
+          ! will avoid doing any further internal unit conversion (as
+          ! units are already in kg here). -- Bob Yantosca (11 Apr 2024)
+          CALL AqOxid(                                                       &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               MOXID      = SO4OXID,                                         &
+               KMIN       = KMIN,                                            &
+               fromWetDep = .FALSE.,                                         &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               State_Diag = State_Diag,                                      &
+               RC         = RC                                              )
+
        ENDIF
     ENDDO
     ENDDO
@@ -7957,12 +7942,14 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Convert species back to original units
+    ! NOTE: For TOMAS, convert all species units, in order not to
+    ! break internal unit conversions (Bob Yantosca, 11 Apr 2024)
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Chm  = State_Chm,                                             &
          State_Grid = State_Grid,                                            &
          State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
+         new_units  = previous_units,                                        &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -8246,15 +8233,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 
-      SUBROUTINE CHEM_CL( Input_Opt, &
-           State_Met, State_Chm, State_Grid, RC )
-
+  SUBROUTINE CHEM_CL( Input_Opt, State_Met, State_Chm, State_Grid, RC )
+!
 ! !USES:
-
-#ifdef BPCH_DIAG
-        USE CMN_DIAG_MOD
-#endif
-
+!
       USE CMN_SIZE_MOD
       USE ErrCode_Mod
       USE Input_Opt_Mod,      ONLY : OptInput
@@ -8262,15 +8244,15 @@ CONTAINS
       USE State_Chm_Mod,      ONLY : ChmState
       USE State_Met_Mod,      ONLY : MetState
       USE State_Grid_Mod,     ONLY : GrdState
+!
 ! !INPUT PARAMETERS:
-
-      !LOGICAL,        INTENT(IN)    :: am_I_Root   ! Are we on the root CPU?
+!
       TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
       TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
       TYPE(GrdState), INTENT(IN)    :: State_Grid
-
+!
 ! !INPUT/OUTPUT PARAMETERS:
-
+!
       TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
 !
 ! !OUTPUT PARAMETERS:

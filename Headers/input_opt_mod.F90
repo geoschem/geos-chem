@@ -26,7 +26,6 @@ MODULE Input_Opt_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Set_Input_Opt
-  PUBLIC :: Set_Input_Opt_Advect
   PUBLIC :: Cleanup_Input_Opt
 !
 ! !PUBLIC DATA MEMBERS:
@@ -53,7 +52,6 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! SIZE PARAMETER fields
      !----------------------------------------
-     INTEGER                     :: Max_BPCH_Diag
      INTEGER                     :: Max_Families
      INTEGER                     :: Max_AdvectSpc
 
@@ -79,7 +77,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_TAGCH4_SIM
      LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
@@ -123,12 +120,6 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LBCAE
      REAL(fp)                    :: BCAE_1
      REAL(fp)                    :: BCAE_2
-     ! for nitrate aerosol photolysis (TMS, 23/08/2018)
-     LOGICAL                     :: hvAerNIT
-     REAL(fp)                    :: hvAerNIT_JNIT
-     REAL(fp)                    :: hvAerNIT_JNITs
-     REAL(fp)                    :: JNITChanA
-     REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
      ! EMISSIONS fields
@@ -159,18 +150,9 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CO2 MENU fields
      !----------------------------------------
-     LOGICAL                     :: LFOSSIL
      LOGICAL                     :: LCHEMCO2
-     LOGICAL                     :: LBIODIURNAL
-     LOGICAL                     :: LBIONETCLIM
-     LOGICAL                     :: LOCEAN
-     LOGICAL                     :: LSHIP
-     LOGICAL                     :: LPLANE
-     LOGICAL                     :: LFFBKGRD
      LOGICAL                     :: LBIOSPHTAG
      LOGICAL                     :: LFOSSILTAG
-     LOGICAL                     :: LSHIPTAG
-     LOGICAL                     :: LPLANETAG
 
      !----------------------------------------
      ! CHEMISTRY MENU fields
@@ -183,9 +165,6 @@ MODULE Input_Opt_Mod
      REAL(fp)                    :: GAMMA_HO2
      LOGICAL                     :: LACTIVEH2O
      LOGICAL                     :: LINITSPEC
-     LOGICAL                     :: USE_ONLINE_O3
-     LOGICAL                     :: USE_O3_FROM_MET
-     LOGICAL                     :: USE_TOMS_O3
      LOGICAL                     :: USE_AUTOREDUCE
      LOGICAL                     :: AUTOREDUCE_IS_KEEPACTIVE
      LOGICAL                     :: AUTOREDUCE_IS_KEY_THRESHOLD
@@ -204,6 +183,16 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
      CHARACTER(LEN=255)          :: CloudJ_Dir
+     INTEGER                     :: Nlevs_Phot_Cloud
+     LOGICAL                     :: USE_ONLINE_O3
+     LOGICAL                     :: USE_O3_FROM_MET
+     LOGICAL                     :: USE_TOMS_O3
+     ! for nitrate aerosol photolysis (TMS, 23/08/2018)
+     LOGICAL                     :: hvAerNIT
+     REAL(fp)                    :: hvAerNIT_JNIT
+     REAL(fp)                    :: hvAerNIT_JNITs
+     REAL(fp)                    :: JNITChanA
+     REAL(fp)                    :: JNITChanB
 
      !----------------------------------------
      ! RADIATION MENU fields
@@ -270,21 +259,6 @@ MODULE Input_Opt_Mod
      ! DIAGNOSTIC MENU fields
      !----------------------------------------
      CHARACTER(LEN=255)          :: HistoryInputFile
-     INTEGER                     :: ND03   ! Hg
-     INTEGER                     :: ND06   ! TOMAS
-     INTEGER                     :: ND44   ! TOMAS
-     INTEGER                     :: ND53   ! POPs
-     INTEGER                     :: ND59   ! TOMAS
-     INTEGER                     :: ND60   ! TOMAS
-     INTEGER                     :: ND61   ! TOMAS
-
-     INTEGER                     :: TS_DIAG
-     INTEGER,            POINTER :: TINDEX(:,:)
-     INTEGER,            POINTER :: TCOUNT(:)
-     INTEGER,            POINTER :: TMAX(:)
-     LOGICAL                     :: DO_DIAG_WRITE
-
-     ! Collection ids
      INTEGER                     :: DIAG_COLLECTION
      INTEGER                     :: GC_RST_COLLECTION ! Used only for NetCDF
 
@@ -371,6 +345,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! CH4 MENU fields
      !----------------------------------------
+     LOGICAL                     :: Satellite_CH4_Columns
      LOGICAL                     :: GOSAT_CH4_OBS
      LOGICAL                     :: AIRS_CH4_OBS
      LOGICAL                     :: TCCON_CH4_OBS
@@ -424,6 +399,7 @@ MODULE Input_Opt_Mod
      INTEGER                     :: KppCheckNegatives  = -1      ! Check for negatives after KPP integration
      REAL(fp)                    :: KppTolScale        = 1.0_fp  ! Tolerance scale factor for 2nd KPP integration
      LOGICAL                     :: applyQtend         = .FALSE. ! Apply water vapor tendency
+     LOGICAL                     :: GC_VMBarrier_Run2  = .FALSE. ! Flag for a parallelization barrier after Chem
 #else
      LOGICAL                     :: AlwaysSetH2O
      LOGICAL                     :: TurnOffHetRates
@@ -537,14 +513,6 @@ CONTAINS
     Input_Opt%SALC_REDGE_um          => NULL()
     Input_Opt%LSKYRAD                => NULL()
     Input_Opt%LSPECRADMENU           => NULL()
-    Input_Opt%NJDAY                  => NULL()
-    Input_Opt%TINDEX                 => NULL()
-    Input_Opt%TCOUNT                 => NULL()
-    Input_Opt%TMAX                   => NULL()
-    Input_Opt%ND51_TRACERS           => NULL()
-    Input_Opt%ND51b_TRACERS          => NULL()
-    Input_Opt%FAM_NAME               => NULL()
-    Input_Opt%FAM_TYPE               => NULL()
     Input_Opt%LINOZ_TPARM            => NULL()
 
     !----------------------------------------
@@ -566,11 +534,6 @@ CONTAINS
     !
     ! Set to large placeholder values
     !----------------------------------------
-#ifdef RRTMG
-    Input_Opt%Max_BPCH_Diag          = 187 ! Mirror MAX_DIAG in CMN_DIAG_mod.F90
-#else
-    Input_Opt%Max_BPCH_Diag          = 80  ! Mirror MAX_DIAG in CMN_DIAG_mod.F90
-#endif
     Input_Opt%Max_Families           = 250
     Input_Opt%Max_AdvectSpc          = 600
 
@@ -596,7 +559,6 @@ CONTAINS
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_TAGCH4_SIM       = .FALSE.
     Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
@@ -651,11 +613,6 @@ CONTAINS
     Input_Opt%P_ICE_SUPERSAT         = 0.0_fp
     Input_Opt%LPSCCHEM               = .FALSE.
     Input_Opt%LSTRATOD               = .FALSE.
-    Input_Opt%hvAerNIT               = .FALSE.
-    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
-    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
-    Input_Opt%JNITChanA              = 0.0_fp
-    Input_Opt%JNITChanB              = 0.0_fp
 
     !----------------------------------------
     ! EMISSIONS MENU fields
@@ -682,19 +639,9 @@ CONTAINS
     !----------------------------------------
     ! CO2 MENU fields
     !----------------------------------------
-    Input_Opt%LFOSSIL                = .FALSE.
     Input_Opt%LCHEMCO2               = .FALSE.
-    Input_Opt%LBIOFUEL               = .FALSE.
-    Input_Opt%LBIODIURNAL            = .FALSE.
-    Input_Opt%LBIONETCLIM            = .FALSE.
-    Input_Opt%LOCEAN                 = .FALSE.
-    Input_Opt%LSHIP                  = .FALSE.
-    Input_Opt%LPLANE                 = .FALSE.
-    Input_Opt%LFFBKGRD               = .FALSE.
     Input_Opt%LBIOSPHTAG             = .FALSE.
     Input_Opt%LFOSSILTAG             = .FALSE.
-    Input_Opt%LSHIPTAG               = .FALSE.
-    Input_Opt%LPLANETAG              = .FALSE.
 
     !----------------------------------------
     ! CHEMISTRY MENU fields
@@ -710,9 +657,6 @@ CONTAINS
     Input_Opt%GAMMA_HO2              = 0.0_fp
     Input_Opt%LACTIVEH2O             = .FALSE.
     Input_Opt%LINITSPEC              = .FALSE.
-    Input_Opt%USE_ONLINE_O3          = .FALSE.
-    Input_Opt%USE_O3_FROM_MET        = .FALSE.
-    Input_Opt%USE_TOMS_O3            = .FALSE.
 
     Input_Opt%USE_AUTOREDUCE                = .FALSE.
     Input_Opt%AUTOREDUCE_IS_KEY_THRESHOLD   = .TRUE.
@@ -728,6 +672,15 @@ CONTAINS
     Input_Opt%Do_Photolysis         = .FALSE.
     Input_Opt%FAST_JX_DIR           = ''
     Input_Opt%CloudJ_Dir            = ''
+    Input_Opt%Nlevs_Phot_Cloud      = 0
+    Input_Opt%USE_ONLINE_O3         = .FALSE.
+    Input_Opt%USE_O3_FROM_MET       = .FALSE.
+    Input_Opt%USE_TOMS_O3           = .FALSE.
+    Input_Opt%hvAerNIT               = .FALSE.
+    Input_Opt%hvAerNIT_JNIT          = 0.0_fp
+    Input_Opt%hvAerNIT_JNITs         = 0.0_fp
+    Input_Opt%JNITChanA              = 0.0_fp
+    Input_Opt%JNITChanB              = 0.0_fp
 
     !----------------------------------------
     ! RADIATION MENU fields (for RRTMG only)
@@ -801,13 +754,6 @@ CONTAINS
     Input_Opt%RS_SCALE               = 1.0_fp
     Input_Opt%RA_Alt_Above_Sfc       = 10       ! default height
 
-
-    !----------------------------------------
-    ! GAMAP_MENU fields
-    !----------------------------------------
-    Input_Opt%GAMAP_DIAGINFO         = ''
-    Input_Opt%GAMAP_TRACERINFO       = ''
-
     !----------------------------------------
     ! OUTPUT MENU fields
     !----------------------------------------
@@ -823,28 +769,6 @@ CONTAINS
     !----------------------------------------
     Input_Opt%HistoryInputFile       = ''
     Input_Opt%DIAG_COLLECTION        = -999
-    Input_Opt%TS_DIAG                = 0
-    ALLOCATE( Input_Opt%TCOUNT( Input_Opt%Max_BPCH_Diag ), STAT=RC )
-    ALLOCATE( Input_Opt%TMAX  ( Input_Opt%Max_BPCH_Diag ), STAT=RC )
-
-    Input_Opt%ND03                   = 0
-    Input_Opt%ND06                   = 0
-    Input_Opt%ND44                   = 0
-    Input_Opt%ND53                   = 0
-    Input_Opt%ND59                   = 0
-    Input_Opt%ND60                   = 0
-    Input_Opt%ND61                   = 0
-    Input_Opt%ND65                   = 0
-    Input_Opt%TCOUNT(:)              = 0
-    Input_Opt%TMAX(:)	             = 0
-#if defined( ESMF_ ) || defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING )
-    ! Need to shut off G-C diagnostics when
-    ! connecting to an external GCM (bmy, 3/29/13)
-    Input_Opt%DO_DIAG_WRITE          = .FALSE.
-#else
-    ! For traditional G-C runs, always write diags (bmy, 3/29/13)
-    Input_Opt%DO_DIAG_WRITE          = .TRUE.
-#endif
 
     !----------------------------------------
     ! PLANEFLIGHT MENU fields
@@ -929,6 +853,7 @@ CONTAINS
     !----------------------------------------
     ! CH4 MENU fields
     !----------------------------------------
+    Input_Opt%Satellite_CH4_Columns             = .FALSE.
     Input_Opt%GOSAT_CH4_OBS                     = .FALSE.
     Input_Opt%AIRS_CH4_OBS                      = .FALSE.
     Input_Opt%TCCON_CH4_OBS                     = .FALSE.
@@ -1024,74 +949,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: Set_Input_Opt_Advect
-!
-! !DESCRIPTION: Subroutine SET\_INPUT\_OPT\_ADVECT intializes all GEOS-Chem
-!  options carried in Input Options derived type object that depend on
-!  the number of advected species (Input\_Opt%N_ADVECT).
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Set_Input_Opt_Advect( Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
-!
-! !REMARKS:
-!  NOTE: These arrays are all for bpch diagnostics, and will eventually
-!  be removed from GEOS-Chem.
-
-! !REVISION HISTORY:
-!  26 Jan 2018 - M. Sulprizio- Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Initialize
-    RC = GC_SUCCESS
-
-    !=======================================================================
-    ! Allocate arrays
-    !=======================================================================
-
-    ALLOCATE( Input_Opt%TINDEX(Input_Opt%Max_BPCH_Diag,Input_Opt%N_ADVECT), &
-              STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%TINDEX', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%TINDEX = 0
-
-    ALLOCATE( Input_Opt%ND51_TRACERS (Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
-              STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%ND51_TRACERS', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%ND51_TRACERS = 0
-
-    ALLOCATE( Input_Opt%ND51b_TRACERS(Input_Opt%N_ADVECT+Input_Opt%Max_BPCH_Diag),&
-              STAT=RC )
-    CALL GC_CheckVar( 'Input_Opt%ND51b_TRACERS', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    Input_Opt%ND51b_TRACERS = 0
-
-  END SUBROUTINE Set_Input_Opt_Advect
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: Cleanup_Input_Opt
 !
 ! !DESCRIPTION: Subroutine CLEANUP\_INPUT\_OPT deallocates all
@@ -1146,62 +1003,6 @@ CONTAINS
        CALL GC_CheckVar( 'Input_Opt%SALC_REDGE_um', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        Input_Opt%SALC_REDGE_um => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%NJDAY ) ) THEN
-       DEALLOCATE( Input_Opt%NJDAY, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%NJDAY', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%NJDAY => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TINDEX ) ) THEN
-       DEALLOCATE( Input_Opt%TINDEX, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%TINDEX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%TINDEX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TCOUNT ) ) THEN
-       DEALLOCATE( Input_Opt%TCOUNT, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%TCOUNT', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%TCOUNT => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%TMAX ) ) THEN
-       DEALLOCATE( Input_Opt%TMAX, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%TMAX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%TMAX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%ND51_TRACERS ) ) THEN
-       DEALLOCATE( Input_Opt%ND51_TRACERS, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%ND51_TRACERS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%ND51_TRACERS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%ND51b_TRACERS ) ) THEN
-       DEALLOCATE( Input_Opt%ND51b_TRACERS, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%ND51b_TRACERS', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%ND51b_TRACERS => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%FAM_NAME ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_NAME, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%FAM_NAME', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%FAM_NAME => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( Input_Opt%FAM_TYPE ) ) THEN
-       DEALLOCATE( Input_Opt%FAM_TYPE, STAT=RC )
-       CALL GC_CheckVar( 'Input_Opt%FAM_TYPE', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       Input_Opt%FAM_TYPE => NULL()
     ENDIF
 
     IF ( ASSOCIATED( Input_Opt%LINOZ_TPARM ) ) THEN
