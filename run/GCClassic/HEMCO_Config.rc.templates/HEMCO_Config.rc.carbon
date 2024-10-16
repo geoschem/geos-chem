@@ -411,6 +411,10 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CH4: EDGAR v8.0 emissions ---
+#
+# NOTES:
+# - EDGAR v8 livestock emissions have unexplained hotspots and no seasonality.
+#   Use EDGAR v7 emissions for that sector instead.
 #==============================================================================
 (((EDGARv8
 ### Oil ###
@@ -423,9 +427,9 @@ Mask fractions:              false
 ### Coal ###
 0 EDGAR8_CH4_PRO_COAL            $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_PRO_COAL_flx.nc         emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 3 1
 
-### Livestock ###
-0 EDGAR8_CH4_ENF                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_ENF_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
-0 EDGAR8_CH4_MNM                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_MNM_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
+### Livestock (from EDGAR v7) ###
+0 EDGAR7_CH4_LIVESTOCK__4A       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 24 4 1
+0 EDGAR7_CH4_LIVESTOCK__4B       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 28 4 1
 
 ### Landfills ###
 0 EDGAR8_CH4_SWD_LDF             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_LDF_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 5 1
@@ -1421,6 +1425,14 @@ ${RUNDIR_CO2_COPROD}
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
 11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0      C xy 1 1
 )))Scarpelli_Mexico
+
+#------------------------------------------------------------------------------
+# --- Seasonality for EDGAR livestock emissions ---
+#------------------------------------------------------------------------------
+(((EDGARv8
+24 EDGAR_SEASONAL_SF_ENF  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc  sf_ch4 2018/1-12/1/0 C xy 1 1
+28 EDGAR_SEASONAL_SF_MNM  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc  sf_ch4 2018/1-12/1/0 C xy 1 1
+)))EDGARv8
 
 )))USE_CH4_DATA
 
