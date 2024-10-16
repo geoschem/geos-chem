@@ -27,6 +27,7 @@ MODULE Carbon_Gases_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+  PUBLIC :: CO2_Production
   PUBLIC :: Chem_Carbon_Gases
   PUBLIC :: Init_Carbon_Gases
   PUBLIC :: Cleanup_Carbon_Gases
@@ -639,23 +640,6 @@ CONTAINS
           errMsg = 'KPP integration failed!'
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
-       ENDIF
-
-    ELSE
-
-       ! If CO2 is the only advected species, skip KPP and apply production
-       ! from CO oxidation read in by HEMCO
-       IF ( id_CO2_adv > 0 ) THEN
-
-          CALL CO2_Production( Input_Opt,  State_Chm, State_Diag,            &
-                               State_Grid, State_Met, RC                    )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "CO2_production"!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
-          ENDIF
        ENDIF
 
     ENDIF
