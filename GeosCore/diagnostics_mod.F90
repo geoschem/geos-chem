@@ -1068,11 +1068,6 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: errMsg, thisLoc
 
-    ! ewl temporary debug code
-    LOGICAL, SAVE      :: FIRST = .TRUE.
-    INTEGER, SAVE, ALLOCATABLE      :: topLevArr_prev(:,:)
-    INTEGER            :: topLevArr_new(State_Grid%NX, State_Grid%NY)
-
     !====================================================================
     ! Compute_Budget_Diagnostics begins here!
     !====================================================================
@@ -1186,39 +1181,6 @@ CONTAINS
     ! After operation:  Compute column differences (final-initial)
     !                   and then update diagnostic arrays
     !====================================================================
-       ! Prior global tracer mass, summed over all tracers
-       ! This isn't physically meaningful, 
-       ! but can be used to check if the budget diagnostic is working correctly
-       PriorGlobalMass(1) = sum( colMass(:,:,:,1) )
-       PriorGlobalMass(2) = sum( colMass(:,:,:,2) )
-       PriorGlobalMass(3) = sum( colMass(:,:,:,3) )
-       PriorGlobalMass(4) = sum( colMass(:,:,:,4) )
-    ENDIf
-
-    ! Temporary debug code starts here
-    IF ( FIRST ) THEN
-       ALLOCATE(topLevArr_prev(State_Grid%NX, State_Grid%NY), stat = RC )
-    ENDIF
-    
-    ! ewl debug
-    !$OMP PARALLEL DO                               &
-    !$OMP DEFAULT( SHARED                          )&
-    !$OMP PRIVATE( I, J                   )
-    DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          IF ( isPBL ) THEN
-             topLevArr_new(I,J) = MAX( 1, FLOOR( State_Met%PBL_TOP_L(I,J) ) )
-             IF ( FIRST ) topLevArr_prev(I,J) = topLevArr_new(I,J)
-             IF ( topLevArr_prev(I,J) /= topLevArr_new(I,J) ) THEN
-                print *, "ewl: topLevArr_new not equal to topLevArr_prev at I,J = ", I, J, topLevArr_new(I,J), topLevArr_prev(I,J)
-             ENDIF
-             topLevArr_prev(I,J) = topLevArr_new(I,J)
-          ENDIF
-       ENDDO
-    ENDDO
-    
-    IF ( FIRST ) FIRST = .FALSE.
-    ! End temporary debug code
     
     ! If verbose, do a budget check for sanity checking diagnostics.
     ! This will print a warning if global mass sum changes between end of one
@@ -1226,6 +1188,15 @@ CONTAINS
     ! the budget diagnostics capture all species mass change across the model.
     ! NOTE for GCHP: Warnings will only be generated if criteria met on root thread.
     IF ( Input_Opt%verbose .AND. before ) THEN
+       ! Prior global tracer mass, summed over all tracers. This isn't physically
+       ! meaningful, but can be used to check if the budget diagnostic is
+       ! working correctly
+       PriorGlobalMass(1) = sum(colMass(:,:,:,1))
+       PriorGlobalMass(2) = sum(colMass(:,:,:,2))
+       PriorGlobalMass(3) = sum(colMass(:,:,:,3))
+       PriorGlobalMass(4) = sum(colMass(:,:,:,4))
+    ENDIF
+
     ! Loop over NX and NY dimensions
     !$OMP PARALLEL DO                               &
     !$OMP DEFAULT( SHARED                          )&
@@ -1460,21 +1431,21 @@ CONTAINS
           ! Relative error tolarance, errors larger than this will halt the model
           rtol = 0.001
 
-          IF ( rerr(1) > rtol .and. Input_Opt%amIRoot ) THEN
+          IF ( rerr(1) > rtol ) THEN
              PRINT *, 'Budget Diagnostic Warning: FULL-column tracer mass changed ', &
-                      'unexpectedly, rerr=', rerr(1)
+                  'unexpectedly, rerr=', rerr(1)
           ENDIF
-          IF ( rerr(2) > rtol .and. Input_Opt%amIRoot ) THEN
+          IF ( rerr(2) > rtol ) THEN
              PRINT *, 'Budget Diagnostic Warning: TROP-column tracer mass changed ', &
-                      'unexpectedly, rerr=', rerr(2)
+                  'unexpectedly, rerr=', rerr(2)
           ENDIF
-          IF ( rerr(3) > rtol .and. Input_Opt%amIRoot) THEN
+          IF ( rerr(3) > rtol ) THEN
              PRINT *, 'Budget Diagnostic Warning: PBL-column tracer mass changed ', &
-                      ' unexpectedly, rerr=', rerr(3)
+                  ' unexpectedly, rerr=', rerr(3)
           ENDIF
-          IF ( rerr(4) > rtol .and. Input_Opt%amIRoot) THEN
+          IF ( rerr(4) > rtol ) THEN
              PRINT *, 'Budget Diagnostic Warning: Fix levels tracer mass changed ', &
-                      ' unexpectedly, rerr=', rerr(4)
+                  ' unexpectedly, rerr=', rerr(4)
           ENDIF
 
           IF ( ANY( rerr > rtol ) ) THEN
