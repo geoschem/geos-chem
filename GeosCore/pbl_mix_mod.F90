@@ -341,15 +341,9 @@ CONTAINS
     ! COMPUTE_PBL_HEIGHT begins here!
     !=================================================================
 
-    ! Initialize
     RC      = GC_SUCCESS
     ErrMsg  = ''
     ThisLoc = ' -> at Compute_PBL_Height (in module GeosCore/pbl_mix_mod.F90)'
-    
-    Bad_Sum                  = .FALSE.
-    State_Met%InPbl          = .FALSE.
-    State_Met%F_of_PBL       = 0.0_fp
-    State_Met%F_Under_PBLTop = 0.0_fp
 
     !------------------------------------------------------------------------
     ! Change in PBL mass for use with budget mixing PBL diagnostic - 1 of 2
@@ -387,6 +381,12 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
+
+    ! Initialize
+    State_Met%InPbl          = .FALSE.
+    State_Met%F_of_PBL       = 0.0_fp
+    State_Met%F_Under_PBLTop = 0.0_fp
+    Bad_Sum = .FALSE.
 
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
