@@ -713,7 +713,7 @@ CONTAINS
 
                    ! Eventually add to SOIL_DRYDEP
                    IF ( Input_Opt%LSOILNOX ) THEN
-                      CALL SOIL_DRYDEP( I, J, L, N, FLUX, State_Chm )
+                      CALL SOIL_DRYDEP( I, J, N, FLUX, State_Chm )
                    ENDIF
 
                    !--------------------------------------------------------

@@ -4996,7 +4996,7 @@ CONTAINS
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
                        * GET_TS_CONV() / GET_TS_EMIS()
-                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
+                CALL Soil_DryDep( I, J, N, tmpFlx, State_Chm )
              ENDDO
              ENDDO
              !$OMP END PARALLEL DO
