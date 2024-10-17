@@ -969,10 +969,10 @@ CONTAINS
     !%%%%% CONVERGENCE CRITERIA %%%%%
 
     ! Absolute tolerance
-    ATOL      = 1e-2_dp
+    ATOL      = State_Chm%KPP_AbsTol
 
     ! Relative tolerance
-    RTOL      = 1e-2_dp
+    RTOL      = State_Chm%KPP_RelTol
 
     !%%%%% SOLVER OPTIONS %%%%%
 
@@ -3885,6 +3885,18 @@ CONTAINS
           srMw_HgCl2 = srMw(N)
        ENDIF
     ENDDO
+
+    !=======================================================================
+    ! Assign default values for KPP absolute and relative tolerances
+    ! for species where these have not been explicitly defined.
+    !=======================================================================
+    WHERE( State_Chm%KPP_AbsTol == MISSING_DBLE )
+       State_Chm%KPP_AbsTol = 1.0e-2_f8
+    ENDWHERE
+
+    WHERE( State_Chm%KPP_RelTol == MISSING_DBLE )
+       State_Chm%KPP_RelTol = 1.0e-2_f8
+    ENDWHERE
 
     !========================================================================
     ! Various Settings (not sure how many of these still work)
