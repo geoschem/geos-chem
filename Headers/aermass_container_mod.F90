@@ -33,6 +33,24 @@ MODULE AerMass_Container_Mod
   !=========================================================================
   TYPE, PUBLIC :: AerMassContainer
 
+     ! Logical flags
+     LOGICAL  :: Is_OCPI
+     LOGICAL  :: Is_OCPO
+     LOGICAL  :: Is_BC
+     LOGICAL  :: Is_SO4
+     LOGICAL  :: Is_HMS
+     LOGICAL  :: Is_NH4
+     LOGICAL  :: Is_NIT
+     LOGICAL  :: Is_DST
+     LOGICAL  :: Is_SAL
+     LOGICAL  :: Is_POA
+     LOGICAL  :: Is_OPOA
+     LOGICAL  :: Is_TSOA
+     LOGICAL  :: Is_ASOA
+     LOGICAL  :: Is_SOAGX
+     LOGICAL  :: Is_SimpleSOA
+     LOGICAL  :: Is_ComplexSOA
+
      ! Arrays
      !========================================================================
      ! OCFPOA      : OM/OC for POA                      [unitless] - used in carbon_mod
@@ -90,8 +108,8 @@ MODULE AerMass_Container_Mod
      REAL(fp), POINTER :: PM25       (:,:,:)
      REAL(fp), POINTER :: PM10       (:,:,:)
      REAL(fp), POINTER :: PDER       (:,:,:) !H. Zhu
-     REAL(fp), POINTER :: SNAOM         (:,:,:) !H. Zhu
-     REAL(fp), POINTER :: R_OMSNA       (:,:,:) !H. Zhu
+     REAL(fp), POINTER :: SNAOM      (:,:,:) !H. Zhu
+     REAL(fp), POINTER :: R_OMSNA    (:,:,:) !H. Zhu
      REAL(fp), POINTER :: ISOAAQ     (:,:,:)
      REAL(fp), POINTER :: SOAS       (:,:,:)
      REAL(fp), POINTER :: FRAC_SNA   (:,:,:,:)
@@ -170,6 +188,26 @@ CONTAINS
 
     ! Exit immediately if this is a dry-run
     IF ( Input_Opt%DryRun ) RETURN
+
+    !======================================================================
+    ! Initialize logical flags (will be updated during init_aerosol
+    !======================================================================
+    Aer%Is_OCPI       = .FALSE.
+    Aer%Is_OCPO       = .FALSE.
+    Aer%Is_BC         = .FALSE.
+    Aer%Is_SO4        = .FALSE.
+    Aer%Is_HMS        = .FALSE.
+    Aer%Is_NH4        = .FALSE.
+    Aer%Is_NIT        = .FALSE.
+    Aer%Is_DST        = .FALSE.
+    Aer%Is_SAL        = .FALSE.
+    Aer%Is_POA        = .FALSE.
+    Aer%Is_OPOA       = .FALSE.
+    Aer%Is_TSOA       = .FALSE.
+    Aer%Is_ASOA       = .FALSE.
+    Aer%Is_SOAGX      = .FALSE.
+    Aer%Is_SimpleSOA  = .FALSE.
+    Aer%Is_ComplexSOA = .FALSE.
 
     !======================================================================
     ! Initialize arrays
