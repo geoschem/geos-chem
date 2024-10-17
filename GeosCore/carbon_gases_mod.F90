@@ -112,6 +112,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
+    LOGICAL, SAVE          :: FIRST = .TRUE.
+
     ! Scalars
     LOGICAL                :: prtDebug
     INTEGER                :: I,        J
@@ -171,8 +174,10 @@ CONTAINS
     ! from HEMCO. Otherwise compute CO2 production via KPP.
     IF ( id_CO2_adv > 0 .and. id_CO_adv <= 0 ) THEN
 
-       WRITE( 6, 100 )
-100    FORMAT( 'Carbon_Gases: Applying production of CO2 from CO from file')
+       IF ( Input_Opt%amIRoot .and. FIRST ) THEN
+          WRITE( 6, 100 )
+100       FORMAT( 'Carbon_Gases: Applying production of CO2 from CO from file')
+       ENDIF
 
        ! Point to chemical species array [kg/kg dry air]
        Spc => State_Chm%Species
@@ -297,7 +302,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL                :: first = .TRUE.
+    LOGICAL, SAVE          :: first = .TRUE.
 
     ! Scalars
     LOGICAL                :: failed
