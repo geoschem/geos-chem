@@ -145,6 +145,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: TropHt        (:,:  ) ! Tropopause height [km]
      REAL(fp), POINTER :: TS            (:,:  ) ! Surface temperature [K]
      REAL(fp), POINTER :: TSKIN         (:,:  ) ! Surface skin temperature [K]
+     REAL(fp), POINTER :: TSOIL1        (:,:  ) ! Soil temperature [K]
      REAL(fp), POINTER :: U10M          (:,:  ) ! E/W wind speed @ 10m ht [m/s]
      REAL(fp), POINTER :: USTAR         (:,:  ) ! Friction velocity [m/s]
      REAL(fp), POINTER :: UVALBEDO      (:,:  ) ! UV surface albedo [1]
@@ -435,6 +436,7 @@ CONTAINS
     State_Met%TropHt         => NULL()
     State_Met%TS             => NULL()
     State_Met%TSKIN          => NULL()
+    State_Met%TSOIL1         => NULL()
     State_Met%U10M           => NULL()
     State_Met%USTAR          => NULL()
     State_Met%UVALBEDO       => NULL()
@@ -1829,6 +1831,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%TSKIN,                                       &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! TSOIL1 [K]
+    !------------------------------------------------------------------------
+    metId = 'TSOIL1'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%TSOIL1,                                      &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3700,6 +3720,13 @@ CONTAINS
        State_Met%TSKIN => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%TSOIL1 ) ) THEN
+       DEALLOCATE( State_Met%TSOIL1, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TSOIL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TSOIL1 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%TO3 ) ) THEN
        DEALLOCATE( State_Met%TO3, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TO3', 2, RC )
@@ -4841,6 +4868,11 @@ CONTAINS
 
        CASE ( 'TSKIN' )
           IF ( isDesc  ) Desc  = 'Surface skin temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TSOIL1' )
+          IF ( isDesc  ) Desc  = 'Soil temperature'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 2
 
@@ -6311,6 +6343,7 @@ CONTAINS
          Units       = TRIM( Units      ),                                   &
          Description = TRIM( Desc       ),                                   &
          Data2d_4    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6444,6 +6477,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_4     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
        ENDDO
 
@@ -6470,6 +6504,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_4     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6584,6 +6619,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_8    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6717,6 +6753,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( units      ),                            &
                Data2d_8     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -6744,6 +6781,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_8     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6858,6 +6896,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_I    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6987,6 +7026,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_I     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -7014,6 +7054,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_I     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors

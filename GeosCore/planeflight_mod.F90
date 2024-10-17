@@ -1574,7 +1574,6 @@ CONTAINS
     LOGICAL             :: CHEMSTEP
     REAL(f8)            :: FLTGMT   ! eam (06/2015)
     REAL(f8)            :: XRH      ! MET field RH (eam, 08/2015)
-    REAL(fp)            :: MW_g, MW_kg
     CHARACTER(LEN=63)   :: OrigUnit
     CHARACTER(LEN=7)    :: NAME
     CHARACTER(LEN=255)  :: errMsg, thisLoc
@@ -1744,13 +1743,10 @@ CONTAINS
                 ! Only archive where chemistry is done
                 IF ( State_Met%InChemGrid(I,J,L) ) THEN
 
-                   ! Species concentration [kg/kg dry] -> [molec/cm3]
+                   ! Species concentration [v/v dry] -> [molec/cm3]
                    N       = PVAR(V)
-                   MW_kg   = State_Chm%SpcData(N)%Info%MW_g * 1.0e-3_fp
-                   VARI(V) = Spc(N)%Conc(I,J,L)                                    &
-                           * State_Met%AIRDEN(I,J,L)                         &
-                           * ( AVO / MW_kg )                                 &
-                           / 1e+6_fp
+                   VARI(V) = Spc(N)%Conc(I,J,L) / AIRMW * State_Met%AIRDEN(I,J,L) &
+                             * AVO * 1.0e-9_fp
                 ENDIF
 
              !---------------------------------------------------------------
@@ -1762,12 +1758,10 @@ CONTAINS
                 ! Sum all AN contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
-                ! Convert species conc from [kg/kg dry] -> [v/v dry]
+                ! Species concentration is in [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
                    DO N = 1, NPNOY
-                      MW_g    = State_Chm%SpcData(PNOY(N))%Info%MW_g
-                      VARI(V) = VARI(V)                                      &
-                              + ( Spc(PNOY(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
+                      VARI(V) = VARI(V) + Spc(PNOY(N))%Conc(I,J,L)
                    ENDDO
                 ENDIF
 
@@ -1780,12 +1774,10 @@ CONTAINS
                 ! Sum all AN contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
-                ! Convert species conc from [kg/kg dry] -> [v/v dry]
+                ! Species concentration is in [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
                    DO N = 1, NPAN
-                      MW_g    = State_Chm%SpcData(P_AN(N))%Info%MW_g
-                      VARI(V) = VARI(V) +                                    &
-                              + ( Spc(P_AN(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
+                      VARI(V) = VARI(V) + Spc(P_AN(N))%Conc(I,J,L)
                    ENDDO
                 ENDIF
 
@@ -1798,12 +1790,10 @@ CONTAINS
                 ! Sum all RO2 contributions, save as [v/v dry]
                 VARI(V) = 0e+0_fp
 
-                ! Convert species conc from [kg/kg dry] -> [v/v dry]
+                ! Species concentration is in [v/v dry]
                 IF ( IS_FULLCHEM .and. State_Met%InChemGrid(I,J,L) ) THEN
                    DO N = 1, NPRO2
-                      MW_g    = State_Chm%SpcData(PRO2(N))%Info%MW_g
-                      VARI(V) = VARI(V)                                      &
-                              + ( Spc(PRO2(N))%Conc(I,J,L) * ( AIRMW / MW_g ) )
+                      VARI(V) = VARI(V) + Spc(PRO2(N))%Conc(I,J,L)
                    ENDDO
                 ENDIF
 
@@ -2291,9 +2281,8 @@ CONTAINS
                 ! Remove offset from PVAR
                 N       = PVAR(V) - 100000
 
-                ! Convert [kg/kg dry] -> [v/v dry]
-                MW_g    = State_Chm%SpcData(N)%Info%MW_g
-                VARI(V) = Spc(N)%Conc(I,J,L) * ( AIRMW / MW_g )
+                ! Species concentration is in [v/v dry]
+                VARI(V) = Spc(N)%Conc(I,J,L)
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.0_fp
 

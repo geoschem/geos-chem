@@ -251,19 +251,24 @@ PHg2:
   FullName: Gross production of gaseous oxidized Hg
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
 PHg0:
   FullName: Gross production of Hg2
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
 PHg2Br:
   FullName: Gaseous oxidized Hg production from Br
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
 PHg2OH:
   FullName: Gaseous oxidized Hg production from OH
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
 PHg2Cl:
   FullName: Gaseous oxidized Hg production from Cl
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e25

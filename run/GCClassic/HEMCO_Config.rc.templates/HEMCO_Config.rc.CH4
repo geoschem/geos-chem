@@ -405,7 +405,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EDGAR8_CH4_RCO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_RCO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_CHE                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_CHE_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_IRO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_IRO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR8_CH4_AWB                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AWB_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+# Comment out to avoid double counting with GFED
+#0 EDGAR8_CH4_AWB                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AWB_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_SWD_INC             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_INC_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 )))EDGARv8
 
@@ -471,8 +472,8 @@ VerboseOnCores:              root       # Accepted values: root all
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -947,6 +948,10 @@ ${RUNDIR_GLOBAL_Cl}
 1008 CONUS_MASK        $ROOT/MASKS/v2024-04/CONUS_Mask.01x01.nc         MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
 1009 CONUS_MASK_MIRROR $ROOT/MASKS/v2024-04/CONUS_Mask_Mirror.01x01.nc  MASK 2000/1/1/0 C xy 1 1 -140/20/-50/60
 )))GHGI_v2.or.GHGI_v2_Express_Ext
+
+(((RESERVOIRS
+1500 SEASONAL_RES_MASK $ROOT/CH4/v2024-01/ResME/reservoir_mask.01x01.nc Mask 2022/1-12/1/0 C xy 1 1 -180/-90/180/90
+)))RESERVOIRS
 
 )))EMISSIONS
 

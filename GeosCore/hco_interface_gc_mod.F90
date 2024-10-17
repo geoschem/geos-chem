@@ -674,6 +674,7 @@ CONTAINS
 
     ! Soil NOx
     Input_Opt%LSOILNOX      = ( ExtState%SoilNOx > 0 )
+    Input_Opt%UseSoilTemp   = ExtState%TSOIL1%DoUse
 
     ! Ginoux dust emissions
     IF ( ExtState%DustGinoux > 0 ) THEN
@@ -2282,6 +2283,23 @@ CONTAINS
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
        ErrMsg = 'Error encountered in "ExtDat_Set( TSKIN_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
+    ENDIF
+
+    ! TSOIL1
+#if defined( MODEL_CLASSIC )
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL', &
+                    HMRC,      FIRST )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL1_FOR_EMIS', &
+                     HMRC,     FIRST,           State_Met%TSOIL1 )
+#endif
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( TSOIL1_FOR_EMIS )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
        RETURN
     ENDIF
@@ -4382,22 +4400,6 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! Get delta pressure per grid box stored in restart file to allow
-      ! mass conservation across consecutive runs.
-      v_name = 'DELPDRY'
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-      IF ( FOUND ) THEN
-         State_Met%DELP_DRY = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize DELP_DRY from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-         ENDIF
-      ENDIF
-      Ptr3D => NULL()
-
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
@@ -4956,9 +4958,6 @@ CONTAINS
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -5005,22 +5004,24 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
+             !$OMP PARALLEL DO            &
+             !$OMP DEFAULT( SHARED       )&
+             !$OMP PRIVATE( I, J, tmpFlx )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
-                tmpFlx = dflx(I,J,N)                                         &
-                       / MW_kg                                               &
-                       * AVO           * 1.e-4_fp                            &
+                tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
                        * GET_TS_CONV() / GET_TS_EMIS()
-
-                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
+                CALL Soil_DryDep( I, J, N, tmpFlx, State_Chm )
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
           ENDIF
 
           ! Free species database pointer
           ThisSpc => NULL()
+
        ENDDO
-       !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================

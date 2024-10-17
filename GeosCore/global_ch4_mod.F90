@@ -28,7 +28,7 @@ MODULE GLOBAL_CH4_MOD
 !
 ! !PUBLIC DATA MEMBERS:
 !
-  REAL(fp), PARAMETER,   PUBLIC :: XNUMOL_CH4 = AVO / 16d-3 ! hard-coded MW
+  REAL(fp), PARAMETER, PUBLIC :: XNUMOL_CH4 = AVO / 16.04e-3_fp ! hard-coded MW
 !
 ! !REVISION HISTORY:
 !  17 Jan 2001- J. Wang, B. Duncan, R. Yantosca -- Initial version
@@ -43,8 +43,8 @@ MODULE GLOBAL_CH4_MOD
   ! XNUMOL_CH4 : Molecules CH4 / kg CH4                     [molec/kg]
   !========================================================================
 
-  REAL(fp), PARAMETER   :: XNUMOL_OH = AVO / 17e-3_fp  ! molec OH / kg OH
-                                                       ! hard-coded MW
+  REAL(fp), PARAMETER   :: XNUMOL_OH = AVO / 17.01e-3_fp  ! molec OH / kg OH
+                                                          ! hard-coded MW
   REAL(fp), PARAMETER   :: CM3PERM3  = 1.e+6_fp
 !
 ! !LOCAL VARIABLES:

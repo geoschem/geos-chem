@@ -1691,12 +1691,12 @@ VerboseOnCores:              root       # Accepted values: root all
 # in a 0.5x0.625 HEMCO 3.6.1 standalone simulation.
 #==============================================================================
 (((GFED4_CLIMATOLOGY
-0 GFED4_CLIM_BCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPI 2019/1-12/1/0 C xy kg/m2/s BCPI - 5 1
-0 GFED4_CLIM_BCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPO 2019/1-12/1/0 C xy kg/m2/s BCPO - 5 1
-0 GFED4_CLIM_OCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPI 2019/1-12/1/0 C xy kg/m2/s OCPI - 5 1
-0 GFED4_CLIM_OCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPO 2019/1-12/1/0 C xy kg/m2/s OCPO - 5 1
-0 GFED4_CLIM_SO2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SO2  2019/1-12/1/0 C xy kg/m2/s SO2  - 5 1
-0 GFED4_CLIM_SOAP  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SOAP 2019/1-12/1/0 C xy kg/m2/s SOAP - 5 1
+0 GFED4_CLIM_BCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_BCPI 2019/1-12/1/0 C xy kg/m2/s BCPI - 5 1
+0 GFED4_CLIM_BCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_BCPO 2019/1-12/1/0 C xy kg/m2/s BCPO - 5 1
+0 GFED4_CLIM_OCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_OCPI 2019/1-12/1/0 C xy kg/m2/s OCPI - 5 1
+0 GFED4_CLIM_OCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_OCPO 2019/1-12/1/0 C xy kg/m2/s OCPO - 5 1
+0 GFED4_CLIM_SO2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_SO2  2019/1-12/1/0 C xy kg/m2/s SO2  - 5 1
+0 GFED4_CLIM_SOAP  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_SOAP 2019/1-12/1/0 C xy kg/m2/s SOAP - 5 1
 )))GFED4_CLIMATOLOGY
 
 #==============================================================================
