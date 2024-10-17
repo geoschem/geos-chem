@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
+- Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
