@@ -1056,7 +1056,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL            :: after,  before, wetDep, budgetCheck
+    LOGICAL            :: after,  before, wetDep
     INTEGER            :: I,      J,      L,       N,    S
     INTEGER            :: numSpc, region, topLev,  botLev
     REAL(f8)           :: colSum, dt,     rtol
@@ -1093,14 +1093,6 @@ CONTAINS
 
     ! Optional print of message to log
     IF ( PRESENT(msg) .AND. Input_Opt%Verbose ) print *, TRIM(msg)
-
-    ! Use budgetCheck if debugging / sanity checking diagnostics.
-    ! This will print a warning if global mass sum changes between end of one
-    ! budget calculation and beginning of the next. This should never happen if
-    ! the budget diagnostics capture all species mass change across the model.
-    !
-    ! NOTE for GCHP: Warnings will only be generated if criteria met on root thread.
-    budgetCheck = Input_Opt%Verbose
 
     ! Set logicals to denote if we are calling this routine
     ! before the operation or after the operation
@@ -1194,8 +1186,6 @@ CONTAINS
     ! After operation:  Compute column differences (final-initial)
     !                   and then update diagnostic arrays
     !====================================================================
-
-    IF ( before .and. budgetCheck ) THEN
        ! Prior global tracer mass, summed over all tracers
        ! This isn't physically meaningful, 
        ! but can be used to check if the budget diagnostic is working correctly
@@ -1230,6 +1220,12 @@ CONTAINS
     IF ( FIRST ) FIRST = .FALSE.
     ! End temporary debug code
     
+    ! If verbose, do a budget check for sanity checking diagnostics.
+    ! This will print a warning if global mass sum changes between end of one
+    ! budget calculation and beginning of the next. This should never happen if
+    ! the budget diagnostics capture all species mass change across the model.
+    ! NOTE for GCHP: Warnings will only be generated if criteria met on root thread.
+    IF ( Input_Opt%verbose .AND. before ) THEN
     ! Loop over NX and NY dimensions
     !$OMP PARALLEL DO                               &
     !$OMP DEFAULT( SHARED                          )&
@@ -1449,9 +1445,10 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    ! Budget consistency check
-    ! The global total tracer mass should *not* change between an "after" call and the next "before" call
-    IF ( budgetCheck .AND. before ) THEN
+    ! Budget consistency check, only enabled if debug option is on (verbose true
+    ! in geoschem_config.yml). NOTE: the global total tracer mass should *not*
+    ! change between an "after" call and the next "before" call
+    IF ( Input_Opt%Verbose .AND. before ) THEN
        IF (.NOT. ANY( PriorGlobalMass == 0. ) ) THEN
 
           ! Relative error, change since prior "after" call
