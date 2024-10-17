@@ -2213,9 +2213,9 @@ CONTAINS
        ! AerMassPOA [ug/m3], OA:OC=2.1
        !--------------------------------------
        IF ( State_Diag%Archive_AerMassPOA ) THEN
-          IF ( State_Diag%isPOA ) THEN
+          IF ( State_Chm%AerMass%Is_POA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
-          ELSEIF ( Is_OCPO ) THEN
+          ELSEIF ( State_Chm%AerMass%Is_OCPO ) THEN
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
                                               kgm3_to_ugm3
           ENDIF
@@ -2316,33 +2316,33 @@ CONTAINS
        IF ( State_Diag%Archive_TotalOC ) THEN
 
          ! Hydrophobic OC
-          IF ( State_Diag%isPOA ) THEN
+          IF ( State_Chm%AerMass%Is_POA ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
 
-          ELSE IF ( State_Diag%isOPOA ) THEN
+          ELSE IF ( State_Chm%AerMass%Is_OCPO ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
                     + OCPO(I,J,L) ) / OCFOPOA(I,J) ) * kgm3_to_ugm3
           ENDIF
 
           ! Hydrophilic OC
-          IF (Is_OCPI) THEN
+          IF ( State_Chm%AerMass%Is_OCPI ) THEN
              State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
                                          ( OCPI(I,J,L) / OCFOPOA(I,J) * &
                                          kgm3_to_ugm3 )
           ENDIF
 
           ! OPOA OC
-          IF (Is_OPOA) THEN
+          IF ( State_Chm%AerMass%Is_OPOA ) THEN
             State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
                                         ( OPOA(I,J,L) / OCFOPOA(I,J) * &
                                         kgm3_to_ugm3 )
           ENDIF
 
           ! Isoprene SOA OC
-          IF ( Is_ComplexSOA ) THEN
+          IF ( State_Chm%AerMass%Is_ComplexSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
                   ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
                     ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &

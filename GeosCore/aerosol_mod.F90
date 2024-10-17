@@ -36,24 +36,6 @@ MODULE AEROSOL_MOD
   REAL(fp), PUBLIC  :: SIA_GROWTH
   REAL(fp), PUBLIC  :: ORG_GROWTH
   REAL(fp), PUBLIC  :: SSA_GROWTH
-
-  ! Logical flags
-  LOGICAL,  PUBLIC  :: IS_OCPI
-  LOGICAL,  PUBLIC  :: IS_OCPO
-  LOGICAL,  PUBLIC  :: IS_BC
-  LOGICAL,  PUBLIC  :: IS_SO4
-  LOGICAL,  PUBLIC  :: IS_HMS
-  LOGICAL,  PUBLIC  :: IS_NH4
-  LOGICAL,  PUBLIC  :: IS_NIT
-  LOGICAL,  PUBLIC  :: IS_DST
-  LOGICAL,  PUBLIC  :: IS_SAL
-  LOGICAL,  PUBLIC  :: IS_POA
-  LOGICAL,  PUBLIC  :: IS_OPOA
-  LOGICAL,  PUBLIC  :: IS_TSOA
-  LOGICAL,  PUBLIC  :: IS_ASOA
-  LOGICAL,  PUBLIC  :: IS_SOAGX
-  LOGICAL,  PUBLIC  :: IS_SimpleSOA
-  LOGICAL,  PUBLIC  :: IS_ComplexSOA
 !
 ! !DEFINED PARAMETERS:
 !
@@ -338,9 +320,9 @@ CONTAINS
        Rad_dry    = REAA(1,k_ORG,State_Chm%Phot%DRg)
        Rad_wet    = REAA(1,k_ORG,State_Chm%Phot%DRg) + 35e+0_fp * &
                   ( REAA(2,k_ORG,State_Chm%Phot%DRg) - REAA(1,k_ORG,State_Chm%Phot%DRg) ) / 50e+0_fp
-       IF ( IS_POA ) THEN
+       IF ( State_Chm%AerMass%Is_POA ) THEN
           Rho_dry    = State_Chm%SpcData(id_POA1)%Info%Density
-       ELSE IF ( IS_OCPI ) THEN
+       ELSE IF ( State_Chm%AerMass%Is_OCPI ) THEN
           Rho_dry    = State_Chm%SpcData(id_OCPI)%Info%Density
        ENDIF
        ORG_GROWTH = 1 + ( ( ( Rad_wet / Rad_dry ) ** 3 - 1 ) * &
@@ -410,7 +392,7 @@ CONTAINS
              ! way (size and optics) as all other sulfate aerosol (DAR
              ! 2013)
 
-             IF ( IS_HMS ) THEN
+             IF ( State_Chm%AerMass%Is_HMS ) THEN
 
                 !%%%%% Fullchem simulations: add contribution from HMS
                 State_Chm%AerMass%SO4_NH4_NIT(I,J,L) = ( Spc(id_SO4)%Conc(I,J,L)     &
@@ -457,7 +439,7 @@ CONTAINS
              ! Save these fractions for partitioning of optics
              ! until later when these may be treated independently
              ! Only use HMS if it is defined (for fullchem sims)
-             IF ( IS_HMS ) THEN
+             IF ( State_Chm%AerMass%Is_HMS ) THEN
                 State_Chm%AerMass%FRAC_SNA(I,J,L,1) = ( ( Spc(id_SO4)%Conc(I,J,L) +         &
                                         Spc(id_HMS)%Conc(I,J,L) )         &
                                   /   AIRVOL(I,J,L)              )        &
@@ -503,17 +485,17 @@ CONTAINS
 
           ! Hydrophobic OC [kg/m3]
           ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4)
-          IF ( IS_POA ) THEN
+          IF ( State_Chm%AerMass%Is_POA ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = ( Spc(id_POA1)%Conc(I,J,L)     &
                              + Spc(id_POA2)%Conc(I,J,L) ) &
                            * State_Chm%AerMass%OCFPOA(I,J) / AIRVOL(I,J,L)
-          ELSE IF ( IS_OCPO ) THEN
+          ELSE IF ( State_Chm%AerMass%Is_OCPO ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = Spc(id_OCPO)%Conc(I,J,L) &
                            * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Hydrophilic OC [kg/m3]
-          IF ( IS_OCPI ) THEN
+          IF ( State_Chm%AerMass%Is_OCPI ) THEN
              State_Chm%AerMass%OCPI(I,J,L) = Spc(id_OCPI)%Conc(I,J,L) &
                            * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
@@ -669,7 +651,7 @@ CONTAINS
        !--------------------------------------------------------
        ! Simple SOA scheme
        !--------------------------------------------------------
-       IF ( Is_SimpleSOA ) THEN
+       IF ( State_Chm%AerMass%Is_SimpleSOA ) THEN
 
           ! Simple SOA [kg/m3]
           State_Chm%AerMass%SOAS(I,J,L) = Spc(id_SOAS)%Conc(I,J,L) / AIRVOL(I,J,L)
@@ -679,10 +661,10 @@ CONTAINS
        !--------------------------------------------------------
        ! Complex SOA scheme
        !--------------------------------------------------------
-       IF ( Is_ComplexSOA ) THEN
+       IF ( State_Chm%AerMass%Is_ComplexSOA ) THEN
 
           ! TSOA (terpene SOA) [kg/m3]
-          IF ( IS_TSOA ) THEN
+          IF ( State_Chm%AerMass%Is_TSOA ) THEN
              State_Chm%AerMass%TSOA(I,J,L) = ( Spc(id_TSOA1)%Conc(I,J,L)    &
                            + Spc(id_TSOA2)%Conc(I,J,L)    &
                            + Spc(id_TSOA3)%Conc(I,J,L)    &
@@ -691,7 +673,7 @@ CONTAINS
           ENDIF
 
           ! ASOA (benz, tolu, xyle, + NAP/IVOC SOA) [kg/m3]
-          IF ( IS_ASOA ) THEN
+          IF ( State_Chm%AerMass%Is_ASOA ) THEN
              State_Chm%AerMass%ASOA(I,J,L) = ( Spc(id_ASOAN)%Conc(I,J,L)   &
                            + Spc(id_ASOA1)%Conc(I,J,L)   &
                            + Spc(id_ASOA2)%Conc(I,J,L)   &
@@ -700,7 +682,7 @@ CONTAINS
           ENDIF
 
           ! OPOA [kg/m3]
-          IF ( IS_OPOA ) THEN
+          IF ( State_Chm%AerMass%Is_OPOA ) THEN
              State_Chm%AerMass%OPOA(I,J,L) = ( Spc(id_OPOA1)%Conc(I,J,L)    &
                            + Spc(id_OPOA2)%Conc(I,J,L) )  &
                            * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
@@ -764,21 +746,21 @@ CONTAINS
        !-------------------------------------------------------
 
        ! Use simple SOA by default over complex SOA in calculations
-       IF ( Is_SimpleSOA ) THEN
+       IF ( State_Chm%AerMass%Is_SimpleSOA ) THEN
           State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPI(I,J,L) + &
                                              State_Chm%AerMass%SOAS(I,J,L)
 
-       ELSEIF ( Is_ComplexSOA ) THEN
+       ELSEIF ( State_Chm%AerMass%Is_ComplexSOA ) THEN
 
           State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%TSOA(I,J,L) + &
                                              State_Chm%AerMass%ASOA(I,J,L)
 
-          IF ( IS_OCPI ) THEN  ! hotp 7/28/10
+          IF ( State_Chm%AerMass%Is_OCPI ) THEN  ! hotp 7/28/10
              State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
                                                 State_Chm%AerMass%OCPI(I,J,L)
           ENDIF
 
-          IF ( IS_OPOA ) THEN ! hotp 7/28/10
+          IF ( State_Chm%AerMass%Is_OPOA ) THEN ! hotp 7/28/10
              State_Chm%AerMass%OCPISOA(I,J,L) = State_Chm%AerMass%OCPISOA(I,J,L) + &
                                                 State_Chm%AerMass%OPOA(I,J,L)
           ENDIF
@@ -798,7 +780,7 @@ CONTAINS
        !===========================================================
        ! SOAGX [kg/m3]
        !===========================================================
-       IF ( IS_SOAGX ) THEN
+       IF ( State_Chm%AerMass%Is_SOAGX ) THEN
           State_Chm%AerMass%SOAGX(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) * OCFG / AIRVOL(I,J,L)
        ENDIF
 
@@ -827,7 +809,7 @@ CONTAINS
                      SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
        ! OCPI is not present in SVPOA simulation
        ! OCPO represents all POA intead (factor*POA)
-       IF ( Is_OCPI ) THEN
+       IF ( State_Chm%AerMass%Is_OCPI ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + &
                                           State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH
        ENDIF
@@ -837,10 +819,10 @@ CONTAINS
        ! Complex SOA species are carried (i.e. "benchmark"), then
        ! only the Simple SOA will be added to PM2.5 and PM10, in order
        ! to avoid double-counting. (bmy, 03 Nov 2021)
-       IF ( Is_SimpleSOA ) THEN
+       IF ( State_Chm%AerMass%Is_SimpleSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
 
-       ELSE IF ( Is_ComplexSOA ) THEN
+       ELSE IF ( State_Chm%AerMass%Is_ComplexSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L)                 + &
                         State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
                         State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
@@ -848,7 +830,7 @@ CONTAINS
 
           ! Need to add OPOA to PM2.5 for complexSOA_SVPOA simulations
           ! -- Maggie Marvin (15 Jul 2020)
-          IF ( Is_OPOA ) THEN
+          IF ( State_Chm%AerMass%Is_OPOA ) THEN
              State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
           ENDIF
        ENDIF
@@ -1408,9 +1390,9 @@ CONTAINS
     ! Representative aerosol densities (kg/m3):
     MSDENS(1) = State_Chm%SpcData(id_SO4)%Info%Density
     MSDENS(2) = State_Chm%SpcData(id_BCPI)%Info%Density
-    IF ( IS_POA ) THEN
+    IF ( State_Chm%AerMass%Is_POA ) THEN
        MSDENS(3) = State_Chm%SpcData(id_POA1)%Info%Density
-    ELSE IF ( IS_OCPI ) THEN
+    ELSE IF ( State_Chm%AerMass%Is_OCPI ) THEN
        MSDENS(3) = State_Chm%SpcData(id_OCPI)%Info%Density
     ENDIF
     MSDENS(4) = State_Chm%SpcData(id_SALA)%Info%Density
@@ -1782,7 +1764,7 @@ CONTAINS
                 ENDIF
 
                 ! Get the AOD contribution from isoprene SOA only (eam, 2014)
-                IF ( N == 3 .and. Is_ComplexSOA ) THEN
+                IF ( N == 3 .and. State_Chm%AerMass%Is_ComplexSOA ) THEN
                    ISOPOD(I,J,L,IWV) = SCALEOD*BXHEIGHT(I,J,L)*0.75d0 &
                                    * State_Chm%AerMass%ISOAAQ(I,J,L) * QW(1)  / &
                                    ( MSDENS(N) * State_Chm%AerMass%PDER(I,J,L) * 1.0D-6 )
@@ -2214,7 +2196,7 @@ CONTAINS
                 !----------------------------------------------------
                 ! Netcdf diagnostics computed here:
                 !  AOD for SOA from aq isoprene (lambda1,2,3 nm) [unitless]
-                IF ( ( N == 3 ) .and. Is_ComplexSOA ) THEN
+                IF ( ( N == 3 ) .and. State_Chm%AerMass%Is_ComplexSOA ) THEN
                    IF ( State_Diag%Archive_AODSOAfromAqIsopWL1 .AND. &
                         IsWL1 ) THEN
                       State_Diag%AODSOAfromAqIsopWL1(I,J,L) = &
@@ -2448,28 +2430,24 @@ CONTAINS
     id_LVOCOA = Ind_( 'LVOCOA' )
 
     ! Define logical flags
-    IS_OCPI    = ( id_OCPI  > 0 )
-    IS_OCPO    = ( id_OCPO  > 0 )
-    IS_BC      = ( id_BCPI  > 0 .AND. id_BCPO  > 0 )
-    IS_SO4     = ( id_SO4   > 0 )
-    IS_HMS     = ( id_HMS   > 0 )
-    IS_NH4     = ( id_NH4   > 0 )
-    IS_NIT     = ( id_NIT   > 0 )
-    IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
-    IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
-    IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
-    IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
-    IS_TSOA    = ( id_TSOA1 > 0 .AND. id_TSOA2 > 0 .AND. &
-                   id_TSOA3 > 0 .AND. id_TSOA0 > 0 )
-    IS_ASOA    = ( id_ASOAN > 0 .AND. id_ASOA1 > 0 .AND. &
-                   id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
-    IS_SOAGX   = ( id_SOAGX > 0 )
-    Is_SimpleSOA  = ( id_SOAS > 0 )
-    Is_ComplexSOA = Input_Opt%LSOA
-
-    ! Set logicals also used for diagnostics
-    IF ( IS_POA  .AND. State_Diag%Archive_AerMassPOA  ) State_Diag%isPOA  = .TRUE.
-    IF ( IS_OPOA .AND. State_Diag%Archive_AerMassOPOA ) State_Diag%isOPOA = .TRUE.
+    State_Chm%AerMass%Is_OCPI  = ( id_OCPI  > 0 )
+    State_Chm%AerMass%Is_OCPO  = ( id_OCPO  > 0 )
+    State_Chm%AerMass%Is_BC    = ( id_BCPI  > 0 .AND. id_BCPO  > 0 )
+    State_Chm%AerMass%Is_SO4   = ( id_SO4   > 0 )
+    State_Chm%AerMass%Is_HMS   = ( id_HMS   > 0 )
+    State_Chm%AerMass%Is_NH4   = ( id_NH4   > 0 )
+    State_Chm%AerMass%Is_NIT   = ( id_NIT   > 0 )
+    State_Chm%AerMass%Is_DST   = ( id_DST1  > 0 .AND. id_DST2  > 0 )
+    State_Chm%AerMass%Is_SAL   = ( id_SALA  > 0 .AND. id_SALC  > 0 )
+    State_Chm%AerMass%Is_POA   = ( id_POA1  > 0 .AND. id_POA2  > 0 )
+    State_Chm%AerMass%Is_OPOA  = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
+    State_Chm%AerMass%Is_TSOA  = ( id_TSOA1 > 0 .AND. id_TSOA2 > 0 .AND. &
+                                   id_TSOA3 > 0 .AND. id_TSOA0 > 0 )
+    State_Chm%AerMass%Is_ASOA  = ( id_ASOAN > 0 .AND. id_ASOA1 > 0 .AND. &
+                                   id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
+    State_Chm%AerMass%Is_SOAGX = ( id_SOAGX > 0 )
+    State_Chm%AerMass%Is_SimpleSOA  = ( id_SOAS > 0 )
+    State_Chm%AerMass%Is_ComplexSOA = Input_Opt%LSOA
 
     ! Initialize the mapping between hygroscopic species in the
     ! species database and the species order in NRHAER
