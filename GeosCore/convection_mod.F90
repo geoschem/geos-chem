@@ -559,7 +559,7 @@ CONTAINS
     ! Point to columns of derived-type object fields
     BXHEIGHT     => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
     CMFMC        => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
-                                                              ! [kg/m2/s]
+                                                              ! [kg/m2/s] [upper edge]
     DQRCU_MET    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
     DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
     REEVAPCN_MET => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
@@ -573,12 +573,12 @@ CONTAINS
     SpcInfo      => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
-    PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
+    PFICU    => State_Met%PFICU   (I,J,1:State_Grid%NZ) ! Dwnwd flx of conv
                                                           !  ice precip
-                                                          !  [kg/m2/s]
-    PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
+                                                          !  [kg/m2/s] [lower edge]
+    PFLCU    => State_Met%PFLCU   (I,J,1:State_Grid%NZ) ! Dwnwd flux of conv
                                                           !  liquid precip
-                                                          !  [kg/m2/s]
+                                                          !  [kg/m2/s] [lower edge]
 
     ! # of levels and # of species
     NLAY     = State_Grid%NZ
@@ -662,10 +662,10 @@ CONTAINS
        PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
                 +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
     ELSE
-       PDOWN(NLAY) = 0
+       PDOWN(NLAY) = DQRCU_MET(NLAY) * DELP(NLAY) * G0_100 * 100e+0_fp
        DO K = NLAY-1, 1, -1
-          PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K+1) & 
-                    * DELP(K+1) * G0_100 * 100e+0_fp 
+          PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K) & 
+                    * DELP(K) * G0_100 * 100e+0_fp
                     ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
        ENDDO
     ENDIF
@@ -1138,10 +1138,8 @@ CONTAINS
 
              ! Check if...
              ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
-             ! (2) there is re-evaporation happening in grid box (I,J,K)
-             ! (3) there is species to re-evaporate
+             ! (2) there is species to re-evaporate
              IF ( PDOWN(K+1)  > 0 .and. &
-                  REEVAPCN(K) > 0 .and. &
                   T0_SUM      > 0        ) THEN
 
                 ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
