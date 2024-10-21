@@ -154,6 +154,10 @@
   ! transport is correctly implemented.
   State_Met%SPHU1               = SPHU1       *1.0d3         ! kg/kg -> g/kg
   State_Met%SPHU2               = SPHU2       *1.0d3         ! kg/kg -> g/kg
+  State_Met%PRECCON             = PRECCON * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECLSC             = PRECLSC * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECANV             = PRECANV * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECTOT             = PRECTOT * 86400d0          ! kg/m2/s to mm/day
 
     ! If meteorology vertical index is top down, flip imports coming from ExtData.
   if (meteorology_vertical_index_is_top_down) then
