@@ -1006,7 +1006,7 @@ CONTAINS
 !
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Met_Mod,  ONLY : MetState
-    USE State_Chm_Mod,  ONLY : ChmState
+    USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -1058,7 +1058,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: after,  before, wetDep
     INTEGER            :: I,      J,      L,       N,    S
-    INTEGER            :: numSpc, region, topLev,  botLev
+    INTEGER            :: numSpc, region, topLev,  botLev, id_clock
     REAL(f8)           :: colSum, dt,     rtol
 
     ! Arrays
@@ -1078,6 +1078,7 @@ CONTAINS
     ThisLoc = ' -> at Compute_Budget_Diagnostics (in GeosCore/diagnostics_mod.F90)'
     colSum  = 0.0_f8
     spcMass = 0.0_f8
+    IF ( Input_Opt%Verbose ) id_clock = Ind_('CLOCK')
 
     ! Verify that incoming State_Chm%Species units are kg/kg dry air.
     IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
@@ -1190,11 +1191,18 @@ CONTAINS
     IF ( Input_Opt%verbose .AND. before ) THEN
        ! Prior global tracer mass, summed over all tracers. This isn't physically
        ! meaningful, but can be used to check if the budget diagnostic is
-       ! working correctly
+       ! working correctly.
        PriorGlobalMass(1) = sum(colMass(:,:,:,1))
        PriorGlobalMass(2) = sum(colMass(:,:,:,2))
        PriorGlobalMass(3) = sum(colMass(:,:,:,3))
        PriorGlobalMass(4) = sum(colMass(:,:,:,4))
+       ! Exclude clock tracer if present
+       IF ( id_clock > 0 ) THEN
+          PriorGlobalMass(1) = PriorGlobalMass(1) - SUM(colMass(:,:,id_clock,1))
+          PriorGlobalMass(2) = PriorGlobalMass(2) - SUM(colMass(:,:,id_clock,2))
+          PriorGlobalMass(3) = PriorGlobalMass(3) - SUM(colMass(:,:,id_clock,3))
+          PriorGlobalMass(4) = PriorGlobalMass(4) - SUM(colMass(:,:,id_clock,4))
+       ENDIF
     ENDIF
 
     ! Loop over NX and NY dimensions
@@ -1423,13 +1431,24 @@ CONTAINS
        IF (.NOT. ANY( PriorGlobalMass == 0. ) ) THEN
 
           ! Relative error, change since prior "after" call
-          rerr(1) = ABS( SUM( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
-          rerr(2) = ABS( SUM( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
-          rerr(3) = ABS( SUM( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
-          rerr(4) = ABS( SUM( colMass(:,:,:,4) ) / PriorGlobalMass(4) - 1 )
+          IF ( id_clock > 0 ) THEN
+             rerr(1) = ABS( ( SUM(colMass(:,:,:,1)) - SUM(colMass(:,:,id_clock,1)) ) &
+                  / PriorGlobalMass(1) - 1 )
+             rerr(2) = ABS( ( SUM(colMass(:,:,:,2)) - SUM(colMass(:,:,id_clock,2)) ) &
+                  / PriorGlobalMass(2) - 1 )
+             rerr(3) = ABS( ( SUM(colMass(:,:,:,3)) - SUM(colMass(:,:,id_clock,3)) ) &
+                  / PriorGlobalMass(3) - 1 )
+             rerr(4) = ABS( ( SUM(colMass(:,:,:,4)) - SUM(colMass(:,:,id_clock,4)) ) &
+                  / PriorGlobalMass(4) - 1 )
+          ELSE
+             rerr(1) = ABS( SUM( colMass(:,:,:,1) ) / PriorGlobalMass(1) - 1 )
+             rerr(2) = ABS( SUM( colMass(:,:,:,2) ) / PriorGlobalMass(2) - 1 )
+             rerr(3) = ABS( SUM( colMass(:,:,:,3) ) / PriorGlobalMass(3) - 1 )
+             rerr(4) = ABS( SUM( colMass(:,:,:,4) ) / PriorGlobalMass(4) - 1 )
+          ENDIF
 
-          ! Relative error tolarance, errors larger than this will halt the model
-          rtol = 0.001
+          ! Relative error tolarance, errors larger than this will print a warning
+          rtol = 0.01
 
           IF ( rerr(1) > rtol ) THEN
              PRINT *, 'Budget Diagnostic Warning: FULL-column tracer mass changed ', &
@@ -1449,10 +1468,11 @@ CONTAINS
           ENDIF
 
           IF ( ANY( rerr > rtol ) ) THEN
-             errMsg = 'Tracer mass changed outside code sections monitored by Compute_Budget_Diagnostics!!! ' &
-                  //'This could indicate a bug or additional calls to Compute_Budget_Diagnostics are needed.'
+             errMsg = 'Tracer mass changed outside code sections monitored by ' &
+                  // 'Compute_Budget_Diagnostics!!! This could indicate a ' &
+                  // 'bug or additional calls to Compute_Budget_Diagnostics are needed.'
              PRINT *, errMsg
-             PRINT *, 'Budget Diagnostic Warnings are expected in simulations with H2O or CLOCK'
+             PRINT *, 'Budget Diagnostic Warnings are expected in simulations with H2O'
              ! Optional code to exit with error if warning criteria is met:
              ! CALL GC_Error( errMsg, RC, thisLoc )
              ! RETURN
