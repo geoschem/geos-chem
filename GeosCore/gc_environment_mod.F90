@@ -608,8 +608,8 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize "aerosol_mod.F90"
     !-----------------------------------------------------------------
-    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. &
-         Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL Init_Aerosol( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'

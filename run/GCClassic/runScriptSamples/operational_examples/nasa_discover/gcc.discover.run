@@ -1,11 +1,13 @@
 #!/bin/bash
 
 # For discover
-#SBATCH --time 00:45:00
-#SBATCH --nodes=1 --ntasks-per-node=24
-#SBATCH --job-name=gchp_build
-#SBATCH --constraint=sky
-#SBATCH --account=s____
+#SBATCH --time 1:00:00
+#SBATCH --nodes=1 --ntasks-per-node=48
+#SBATCH --mem 4G         # Use 10G for 2x2.5
+#SBATCH --job-name=gcclassic.run
+#SBATCH --constraint=mil # Edit as needed
+#SBATCH --account=s___   # Fill in
+##SBATCH --qos=__        # Fill in and uncomment if using
 
-source gcc.discover.env
+source gcc.env  # Edit, or create gcc.env symlink to env file
 ./gcclassic > gcc.log
