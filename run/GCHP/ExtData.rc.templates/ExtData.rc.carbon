@@ -260,7 +260,7 @@ CH4_SOILABSORB kg/m2/s  2009 Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoD
 # --- AEIC 2019 aircraft (AEIC) ---
 AEIC19_MONMEAN_CO kg/m2/s Y Y F2019-%m2-01T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 #
-##AEIC19_DAILY_CO   kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
+##AEIC19_DAILY_CO   kg/m2/s Y Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 
 # --- CEDSv2 emissions ---
 CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
@@ -281,10 +281,10 @@ CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp  ./HcoDir/CEDS/v2
 FOSSILCO2_ODIAC  kg/m2/s N Y  F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
 
 # --- CO2 Ocean Exchange ---
-OCEANCO2_TAKA_MONTHLY  kg/m2/s 2000 Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Taka2009_CO2_Monthly.nc
+OCEANCO2_SCALED_MONTHLY kg/m2/s N  Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
 
 # --- Balanced biosphere exchange ---
-SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
+SIB_BBIO_CO2 kg/m2/s N Y F1985-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
 
 # --- Net Terrestrial Exchange ---
 CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
@@ -293,20 +293,20 @@ CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_te
 CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2021-06/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
 
 # --- CO2: AEIC 2019 aircraft emissions ---
-AEIC19_MONMEAN_CO2 kg/m2/s 2019 Y F%y4-%m2-%d2T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
+AEIC19_MONMEAN_CO2 kg/m2/s Y Y F2019-%m2-01T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
 
 # --- CO2: Surface correction for CO oxidation ---
-FOSSILCO2_MONTHLY kg/m/s N    Y F%y4-%m2-01T01:00:00 none none CO2     ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
-CO2_LIVESTOCK     kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_004 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
-CO2_WASTE         kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_005 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
-CO2_RICE          kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_007 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
-CO2_WETLANDS      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_010 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
-CO2_NATURAL       kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none CH4_012 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
-CO2_ISOPRENE      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none ISOP    ./HcoDir/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc
-CO2_MONOTERP      kg/m/s 2004 Y F%y4-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
+FOSSILCO2_MONTHLY kg/m/s N Y F%y4-%m2-01T01:00:00 none none CO2     ./HcoDir/CO2/v2022-11/FOSSIL/ODIAC_CO2.monthly.generic.1x1.nc
+CO2_LIVESTOCK     kg/m/s Y Y F2004-%m2-01T01:00:00 none none CH4_004 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_WASTE         kg/m/s Y Y F2004-%m2-01T01:00:00 none none CH4_005 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_RICE          kg/m/s Y Y F2004-%m2-01T01:00:00 none none CH4_007 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_WETLANDS      kg/m/s Y Y F2004-%m2-01T01:00:00 none none CH4_010 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_NATURAL       kg/m/s Y Y F2004-%m2-01T01:00:00 none none CH4_012 ./HcoDir/CO2/v2022-11/CHEM/CH4_source.geos.2x25.nc
+CO2_ISOPRENE      kg/m/s Y Y F2004-%m2-01T01:00:00 none none ISOP    ./HcoDir/CO2/v2022-11/CHEM/Isoprene-2004.geos.2x25.nc
+CO2_MONOTERP      kg/m/s Y Y F2004-%m2-01T01:00:00 none none MONOT   ./HcoDir/CO2/v2022-11/CHEM/Monoterpene-2004.geos.2x25.nc
 
 # --- CO2 production from CO ---
-CO2_COPROD        kgC/m3/s N Y F%y2-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2024-01/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
+CO2_COPROD        kgC/m3/s N Y F%y4-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/v2024-01/CHEM/CO2_prod_rates.GEOS5.2x25.72L.nc
 
 #==============================================================================
 # --- OCS emission fluxes ---
@@ -406,12 +406,11 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 #==============================================================================
 
 # --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
-CO2_DIURNAL 1 N    Y F%y4-%m2-%d2T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
-CO2_WEEKLY  1 2006 Y F%y4-%m2-%d2T00:00:00  none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
+CO2_DIURNAL 1 N Y F2006-01-01T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
+CO2_WEEKLY  1 D Y F2006-01-01T00:00:00   none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
 
 # --- Domestic aviation surface correction factor ---
-AVIATION_SURF_CORR      1       2004 Y F%y2-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
-OCEANCO2_SCALED_MONTHLY kg/m2/s N    Y F%y2-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
+AVIATION_SURF_CORR      1       Y  Y F2004-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
 
 ###############################################################################
 ###

@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
 - Added fix to turn on ship emissions for CO2 in the carbon simulation
 - Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
+- Fixed entries for CO2 emissions in `ExtData.rc.carbon`
 
 ## [Unreleased] - TBD
 ### Added
