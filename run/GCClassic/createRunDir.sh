@@ -658,6 +658,8 @@ fi
 #-----------------------------------------------------------------
 
 if [[ ${met} = "ModelE2.1" ]]; then
+    # Current scale factors are based on U10 and V10, while the latest implementation of DEAD is using USTAR
+    # May cause 10 times larger dust emissions than properly scaled
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
@@ -685,7 +687,6 @@ if [[ ${met} = "ModelE2.1" ]]; then
     fi
 else
     RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
-    # Use GEOS-FP values as placeholders for GEOS-IT until parameters derived
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
