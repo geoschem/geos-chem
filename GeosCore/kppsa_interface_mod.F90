@@ -815,23 +815,25 @@ CONTAINS
       DO N = 1, NSPEC
          SpcID = State_Chm%Map_KppSpc(N)
          IF ( SpcID <= 0 ) THEN
-            WRITE( IU_FILE, 120 ) "C", N, ",", initC(N), ATOL(N)
- 120        FORMAT( a, i0, a, es25.16e3, es10.2e2 )
+            WRITE( IU_FILE, 120 ) N, initC(N), ATOL(N)
+ 120        FORMAT( "C", i0, ",", es25.16e3, ",", es10.2e2 )
             CYCLE
          ENDIF
-         WRITE( IU_FILE, 130 ) TRIM(State_Chm%SpcData(SpcID)%Info%Name),     &
-                               ',', initC(N), ATOL(N)
- 130     FORMAT( a, a, es25.16e3, es10.2e2 )
+         WRITE( IU_FILE, 130 )                                               &
+            TRIM(State_Chm%SpcData(SpcID)%Info%Name), initC(N), ATOL(N)
+ 130     FORMAT( a, ",", es25.16e3, ",", es10.2e2 )
       ENDDO
 
       ! Write reaction rates
       DO N = 1, NREACT
-         WRITE( IU_FILE,'(a,I0,a,e25.16e3)' ) 'R', N, ',', localRCONST(N)
+         WRITE( IU_FILE, 140 ) N, localRCONST(N)
+ 140     FORMAT( "R", i0, ",", es25.16e3 )
       ENDDO
 
       ! Write instantaneous reaction rates
       DO N = 1, NREACT
-         WRITE( IU_FILE,'(A,I0,A,E25.16E3)' ) 'A', N, ',', Aout(N)
+         WRITE( IU_FILE, 150 ) N, Aout(N)
+ 150     FORMAT( "A", i0, ",", es25.16e3 )
       ENDDO
 
       ! Close file
