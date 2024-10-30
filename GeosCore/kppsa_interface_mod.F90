@@ -566,54 +566,58 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE KppSa_Write_Samples( I,           J,           L,              &
-                                   initC,       localRCONST, initHvalue,     &
-                                   exitHvalue,  State_Grid,  State_Chm,      &
-                                   State_Met,   Input_Opt,   KPP_TotSteps,   &
-                                   RC,          FORCE_WRITE, CELL_NAME      )
+   SUBROUTINE KppSa_Write_Samples( I,           J,            L,             &
+                                   initC,       localRCONST,  initHvalue,    &
+                                   exitHvalue,  ICNTRL,       RCNTRL,        &
+                                   State_Grid,  State_Chm,    State_Met,     &
+                                   Input_Opt,   KPP_TotSteps, RC,            &
+                                   FORCE_WRITE, CELL_NAME                   )
 !
 ! !USES:
 !
       USE ErrCode_Mod
-      USE State_Grid_Mod,           ONLY : GrdState
-      USE State_Chm_Mod,            ONLY : ChmState
-      USE State_Met_Mod,            ONLY : MetState
-      USE Input_Opt_Mod,            ONLY : OptInput
+      USE State_Grid_Mod,   ONLY : GrdState
+      USE State_Chm_Mod,    ONLY : ChmState
+      USE State_Met_Mod,    ONLY : MetState
+      USE Input_Opt_Mod,    ONLY : OptInput
+      USE GcKpp_Global,     ONLY : ATOL
       USE GcKpp_Function
-      USE GcKpp_Parameters,         ONLY : NSPEC, NREACT, NVAR
-      USE TIME_MOD,                 ONLY : GET_TS_CHEM
-      USE TIME_MOD,                 ONLY : TIMESTAMP_STRING
-      USE TIME_MOD,                 ONLY : Get_Minute
-      USE TIME_MOD,                 ONLY : Get_Hour
-      USE TIME_MOD,                 ONLY : Get_Day
-      USE TIME_MOD,                 ONLY : Get_Month
-      USE TIME_MOD,                 ONLY : Get_Year
-      USE Pressure_Mod,             ONLY : Get_Pcenter
-      USE inquireMod,               ONLY : findFreeLUN
+      USE GcKpp_Parameters, ONLY : NSPEC, NREACT, NVAR
+      USE TIME_MOD,         ONLY : GET_TS_CHEM
+      USE TIME_MOD,         ONLY : TIMESTAMP_STRING
+      USE TIME_MOD,         ONLY : Get_Minute
+      USE TIME_MOD,         ONLY : Get_Hour
+      USE TIME_MOD,         ONLY : Get_Day
+      USE TIME_MOD,         ONLY : Get_Month
+      USE TIME_MOD,         ONLY : Get_Year
+      USE Pressure_Mod,     ONLY : Get_Pcenter
+      USE inquireMod,       ONLY : findFreeLUN
 !
 ! !INPUT PARAMETERS:
 !
-      INTEGER,        INTENT(IN)    :: I                   ! Longitude index
-      INTEGER,        INTENT(IN)    :: J                   ! Latitude index
-      INTEGER,        INTENT(IN)    :: L                   ! Vertical level
-      INTEGER,        INTENT(IN)    :: KPP_TotSteps        ! Total integr. steps
-      TYPE(GrdState), INTENT(IN)    :: State_Grid          ! Grid State object
-      TYPE(ChmState), INTENT(IN)    :: State_Chm           ! Chem State obj
-      TYPE(MetState), INTENT(IN)    :: State_Met           ! Met State obj
-      TYPE(OptInput), INTENT(IN)    :: Input_Opt           ! Input Options obj
-      REAL(dp), INTENT(IN)          :: initC(NSPEC)        ! Initial conc.
-      REAL(dp), INTENT(IN)          :: localRCONST(NREACT) ! Rate constants
+      INTEGER,          INTENT(IN)  :: I                   ! Longitude index
+      INTEGER,          INTENT(IN)  :: J                   ! Latitude index
+      INTEGER,          INTENT(IN)  :: L                   ! Vertical level
+      INTEGER,          INTENT(IN)  :: KPP_TotSteps        ! Total integr. steps
+      INTEGER,          INTENT(IN)  :: ICNTRL(20)          ! Integrator options
+      TYPE(GrdState),   INTENT(IN)  :: State_Grid          ! Grid State object
+      TYPE(ChmState),   INTENT(IN)  :: State_Chm           ! Chem State obj
+      TYPE(MetState),   INTENT(IN)  :: State_Met           ! Met State obj
+      TYPE(OptInput),   INTENT(IN)  :: Input_Opt           ! Input Options obj
+      REAL(dp),         INTENT(IN)  :: initC(NSPEC)        ! Initial conc.
+      REAL(dp),         INTENT(IN)  :: localRCONST(NREACT) ! Rate constants
       REAL(dp)                      :: initHvalue          ! Initial timestep
       REAL(dp)                      :: exitHvalue          ! Final timestep:
                                                            !  RSTATE(Nhexit)
-      LOGICAL, OPTIONAL             :: FORCE_WRITE         ! Write even if not
+      REAL(dp),         INTENT(IN)  :: RCNTRL(20)          ! Integrator options
+      LOGICAL,          OPTIONAL    :: FORCE_WRITE         ! Write even if not
                                                            ! in an active cell
       CHARACTER(LEN=*), OPTIONAL    :: CELL_NAME           ! Customize name of
                                                            !  this file
 !
 ! !OUTPUT PARAMETERS:
 !
-      INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+      INTEGER,          INTENT(OUT) :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  11 Mar 2024 - P. Obin Sturm - Initial version
@@ -700,7 +704,7 @@ CONTAINS
                       IOSTAT=RC,           ACCESS='SEQUENTIAL')
 
       ! Write header to file
-      WRITE( IU_FILE, '(a)' ) '48'
+      WRITE( IU_FILE, '(a)' ) '60'
       WRITE( IU_FILE, '(a)' ) REPEAT("=", 76 )
       WRITE( IU_FILE, '(a)' ) ''
       WRITE( IU_FILE, '(a)' ) &
@@ -739,7 +743,7 @@ CONTAINS
       WRITE( IU_FILE, '(a)' ) ''
 
       ! Write the grid cell metadata as part of the header
-      WRITE( IU_FILE, '(a)'       )                                          &
+      WRITE( IU_FILE, '(a,/)'     )                                          &
          'Meteorological and general grid cell metadata    '
       WRITE( IU_FILE, '(a,a)'     )                                          &
          'Location:                                        '              // &
@@ -775,7 +779,7 @@ CONTAINS
       WRITE( IU_FILE, '(a,e11.4)' )                                          &
          'Cosine of solar zenith angle:                    ',                &
           State_Met%SUNCOSmid(I,J)
-      WRITE( IU_FILE, '(a)'       )                                          &
+      WRITE( IU_FILE, '(/,a,/)'   )                                          &
          'KPP Integrator-specific parameters               '
       WRITE( IU_FILE, '(a,f11.4)' )                                          &
          'Init KPP Timestep (seconds):                     ',                &
@@ -789,25 +793,35 @@ CONTAINS
       WRITE( IU_FILE, '(a,i6)'    )                                          &
          'Number of internal timesteps:                    ',                &
           KPP_TotSteps
-      WRITE( IU_FILE, '(a)'       )                                          &
+      WRITE( IU_FILE, '(a)'       ) 'ICNTRL integrator options used:'
+      WRITE( IU_FILE, '(10i6)'    ) ICNTRL( 1:10)
+      WRITE( IU_FILE, '(10i6)'    ) ICNTRL(11:20)
+      WRITE( IU_FILE, '(a)'       ) 'RCNTRL integrator options used:'
+      WRITE( IU_FILE, '(5F13.6)'  ) RCNTRL( 1: 5)
+      WRITE( IU_FILE, '(5F13.6)'  ) RCNTRL( 6:10)
+      WRITE( IU_FILE, '(5F13.6)'  ) RCNTRL(11:15)
+      WRITE( IU_FILE, '(5F13.6)'  ) RCNTRL(16:20)
+      WRITE( IU_FILE, '(/,a)'     )                                          &
          'CSV data of full chemical state, including species concentrations,'
       WRITE( IU_FILE, '(a)'       )                                          &
          'rate constants (R) and instantaneous reaction rates (A).'
       WRITE( IU_FILE, '(a)'       )                                          &
-         'All concentration units are in molecules/cc and rates in molec/cc/s.'
+         'All concentration units are in molec/cm3 and rates in molec/cm3/s.'
       WRITE( IU_FILE, '(a)'       ) ''
       WRITE( IU_FILE, '(a)'       ) REPEAT("=", 76 )
-      WRITE( IU_FILE, '(a)'       ) 'Name,   Value'
+      WRITE( IU_FILE, '(a)'       ) 'Name,   Value,   Absolute Tolerance'
 
-      ! Write species concentrations
+      ! Write species concentrations and absolute tolerances
       DO N = 1, NSPEC
          SpcID = State_Chm%Map_KppSpc(N)
          IF ( SpcID <= 0 ) THEN
-            WRITE( IU_FILE, '(a,i0,a,e25.16e3)' ) "C", N, ",", initC(N)
+            WRITE( IU_FILE, 120 ) "C", N, ",", initC(N), ATOL(N)
+ 120        FORMAT( a, i0, a, es25.16e3, es10.2e2 )
             CYCLE
          ENDIF
-         WRITE( IU_FILE, '(a,a,e25.16e3)' )                                   &
-            TRIM(State_Chm%SpcData(SpcID)%Info%Name), ',', initC(N)
+         WRITE( IU_FILE, 130 ) TRIM(State_Chm%SpcData(SpcID)%Info%Name),     &
+                               ',', initC(N), ATOL(N)
+ 130     FORMAT( a, a, es25.16e3, es10.2e2 )
       ENDDO
 
       ! Write reaction rates
