@@ -240,8 +240,8 @@ Mask fractions:              false
 0 GHGI_COAST_WASTEWATER_IND   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
-0 GHGI_COAST_RICE             -                                                                   -                                             -                  -   -  -           CH4 58/1009 7 1
+0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_COAST_RICE             -                                                                    -                                            -                  -   -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
 0 GHGI_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
@@ -324,7 +324,7 @@ Mask fractions:              false
 
 ### Rice ###
 0 GHGI_EE_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
-0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - - -           CH4 58/1009 7 1
+0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
 0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
@@ -399,7 +399,7 @@ Mask fractions:              false
 )))Scarpelli_Canada
 
 #==============================================================================
-# --- CH4: Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021)
+# --- CH4: Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021) ---
 #
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
@@ -477,11 +477,11 @@ Mask fractions:              false
 )))BB4MIPS
 
 #==============================================================================
-# --- CH4: biomass burning ---
+# --- CH4: QFED2 biomass burning ---
+#
+# Use QFED v2.4r8 for CH4. The data in QFED/v2014-09 are for v2.4r5 and have
+# been found to be buggy for CH4 (same emissions on each day).
 #==============================================================================
-
-# --- QFED v2.4r8 ---
-# NOTE: Use this instead of data in QFED/v2014-09 (these are buggy)
 (((QFED2
 0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
@@ -1394,7 +1394,7 @@ ${RUNDIR_CO2_COPROD}
 
 (((EMISSIONS
 #==============================================================================
-# --- Scale factors for CH4 emissions ----
+# --- CH4: Seasonal scaling factors ----
 #==============================================================================
 (((USE_CH4_DATA
 
@@ -1415,7 +1415,7 @@ ${RUNDIR_CO2_COPROD}
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 #------------------------------------------------------------------------------
-# --- Scarpelli et al Mexico manure & rice scale factors ---
+# --- Scarpelli_Mexico manure & rice scale factors ---
 #------------------------------------------------------------------------------
 (((Scarpelli_Mexico
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
