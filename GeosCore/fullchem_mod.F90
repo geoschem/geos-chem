@@ -1310,6 +1310,8 @@ CONTAINS
             localRCONST  = local_RCONST,                                     &
             initHvalue   = KPPH_before_integrate,                            &
             exitHvalue   = RSTATE(Nhexit),                                   &
+            ICNTRL       = ICNTRL,                                           &
+            RCNTRL       = RCNTRL,                                           &
             State_Grid   = State_Grid,                                       &
             State_Chm    = State_Chm,                                        &
             State_Met    = State_Met,                                        &
