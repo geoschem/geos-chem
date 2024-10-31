@@ -46,18 +46,23 @@ MODULE HCO_Interface_GC_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
+#if !defined( MODEL_CESM )
   PUBLIC  :: HCOI_GC_Init
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
+#endif
+
   PUBLIC  :: HCOI_GC_WriteDiagn
 
   PUBLIC  :: Compute_Sflx_For_Vdiff
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
+#if !defined( MODEL_CESM )
   PRIVATE :: ExtState_InitTargets
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
+#endif
   PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: CheckSettings
@@ -162,6 +167,7 @@ MODULE HCO_Interface_GC_Mod
   LOGICAL,  PARAMETER :: DoDiagn = .TRUE.
 
 CONTAINS
+#if !defined( MODEL_CESM )
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1293,115 +1299,6 @@ CONTAINS
 #endif
 
   END SUBROUTINE HCOI_GC_Final
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: HCOI_GC_WriteDiagn
-!
-! !DESCRIPTION: Subroutine HCOI\_GC\_WriteDiagn is the wrapper routine to
-! write the HEMCO diagnostics. This will only write the diagnostics of
-! diagnostics collection 1.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE HCOI_GC_WriteDiagn( Input_Opt, Restart, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE HCOIO_Diagn_Mod, ONLY : HcoDiagn_Write
-    USE Input_Opt_Mod,   ONLY : OptInput
-
-    USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
-    USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
-#if defined( ADJOINT )
-    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
-#endif
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(IN   ) :: Input_Opt    ! Input options
-    LOGICAL,        INTENT(IN   ) :: Restart      ! write restart (enforced)?
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(INOUT) :: RC           ! Success or failure?
-!
-! !REVISION HISTORY:
-!  01 Apr 2015 - C. Keller   - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER             :: HMRC
-    INTEGER             :: year, month, day, dayOfYr, hour, minute, second
-
-    ! Strings
-    CHARACTER(LEN=255)  :: ThisLoc, Instr
-    CHARACTER(LEN=512)  :: ErrMsg
-
-    !=======================================================================
-    ! HCOI_GC_WriteDiagn begins here!
-    !=======================================================================
-
-    ! Initialize
-    RC       = GC_SUCCESS
-    HMRC     = HCO_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at HCOI_GC_WriteDiagn (in module GeosCore/hco_interface_gc_mod.F90)'
-    Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
-               'HEMCO log file for additional error messages!'
-
-    !-----------------------------------------------------------------------
-    ! Make sure HEMCO time is in sync
-    !-----------------------------------------------------------------------
-
-    ! Now done through a universal function in HCO_Interface_Common
-    ! (hplin, 3/12/20)
-    year      = GET_YEAR()
-    month     = GET_MONTH()
-    day       = GET_DAY()
-    dayOfYr   = GET_DAY_OF_YEAR()
-    hour      = GET_HOUR()
-    minute    = GET_MINUTE()
-    second    = GET_SECOND()
-
-    CALL SetHcoTime( HcoState, ExtState, year,   month,   day, dayOfYr, &
-                     hour,     minute,   second, .FALSE., HMRC         )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "SetHcoTime"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       CALL Flush( HcoState%Config%Err%Lun )
-       RETURN
-    ENDIF
-
-    !-----------------------------------------------------------------------
-    ! Write diagnostics
-    !-----------------------------------------------------------------------
-    CALL HcoDiagn_Write( HcoState, RESTART, HMRC )
-
-    ! Trap potential errors
-    IF ( HMRC /= HCO_SUCCESS ) THEN
-       RC     = HMRC
-       ErrMsg = 'Error encountered in "HcoDiagn_Write"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-       CALL Flush( HcoState%Config%Err%Lun )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE HCOI_GC_WriteDiagn
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -3245,6 +3142,116 @@ CONTAINS
 #endif
 
   END SUBROUTINE ExtState_UpdateFields
+#endif ! MODEL_CESM exclude
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: HCOI_GC_WriteDiagn
+!
+! !DESCRIPTION: Subroutine HCOI\_GC\_WriteDiagn is the wrapper routine to
+! write the HEMCO diagnostics. This will only write the diagnostics of
+! diagnostics collection 1.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE HCOI_GC_WriteDiagn( Input_Opt, Restart, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCOIO_Diagn_Mod, ONLY : HcoDiagn_Write
+    USE Input_Opt_Mod,   ONLY : OptInput
+
+    USE Time_Mod,        ONLY : Get_Year, Get_Month, Get_Day, GET_DAY_OF_YEAR
+    USE Time_Mod,        ONLY : GET_HOUR, GET_MINUTE, GET_SECOND
+#if defined( ADJOINT )
+    USE MAPL_CommsMod,   ONLY : MAPL_AM_I_ROOT
+#endif
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN   ) :: Input_Opt    ! Input options
+    LOGICAL,        INTENT(IN   ) :: Restart      ! write restart (enforced)?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(INOUT) :: RC           ! Success or failure?
+!
+! !REVISION HISTORY:
+!  01 Apr 2015 - C. Keller   - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER             :: HMRC
+    INTEGER             :: year, month, day, dayOfYr, hour, minute, second
+
+    ! Strings
+    CHARACTER(LEN=255)  :: ThisLoc, Instr
+    CHARACTER(LEN=512)  :: ErrMsg
+
+    !=======================================================================
+    ! HCOI_GC_WriteDiagn begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    HMRC     = HCO_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = &
+       ' -> at HCOI_GC_WriteDiagn (in module GeosCore/hco_interface_gc_mod.F90)'
+    Instr    = 'THIS ERROR ORIGINATED IN HEMCO!  Please check the '       // &
+               'HEMCO log file for additional error messages!'
+
+    !-----------------------------------------------------------------------
+    ! Make sure HEMCO time is in sync
+    !-----------------------------------------------------------------------
+
+    ! Now done through a universal function in HCO_Interface_Common
+    ! (hplin, 3/12/20)
+    year      = GET_YEAR()
+    month     = GET_MONTH()
+    day       = GET_DAY()
+    dayOfYr   = GET_DAY_OF_YEAR()
+    hour      = GET_HOUR()
+    minute    = GET_MINUTE()
+    second    = GET_SECOND()
+
+    CALL SetHcoTime( HcoState, ExtState, year,   month,   day, dayOfYr, &
+                     hour,     minute,   second, .FALSE., HMRC         )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "SetHcoTime"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
+       RETURN
+    ENDIF
+
+    !-----------------------------------------------------------------------
+    ! Write diagnostics
+    !-----------------------------------------------------------------------
+    CALL HcoDiagn_Write( HcoState, RESTART, HMRC )
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "HcoDiagn_Write"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       CALL Flush( HcoState%Config%Err%Lun )
+       RETURN
+    ENDIF
+
+  END SUBROUTINE HCOI_GC_WriteDiagn
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
