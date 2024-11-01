@@ -287,7 +287,7 @@ FOSSILCO2_ODIAC  kg/m2/s N Y  F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2
 OCEANCO2_SCALED_MONTHLY kg/m2/s N  Y F%y4-%m2-01T00:00:00 none none CO2 ./HcoDir/CO2/v2022-11/OCEAN/Scaled_Ocean_CO2_monthly.nc
 
 # --- Balanced biosphere exchange ---
-SIB_BBIO_CO2 kg/m2/s N Y F1985-%m2-%d2T%h2-01-01 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
+SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-%d2T%h2:00:00 none none CO2 ./HcoDir/CO2/v2022-11/BIO/SiB3_3hr_NEP.nc
 
 # --- Net Terrestrial Exchange ---
 CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
