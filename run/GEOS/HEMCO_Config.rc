@@ -81,8 +81,8 @@ Warnings:                    1
     --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
     --> GMD_SFC_CH4            :       false
+    --> GEOS_3HR_CH4           :       true   
     --> CMIP6_SFC_CH4          :       false
-    --> GEOS_3HR_CH4           :       true
 # OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
     --> YUAN_MODIS_LAI         :       false
@@ -99,7 +99,7 @@ Warnings:                    1
 #C720   --> OTD-LIS scaling   :       1.4152E-3
 #C180   --> OTD-LIS scaling   :       1.527e-2
     --> OTD-LIS scaling   :       0.12
-    --> CDF table         :       /discover/nobackup/cakelle2/data/light_dist.ott2010.dat
+    --> CDF table         :       /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/HEMCO/v0.0.0/sfc/light_dist.ott2010.dat
     --> Use CNV_FRC       :       false
     --> OTD-LIS factors   :       false
 104     SoilNOx           : on    NO 
@@ -153,11 +153,11 @@ Warnings:                    1
     --> GFED_subgrid_coag :       false
 117     Volcano           : on    SO2
     --> Volcano_Source    :       AeroCom
-# use flat degassing file for ops:
-#    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
+# use flat degassing file for 2022 onwards:
+    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
+    --> Volcano_Climatology :     ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
 # use degassing and eruptive for reanalysis:
-    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
-    --> Volcano_Climatology :     /discover/nobackup/ewlundgr/data/ExtData/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc
+#    --> Volcano_Table     :       ./ExtData/AeroCom/sfc/volcanic_CARN_1978-2020_v202005/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
 120     Inorg_Iodine      : on    HOI/I2
     --> Emit HOI          :       true
     --> Emit I2           :       true
@@ -193,23 +193,24 @@ Warnings:                    1
 #205,215 agr DOW,TOD
 
 #97  NOx ems as NO scale factor
-#115 NO2toNO scale factor; CEDS emits all as NO2. Convert NO2 to NO here instead of preprocessing.
-#0 CEDS_NO_AGR     /see/ExtData.rc            NOx_agr            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/205/215        5 2
-0 CEDS_NO_ENE     /see/ExtData.rc            NOx_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO    97/115/202/212/317    2 2
-0 CEDS_NO_IND     /see/ExtData.rc            NOx_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO    97/115/201/211/318    1 2
-0 CEDS_NO_TRA     /see/ExtData.rc            NOx_tra            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/203/213        3 2
-0 CEDS_NO_RCO     /see/ExtData.rc            NOx_rco            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/204/214        4 2
-0 CEDS_NO_SLV     /see/ExtData.rc            NOx_slv            2014/1-12/1/0 C xy       kg/m2/s NO    97/115/201/211        1 2
-0 CEDS_NO_WST     /see/ExtData.rc            NOx_wst            2014/1-12/1/0 C xy       kg/m2/s NO    97/115                9 2
+# AGR NOx emissions are not used since soil NOx emissions include those from fertilizers
+#0 CEDS_NO_AGR     /see/ExtData.rc            NO_agr            2014/1-12/1/0 C xy       kg/m2/s NO    97/205/215        5 2
+0 CEDS_NO_ENE     /see/ExtData.rc            NO_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO    97/202/212/317    2 2
+0 CEDS_NO_IND     /see/ExtData.rc            NO_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO    97/201/211/318    1 2
+0 CEDS_NO_TRA     /see/ExtData.rc            NO_tra            2014/1-12/1/0 C xy       kg/m2/s NO    97/203/213        3 2
+0 CEDS_NO_RCO     /see/ExtData.rc            NO_rco            2014/1-12/1/0 C xy       kg/m2/s NO    97/204/214        4 2
+0 CEDS_NO_SLV     /see/ExtData.rc            NO_slv            2014/1-12/1/0 C xy       kg/m2/s NO    97/201/211        1 2
+0 CEDS_NO_WST     /see/ExtData.rc            NO_wst            2014/1-12/1/0 C xy       kg/m2/s NO    97                9 2
 
 #98 NOx ems as NO2 scale factor
-#0 CEDS_NO2_AGR     /see/ExtData.rc           NOx_agr            2014/1-12/1/0 C xy       kg/m2/s NO2    98/205/215        5 2
-0 CEDS_NO2_ENE     /see/ExtData.rc           NOx_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO2    98/202/212/317    2 2
-0 CEDS_NO2_IND     /see/ExtData.rc           NOx_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO2    98/201/211/318    1 2
-0 CEDS_NO2_TRA     /see/ExtData.rc           NOx_tra            2014/1-12/1/0 C xy       kg/m2/s NO2    98/203/213        3 2
-0 CEDS_NO2_RCO     /see/ExtData.rc           NOx_rco            2014/1-12/1/0 C xy       kg/m2/s NO2    98/204/214        4 2
-0 CEDS_NO2_SLV     /see/ExtData.rc           NOx_slv            2014/1-12/1/0 C xy       kg/m2/s NO2    98/201/211        1 2
-0 CEDS_NO2_WST     /see/ExtData.rc           NOx_wst            2014/1-12/1/0 C xy       kg/m2/s NO2    98                9 2
+#115 NO to NO2 mass conversion
+#0 CEDS_NO2_AGR     /see/ExtData.rc           NO_agr            2014/1-12/1/0 C xy       kg/m2/s NO2    98/115/205/215        5 2
+0 CEDS_NO2_ENE     /see/ExtData.rc           NO_ene            2014/1-12/1/0 C xyL=1:11 kg/m2/s NO2    98/115/202/212/317    2 2
+0 CEDS_NO2_IND     /see/ExtData.rc           NO_ind            2014/1-12/1/0 C xyL=1:15 kg/m2/s NO2    98/115/201/211/318    1 2
+0 CEDS_NO2_TRA     /see/ExtData.rc           NO_tra            2014/1-12/1/0 C xy       kg/m2/s NO2    98/115/203/213        3 2
+0 CEDS_NO2_RCO     /see/ExtData.rc           NO_rco            2014/1-12/1/0 C xy       kg/m2/s NO2    98/115/204/214        4 2
+0 CEDS_NO2_SLV     /see/ExtData.rc           NO_slv            2014/1-12/1/0 C xy       kg/m2/s NO2    98/115/201/211        1 2
+0 CEDS_NO2_WST     /see/ExtData.rc           NO_wst            2014/1-12/1/0 C xy       kg/m2/s NO2    98/115                9 2
 
 #280 COtoSOAP_anth
 #301 ODIAC_ANNUALSCALE_2010 (not applied here but is used in HTAP) **********
@@ -604,17 +605,16 @@ Warnings:                    1
 0 CEDS_ACET_SHP   /see/MEK_ExtData.rc           MEK_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s ACET  14/51/319 10 5
 0 CEDS_HCOOH_SHP  /see/HCOOH_ExtData.rc         HCOOH_shp         2014/1-12/1/0 C xyL=1:3 kg/m2/s HCOOH 16/319    10 5
 #97  NOx ems as NO scale factor
-#115 NO2toNO scale factor; CEDS emits all as NO2. Convert NO2 to NO here instead of preprocessing.
-#98 NOx ems as NO2 scale factor
-0 CEDS_NO_SHP     /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO    97/115/319 10 5
-0 CEDS_NO2_SHP    /see/NOx_ExtData.rc           NOx_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO2   98/319     10 5
+#98 NOx ems as NO2 scale factor and #115 for mass conversion
+0 CEDS_NO_SHP     /see/NO_ExtData.rc           NO_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO    97/319     10 5
+0 CEDS_NO2_SHP    /see/NO_ExtData.rc           NO_shp           2014/1-12/1/0 C xyL=1:3 kg/m2/s NO2   98/115/319     10 5
 )))CEDS_SHIP
 
 #=======================================================================================================================================
 ## --- AEIC aircraft emissions ---
 #=======================================================================================================================================
 (((AEIC
-0 AEIC_NO   ~/data/aeic_2005.geos.1x1.72L.nc  NO       2005/1-12/1/0 C xyz kg/m2/s NO   110/115    20 1
+0 AEIC_NO   ~/data/aeic_2005.geos.1x1.72L.nc  NO       2005/1-12/1/0 C xyz kg/m2/s NO   110        20 1
 0 AEIC_CO   ~/data/aeic_2005.geos.1x1.72L.nc  CO       2005/1-12/1/0 C xyz kg/m2/s CO   110        20 1
 0 AEIC_SOAP -                                 -        -             - -   -       SOAP 110/280    20 1  
 0 AEIC_SO2  ~/data/aeic_2005.geos.1x1.72L.nc  FUELBURN 2005/1-12/1/0 C xyz kg/m2/s SO2  111        20 1 
@@ -1360,12 +1360,10 @@ Warnings:                    1
 * NOAA_GMD_CH4 $ROOT/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc SFC_CH4 1979-2020/1-12/1/0 C xy ppbv * - 1 1 
 )))GMD_SFC_CH4
 
-#==============================================================================
-# --- GEOS 3-hourly CH4 (within PBL) ---
-#==============================================================================
 (((GEOS_3HR_CH4
-* GEOS_CH4   /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz v/v * - 1 1
-* CH4_OFFSET /see/extdata CH4_offset    2021-2024/1-12/1/0    C xy  v/v * - 1 1
+* GEOS_CH4   /see/extdata CH4_total_dry 1979-2024/1-12/1-31/0 C xyz ppbv * - 1 1 
+* CH4_OFFSET /see/extdata CH4_offset    2021-2024/1-12/1/0    C xy  v/v  * - 1 1
+###* CH4_OFFSET 0.0 - - - xy v/v * - 1 1
 )))GEOS_3HR_CH4
 
 (((SfcVMR
@@ -1559,8 +1557,8 @@ Warnings:                    1
 97 NOXtoNO  0.9 - - - xy 1 1
 98 NOXtoNO2 0.1 - - - xy 1 1
 
-# Conversion factor from NO2 to NO
-115 NO2toNO     6.52e-1 - - - xy unitless 1
+# Conversion factor from NO to NO2
+115 NOtoNO2     1.533  - - - xy unitless 1
 
 # --- AEIC aircraft emissions ---                                                                
 # See http://geoschemdata.wustl.edu/ExtData/HEMCO/AEIC2019/v2022-03/AEIC_2019_technical_note.pdf 
