@@ -982,19 +982,19 @@ Mask fractions:              false
 (((USE_OCS_DATA
 
 (((OCS_ANTHRO_FLUX
-0 OCS_ANTHRO $ROOT/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 1 1
+0 OCS_ANTHRO $ROOT/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 1 1
 )))OCS_ANTHRO_FLUX
 
 (((OCS_BIOMASS_FLUX
-0 OCS_BIOMASS $ROOT/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 2 1
+0 OCS_BIOMASS $ROOT/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 2 1
 )))OCS_BIOMASS_FLUX
 
 (((OCS_MISSING_OCEAN_FLUX
-0 OCS_MISSING_OCEAN $ROOT/OCS_FLUX/v2022-11/MissingOcean/LUKAI/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 3 1
+0 OCS_MISSING_OCEAN $ROOT/OCS_FLUX/v2022-11/MissingOcean/LUKAI/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 3 1
 )))OCS_MISSING_OCEAN_FLUX
 
 (((OCS_OCEAN_FLUX
-0 OCS_OCEAN $ROOT/OCS_FLUX/v2022-11/OceanCOS/Kettle/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 4 1
+0 OCS_OCEAN $ROOT/OCS_FLUX/v2022-11/OceanCOS/Kettle/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 4 1
 )))OCS_OCEAN_FLUX
 
 )))USE_OCS_DATA
@@ -1542,11 +1542,6 @@ ${RUNDIR_CO2_COPROD}
 # --- S to OCS ratio ---
 #------------------------------------------------------------------------------
 70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1 
-
-#------------------------------------------------------------------------------
-# --- km-2 to m-2 ---
-#------------------------------------------------------------------------------
-71 Km2ToM2 1.0e-6 - - - xy unitless 1
 
 )))USE_OCS_DATA
 

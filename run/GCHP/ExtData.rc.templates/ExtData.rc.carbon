@@ -314,10 +314,10 @@ CO2_COPROD        kgC/m3/s N Y F%y4-%m2-01T00:00:00 none none LCO  ./HcoDir/CO2/
 #==============================================================================
 # --- OCS emission fluxes ---
 #==============================================================================
-OCS_ANTHRO        kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/%y4/%m2.nc
-OCS_BIOMASS       kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/%y4/%m2.nc
-OCS_MISSING_OCEAN kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/MissingOcean/LUKAI/%y4/%m2.nc
-OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none none COS_Flux ./HcoDir/OCS_FLUX/v2022-11/OceanCOS/Kettle/%y4/%m2.nc
+OCS_ANTHRO        kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/%y4/%m2.nc
+OCS_BIOMASS       kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/%y4/%m2.nc
+OCS_MISSING_OCEAN kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/MissingOcean/LUKAI/%y4/%m2.nc
+OCS_OCEAN         kgS/km2/s N Y F%y4-%m2-01T00:00:00 none 1.0e-6 COS_Flux ./HcoDir/OCS_FLUX/v2022-11/OceanCOS/Kettle/%y4/%m2.nc
 
 ###############################################################################
 ###
