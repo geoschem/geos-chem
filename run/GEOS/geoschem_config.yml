@@ -10,7 +10,7 @@
 #============================================================================
 simulation:
   name: fullchem
-  chem_inputs_dir: /discover/nobackup/cakelle2/data/CHEM_INPUTS/
+  chem_inputs_dir: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/
   species_database_file: ./species_database.yml
   verbose:
     activate: false

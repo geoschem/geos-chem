@@ -1,0 +1,94 @@
+VERSION: 1
+EXPID:  CF2_cdas_c360
+EXPDSC: c360_spinup_run_for_GEOS-CF_v2
+EXPSRC: GEOSgcm-v10.23.0
+
+
+COLLECTIONS: 'bkg.sfc'
+             'bkg.eta'
+             'cbkg.eta'
+             'ana.eta'
+             ::
+
+##################################################
+# The GRID_LABELS section must be after the main #
+#  list of COLLECTIONS for scripting purposes.   #
+##################################################
+
+GRID_LABELS: PC576x361-DC
+             
+::
+
+PC576x361-DC.GRID_TYPE: LatLon
+PC576x361-DC.IM_WORLD: 576
+PC576x361-DC.JM_WORLD: 361
+PC576x361-DC.POLE: PC
+PC576x361-DC.DATELINE: DC
+PC576x361-DC.LM: 72
+
+  bkg.sfc.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  bkg.sfc.archive:   '%c/Y%y4',
+  bkg.sfc.format:    'CFIO',
+  bkg.sfc.mode:      'instantaneous' ,
+  bkg.sfc.frequency:  030000,
+  bkg.sfc.ref_time:   030000,
+  bkg.sfc.grid_label: PC576x361-DC ,
+  bkg.sfc.fields:     'WET1'           , 'SURFACE'    , 'GWETTOP'    ,
+                      'SNOMAS'         , 'SURFACE'    , 'SNOWDP'     ,
+                      'TSOIL1'         , 'SURFACE'    ,
+                      'U10N;V10N'      , 'SURFACE'    , 'U10M;V10M'  ,
+                      'Z0'             , 'SURFACE'    , 'Z0M'        ,
+                      ::
+
+  bkg.eta.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  bkg.eta.archive:   '%c/Y%y4',
+  bkg.eta.format:    'CFIO',
+  bkg.eta.mode:      'instantaneous' ,
+  bkg.eta.frequency:  030000,
+  bkg.eta.ref_time:   030000,
+  bkg.eta.grid_label: PC576x361-DC ,
+  bkg.eta.fields:     'PHIS'           , 'AGCM'        , 'phis'       ,
+                      'PS'             , 'DYN'         , 'ps'         ,
+                      'TV'             , 'DYN'         , 'tv'         ,
+                      'TS'             , 'SURFACE'     , 'ts'         ,
+                      'FRLAND'         , 'SURFACE'     , 'frland'     ,
+                      'FRLANDICE'      , 'SURFACE'     , 'frlandice'  ,
+                      'FRLAKE'         , 'SURFACE'     , 'frlake'     ,
+                      'FROCEAN'        , 'SURFACE'     , 'frocean'    ,
+                      'FRACI'          , 'SURFACE'     , 'frseaice'   ,
+                      'Q'              , 'MOIST'       , 'sphu'       ,
+                      'GCC_O3PPMV'     , 'GEOSCHEMCHEM', 'ozone' ,
+                      ::
+
+  cbkg.eta.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  cbkg.eta.archive:   '%c/Y%y4',
+  cbkg.eta.format:    'CFIO',
+  cbkg.eta.mode:      'instantaneous' ,
+  cbkg.eta.frequency:  030000,
+  cbkg.eta.ref_time:   030000,
+  cbkg.eta.grid_label: PC576x361-DC ,
+  cbkg.eta.fields:     'PHIS'            , 'AGCM'         , 'phis'       ,
+                       'PS'              , 'DYN'          , 'ps'         ,
+                       'DELP'            , 'DYN'          , 'delp'       ,
+                       'Q'               , 'MOIST'        , 'sphu'       ,
+                       'GCC_O3PPMV'      , 'GEOSCHEMCHEM' , 'ozone'      ,
+                       'SpeciesConc_SO2' , 'GEOSCHEMCHEM' , 'SO2g'       ,
+                       'SpeciesConc_NO2' , 'GEOSCHEMCHEM' , 'NO2'        ,
+                       'Met_PBLTOPL'     , 'GEOSCHEMCHEM' , 'PBLTOPL'    ,
+                       'Met_TropLev'     , 'GEOSCHEMCHEM' , 'TROPLEV'    ,
+                       ::
+
+  ana.eta.template:  '%y4%m2%d2_%h2%n2z.nc4',
+  ana.eta.archive:   '%c/Y%y4',
+  ana.eta.format:    'CFIO',
+  ana.eta.mode:      'instantaneous' ,
+  ana.eta.frequency:  060000,
+  ana.eta.ref_time:   060000,
+  ana.eta.grid_label: PC576x361-DC ,
+  ana.eta.fields:     'PHIS'            , 'AGCM'         , 'phis'       ,
+                      'PS'              , 'DYN'          , 'ps'         ,
+                      'TS'              , 'SURFACE'      , 'ts'         ,
+                      'GCC_O3PPMV'      , 'GEOSCHEMCHEM' , 'ozone'      ,
+                      'SpeciesConc_SO2' , 'GEOSCHEMCHEM' , 'SO2g'       ,
+                      'SpeciesConc_NO2' , 'GEOSCHEMCHEM' , 'NO2'        ,
+                      ::
