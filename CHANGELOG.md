@@ -6,6 +6,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
+- Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
+- Added `State_Diag%Archive_SatDiagnEdgeCount` field
+- Added `State_Diag%Archive_SatDiagnEdge` field
+- Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
+
+### Changed
+- Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
+
+### Fixed
+- Fixed the satellite diagnostics counters from being inadvertently being reset
+
+## [Unreleased] - TBD
+### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Added setting `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
 - Implemented PPN photolysis from Horner et al (2024)
