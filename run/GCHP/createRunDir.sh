@@ -52,6 +52,9 @@ RUNDIR_VARS+="RUNDIR_GC_MODE='GCHP'\n"
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
 
+# Define run directory config log
+rundir_config_log=${rundir_config}/rundir_vars.txt
+
 printf "${thickline}GCHP RUN DIRECTORY CREATION${thickline}"
 
 #-----------------------------------------------------------------
@@ -317,6 +320,23 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	met="geosfp"
 
+	# Print warning about GEOS-FP and require user to acknowledge it.
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology files changed from RAS to Grell-Freidas starting June 1, 2020 with impact on vertical transport. Discussion and analysis of the impact is available at github.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in convective precipitation flux following the switch where all values are zero. This bug is automatically fixed by computing fluxes online for runs starting on or after June 1 2020, but not for the case of running across the time boundary. Due to these issues we recommend splitting up GEOS-FP runs in time such that a single simulation does not run across June 1, 2020. Instead set one run to stop on June 1 2020 and then restart a new run from there. If you wish to use a GEOS-FP meteorology year different from your simulation year please create a GEOS-Chem GitHub issue for assistance to avoid accidentally using zero convective precipitation flux.\n\nThis warning will be printed to run directory file ${rundir_config_log} for future reference.\n"
+	printf ${fp_msg}
+	valid_fp_accept=0
+	while [ "${valid_fp_accept}" -eq 0 ]; do
+	    read -p "${USER_PROMPT}" fp_accept
+	    valid_fp_accept=1
+	    if [[ ${fp_accept} = "y" ]]; then
+		x=0
+	    elif [[ ${fp_accept} = "q" ]]; then
+		exit
+	    else
+		valid_fp_accept=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+	
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
 	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
@@ -785,7 +805,6 @@ fi
 #--------------------------------------------------------------------
 
 # Save RUNDIR variables to file
-rundir_config_log=${rundir_config}/rundir_vars.txt
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
@@ -863,6 +882,14 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "Input not recognized. Try again.\n"
     fi
 done
+
+#-----------------------------------------------------------------
+# If using GEOS-FP then add a warning at top of rundir config log
+#-----------------------------------------------------------------
+if [[ $met == "geosfp" ]]; then
+   cat ${fp_msg} ${rundir_config_log} > tmp.txt
+   mv tmp.txt ${rundir_config_log}
+fi
 
 #-----------------------------------------------------------------
 # Done!
