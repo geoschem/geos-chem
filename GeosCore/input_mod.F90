@@ -3335,7 +3335,7 @@ CONTAINS
        WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
             Input_Opt%Reconstruct_Conv_Precip_Flux
 
-       IF ( Input_Opt%MetFields == 'GEOSFP' ) THEN
+       IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
           IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
           ELSE
