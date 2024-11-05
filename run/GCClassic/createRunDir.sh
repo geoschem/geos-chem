@@ -54,9 +54,6 @@ RUNDIR_VARS+="RUNDIR_GC_MODE='GCClassic'\n"
 thickline="\n===========================================================\n"
 thinline="\n-----------------------------------------------------------\n"
 
-# Define run directory config log
-rundir_config_log=${rundir_config}/rundir_vars.txt
-
 printf "${thickline}GEOS-CHEM RUN DIRECTORY CREATION${thickline}"
 
 #-----------------------------------------------------------------
@@ -358,8 +355,10 @@ while [ "${valid_met}" -eq 0 ]; do
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
-	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology files changed from RAS to Grell-Freidas starting June 1, 2020 with impact on vertical transport. Discussion and analysis of the impact is available at github.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in convective precipitation flux following the switch where all values are zero. This bug is automatically fixed by computing fluxes online for runs starting on or after June 1 2020, but not for the case of running across the time boundary. Due to these issues we recommend splitting up GEOS-FP runs in time such that a single simulation does not run across June 1, 2020. Instead set one run to stop on June 1 2020 and then restart a new run from there. If you wish to use a GEOS-FP meteorology year different from your simulation year please create a GEOS-Chem GitHub issue for assistance to avoid accidentally using zero convective precipitation flux.\n\nThis warning will be printed to run directory file ${rundir_config_log} for future reference.\n"
-	printf ${fp_msg}
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freidas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	printf "\n${fp_msg}\n"
+	printf "This warning will be printed to run directory file warnings.txt.\n"
+	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
 	valid_fp_accept=0
 	while [ "${valid_fp_accept}" -eq 0 ]; do
 	    read -p "${USER_PROMPT}" fp_accept
@@ -879,10 +878,6 @@ done
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/CreateRunDirLogs
-mkdir -p ${rundir_config}
-
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
@@ -1057,8 +1052,13 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
+# Define a subdirectory for rundir configuration files
+rundir_config_dirname=CreateRunDirLogs
+mkdir -p ${rundir}/${rundir_config_dirname}
+
 # Save RUNDIR variables to a file in the rundirConfig folder
-rundir_config_log=${rundir_config}/rundir_vars.txt
+rundir_config_logname=rundir_vars.txt
+rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
@@ -1067,10 +1067,10 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
-# Print run direcory setup info to screen
+# Print run directory setup info to screen
 #--------------------------------------------------------------------
 
-printf "\n  -- See rundir_vars.txt for summary of default run directory settings"
+printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory has been set up to start on ${startdate}"
 printf "\n  -- A restart file for this date has been copied to the Restarts subdirectory"
 printf "\n  -- You may add more restart files using format GEOSChem.Restart.YYYYMMDD_HHmmz.nc4"
@@ -1163,7 +1163,7 @@ commit_hash=$(git log -n 1 --pretty=format:"%h")
 cd ${srcrundir}
 
 # Write commit info to a version log
-version_log=${rundir_config}/rundir.version
+version_log=${rundir}/${rundir_config_dirname}/rundir.version
 printf   " This run directory was created with:"        >  ${version_log}
 printf "\n ${srcrundir}/createRunDir.sh.\n"             >> ${version_log}
 printf "\n GEOS-Chem repository version information:\n" >> ${version_log}
@@ -1244,7 +1244,7 @@ unset msg
 printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
 
 # Add a "# " characters to the front of each line so we can use
-# it as a comment heading for rundir_vars.txt
+# it as a comment heading for ${rundir_config_logname}
 sed 's/^/# /' ${version_log} > tmp.txt
 mv tmp.txt ${version_log}
 
@@ -1260,18 +1260,16 @@ if [[ "x${enable_git}" == "xy" ]]; then
     if [[ -f ${rundir_config_log} ]]; then
 	cd ${rundir}
 	git add ${rundir_config_log}
-	git commit -m "Update header of rundirConfig/rundir_vars.txt" > /dev/null
+	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_logname}" > /dev/null
 	cd ${srcrundir}
     fi
 fi
 
-
 #-----------------------------------------------------------------
-# If using GEOS-FP then add a warning at top of rundir config log
+# Create and populate warnings file
 #-----------------------------------------------------------------
 if [[ $met == "geosfp" ]]; then
-   cat ${fp_msg} ${rundir_config_log} > tmp.txt
-   mv tmp.txt ${rundir_config_log}
+   echo -e ${fp_msg} > ${rundir}/warnings.txt
 fi
 
 #-----------------------------------------------------------------
