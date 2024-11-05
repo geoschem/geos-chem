@@ -502,7 +502,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: AER,         IS_Hg,     Is_GF_Conv
+    LOGICAL                :: AER,         IS_Hg
     INTEGER                :: IC,          ISTEP,     K
     INTEGER                :: KTOP,        NC,        NDT
     INTEGER                :: NLAY,        NS,        CLDBASE
@@ -592,8 +592,6 @@ CONTAINS
 
     ! Is this a Hg simulation?
     IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
-    ! GF convection scheme?
-    Is_GF_Conv = Input_Opt%Met_Conv_Is_Grell_Freitas
 
     IF ( State_Grid%NZ > 72 .or. &
          Input_Opt%MetField == "MODELE2.1" ) THEN 
@@ -608,7 +606,7 @@ CONTAINS
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
 
-    IF ( Is_GF_Conv == .FALSE. ) THEN
+    IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
        ! RAS scheme
        REEVAPCN(:) = REEVAPCN_MET(:)
        DQRCU(:) = DQRCU_MET(:)
@@ -658,7 +656,7 @@ CONTAINS
     ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
     ! using water and ice densities, respectively.
     ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
-    IF ( Is_GF_Conv == .FALSE. ) THEN
+    IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
        PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
                 +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
     ELSE
