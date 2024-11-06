@@ -4563,6 +4563,9 @@ CONTAINS
     REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: dvel(State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Chm%nAdvect                       )
 
     ! Pointers and Objects
     REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
@@ -4581,6 +4584,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
+    dvel    =  0.0_fp
     colEflx =  0.0_fp
     ThisSpc => NULL()
     errMsg  = ''
@@ -4777,6 +4781,9 @@ CONTAINS
              dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
                             * State_Chm%Species(NA)%Conc(I,J,1) &
                             / (AIRMW / ThisSpc%MW_g)  )
+             ! Get dry deposition velocity in cm/s:
+             dvel(I,J,NA) = dvel(I,J,NA) + ( dep * State_Met%BXHEIGHT(I,J,1) * &
+                                             1.0e+2_fp )
           ENDIF
         ENDIF
       ENDDO ! I
@@ -4785,7 +4792,7 @@ CONTAINS
 
       ! Free pointers
       ThisSpc => NULL()
-    ENDDO   ! NA
+   ENDDO   ! NA
 
     !=======================================================================
     ! Add emissions & deposition values calculated in HEMCO.
@@ -4838,6 +4845,9 @@ CONTAINS
                         * State_Chm%Species(N)%Conc(I,J,1)      &
                         /  ( AIRMW / ThisSpc%MW_g )
 
+          ! Get dry deposition velocity in cm/s:
+          dvel(I,J,N) = dvel(I,J,N) + ( State_Chm%DryDepFreq(I,J,ND) * &
+                                        State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
 
@@ -4858,7 +4868,28 @@ CONTAINS
 
           ! Free species database pointer
           ThisSpc => NULL()
+          
        ENDDO
+
+       ! eam:
+       ! Dry dep velocity [cm/s]
+       !IF ( State_Diag%Archive_DryDepVel ) THEN
+       !   PRINT*, 'YOU ARE HERE'
+       !   PRINT*, 'no. of slots = ', State_Diag%Map_DryDep%nSlots
+          !STOP
+          !DO S = 1, State_Diag%Map_DryDepVel%nSlots
+          
+       !      PRINT*, 'SS = ', SS
+       !      DVZ = dflx(I,J,N) * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp
+       !      !State_Diag%DryDepVel(I,J,SS) = DVZ
+       !      PRINT*, 'DVZ: ', DVZ
+       !      STOP
+       !ENDIF
+       ! Before convert dflx from 1/s to kg/m2/s, save dry deposition
+       ! velocity in cm/s:
+       !PRINT*, 'box height: ', State_Met%BXHEIGHT(I,J,1)
+       !PRINT*, 'dflx (1/s): ', dflx(I,J,N)
+       !PRINT*, 'Vel (cm/s): ', dflx(I,J,N) * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp
 
        !=====================================================================
        ! Convert DFLX from 1/s to kg/m2/s
@@ -4892,11 +4923,12 @@ CONTAINS
        ! Defining Satellite Diagnostics
        !=====================================================================
 
+       ! eam: shouldn't there be I,J and not :,:, as occur within lat and long loops
        ! Define emission satellite diagnostics
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
           DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
              N = State_Diag%Map_SatDiagnColEmis%slot2id(S)
-             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)
+             State_Diag%SatDiagnColEmis(I,J,S) = colEflx(I,J,N)
           ENDDO
        ENDIF
 
@@ -4907,7 +4939,7 @@ CONTAINS
        IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
           DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
              N = State_Diag%Map_SatDiagnSurfFlux%slot2id(S)
-             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+             State_Diag%SatDiagnSurfFlux(I,J,S) = State_Chm%SurfaceFlux(I,J,N)
           ENDDO
        ENDIF
 
@@ -4951,7 +4983,7 @@ CONTAINS
        ENDIF
 
     ENDDO
-    ENDDO
+    ENDDO 
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
@@ -4970,7 +5002,8 @@ CONTAINS
     ! so we don't need to do any further special handling.
     !=======================================================================
     IF ( Input_Opt%LGTMM              .or. Input_Opt%LSOILNOX          .or.  &
-         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep   .or.  &
+         State_Diag%Archive_DryDepVel ) THEN
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -5013,6 +5046,13 @@ CONTAINS
                 State_Diag%DryDepMix(:,:,S) = Dflx(:,:,N)                    &
                                             * 1.0e-4_fp                      &
                                             * ( AVO / MW_kg  )
+             ENDIF
+          ENDIF
+
+          IF ( State_Diag%Archive_DryDepVel ) THEN
+             S = State_Diag%Map_DryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepVel(:,:,S) = dvel(:,:,N)
              ENDIF
           ENDIF
 

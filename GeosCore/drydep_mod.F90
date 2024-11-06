@@ -610,9 +610,8 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    ! Set diagnostics - cnsider moving?
-    IF ( State_Diag%Archive_DryDepVel                                   .or. &
-         State_Diag%Archive_DryDepVelForALT1                            .or. &
+    ! Set diagnostics - consider moving?
+    IF ( State_Diag%Archive_DryDepVelForALT1                            .or. &
          State_Diag%Archive_SatDiagnDryDepVel                         ) THEN 
 
        !$OMP PARALLEL DO                                                     &
@@ -623,15 +622,7 @@ CONTAINS
           ! Point to State_Chm%DryDepVel [m/s]
           NDVZ = NDVZIND(D)
 
-          ! Dry dep velocity [cm/s]
-          IF ( State_Diag%Archive_DryDepVel ) THEN
-             S = State_Diag%Map_DryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN
-                State_Diag%DryDepVel(:,:,S)   =                              &
-                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-             ENDIF
-          ENDIF
-
+          ! eam: this should also be moved eventually
           ! Satellite diagnostic: Dry dep velocity [cm/s]
           IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
              S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
@@ -2254,6 +2245,7 @@ CONTAINS
        !** Load array State_Chm%DryDepVel
        DO 550 K=1,NUMDEP
           IF (.NOT.LDEP(K)) GOTO 550
+          
           State_Chm%DryDepVel(I,J,K) = VD(K)
 
           ! Now check for negative deposition velocity before returning to
