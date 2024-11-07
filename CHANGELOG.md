@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - TBD
+## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Added setting `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
