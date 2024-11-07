@@ -4,6 +4,12 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+
+### Changed
+
+- Fixed metals simulation name in config file template comments
+
 ## [14.4.3] - 2024-08-13
 ### Added
 - Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
