@@ -611,8 +611,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - consider moving?
-    IF ( State_Diag%Archive_DryDepVelForALT1                            .or. &
-         State_Diag%Archive_SatDiagnDryDepVel                         ) THEN 
+    IF ( State_Diag%Archive_DryDepVelForALT1 )   THEN 
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
@@ -621,16 +620,6 @@ CONTAINS
 
           ! Point to State_Chm%DryDepVel [m/s]
           NDVZ = NDVZIND(D)
-
-          ! eam: this should also be moved eventually
-          ! Satellite diagnostic: Dry dep velocity [cm/s]
-          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
-             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN
-                State_Diag%SatDiagnDryDepVel(:,:,S)   =                      &
-                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-             ENDIF
-          ENDIF
 
           ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
           IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN

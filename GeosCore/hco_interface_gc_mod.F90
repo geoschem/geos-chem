@@ -4792,7 +4792,7 @@ CONTAINS
 
       ! Free pointers
       ThisSpc => NULL()
-   ENDDO   ! NA
+    ENDDO   ! NA
 
     !=======================================================================
     ! Add emissions & deposition values calculated in HEMCO.
@@ -4871,25 +4871,6 @@ CONTAINS
           
        ENDDO
 
-       ! eam:
-       ! Dry dep velocity [cm/s]
-       !IF ( State_Diag%Archive_DryDepVel ) THEN
-       !   PRINT*, 'YOU ARE HERE'
-       !   PRINT*, 'no. of slots = ', State_Diag%Map_DryDep%nSlots
-          !STOP
-          !DO S = 1, State_Diag%Map_DryDepVel%nSlots
-          
-       !      PRINT*, 'SS = ', SS
-       !      DVZ = dflx(I,J,N) * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp
-       !      !State_Diag%DryDepVel(I,J,SS) = DVZ
-       !      PRINT*, 'DVZ: ', DVZ
-       !      STOP
-       !ENDIF
-       ! Before convert dflx from 1/s to kg/m2/s, save dry deposition
-       ! velocity in cm/s:
-       !PRINT*, 'box height: ', State_Met%BXHEIGHT(I,J,1)
-       !PRINT*, 'dflx (1/s): ', dflx(I,J,N)
-       !PRINT*, 'Vel (cm/s): ', dflx(I,J,N) * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp
 
        !=====================================================================
        ! Convert DFLX from 1/s to kg/m2/s
@@ -4922,8 +4903,6 @@ CONTAINS
        !=====================================================================
        ! Defining Satellite Diagnostics
        !=====================================================================
-
-       ! eam: shouldn't there be I,J and not :,:, as occur within lat and long loops
        ! Define emission satellite diagnostics
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
           DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
@@ -5003,7 +4982,8 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%LGTMM              .or. Input_Opt%LSOILNOX          .or.  &
          State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep   .or.  &
-         State_Diag%Archive_DryDepVel ) THEN
+         State_Diag%Archive_DryDepVel .or. &
+         State_Diag%Archive_SatDiagnDryDepVel     ) THEN
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -5049,10 +5029,19 @@ CONTAINS
              ENDIF
           ENDIF
 
+          ! Dry deposition velocity (cm/s):
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(ND)
              IF ( S > 0 ) THEN
                 State_Diag%DryDepVel(:,:,S) = dvel(:,:,N)
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic dry deposition velocity (cm/s):
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(:,:,S) = dvel(:,:,N)
              ENDIF
           ENDIF
 
