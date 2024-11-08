@@ -1323,9 +1323,6 @@ CONTAINS
     !========================================================================
     amIRoot = Input_Opt%amIRoot
 
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'CJ77_inp.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_spec.dat'
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
@@ -1336,21 +1333,6 @@ CONTAINS
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-ssa.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-UMa.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-geo.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_std.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_h2och4.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_geomip.dat'
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_j2j.dat'
