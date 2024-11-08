@@ -4,8 +4,50 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.5.0] - 2024-11-07
+### Added
+- Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
+- Added setting `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
+- Implemented PPN photolysis from Horner et al (2024)
+- Added four new species ALK4N1, ALK4N2, ALK4O2, and ALK4P to address issues in ALK4 and R4N2 chemistry following Brewer et al. (2023, JGR)
+- Added new species ALK4N1 and ALK4N2 to Ox family in KPP
+- Added Cloud-J input parameters to geoschem_config.yml in new photolysis sub-menu called cloud-j
+- Added computation of water concentration to use in photolysis for application of UV absorption by water in Cloud-J v8
+- Added ACO3, ACR, ACRO2, ALK4N{1,2,O}2, ALK4P, ALK6, APAN, APINN, APINO2, APINP, AROCMCHO, AROMCO3, AROMPN, BPINN, BPINO2, BPINON, BPINOO2, BPINOOH, BPINP, BUTN, BUTO2, C4H6, C96N, C96O2, C9602H, EBZ, GCO3, HACTA, LIMAL, LIMKB, LIMKET, LIMKO2, LIMN, LIMNB, LIMO2H, LIMO3, LIMO3H, LIMPAN, MEKCO3, MEKPN, MYRCO, PHAN, PIN, PINAL, PINO3, PINONIC, PINPAN, R7N{1,2}, R7O2, R7P, RNO3, STYR, TLFUO2, TLFUONE, TMB, ZRO2 to `species_database.yml` following Travis et  al. 2024
+- Added TSOIL1 field to `State_Met` for use in HEMCO soil NOx extension. This should only be read in when the `UseSoilTemperature` option is true in HEMCO config
+
+### Changed
+- Copied values from `State_Chm%KPP_AbsTol` to `ATOL` and `State_Chm%KPP_RelTol` to `RTOL` for fullchem and Hg simulations
+- Introduced seasalt Ca, K, Mg back to aerosol thermodynamics via HETP.
+- Updated `HEMCO_Config.rc.fullchem` (GCClassic + GCHP) and `ExtData.rc` to add emissons of new species from Travis et al 2023
+- Activated the `DryDep` collection for GCClassic & GCHP fullchem benchmarks
+- Reduced the GCHP `DryDep` collection to only the necessary species for benchmarks
+- Removed unused `VDIFFAR` routine from `vdiff_mod.F90`
+- Updated MW for CH4 and OH in `global_ch4_mod.F90`
+- Added fix to not convert from kg/kg to mol/mol before passing State_Chm to PBL mixing in `vdiff_mod.F90`
+- Updated GC-Classic and GCHP run scripts and environment files for NASA discover cluster
+- Updated `GFED4_Climatology` entries to point to the climatology file for 2010-2023
+- Moved aerosol optical properties files to a new data directory specified in geoschem_config.yml rather than specifying in photolysis input files
+- Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
+- Updated ResME CH4 reservoir emissions to apply seasonality via mask file
+- Changed fullchem restart file folder from `GC_14.3.0` to `GC_14.5.0`
+
+### Fixed
+- Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark
+- Changed mass conservation adjustment in `vdiff_mod.F90` to use a mass tendency with units of `kg species/kg dry air`
+- Converted the top pressure edge from hPa to Pa in `vdiff_mod.F90`
+- Updated `Jval_` entries in `run/GCHP/HISTORY.rc.templates/HISTORY.rc.fullchem`
+- Updated species database Is_Photolysis entries to remove J-value diagnostics with all zeros in full chemistry simulation
+- Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
+- Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
+- Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
+
+### Removed
+- Removed dry-run checks for files that are no longer needed for Cloud-J v8 from `cldj_interface_mod.F90`
+
 ## [14.4.3] - 2024-08-13
 ### Added
+- Added tropopause pressure field in the satellite diagnostic (by @eamarais)
 - Added ModelEe.2 (GCAP 2.0) simulation to integration tests for GCClassic
 - Added simulation with all diagnostics on in HISTORY.rc to integration tests for GCClassic (including Planeflight + ObsPack) and GCHP
 - Added descriptive error message in `Interfaces/GCHP/gchp_historyexportsmod.F90`
@@ -28,10 +70,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Update rundir creation scripts to turn off the MEGAN extension for "standard" fullchem simulations
 - Updated emissions used in CESM to match standard emissions used in the 14.4 offline model
 - Disable support For FAST-JX for all simulations except Hg
+- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
 - Replace calls to `GEOS_CHEM_STOP` with calls to `GC_Error` in `planeflight_mod.F90`
 - Script `test/integration/GCHP/integrationTestExecute.sh` now resets `cap_restart` time to `000000`, to facilitate manual restart
 
 ### Fixed
+- In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
 - Typo in `setCommonRunSettings.sh` that made GCHP always choose mass fluxes for meteorology
 - Fixed bug in # levels with cloud used in photolysis when using GCAP met or CESM
 - Fixed typos for `SatDiagnEdge` collection in `HISTORY.rc` templates
@@ -45,9 +89,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Entry `SatDiagnPEDGE` from the `SatDiagn` collection; This needs to go into the `SatDiagnEdge` collection.
-
-### Changed
-- Only read photolysis data in `Init_Photolysis` in first instance of GEOS-Chem on each PET in CESM as PIO requires it
 
 ## [14.4.1] - 2024-06-28
 ### Added
@@ -72,6 +113,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disabled `run/CESM` ParaNOx extension by default in `HEMCO_Config.rc`
 - Removed MPI broadcasts in CESM-only UCX code; MPI broadcast done at coupler level
 - Remove enabling O-server in GCHP for high core counts
+
+### Fixed
+- In `Headers/roundoff_mod.F90`, first cast and then only round off if `places > 0`
 
 ## [14.4.0] - 2024-05-30
 ### Added
@@ -188,7 +232,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed MPI broadcasts in CESM-only photolysis code; will read on all cores
-- Removed State_Chm%CH4_EMIS
+- Removed `State_Chm%CH4_EMIS`
 
 ## [14.3.0] - 2024-02-07
 ### Added
@@ -443,15 +487,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed a bug in routine GET_IJ where X and Y were swapped in an IF comparison.
 - Fixed bug in GFAS pFe by applying work-around in config files
 
-
 ### Removed
 - Removed `intTest*_slurm.sh`, `intTest_*lsf.sh`, and `intTest*_interactive.sh` integration test scripts
 - Removed State_Met%LWI and input meteorology LWI from carbon simulation run config files
 - Removed function `CLEANUP_UCX`; deallocations are now done in `state_chm_mod.F90`
-
-## [14.4.3] - 2024-08-13
-### Added
-- Tropopause pressure field in the satellite diagnostic (by @eamarais)
 
 ## [14.1.0] - 2023-02-01
 ### Added
