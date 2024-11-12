@@ -704,7 +704,7 @@ CONTAINS
             
              ! Adjust weight based on the specified analysis levels, with gradual transition from L1 to L2 and L3 to L4
              IF ( L < iopt%AnaL2 ) wgt = wgt * ( (L-iopt%AnaL1) / (iopt%AnaL2-iopt%AnaL1) )
-             IF ( L > iopt%AnaL3 ) wgt = wgt * ( (iopt%AnaL4-L) / (iopt%AnaL4-iopt%AnaL4) )
+             IF ( L > iopt%AnaL3 ) wgt = wgt * ( (iopt%AnaL4-L) / (iopt%AnaL4-iopt%AnaL3) )
 
              ! Check for tropopause sponge layer when applying increments in strat
              IF ( iopt%InStrat .AND. .NOT. iopt%InTrop .AND. iopt%StratSponge > 0 ) THEN
