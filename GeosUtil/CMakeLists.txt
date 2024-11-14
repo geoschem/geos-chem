@@ -13,6 +13,7 @@ add_library(GeosUtil STATIC EXCLUDE_FROM_ALL
         henry_mod.F90
 	ifort_errmsg.F90
 	pressure_mod.F90
+	print_mod.F90
 	regrid_a2a_mod.F90
 	time_mod.F90
 	timers_mod.F90

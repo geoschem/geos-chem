@@ -14557,12 +14557,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
-       !--------------------------------------------------------------------
-       ! NOTE: We will eventually want restart file variables to be written
-       ! to netCDF as REAL*8, but HEMCO cannot yet read this.  For now
-       ! we will keep writing out restart files as REAL*4. (bmy, 8/14/20)
-       IF ( isOutType ) OutType  = KINDVAL_F4
-       !--------------------------------------------------------------------
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'

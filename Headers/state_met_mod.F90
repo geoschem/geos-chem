@@ -6343,6 +6343,7 @@ CONTAINS
          Units       = TRIM( Units      ),                                   &
          Description = TRIM( Desc       ),                                   &
          Data2d_4    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6476,6 +6477,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_4     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
        ENDDO
 
@@ -6502,6 +6504,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_4     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6616,6 +6619,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_8    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6749,6 +6753,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( units      ),                            &
                Data2d_8     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -6776,6 +6781,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_8     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6890,6 +6896,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_I    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -7019,6 +7026,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_I     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -7046,6 +7054,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_I     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors

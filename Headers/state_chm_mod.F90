@@ -2534,12 +2534,12 @@ CONTAINS
 
        ! 
        ALLOCATE( State_Chm%KPP_AbsTol( N ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KppAbsTol', 0, RC )
+       CALL GC_CheckVar( 'State_Chm%Kpp_AbsTol', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%KPP_AbsTol = 0.0_f8
 
        ALLOCATE( State_Chm%KPP_RelTol( N ), STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%KppRelTol', 0, RC )
+       CALL GC_CheckVar( 'State_Chm%Kpp_RelTol', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%KPP_RelTol = 0.0_f8
     ENDIF
@@ -4514,6 +4514,7 @@ CONTAINS
                                 // ' et al 2011, GMD)'
           IF ( isUnits ) Units = 'count'
           IF ( isRank  ) Rank  = 3
+          IF ( isType ) Type = KINDVAL_F4
 
        CASE ( 'KHETISLAN2O5H2O' )
           IF ( isDesc  ) Desc  = 'Sticking coefficient for N2O5 + H2O reaction'
@@ -4774,6 +4775,7 @@ CONTAINS
           IF ( isUnits   ) Units  = 'm s-1'
           IF ( isRank    ) Rank   = 2
           IF ( isSpc     ) perSpc = 'DRY'
+          IF ( isType    ) type   = KINDVAL_F8
 
 #ifdef MODEL_GEOS
        CASE( 'DRYDEPRA2M' )
@@ -5744,6 +5746,7 @@ CONTAINS
             Description  = TRIM( desc       ),                               &
             Units        = TRIM( units      ),                               &
             Data2d_4     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -5883,6 +5886,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data2d_4     = Ptr2Data(:,:,nCat),                               &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -5932,6 +5936,7 @@ CONTAINS
                Units        = TRIM( units       ),                           &
                OnLevelEdges = onEdges,                                       &
                Data2d_4     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
           ! Trap potential errors
@@ -5970,6 +5975,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             Data3d_4     = Ptr2Data,                                         &
             OnLevelEdges = onEdges,                                          &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6114,6 +6120,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_4     = Ptr2Data(:,:,:,Ncat),                             &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6163,6 +6170,7 @@ CONTAINS
                Units        = TRIM( units       ),                           &
                OnLevelEdges = onEdges,                                       &
                Data3d_4     = Ptr2Data(:,:,:,N),                             &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
           ! Trap potential errors
@@ -6305,6 +6313,7 @@ CONTAINS
             Description  = TRIM( desc       ),                               &
             Units        = TRIM( units      ),                               &
             Data2d_8     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6447,6 +6456,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data2d_8     = Ptr2Data(:,:,nCat),                               &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6496,6 +6506,7 @@ CONTAINS
                Units        = TRIM( units       ),                           &
                OnLevelEdges = onEdges,                                       &
                Data2d_8     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
           ! Trap potential errors
@@ -6534,6 +6545,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             Data3d_8     = Ptr2Data,                                         &
             OnLevelEdges = onEdges,                                          &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6676,6 +6688,7 @@ CONTAINS
             Units        = TRIM( units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_8     = Ptr2Data(:,:,:,Ncat),                             &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6717,6 +6730,7 @@ CONTAINS
                Units        = TRIM( units       ),                           &
                OnLevelEdges = onEdges,                                       &
                Data3d_8     = Ptr2Data(:,:,:,N),                             &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
           ! Trap potential errors

@@ -26,6 +26,7 @@ MODULE Diagnostics_mod
 !
   PUBLIC :: Set_AerMass_Diagnostic
   PUBLIC :: Set_Diagnostics_EndofTimestep
+  PUBLIC :: Set_SpcConc_Diags_VVDry
   PUBLIC :: Zero_Diagnostics_StartofTimestep
   PUBLIC :: Compute_Budget_Diagnostics
 #ifdef ADJOINT
@@ -34,7 +35,6 @@ MODULE Diagnostics_mod
 !
 ! !PRIVATE MEMBER FUNCTIONS
 !
-  PRIVATE :: Set_SpcConc_Diags_VVDry
   PRIVATE :: Set_SpcConc_Diags_MND
 !
 ! !REVISION HISTORY:
@@ -120,20 +120,6 @@ CONTAINS
     ErrMsg  = ''
     ThisLoc = &
       ' -> at Set_Diagnostics_EndofTimestep (in GeosCore/diagnostics_mod.F90)'
-
-    !------------------------------------------------------------------------
-    ! Set species concentration for diagnostics in units of
-    ! v/v dry air = mol/mol dry air
-    !------------------------------------------------------------------------
-    CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
-                                  State_Grid, State_Met, RC                 )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered setting SpeciesConcVV diagnostic'
-       CALL GC_ERROR( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
 
     !-----------------------------------------------------------------------
     ! Set species concentration for diagnostics in units of
@@ -464,7 +450,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL               :: Found
     INTEGER               :: N, S
     REAL(fp)              :: LT,  GOOD
 
@@ -480,7 +465,6 @@ CONTAINS
 
     ! Assume success
     RC      =  GC_SUCCESS
-    Found   = .FALSE.
     ThisLoc = ' -> Set_SpcAdj_Diagnostic (in GeosCore/diagnostics_mod.F90)'
 
     ! Make sure all units are in kg/kg dry
@@ -580,14 +564,13 @@ CONTAINS
 ! !USES:
 !
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE PhysConstants,  ONLY : AIRMW
     USE State_Met_Mod,  ONLY : MetState
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Diag_Mod, ONLY : DgnMap
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE Time_Mod,       ONLY : Get_LocalTime
-    USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
+    USE UnitConv_Mod,   ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -614,7 +597,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL               :: Found
     INTEGER               :: D, I, J, L, N, S
     REAL(fp)              :: TmpVal, Conv, LT, GOOD
 
@@ -624,50 +606,20 @@ CONTAINS
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
 
-    ! Arrays
-    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
-                                       State_Grid%NZ,State_Chm%nSpecies)
-
     !====================================================================
     ! Set_SpcConc_Diags_VVDry begins here!
     !====================================================================
 
     ! Assume success
     RC      =  GC_SUCCESS
-    Found   = .FALSE.
     ThisLoc = &
          ' -> at Set_SpcConc_Diags_VVDry (in GeosCore/diagnostics_mod.F90)'
 
-    ! Verify that incoming State_Chm%Species units are kg/kg dry air.
-    IF ( .not. Check_Units( State_Chm, KG_SPECIES_PER_KG_DRY_AIR ) ) THEN
-       ErrMsg = 'Not all species are in "kg/kg dry" units!'
+    ! Verify that incoming State_Chm%Species units are mol/mol dry air.
+    IF ( .not. Check_Units( State_Chm, MOLES_SPECIES_PER_MOLES_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "mol/mol dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
-
-    ! Store species in v/v dry as temporary variable if diagnostics on
-    IF ( State_Diag%Archive_SpeciesConcVV                               .or. &
-         State_Diag%Archive_SpeciesBC                                   .or. &
-         State_Diag%Archive_SpeciesRst                                  .or. &
-         State_Diag%Archive_ConcAboveSfc                                .or. & 
-         State_Diag%Archive_SatDiagnConc                              ) THEN
-
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L, N                                            )&
-       !$OMP COLLAPSE( 4                                                    )
-       DO N = 1, State_Chm%nSpecies
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-          TmpSpcArr(I,J,L,N) = State_Chm%Species(N)%Conc(I,J,L) *            &
-                               ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
-       ENDDO
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
     ENDIF
 
     !=======================================================================
@@ -683,7 +635,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesConcVV(:,:,:,S) = TmpSpcArr(:,:,:,N)
+          State_Diag%SpeciesConcVV(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -716,7 +668,8 @@ CONTAINS
           ! Archie into SatDiagnConc diagnostic array
           DO S = 1, State_Diag%Map_SatDiagnConc%nSlots
              N = State_Diag%Map_SatDiagnConc%slot2id(S)
-             State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
+             State_Diag%SatDiagnConc(I,:,:,S) =      &
+                  State_Chm%Species(N)%Conc(I,:,:) * GOOD
           ENDDO
        ENDDO
        !$OMP END PARALLEL DO
@@ -735,7 +688,7 @@ CONTAINS
        !$OMP PRIVATE( N, S   )
        DO S = 1, mapData%nSlots
           N = mapData%slot2id(S)
-          State_Diag%SpeciesBC(:,:,:,S) = TmpSpcArr(:,:,:,N)
+          State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
        ENDDO
        !$OMP END PARALLEL DO
 
@@ -748,8 +701,14 @@ CONTAINS
     ! Copy species to SpeciesRst (restart file output) [v/v dry]
     !=======================================================================
     IF ( State_Diag%Archive_SpeciesRst ) THEN
-       State_Diag%SpeciesRst(:,:,:,:) = TmpSpcArr(:,:,:,:)
-    ENDIF
+       !$OMP PARALLEL DO       &
+       !$OMP DEFAULT( SHARED ) &
+       !$OMP PRIVATE( N      )
+       DO N = 1, State_Chm%nSpecies
+          State_Diag%SpeciesRst(:,:,:,N) = State_Chm%Species(N)%Conc(:,:,:)
+       ENDDO
+       !$OMP END PARALLEL DO
+   ENDIF
 
     !=======================================================================
     ! Diagnostic for correcting species concentrations from the height
@@ -784,9 +743,9 @@ CONTAINS
 
        ! Loop over the number of drydep species that we wish
        ! to save at a user-specified altitude above the surface
-       !$OMP PARALLEL DO                         &
-       !$OMP DEFAULT( SHARED                   ) &
-       !$OMP PRIVATE( D, N, I, J, TmpVal, Conv )
+       !$OMP PARALLEL DO                 &
+       !$OMP DEFAULT( SHARED           ) &
+       !$OMP PRIVATE( D, N, I, J, Conv )
        DO D = 1, State_Chm%nDryAlt
 
           ! Get the corresponding species index and drydep index
@@ -795,9 +754,6 @@ CONTAINS
           ! Loop over surface locations
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
-
-             ! Species concentration [v/v dry]
-             TmpVal = TmpSpcArr(I,J,1,N)
 
              ! Conversion factor used to translate from
              ! lowest model layer (~60m) to the surface
@@ -810,7 +766,8 @@ CONTAINS
 
              ! Save concentration at the user-defined altitude
              ! as defined in geoschem_config.yml (usually 10m).
-             State_Diag%SpeciesConcALT1(I,J,D) = TmpVal * Conv
+             State_Diag%SpeciesConcALT1(I,J,D) =            &
+                  State_Chm%Species(N)%Conc(I,J,1) * Conv
 
           ENDDO
           ENDDO
@@ -830,7 +787,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Subroutine Set_SpcConc\_Diags\_MND sets several species
 !  concentration diagnostic arrays stored in State_Diag to the instantaneous
-!  State_Chm%Species values (in units of "v/v, dry air").
+!  State_Chm%Species values (in units of "molecules/cm3 air").
 !\\
 !\\
 ! !INTERFACE:
