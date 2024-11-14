@@ -3,6 +3,21 @@
 This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+## [Unreleased] - TBD
+### Added
+- Specified meteorology source in GCHP geoschem_config.yml
+- Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
+- Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
+- Added surface precipitation flux fields as inputs to GCHP
+
+### Fixed
+- Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
+- Fixed PDOWN definition to lower rather than upper edge
+
+### Changed
+
+### Removed
+-Removed re-evaporation requirement for washout
 
 ## [Unreleased] - TBD
 ### Added
