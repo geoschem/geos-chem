@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added fix to turn on ship emissions for CO2 in the carbon simulation
 - Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
 - Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+- Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
 
 ## [14.5.0] - 2024-11-07
 ### Added
@@ -52,8 +53,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
-- Fix segmentation fault in qfyaml when running with certain compilers without debug flags on
-
 
 ### Removed
 - Removed dry-run checks for files that are no longer needed for Cloud-J v8 from `cldj_interface_mod.F90`
