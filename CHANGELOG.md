@@ -14,8 +14,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
 - Added fix to turn on ship emissions for CO2 in the carbon simulation
 - Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
-- Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+- Fixed entries for several carbon emissions inventorin GCHP config file `ExtData.rc.carbon`
 - Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
+- Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
+- Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
+- Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
+- Changed dimension of EmisOCS_Total from 2D to 3D since all emissions for all sectors are 2D
 
 ## [Unreleased] - TBD
 ### Added
