@@ -116,7 +116,7 @@ Mask fractions:              false
     --> CMIP6_AIRCRAFT         :       false    # 1850-2100
     --> CMIP6_SHIP             :       false    # 1850-2100
 # ----- BIOMASS BURNING EMISSIONS -----------------------------
-    --> QFED2                  :       true     # 2000-2020
+    --> QFED2                  :       false    # 2000-2020
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       false    # 1850-2100
 # ----- NON-EMISSIONS DATA ------------------------------------
@@ -139,6 +139,11 @@ Mask fractions:              false
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
+111     GFED                   : on    CH4/CO/CO2
+    --> GFED4                  :       true
+    --> GFED_daily             :       true
+    --> GFED_3hourly           :       false
+    --> Scaling_CO             :       1.05
 
 ### END SECTION EXTENSION SWITCHES ###
 
@@ -838,6 +843,28 @@ Mask fractions:              false
 108  CLM4_PFT_CROP                $ROOT/MEGAN/v2018-05/CLM4_PFT.geos.025x03125.v201805.nc PFT_CROP                2000/1/1/0        C xy 1        * -  1 1
 )))MEGAN
 
+#==============================================================================
+# --- GFED biomass burning emissions (Extension 111)
+# NOTE: These are the base emissions in kgDM/m2/s.
+#==============================================================================
+
+(((GFED4
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+
+(((GFED_daily
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
+)))GFED_daily
+
+(((GFED_3hourly
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
+)))GFED_3hourly
+)))GFED4
+
 )))EMISSIONS
 
 ###############################################################################
@@ -878,7 +905,8 @@ Mask fractions:              false
 # --- Quantities needed for CO chemistry ---
 #==============================================================================
 (((GLOBAL_OH
-${RUNDIR_GLOBAL_OH}
+# Revert to GEOS-Chem v5 OH for validation with carbon simulation
+* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * - 1 1
 )))GLOBAL_OH
 (((PROD_CO_CH4
 ${RUNDIR_PCO_CH4}
