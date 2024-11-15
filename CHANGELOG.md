@@ -12,12 +12,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
-- Fixed PDOWN definition to lower rather than upper edge
 
 ### Changed
 
 ### Removed
--Removed re-evaporation requirement for washout
 
 ## [Unreleased] - TBD
 ### Added
