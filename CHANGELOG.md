@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added fix to turn on ship emissions for CO2 in the carbon simulation
 - Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
 - Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+- Fixed metals simulation name in config file template comments
 
 ## [14.5.0] - 2024-11-07
 ### Added
