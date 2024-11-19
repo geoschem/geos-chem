@@ -2015,7 +2015,7 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_CO (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
@@ -2046,7 +2046,7 @@ CONTAINS
     !========================================================================
     ! Print to screen
     !========================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
@@ -2154,7 +2154,7 @@ CONTAINS
     !=================================================================
     ! Print to screen
     !=================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'

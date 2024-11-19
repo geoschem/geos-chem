@@ -726,13 +726,15 @@ def parse_args():
 
     # Parse command-line arguments (argument 0 is the program name)
     for i in range(1, len(sys.argv)):
-        arg = sys.argv[i].lower()
-        arg = arg.lstrip('-')
+        arg = sys.argv[i]
 
         if not dryrun_found:
             dryrun_log = arg
             dryrun_found = True
             continue
+
+        # Normalize arguments other than dryrun_log
+        arg = arg.lower().lstrip('-')
 
         if not portal_found:
             for mir in portal_list:

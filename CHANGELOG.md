@@ -4,6 +4,19 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Changed
+- Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
+- Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
+
+### Fixed
+- Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
+- Added fix to turn on ship emissions for CO2 in the carbon simulation
+- Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
+- Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+- Fixed metals simulation name in config file template comments
+- Fixed bug in `download_data.py` which caused script to fail if log filename contained uppercase characters.
+
 ## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`

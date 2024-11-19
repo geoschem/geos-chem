@@ -314,17 +314,17 @@ function updateExtData() {
         sed -i "/AEIC19_DAILY_CO /d"    "${file}"  # trailing space required
         sed -i "/AEIC19_MONMEAN_CO /d"  "${file}"  # trailing space required
         sed -i "/APEI_CO/d"             "${file}"
-        sed -i "/^CEDS_CO/d"            "${file}"
-        sed -i "/CMIP6_CO/d"            "${file}"
+        sed -i "/^CEDS_CO_/d"           "${file}"
+        sed -i "/CMIP6_CO_/d"           "${file}"
         sed -i "/\#DICE_/d"             "${file}"
-        sed -i "/EDGAR_CO/d"            "${file}"
+        sed -i "/EDGAR_CO_/d"           "${file}"
         sed -i "/EPA16_CO_/d"           "${file}"
         sed -i "/HTAP_CO_/d"            "${file}"
-        sed -i "/RCP3PD_CO/d"           "${file}"
-        sed -i "/RCP45_CO/d"            "${file}"
-        sed -i "/RCP60_CO/d"            "${file}"
-        sed -i "/RCP85_CO/d"            "${file}"
-        sed -i "/NEI99_DOW_CO/d"        "${file}"
+        sed -i "/RCP3PD_CO /d"          "${file}"
+        sed -i "/RCP45_CO /d"           "${file}"
+        sed -i "/RCP60_CO /d"           "${file}"
+        sed -i "/RCP85_CO /d"           "${file}"
+        sed -i "/NEI99_DOW_CO /d"       "${file}"
 	sed -i "/LIQFUEL_/d"            "${file}"
     fi
 
