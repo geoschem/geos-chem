@@ -4,6 +4,11 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Fixed
+- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
+
+
 ## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
@@ -41,7 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
-- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
 
 ### Removed
 - Removed dry-run checks for files that are no longer needed for Cloud-J v8 from `cldj_interface_mod.F90`
