@@ -987,11 +987,6 @@ CONTAINS
        CALL Set_Clock_Tracer( State_Chm, State_Grid )
     ENDIF
 
-    ! Call PBL quantities. Those are always needed
-    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
-                             State_Met, State_Diag, RC )
-    _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
-
     ! Convert to dry mixing ratio
     CALL Convert_Spc_Units(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -1002,6 +997,12 @@ CONTAINS
          previous_units = previous_units,                                    &
          RC             = RC                                                )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
+
+    ! Call PBL quantities. Those are always needed.
+    CALL Compute_Pbl_Height( Input_Opt, State_Grid, State_Chm, &
+                             State_Met, State_Diag, RC  )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_PBL_HEIGHT')
+
 
     !=======================================================================
     ! Always prescribe H2O in both the stratosphere and troposhere in GEOS.
