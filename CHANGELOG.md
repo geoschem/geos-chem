@@ -5,6 +5,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Changed
+- Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
+- Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
+
+### Fixed
+- Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
+- Added fix to turn on ship emissions for CO2 in the carbon simulation
+- Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
+- Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+
+## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Added setting `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
@@ -30,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved aerosol optical properties files to a new data directory specified in geoschem_config.yml rather than specifying in photolysis input files
 - Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Updated ResME CH4 reservoir emissions to apply seasonality via mask file
+- Changed fullchem restart file folder from `GC_14.3.0` to `GC_14.5.0`
 - Excluded HEMCO interface and ExtState fields from `MODEL_CESM` in `hco_interface_gc_mod.F90` for compatibility with CESM, which runs HEMCO separately
 
 ### Fixed
@@ -41,6 +53,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
+
+### Removed
+- Removed dry-run checks for files that are no longer needed for Cloud-J v8 from `cldj_interface_mod.F90`
 
 ## [14.4.3] - 2024-08-13
 ### Added
