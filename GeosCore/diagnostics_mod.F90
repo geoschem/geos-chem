@@ -436,6 +436,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
+    USE TIME_MOD,       ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,7 +466,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: N, S
+    INTEGER               :: N, S, I
     REAL(fp)              :: LT,  GOOD
 
     ! Strings
@@ -473,6 +474,12 @@ CONTAINS
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
+
+
+   ! Arrays 
+    REAL(fp)   :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                           State_Grid%NZ,State_Chm%nSpecies)
+
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -546,6 +553,7 @@ CONTAINS
           !$OMP PRIVATE( N, S   )
           DO S = 1, mapData%nSlots
              N = mapData%slot2id(S)
+     ! TmpSpcArr is not defined    
              State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
           ENDDO
           !$OMP END PARALLEL DO
