@@ -436,6 +436,8 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
+    USE TIME_MOD,       ONLY : GET_LOCALTIME    
+    
 !
 ! !INPUT PARAMETERS:
 !
@@ -451,7 +453,13 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,          INTENT(OUT)   :: RC      ! Success or failure?
-!
+
+        ! Arrays
+    REAL(fp)              :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,State_Chm%nSpecies)
+    
+    
+    !
 ! !REMARKS:
 !
 ! !REVISION HISTORY:
@@ -465,7 +473,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: N, S
+    INTEGER               :: N, S, I
     REAL(fp)              :: LT,  GOOD
 
     ! Strings
@@ -541,6 +549,7 @@ CONTAINS
 
           ENDIF
 
+ ! IT SEEMS LIKE TmpSpcArr is not assigned
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
           !$OMP PRIVATE( N, S   )
