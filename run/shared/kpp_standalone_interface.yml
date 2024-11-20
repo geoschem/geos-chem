@@ -1,0 +1,99 @@
+---
+# ============================================================================
+# Configuration file for KPP standalone interface
+#
+# This file specifies at which locations we will archive the model
+# state so that we can initialize KPP standalone box model simulations.
+# ============================================================================
+
+# ------------------------------------
+# General settngs
+# ------------------------------------
+settings:
+  activate: false                      # Main on/off switch
+  start_output_at: [19000101, 000000]  # Save model state for KPP standalone
+  stop_output_at:  [21000101, 000000]  # ... if between these 2 datetimes
+  output_directory: "./OutputDir/"     # This directory should already exist
+  levels:                              # Model levels to archive
+    - 1
+    - 2
+    - 10
+    - 23
+    - 35
+    - 48
+    - 56
+  timestep: 15                         # Timestep (mins) for KPP standalone
+
+# ------------------------------------
+# Where to archive model state?
+# ------------------------------------
+active_cells:
+   - LosAngeles
+   - McMurdo
+   - Paris
+   - Beijing
+   - Kinshasa
+   - Kennaook
+   - Graciosa
+   - Utqiagvik
+   - Ozarks
+   - Amazon
+   - Congo
+   - Borneo
+   - IndianOcean
+   - AtlanticOcean
+   - PacificOcean
+   - ElDjouf
+
+# ------------------------------------
+# Active cell geographic coordinates
+# ------------------------------------
+locations:
+  LosAngeles:
+    longitude: -118.243
+    latitude: 34.0522
+  Paris:
+    longitude: 2.3522
+    latitude: 48.8566
+  Beijing:
+    longitude: 116.4074
+    latitude: 39.9042
+  Kinshasa:
+    longitude: 15.3105
+    latitude: -4.3033
+  Kennaook:
+    longitude: 144.6833
+    latitude: -40.6833
+  Graciosa:
+    longitude: -28.0069
+    latitude: 39.0525
+  McMurdo:
+    longitude: 166.6698
+    latitude: -77.8455
+  Utqiagvik:
+    longitude: -156.7886
+    latitude: 71.2906
+  Ozarks:
+    longitude: -91.259
+    latitude: 37.502
+  Amazon:
+    longitude: -62.2159
+    latitude: -3.4653
+  Congo:
+    longitude: 12.5484
+    latitude: -5.9175
+  Borneo:
+    longitude: 114.0
+    latitude: 0.0
+  IndianOcean:
+    longitude: 87.2
+    latitude: 23.0
+  AtlanticOcean:
+    longitude: -41.574755
+    latitude: 34.707874
+  PacificOcean:
+    longitude: -121.964508
+    latitude: 0.0
+  ElDjouf:
+    longitude: -6.6661
+    latitude: 21.5008
