@@ -26,6 +26,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in `download_data.py` which caused script to fail if log filename contained uppercase characters.
 - Fixed the satellite diagnostics counters from being inadvertently being reset
 
+### Removed
+- Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+
 ## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
