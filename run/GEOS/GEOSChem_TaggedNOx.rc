@@ -1,0 +1,21 @@
+# Resource file for NOx Tagged tracers. Used by geos_TaggedSpecies.F90
+# Added by Pam Wales on Sept 18, 2023
+# Modified for GCv14 by Christph Keller on Mar 21, 2024
+
+# The number of NO(x) tagged tracers to include.
+# Will be included as NOTAG1, NOTAG2 and NO2TAG1, NO2TAG2, etc.
+# If set to 0 (default), no tagged NOx tracers will be used
+# If set to higher than 0, the corresponding number of tagged
+# NOx tracer need to be present in geoschem_config.yaml and 
+# species_database.yaml.
+nchem_tag: 0
+
+# If partner_tag is true (> 0), scale NOx as NO + NO2
+partner_tag: 1
+
+# tag names (currently not used - names are hardcoded)
+tag_names: NOTAG1
+
+# partner names (currently not used - names are hardcoded)
+partner_names: NO2TAG1
+

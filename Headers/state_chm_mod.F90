@@ -354,7 +354,7 @@ MODULE State_Chm_Mod
      TYPE(dictionary_t)         :: RegDict              ! Registry lookup table
 
      !-----------------------------------------------------------------------
-     ! Carbon stuff for GEOS 
+     ! GEOS specific fields 
      !-----------------------------------------------------------------------
 #if defined( MODEL_GEOS )
      ! CO mesosphere boundary

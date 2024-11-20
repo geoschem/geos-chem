@@ -1,10 +1,11 @@
 Samplings:
   gcc_persist:           {extrapolation: persist_closest}
   gcc_daily:             {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H}
-  gcc_daily_clim:        {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H, time_interpolation: False, extrapolation: clim}
-  gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: False, extrapolation: clim}
+  gcc_daily_clim:        {update_reference_time: "0", update_frequency: PT24H, time_interpolation: False, extrapolation: clim}
+  gcc_8day_interp_clim:  {update_reference_time: "0", update_frequency: P8D, update_offset: P1D, time_interpolation: True, extrapolation: clim}
   gcc_3hr:               {time_interpolation: True, extrapolation: clim}
-  gcc_monthly_clim:      {update_reference_time: "0", update_frequency: PT24H, update_offset: PT12H, time_interpolation: False, extrapolation: clim}
+  gcc_monthly_clim:      {update_reference_time: "0", update_frequency: P1M, time_interpolation: False, extrapolation: clim}
+  geosit_sample:         {update_offset: PT900S, exact: True}
 
 Collections:
   GCC_ACET_seawater:
@@ -24,70 +25,70 @@ Collections:
   GEOSCHEMchem_BromoCarb_Season:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/sfc/BromoCarb_Season_x360_y180_t12.2000.nc
   GEOSCHEMchem_ALD2_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALD2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/ALD2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_butanes_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_butanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/ALK4_butanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_hexanes_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_hexanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/ALK4_hexanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_ALK4_pentanes_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/ALK4_pentanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/ALK4_pentanes_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_BC_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BC_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/BC_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_BENZ_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/BENZ_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/BENZ_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H2_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/C2H2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H4_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H4_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/C2H4_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C2H6_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C2H6_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/C2H6_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_C3H8_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/C3H8_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/C3H8_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CH2O_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CH2O_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/CH2O_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CO_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/CO_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/CO_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_EOH_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/EOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/EOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_HCOOH_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/HCOOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/HCOOH_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_NH3_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NH3_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/NH3_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
-  GEOSCHEMchem_NOx_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/NOx_anthro_CEDS_x3600_y1800_t12.%y4.nc
+  GEOSCHEMchem_NO_anthro_CEDS:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/NO_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_MEK_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/MEK_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/MEK_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_SO2_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/SO2_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/SO2_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_TOLU_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/TOLU_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/TOLU_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_XYLE_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/XYLE_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/XYLE_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_OC_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/OC_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/OC_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_PRPE_anthro_CEDS:
-    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21/sfc/0.1/PRPE_anthro_CEDS_x3600_y1800_t12.%y4.nc
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-04-21-corrected/PRPE_anthro_CEDS_x3600_y1800_t12.%y4.nc
     valid_range: "2000-01-01T00:00/2019-12-01T00:00"
   GEOSCHEMchem_CEDS_vertical_emiss_factors:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/ScaleFactors/v0.0.0/L72/CEDS_vertical_emiss_factors.nc
@@ -252,7 +253,7 @@ Collections:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/UV_ALBEDO/uvalbedo.geos.2x25.nc
   GEOSCHEMchem_Condensed_Yuan_proc_MODIS_XLAI:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Yuan_XLAI/v2021-06/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
-    valid_range: "2000-01-01T00:00/2020-12-31T00:00"
+    valid_range: "2000-01-01T00:00/2040-12-31T00:00"
   GEOSCHEMchem_Oi_prj_predicted_iodide:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/OCEAN_O3_DRYDEP/v2020-02/orig/Oi_prj_predicted_iodide_0.125x0.125_No_Skagerrak_Just_Ensemble.nc
   GEOSCHEMchem_WOA_2013_salinity:
@@ -260,7 +261,7 @@ Collections:
   GEOSCHEMchem_AEIC19_MONMEAN:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AEIC2019/v2022-03/2019_monmean/72LGEOS/AEIC_monmean_2019_t12.0.5x0.625.72LGEOS.nc
   Jason_10.18.0_carbon_c90:
-    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
+    template: /css/gmao/geos_carb/share/ExtData/CFv2/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
@@ -271,7 +272,7 @@ Collections:
     valid_range: "2001-01-01T00:00/2021-12-31T21:00"
   GEOSCHEMchem_CH4_scaling:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CH4/v0.0.0/ch4_offset_to_2021_x144_y91_%y4%m2.nc
-    valid_range: "2021-01-01T00:00/2022-12-01T00:00"
+    valid_range: "2021-01-01T00:00/2050-12-01T00:00"
     ref_time: "2021-01-01T00:00"
     freq: "P1M"
   GCC_CMAM_CO:
@@ -1039,85 +1040,85 @@ Exports:
     sample: gcc_monthly_clim
     variable: NH3_wst
   CEDS_NO2_AGR:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_agr
+    variable: NO_agr
   CEDS_NO2_ENE:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_ene
+    variable: NO_ene
   CEDS_NO2_IND:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_ind
+    variable: NO_ind
   CEDS_NO2_RCO:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_rco
+    variable: NO_rco
   CEDS_NO2_SHP:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_shp
+    variable: NO_shp
   CEDS_NO2_SLV:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_slv
+    variable: NO_slv
   CEDS_NO2_TRA:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_tra
+    variable: NO_tra
   CEDS_NO2_WST:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_wst
+    variable: NO_wst
   CEDS_NO_AGR:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_agr
+    variable: NO_agr
   CEDS_NO_ENE:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_ene
+    variable: NO_ene
   CEDS_NO_IND:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_ind
+    variable: NO_ind
   CEDS_NO_RCO:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_rco
+    variable: NO_rco
   CEDS_NO_SHP:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_shp
+    variable: NO_shp
   CEDS_NO_SLV:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_slv
+    variable: NO_slv
   CEDS_NO_TRA:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_tra
+    variable: NO_tra
   CEDS_NO_WST:
-    collection: GEOSCHEMchem_NOx_anthro_CEDS
+    collection: GEOSCHEMchem_NO_anthro_CEDS
     regrid: CONSERVE
     sample: gcc_monthly_clim
-    variable: NOx_wst
+    variable: NO_wst
   CEDS_OCPI_AGR:
     collection: GEOSCHEMchem_OC_anthro_CEDS
     regrid: CONSERVE
@@ -2700,4 +2701,3 @@ Exports:
     regrid: BILINEAR
     sample: gcc_monthly_clim
     variable: CO
-
