@@ -7,10 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added allocate guards for arrays in `pressure_mod`
+- Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
+- Added `State_Diag%Archive_SatDiagnEdgeCount` field
+- Added `State_Diag%Archive_SatDiagnEdge` field
+- Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
 - Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
+- Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -19,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed entries for CO2 emissions in `ExtData.rc.carbon`
 - Fixed metals simulation name in config file template comments
 - Fixed bug in `download_data.py` which caused script to fail if log filename contained uppercase characters.
+- Fixed the satellite diagnostics counters from being inadvertently being reset
 
 ## [14.5.0] - 2024-11-07
 ### Added
