@@ -1098,7 +1098,7 @@ CONTAINS
              State_Chm%Species(NFD)%Conc = State_Chm%Species(NFD)%Conc(:,:,:) * 1.1d0
           ELSEIF (Input_Opt%FD_STEP .eq. 2) THEN
              WRITE(*, *) '    Perturbing -0.1'
-             State_Chm%Species(NFD)%Conc = State_Chm%Species(NFD)%Conc(:,:,:) * 0.9d0
+             State_Chm%Species(NFD)%Conc = State_Shm%Species(NFD)%Conc(:,:,:) * 0.9d0
           ELSE
              WRITE(*, *) '    FD_STEP = ', Input_Opt%FD_STEP, ' NOT SUPPORTED!'
           ENDIF

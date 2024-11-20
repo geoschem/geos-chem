@@ -1263,9 +1263,9 @@ CONTAINS
     ! Initialize MAPL Generic
     CALL MAPL_GenericInitialize( GC, Import, Export, Clock, __RC__ )
 
-! #ifdef ADJOINT
-!    CALL MAPL_GenericStateClockAdd( GC, name='--AdjointCheckpoint', __RC__ )
-! #endif
+#ifdef ADJOINT
+    CALL MAPL_GenericStateClockAdd( GC, name='--AdjointCheckpoint', __RC__ )
+#endif
 
     ! Get Internal state.
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
