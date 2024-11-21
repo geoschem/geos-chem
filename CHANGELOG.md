@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Updated ResME CH4 reservoir emissions to apply seasonality via mask file
 - Changed fullchem restart file folder from `GC_14.3.0` to `GC_14.5.0`
+- Excluded HEMCO interface and ExtState fields from `MODEL_CESM` in `hco_interface_gc_mod.F90` for compatibility with CESM, which runs HEMCO separately
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark
