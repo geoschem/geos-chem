@@ -927,6 +927,8 @@ cd ${rundir}
 # start year/month/day matches default initial restart file.
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
+      "x${sim_name}" == "xCO2"    ||
+      "x${sim_name}" == "xtagCO"  ||
       "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'

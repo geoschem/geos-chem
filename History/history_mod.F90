@@ -2880,6 +2880,8 @@ CONTAINS
     LOGICAL                          :: DoWrite
     LOGICAL                          :: isBndCond
     LOGICAL                          :: isRestart
+    LOGICAL                          :: isSatDiagn
+    LOGICAL                          :: isSatDiagnEdge
     INTEGER                          :: S, N
 
     ! Strings
@@ -3083,6 +3085,29 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
+
+          !-----------------------------------------------------------------
+          ! SPECIAL HANDLING FOR SATELLITE DIAGNOSTIC COLLECTIONS
+          !
+          ! If we have called History_Netcdf_Write (i.e. DoWrite == T),
+          ! then reset the satellite diagnostics counters, as we have now
+          ! entered the next diagnostic interval.  We need to do this here
+          ! instead of in History_Netcdf_Write as there are multiple
+          ! satellite diagnostic collections (SatDiagn, SatDiagnEdge).
+          !-----------------------------------------------------------------
+
+          ! Test container name
+          CALL SatDiagn_or_SatDiagnEdge( cName, isSatDiagn, isSatDiagnEdge )
+
+          ! Zero SatDiagn counter
+          IF ( isSatDiagn .and. State_Diag%Archive_SatDiagnCount ) THEN
+             State_Diag%SatDiagnCount = 0.0_f8
+          ENDIF
+
+          ! Zero SatDiagnEdge counter
+          IF ( isSatDiagnEdge .and. State_Diag%Archive_SatDiagnEdgeCount ) THEN
+             State_Diag%SatDiagnEdgeCount = 0.0_f8
+          ENDIF
        ENDIF
 
        ! Skip to the next collection
@@ -3094,15 +3119,6 @@ CONTAINS
     !=======================================================================
     ! Cleanup & quit
     !=======================================================================
-
-    ! If we have called History_Netcdf_Write (i.e. DoWrite == T), then
-    ! reset the satellite diagnostics counter, as we have now entered the
-    ! next diagnostic interval.  We need to do this here instead of in
-    ! History_Netcdf_Write as there are multiple satellite diagnostic
-    ! collections (SatDiagn, SatDiagnEdge).
-    IF ( State_Diag%Archive_SatDiagnCount .and. DoWrite ) THEN
-       State_Diag%SatDiagnCount = 0.0_f8
-    ENDIF
 
     ! Free pointers
     Container  => NULL()

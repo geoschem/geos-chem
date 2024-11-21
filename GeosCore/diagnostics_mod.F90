@@ -1474,11 +1474,16 @@ CONTAINS
             locTime <= State_Diag%SatDiagn_EndHr   ) good = 1.0_fp
 
        !---------------------------------------------------------------------
-       ! SatDiagnCount: Count number of local times
+       ! SatDiagnCount and SatDiagnEdgeCount: Count number of local times
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnCount ) THEN
           State_Diag%SatDiagnCount(I,:,:) = &
           State_Diag%SatDiagnCount(I,:,:) + good
+       ENDIF
+
+       IF ( State_Diag%Archive_SatDiagnEdgeCount ) THEN
+          State_Diag%SatDiagnEdgeCount(I,:,:) = &
+          State_Diag%SatDiagnEdgeCount(I,:,:) + good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1518,8 +1523,7 @@ CONTAINS
        ! Pressure edges [hPa]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
-          State_Diag%SatDiagnPEdge(I,:,:) = &
-               State_Met%PEDGE(I,:,1:State_Grid%NZ) * good
+          State_Diag%SatDiagnPEdge(I,:,:) = State_Met%PEDGE(I,:,:) * good
        ENDIF
 
        !---------------------------------------------------------------------
