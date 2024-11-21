@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in `download_data.py` which caused script to fail if log filename contained uppercase characters.
 - Fixed the satellite diagnostics counters from being inadvertently being reset
 - Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
+- Fixed errors in adjoint-only code preventing successful adjoint build
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
