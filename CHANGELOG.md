@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added KPP standalone interface (archives model state to selected locations)
+- Added `https://github/geoschem/KPP-Standalone` as a Git submodule (`geoschem-dev` branch)
 
 ### Changed
 - Moved PINO3H to be in alphabetical order in `species_database.yml`
