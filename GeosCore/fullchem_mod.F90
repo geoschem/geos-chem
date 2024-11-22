@@ -1319,17 +1319,6 @@ CONTAINS
             KPP_TotSteps = ISTATUS(3),                                       &
             RC           = RC                                               )
 
-       ! test the force write option on the root node
-       ! example use case: printing chemical state under conditions
-       ! without knowing where those conditions will happen
-       ! IF ( Input_Opt%amIRoot .AND. L == 1 )                     &
-       ! CALL Write_Samples( I, J, L,      C_before_integrate,     &
-       !                     local_RCONST, KPPH_before_integrate,  &
-       !                     RSTATE(Nhexit),                       &
-       !                     State_Grid,   State_Chm,  State_Met,  &
-       !                     Input_Opt,    ISTATUS(3), RC,         &
-       !                     FORCE_WRITE = .TRUE., CELL_NAME = 'root')
-
        !=====================================================================
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species%Conc

@@ -13,14 +13,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
 - Added KPP standalone interface (archives model state to selected locations)
 - Added `https://github/geoschem/KPP-Standalone` as a Git submodule (`geoschem-dev` branch)
+- Added comments in `./run/sharedcleanRunDir.sh` describing the `--force` option (i.e. remove files w/o user confirmation)
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
 - Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
-- Moved PINO3H to be in alphabetical order in `species_database.yml`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
-- Moved PINO3H to be in alphabetical order in `species_database.yml`
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation

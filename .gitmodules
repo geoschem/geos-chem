@@ -1,4 +1,4 @@
 [submodule "KPP/standalone"]
 	path = KPP/standalone
 	url = https://github.com/geoschem/KPP-Standalone
-	branch = geoschem-dev
+	tag = "GC_Interface"

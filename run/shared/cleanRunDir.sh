@@ -5,13 +5,15 @@
 #
 # Usage:
 # ------
-# $ ./cleanRunDir.sh     # Removes model output files in the run directory.
-#                        # Also prompts the user before removing diagnostic
-#                        # output files in OutputDir/.
+# $ ./cleanRunDir.sh          # Removes model output files in the run
+#                             # directory.  Also prompts the user before
+#                             # removing diagnostic output files from
+#                             # from OutputDir/.
 #
-# $ ./cleanRunDir.sh 1   # Removes model ouptut files in the run directory,
-#                        # but will remove diagnostic output files without
-#                        # prompting first.  USE WITH CAUTION!
+# $ ./cleanRunDir.sh --force  # Removes model output files in the run
+#                             # directory, but will remove diagnostic
+#                             # output files without prompting first.
+#                             # USE WITH CAUTION!
 #============================================================================
 
 # Clean model output files in the run directory
