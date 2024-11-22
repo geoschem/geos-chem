@@ -876,9 +876,16 @@ if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
   cp ${gcdir}/run/shared/download_data.gcap2.40L.yml ${rundir}/download_data.yml
 fi
 
+# Copy the OH metrics Python script to the rundir (fullchem/CH4 only)
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
+fi
+
+# Copy the KPP standalone interface config file to ther rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem"  ]]; then
+    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
+    chmod 644 ${rundir}/kpp_standalone_interface.yml
 fi
 
 # Set permissions
