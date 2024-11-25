@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `State_Diag%Archive_SatDiagnEdgeCount` field
 - Added `State_Diag%Archive_SatDiagnEdge` field
 - Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
+- Added error trap in `History/history_mod.F90` to ensure that collection duration is always shorter than frequency
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
