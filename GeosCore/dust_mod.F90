@@ -49,7 +49,8 @@ MODULE DUST_MOD
 ! !PRIVATE TYPES:
 !
   ! Species ID flags
-  INTEGER               :: id_DST1,   id_DST2,  id_DST3,   id_DST4
+  INTEGER               :: id_DSTbin1,  id_DSTbin2,  id_DSTbin3,   id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
+  INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4 ! redundant species ID for dust alkalinity (D. Zhang, 28 Jun 2024)
   INTEGER               :: id_DAL1,   id_DAL2,  id_DAL3,   id_DAL4
   INTEGER               :: id_DUST01, id_NK01
 
@@ -161,10 +162,14 @@ CONTAINS
        ! NOTE: Ind_() returns -1 for species not found, so for the
        ! algorithm below to work, we need to make sure all id's are
        ! not less than zero (bmy, 7/5/16)
-       IF ( MAX( id_DST1, 0 )  + &
-            MAX( id_DST2, 0 )  + &
-            MAX( id_DST3, 0 )  + &
-            MAX( id_DST4, 0 ) == 0 ) THEN
+      ! extend 7 dust bins for deposition (D. Zhang, 28 Jun 2024)
+      IF ( MAX( id_DSTbin1, 0 )  + &
+         MAX( id_DSTbin2, 0 )  + &
+         MAX( id_DSTbin3, 0 )  + &
+         MAX( id_DSTbin4, 0 )  + &
+         MAX( id_DSTbin5, 0 )  + &
+         MAX( id_DSTbin6, 0 )  + &
+         MAX( id_DSTbin7, 0 )  == 0 ) THEN
           IF ( LDUST ) THEN
              ErrMsg = 'LDUST=T but dust species are undefined!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -274,7 +279,7 @@ CONTAINS
     ! but we may have to update this later. (bmy, 7/5/16)
     !-------------------------------------------------------------
     CALL DRY_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                       State_Met, id_DST1,   id_DST4,    RC )
+                       State_Met, id_DSTbin1,   id_DSTbin7,    RC )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1220,7 +1225,7 @@ CONTAINS
     INTEGER,  POINTER :: IWVSELECT  (:,:)
     REAL*8,   POINTER :: ACOEF_WV (:)
     REAL*8,   POINTER :: BCOEF_WV (:)
-    REAL*8,   POINTER :: RDAA     (:,:,:)
+    REAL*8,   POINTER :: REAA     (:,:,:)
     REAL*8,   POINTER :: QQAA     (:,:,:,:)
     REAL*8,   POINTER :: SSAA     (:,:,:,:)
     REAL*8,   POINTER :: ASYMAA   (:,:,:,:)
@@ -1251,7 +1256,7 @@ CONTAINS
     IWVSELECT   => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
     ACOEF_WV    => State_Chm%Phot%ACOEF_WV    ! Coeffs for WL interpolation
     BCOEF_WV    => State_Chm%Phot%BCOEF_WV    ! Coeffs for WL interpolation
-    RDAA        => State_Chm%Phot%RDAA
+    REAA        => State_Chm%Phot%REAA
     QQAA        => State_Chm%Phot%QQAA
     SSAA        => State_Chm%Phot%SSAA
     ASYMAA      => State_Chm%Phot%ASYMAA
@@ -1272,14 +1277,10 @@ CONTAINS
     ! Index for dust in ODAER and LUT arrays
     IDST      = 8
 
-    ! Dust density
-    MSDENS(1) = 2500.0_fp
-    MSDENS(2) = 2500.0_fp
-    MSDENS(3) = 2500.0_fp
-    MSDENS(4) = 2500.0_fp
-    MSDENS(5) = 2650.0_fp
-    MSDENS(6) = 2650.0_fp
-    MSDENS(7) = 2650.0_fp
+    ! Get dust density from species database (assume dust bin ID is contineous)
+    DO N = 1, NDUST
+      MSDENS(N) = State_Chm%SpcData(id_DSTbin1+N-1)%Info%Density
+    ENDDO
 
     ! Critical RH, above which heteorogeneous chem takes place (tmf, 6/14/07)
     CRITRH = 35.0e+0_fp   ! [%]
@@ -1359,7 +1360,7 @@ CONTAINS
           ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp * &
                                  State_Met%BXHEIGHT(I,J,L) * &
                                  DUST(I,J,L,N) * QQAA(IWV,N,IDST,State_Chm%Phot%DRg)  / &
-                                 ( MSDENS(N) * RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp)
+                                 ( MSDENS(N) * REAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp) ! use REAA instead of RDAA (D. Zhang, Jun 28, 2024)
 
 #ifdef RRTMG
           !add dust optics to the RT code arrays
@@ -1405,7 +1406,7 @@ CONTAINS
        ! Skip non-chemistry boxes
        IF ( .not. State_Met%InChemGrid(I,J,L) ) CYCLE
 
-       ERADIUS(I,J,L,N) = RDAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-4_fp
+       ERADIUS(I,J,L,N) = REAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-4_fp
 
        TAREA(I,J,L,N)   = 3.e+0_fp / ERADIUS(I,J,L,N) * &
                           DUST(I,J,L,N) / MSDENS(N)
@@ -1541,7 +1542,7 @@ CONTAINS
     IWVSELECT   => NULL()
     ACOEF_WV    => NULL()
     BCOEF_WV    => NULL()
-    RDAA        => NULL()
+    REAA        => NULL()
     QQAA        => NULL()
     SSAA        => NULL()
     ASYMAA      => NULL()
@@ -2094,10 +2095,19 @@ CONTAINS
     ! the Input_Opt object at a later point.  These can be directly
     ! obtained from the species database object now. (bmy, 6/20/16)
     !-----------------------------------------------------------------
+    ! redundant speices ID for dust alkalinity calculation (D. Zhang, 26 Jun 2024)
     id_DST1 =  Ind_('DST1'    )
     id_DST2 =  Ind_('DST2'    )
     id_DST3 =  Ind_('DST3'    )
     id_DST4 =  Ind_('DST4'    )
+
+    id_DSTbin1 =  Ind_('DSTbin1'    )
+    id_DSTbin2 =  Ind_('DSTbin2'    )
+    id_DSTbin3 =  Ind_('DSTbin3'    )
+    id_DSTbin4 =  Ind_('DSTbin4'    )
+    id_DSTbin5 =  Ind_('DSTbin5'    )
+    id_DSTbin6 =  Ind_('DSTbin6'    )
+    id_DSTbin7 =  Ind_('DSTbin7'    )
 
     !-----------------------------------------------------------------
     ! DAL1 - DAL4 and SO4d1 - SO4d4 species (acid uptake sims only)

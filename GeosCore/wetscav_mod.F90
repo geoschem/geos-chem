@@ -1907,11 +1907,22 @@ CONTAINS
        CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L, &
                                    State_Met, State_Chm, WASHFRAC, RC )
 #endif
+    
+    !-----------------------------------------------------------------
+    ! Washout for dust species (D. Zhang, 28 Jun 2024)
+    !-----------------------------------------------------------------
+    ELSEIF (SpcInfo%WD_Is_DSTbin) THEN
+       ! Washout is a kinetic process
+       KIN      = .TRUE.
 
+       ! Compute washout fraction
+       WASHFRAC = WASHFRAC_DUSTBIN( SpcInfo%WD_WashoutRainPara(1), SpcInfo%WD_WashoutRainPara(2), &
+                           SpcInfo%WD_WashoutSnowPara(1), SpcInfo%WD_WashoutSnowPara(2), &
+                           DT, F, PP, TK)
     !-----------------------------------------------------------------
     ! Washout for coarse aerosol species (Reff >= 1um)
     !-----------------------------------------------------------------
-    ELSE IF ( SpcInfo%WD_CoarseAer ) THEN
+    ELSE IF ( ( .not. SpcInfo%WD_Is_DSTbin ) .and. SpcInfo%WD_CoarseAer ) THEN
 
        ! Washout is a kinetic process
        KIN      = .TRUE.
@@ -2338,6 +2349,83 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_dustbin
+!
+! !DESCRIPTION: Function WASHFRAC\_DUSTBIN returns the fraction of
+!  dust species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION WASHFRAC_DUSTBIN( RainPara1, RainPara2, SnowPara1, SnowPara2, DT, F, PP, TK) &
+      RESULT( WASHFRAC )
+!
+! !INPUT PARAMETERS:
+!
+   REAL(fp),       INTENT(IN)  :: RainPara1   ! prefactor for washout due to rain precipotation
+   REAL(fp),       INTENT(IN)  :: RainPara2   ! Exponent for washout due to rain precipotation
+   REAL(fp),       INTENT(IN)  :: SnowPara1   ! prefactor for washout due to snow precipotation
+   REAL(fp),       INTENT(IN)  :: SnowPara2   ! Exponent for washout due to snow precipotation
+   REAL(fp),       INTENT(IN)  :: DT          ! Timestep of washout event [s]
+   REAL(fp),       INTENT(IN)  :: F           ! Fraction of grid box that is
+                                              !  precipitating [unitless]
+   REAL(fp),       INTENT(IN)  :: PP          ! Precip rate thru bottom of grid
+                                              !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+   REAL(fp),       INTENT(IN)  :: TK          ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+   REAL(fp)                    :: WASHFRAC    ! Fraction of soluble species
+!
+! !REVISION HISTORY:
+!  25 Jun 2024 - D. Zhang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+   
+!  
+   ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+
+   !=================================================================
+   ! WASHFRAC_DUSTBIN begins here!
+   !=================================================================
+   IF ( ( TK >= 268e+0_fp ) .OR. ITS_A_POPS_SIM ) THEN
+
+      !---------------------------------
+      ! T >= 268K (or POPS simulation)
+      !---------------------------------
+      IF ( F > 0e+0_fp ) THEN
+         WASHFRAC = F *(1e+0_fp - EXP( - RainPara1 * &
+                    (PP / F*3.6e+4_fp ) ** RainPara2 * DT ))
+      ELSE
+         WASHFRAC = 0e+0_fp
+      ENDIF
+
+   ELSE
+
+      !---------------------------------
+      ! T < 268K
+      !---------------------------------
+      IF ( F > 0e+0_fp ) THEN
+         WASHFRAC = F *(1e+0_fp - EXP( - SnowPara1 * &
+                    (PP / F*3.6e+4_fp ) ** SnowPara2 * DT ))
+      ELSE
+         WASHFRAC = 0e+0_fp
+      ENDIF
+
+   ENDIF
+
+END FUNCTION WASHFRAC_DUSTBIN
+!EOC
+
   FUNCTION WASHFRAC_FINE_AEROSOL( DT, F, PP, TK ) &
        RESULT( WASHFRAC )
 !

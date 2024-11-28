@@ -90,7 +90,7 @@ MODULE DRYDEP_MOD
 !  (14) Wesely, M. L., Parameterization of surface resistance to gaseous dry
 !        deposition in regional-scale numerical models.  Atmos. Environ., 23
 !        1293-1304, 1989.
-!  (15) Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon,
+!  (15) Price, H., L. Jaeglï¿½, A. Rice, P. Quay, P.C. Novelli, R. Gammon,
 !        Global Budget of Molecular Hydrogen and its Deuterium Content:
 !        Constraints from Ground Station, Cruise, and Aircraft Observations,
 !        submitted to J. Geophys. Res., 2007.
@@ -164,8 +164,7 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_HNO3,    id_PAN,     id_IHN1
   INTEGER                        :: id_H2O2,    id_SO2,     id_NH3
   INTEGER                        :: idd_BCPO,   idd_BCPI,   idd_BrSALC
-  INTEGER                        :: idd_BrSALA, idd_DST1,   idd_DST2
-  INTEGER                        :: idd_DST3,   idd_DST4,   idd_DSTAL1
+  INTEGER                        :: idd_BrSALA, idd_DSTAL1
   INTEGER                        :: idd_DSTAL2, idd_DSTAL3, idd_DSTAL4
   INTEGER                        :: idd_ISALA,  idd_ISALC,  idd_NH4
   INTEGER                        :: idd_NIT,    idd_NITD1,  idd_NITD2
@@ -1784,26 +1783,27 @@ CONTAINS
 
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
+                
+               ! Redudant since Reff is dedined in species database? (D. Zhang, 28 Jun, 2024)
+               !  IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
+               !       K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
+               !     DIAM = 0.66895E-6
+               !  ENDIF
 
-                IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
-                     K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
-                   DIAM = 0.66895E-6
-                ENDIF
+               !  IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.              &
+               !       K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
+               !     DIAM = 2.4907E-6
+               !  ENDIF
 
-                IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.              &
-                     K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
-                   DIAM = 2.4907E-6
-                ENDIF
+               !  IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.              &
+               !       K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
+               !     DIAM = 4.164E-6
+               !  ENDIF
 
-                IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.              &
-                     K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
-                   DIAM = 4.164E-6
-                ENDIF
-
-                IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.              &
-                     K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
-                   DIAM = 6.677E-6
-                ENDIF
+               !  IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.              &
+               !       K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
+               !     DIAM = 6.677E-6
+               !  ENDIF
 
                 ! Particle density [kg/m3]
                 DEN   = A_DEN(K)
@@ -4358,6 +4358,7 @@ CONTAINS
 !
 ! !DEFINED PARAMETERS
 !
+    REAL(f8), PARAMETER   :: KAI      =  1.1474_f8 ! shape factor
     REAL(f8), PARAMETER   :: C1       =  0.7674_f8
     REAL(f8), PARAMETER   :: C2       =  3.079_f8
     REAL(f8), PARAMETER   :: C3       =  2.573e-11_f8
@@ -4523,7 +4524,7 @@ CONTAINS
     DP    = DIAM * 1.e+6_f8
 
     ! Constant for settling velocity calculation
-    CONST = DEN * DIAM**2 * g0 / 18.e+0_f8
+    CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8
 
     !=================================================================
     !   # air molecule number density
@@ -4745,10 +4746,10 @@ CONTAINS
     idd_BCPO   = Ind_('BCPO',   'D')
     idd_BrSALC = Ind_('BrSALC', 'D')
     idd_BrSALA = Ind_('BrSALA', 'D')
-    idd_DST1   = Ind_('DST1',   'D')
-    idd_DST2   = Ind_('DST2',   'D')
-    idd_DST3   = Ind_('DST3',   'D')
-    idd_DST4   = Ind_('DST4',   'D')
+   !  idd_DST1   = Ind_('DST1',   'D')
+   !  idd_DST2   = Ind_('DST2',   'D')
+   !  idd_DST3   = Ind_('DST3',   'D')
+   !  idd_DST4   = Ind_('DST4',   'D')
     idd_DSTAL1 = Ind_('DSTAL1', 'D')
     idd_DSTAL2 = Ind_('DSTAL2', 'D')
     idd_DSTAL3 = Ind_('DSTAL3', 'D')

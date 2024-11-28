@@ -80,8 +80,8 @@ MODULE AEROSOL_MOD
 ! !PRIVATE TYPES:
 !
   ! Add tracer ID flags as module variables (bmy, 6/16/16)
-  INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
-  INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT
+  INTEGER :: id_BCPI,  id_BCPO,  id_NH4,   id_NIT
+  INTEGER :: id_DSTbin1, id_DSTbin2, id_DSTbin3, id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7 ! extend 7 dust bins for deposition (D. Zhang, 28 Jun, 2024)
   INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC
   INTEGER :: id_SO4,   id_SO4s,  id_NITs,  id_NH4s
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
@@ -616,19 +616,15 @@ CONTAINS
           ! Lump 1st dust tracer for het chem
           ! Now use dust size distribution scheme to improve PM2.5
           ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
-          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,1) = Spc(id_DSTbin1)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,2) = Spc(id_DSTbin2)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,3) = Spc(id_DSTbin3)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,4) = Spc(id_DSTbin4)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Other hetchem bins
-          SOILDUST(I,J,L,5) = Spc(id_DST2)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,6) = Spc(id_DST3)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,7) = Spc(id_DST4)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,5) = Spc(id_DSTbin5)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,6) = Spc(id_DSTbin6)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,7) = Spc(id_DSTbin7)%Conc(I,J,L) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -2424,10 +2420,14 @@ CONTAINS
     ! Add tracer ID flags as module variables (bmy, 6/16/16)
     id_BCPI   = Ind_( 'BCPI'   )
     id_BCPO   = Ind_( 'BCPO'   )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
+    ! Add tracer ID for extended dust bins (D. Zhang, Jun 25, 2024)
+    id_DSTbin1   = Ind_( 'DSTbin1'   )
+    id_DSTbin2   = Ind_( 'DSTbin2'   )
+    id_DSTbin3   = Ind_( 'DSTbin3'   )
+    id_DSTbin4   = Ind_( 'DSTbin4'   )
+    id_DSTbin5   = Ind_( 'DSTbin5'   )
+    id_DSTbin6   = Ind_( 'DSTbin6'   )
+    id_DSTbin7   = Ind_( 'DSTbin7'   )
     id_DUST01 = Ind_( 'DUST01' )
     id_NH4    = Ind_( 'NH4'    )
     id_NIT    = Ind_( 'NIT'    )
@@ -2466,7 +2466,7 @@ CONTAINS
     IS_HMS     = ( id_HMS   > 0 )
     IS_NH4     = ( id_NH4   > 0 )
     IS_NIT     = ( id_NIT   > 0 )
-    IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
+    IS_DST     = ( id_DSTbin1  > 0 .AND. id_DSTbin2  > 0 .AND. id_DSTbin3  > 0 .AND. id_DSTbin4  > 0) !(D. Zhang, Jun 28, 2024)
     IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
     IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
     IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )

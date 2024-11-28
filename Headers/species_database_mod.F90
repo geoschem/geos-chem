@@ -157,7 +157,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(64)
+    CHARACTER(LEN=18)           :: tags(67)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -195,70 +195,73 @@ CONTAINS
     SpcCount%nHgP     = 0
 
     ! Species database tags to match
-    tags = (/"Background_VV    ",  &
-             "DD_AeroDryDep    ",  &
-             "DD_DustDryDep    ",  &
-             "DD_DvzAerSnow    ",  &
-             "DD_DvzAerSnow_Luo",  &
-             "DD_DvzMinVal     ",  &
-             "DD_DvzMinVal_Luo ",  &
-             "DD_F0            ",  &
-             "DD_Hstar         ",  &
-             "DD_KOA           ",  &
-             "Density          ",  &
-             "Formula          ",  &
-             "FullName         ",  &
-             "Is_Aerosol       ",  &
-             "Is_DryAlt        ",  &
-             "Is_DryDep        ",  &
-             "Is_HygroGrowth   ",  &
-             "Is_Gas           ",  &
-             "Is_Hg0           ",  &
-             "Is_Hg2           ",  &
-             "Is_HgP           ",  &
-             "Is_Photolysis    ",  &
-             "Is_RadioNuclide  ",  &
-             "Is_Tracer        ",  &
-             "Is_WetDep        ",  &
-             "Henry_CR         ",  &
-             "Henry_CR_Luo     ",  &
-             "Henry_K0         ",  &
-             "Henry_K0_Luo     ",  &
-             "Henry_pKa        ",  &
-             "MP_SizeResAer    ",  &
-             "MP_SizeResNum    ",  &
-             "MW_g             ",  &
-             "Radius           ",  &
-             "Snk_Horiz        ",  &
-             "Snk_Lats         ",  &
-             "Snk_Mode         ",  &
-             "Snk_Period       ",  &
-             "Snk_Value        ",  &
-             "Snk_Vert         ",  &
-             "Src_Add          ",  &
-             "Src_Horiz        ",  &
-             "Src_Lats         ",  &
-             "Src_Mode         ",  &
-             "Src_Pressures    ",  &
-             "Src_Units        ",  &
-             "Src_Value        ",  &
-             "Src_Vert         ",  &
-             "Units            ",  &
-             "WD_AerScavEff    ",  &
-             "WD_CoarseAer     ",  &
-             "WD_ConvFacI2G    ",  &
-             "WD_ConvFacI2G_Luo",  &
-             "WD_KcScaleFac    ",  &
-             "WD_KcScaleFac_Luo",  &
-             "WD_Is_H2SO4      ",  &
-             "WD_Is_HNO3       ",  &
-             "WD_Is_SO2        ",  &
-             "WD_LiqAndGas     ",  &
-             "WD_LiqAndGas_Luo ",  &
-             "WD_RainoutEff    ",  &
-             "WD_RainoutEff_Luo",  &
-             "WD_RetFactor     ",  &
-             "WD_RetFactor_Luo "   /)
+    tags = (/"Background_VV     ",  &
+             "DD_AeroDryDep     ",  &
+             "DD_DustDryDep     ",  &
+             "DD_DvzAerSnow     ",  &
+             "DD_DvzAerSnow_Luo ",  &
+             "DD_DvzMinVal      ",  &
+             "DD_DvzMinVal_Luo  ",  &
+             "DD_F0             ",  &
+             "DD_Hstar          ",  &
+             "DD_KOA            ",  &
+             "Density           ",  &
+             "Formula           ",  &
+             "FullName          ",  &
+             "Is_Aerosol        ",  &
+             "Is_DryAlt         ",  &
+             "Is_DryDep         ",  &
+             "Is_HygroGrowth    ",  &
+             "Is_Gas            ",  &
+             "Is_Hg0            ",  &
+             "Is_Hg2            ",  &
+             "Is_HgP            ",  &
+             "Is_Photolysis     ",  &
+             "Is_RadioNuclide   ",  &
+             "Is_Tracer         ",  &
+             "Is_WetDep         ",  &
+             "Henry_CR          ",  &
+             "Henry_CR_Luo      ",  &
+             "Henry_K0          ",  &
+             "Henry_K0_Luo      ",  &
+             "Henry_pKa         ",  &
+             "MP_SizeResAer     ",  &
+             "MP_SizeResNum     ",  &
+             "MW_g              ",  &
+             "Radius            ",  &
+             "Snk_Horiz         ",  &
+             "Snk_Lats          ",  &
+             "Snk_Mode          ",  &
+             "Snk_Period        ",  &
+             "Snk_Value         ",  &
+             "Snk_Vert          ",  &
+             "Src_Add           ",  &
+             "Src_Horiz         ",  &
+             "Src_Lats          ",  &
+             "Src_Mode          ",  &
+             "Src_Pressures     ",  &
+             "Src_Units         ",  &
+             "Src_Value         ",  &
+             "Src_Vert          ",  &
+             "Units             ",  &
+             "WD_AerScavEff     ",  &
+             "WD_CoarseAer      ",  &
+             "WD_ConvFacI2G     ",  &
+             "WD_ConvFacI2G_Luo ",  &
+             "WD_KcScaleFac     ",  &
+             "WD_KcScaleFac_Luo ",  &
+             "WD_Is_H2SO4       ",  &
+             "WD_Is_HNO3        ",  &
+             "WD_Is_SO2         ",  &
+             "WD_Is_DSTbin      ",  &
+             "WD_LiqAndGas      ",  &
+             "WD_LiqAndGas_Luo  ",  &
+             "WD_RainoutEff     ",  &
+             "WD_RainoutEff_Luo ",  &
+             "WD_WashoutRainPara", &
+             "WD_WashoutSnowPara", &
+             "WD_RetFactor      ",  &
+             "WD_RetFactor_Luo  "   /)
 
     !=======================================================================
     ! Store the list unique GEOS-Chem species names in work arrays for use
@@ -766,6 +769,11 @@ CONTAINS
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_SO2 = v_bool
+         
+          ELSE IF ( INDEX( key, "%WD_Is_DSTbin" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_Is_DSTbin = v_bool
 
           ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
@@ -794,6 +802,19 @@ CONTAINS
              IF ( wd_rainouteff_luo(1) /= MISSING_REAL ) THEN
                 found_wd_rainouteff_luo = .TRUE.
              ENDIF
+          
+          ! add washout parameters for dust species (D. Zhang, 28 Jun, 2024)
+          ELSE IF ( INDEX( key, "%WD_WashoutRainPara" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_WashoutRainPara(1) = DBLE( a_real_2(1) ) ! Do not roundoff 
+             ThisSpc%WD_WashoutRainPara(2) = DBLE( a_real_2(2) )
+
+          ELSE IF ( INDEX( key, "%WD_WashoutSnowPara" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             ThisSpc%WD_WashoutSnowPara(1) = DBLE( a_real_2(1) )
+             ThisSpc%WD_WashoutSnowPara(2) = DBLE( a_real_2(2) )
 
           ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 .and. no_luo ) THEN
              CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
@@ -877,6 +898,9 @@ CONTAINS
                 ThisSpc%WD_AerScavEff = MISSING
                 ThisSpc%WD_KcScaleFac = MISSING
                 ThisSpc%WD_RainoutEff = MISSING
+                ThisSpc%WD_Is_DSTbin  = MISSING
+                ThisSpc%WD_WashoutRainPara = MISSING
+                ThisSpc%WD_WashoutSnowPara = MISSING
           END SELECT
        ENDIF
 
