@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Moved PINO3H to be in alphabetical order in `species_database.yml`
+- Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
 
 ### Fixed
 - Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
