@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `State_Diag%Archive_SatDiagnEdge` field
 - Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
 - Added KPP standalone interface (archives model state to selected locations)
-- Added `https://github/geoschem/KPP-Standalone` as a Git submodule (`GC_Interface` tag)
+- Added `https://github/geoschem/KPP-Standalone` as a Git submodule
 - Added comments in `./run/sharedcleanRunDir.sh` describing the `--force` option (i.e. remove files w/o user confirmation)
 
 ### Changed
