@@ -36,7 +36,6 @@ MODULE DRYDEP_MOD
 #if defined( MODEL_CESM )
   PUBLIC :: UPDATE_DRYDEPFREQ
 #else
-
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -611,7 +610,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - consider moving?
-    IF ( State_Diag%Archive_DryDepVelForALT1 )   THEN 
+    IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
@@ -620,6 +619,40 @@ CONTAINS
 
           ! Point to State_Chm%DryDepVel [m/s]
           NDVZ = NDVZIND(D)
+
+          ! When using the full PBL mixing option (aka TURBDAY),
+          ! update DryDepVel and SatDiagnDryDepVel diagnostics here.
+          !
+          ! When using the non-local PBL mixing option (VDIFF), then
+          ! update these diagnostics in Compute_Sflx_for_Vdiff (in
+          ! GeosCore/hco_interface_gc_mod.F90).  This is necessary in
+          ! order to capture the air-sea deposition velocities computed
+          ! by the HEMCO "SeaFlux" extension.  For more information,
+          ! see https://github.com/geoschem/geos-chem/pull/2606 and
+          ! https://github.com/geoschem/geos-chem/issues/2564.
+          !
+          !  -- Bob Yantosca (03 Dec 2024)
+          IF ( .not. Input_Opt%LNLPBL ) THEN
+
+             ! Dry dep velocity [cm/s]
+             IF ( State_Diag%Archive_DryDepVel ) THEN
+                S = State_Diag%Map_DryDepVel%id2slot(D)
+                IF ( S > 0 ) THEN
+                   State_Diag%DryDepVel(:,:,S) =                             &
+                      State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
+                ENDIF
+             ENDIF
+
+             ! Satellite diagnostic: Dry dep velocity [cm/s]
+             IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+                S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
+                IF ( S > 0 ) THEN
+                   State_Diag%SatDiagnDryDepVel(:,:,S) =                     &
+                      State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
+                ENDIF
+             ENDIF
+
+          ENDIF
 
           ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
           IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
@@ -1620,9 +1653,9 @@ CONTAINS
                 !   - Bob Yantosca (17 May 2023)
                 IF ( N_SPC == ID_Hg0 ) THEN
 
-                   ! Assume lower reactivity 
-                   F0_K = 3.0e-05_f8 
-                   
+                   ! Assume lower reactivity
+                   F0_K = 3.0e-05_f8
+
                    ! But if this is the rainforest land type and we fall
                    ! within the bounding box of the Amazon rainforest,
                    ! then increase reactivity as inferred from observations.
@@ -1718,10 +1751,10 @@ CONTAINS
                                               RHB(I,J),            &
                                               W10(I,J),            &
                                               VTSoutput,           &
-                                              Input_Opt,           & 
+                                              Input_Opt,           &
                                               State_Chm )
 
-                VTSoutput_(K,LDT) = VTSoutput  
+                VTSoutput_(K,LDT) = VTSoutput
 
              ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
 
@@ -2234,7 +2267,7 @@ CONTAINS
        !** Load array State_Chm%DryDepVel
        DO 550 K=1,NUMDEP
           IF (.NOT.LDEP(K)) GOTO 550
-          
+
           State_Chm%DryDepVel(I,J,K) = VD(K)
 
           ! Now check for negative deposition velocity before returning to
@@ -3198,7 +3231,7 @@ CONTAINS
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8),       INTENT(OUT) :: VTSout    ! Settling velocity [m/s]
 
@@ -3965,7 +3998,7 @@ CONTAINS
   FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR, &
                           VTSout, RHB, State_Chm ) RESULT( RS )
 !
-! !USES: 
+! !USES:
 !
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -3982,7 +4015,7 @@ CONTAINS
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
 
@@ -4198,7 +4231,7 @@ CONTAINS
     !BC
     ELSE IF ( K == idd_BCPI .OR. K == idd_BCPO )  THEN
        ! DIAM is not changed
-    
+
     !OA
     ELSE
         DIAM = DIAM * ((1.0_fp + 0.1_fp * RHBL / (1.0_fp - RHBL))            &
@@ -4320,7 +4353,7 @@ CONTAINS
     REAL(f8), INTENT(IN) :: DEN     ! Particle density [kg/m3]
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
 

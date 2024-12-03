@@ -5029,7 +5029,21 @@ CONTAINS
              ENDIF
           ENDIF
 
-          ! Dry deposition velocity (cm/s):
+          !-----------------------------------------------------------------
+          ! HISTORY: Update dry deposition velocity [cm/s]
+          !
+          ! Here we save the dry deposition velocities (stored in the
+          ! DVEL array) into the DryDepVel and SatDiagnDryDepVel History
+          ! diagnostics.  This is necessary in order to capture the
+          ! air-sea deposition velocity computed by the HEMCO "SeaFlux"
+          ! extension for certain species.
+          !
+          ! When using the full PBL mixing option (aka TURBDAY), the
+          ! DryDepVel and SatDiagnDryDepVel diagnostics will be archived
+          ! in drydep_mod.F90 instead.
+          !-----------------------------------------------------------------
+
+          ! Dry deposition velocity [cm/s]
           IF ( State_Diag%Archive_DryDepVel ) THEN
              S = State_Diag%Map_DryDepVel%id2slot(ND)
              IF ( S > 0 ) THEN
@@ -5068,6 +5082,7 @@ CONTAINS
           ThisSpc => NULL()
        ENDDO
        !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================
