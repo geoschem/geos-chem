@@ -610,7 +610,9 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - consider moving?
-    IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+    IF ( State_Diag%Archive_DryDepVel           .or.                         &
+         State_Diag%Archive_DryDepVelForALT1    .or.                         &
+         State_Diag%Archive_SatDiagnDryDepVel ) THEN
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
