@@ -15,6 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added KPP standalone interface (archives model state to selected locations)
 - Added `https://github/geoschem/KPP-Standalone` as a Git submodule
 - Added comments in `./run/sharedcleanRunDir.sh` describing the `--force` option (i.e. remove files w/o user confirmation)
+- Specified meteorology source in GCHP geoschem_config.yml
+- Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
+- Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
+- Added surface precipitation flux fields as inputs to GCHP
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -32,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed the satellite diagnostics counters from being inadvertently being reset
 - Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
 - Fixed errors in adjoint-only code preventing successful adjoint build
+- Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
