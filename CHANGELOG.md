@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
+- Updated GEOS-only code for compatibility with GEOS-Chem 14.5
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
