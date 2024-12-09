@@ -2034,6 +2034,7 @@ CONTAINS
             mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             before_op   = .TRUE.,                                            &
+            msg         = 'Compute budget diag (1)'//TRIM(ThisLoc),          &
             RC          = RC                                                )
 
        ! Trap potential errors
@@ -2070,8 +2071,8 @@ CONTAINS
 
     ! Update air quantities and species concentrations with updated
     ! specific humidity (ewl, 10/28/15)
-    CALL AirQnt( Input_Opt, State_Chm, State_Grid,                           &
-                 State_Met, RC,        Update_Mixing_Ratio=.TRUE.           )
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                 State_Diag, RC, Update_Mixing_Ratio=.TRUE. )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2116,6 +2117,7 @@ CONTAINS
             mapDataLevs = State_Diag%Map_BudgetMixingLevs,                   &
             colMass     = State_Diag%BudgetColumnMass,                       &
             timeStep    = DT_Dyn,                                            &
+            msg         = 'Compute budget diag (2)'//TRIM(ThisLoc),          &
             RC          = RC                                                )
 
        ! Trap potential errors

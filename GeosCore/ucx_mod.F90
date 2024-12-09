@@ -3548,7 +3548,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE SET_H2O_TRAC( SETSTRAT,  Input_Opt, State_Chm, State_Grid, &
-                           State_Met, RC )
+                           State_Met, State_Diag, RC )
 !
 ! !USES:
 !
@@ -3558,6 +3558,7 @@ CONTAINS
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Species_Mod,        ONLY : SpcConc
     USE State_Chm_Mod,      ONLY : ChmState, Ind_
+    USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE UnitConv_Mod
@@ -3572,6 +3573,7 @@ CONTAINS
 !
     TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
     TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3742,8 +3744,12 @@ CONTAINS
     ! If humidity was updated, update all moist-dependent air quantities
     ! and species mixing ratio with the new moisture content (ewl, 4/29/15)
     IF ( LActiveH2O .and. ( .not. SetStrat ) ) THEN
-       CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, &
-                    RC, Update_Mixing_Ratio=.TRUE. )
+
+       ! Update meteorology. Include update to tropopause budget diagnostic to
+       ! account for change in tropopause level (ewl, 1/4/23)
+       CALL AIRQNT( Input_Opt, State_Chm, State_Grid, State_Met, State_Diag, &
+            RC, Update_Mixing_Ratio=.TRUE., Update_Budget_TropHt=.TRUE. )
+
     ENDIF
 
     ! Free pointer
