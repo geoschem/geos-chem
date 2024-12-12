@@ -308,8 +308,8 @@ CONTAINS
             WRITE( 6, 100 ) TRIM( configFile )
  100        FORMAT( "Config file ", a ", not found, ",                       &
                     "skipping KPP standalone interface" )
-            RETURN
          ENDIF
+         RETURN
       ENDIF
 
       ! Assume success
