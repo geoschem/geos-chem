@@ -1,6 +1,28 @@
 # KPP/custom/CMakeLists.txt
 
 #----------------------------------------------------------------------------
+# Determine the KPP integrator name and set corresponding variables
+#----------------------------------------------------------------------------
+EXECUTE_PROCESS(
+  COMMAND grep \#INTEGRATOR ${CMAKE_CURRENT_SOURCE_DIR}/custom.kpp
+  OUTPUT_VARIABLE RESULT
+)
+separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
+list(GET SUBSTRINGS 1 KPP_INT_NAME)
+string(TOLOWER "${KPP_INT_NAME}" KPP_INT_NAME)
+
+if(KPP_INT_NAME STREQUAL "rosenbrock_autoreduce")
+  set(KPP_INT_AUTOREDUCE ON CACHE BOOL "Integrator is rosenbrock_autoreduce?")
+elseif(KPP_INTEGRATOR_NAME STREQUAL "lsode")
+  set(KPP_INT_LSODE ON CACHE BOOL "Integrator is LSODE?")
+endif()
+
+gc_pretty_print(SECTION "KPP integrator (read from custom.kpp)")
+gc_pretty_print(VARIABLE KPP_INT_NAME)
+gc_pretty_print(VARIABLE KPP_INT_AUTOREDUCE IS_BOOLEAN)
+gc_pretty_print(VARIABLE KPP_INT_LSODE IS_BOOLEAN)
+
+#----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- custom mechanism
 #----------------------------------------------------------------------------
 add_library(KPP_FirstPass

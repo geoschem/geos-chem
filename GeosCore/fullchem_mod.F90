@@ -104,10 +104,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+#ifdef KPP_INT_AUTOREDUCE
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetIntegratorOptions
+#endif
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
@@ -522,11 +524,13 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Always consider halogens as "fast" species for auto-reduce
     !------------------------------------------------------------------------
+#ifdef KPP_INT_AUTOREDUCE
     IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
           CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
        ENDIF
     ENDIF
+#endif
 
     !========================================================================
     ! MAIN LOOP: Compute reaction rates and call chemical solver
@@ -594,9 +598,11 @@ CONTAINS
 #endif
 #endif
 
+#ifdef KPP_INT_AUTOREDUCE
        ! Per discussions for Lin et al., force keepActive throughout the
        ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
+#endif
 
        ! Check if the current grid cell in this loop should have its
        ! full chemical state printed (concentrations, rates, constants)
@@ -1007,6 +1013,7 @@ CONTAINS
 
        ENDIF
 
+#ifdef KPP_INT_AUTOREDUCE
        !=====================================================================
        ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
        ! This now needs to be done within the parallel loop
@@ -1015,6 +1022,10 @@ CONTAINS
                                               State_Met, FirstChem,          &
                                               I,         J,         L,       &
                                               ICNTRL,    RCNTRL             )
+#endif
+#ifdef KPP_INT_LSODE
+
+#endif
 
        !=====================================================================
        ! Integrate the box forwards
@@ -1125,11 +1136,13 @@ CONTAINS
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
 
+#ifdef KPP_INT_AUTOREDUCE
           ! Update autoreduce solver statistics
           ! (only if the autoreduction is turned on)
           IF ( Input_Opt%Use_AutoReduce ) THEN
              CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
           ENDIF
+#endif
        ENDIF
 
        !=====================================================================

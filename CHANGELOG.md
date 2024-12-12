@@ -23,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
 - Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
 - Added surface precipitation flux fields as inputs to GCHP
+- Added the `KPP_INT_AUTOREDUCE` and `KPP_INT_LSODE` C-preprocessor switches for integrator-specific handling
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -30,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
+- Wrapped code specific to the `rosenbrock_autoreduce` KPP integrator in `#if` blocks
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -140,7 +142,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Cloud-J status output and error handling for it
 
 ### Changed
-- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation
 - Use hard-coded years for met fields and BC files in `HEMCO_Config.rc` so they are not read hourly
 - Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
 - Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid
