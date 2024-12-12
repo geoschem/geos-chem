@@ -451,16 +451,15 @@ CONTAINS
     !---------------------------------------
     ! Open logfile
     !---------------------------------------
-    IF ( Input_Opt%amIRoot ) THEN
-       CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, RC=HMRC )
+    CALL HCO_LOGFILE_OPEN( iHcoConfig%Err, Input_Opt%amIRoot, RC=HMRC, &
+         logLUN=iHcoConfig%hcoLogLUN )
 
-       ! Trap potential errors
-       IF ( HMRC /= HCO_SUCCESS ) THEN
-          RC     = HMRC
-          ErrMsg = 'Error encountered in "HCO_LogFile_Open"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
-          RETURN
-       ENDIF
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "HCO_LogFile_Open"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc, Instr )
+       RETURN
     ENDIF
 
     !---------------------------------------
@@ -3664,7 +3663,7 @@ CONTAINS
           ! Verbose (only written if debug printout is requested)
           IF ( Input_Opt%Verbose ) THEN
              Msg = 'Registering HEMCO species:'
-             CALL HCO_MSG( HcoState%Config%Err, Msg, SEP1='-' )
+             CALL HCO_MSG( Msg, SEP1='-', LUN=HcoState%Config%hcoLogLUN )
           ENDIF
 
           ! Sanity check: number of input species should agree with nSpc
@@ -3765,7 +3764,8 @@ CONTAINS
 
           ! Add line to log-file
           IF ( Input_Opt%Verbose ) THEN
-             CALL HCO_MSG( HcoState%Config%Err, SEP1='-' )
+             msg=''
+             CALL HCO_MSG( msg, SEP1='-', LUN=HcoState%Config%hcoLogLUN )
           ENDIF
        ENDIF ! Phase = 2
 
@@ -3774,7 +3774,7 @@ CONTAINS
     !-----------------------------------------------------------------
     ELSE
        ErrMsg = 'Invalid simulation type - cannot define model species'
-       CALL HCO_ERROR( HcoState%Config%Err, ErrMsg, RC, ThisLoc )
+       CALL HCO_ERROR( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
 
