@@ -5292,6 +5292,7 @@ TLFUONE:
 TMB:
   Formula: C8H10
   FullName: Trimethylbenzenes
+  Is_Advected: true
   Is_Gas: true
   MW_g: 106.167
 TOLU:
