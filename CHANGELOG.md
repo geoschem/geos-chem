@@ -5,23 +5,55 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Fixed
+- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
+
+## [Unreleased] - TBD
+### Added
+- Added allocate guards for arrays in `pressure_mod`
+- Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
+- Added `State_Diag%Archive_SatDiagnEdgeCount` field
+- Added `State_Diag%Archive_SatDiagnEdge` field
+- Added routine `SatDiagn_or_SatDiagnEdge` in `History/history_utils_mod.F90`
+- Added error trap in `History/history_mod.F90` to ensure that collection duration is always shorter than frequency
+- Added KPP standalone interface (archives model state to selected locations)
+- Added `https://github/geoschem/KPP-Standalone` as a Git submodule
+- Added comments in `./run/sharedcleanRunDir.sh` describing the `--force` option (i.e. remove files w/o user confirmation)
+- Specified meteorology source in GCHP geoschem_config.yml
+- Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
+- Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
+- Added surface precipitation flux fields as inputs to GCHP
+
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
 - Updated start date and restart file for CO2 and tagCO simulations for consistency with carbon simulations
+- Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
+- Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
+- Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
 - Modified tagCO simulation to use GFED4 biomass burning emissions and GEOS-Chem v5 OH fields for consistency with carbon simulation
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
 - Added fix to turn on ship emissions for CO2 in the carbon simulation
 - Updated `HEMCO_Config.rc` for carbon simulation to read data based on carbon species used
-- Fixed entries for several carbon emissions inventorin GCHP config file `ExtData.rc.carbon`
+- Fixed entries for CO2 emissions in `ExtData.rc.carbon`
+- Fixed metals simulation name in config file template comments
+- Fixed bug in `download_data.py` which caused script to fail if log filename contained uppercase characters.
+- Fixed the satellite diagnostics counters from being inadvertently being reset
+- Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
+- Fixed errors in adjoint-only code preventing successful adjoint build
+- Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
+- Updated GEOS-only code for compatibility with GEOS-Chem 14.5
 - Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
 - Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
 - Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
 - Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
 - Changed dimension of EmisOCS_Total from 2D to 3D since all emissions for all sectors are 2D
 
-## [Unreleased] - TBD
+### Removed
+- Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+
+## [14.5.0] - 2024-11-07
 ### Added
 - Added vectors `State_Chm%KPP_AbsTol` and `State_Chm%KPP_RelTol`
 - Added setting `KPP_AbsTol` to 1e5 for dummy species in `species_database.yml` and `species_database_hg.yml`
@@ -47,6 +79,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved aerosol optical properties files to a new data directory specified in geoschem_config.yml rather than specifying in photolysis input files
 - Moved calls to `RD_AOD` and `CALC_AOD` from `Init_Aerosol` rather than `Init_Photolysis`
 - Updated ResME CH4 reservoir emissions to apply seasonality via mask file
+- Changed fullchem restart file folder from `GC_14.3.0` to `GC_14.5.0`
+- Excluded HEMCO interface and ExtState fields from `MODEL_CESM` in `hco_interface_gc_mod.F90` for compatibility with CESM, which runs HEMCO separately
 
 ### Fixed
 - Simplified SOA representations and fixed related AOD and TotalOA/OC calculations in benchmark
@@ -57,6 +91,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed EDGAR8_CH4_AWB emissions from CH4 and carbon simulations to avoid double counting with GFED
 - Fixed formatting error in `.github/workflows/stale.yml` that caused the Mark Stale Issues action not to run
 - Fixed emissions in GCHP carbon ExtData.rc so that data in molecules/cm2/s are converted to kg/m2/s
+
+### Removed
+- Removed dry-run checks for files that are no longer needed for Cloud-J v8 from `cldj_interface_mod.F90`
 
 ## [14.4.3] - 2024-08-13
 ### Added

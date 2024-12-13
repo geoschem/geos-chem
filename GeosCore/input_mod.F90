@@ -3202,7 +3202,9 @@ CONTAINS
 ! !IROUTINE: config_convection_mixing
 !
 ! !DESCRIPTION: Copies convection & PBL mixing information from the Config
-!  object to Input_Opt, and does necessary checks.
+!  object to Input_Opt, and does necessary checks. Also sets whether
+!  to reconstruct convective precipitation flux based on meteorology
+!  source and simulation start date.
 !\\
 !\\
 ! !INTERFACE:
@@ -3286,12 +3288,39 @@ CONTAINS
     ENDIF
     Input_Opt%LNLPBL = v_bool
 
+    !------------------------------------------------------------------------
+    ! Other settings based on inputs
+    !------------------------------------------------------------------------
+
     ! Set the PBL drydep flag. This determines if dry deposition is
     ! applied (and drydep frequencies are calculated) over the entire
     ! PBL or the first model layer only. For now, set this value
     ! automatically based upon the selected PBL scheme: 1st model layer
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
+
+    ! Set whether to reconstruct convective precipitation flux based on
+    ! meteorology source and simulation start date. This is important for
+    ! avoiding a bug where convective precipitation met-fields are all zero
+    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    !
+    ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
+    ! is the same as simulation year and (2) the simulation does not
+    ! run across June 1, 2020. Use the following rules to ensure your
+    ! simulation is correct:
+    !   (1) Manually update code below if GEOS-FP data year is
+    !       different than simulation year:
+    !          - Set to .FALSE. if data is prior to June 1, 2020
+    !          - Set to .TRUE. if data is on or after June 1, 2020
+    !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
+    !       up the run in time to avoid this.
+    IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSE
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+    ENDIF
 
     ! Return success
     RC = GC_SUCCESS
@@ -3303,6 +3332,16 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
+       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
+            Input_Opt%Reconstruct_Conv_Precip_Flux
+
+       IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
+          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
+          ELSE
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
+          ENDIF
+       ENDIF
 
        WRITE( 6, 90  ) 'PBL MIXING SETTINGS'
        WRITE( 6, 95  ) '-------------------'

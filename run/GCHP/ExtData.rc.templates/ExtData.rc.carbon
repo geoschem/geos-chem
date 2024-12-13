@@ -200,8 +200,8 @@ EDGAR8_CH4_PRO_OIL             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_REF_TRF             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_REF_TRF_flx.nc         
 EDGAR8_CH4_PRO_GAS             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_PRO_GAS_flx.nc         
 EDGAR8_CH4_PRO_COAL            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_PRO_COAL_flx.nc        
-EDGAR8_CH4_ENF                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_ENF_flx.nc             
-EDGAR8_CH4_MNM                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_MNM_flx.nc             
+##EDGAR8_CH4_ENF                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_ENF_flx.nc             
+##EDGAR8_CH4_MNM                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_MNM_flx.nc             
 EDGAR8_CH4_SWD_LDF             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_SWD_LDF_flx.nc         
 EDGAR8_CH4_WWT                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_WWT_flx.nc             
 EDGAR8_CH4_AGS                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AGS_flx.nc             
@@ -216,6 +216,11 @@ EDGAR8_CH4_TNR_Ship            kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_RCO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_RCO_flx.nc             
 EDGAR8_CH4_CHE                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_CHE_flx.nc             
 EDGAR8_CH4_IRO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_IRO_flx.nc             
+
+# --- EDGAR v7 livestock ---
+EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
+
 ## Comment out to avoid double counting with GFED
 ##EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
 EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_SWD_INC_flx.nc         
@@ -394,6 +399,10 @@ GHGI_OTH_BUR_SF  1 N Y F%y4-%m2-01T00:00:00 none none monthly_scale_factor_3F_Fi
 # --- Scarpelli_Mexico manure and rice scale factors ---
 MANURE_SF  1 N    Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc
 RICE_SF    1 2012 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc
+
+# --- Seasonal scale factors for EDGARv7 ---
+EDGAR_SEASONAL_SF_ENF 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc
+EDGAR_SEASONAL_SF_MNM 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc
 
 #==============================================================================
 # %%%%% Scale factors for CO emissions %%%%%
