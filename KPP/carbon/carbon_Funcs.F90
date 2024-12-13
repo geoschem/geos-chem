@@ -193,10 +193,9 @@ CONTAINS
        C(ind_FixedCl) = ConcClMnd
 
        ! CH4 + offline OH reaction rate [1/s]
-       ! This is a pseudo-2nd order rate appropriate for CH4 + OH
+       ! Use rates saved from full-chemistry run (if CH4 is not advected)
        IF ( PCO_fr_CH4_use ) THEN
           k_Trop(1) = PCO_fr_CH4 * OHdiurnalFac
-          k_Trop(1) = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
        ELSE
           k_Trop(1) = 2.45E-12_dp * EXP( -1775.0E+0_dp /TEMP )  ! JPL 1997
        ENDIF

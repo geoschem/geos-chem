@@ -2020,7 +2020,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2033,7 +2033,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2050,8 +2050,8 @@ CONTAINS
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
-       WRITE(6,100) 'Use full chem. P(CO) from CH4?   :', Input_Opt%LPCO_CH4
-       WRITE(6,100) 'Use full chem. P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
+       WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
+       WRITE(6,100) 'Use archived P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
     ENDIF
 
     ! FORMAT statements

@@ -86,8 +86,8 @@ CH4_simulation_options:
 #============================================================================
 
 CO_simulation_options:
-  use_fullchem_PCO_from_CH4: true
-  use_fullchem_PCO_from_NMVOC: true
+  use_archived_PCO_from_CH4: false
+  use_archived_PCO_from_NMVOC: false
 
 #============================================================================
 # Options for CO2

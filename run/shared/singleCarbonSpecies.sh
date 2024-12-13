@@ -31,7 +31,7 @@ function isItemInList() {
     #
     # Arguments:
     # ${1}: The item
-    # ${2}: Thie list
+    # ${2}: The list
     #
     # Returns (via $?)
     # 0 if item is in the list
@@ -121,6 +121,16 @@ function updateGeosChemConfig() {
               "tag_land_fossil_fuel_CO2"      )
         for key in ${keys[@]}; do
             keyValueUpdate "${key}" "true" "false" "${file}"
+        done
+    fi
+
+    # If CO is in the include list, turn on CO options
+    isItemInList "CO" "${1}"
+    if [[ $? == 1 ]]; then
+        keys=("use_archived_PCO_from_CH4"      \
+	      "use_archived_PCO_from_NMVOC"   )
+        for key in ${keys[@]}; do
+            keyValueUpdate "${key}" "false" "true" "${file}"
         done
     fi
 }
