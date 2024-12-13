@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
+- Modified tagCO simulation to use GFED4 biomass burning emissions and GEOS-Chem v5 OH fields for consistency with carbon simulation
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -43,6 +44,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code for compatibility with GEOS-Chem 14.5
+- Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
+- Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
+- Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
+- Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
+- Changed dimension of EmisOCS_Total from 2D to 3D since all emissions for all sectors are 2D
+- Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
