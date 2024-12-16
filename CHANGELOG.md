@@ -46,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+- Removed error messages in HEMCO interface pointing users to HEMCO log
 
 ## [14.5.0] - 2024-11-07
 ### Added
