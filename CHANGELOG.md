@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
 - Changed doing Linoz and Linearized chemistry messages to print only if verbose
 - Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
+- Updated configuration files for using GEOS-Chem 14.5 in CESM
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -45,6 +46,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code for compatibility with GEOS-Chem 14.5
+- Fixed handling of missing KPP standalone interface file when using MPI
+- Fixed missing Is_Advected for TMB in species_database.yml
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
