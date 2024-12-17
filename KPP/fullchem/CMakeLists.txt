@@ -13,7 +13,7 @@ string(TOLOWER "${KPP_INT_NAME}" KPP_INT_NAME)
 
 if(KPP_INT_NAME STREQUAL "rosenbrock_autoreduce")
   set(KPP_INT_AUTOREDUCE ON CACHE BOOL "Integrator is rosenbrock_autoreduce?")
-elseif(KPP_INTEGRATOR_NAME STREQUAL "lsode")
+elseif(KPP_INT_NAME STREQUAL "lsode")
   set(KPP_INT_LSODE ON CACHE BOOL "Integrator is LSODE?")
 endif()
 
