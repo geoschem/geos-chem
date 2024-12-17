@@ -2,7 +2,10 @@
 
 #----------------------------------------------------------------------------
 # Determine the KPP integrator name and set corresponding variables
+# This is for informational purposes only.
 #----------------------------------------------------------------------------
+
+# Get integrator name
 EXECUTE_PROCESS(
   COMMAND grep \#INTEGRATOR ${CMAKE_CURRENT_SOURCE_DIR}/carbon.kpp
   OUTPUT_VARIABLE RESULT
@@ -11,6 +14,7 @@ separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
 list(GET SUBSTRINGS 1 KPP_INT_NAME)
 string(TOLOWER "${KPP_INT_NAME}" KPP_INT_NAME)
 
+# Print result
 gc_pretty_print(SECTION "KPP integrator (read from carbon.kpp)")
 gc_pretty_print(VARIABLE KPP_INT_NAME)
 
