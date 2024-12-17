@@ -1,4 +1,3 @@
-
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !                    Harmonized Emissions Component (HEMCO)                   !
