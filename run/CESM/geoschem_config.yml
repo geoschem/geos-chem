@@ -100,8 +100,8 @@ operations:
   transport:
     transported_species:
       - ACET
-      - ACTA
       - ACR
+      - ACTA
       - AERI
       - ALD2
       - ALK4
@@ -110,8 +110,8 @@ operations:
       - ALK6
       - AONITA
       - APAN
-      - APINP
       - APINN
+      - APINP
       - AROMCHO
       - AROMP4
       - AROMP5
@@ -129,11 +129,11 @@ operations:
       - BCPO
       - BENZ
       - BENZP
-      - BPINO
       - BPINN
-      - BPINP
-      - BPINOOH
+      - BPINO
       - BPINON
+      - BPINOOH
+      - BPINP
       - Br
       - Br2
       - BrCl
@@ -146,13 +146,13 @@ operations:
       - BUTN
       - BZCO3H
       - BZPAN
-      - C96O2H
-      - C96N
       - C2H2
       - C2H4
       - C2H6
       - C3H8
       - C4H6
+      - C96N
+      - C96O2H
       - CCl4
       - CFC11
       - CFC113
@@ -197,13 +197,13 @@ operations:
       - FURA
       - GLYC
       - GLYX
-      - HACTA
       - H1211
       - H1301
       - H2402
       - H2O
       - H2O2
       - HAC
+      - HACTA
       - HBr
       - HC5A
       - HCFC123
@@ -329,8 +329,8 @@ operations:
       - PHEN
       - PIN
       - PINAL
-      - PINONIC
       - PINO3H
+      - PINONIC
       - PINPAN
       - PIP
       - PP
@@ -384,7 +384,7 @@ operations:
 aerosols:
 
   optics:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2024-08/
+    input_dir: /see/namelist/file
 
   carbon:
     activate: true
