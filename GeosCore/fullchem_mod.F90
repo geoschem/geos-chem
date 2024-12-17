@@ -1024,7 +1024,14 @@ CONTAINS
                                               ICNTRL,    RCNTRL             )
 #endif
 #ifdef KPP_INT_LSODE
-
+       !=====================================================================
+       ! Set options for the LSODE integrator in vectors ICNTRL and RCNTRL
+       ! This now needs to be done within the parallel loop
+       !=====================================================================
+       ICNTRL(2)  = 5000                       ! Max number of steps
+       ICNTRL(4)  = 2                          ! Order of integration
+       ICNTRL(15) = -1                         ! No rate updates in integrator
+       RCNTRL(3)  = State_Chm%KPPHvalue(I,J,L) ! Archived Hstart from restart
 #endif
 
        !=====================================================================
@@ -1040,10 +1047,8 @@ CONTAINS
        KPPH_before_integrate = State_Chm%KPPHvalue(I,J,L)
        local_RCONST          = RCONST
 
-       ! Call the Rosenbrock integrator
-       ! (with optional auto-reduce functionality)
-       CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
-                       RCNTRL, ISTATUS, RSTATE, IERR                        )
+       ! Call the KPP integrator
+       CALL Integrate( TIN, TOUT, ICNTRL, RCNTRL, ISTATUS, RSTATE, IERR )
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
