@@ -258,7 +258,7 @@ CONTAINS
 #endif
 
     STAMP = TIMESTAMP_STRING()
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%verbose ) THEN
        WRITE( 6, 10 ) STAMP
     ENDIF
 10  FORMAT( '     - DO_LINEAR_CHEM: Linearized chemistry at ', a )
