@@ -30,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
+- Changed doing Linoz and Linearized chemistry messages to print only if verbose
+- Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -46,6 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+- Removed error messages in HEMCO interface pointing users to HEMCO log
 
 ## [14.5.0] - 2024-11-07
 ### Added

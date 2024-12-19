@@ -340,7 +340,7 @@ CONTAINS
       ENDIF
       KppSa_State%SkipIt = ( .not. v_bool )
       IF ( KppSa_State%SkipIt ) THEN
-         WRITE( 6, 110 )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 110 )
  110     FORMAT( "KPP standalone interface was manually disabled" )
          RETURN
       ENDIF
