@@ -11,15 +11,18 @@ EMIS_NO_BB    NO      0     8  -1   2   kg/m2/s  nitric_oxide_biomass_emission_m
 EMIS_NO_SHIP  NO      0     10 -1   2   kg/m2/s  nitric_oxide_ship_emission_mass_flux                                              kg_m-2_s-1
 EMIS_NO_LGHT  NO      103  -1  -1   2   kg/m2/s  nitric_oxide_lightning_emission_mass_flux                                         kg_m-2_s-1
 EMIS_NO_SOIL  NO      104  -1  -1   2   kg/m2/s  nitric_oxide_soil_emission_mass_flux                                              kg_m-2_s-1
-EMIS_NO2      NO2    -1    -1  -1   2   kg/m2/s  nitrous_dioxide_total_emission_mass_flux                                          kg_m-2_s-1
-EMIS_NO2_IND  NO2     0     1  -1   2   kg/m2/s  nitrous_dioxide_industry_emission_mass_flux                                       kg_m-2_s-1
-EMIS_NO2_POW  NO2     0     2  -1   2   kg/m2/s  nitrous_dioxide_power_emission_mass_flux                                          kg_m-2_s-1
-EMIS_NO2_TRA  NO2     0     3  -1   2   kg/m2/s  nitrous_dioxide_transportation_emission_mass_flux                                 kg_m-2_s-1
-EMIS_NO2_RES  NO2     0     4  -1   2   kg/m2/s  nitrous_dioxide_residential_emission_mass_flux                                    kg_m-2_s-1
-EMIS_NO2_AGR  NO2     0     5  -1   2   kg/m2/s  nitrous_dioxide_agriculture_emission_mass_flux                                    kg_m-2_s-1
-EMIS_NO2_WST  NO2     0     9  -1   2   kg/m2/s  nitrous_dioxide_waste_emission_mass_flux                                          kg_m-2_s-1
-EMIS_NO2_BB   NO2     0     8  -1   2   kg/m2/s  nitrous_dioxide_biomass_emission_mass_flux                                        kg_m-2_s-1
-EMIS_NO2_SHIP NO2     0     10 -1   2   kg/m2/s  nitrous_dioxide_ship_emission_mass_flux                                           kg_m-2_s-1
+EMIS_NO_AIR   NO      0     20 -1   2   kg/m2/s  nitric_oxide_aircraft_emission_mass_flux                                          kg_m-2_s-1
+EMIS_NO2      NO2    -1    -1  -1   2   kg/m2/s  nitrogen_dioxide_total_emission_mass_flux                                         kg_m-2_s-1
+EMIS_NO2_IND  NO2     0     1  -1   2   kg/m2/s  nitrogen_dioxide_industry_emission_mass_flux                                      kg_m-2_s-1
+EMIS_NO2_POW  NO2     0     2  -1   2   kg/m2/s  nitrogen_dioxide_power_emission_mass_flux                                         kg_m-2_s-1
+EMIS_NO2_TRA  NO2     0     3  -1   2   kg/m2/s  nitrogen_dioxide_transportation_emission_mass_flux                                kg_m-2_s-1
+EMIS_NO2_RES  NO2     0     4  -1   2   kg/m2/s  nitrogen_dioxide_residential_emission_mass_flux                                   kg_m-2_s-1
+EMIS_NO2_AGR  NO2     0     5  -1   2   kg/m2/s  nitrogen_dioxide_agriculture_emission_mass_flux                                   kg_m-2_s-1
+EMIS_NO2_WST  NO2     0     9  -1   2   kg/m2/s  nitrogen_dioxide_waste_emission_mass_flux                                         kg_m-2_s-1
+EMIS_NO2_BB   NO2     0     8  -1   2   kg/m2/s  nitrogen_dioxide_biomass_emission_mass_flux                                       kg_m-2_s-1
+EMIS_NO2_SHIP NO2     0     10 -1   2   kg/m2/s  nitrogen_dioxide_ship_emission_mass_flux                                          kg_m-2_s-1
+EMIS_NO2_AIR  NO2     0     20 -1   2   kg/m2/s  nitrogen_dioxide_aircraft_emission_mass_flux                                      kg_m-2_s-1
+EMIS_HNO2     HNO2   -1    -1  -1   2   kg/m2/s  nitrous_acid_total_emission_mass_flux                                             kg_m-2_s-1
 EMIS_CO       CO     -1    -1  -1   2   kg/m2/s  carbon_monoxide_total_emission_mass_flux                                          kg_m-2_s-1
 EMIS_CO_IND   CO      0     1  -1   2   kg/m2/s  carbon_monoxide_industry_emission_mass_flux                                       kg_m-2_s-1
 EMIS_CO_POW   CO      0     2  -1   2   kg/m2/s  carbon_monoxide_power_emission_mass_flux                                          kg_m-2_s-1
@@ -41,6 +44,7 @@ EMIS_SO2_SHIP SO2     0     10 -1   2   kg/m2/s  sulfur_dioxide_ship_emission_ma
 EMIS_SO2_BB   SO2     0     8  -1   2   kg/m2/s  sulfur_dioxide_biomass_emission_mass_flux                                         kg_m-2_s-1
 EMIS_SO2_VER  SO2     117   61 -1   2   kg/m2/s  sulfur_dioxide_eruptive_volcano_emission_mass_flux                                kg_m-2_s-1
 EMIS_SO2_VDG  SO2     117   62 -1   2   kg/m2/s  sulfur_dioxide_degassing_volcano_emission_mass_flux                               kg_m-2_s-1
+EMIS_SO2_AIR  SO2     20   -1  -1   2   kg/m2/s  sulfur_dioxide_aircraft_emission_mass_flux                                        kg_m-2_s-1
 EMIS_SO4      SO4    -1    -1  -1   2   kg/m2/s  sulfate_total_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_SO4_IND  SO4     0     1  -1   2   kg/m2/s  sulfate_industry_emission_mass_flux                                               kg_m-2_s-1
 EMIS_SO4_POW  SO4     0     2  -1   2   kg/m2/s  sulfate_power_emission_mass_flux                                                  kg_m-2_s-1
@@ -52,6 +56,7 @@ EMIS_SO4_SHIP SO4     0     10 -1   2   kg/m2/s  sulfate_ship_emission_mass_flux
 EMIS_SO4_BB   SO4     0     8  -1   2   kg/m2/s  sulfate_biomass_emission_mass_flux                                                kg_m-2_s-1
 EMIS_SO4_VER  SO4     117   61 -1   2   kg/m2/s  sulfate_eruptive_volcano_emission_mass_flux                                       kg_m-2_s-1
 EMIS_SO4_VDG  SO4     117   62 -1   2   kg/m2/s  sulfate_degassing_volcano_emission_mass_flux                                      kg_m-2_s-1
+EMIS_SO4_AIR  SO4     0     20 -1   2   kg/m2/s  sulfate_aircraft_emission_mass_flux                                               kg_m-2_s-1
 EMIS_NH3      NH3    -1    -1  -1   2   kg/m2/s  ammonia_total_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_NH3_IND  NH3     0     1  -1   2   kg/m2/s  ammonia_industry_emission_mass_flux                                               kg_m-2_s-1
 EMIS_NH3_POW  NH3     0     2  -1   2   kg/m2/s  ammonia_power_emission_mass_flux                                                  kg_m-2_s-1
@@ -100,6 +105,7 @@ EMIS_ALK4_AGR ALK4    0     5  -1   2   kg/m2/s  lumped_alkanes_c4_and_higher_ag
 EMIS_ALK4_WST ALK4    0     9  -1   2   kg/m2/s  lumped_alkanes_c4_and_higher_waste_emission_mass_flux                             kg_m-2_s-1
 EMIS_ALK4_SHIP ALK4   0     10 -1   2   kg/m2/s  lumped_alkanes_c4_and_higher_ship_emission_mass_flux                              kg_m-2_s-1
 EMIS_ALK4_BB  ALK4    0     8  -1   2   kg/m2/s  lumped_alkanes_c4_and_higher_biomass_burning_emission_mass_flux                   kg_m-2_s-1
+EMIS_ALK4_AIR ALK4    0     20 -1   2   kg/m2/s  lumped_alkanes_c4_and_higher_aircraft_emission_mass_flux                          kg_m-2_s-1
 EMIS_ACET     ACET   -1    -1  -1   2   kg/m2/s  acetone_total_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_ACET_IND ACET    0     1  -1   2   kg/m2/s  acetone_industry_emission_mass_flux                                               kg_m-2_s-1
 EMIS_ACET_POW ACET    0     2  -1   2   kg/m2/s  acetone_power_emission_mass_flux                                                  kg_m-2_s-1
@@ -142,6 +148,7 @@ EMIS_PRPE_WST PRPE    0     9  -1   2   kg/m2/s  lumped_alkenes_c3_and_higher_wa
 EMIS_PRPE_SHIP PRPE   0     10 -1   2   kg/m2/s  lumped_alkenes_c3_and_higher_ship_emission_mass_flux                              kg_m-2_s-1
 EMIS_PRPE_BB  PRPE    0     8  -1   2   kg/m2/s  lumped_alkenes_c3_and_higher_biomass_burning_emission_mass_flux                   kg_m-2_s-1
 EMIS_PRPE_BG  PRPE    108  -1  -1   2   kg/m2/s  lumped_alkenes_c3_and_higher_biogenic_emission_mass_flux                          kg_m-2_s-1
+EMIS_PRPE_AIR PRPE    0     20 -1   2   kg/m2/s  lumped_alkenes_c3_and_hgiher_aircraft_emission_mass_flux                          kg_m-2_s-1
 EMIS_C2H4     C2H4   -1    -1  -1   2   kg/m2/s  ethylene_total_emission_mass_flux                                                 kg_m-2_s-1
 EMIS_C2H4_IND C2H4    0     1  -1   2   kg/m2/s  ethylene_industry_emission_mass_flux                                              kg_m-2_s-1
 EMIS_C2H4_POW C2H4    0     2  -1   2   kg/m2/s  ethylene_power_emission_mass_flux                                                 kg_m-2_s-1
@@ -160,6 +167,7 @@ EMIS_C2H6_AGR C2H6    0     5  -1   2   kg/m2/s  ethane_agriculture_emission_mas
 EMIS_C2H6_WST C2H6    0     9  -1   2   kg/m2/s  ethane_waste_emission_mass_flux                                                   kg_m-2_s-1
 EMIS_C2H6_SHIP C2H6   0     10 -1   2   kg/m2/s  ethane_ship_emission_mass_flux                                                    kg_m-2_s-1
 EMIS_C2H6_BB  C2H6    0     8  -1   2   kg/m2/s  ethane_biomass_burning_emission_mass_flux                                         kg_m-2_s-1
+EMIS_C2H6_AIR C2H6    0     20 -1   2   kg/m2/s  ethane_aircraft_emission_mass_flux                                                kg_m-2_s-1
 EMIS_C3H8     C3H8   -1    -1  -1   2   kg/m2/s  propane_total_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_C3H8_IND C3H8    0     1  -1   2   kg/m2/s  propane_industry_emission_mass_flux                                               kg_m-2_s-1
 EMIS_C3H8_POW C3H8    0     2  -1   2   kg/m2/s  propane_power_emission_mass_flux                                                  kg_m-2_s-1
@@ -169,6 +177,7 @@ EMIS_C3H8_AGR C3H8    0     5  -1   2   kg/m2/s  propane_agriculture_emission_ma
 EMIS_C3H8_WST C3H8    0     9  -1   2   kg/m2/s  propane_waste_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_C3H8_SHIP C3H8   0     10 -1   2   kg/m2/s  propane_ship_emission_mass_flux                                                   kg_m-2_s-1
 EMIS_C3H8_BB  C3H8    0     8  -1   2   kg/m2/s  propane_biomass_burning_emission_mass_flux                                        kg_m-2_s-1
+EMIS_C3H8_AIR C3H8    0     20 -1   2   kg/m2/s  propane_aircraft_emission_mass_flux                                               kg_m-2_s-1
 EMIS_CH2O     CH2O   -1    -1  -1   2   kg/m2/s  formaldehyde_total_emission_mass_flux                                             kg_m-2_s-1
 EMIS_CH2O_IND CH2O    0     1  -1   2   kg/m2/s  formaldehyde_industry_emission_mass_flux                                          kg_m-2_s-1
 EMIS_CH2O_POW CH2O    0     2  -1   2   kg/m2/s  formaldehyde_power_emission_mass_flux                                             kg_m-2_s-1
@@ -178,6 +187,7 @@ EMIS_CH2O_AGR CH2O    0     5  -1   2   kg/m2/s  formaldehyde_agriculture_emissi
 EMIS_CH2O_WST CH2O    0     9  -1   2   kg/m2/s  formaldehyde_waste_emission_mass_flux                                             kg_m-2_s-1
 EMIS_CH2O_SHIP CH2O   0     10 -1   2   kg/m2/s  formaldehyde_ship_emission_mass_flux                                              kg_m-2_s-1
 EMIS_CH2O_BB  CH2O    0     8  -1   2   kg/m2/s  formaldehyde_biomass_burning_emission_mass_flux                                   kg_m-2_s-1
+EMIS_CH2O_AIR CH2O    0     20  -1   2   kg/m2/s  formaldehyde_aircraft_emission_mass_flux                                          kg_m-2_s-1
 EMIS_BENZ     BENZ   -1    -1  -1   2   kg/m2/s  benzene_total_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_BENZ_IND BENZ    0     1  -1   2   kg/m2/s  benzene_industry_emission_mass_flux                                               kg_m-2_s-1
 EMIS_BENZ_POW BENZ    0     2  -1   2   kg/m2/s  benzene_power_emission_mass_flux                                                  kg_m-2_s-1
@@ -215,6 +225,10 @@ EMIS_HCOOH_WST HCOOH  0     9  -1   2   kg/m2/s  formic_acid_waste_emission_mass
 EMIS_HCOOH_SHIP HCOOH 0     10 -1   2   kg/m2/s  formic_acid_ship_emission_mass_flux                                               kg_m-2_s-1
 EMIS_HCOOH_BB  HCOOH  0     8  -1   2   kg/m2/s  formic_acid_biomass_burning_emission_mass_flux                                    kg_m-2_s-1
 EMIS_ISOP     ISOP   -1    -1  -1   2   kg/m2/s  isoprene_total_emission_mass_flux                                                 kg_m-2_s-1
+EMIS_LIMO     LIMO   -1    -1  -1   2   kg/m2/s  LIMO_total_emission_mass_flux                                                     kg_m-2_s-1
+EMIS_SESQ     SESQ   -1    -1  -1   2   kg/m2/s  SESQ_total_emission_mass_flux                                                     kg_m-2_s-1
+EMIS_MTPO     MTPO   -1    -1  -1   2   kg/m2/s  MTPO_total_emission_mass_flux                                                     kg_m-2_s-1
+EMIS_MTPA     MTPA   -1    -1  -1   2   kg/m2/s  MTPA_total_emission_mass_flux                                                     kg_m-2_s-1
 EMIS_LIMO_BG  LIMO    108  -1  -1   2   kg/m2/s  LIMO_biogenic_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_SESQ_BG  SESQ    108  -1  -1   2   kg/m2/s  SESQ_biogenic_emission_mass_flux                                                  kg_m-2_s-1
 EMIS_MTPA_BG  MTPA    108  -1  -1   2   kg/m2/s  MTPA_biogenic_emission_mass_flux                                                  kg_m-2_s-1
@@ -244,6 +258,7 @@ EMIS_BCPI_AGR BCPI    0     5  -1   2   kg/m2/s  hydrophilic_black_carbon_agricu
 EMIS_BCPI_WST BCPI    0     9  -1   2   kg/m2/s  hydrophilic_black_carbon_waste_emission_mass_flux                                 kg_m-2_s-1
 EMIS_BCPI_BB  BCPI    0     8  -1   2   kg/m2/s  hydrophilic_black_carbon_biomass_emission_mass_flux                               kg_m-2_s-1
 EMIS_BCPI_SHIP BCPI   0     10 -1   2   kg/m2/s  hydrophilic_black_carbon_ship_emission_mass_flux                                  kg_m-2_s-1
+EMIS_BCPI_AIR BCPI    0     20 -1   2   kg/m2/s  hydrophilic_black_carbon_aircraft_emission_mass_flux                              kg_m-2_s-1
 EMIS_BCPO     BCPO   -1    -1  -1   2   kg/m2/s  hydrophobic_black_carbon_total_emission_mass_flux                                 kg_m-2_s-1
 EMIS_BCPO_IND BCPO    0     1  -1   2   kg/m2/s  hydrophobic_black_carbon_industry_emission_mass_flux                              kg_m-2_s-1
 EMIS_BCPO_POW BCPO    0     2  -1   2   kg/m2/s  hydrophobic_black_carbon_power_emission_mass_flux                                 kg_m-2_s-1
@@ -253,6 +268,7 @@ EMIS_BCPO_AGR BCPO    0     5  -1   2   kg/m2/s  hydrophobic_black_carbon_agricu
 EMIS_BCPO_WST BCPO    0     9  -1   2   kg/m2/s  hydrophobic_black_carbon_waste_emission_mass_flux                                 kg_m-2_s-1
 EMIS_BCPO_BB  BCPO    0     8  -1   2   kg/m2/s  hydrophobic_black_carbon_biomass_emission_mass_flux                               kg_m-2_s-1
 EMIS_BCPO_SHIP BCPO   0     10 -1   2   kg/m2/s  hydrophobic_black_carbon_ship_emission_mass_flux                                  kg_m-2_s-1
+EMIS_BCPO_AIR BCPO    0     20 -1   2   kg/m2/s  hydrophobic_black_carbon_aircraft_emission_mass_flux                              kg_m-2_s-1
 EMIS_OCPI     OCPI   -1    -1  -1   2   kg/m2/s  hydrophilic_organic_carbon_total_emission_mass_flux                               kg_m-2_s-1
 EMIS_OCPI_IND OCPI    0     1  -1   2   kg/m2/s  hydrophilic_organic_carbon_industry_emission_mass_flux                            kg_m-2_s-1
 EMIS_OCPI_POW OCPI    0     2  -1   2   kg/m2/s  hydrophilic_organic_carbon_power_emission_mass_flux                               kg_m-2_s-1
@@ -262,6 +278,7 @@ EMIS_OCPI_AGR OCPI    0     5  -1   2   kg/m2/s  hydrophilic_organic_carbon_agri
 EMIS_OCPI_WST OCPI    0     9  -1   2   kg/m2/s  hydrophilic_organic_carbon_waste_emission_mass_flux                               kg_m-2_s-1
 EMIS_OCPI_BB  OCPI    0     8  -1   2   kg/m2/s  hydrophilic_organic_carbon_biomass_emission_mass_flux                             kg_m-2_s-1
 EMIS_OCPI_SHIP OCPI   0     10 -1   2   kg/m2/s  hydrophilic_organic_carbon_ship_emission_mass_flux                                kg_m-2_s-1
+EMIS_OCPI_AIR OCPI    0     20 -1   2   kg/m2/s  hydrophilic_organic_carbon_aircraft_emission_mass_flux                            kg_m-2_s-1
 EMIS_OCPO     OCPO   -1    -1  -1   2   kg/m2/s  hydrophobic_organic_carbon_total_emission_mass_flux                               kg_m-2_s-1
 EMIS_OCPO_IND OCPO    0     1  -1   2   kg/m2/s  hydrophobic_organic_carbon_industry_emission_mass_flux                            kg_m-2_s-1
 EMIS_OCPO_POW OCPO    0     2  -1   2   kg/m2/s  hydrophobic_organic_carbon_power_emission_mass_flux                               kg_m-2_s-1
@@ -270,7 +287,8 @@ EMIS_OCPO_RES OCPO    0     4  -1   2   kg/m2/s  hydrophobic_organic_carbon_resi
 EMIS_OCPO_AGR OCPO    0     5  -1   2   kg/m2/s  hydrophobic_organic_carbon_agriculture_emission_mass_flux                         kg_m-2_s-1
 EMIS_OCPO_WST OCPO    0     9  -1   2   kg/m2/s  hydrophobic_organic_carbon_waste_emission_mass_flux                               kg_m-2_s-1
 EMIS_OCPO_BB  OCPO    0     8  -1   2   kg/m2/s  hydrophobic_organic_carbon_biomass_emission_mass_flux                             kg_m-2_s-1
-EMIS_OCPI_SHIP OCPI   0     10 -1   2   kg/m2/s  hydrophilic_organic_carbon_ship_emission_mass_flux                                kg_m-2_s-1
+EMIS_OCPO_SHIP OCPO   0     10 -1   2   kg/m2/s  hydrophobic_organic_carbon_ship_emission_mass_flux                                kg_m-2_s-1
+EMIS_OCPO_AIR OCPO    0     20 -1   2   kg/m2/s  hydrophobic_organic_carbon_aircraft_emission_mass_flux                            kg_m-2_s-1
 EMIS_CHBr3    CHBr3  -1    -1  -1   2   kg/m2/s  bromoform_total_emission_mass_flux                                                kg_m-2_s-1
 EMIS_CH2Br2   CH2Br2 -1    -1  -1   2   kg/m2/s  dibromomethane_total_emission_mass_flux                                           kg_m-2_s-1
 EMIS_CH4      CH4    -1    -1  -1   2   kg/m2/s  methane_total_emission_mass_flux                                                  kg_m-2_s-1
@@ -283,6 +301,8 @@ EMIS_SOAP_AGR SOAP    0     5  -1   2   kg/m2/s  SOA_precursor_agriculture_emiss
 EMIS_SOAP_WST SOAP    0     9  -1   2   kg/m2/s  SOA_presursor_waste_emission_mass_flux                                            kg_m-2_s-1
 EMIS_SOAP_BB  SOAP    0     8  -1   2   kg/m2/s  SOA_precursor_biomass_emission_mass_flux                                          kg_m-2_s-1
 EMIS_SOAP_BG  SOAP    108  -1  -1   2   kg/m2/s  SOA_precursor_biogenic_emission_mass_flux                                         kg_m-2_s-1
+EMIS_SOAP_AIR SOAP    0     20 -1   2   kg/m2/s  SOA_precursor_aircraft_emission_mass_flux                                         kg_m-2_s-1
+EMIS_SOAP_SHIP SOAP   0     10 -1   2   kg/m2/s  SOA_precursor_ship_emission_mass_flux                                             kg_m-2_s-1
 EMIS_SOAS     SOAS   -1    -1  -1   2   kg/m2/s  SOA_simple_total_emission_mass_flux                                               kg_m-2_s-1
 EMIS_SOAS_BB  SOAS    0     8  -1   2   kg/m2/s  SOA_simple_biomass_emission_mass_flux                                             kg_m-2_s-1
 EMIS_SOAS_BG  SOAS    108  -1  -1   2   kg/m2/s  SOA_simple_biogenic_emission_mass_flux                                            kg_m-2_s-1

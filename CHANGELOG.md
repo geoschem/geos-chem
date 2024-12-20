@@ -45,7 +45,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
-- Updated GEOS-only code for compatibility with GEOS-Chem 14.5
+- Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
 - Fixed missing Is_Advected for TMB in species_database.yml
 
 ### Removed
