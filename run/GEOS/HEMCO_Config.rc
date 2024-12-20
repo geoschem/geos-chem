@@ -103,6 +103,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Use CNV_FRC       :       false
     --> OTD-LIS factors   :       false
 104     SoilNOx           : on    NO 
+    --> UseSoilTemperature:       false
     --> Use fertilizer NOx:       true
 105     DustDead          : on    DST1/DST2/DST3/DST4
     --> Mass tuning factor:       2.454e-4 
