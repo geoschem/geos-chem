@@ -32,6 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
 - Wrapped code specific to the `rosenbrock_autoreduce` KPP integrator in `#if` blocks
+- Changed `CALL Integrate(TIN, TOUT, ...` to `CALL INTEGRATE(0.0_dp, DT, ...` in `GeosCore/fullchem_mod.F90` to prevent the `TIN` variable fron being inadvertently overwritten by some integrators
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -48,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+- Removed `T`, `TIN`, `TOUT` from `GeosCore/fullchem_mod.F90`
 
 ## [14.5.0] - 2024-11-07
 ### Added
