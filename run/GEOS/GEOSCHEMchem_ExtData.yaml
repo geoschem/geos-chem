@@ -261,13 +261,12 @@ Collections:
   GEOSCHEMchem_AEIC19_MONMEAN:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AEIC2019/v2022-03/2019_monmean/72LGEOS/AEIC_monmean_2019_t12.0.5x0.625.72LGEOS.nc
   Jason_10.18.0_carbon_c90:
-#    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90/holding/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
     template: /css/gmao/geos_carb/share/ExtData/CFv2/methane_tags/Jason_10.18.0_carbon_c90.methane_tags.%y4%m2%d2_%h200z.nc
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2020-12-31T21:00"
   Jason_10.18.0_carbon_c90_2023:
-    template: /discover/nobackup/projects/gmao/geos_carb/sbasu1/runs/GCM/Jason_10.18.0_carbon_c90_2023/holding/methane_tags/Jason_10.18.0_carbon_c90_2023.methane_tags.%y4%m2%d2_%h200z.nc
+    template: /css/gmao/geos_carb/share/ExtData/CFv2/CH4/Jason_10.18.0_carbon_c90_2023/%y4%m2/Jason_10.18.0_carbon_c90_2023.methane_tags.%y4%m2%d2_%h200z.nc
     ref_time: "2001-01-01T00:00"
     freq: "PT3H"
     valid_range: "2001-01-01T00:00/2021-12-31T21:00"
