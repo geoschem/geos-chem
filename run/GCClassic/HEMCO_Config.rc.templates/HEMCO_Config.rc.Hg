@@ -57,6 +57,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- NESTED GRID FIELDS ----------------------------------------------------
     --> GC_BCs                 :       ${RUNDIR_USE_BCs}
 # ----- REGIONAL INVENTORIES --------------------------------------------------
+    --> MACFARLANE             :       true     # 2000-2019
     --> ZHAOZHANG              :       false    # 2010
     --> CHAKRABORTY            :       false    # 2010
     --> EMISS_CONTROLS         :       false    # 2010
@@ -183,6 +184,58 @@ VerboseOnCores:              root       # Accepted values: root all
 0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
 0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
 )))AMAP_INTW
+
+#==============================================================================
+# --- MacFarlane et al. 2022 Australian emissions                ---
+#==============================================================================
+
+(((MACFARLANE
+0 AUS_BLKCOAL_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_BLKCOAL_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BLKCOAL_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BRNCOAL_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_BRNCOAL_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BRNCOAL_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CEMENT_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CEMENT_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CEMENT_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CHLOR_HG0      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CHLOR_HG2      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CHLOR_HGP      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_COPPER_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_COPPER_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_COPPER_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CREM_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CREM_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CREM_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_FERROUS_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_FERROUS_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_FERROUS_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_GOLD_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_GOLD_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_GOLD_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_LEAD_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_LEAD_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_LEAD_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OILREF_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_OILREF_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OILREF_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OTHIND_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_OTHIND_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OTHIND_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_NONFERROUS_HG0 $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_NONFERROUS_HG2 $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_NONFERROUS_HGP $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_REFPETR_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_REFPETR_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_REFPETR_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_WASTE_HG0      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_WASTE_HG2      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_WASTE_HGP      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_ZINC_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_ZINC_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_ZINC_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+)))MACFARLANE
 
 #==============================================================================
 # --- Yanxu Zhang et al. 2015 and Zhao et al. 2015 China emissions totals ---
@@ -786,18 +839,19 @@ ${RUNDIR_Hg_GLOBAL_RH}
 # ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
 
 # --- Scale factors for anthropogenic, artisinal, and soil emissions ---
-1  ARTISANALSCALE 0.75  - - - xy 1 1
-2  SOILSCALE      0.5   - - - xy 1 1
-3  ZHANGZHAO_0    1.120 - - - xy 1 1
-4  ZHANGZHAO_2    2.467 - - - xy 1 1
-5  ZHANGZHAO_P    0.557 - - - xy 1 1
-6  CHAKRABORTY_0  1.401 - - - xy 1 1
-7  CHAKRABORTY_2  2.120 - - - xy 1 1
-8  CHAKRABORTY_P  2.856 - - - xy 1 1
-9  EMISSCONT_2    0.5   - - - xy 1 1
-10 NPRI_CONT_0    1.343 - - - xy 1 1
-11 EU_CONT_0      1.396 - - - xy 1 1
-12 CHN_CONT_0     1.400 - - - xy 1 1
+1  ARTISANALSCALE 0.75    - - - xy 1 1
+2  SOILSCALE      0.5     - - - xy 1 1
+3  ZHANGZHAO_0    1.120   - - - xy 1 1
+4  ZHANGZHAO_2    2.467   - - - xy 1 1
+5  ZHANGZHAO_P    0.557   - - - xy 1 1
+6  CHAKRABORTY_0  1.401   - - - xy 1 1
+7  CHAKRABORTY_2  2.120   - - - xy 1 1
+8  CHAKRABORTY_P  2.856   - - - xy 1 1
+9  EMISSCONT_2    0.5     - - - xy 1 1
+10 NPRI_CONT_0    1.343   - - - xy 1 1
+11 EU_CONT_0      1.396   - - - xy 1 1
+12 CHN_CONT_0     1.400   - - - xy 1 1
+13 HgCl2_to_Hg    0.7403  - - - xy 1 1
 54 COtoHg0_BB     7.16e-7 - - - xy 1 1
 
 #==============================================================================
@@ -827,11 +881,12 @@ ${RUNDIR_Hg_GLOBAL_RH}
 #==============================================================================
 # Country/region masks
 #==============================================================================
-1005 USA_MASK    $ROOT/MASKS/v2014-07/USA_mask.geos.1x1.nc      MASK 1985/1/1/0 C xy 1 1 -140/10/-40/70
-1006 CHINA_MASK  $ROOT/MASKS/v2014-07/China_mask.generic.1x1.nc MASK 1985/1/1/0 C xy 1 1 70/15/125/50
-1007 INDIA_MASK  $ROOT/MASKS/v2014-07/India_mask.generic.1x1.nc MASK 1985/1/1/0 C xy 1 1 65/5/100/35
-1008 CANADA_MASK $ROOT/MASKS/v2014-07/Canada_mask.gen.1x1.nc    MASK 2000/1/1/0 C xy 1 1 -130/45/-50/85
-1009 EUROPE_MASK $ROOT/MASKS/v2014-07/EU_mask.generic.1x1.nc    MASK 1985/1/1/0 C xy 1 1 20/35/50/80
+1005 USA_MASK       $ROOT/MASKS/v2014-07/USA_mask.geos.1x1.nc         MASK 1985/1/1/0 C xy 1 1 -140/10/-40/70
+1006 CHINA_MASK     $ROOT/MASKS/v2014-07/China_mask.generic.1x1.nc    MASK 1985/1/1/0 C xy 1 1 70/15/125/50
+1007 INDIA_MASK     $ROOT/MASKS/v2014-07/India_mask.generic.1x1.nc    MASK 1985/1/1/0 C xy 1 1 65/5/100/35
+1008 CANADA_MASK    $ROOT/MASKS/v2014-07/Canada_mask.gen.1x1.nc       MASK 2000/1/1/0 C xy 1 1 -130/45/-50/85
+1009 EUROPE_MASK    $ROOT/MASKS/v2014-07/EU_mask.generic.1x1.nc       MASK 1985/1/1/0 C xy 1 1 20/35/50/80
+1010 AUSTRALIA_MASK $ROOT/MASKS/v2016-04/AU_mask.generic.0.25x0.25.nc MASK 1985/1/1/0 C xy 1 1 110/-45/155/-10
 
 ### END SECTION MASKS ###
 
