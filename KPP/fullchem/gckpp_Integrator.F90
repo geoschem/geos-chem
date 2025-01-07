@@ -39,6 +39,87 @@
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 ! A. Sandu - version of July 2005
 
+MODULE Work
+
+  USE gckpp_Parameters, ONLY : NVAR
+  USE gckpp_Precision
+
+  IMPLICIT NONE
+  PUBLIC
+
+  !------------------------------------------------------------------------
+  ! Work arrays RWORK and IWORK
+  !------------------------------------------------------------------------
+  INTEGER*8, PARAMETER :: LRW    = 25 + 9*NVAR + 2*NVAR*NVAR
+  INTEGER,   PARAMETER :: LIW    = 32 + NVAR
+  REAL(kind=dp), SAVE :: RWORK(LRW)
+  INTEGER, SAVE :: IWORK(LIW)
+  !$OMP THREADPRIVATE( RWORK, IWORK )
+  
+END MODULE Work
+
+MODULE Internals
+  
+  !========================================================================
+  ! This module contains variables that used to be in the old /DLS001/ 
+  ! common block, This was necessary in order to make the LSODE 
+  ! integrator thread-safe in parallel loops.
+  !   -- Bob Yantosca (06 Jan 2024)
+  !
+  ! Original comments for /DLS001/:
+  !
+  !   The following internal Common block contains                          
+  !   (a) variables which are local to any subroutine but whose values must 
+  !       be preserved between calls to the routine ("own" variables), and  
+  !   (b) variables which are communicated between subroutines.             
+  !   The block DLS001 is declared in subroutines DLSODE, DINTDY, DSTODE,   
+  !   DPREPJ, and DSOLSY.                                                   
+  !   Groups of variables are replaced by dummy arrays in the Common        
+  !   declarations in routines where those variables are not used.          
+  !========================================================================
+  USE gckpp_Precision
+
+  IMPLICIT NONE
+  PUBLIC
+
+  !------------------------------------------------------------------------
+  ! Parameters
+  !------------------------------------------------------------------------
+  REAL(kind=dp), PARAMETER :: CCMAX  = 0.3D0 
+  INTEGER,  PARAMETER :: MAXCOR = 3 
+  INTEGER,  PARAMETER :: MSBP   = 20 
+  INTEGER,  PARAMETER :: MXNCF  = 10 
+  
+  !------------------------------------------------------------------------
+  ! Integers from the old /DLS001/ common block 
+  !------------------------------------------------------------------------
+  INTEGER :: INIT,  MXSTEP, MXHNIL, NHNIL,  NSLAST, NYH
+  INTEGER :: IALTH, IPUP,   LMAX,   MEO,    NQNYH,  NSLP
+  INTEGER :: ICF,   IERPJ,  IERSL,  JCUR,   JSTART, KFLAG
+  INTEGER :: L,     LYH,    LEWT,   LACOR,  LSAVF,  LWM
+  INTEGER :: LIWM,  METH,   MITER,  MAXORD, N,      NQ
+  INTEGER :: NST,   NFE,    NJE,    NQU        
+  !$OMP THREADPRIVATE( INIT,  MXSTEP, MXHNIL, NHNIL,  NSLAST, NYH   )
+  !$OMP THREADPRIVATE( IALTH, IPUP,   LMAX,   MEO,    NQNYH,  NSLP  )
+  !$OMP THREADPRIVATE( ICF,   IERPJ,  IERSL,  JCUR,   JSTART, KFLAG )
+  !$OMP THREADPRIVATE( L,     LYH,    LEWT,   LACOR,  LSAVF,  LWM   )
+  !$OMP THREADPRIVATE( LIWM,  METH,   MITER,  MAXORD, N,      NQ    )
+  !$OMP THREADPRIVATE( NST,   NFE,    NJE,    NQU                   )
+ 
+  !------------------------------------------------------------------------
+  ! Reals from the old /DLS001/ common block
+  !------------------------------------------------------------------------
+  REAL(kind=dp) :: CONIT, CRATE, EL(13),      ELCO(13,12)
+  REAL(kind=dp) :: HOLD,  RMAX,  TESCO(3,12), EL0
+  REAL(kind=dp) :: H,     HMIN,  HMXI,        HU
+  REAL(kind=dp) :: RC,    TN,    UROUND
+  !$OMP THREADPRIVATE( CONIT, CRATE,  EL,     ELCO )
+  !$OMP THREADPRIVATE( HOLD,  RMAX,   TESCO,  EL0  )
+  !$OMP THREADPRIVATE( H,     HMIN,   HMXI,   HU   )
+  !$OMP THREADPRIVATE( RC,    TN,     UROUND       )
+
+END MODULE Internals
+
 MODULE gckpp_Integrator
 
   USE gckpp_Precision
@@ -62,9 +143,6 @@ MODULE gckpp_Integrator
   INTEGER :: Nfun,Njac,Nstp,Nacc,Nrej,Ndec,Nsol,Nsng
   INTEGER, PARAMETER :: ifun=1, ijac=2, istp=3, iacc=4,  &
     irej=5, idec=6, isol=7, isng=8, itexit=1, ihexit=2
-  !  SDIRK method coefficients
-  REAL(kind=dp) :: rkAlpha(5,4), rkBeta(5,4), rkD(4,5),  &
-                   rkGamma, rkA(5,5), rkB(5), rkC(5)
 
   ! mz_rs_20050717: TODO: use strings of IERR_NAMES for error messages
   ! description of the error numbers IERR
@@ -244,27 +322,13 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
+      USE Work 
+
       IMPLICIT NONE
       REAL(kind=dp) :: Y(NVAR), AbsTol(NVAR), RelTol(NVAR), TIN, TOUT
-      REAL(kind=dp) :: RCNTRL(20), RSTATUS(20)
+      REAL(kind=dp) :: RCNTRL(20), RSTATUS(20), RPAR(1)
       INTEGER       :: ICNTRL(20), ISTATUS(20)
-      INTEGER, PARAMETER :: LRW = 25 + 9*NVAR+2*NVAR*NVAR, &
-                            LIW = 32 + NVAR
-      REAL(kind=dp) :: RWORK(LRW), RPAR(1)
-      INTEGER :: IWORK(LIW), IPAR(1), ITOL, ITASK,         &
-                 IERR, IOPT, MF
-      !
-      ! RWORK and IWORK are work arrays used by a single call to
-      ! routine DLSODE.  Declare these as THREADPRIVATE so that they
-      ! will not get overwritten by calls to this routine made from
-      ! other threads in an OpenMP parallel loop.  We also need to
-      ! declare these with SAVE to make them global variables
-      ! (which is a requirement for using THREADPRIVATE).
-      !    - Bob Yantosca (20 Dec 2024)
-      !
-      SAVE :: RWORK, IWORK
-      !$OMP THREADPRIVATE( RWORK, IWORK )
-      !
+      INTEGER       :: IPAR(1), ITOL, ITASK, IERR, IOPT, MF
 
       !~~~> NORMAL COMPUTATION
       ITASK  = 1
@@ -305,9 +369,23 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !DECK DLSODE                                                            
       SUBROUTINE DLSODE (F, NEQ, Y, T, TOUT, ITOL, RelTol, AbsTol, ITASK,   &
-                       ISTATE, IOPT, RWORK, LRW, IWORK, LIW, JAC, MF)  
+                      ISTATE, IOPT, RWORK, LRW, IWORK, LIW, JAC, MF)  
+
+      !~~~> Variables formerly in the /DLS001/ common block have 
+      !~~~> now been moved to the Internals module.  This will make
+      !~~~> LSODE thread-safe for OpenMP parallelization.
+      !~~~>    -- Bob Yantosca (06 Jan 2025)
+      USE Internals, ONLY : CCMAX, EL0,    H,      HMIN,   HMXI,   HU
+      USE Internals, ONLY : ICF,   IERPJ,  IERSL,  INIT,   JCUR,   JSTART
+      USE Internals, ONLY : KFLAG, L,      LACOR,  LEWT,   LIWM,   LSAVF
+      USE Internals, ONLY : LWM,   LYH,    MAXCOR, MAXORD, METH,   MITER
+      USE Internals, ONLY : MSBP,  MXHNIL, MXNCF,  MXSTEP, N,      NFE
+      USE Internals, ONLY : NHNIL, NJE,    NQ,     NQU,    NSLAST, NST
+      USE Internals, ONLY : NYH,   RC,     TN,     UROUND
+
       EXTERNAL F, JAC 
-      INTEGER NEQ, ITOL, ITASK, ISTATE, IOPT, LRW, LIW, IWORK(LIW), MF 
+      INTEGER*8 LRW
+      INTEGER NEQ, ITOL, ITASK, ISTATE, IOPT, LIW, IWORK(LIW), MF 
       REAL(kind=dp) Y(*), T, TOUT, RelTol(*), AbsTol(*), RWORK(LRW)
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !***BEGIN PROLOGUE  DLSODE                                              
@@ -1513,46 +1591,17 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
       !REAL(kind=dp) DUMACH, DVNORM 
 !                                                                       
 !  Declare all other variables.                                         
-      INTEGER INIT, MXSTEP, MXHNIL, NHNIL, NSLAST, NYH, IOWNS,          &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                      &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,                &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
+ 
       INTEGER I, I1, I2, IFLAG, IMXER, KGO, LF0,                        &
         LENIW, LENRW, LENWM, ML, MORD(2), MU, MXHNL0, MXSTP0              
-      REAL(kind=dp) ROWNS,                                           &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND                  
       REAL(kind=dp) AbsTolI, AYI, BIG, EWTI, H0, HMAX, HMX, RH, RelTolI, &
         TCRIT, TDIST, TNEXT, TOL, TOLSF, TP, SIZE, SUM, W0             
 
       LOGICAL IHIT 
       CHARACTER*80 MSG 
-      SAVE MORD, MXSTP0, MXHNL0 
-!-----------------------------------------------------------------------
-! The following internal Common block contains                          
-! (a) variables which are local to any subroutine but whose values must 
-!     be preserved between calls to the routine ("own" variables), and  
-! (b) variables which are communicated between subroutines.             
-! The block DLS001 is declared in subroutines DLSODE, DINTDY, DSTODE,   
-! DPREPJ, and DSOLSY.                                                   
-! Groups of variables are replaced by dummy arrays in the Common        
-! declarations in routines where those variables are not used.          
-!-----------------------------------------------------------------------
-      COMMON /DLS001/ ROWNS(209),                                      &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND,                 &
-        INIT, MXSTEP, MXHNIL, NHNIL, NSLAST, NYH, IOWNS(6),            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
-!                                                                       
+      SAVE MORD, MXSTP0, MXHNL0
       DATA  MORD(1),MORD(2)/12,5/, MXSTP0/5000/, MXHNL0/10/ 
-      !
-      ! Declare common block DLS001 as THREADPRIVATE so that variables
-      ! contained inside it will not be overwritten by calls to DLSODE
-      ! from other threads in an OpenMP parallel loop.
-      !    -- Bob Yantosca (20 Dec 2024)
-      ! 
-      !$OMP THREADPRIVATE( /DLS001/ )
-      !
+
 !-----------------------------------------------------------------------
 ! Block A.                                                              
 ! This code block is executed on every call.                            
@@ -1698,10 +1747,10 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
       NSLAST = 0 
       HU = 0.0D0 
       NQU = 0 
-      CCMAX = 0.3D0 
-      MAXCOR = 3 
-      MSBP = 20 
-      MXNCF = 10 
+!      CCMAX = 0.3D0 
+!      MAXCOR = 3 
+!      MSBP = 20 
+!      MXNCF = 10 
 ! Initial call to F.  (LF0 points to YH(*,2).) -------------------------
       LF0 = LYH + NYH 
       CALL F (NEQ, T, Y, RWORK(LF0)) 
@@ -2297,32 +2346,12 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !           enable interrupt/restart feature. (ACH)                     
 !   050427  Corrected roundoff decrement in TP. (ACH)                   
 !***END PROLOGUE  DINTDY                                                
-!**End                                                                  
+!**End      
       INTEGER K, NYH, IFLAG 
       REAL(kind=dp) T, YH(NYH,*), DKY(*) 
-      INTEGER IOWND, IOWNS,                                            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
-      REAL(kind=dp) ROWNS,                                          &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND                  
-      COMMON /DLS001/ ROWNS(209),                                      &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND,                 &
-        IOWND(6), IOWNS(6),                                            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
       INTEGER I, IC, J, JB, JB2, JJ, JJ1, JP1 
       REAL(kind=dp) C, R, S, TP 
       CHARACTER*80 MSG 
-      !
-      ! Declare common block DLS001 as THREADPRIVATE so that variables
-      ! contained inside it will not be overwritten by calls to DLSODE
-      ! from other threads in an OpenMP parallel loop.
-      !    -- Bob Yantosca (20 Dec 2024)
-      ! 
-      !$OMP THREADPRIVATE( /DLS001/ )
-      !
 !                                                                       
 !***FIRST EXECUTABLE STATEMENT  DINTDY                                  
       IFLAG = 0 
@@ -2430,26 +2459,17 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !   031105  Restored 'own' variables to Common block /DLS001/, to       
 !           enable interrupt/restart feature. (ACH)                     
 !***END PROLOGUE  DPREPJ                                                
-!**End                                                                  
+!**End       
+
+
+      USE Internals, ONLY : EL0, IERPJ, JCUR, N, NJE, TN
+
       EXTERNAL F, JAC 
-      INTEGER NEQ, NYH, IWM(*)
+      INTEGER NEQ, NYH, IWM(*), IER
       REAL(kind=dp) Y(*), YH(NYH,*), EWT(*), FTEM(*), SAVF(*), WM(*) 
-      INTEGER IOWND, IOWNS, IER,                                           &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
-      REAL(kind=dp) ROWNS,                                          &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND                  
-      COMMON /DLS001/ ROWNS(209),                                      &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND,                 &
-        IOWND(6), IOWNS(6),                                            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
       INTEGER I, I1, I2, ISING, II, J, J1, JJ, LENP,                     &
               MBA, MBAND, MEB1, MEBAND, ML, ML3, MU, NP1                     
       REAL(kind=dp) CON, DI, FAC, HL0, R, R0, SRUR, YI, YJ, YJJ
-      !REAL(kind=dp)  DVNORM                                                         
 !                                                                       
 !***FIRST EXECUTABLE STATEMENT  DPREPJ                                  
       NJE = NJE + 1 
@@ -2537,34 +2557,23 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !   031105  Restored 'own' variables to Common block /DLS001/, to       
 !           enable interrupt/restart feature. (ACH)                     
 !***END PROLOGUE  DSOLSY                                                
-!**End                                                                  
+!**End     
+      !~~~> Variables formerly in the /DLS001/ common block have 
+      !~~~> now been moved to the Internals module.  This will make
+      !~~~> LSODE thread-safe for OpenMP parallelization.
+      !~~~>    -- Bob Yantosca (06 Jan 2025)
+      USE Internals, ONLY : CCMAX, EL0,   H,     HMIN, HMXI,   HU
+      USE Internals, ONLY : ICF,   IERPJ, IERSL, JCUR, JSTART, KFLAG
+      USE Internals, ONLY : L,     LACOR, LEWT,  LIWM, LSAVF,  LWM
+      USE Internals, ONLY : LYH,   METH,  MITER, RC,   TN,     UROUND
+
       INTEGER IWM(*) 
-      REAL(kind=dp) WM(*), X(*), TEM(*) 
-      INTEGER IOWND, IOWNS,                                            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
-      REAL(kind=dp) ROWNS,                                          &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND                  
-      COMMON /DLS001/ ROWNS(209),                                      &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND,                 &
-        IOWND(6), IOWNS(6),                                            &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
+      REAL(kind=dp) WM(*), X(*), TEM(*)    
       INTEGER I, MEBAND, ML, MU 
       REAL(kind=dp) DI, HL0, PHL0, R 
 #ifdef FULL_ALGEBRA      
       INTEGER ISING
 #endif     
-      !
-      ! Declare common block DLS001 as THREADPRIVATE so that variables
-      ! contained inside it will not be overwritten by calls to DLSODE
-      ! from other threads in an OpenMP parallel loop.
-      !    -- Bob Yantosca (20 Dec 2024)
-      ! 
-      !$OMP THREADPRIVATE( /DLS001/ )
-      !
 !                                                                       
 !***FIRST EXECUTABLE STATEMENT  DSOLSY                                  
       IERSL = 0 
@@ -2575,80 +2584,7 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 #endif      
       RETURN 
 !----------------------- END OF SUBROUTINE DSOLSY ----------------------
-      END SUBROUTINE DSOLSY                                          
-!DECK DSRCOM                                                            
-      SUBROUTINE DSRCOM (RSAV, ISAV, JOB) 
-!***BEGIN PROLOGUE  DSRCOM                                              
-!***SUBSIDIARY                                                          
-!***PURPOSE  Save/restore ODEPACK COMMON blocks.                        
-!***TYPE      REAL(kind=dp) (SSRCOM-S, DSRCOM-D)                     
-!***AUTHOR  Hindmarsh, Alan C., (LLNL)                                  
-!***DESCRIPTION                                                         
-!                                                                       
-!  This routine saves or restores (depending on JOB) the contents of    
-!  the COMMON block DLS001, which is used internally                    
-!  by one or more ODEPACK solvers.                                      
-!                                                                       
-!  RSAV = real array of length 218 or more.                             
-!  ISAV = integer array of length 37 or more.                           
-!  JOB  = flag indicating to save or restore the COMMON blocks:         
-!         JOB  = 1 if COMMON is to be saved (written to RSAV/ISAV)      
-!         JOB  = 2 if COMMON is to be restored (read from RSAV/ISAV)    
-!         A call with JOB = 2 presumes a prior call with JOB = 1.       
-!                                                                       
-!***SEE ALSO  DLSODE                                                    
-!***ROUTINES CALLED  (NONE)                                             
-!***COMMON BLOCKS    DLS001                                             
-!***REVISION HISTORY  (YYMMDD)                                          
-!   791129  DATE WRITTEN                                                
-!   890501  Modified prologue to SLATEC/LDOC format.  (FNF)             
-!   890503  Minor cosmetic changes.  (FNF)                              
-!   921116  Deleted treatment of block /EH0001/.  (ACH)                 
-!   930801  Reduced Common block length by 2.  (ACH)                    
-!   930809  Renamed to allow single/double precision versions. (ACH)    
-!   010418  Reduced Common block length by 209+12. (ACH)                
-!   031105  Restored 'own' variables to Common block /DLS001/, to       
-!           enable interrupt/restart feature. (ACH)                     
-!   031112  Added SAVE statement for data-loaded constants.             
-!***END PROLOGUE  DSRCOM                                                
-!**End                                                                  
-      INTEGER ISAV(*), JOB 
-      INTEGER ILS 
-      INTEGER I, LENILS, LENRLS 
-      REAL(kind=dp) RSAV(*),   RLS 
-      SAVE LENRLS, LENILS 
-      COMMON /DLS001/ RLS(218), ILS(37) 
-      DATA LENRLS/218/, LENILS/37/ 
-      !
-      ! Declare common block DLS001 as THREADPRIVATE so that variables
-      ! contained inside it will not be overwritten by calls to DLSODE
-      ! from other threads in an OpenMP parallel loop.
-      !    -- Bob Yantosca (20 Dec 2024)
-      ! 
-      !$OMP THREADPRIVATE( /DLS001/ )
-      !
-!                                                                       
-!***FIRST EXECUTABLE STATEMENT  DSRCOM                                  
-      IF (JOB .EQ. 2) GO TO 100 
-!                                                                       
-      DO 10 I = 1,LENRLS 
-        RSAV(I) = RLS(I)
-   10 CONTINUE
-      DO 20 I = 1,LENILS 
-        ISAV(I) = ILS(I)
-   20 CONTINUE
-      RETURN 
-!                                                                       
-  100 CONTINUE 
-      DO 110 I = 1,LENRLS 
-         RLS(I) = RSAV(I)
-  110 CONTINUE
-      DO 120 I = 1,LENILS 
-         ILS(I) = ISAV(I)
-  120 CONTINUE
-      RETURN 
-!----------------------- END OF SUBROUTINE DSRCOM ----------------------
-      END SUBROUTINE DSRCOM                                          
+      END SUBROUTINE DSOLSY                        
 !DECK DSTODE                                                            
       SUBROUTINE DSTODE (NEQ, Y, YH, NYH, YH1, EWT, SAVF, ACOR, &
                          WM, IWM, F, JAC)                                   
@@ -2731,7 +2667,7 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !  N      = the number of first-order differential equations.           
 !  The values of CCMAX, H, HMIN, HMXI, TN, JSTART, KFLAG, MAXORD,       
 !  MAXCOR, MSBP, MXNCF, METH, MITER, and N are communicated via COMMON. 
-!                                                                       
+!            q                                                           
 !***SEE ALSO  DLSODE                                                    
 !***ROUTINES CALLED  DCFODE, DVNORM                                     
 !***COMMON BLOCKS    DLS001                                             
@@ -2744,36 +2680,30 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
 !   031105  Restored 'own' variables to Common block /DLS001/, to       
 !           enable interrupt/restart feature. (ACH)                     
 !***END PROLOGUE  DSTODE                                                
-!**End                                                                  
+!**End    
+        
+      !~~~> Variables formerly in the /DLS001/ common block have 
+      !~~~> now been moved to the Internals module.  This will make
+      !~~~> LSODE thread-safe for OpenMP parallelization.
+      !~~~>    -- Bob Yantosca (06 Jan 2025)
+      USE Internals, ONLY : CCMAX, CONIT, CRATE, EL,     EL0,    ELCO
+      USE Internals, ONLY : HOLD,  H,     HMIN,  HMXI,   HU,     IALTH
+      USE Internals, ONLY : ICF,   IERPJ, IERSL, IPUP,   JCUR,   JSTART
+      USE Internals, ONLY : KFLAG, L,     LACOR, LEWT,   LIWM,   LMAX
+      USE Internals, ONLY : LSAVF, LWM,   LYH,   MAXCOR, MAXORD, MEO
+      USE Internals, ONLY : METH,  MITER, MSBP,  MXNCF,  N,      NFE
+      USE Internals, ONLY : NJE,   NQ,    NQNYH, NQU,    NSLP,   NST
+      USE Internals, ONLY : RC,    RMAX,  TESCO, TN,     UROUND
+
       EXTERNAL F, JAC !, PJAC, SLVS 
       INTEGER NEQ, NYH, IWM(*) 
       REAL(kind=dp) Y(*), YH(NYH,*), YH1(*), EWT(*), SAVF(*),       &
                        ACOR(*), WM(*) 
-      INTEGER IOWND, IALTH, IPUP, LMAX, MEO, NQNYH, NSLP,              &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
+
       INTEGER I, I1, IREDO, IRET, J, JB, M, NCF, NEWQ 
-      REAL(kind=dp) CONIT, CRATE, EL, ELCO, HOLD, RMAX, TESCO,      &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND                  
+    
       REAL(kind=dp) DCON, DDN, DEL, DELP, DSM, DUP, EXDN, EXSM,     &
               EXUP,R, RH, RHDN, RHSM, RHUP, TOLD
-      !REAL(kind=dp) DVNORM                          
-      COMMON /DLS001/ CONIT, CRATE, EL(13), ELCO(13,12),               &
-        HOLD, RMAX, TESCO(3,12),                                       &
-        CCMAX, EL0, H, HMIN, HMXI, HU, RC, TN, UROUND,                 &
-        IOWND(6), IALTH, IPUP, LMAX, MEO, NQNYH, NSLP,                 &
-        ICF, IERPJ, IERSL, JCUR, JSTART, KFLAG, L,                     &
-        LYH, LEWT, LACOR, LSAVF, LWM, LIWM, METH, MITER,               &
-        MAXORD, MAXCOR, MSBP, MXNCF, N, NQ, NST, NFE, NJE, NQU         
-      !
-      ! Declare common block DLS001 as THREADPRIVATE so that variables
-      ! contained inside it will not be overwritten by calls to DLSODE
-      ! from other threads in an OpenMP parallel loop.
-      !    -- Bob Yantosca (20 Dec 2024)
-      ! 
-      !$OMP THREADPRIVATE( /DLS001/ )
-      !
 !                                                                       
 !***FIRST EXECUTABLE STATEMENT  DSTODE                                  
       KFLAG = 0 
@@ -2799,7 +2729,7 @@ SUBROUTINE INTEGRATE( TIN,       TOUT,      ICNTRL_U, RCNTRL_U,  &
       NQ = 1 
       L = 2 
       IALTH = 2 
-      RMAX = 10000.0D0 
+      RMAX = 10000.0D0
       RC = 0.0D0 
       EL0 = 1.0D0 
       CRATE = 0.7D0 
