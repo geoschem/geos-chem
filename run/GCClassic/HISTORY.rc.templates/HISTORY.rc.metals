@@ -333,6 +333,10 @@ COLLECTIONS: 'Restart',
 # Diagnostics for evaluating transport, including age of air [s]
 #
 # Available for all simulations
+#
+# NOTE: Do not change the BoundaryConditions.frequency setting below,
+# because GEOS-Chem nested-grid simulations expect to read boundary
+# condition data at 3 hour intervals.
 #==============================================================================
   AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AdvFluxVert.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
