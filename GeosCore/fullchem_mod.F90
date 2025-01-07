@@ -1022,6 +1022,14 @@ CONTAINS
        ICNTRL(15) = -1                         ! No rate updates in integrator
        RCNTRL(3)  = State_Chm%KPPHvalue(I,J,L) ! Archived Hstart from restart
 #endif
+#ifdef KPP_INT_BEULER
+       !=====================================================================
+       ! Set options for the BEULER integrator in vectors ICNTRL and RCNTRL
+       ! This now needs to be done within the parallel loop
+       !=====================================================================
+       ICNTRL(15) = -1                         ! No rate updates in integrator
+       RCNTRL(3)  = State_Chm%KPPHvalue(I,J,L) ! Archived Hstart from restart
+#endif
 
        !=====================================================================
        ! Integrate the box forwards

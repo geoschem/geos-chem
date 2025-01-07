@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
 - Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
 - Added surface precipitation flux fields as inputs to GCHP
-- Added the `KPP_INT_AUTOREDUCE` and `KPP_INT_LSODE` C-preprocessor switches for integrator-specific handling
+- Added the `KPP_INT_AUTOREDUCE`, `KPP_INT_LSODE`, and `KPP_INT_BEULER` C-preprocessor switches for integrator-specific handling
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
