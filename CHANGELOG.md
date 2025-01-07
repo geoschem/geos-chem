@@ -33,6 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
 - Wrapped code specific to the `rosenbrock_autoreduce` KPP integrator in `#if` blocks
 - Changed `CALL Integrate(TIN, TOUT, ...` to `CALL INTEGRATE(0.0_dp, DT, ...` in `GeosCore/fullchem_mod.F90` to prevent the `TIN` variable fron being inadvertently overwritten by some integrators
+- Changed doing Linoz and Linearized chemistry messages to print only if verbose
+- Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
+- Updated configuration files for using GEOS-Chem 14.5 in CESM
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -45,11 +48,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed segmentation fault in qfyaml when running with certain compilers without debug flags on
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
-- Updated GEOS-only code for compatibility with GEOS-Chem 14.5
+- Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
+- Fixed missing Is_Advected for TMB in species_database.yml
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
 - Removed `T`, `TIN`, `TOUT` from `GeosCore/fullchem_mod.F90`
+- Removed error messages in HEMCO interface pointing users to HEMCO log
 
 ## [14.5.0] - 2024-11-07
 ### Added
