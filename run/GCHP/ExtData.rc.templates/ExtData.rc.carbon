@@ -195,6 +195,9 @@ GFEI_CH4_OIL  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/
 GFEI_CH4_GAS  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
 GFEI_CH4_COAL kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
 
+# --- GRPI ---
+GRPI_CH4_RICE kg/m2/s N Y F2022-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2025-01/GRPI/GRPI_01x01.nc
+
 # --- EDGAR v8.0 ---
 EDGAR8_CH4_PRO_OIL             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_PRO_OIL_flx.nc         
 EDGAR8_CH4_REF_TRF             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_REF_TRF_flx.nc         
