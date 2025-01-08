@@ -238,6 +238,9 @@ CONTAINS
        Spc => NULL()
     ENDIF
 
+    ! Reset first-time flag
+    FIRST = .FALSE.
+
     ! Free pointers for safety's sake
     Spc   => NULL()
     Ptr2D => NULL()

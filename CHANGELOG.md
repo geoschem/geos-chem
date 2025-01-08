@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed doing Linoz and Linearized chemistry messages to print only if verbose
 - Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
 - Updated configuration files for using GEOS-Chem 14.5 in CESM
+- Modified tagCO simulation to use GFED4 biomass burning emissions and GEOS-Chem v5 OH fields for consistency with carbon simulation
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -51,6 +52,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
 - Fixed missing Is_Advected for TMB in species_database.yml
+- Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
+- Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
+- Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
+- Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
+- Changed dimension of EmisOCS_Total from 3D to 2D since all emissions for all sectors are 2D
+- Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
