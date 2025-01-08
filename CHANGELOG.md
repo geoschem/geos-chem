@@ -48,7 +48,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
 - Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
 - Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
-- Changed dimension of EmisOCS_Total from 2D to 3D since all emissions for all sectors are 2D
+- Changed dimension of EmisOCS_Total from 3D to 2D since all emissions for all sectors are 2D
 - Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
 
 ### Removed
