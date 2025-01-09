@@ -609,10 +609,28 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
+#if defined( MODEL_GCHP )
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+#endif
+
+#if defined( MODEL_GEOS )
+    Input_Opt%MetField        = 'See ExtData.rc'
+#endif
+
     !------------------------------------------------------------------------
     ! Set other fields of Input_Opt accordingly
     !------------------------------------------------------------------------
-    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
     Input_Opt%RUN_DIR         = 'N/A'
 
