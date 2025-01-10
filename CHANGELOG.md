@@ -4,7 +4,7 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] - TBD
+## [14.5.1] - 2025-01-10
 ### Added
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
 - Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
@@ -12,7 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
 
-## [Unreleased] - TBD
+## [14.5.1] - 2025-01-10
 ### Added
 - Added allocate guards for arrays in `pressure_mod`
 - Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
