@@ -25,6 +25,7 @@ MODULE History_Util_Mod
   PUBLIC :: Compute_Julian_Date
   PUBLIC :: Compute_Elapsed_Time
   PUBLIC :: Compute_DeltaYmdHms_For_End
+  PUBLIC :: SatDiagn_or_SatDiagnEdge
 !
 ! !DEFINED PARAMETERS:
 !
@@ -298,5 +299,51 @@ CONTAINS
     deltaHms = ( dHour * 10000 ) + ( dMinute * 100 ) + dSecond
 
   END SUBROUTINE Compute_DeltaYmdHms_For_End
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Is_SatDiagn_or_SatDiagnEdge
+!
+! !DESCRIPTION: Tests a container name to determine if it is one of the
+!  satellite diagnostic collections (SatDiagn, SatDiagnEdge)
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE SatDiagn_or_SatDiagnEdge( cName, isSatDiagn, isSatDiagnEdge )
+!
+! !USES:
+!
+    USE CharPak_Mod, ONLY : To_Uppercase
+!
+! !INPUT PARAMETERS:
+!
+    CHARACTER(LEN=*), INTENT(IN)  :: cName   ! Container name
+!
+! !OUTPUT PARAMETERS:
+!
+    LOGICAL,          INTENT(OUT) :: isSatDiagn
+    LOGICAL,          INTENT(OUT) :: isSatDiagnEdge
+!
+! !REVISION HISTORY:
+!  31 Oct 2024 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    ! Test if this is the SatDiagnEdge container
+    isSatDiagnEdge = (                                                       &
+       INDEX( To_UpperCase( TRIM( cName) ), 'SATDIAGNEDGE' ) > 0            )
+
+    ! Test if this is the SatDiagn container
+    isSatDiagn = (                                                           &
+      .not. isSatDiagnEdge .and.                                             &
+       INDEX( To_UpperCase( TRIM( cName ) ), 'SATDIAGN'    ) > 0            )
+
+  END SUBROUTINE SatDiagn_or_SatDiagnEdge
 !EOC
 END MODULE History_Util_Mod

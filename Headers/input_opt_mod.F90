@@ -239,6 +239,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCONV
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
+     LOGICAL                     :: Reconstruct_Conv_Precip_Flux
      INTEGER                     :: TS_CONV
 
      !----------------------------------------
@@ -759,6 +760,7 @@ CONTAINS
     Input_Opt%LCONV                  = .FALSE.
     Input_Opt%LTURB                  = .FALSE.
     Input_Opt%LNLPBL                 = .FALSE.
+    Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
     Input_Opt%TS_CONV                = 0
 
     !----------------------------------------
