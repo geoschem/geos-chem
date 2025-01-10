@@ -609,10 +609,28 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
+#if defined( MODEL_GCHP )
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+#endif
+
+#if defined( MODEL_GEOS )
+    Input_Opt%MetField        = 'See ExtData.rc'
+#endif
+
     !------------------------------------------------------------------------
     ! Set other fields of Input_Opt accordingly
     !------------------------------------------------------------------------
-    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
     Input_Opt%RUN_DIR         = 'N/A'
 
@@ -2015,12 +2033,12 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_CO (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2033,7 +2051,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2046,12 +2064,12 @@ CONTAINS
     !========================================================================
     ! Print to screen
     !========================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
-       WRITE(6,100) 'Use full chem. P(CO) from CH4?   :', Input_Opt%LPCO_CH4
-       WRITE(6,100) 'Use full chem. P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
+       WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
+       WRITE(6,100) 'Use archived P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
     ENDIF
 
     ! FORMAT statements
@@ -2113,9 +2131,9 @@ CONTAINS
     thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Turn on CO2 3D chemical source and surface correction?
+    ! Use archived fields of CO2 production from CO oxidation?
     !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%3D_chemical_oxidation_source"
+    key    = "CO2_simulation_options%sources%use_archived_PCO2_from_CO"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2154,11 +2172,11 @@ CONTAINS
     !=================================================================
     ! Print to screen
     !=================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'CO2 from oxidation (CO,CH4,..):', Input_Opt%LCHEMCO2
+       WRITE( 6,100 ) 'Use archived P(CO2) from CO?  :', Input_Opt%LCHEMCO2
        WRITE( 6, 95 ) 'Tagged CO2 settings'
        WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
        WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG
@@ -3202,7 +3220,9 @@ CONTAINS
 ! !IROUTINE: config_convection_mixing
 !
 ! !DESCRIPTION: Copies convection & PBL mixing information from the Config
-!  object to Input_Opt, and does necessary checks.
+!  object to Input_Opt, and does necessary checks. Also sets whether
+!  to reconstruct convective precipitation flux based on meteorology
+!  source and simulation start date.
 !\\
 !\\
 ! !INTERFACE:
@@ -3286,12 +3306,39 @@ CONTAINS
     ENDIF
     Input_Opt%LNLPBL = v_bool
 
+    !------------------------------------------------------------------------
+    ! Other settings based on inputs
+    !------------------------------------------------------------------------
+
     ! Set the PBL drydep flag. This determines if dry deposition is
     ! applied (and drydep frequencies are calculated) over the entire
     ! PBL or the first model layer only. For now, set this value
     ! automatically based upon the selected PBL scheme: 1st model layer
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
+
+    ! Set whether to reconstruct convective precipitation flux based on
+    ! meteorology source and simulation start date. This is important for
+    ! avoiding a bug where convective precipitation met-fields are all zero
+    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    !
+    ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
+    ! is the same as simulation year and (2) the simulation does not
+    ! run across June 1, 2020. Use the following rules to ensure your
+    ! simulation is correct:
+    !   (1) Manually update code below if GEOS-FP data year is
+    !       different than simulation year:
+    !          - Set to .FALSE. if data is prior to June 1, 2020
+    !          - Set to .TRUE. if data is on or after June 1, 2020
+    !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
+    !       up the run in time to avoid this.
+    IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSE
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+    ENDIF
 
     ! Return success
     RC = GC_SUCCESS
@@ -3303,6 +3350,16 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
+       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
+            Input_Opt%Reconstruct_Conv_Precip_Flux
+
+       IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
+          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
+          ELSE
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
+          ENDIF
+       ENDIF
 
        WRITE( 6, 90  ) 'PBL MIXING SETTINGS'
        WRITE( 6, 95  ) '-------------------'
