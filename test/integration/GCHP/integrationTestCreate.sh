@@ -72,22 +72,11 @@ cd "${superProjectDir}"
 
 # GEOS-Chem and HEMCO submodule directories
 geosChemDir="${superProjectDir}/src/GCHP_GridComp/GEOSChem_GridComp/geos-chem"
-hemcoDir="${superProjectDir}/src/GCHP_GridComp/HEMCO_GridComp/HEMCO"
-
-# Get the Git commit of the superproject and submodules
-head_gchp=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-            git -C "${superProjectDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${geosChemDir}" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GCHP Integration Tests\n\n"
-printf "GCHP      #${head_gchp}\n"
-printf "GEOS_Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
+print_submodule_head_commits "14" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
@@ -234,6 +223,26 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # c24 merra2 fullchem_TOMAS15
     create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    #=========================================================================
+    # Simulation with all diagnostics on
+    #==========================================================================
+
+    # Copy the fullchem_benchmark rundir to fullchem_alldiags
+    echo "... ${itRoot}/rundirs/gchp_merra2_fullchem_alldiags"
+    cd "${rundirsDir}"
+    cp -r gchp_merra2_fullchem_benchmark gchp_merra2_fullchem_alldiags
+
+    # Turn on all collections except RRTMG, DynHeat, Tomas.
+    # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    # Also note; there is a floating point error in the UVFlux diagnostic,
+    # so temporarily comment that out.
+    sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|#'|'|"                 gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'RRTMG'|#'RRTMG'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+    sed_ie "s|'UVFlux'|#'UVFlux'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"

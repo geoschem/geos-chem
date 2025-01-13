@@ -31,7 +31,7 @@ MODULE CMN_FJX_MOD
   ! Parameters
   !-----------------------------------------------------------------------
 
-  INTEGER, PARAMETER :: JVN_ = 166     ! Max number of J-values
+  INTEGER, PARAMETER :: JVN_ = 167     ! Max number of J-values
 
   INTEGER, PARAMETER :: WX_   = 18     ! # wavelengths in file FJX_spec.dat
 

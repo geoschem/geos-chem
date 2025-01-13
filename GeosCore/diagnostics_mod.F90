@@ -436,6 +436,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
+    USE TIME_MOD,       ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,7 +466,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: N, S
+    INTEGER               :: N, S, I
     REAL(fp)              :: LT,  GOOD
 
     ! Strings
@@ -473,6 +474,12 @@ CONTAINS
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
+
+
+   ! Arrays 
+    REAL(fp)   :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                           State_Grid%NZ,State_Chm%nSpecies)
+
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -546,6 +553,7 @@ CONTAINS
           !$OMP PRIVATE( N, S   )
           DO S = 1, mapData%nSlots
              N = mapData%slot2id(S)
+     ! TmpSpcArr is not defined    
              State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
           ENDDO
           !$OMP END PARALLEL DO
@@ -1425,9 +1433,12 @@ CONTAINS
             Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
           id_OH  = Ind_('OH')
           IF ( id_OH < 0 ) THEN
-             errMsg = 'OH is not a defined species in this simulation!!!'
-             CALL GC_Error( errMsg, RC, thisLoc )
-             RETURN
+             id_OH = Ind_('FixedOH')
+             IF ( id_OH < 0 ) THEN
+                errMsg = 'OH is not a defined species in this simulation!!!'
+                CALL GC_Error( errMsg, RC, thisLoc )
+                RETURN
+             ENDIF
           ENDIF
        ENDIF
        first= .FALSE.
@@ -1463,11 +1474,16 @@ CONTAINS
             locTime <= State_Diag%SatDiagn_EndHr   ) good = 1.0_fp
 
        !---------------------------------------------------------------------
-       ! SatDiagnCount: Count number of local times
+       ! SatDiagnCount and SatDiagnEdgeCount: Count number of local times
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnCount ) THEN
           State_Diag%SatDiagnCount(I,:,:) = &
           State_Diag%SatDiagnCount(I,:,:) + good
+       ENDIF
+
+       IF ( State_Diag%Archive_SatDiagnEdgeCount ) THEN
+          State_Diag%SatDiagnEdgeCount(I,:,:) = &
+          State_Diag%SatDiagnEdgeCount(I,:,:) + good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1507,8 +1523,7 @@ CONTAINS
        ! Pressure edges [hPa]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
-          State_Diag%SatDiagnPEdge(I,:,:) = &
-               State_Met%PEDGE(I,:,1:State_Grid%NZ) * good
+          State_Diag%SatDiagnPEdge(I,:,:) = State_Met%PEDGE(I,:,:) * good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1516,6 +1531,13 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
           State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Tropopause level [unitless]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTropLev ) THEN
+          State_Diag%SatDiagnTropLev(I,:) = State_Met%TropLev(I,:) * good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1768,7 +1790,8 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Aerosol_Mod,    ONLY : IS_POA, IS_OPOA
+    USE Aerosol_Mod,    ONLY : Is_POA, Is_OPOA, Is_OCPO, Is_OCPI
+    USE Aerosol_Mod,    ONLY : Is_ComplexSOA, Is_SimpleSOA
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE Species_Mod,    ONLY : Species, SpcConc
@@ -2087,7 +2110,7 @@ CONTAINS
        IF ( State_Diag%Archive_AerMassPOA ) THEN
           IF ( Is_POA ) THEN
              State_Diag%AerMassPOA(I,J,L) = OCPO(I,J,L) * kgm3_to_ugm3
-          ELSE
+          ELSEIF ( Is_OCPO ) THEN
              State_Diag%AerMassPOA(I,J,L) = ( OCPI(I,J,L) + OCPO(I,J,L) ) * &
                                               kgm3_to_ugm3
           ENDIF
@@ -2158,12 +2181,13 @@ CONTAINS
        ! PDER [nm]
        !--------------------------------------
        IF ( State_Diag%Archive_PDER ) THEN
-          State_Diag%PDER(I,J,L) = PDER(I,J,L) 
+          State_Diag%PDER(I,J,L) = PDER(I,J,L)
        ENDIF
 
        !--------------------------------------
        ! Sum of all biogenic organic aerosol
        !--------------------------------------
+       ! ComplexSOA only
        IF ( State_Diag%Archive_TotalBiogenicOA ) THEN
           State_Diag%TotalBiogenicOA(I,J,L) = ( TSOA(I,J,L) + ISOAAQ(I,J,L) ) &
                                                 * kgm3_to_ugm3
@@ -2172,34 +2196,47 @@ CONTAINS
        !--------------------------------------
        ! Sum of all organic aerosol [ug/m3]
        !--------------------------------------
+       ! Now TotalOA also works for simpleSOA
        IF ( State_Diag%Archive_TotalOA ) THEN
-          State_Diag%TotalOA(I,J,L) = ( TSOA(I,J,L) + &
-                                        ASOA(I,J,L) + &
-                                        OCPO(I,J,L) + &
-                                        OCPI(I,J,L) + &
-                                        OPOA(I,J,L) + &
-                                        ISOAAQ(I,J,L) ) * kgm3_to_ugm3
+          State_Diag%TotalOA(I,J,L) = ( OCPO(I,J,L) + &
+                                        OCPISOA(I,J,L) ) * kgm3_to_ugm3
        ENDIF
 
        !--------------------------------------
        ! Sum of all organic carbon [ug/m3]
        !--------------------------------------
+       ! ComplexSOA only
+       ! since OM/OC ratio is not available for SOAS
+       ! consistent with aerosol_mod.F90
        IF ( State_Diag%Archive_TotalOC ) THEN
 
+         ! Hydrophobic OC
           IF ( Is_POA ) THEN
              State_Diag%TotalOC(I,J,L) = &
-                  ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPI(I,J,L) + OPOA(I,J,L) ) / OCFOPOA(I,J) &
+                  ( ( TSOA(I,J,L) + ASOA(I,J,L) ) / OCFOPOA(I,J) &
                     + OCPO(I,J,L) / OCFPOA(I,J) ) * kgm3_to_ugm3
-
-          ELSE IF ( Is_OPOA ) THEN
+          ELSE IF ( Is_OCPO ) THEN
              State_Diag%TotalOC(I,J,L) = &
                   ( ( TSOA(I,J,L) + ASOA(I,J,L) &
-                    + OCPO(I,J,L) + OCPI(I,J,L) + OPOA(I,J,L) ) &
-                    / OCFOPOA(I,J) ) * kgm3_to_ugm3
+                    + OCPO(I,J,L) ) / OCFOPOA(I,J) ) * kgm3_to_ugm3
           ENDIF
 
-          IF ( Input_Opt%LSOA ) THEN
+          ! Hydrophilic OC
+          IF (Is_OCPI) THEN
+             State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                         ( OCPI(I,J,L) / OCFOPOA(I,J) * &
+                                         kgm3_to_ugm3 )
+          ENDIF
+
+          ! OPOA OC
+          IF (Is_OPOA) THEN
+            State_Diag%TotalOC(I,J,L) = State_Diag%TotalOC(I,J,L) + &
+                                        ( OPOA(I,J,L) / OCFOPOA(I,J) * &
+                                        kgm3_to_ugm3 )
+          ENDIF
+
+          ! Isoprene SOA OC
+          IF ( Is_ComplexSOA ) THEN
              State_Diag%TotalOC(I,J,L) =  State_Diag%TotalOC(I,J,L) + &
                   ( ( Spc(id_SOAIE )%Conc(I,J,L) * Fac_SOAIE  ) + &
                     ( Spc(id_INDIOL)%Conc(I,J,L) * Fac_INDIOL ) + &

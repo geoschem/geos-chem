@@ -22,7 +22,7 @@ jobs:
       with:
         repo-token: ${{ secrets.GITHUB_TOKEN }}
         stale-issue-label: 'stale'
-        exempt-issue-labels: 'category: Discussion','category: Feature Request','deferred','help needed: Open Research Problem','help needed: Request Input from Community','never stale','TODO: Documentation'
+        exempt-issue-labels: 'category: Discussion,category: Feature Request,deferred,help needed: Open Research Problem,help needed: Request Input from Community,never stale,TODO: Documentation'
         days-before-issue-stale: 30
         days-before-issue-close: 7
         stale-issue-message: 'This issue has been automatically marked as stale because it has not had recent activity. If there are no updates within 7 days it will be closed. You can add the "never stale" tag to prevent the issue from closing this issue.'

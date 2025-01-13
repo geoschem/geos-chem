@@ -194,6 +194,10 @@ MODULE Species_Mod
      LOGICAL            :: Is_Hg2           ! Is a Hg2 species?
      LOGICAL            :: Is_HgP           ! Is a HgP species?
 
+     ! KPP solver parameters
+     REAL(f8)           :: KPP_AbsTol       ! Absolute tolerance
+     REAL(f8)           :: KPP_RelTol       ! Relative tolerance
+
   END TYPE Species
 !
 ! !DEFINED PARAMETERS:
@@ -454,6 +458,8 @@ CONTAINS
     Spc%Henry_CR        = MISSING_DBLE
     Spc%Henry_K0        = MISSING_DBLE
     Spc%Henry_PKA       = MISSING_DBLE
+    Spc%KPP_AbsTol      = MISSING_DBLE
+    Spc%KPP_RelTol      = MISSING_DBLE
 
     ! Strings
     Spc%Formula         = MISSING_STR
@@ -597,6 +603,9 @@ CONTAINS
              WRITE( 6, 130 ) "Is_FixedChem   ", ThisSpc%Is_FixedChem
              WRITE( 6, 100 ) "KppFixId       ", ThisSpc%KppFixId
           ENDIF
+
+          WRITE( 6, 120 )    "KPP_AbsTol     ", ThisSpc%KPP_AbsTol
+          WRITE( 6, 120 )    "KPP_RelTol     ", ThisSpc%KPP_RelTol
        ENDIF
 
        !--------------------------------------------------------------------

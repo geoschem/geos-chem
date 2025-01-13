@@ -142,6 +142,13 @@ CONTAINS
        ' -> at GC_Allocate_All  (in module GeosCore/gc_environment_mod.F90)'
 
 #ifdef FASTJX
+    ! Throw an error if FAST-JX is used for simulations other than Hg
+    IF ( .not. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+       ErrMsg = 'FAST-JX is only supported in the Hg simulation!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
     ! Initialize CMN_FJX_mod.F90
     CALL Init_CMN_FJX( Input_Opt,State_Grid, RC )
 
@@ -601,8 +608,8 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Initialize "aerosol_mod.F90"
     !-----------------------------------------------------------------
-    IF ( Input_Opt%LSULF .or. Input_Opt%LCARB    .or. &
-         Input_Opt%LDUST .or. Input_Opt%LSSALT ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
+         Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
        CALL Init_Aerosol( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_Aerosol"!'

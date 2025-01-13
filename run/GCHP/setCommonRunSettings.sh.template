@@ -386,7 +386,7 @@ fi
 
 #### Mass flux checks for grid resolution and domain decomposition
 MassFlux_Entry=$(grep "MFXC" ExtData.rc || echo "missing")
-if [[ ${MassFluxEntry} != "missing" ]]; then
+if [[ ${MassFlux_Entry} != "missing" ]]; then
 
     #### Get met grid res (assume GEOS-IT and GEOS-FP are the only options)
     C180_Entry=$(grep "MFXC.*C180x180x6" ExtData.rc || echo "missing")
@@ -770,6 +770,62 @@ if [[ ${lightningClimEntry} != "missing" ]]; then
     else
         "ERROR: LightningClimatology must be set to true or false in HEMCO_Config.rc."
 	exit 1
+    fi
+fi
+
+#### Auto-update offline/online emissions settings in HEMCO_Diagn.rc based on HEMCO_Config.rc
+# NOTES:
+#  - Includes seasalt, soilNOx, dust, and biogenic emissions only
+#  - Sets Emis* diagnostics to extension emissions if extension is on in HEMCO_Config.rc
+#  - Sets Emis* diagnostics to base emissions (offline) if extension is off in HEMCO_Config.rc
+
+# Dust
+dustExt=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
+if [[ ${dustExt} != "missing" ]]; then
+    dustSetting=(${dustExt// / })
+    if [[ ${dustSetting[3]} = "on" ]]; then
+	sed -i -e 's|0      3 |105    -1|' HEMCO_Diagn.rc
+    else
+	sed -i -e 's|105    -1|0      3 |' HEMCO_Diagn.rc
+    fi
+fi
+
+# Sea salt
+seasExt=$(grep "107.*SeaSalt"  HEMCO_Config.rc || echo "missing")
+if [[ ${seasExt} != "missing" ]]; then
+    seasSetting=(${seasExt// / })
+    if [[ ${seasSetting[3]} = "on" ]]; then
+	sed -i -e 's|SALA  0      3 |SALA  107    -1|' HEMCO_Diagn.rc
+	sed -i -e 's|SALC  0      3 |SALC  107    -1|' HEMCO_Diagn.rc
+	sed -i -e 's|AL  0      3 |AL  107    -1|'     HEMCO_Diagn.rc
+	sed -i -e 's|CL  0      3 |CL  107    -1|'     HEMCO_Diagn.rc
+    else
+	sed -i -e 's|SALA  107    -1|SALA  0      3 |' HEMCO_Diagn.rc
+	sed -i -e 's|SALC  107    -1|SALC  0      3 |' HEMCO_Diagn.rc
+	sed -i -e 's|AL  107    -1|AL  0      3 |'     HEMCO_Diagn.rc
+	sed -i -e 's|CL  107    -1|CL  0      3 |'     HEMCO_Diagn.rc
+    fi
+fi
+
+# Biogenic
+biogExt=$(grep "108.*MEGAN"    HEMCO_Config.rc || echo "missing")
+if [[ ${biogExt} != "missing" ]]; then
+    biogSetting=(${biogExt// / })
+    if [[ ${biogSetting[3]} = "on" ]]; then
+	sed -i -e 's|0      4 |108    -1|'               HEMCO_Diagn.rc
+    else
+	sed -i -e 's|108    -1|0      4 |'               HEMCO_Diagn.rc
+    fi
+fi
+
+# SoilNOx
+soilExt=$(grep "104.*SoilNOx"  HEMCO_Config.rc || echo "missing")
+if [[ ${soilExt} != "missing" ]]; then
+    soilSetting=(${soilExt// / })
+    if [[ ${soilSetting[3]} = "on" ]]; then
+	sed -i -e 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc
+    else
+	sed -i -e 's|NO     104    -1|NO     0      3 |'  HEMCO_Diagn.rc
     fi
 fi
 

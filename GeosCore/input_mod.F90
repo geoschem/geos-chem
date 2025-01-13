@@ -609,10 +609,28 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
+#if defined( MODEL_GCHP )
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+#endif
+
+#if defined( MODEL_GEOS )
+    Input_Opt%MetField        = 'See ExtData.rc'
+#endif
+
     !------------------------------------------------------------------------
     ! Set other fields of Input_Opt accordingly
     !------------------------------------------------------------------------
-    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
     Input_Opt%RUN_DIR         = 'N/A'
 
@@ -1587,6 +1605,20 @@ CONTAINS
     thisLoc = ' -> at Config_Aerosol (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
+    ! Directories with aerosol optical property input files
+    !------------------------------------------------------------------------
+
+    key   = "aerosols%optics%input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AER_OPTICS_DIR = TRIM( v_str )
+
+    !------------------------------------------------------------------------
     ! Use online carbon aerosols?
     !------------------------------------------------------------------------
     key    = "aerosols%carbon%activate"
@@ -1910,6 +1942,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 90  ) 'AEROSOL SETTINGS'
        WRITE( 6, 95  ) '----------------'
+       WRITE( 6, 125 ) 'Aerosol optical property dir: ', Input_Opt%AER_OPTICS_DIR
        WRITE( 6, 100 ) 'Online SULFATE AEROSOLS?    : ', Input_Opt%LSULF
        WRITE( 6, 100 ) 'Metal catalyzed SO2 ox.?    : ', Input_Opt%LMETALCATSO2
        WRITE( 6, 100 ) 'Online CARBON AEROSOLS?     : ', Input_Opt%LCARB
@@ -1946,6 +1979,7 @@ CONTAINS
 105 FORMAT( A, f8.2              )
 110 FORMAT( A, f8.2, ' - ', f8.2 )
 120 FORMAT( A, f8.2, 'K'         )
+125 FORMAT( A, A    )
 
   END SUBROUTINE Config_Aerosol
 !EOC
@@ -1999,12 +2033,12 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_CO (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2017,7 +2051,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2030,12 +2064,12 @@ CONTAINS
     !========================================================================
     ! Print to screen
     !========================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
-       WRITE(6,100) 'Use full chem. P(CO) from CH4?   :', Input_Opt%LPCO_CH4
-       WRITE(6,100) 'Use full chem. P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
+       WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
+       WRITE(6,100) 'Use archived P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
     ENDIF
 
     ! FORMAT statements
@@ -2097,9 +2131,9 @@ CONTAINS
     thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Turn on CO2 3D chemical source and surface correction?
+    ! Use archived fields of CO2 production from CO oxidation?
     !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%3D_chemical_oxidation_source"
+    key    = "CO2_simulation_options%sources%use_archived_PCO2_from_CO"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2138,11 +2172,11 @@ CONTAINS
     !=================================================================
     ! Print to screen
     !=================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'CO2 from oxidation (CO,CH4,..):', Input_Opt%LCHEMCO2
+       WRITE( 6,100 ) 'Use archived P(CO2) from CO?  :', Input_Opt%LCHEMCO2
        WRITE( 6, 95 ) 'Tagged CO2 settings'
        WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
        WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG
@@ -2762,6 +2796,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: v_bool
+    INTEGER                      :: v_int
     REAL(yp)                     :: v_real
 
     ! Strings
@@ -2792,6 +2827,138 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_levs_with_cloud"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%NLevs_Phot_Cloud = v_int
+
+    !------------------------------------------------------------------------
+    ! Cloud-J cloud scheme flag (Cloud-J var CLDFLAG)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%cloud_scheme_flag"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Flag = v_int
+
+    !------------------------------------------------------------------------
+    ! Factor increase in cloud OD from layer to next below (Cloud-J var ATAU)
+    !  - used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%opt_depth_increase_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%OD_Increase_Factor = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Minimum cloud OD in uppermost inserted layer (Cloud-J var ATAU0)
+    !  - used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%min_top_inserted_cloud_OD"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Min_Cloud_OD = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Cloud correlation between max-overlap blocks (will set Cloud-J var CLDCOR)
+    ! NOTE:
+    !  - only used for cloud schemes 5 and above
+    !  - 0.00 = random
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%cloud_overlap_correlation"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Corr = Cast_and_RoundOff( v_str, places=3 )
+
+    !------------------------------------------------------------------------
+    ! Number of blocks with correlated cloud overlap (will set Cloud-J var LNRG)
+    !  - only used for cloud schemes 5 and above
+    !  - limited values possible: 0 = max-ran @ gaps, 3 = alt blocks, 6 = max-overlap
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_cloud_overlap_blocks"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_Max_Overlap = v_int
+
+    !------------------------------------------------------------------------
+    ! Spherical Earth atmospheric correction (will set Cloud-J var ATM0)
+    !  0 = flag
+    !  1 = spherical (standard)
+    !  2 = refractive
+    !  3 = geometric
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%sphere_correction"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Sphere_Correction = v_int
+
+    !------------------------------------------------------------------------
+    ! Number of wavelength bins in UV-Vis (will set Cloud-J var NWBIN)
+    ! - limited values possible
+    !  18 = standard full Fast-J
+    !  12 = trop-only (0% err in trop, 33% performance savings)
+    !   8 = trop-only (1-2% error in J-02 and J-OCS in upper trop, big savings)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_wavelength_bins"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_WV_Bins = v_int
+
+    !------------------------------------------------------------------------
+    ! Whether to use absorption of UV by water vapor
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%use_H2O_UV_absorption"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%USE_H2O_UV_Abs = v_bool
 
     !------------------------------------------------------------------------
     ! Directories with photolysis input files
@@ -3004,6 +3171,16 @@ CONTAINS
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
                        TRIM( Input_Opt%CloudJ_Dir )
+       WRITE( 6,130 ) 'Number levels with cloud    : ',                      &
+                       Input_Opt%Nlevs_Phot_Cloud
+       WRITE( 6,130 ) 'Cloud-J cloud flag          : ', Input_Opt%Cloud_Flag
+       WRITE( 6,105 ) 'Layer OD increase factor    : ', Input_Opt%OD_Increase_Factor
+       WRITE( 6,105 ) 'Min cloud OD at top         : ', Input_Opt%Min_Cloud_OD
+       WRITE( 6,105 ) 'Cloud correlation           : ', Input_Opt%Cloud_Corr
+       WRITE( 6,130 ) 'Max # of overlap bins       : ', Input_Opt%Num_Max_Overlap
+       WRITE( 6,130 ) 'Sphere correction           : ', Input_Opt%Sphere_Correction
+       WRITE( 6,130 ) 'Number of wavelength bins   : ', Input_Opt%Num_WV_Bins
+       WRITE( 6,100 ) 'Use H2O UV absorption?      : ', Input_Opt%USE_H2O_UV_Abs
        WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
        WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET
@@ -3031,7 +3208,8 @@ CONTAINS
 105 FORMAT( A, F8.3 )
 110 FORMAT( A, F4.2 )
 120 FORMAT( A, A    )
-
+130 FORMAT( A, I5   )
+    
     END SUBROUTINE Config_Photolysis
 !EOC
 !------------------------------------------------------------------------------
@@ -3042,7 +3220,9 @@ CONTAINS
 ! !IROUTINE: config_convection_mixing
 !
 ! !DESCRIPTION: Copies convection & PBL mixing information from the Config
-!  object to Input_Opt, and does necessary checks.
+!  object to Input_Opt, and does necessary checks. Also sets whether
+!  to reconstruct convective precipitation flux based on meteorology
+!  source and simulation start date.
 !\\
 !\\
 ! !INTERFACE:
@@ -3126,12 +3306,39 @@ CONTAINS
     ENDIF
     Input_Opt%LNLPBL = v_bool
 
+    !------------------------------------------------------------------------
+    ! Other settings based on inputs
+    !------------------------------------------------------------------------
+
     ! Set the PBL drydep flag. This determines if dry deposition is
     ! applied (and drydep frequencies are calculated) over the entire
     ! PBL or the first model layer only. For now, set this value
     ! automatically based upon the selected PBL scheme: 1st model layer
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
+
+    ! Set whether to reconstruct convective precipitation flux based on
+    ! meteorology source and simulation start date. This is important for
+    ! avoiding a bug where convective precipitation met-fields are all zero
+    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    !
+    ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
+    ! is the same as simulation year and (2) the simulation does not
+    ! run across June 1, 2020. Use the following rules to ensure your
+    ! simulation is correct:
+    !   (1) Manually update code below if GEOS-FP data year is
+    !       different than simulation year:
+    !          - Set to .FALSE. if data is prior to June 1, 2020
+    !          - Set to .TRUE. if data is on or after June 1, 2020
+    !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
+    !       up the run in time to avoid this.
+    IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSE
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+    ENDIF
 
     ! Return success
     RC = GC_SUCCESS
@@ -3143,6 +3350,16 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
+       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
+            Input_Opt%Reconstruct_Conv_Precip_Flux
+
+       IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
+          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
+          ELSE
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
+          ENDIF
+       ENDIF
 
        WRITE( 6, 90  ) 'PBL MIXING SETTINGS'
        WRITE( 6, 95  ) '-------------------'

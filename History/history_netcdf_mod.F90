@@ -675,6 +675,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE CharPak_Mod,         ONLY : To_Uppercase
     USE ErrCode_Mod
     USE HistItem_Mod,        ONLY : HistItem
     USE HistContainer_Mod,   ONLY : HistContainer
@@ -715,6 +716,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                     :: output4Bytes
+    LOGICAL                     :: isSatDiagnEdge,   isSatDiagn
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
 
@@ -763,6 +765,9 @@ CONTAINS
     ErrMsg    =  ''
     ThisLoc   =  &
          ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
+
+    ! Test if this is the SatDiagn or SatDiagnEdge collection
+    CALL SatDiagn_or_SatDiagnEdge( Container%Name, isSatDiagn, isSatDiagnEdge )
 
     !========================================================================
     ! Compute time elapsed since the reference time
@@ -852,10 +857,24 @@ CONTAINS
              Dim2 = SIZE( Item%Data_3d, 2 )
              Dim3 = SIZE( Item%Data_3d, 3 )
 
-             ! Get average for satellite diagnostic:
-             IF ( Container%name == 'SatDiagn' ) THEN
-                Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnCount
-                Item%nUpdates = 1.0
+             ! Get average for satellite diagnostic (vertical centers)
+             IF ( isSatDiagn ) THEN
+                WHERE ( State_Diag%SatDiagnCount > 0.0_f8 )
+                   Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnCount
+                ELSEWHERE
+                   Item%Data_3d = MISSING_DBLE
+                ENDWHERE
+                Item%nUpdates   = 1.0_f8
+             ENDIF
+
+             ! Get average for satellite diagnostic (vertical edges)
+             IF ( isSatDiagnEdge ) THEN
+                WHERE ( State_Diag%SatDiagnEdgeCount > 0.0_f8 )
+                   Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnEdgeCount
+                ELSEWHERE
+                   Item%Data_3d = MISSING_DBLE
+                ENDWHERE
+                Item%nUpdates   = 1.0_f8
              ENDIF
 
              ! Allocate the 4-byte or 8-byte output array
@@ -915,9 +934,13 @@ CONTAINS
              Dim2 = SIZE( Item%Data_2d, 2 )
 
              ! Get average for satellite diagnostic:
-             IF ( Container%name == 'SatDiagn' ) THEN
-                Item%Data_2d = Item%Data_2d / State_Diag%SatDiagnCount(:,:,1)
-                Item%nUpdates = 1.0
+             IF ( isSatDiagn ) THEN
+                WHERE ( State_Diag%SatDiagnCount(:,:,1) > 0.0_f8 )
+                   Item%Data_2d = Item%Data_2d / State_Diag%SatDiagnCount(:,:,1)
+                ELSEWHERE
+                   Item%Data_2d = MISSING_DBLE
+                ENDWHERE
+                Item%nUpdates = 1.0_f8
              ENDIF
 
              ! Allocate the 4-byte or 8-byte output array
@@ -1030,13 +1053,6 @@ CONTAINS
        Current => Current%Next
        Item    => NULL()
     ENDDO
-
-    !---------------------------------------------------------------------
-    ! Set count for satellite diagnostic to zero:
-    !---------------------------------------------------------------------
-    IF ( State_Diag%Archive_SatDiagnCount ) THEN
-       State_Diag%SatDiagnCount = 0.0e+0_fp
-    ENDIF
 
     !========================================================================
     ! Cleanup and quit

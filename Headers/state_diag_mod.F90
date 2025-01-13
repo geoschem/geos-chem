@@ -268,6 +268,7 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDep
      LOGICAL                     :: Archive_SatDiagnDryDep
      LOGICAL                     :: Archive_SatDiagn
+     LOGICAL                     :: Archive_SatDiagnEdge
 
      REAL(f4),           POINTER :: SatDiagnDryDepVel(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDepVel
@@ -914,6 +915,9 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: SatDiagnCount(:,:,:)
      LOGICAL                     :: Archive_SatDiagnCount
+
+     REAL(f8),           POINTER :: SatDiagnEdgeCount(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnEdgeCount
      
      REAL(f8),           POINTER :: SatDiagnConc(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnConc
@@ -944,6 +948,9 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
      LOGICAL                     :: Archive_SatDiagnTROPP
+
+     REAL(f8),           POINTER :: SatDiagnTropLev(:,:)
+     LOGICAL                     :: Archive_SatDiagnTropLev
 
      REAL(f8),           POINTER :: SatDiagnPBLHeight(:,:)
      LOGICAL                     :: Archive_SatDiagnPBLHeight
@@ -2378,6 +2385,9 @@ CONTAINS
 
     State_Diag%SatDiagnCount                       => NULL()
     State_Diag%Archive_SatDiagnCount               = .FALSE.
+
+    State_Diag%SatDiagnEdgeCount                   => NULL()
+    State_Diag%Archive_SatDiagnEdgeCount           = .FALSE.
     
     State_Diag%SatDiagnConc                        => NULL()
     State_Diag%Map_SatDiagnConc                    => NULL()
@@ -2408,6 +2418,9 @@ CONTAINS
 
     State_Diag%SatDiagnTROPP                       => NULL()
     State_Diag%Archive_SatDiagnTROPP               = .FALSE.
+
+    State_Diag%SatDiagnTropLev                     => NULL()
+    State_Diag%Archive_SatDiagnTropLev             = .FALSE.
 
     State_Diag%SatDiagnPBLHeight                   => NULL()
     State_Diag%Archive_SatDiagnPBLHeight           = .FALSE.
@@ -4894,6 +4907,28 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Tropopause level (TropLev)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTropLev'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTropLev,                        &
+         archiveData    = State_Diag%Archive_SatDiagnTropLev,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: PBL Height (m)
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnPBLHeight'
@@ -5180,7 +5215,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Set a single logical for SatDiagn output
+    ! Set logicals for SatDiagn and/or SatDiagnEdge output
     ! For ease of comparison, place fields in alphabetical order
     !------------------------------------------------------------------------
     State_Diag%Archive_SatDiagn = (                                          &
@@ -5190,6 +5225,11 @@ CONTAINS
          State_Diag%Archive_SatDiagnConc                                .or. &
          State_Diag%Archive_SatDiagnDryDep                              .or. &
          State_Diag%Archive_SatDiagnDryDepVel                           .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTropLev                             .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
@@ -5204,7 +5244,6 @@ CONTAINS
          State_Diag%Archive_SatDiagnPBLHeight                           .or. &
          State_Diag%Archive_SatDiagnPBLTop                              .or. &
          State_Diag%Archive_SatDiagnPBLTopL                             .or. &
-         State_Diag%Archive_SatDiagnPEdge                               .or. &
          State_Diag%Archive_SatDiagnPRECTOT                             .or. &
          State_Diag%Archive_SatDiagnProd                                .or. &
          State_Diag%Archive_SatDiagnRH                                  .or. &
@@ -5218,19 +5257,30 @@ CONTAINS
          State_Diag%Archive_SatDiagnWetLossLS                           .or. &
          State_Diag%Archive_SatDiagnWetLossConv                             )
 
+    State_Diag%Archive_SatDiagnEdge = (                                      &
+         State_Diag%Archive_SatDiagnPEdge                                   )
+
     !------------------------------------------------------------------------
-    ! Satellite diagnostic: Counter
+    ! Satellite diagnostic: Counters
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_SatDiagn ) THEN 
-
-       ! Array to contain the satellite diagnostic weights
        ALLOCATE( State_Diag%SatDiagnCount( State_Grid%NX,                    &
                                            State_Grid%NY,                    &
                                            State_Grid%NZ ), STAT=RC         )
-       CALL GC_CheckVar( 'State_Diag%DiagnCount', 0, RC )
+       CALL GC_CheckVar( 'State_Diag%SatDiagnCount', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SatDiagnCount = 0.0_f4
        State_Diag%Archive_SatDiagnCount = .TRUE.
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnEdge ) THEN
+       ALLOCATE( State_Diag%SatDiagnEdgeCount( State_Grid%NX,                &
+                                               State_Grid%NY,                &
+                                               State_Grid%NZ+1 ), STAT=RC   )
+       CALL GC_CheckVar( 'State_Diag%SatDiagnEdgeCount', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SatDiagnEdgeCount = 0.0_f4
+       State_Diag%Archive_SatDiagnEdgeCount = .TRUE.
     ENDIF
 
     !=======================================================================
@@ -12951,6 +13001,16 @@ CONTAINS
 !       State_Diag%WashFracLS => NULL()
 !    ENDIF
 
+    CALL Finalize( diagId   = 'SatDiagnCount',                               &
+                   Ptr2Data = State_Diag%SatDiagnCount,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnEdgeCount',                           &
+                   Ptr2Data = State_Diag%SatDiagnEdgeCount,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnConc',                                &
                    Ptr2Data = State_Diag%SatDiagnConc,                       &
                    mapData  = State_Diag%Map_SatDiagnConc,                   &
@@ -12996,6 +13056,11 @@ CONTAINS
 
     CALL Finalize( diagId   = 'SatDiagnTROPP',                             &
                    Ptr2Data = State_Diag%SatDiagnTROPP,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnTropLev',                           &
+                   Ptr2Data = State_Diag%SatDiagnTropLev,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -15139,11 +15204,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Pressure edges'
        IF ( isUnits   ) Units = 'hPa'
        IF ( isRank    ) Rank  = 3
-       !IF ( isVLoc    ) VLoc  = VLocationEdge
+       IF ( isVLoc    ) VLoc  = VLocationEdge
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPP' ) THEN
        IF ( isDesc    ) Desc  = 'Tropopause pressure'
        IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPLEV' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause level'
+       IF ( isUnits   ) Units = 'unitless'
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLHEIGHT' ) THEN
@@ -17134,6 +17204,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE CharPak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -17168,11 +17239,11 @@ CONTAINS
     RC      = GC_SUCCESS
     bin     = -1
     errMsg  = ''
-    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+    thisLoc = ' -> at Get_UVFlux_Bin (in module Headers/state_diag_mod.F90)'
 
     ! Get the index for the tagname
     DO N = 1, 18
-       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+       IF ( TRIM( tagName ) == To_UpperCase( TRIM( UVFlux_Tag_Names(N))) ) THEN
           bin = N
           EXIT
        ENDIF
@@ -20059,9 +20130,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Grid_Mod, ONLY : GrdState
+    USE Input_Opt_Mod,       ONLY : OptInput
+    USE State_Chm_Mod,       ONLY : ChmState
+    USE State_Grid_Mod,      ONLY : GrdState
+    USE Registry_Params_Mod, ONLY : VLocationEdge
 !
 ! !INPUT PARAMETERS:
 !
@@ -20097,7 +20169,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: alwaysDefine, found
     INTEGER            :: NX,           NY,       NZ
-    INTEGER            :: NW,           numSlots
+    INTEGER            :: NW,           numSlots, vLoc
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -20114,6 +20186,7 @@ CONTAINS
     RC         = GC_SUCCESS
     numSlots   = -1
     found      = .FALSE.
+    vLoc       = .FALSE.
     arrayID    = 'State_Diag%' // TRIM( diagId )
     errMsg     = ''
     thisLoc    = &
@@ -20179,6 +20252,15 @@ CONTAINS
     NX = State_Grid%NX
     NY = State_Grid%NY
     NZ = State_Grid%NZ
+
+    ! Determine if the array is defined on level edges
+    ! NOTE: This is only needed for the SatDiagnPEDGE field
+    CALL Get_Metadata_State_Diag( am_I_Root  = Input_Opt%amIRoot,          &
+                                  metadataId = diagId,                     &
+                                  found      = found,                      &
+                                  vLoc       = vLoc,                       &
+                                  RC         = RC                         )
+    IF ( vLoc == vLocationEdge ) NZ = NZ + 1
 
     ! Allocate array
     IF ( numSlots > 0 ) THEN
