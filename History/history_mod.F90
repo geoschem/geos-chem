@@ -1223,9 +1223,36 @@ CONTAINS
           ENDIF
 
           !=================================================================
-          ! At this point we are sure that the collection has been
-          ! defined, so we can continue to populate it with fields.
+          ! At this point We can assume that the collection is defined,
+          ! and that everything following are diagnostic fields.
           !=================================================================
+
+          !-----------------------------------------------------------------
+          ! ERROR CHECK: Make sure that the length of the simulation is
+          ! not shorter than the requested "File Write" interval.  This
+          ! will prevent simulations without diagnostic output.
+          !-----------------------------------------------------------------
+          IF ( CollectionDuration(C) < CollectionFrequency(C) ) THEN
+
+             ! Construct error message
+             ErrMsg =                                                        &
+                'No diagnostic output will be created for collection: "'  // &
+                 TRIM( CollectionName(C) ) // '"!  Make sure that the '   // &
+                'collection duration setting is not shorter than the '    // &
+                'collection frequency setting in HISTORY.rc!  For '       // &
+                'example, if the frequency is "00000001 000000" (1 day) ' // &
+                'but the duration is "00000000 010000" (1 hour), then '   // &
+                'this error will occur.'
+
+             ! Return error
+             WRITE( ErrorLine, 250 ) LineNum
+             CALL GC_Error( ErrMsg, RC, ThisLoc, ErrorLine )
+             RETURN
+          ENDIF
+
+          !-----------------------------------------------------------------
+          ! Continue populating the collection with fields
+          !-----------------------------------------------------------------
 
           ! Zero the counter of items
           ItemCount = 0
@@ -1535,9 +1562,9 @@ CONTAINS
                 'length of the simulation as specified in '               // &
                 'geoschem_config.yml (check the start and end dates) is ' // &
                 'not shorter than the frequency setting in HISTORY.rc! '  // &
-                'For example, if the frequency is 010000 (1 hour) but '   // &
-                'the simulation is set up to run for only 20 minutes, '   // &
-                'then this error will occur.'
+                'For example, if the frequency is "00000000 010000" '     // &
+                '(1 hour) but the simulation is set up to run for only '  // &
+                '20 minutes, then this error will occur.'
 
              ! Return error
              WRITE( ErrorLine, 250 ) LineNum
@@ -2880,6 +2907,8 @@ CONTAINS
     LOGICAL                          :: DoWrite
     LOGICAL                          :: isBndCond
     LOGICAL                          :: isRestart
+    LOGICAL                          :: isSatDiagn
+    LOGICAL                          :: isSatDiagnEdge
     INTEGER                          :: S, N
 
     ! Strings
@@ -3083,6 +3112,29 @@ CONTAINS
                 RETURN
              ENDIF
           ENDIF
+
+          !-----------------------------------------------------------------
+          ! SPECIAL HANDLING FOR SATELLITE DIAGNOSTIC COLLECTIONS
+          !
+          ! If we have called History_Netcdf_Write (i.e. DoWrite == T),
+          ! then reset the satellite diagnostics counters, as we have now
+          ! entered the next diagnostic interval.  We need to do this here
+          ! instead of in History_Netcdf_Write as there are multiple
+          ! satellite diagnostic collections (SatDiagn, SatDiagnEdge).
+          !-----------------------------------------------------------------
+
+          ! Test container name
+          CALL SatDiagn_or_SatDiagnEdge( cName, isSatDiagn, isSatDiagnEdge )
+
+          ! Zero SatDiagn counter
+          IF ( isSatDiagn .and. State_Diag%Archive_SatDiagnCount ) THEN
+             State_Diag%SatDiagnCount = 0.0_f8
+          ENDIF
+
+          ! Zero SatDiagnEdge counter
+          IF ( isSatDiagnEdge .and. State_Diag%Archive_SatDiagnEdgeCount ) THEN
+             State_Diag%SatDiagnEdgeCount = 0.0_f8
+          ENDIF
        ENDIF
 
        ! Skip to the next collection
@@ -3094,15 +3146,6 @@ CONTAINS
     !=======================================================================
     ! Cleanup & quit
     !=======================================================================
-
-    ! If we have called History_Netcdf_Write (i.e. DoWrite == T), then
-    ! reset the satellite diagnostics counter, as we have now entered the
-    ! next diagnostic interval.  We need to do this here instead of in
-    ! History_Netcdf_Write as there are multiple satellite diagnostic
-    ! collections (SatDiagn, SatDiagnEdge).
-    IF ( State_Diag%Archive_SatDiagnCount .and. DoWrite ) THEN
-       State_Diag%SatDiagnCount = 0.0_f8
-    ENDIF
 
     ! Free pointers
     Container  => NULL()

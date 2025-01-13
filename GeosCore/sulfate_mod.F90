@@ -996,6 +996,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE ErrCode_Mod,          ONLY : GC_WARNING
     USE ERROR_MOD,            ONLY : ERROR_STOP,  IT_IS_NAN
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Mod,          ONLY : SpcConc
@@ -1169,7 +1170,7 @@ CONTAINS
     DgnName = 'SO4_ANTH'
     CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, DgnName, .FALSE., ERR, Ptr3D=Ptr3D )
     IF ( .NOT. ASSOCIATED(Ptr3D) ) THEN
-       CALL HCO_WARNING('Not found: '//TRIM(DgnName),ERR,THISLOC=LOC)
+       IF ( Input_Opt%amIRoot ) CALL GC_WARNING('Not found: '//TRIM(DgnName),RC,LOC)
     ELSE
        SO4_ANTH = Ptr3D(:,:,:)
     ENDIF
