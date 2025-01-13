@@ -7,6 +7,7 @@
 #============================================================================
 simulation:
   name: ${RUNDIR_SIM_NAME}
+  met_field: ${RUNDIR_MET}
   chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
   species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
@@ -30,6 +31,7 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   transport:
+    activate: true
     transported_species:
       - CH4
       - CO
@@ -71,20 +73,11 @@ CO_simulation_options:
 CO2_simulation_options:
 
   sources:
-    fossil_fuel_emissions: true
-    ocean_exchange: true
-    balanced_biosphere_exchange: true
-    net_terrestrial_exchange: true
-    ship_emissions: true
-    aviation_emissions: true
     3D_chemical_oxidation_source: true
 
   tagged_species:
-    save_fossil_fuel_in_background: false
     tag_bio_and_ocean_CO2: false
-    tag_land_fossil_fuel_CO2: 
-    tag_global_ship_CO2: false
-    tag_global_aircraft_CO2: false
+    tag_land_fossil_fuel_CO2: false
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)

@@ -66,7 +66,20 @@ operations:
      use_non_local_pbl: true 
 
   photolysis:
-    input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/FAST_JX/v2021-10/
+    activate: true
+    cloud-j:
+      num_levs_with_cloud: 20
+      cloud_scheme_flag: 3
+      opt_depth_increase_factor: 1.050
+      min_top_inserted_cloud_OD: 0.005
+      cloud_overlap_correlation: 0.33
+      num_cloud_overlap_blocks: 6
+      sphere_correction: 1
+      num_wavelength_bins: 18
+      use_H2O_UV_absorption: true
+    input_directories:
+      fastjx_input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/FAST_JX/v2024-05/
+      cloudj_input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/CLOUD_J/v2024-09/
     overhead_O3:
       use_online_O3_from_model: true 
       use_column_O3_from_met: true
@@ -92,18 +105,32 @@ operations:
     transported_species:
       - ACET
       - ACTA
+      - ACR
       - AERI
       - ALD2
       - ALK4
+      - ALK4N2
+      - ALK4P
+      - ALK6
       - AONITA
+      - APAN
+      - APINP
+      - APINN
+      - AROMCHO
       - AROMP4
       - AROMP5
+      - AROMPN
       - ATOOH
       - BALD
       - BCPI
       - BCPO
       - BENZ
       - BENZP
+      - BPINO
+      - BPINN
+      - BPINP
+      - BPINOOH
+      - BPINON
       - Br
       - Br2
       - BrCl
@@ -112,12 +139,17 @@ operations:
       - BrO
       - BrSALA
       - BrSALC
+      - BUTDI
+      - BUTN
       - BZCO3H
       - BZPAN
+      - C96O2H
+      - C96N
       - C2H2
       - C2H4
       - C2H6
       - C3H8
+      - C4H6
       - CCl4
       - CFC11
       - CFC113
@@ -152,14 +184,17 @@ operations:
       - DST2
       - DST3
       - DST4
+      - EBZ
       - EOH
       - ETHLN
       - ETHN
       - ETHP
       - ETNO3
       - ETP
+      - FURA
       - GLYC
       - GLYX
+      - HACTA
       - H1211
       - H1301
       - H2402
@@ -226,7 +261,15 @@ operations:
       - ISOP
       - ITCN
       - ITHN
+      - LIMAL
+      - LIMKB
+      - LIMKET
+      - LIMN
+      - LIMNB
       - LIMO
+      - LIMO2H
+      - LIMO3H
+      - LIMPAN
       - LVOC
       - LVOCOA
       - MACR
@@ -239,6 +282,7 @@ operations:
       - MCRHP
       - MCT
       - MEK
+      - MEKPN
       - MENO3
       - MGLY
       - MOH
@@ -258,6 +302,7 @@ operations:
       - MVKHP
       - MVKN
       - MVKPC
+      - MYRCO
       - N2O
       - N2O5
       - NH3
@@ -277,7 +322,13 @@ operations:
       - OIO
       - PAN
       - pFe
+      - PHAN
       - PHEN
+      - PIN
+      - PINAL
+      - PINONIC
+      - PINO3H
+      - PINPAN
       - PIP
       - PP
       - PPN
@@ -287,13 +338,17 @@ operations:
       - PYAC
       - R4N2
       - R4P
+      - R7N2
+      - R7P
       - RA3P
       - RB3P
       - RCHO
+      - RCOOH
       - RIPA
       - RIPB
       - RIPC
       - RIPD
+      - RNO3
       - RP
       - SALA
       - SALAAL
@@ -306,8 +361,11 @@ operations:
       - SO4s
       - SOAGX
       - SOAIE
-      - SOAS
       - SOAP
+      - SOAS
+      - STYR
+      - TLFUONE
+      - TMB
       - TOLU
       - XYLE
 
@@ -318,6 +376,9 @@ operations:
 # Settings for GEOS-Chem aerosols
 #============================================================================
 aerosols:
+
+  optics:
+    input_dir: /n/holyscratch01/external_repos/GEOS-CHEM/gcgrid/data/ExtData/CHEM_INPUTS/Aerosol_Optics/v2024-08/
 
   carbon:
     activate: true
@@ -374,56 +435,3 @@ extra_diagnostics:
     activate: false
     flight_track_file: Planeflight.dat.YYYYMMDD
     output_file: plane.log.YYYYMMDD
-
-  legacy_bpch:                #          1         2         3
-    output_menu:             # 1234567890123456789012345678901
-      schedule_output_for_JAN: 3000000000000000000000000000000
-      schedule_output_for_FEB: 30000000000000000000000000000
-      schedule_output_for_MAR: 3000000000000000000000000000000
-      schedule_output_for_APR: 300000000000000000000000000000
-      schedule_output_for_MAY: 3000000000000000000000000000000
-      schedule_output_for_JUN: 300000000000000000000000000000
-      schedule_output_for_JUL: 3000000000000000000000000000000
-      schedule_output_for_AUG: 3000000000000000000000000000000
-      schedule_output_for_SEP: 300000000000000000000000000000
-      schedule_output_for_OCT: 3000000000000000000000000000000
-      schedule_output_for_NOV: 300000000000000000000000000000
-      schedule_output_for_DEC: 3000000000000000000000000000000
-
-    gamap:
-      diaginfo_dat_file: ./diaginfo.dat
-      tracerinfo_dat_file: ./tracerinfo.dat
-
-    bpch_diagnostics:
-      TOMAS_aerosol_emissions: "0 all"
-      TOMAS_rate: "0 all"
-      TOMAS_3D_rate: "0 all"
-      ND65_prodloss:
-        activate: true
-        number_of_levels: 72
-
-    ND51_satellite:
-      activate: false
-      output_file: ts_satellite.YYYYMMDD.bpch
-      tracers:
-        - 1
-        - 2
-        - 501
-      UTC_hour_for_write: 0
-      averaging_period_in_LT: [9, 11]
-      IMIN_and_IMAX_of_region: [1, 72]
-      JMIN_and_JMAX_of_region: [1, 46]
-      LMIN_and_LMAX_of_region: [1, 1]
-
-    ND51b_satellite:
-      activate: false
-      output_file: ts_13_15_NA..YYYYMMDD.bpch
-      tracers:
-        - 1
-        - 2
-        - 501
-      UTC_hour_for_write: 1
-      averaging_period_in_LT: [13, 15]
-      IMIN_and_IMAX_of_region: [1, 72]
-      JMIN_and_JMAX_of_region: [1, 46]
-      LMIN_and_LMAX_of_region: [1, 1]

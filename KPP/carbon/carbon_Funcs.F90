@@ -193,7 +193,7 @@ CONTAINS
        C(ind_FixedCl) = ConcClMnd
 
        ! CH4 + offline OH reaction rate [1/s]
-       ! This is a pseudo-2nd order rate appropriate for CH4 + OH
+       ! Use rates saved from full-chemistry run (if CH4 is not advected)
        IF ( PCO_fr_CH4_use ) THEN
           k_Trop(1) = PCO_fr_CH4 * OHdiurnalFac
           k_Trop(1) = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
@@ -261,10 +261,10 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                &
-             I,         J,          L,        id_CH4,     id_CO,             &
-             id_COch4,  id_COnmvoc, id_CO2,   xnumol_CH4, xnumol_CO2,        &
-             xnumol_CO, State_Chm,  State_Met                               )
+  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                     &
+             I,         J,          L,          id_CH4,                      &
+             id_CO,     id_CO2,     xnumol_CH4, xnumol_CO2,                  &
+             xnumol_CO,  State_Chm, State_Met                               )
 !
 ! !USES:
 !
@@ -277,8 +277,6 @@ CONTAINS
     INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
     INTEGER,        INTENT(IN)    :: id_CH4       ! Species index for CH4
     INTEGER,        INTENT(IN)    :: id_CO        ! Species index for CO
-    INTEGER,        INTENT(IN)    :: id_COch4     ! Species index for COch4
-    INTEGER,        INTENT(IN)    :: id_COnmvoc   ! Species index for COnmvoc
     INTEGER,        INTENT(IN)    :: id_CO2       ! Species index for CO2
     REAL(fp),       INTENT(IN)    :: xnumol_CH4   ! kg CH4 / molec CH4
     REAL(fp),       INTENT(IN)    :: xnumol_CO    ! kg CO  / molec CO
@@ -318,15 +316,6 @@ CONTAINS
     IF ( id_CO > 0 ) THEN
        convfac_CO             = airvol_cm3 / xnumol_CO
        Spc(id_CO)%Conc(I,J,L) = C(ind_CO)  * convfac_CO
-
-       IF ( id_COch4 > 0 ) THEN
-          Spc(id_COch4)%Conc(I,J,L) = C(ind_COfromCH4) * convfac_CO
-       ENDIF
-
-       IF ( id_COnmvoc > 0 ) THEN
-          Spc(id_COnmvoc)%Conc(I,J,L) = C(ind_COfromNMVOC) * convfac_CO
-       ENDIF
-
     ENDIF
 
     IF ( id_CO2 > 0 ) THEN

@@ -19,6 +19,7 @@ add_library(GeosCore
   STATIC EXCLUDE_FROM_ALL
   aero_drydep.F90
   aerosol_mod.F90
+  aerosol_thermodynamics_mod.F90
   airs_ch4_mod.F90
   calc_met_mod.F90
   carbon_mod.F90
@@ -30,16 +31,13 @@ add_library(GeosCore
   co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
-  diag_mod.F90
   diagnostics_mod.F90
-  diag3.F90
   drydep_mod.F90
   dust_mod.F90
   emissions_mod.F90
   fast_jx_mod.F90
   fjx_interface_mod.F90
   fullchem_mod.F90
-  gamap_mod.F90
   gc_environment_mod.F90
   get_ndep_mod.F90
   global_br_mod.F90
@@ -49,9 +47,8 @@ add_library(GeosCore
   hco_state_gc_mod.F90
   hco_interface_gc_mod.F90
   hco_utilities_gc_mod.F90
-  initialize.F90
   input_mod.F90
-  isorropiaII_mod.F90
+  kppsa_interface_mod.F90
   land_mercury_mod.F90
   linear_chem_mod.F90
   linoz_mod.F90
@@ -59,7 +56,6 @@ add_library(GeosCore
   mercury_mod.F90
   mixing_mod.F90
   modis_lai_mod.F90
-  ndxx_setup.F90
   ocean_mercury_mod.F90
   olson_landmap_mod.F90
   pbl_mix_mod.F90
@@ -107,9 +103,9 @@ endif()
 # Define dependencies for libGeosCore.a
 target_link_libraries(GeosCore PUBLIC
   ObsPack 
-  History 
-  Isorropia 
+  History
   KPP
+  HETP_core
   $<LINK_ONLY:HCOI_Shared>    # link only to avoid gathering the rest of the TURs
   $<$<BOOL:${APM}>:APM>       # depends on APM iff APM is true
   $<$<BOOL:${RRTMG}>:GeosRad> # depends on GeosRad iff RRTMG is true

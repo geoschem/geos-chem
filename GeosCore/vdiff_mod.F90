@@ -111,8 +111,8 @@ CONTAINS
                     sflx,       thp_arg,   pblh_arg,                         &
                     kvh_arg,    kvm_arg,   tpert_arg,  qpert_arg,            &
                     cgs_arg,    shp,       wvflx_arg,  plonl,                &
-                    Input_Opt,  State_Met, State_Chm,  State_Diag,           &
-                    taux_arg,   tauy_arg,  ustar_arg,  RC                   )
+                    Input_Opt,  State_Met, State_Grid, State_Chm,            &
+                    State_Diag, taux_arg,   tauy_arg,  ustar_arg,  RC        )
 !
 ! !USES:
 !
@@ -122,6 +122,7 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
 
     implicit none
 !
@@ -145,6 +146,7 @@ CONTAINS
          wvflx_arg(:,:)            ! water vapor flux (kg/m2/s)
     TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meteorology State object
+    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -683,7 +685,7 @@ CONTAINS
        !   including pre-mixing mass and surface flux (emis+drydep)
        sum_qp0 = sum(qp0(I,ntopfl:plev,M) * &
                  State_Met%AD(I,lat,plev-ntopfl+1:1:-1)) &
-               + dqbot(I,M) * State_Met%AD(I,lat,1)
+               + (cflx(I,M) * State_Grid%AREA_M2(I,lat) * ztodt)
 
        ! total mass in the PBL (ignoring the v/v -> m/m conversion)
        sum_qp1 = sum(qp1(I,ntopfl:plev,M) * &
@@ -1379,255 +1381,6 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: vdiffar
-!
-! !DESCRIPTION: Subroutine VDIFFAR is the driver routine to compute vertical
-!  diffusion of trace constituents using archived coefficients for cgs and kvh.
-!  This is a gutted version of vdiff.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE VDIFFAR( lat   ,tadv , &
-                      pmid  ,pint ,rpdel_arg ,rpdeli_arg  ,ztodt, &
-                      sflx  ,as2  ,kvh_arg   ,cgs_arg     ,plonl )
-!
-! !USES:
-!
-    implicit none
-!
-! !INPUT PARAMETERS:
-!
-    integer, intent(in) :: lat     ! latitude index
-    integer, intent(in) :: plonl   ! lon tile dim
-    real(fp), intent(in) :: &
-         ztodt , &                 ! 2 delta-t
-         tadv(:,:,:), &        ! temperature input
-         pmid(:,:,:), &     ! midpoint pressures
-         pint(:,:,:), &    ! interface pressures
-         rpdel_arg(:,:,:), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli_arg(:,:,:), &     ! 1./pdeli (thickness bet midpoints)
-         sflx(:,:,:), &      ! surface constituent flux (kg/m2/s)
-         kvh_arg(:,:,:), &       ! coefficient for heat and tracers
-         cgs_arg(:,:,:)          ! counter-grad star (cg/flux)
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    real(fp), intent(inout) :: &
-         as2(:,:,:,:)     ! moist, tracers after vert. diff
-!
-! !REVISION HISTORY:
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    real(fp) :: &
-         cah(plonl,plev), &        ! -upper diag for heat and constituts
-         cch(plonl,plev), &        ! -lower diag for heat and constits
-         cgq(plonl,plevp,nspcmix),&! countergrad term for constituent
-         potbar(plonl,plevp), &    ! pintm1(k)/(.5*(tm1(k)+tm1(k-1))
-         tmp1(plonl), &            ! temporary storage
-         tmp2, &                   ! temporary storage
-         ztodtgor, &               ! ztodt*gravit/rair
-         gorsq, &                  ! (gravit/rair)**2
-         dqbot(plonl,nspcmix), &   ! lowest layer q change from const flx
-         qmx(plonl,plev,nspcmix),& ! constituents input + counter grad
-         zeh(plonl,plev), &        ! term in tri-diag. matrix system (t & q)
-         termh(plonl,plev)         ! 1./(1. + cah(k) + cch(k) - cch(k)*zeh(k-1))
-    integer :: &
-         indx(plonl), &        ! array of indices of potential q<0
-         ilogic(plonl), &      ! 1 => adjust vertical profile
-         nval, &               ! num of values which meet criteria
-         ii                    ! longitude index of found points
-    integer :: &
-         i, &                  ! longitude index
-         k, &                  ! vertical index
-         m                     ! constituent index
-
-    real(fp) :: &
-         tm1(plonl,plev), &        ! temperature input
-         pmidm1(plonl,plev), &     ! midpoint pressures
-         pintm1(plonl,plevp), &    ! interface pressures
-         rpdel(plonl,plev), &      ! 1./pdel  (thickness bet interfaces)
-         rpdeli(plonl,plev), &     ! 1./pdeli (thickness bet midpoints)
-         cflx(plonl,nspcmix), &    ! surface constituent flux (kg/m2/s)
-         kvh(plonl,plevp), &       ! coefficient for heat and tracers
-         cgs(plonl,plevp)          ! counter-grad star (cg/flux)
-    real(fp) :: &
-         qp1(plonl,plev,nspcmix)   ! moist, tracers after vert. diff
-    !=================================================================
-    ! vdiffar begins here!
-    !=================================================================
-
-    ! Zero/initialize local variables for safety's sake
-    indx   = 0
-    ilogic = 0
-    cah    = 0.0_fp
-    cch    = 0.0_fp
-    cgq    = 0.0_fp
-    potbar = 0.0_fp
-    tmp1   = 0.0_fp
-    dqbot  = 0.0_fp
-    qmx    = 0.0_fp
-    zeh    = 0.0_fp
-    termh  = 0.0_fp
-    tm1    = tadv(:,lat,:)
-    pmidm1 = pmid(:,lat,:)
-    pintm1 = pint(:,lat,:)
-    rpdel  = rpdel_arg(:,lat,:)
-    rpdeli = rpdeli_arg(:,lat,:)
-    cflx   = sflx(:,lat,:)
-    kvh    = kvh_arg(:,lat,:)
-    cgs    = cgs_arg(:,lat,:)
-    qp1    = as2(:,lat,:,:)
-
-!-----------------------------------------------------------------------
-! 	... convert the surface fluxes to lowest level tendencies
-!-----------------------------------------------------------------------
-    do i = 1,plonl
-       tmp1(i) = ztodt*gravit*rpdel(i,plev)
-    end do
-    do m = 1,nspcmix
-       do i = 1,plonl
-          dqbot(i,m) = cflx(i,m)*tmp1(i)
-       end do
-    end do
-
-!-----------------------------------------------------------------------
-! 	... counter gradient terms:
-!-----------------------------------------------------------------------
-    call pbldifar( tm1, pmidm1, cflx, cgs, cgq, plonl )
-
-!-----------------------------------------------------------------------
-! 	... add the counter grad terms to potential temp, specific humidity
-!           and other constituents in the bdry layer. note, npbl gives the max
-!           num of levels which are permitted to be within the boundary layer.
-!-----------------------------------------------------------------------
-!-----------------------------------------------------------------------
-! 	... first set values above boundary layer
-!-----------------------------------------------------------------------
-    do k = 1,plev-npbl
-       do m = 1,nspcmix
-          qmx(:,k,m) = qp1(:,k,m)
-       end do
-    end do
-    do k = 2,plev
-       potbar(:,k) = pintm1(:,k)/(0.5_fp*(tm1(:,k) + tm1(:,k-1)))
-    end do
-    potbar(:,plevp) = pintm1(:,plevp)/tm1(:,plev)
-
-!-----------------------------------------------------------------------
-! 	... now focus on the boundary layer
-!-----------------------------------------------------------------------
-    ztodtgor = ztodt*gravit/rair
-    do k = plev-npbl+1,plev
-       do i = 1,plonl
-          tmp1(i) = ztodtgor*rpdel(i,k)
-       end do
-       do m = 1,nspcmix
-          do i = 1,plonl
-             qmx(i,k,m) = qp1(i,k,m) + tmp1(i)*(potbar(i,k+1)*kvh(i,k+1)* &
-                          cgq(i,k+1,m) - potbar(i,k)*kvh(i,k)*cgq(i,k,m))
-          end do
-       end do
-    end do
-
-!-----------------------------------------------------------------------
-! 	... check for neg qs in each constituent and put the original vertical
-!           profile back if a neg value is found. a neg value implies that the
-!           quasi-equilibrium conditions assumed for the countergradient term are
-!           strongly violated.
-!           original code rewritten by rosinski 7/8/91 to vectorize in longitude.
-!-----------------------------------------------------------------------
-    do m = 1,nspcmix
-       ilogic(:plonl) = 0
-       do k = plev-npbl+1,plev
-          do i = 1,plonl
-             if( qmx(i,k,m) < qmincg(m) ) then
-                ilogic(i) = 1
-             end if
-          end do
-       end do
-!-----------------------------------------------------------------------
-! 	... find long indices of those columns for which negatives were found
-!-----------------------------------------------------------------------
-       nval = count( ilogic(:plonl) == 1 )
-
-!-----------------------------------------------------------------------
-! 	... replace those columns with original values
-!-----------------------------------------------------------------------
-       if( nval > 0 ) then
-          do k = plev-npbl+1,plev
-             where( ilogic(:plonl) == 1 )
-                qmx(:plonl,k,m) = qp1(:plonl,k,m)
-             endwhere
-          end do
-       end if
-    end do
-
-!-----------------------------------------------------------------------
-! 	... determine superdiagonal (ca(k)) and subdiagonal (cc(k)) coeffs
-!           of the tridiagonal diffusion matrix. the diagonal elements are a
-!           combination of ca and cc; they are not explicitly provided to the
-!           solver
-!-----------------------------------------------------------------------
-    gorsq = (gravit/rair)**2
-    do k = ntopfl,plev-1
-       do i = 1,plonl
-          tmp2 = ztodt*gorsq*rpdeli(i,k)*(potbar(i,k+1)**2)
-          cah(i,k  ) = kvh(i,k+1)*tmp2*rpdel(i,k  )
-          cch(i,k+1) = kvh(i,k+1)*tmp2*rpdel(i,k+1)
-       end do
-    end do
-!-----------------------------------------------------------------------
-! 	... the last element of the upper diagonal is zero.
-!-----------------------------------------------------------------------
-    do i = 1,plonl
-       cah(i,plev) = 0.0_fp
-    end do
-!-----------------------------------------------------------------------
-! 	... calculate e(k) for heat vertical diffusion.  this term is
-!           required in solution of tridiagonal matrix defined by implicit
-!           diffusion eqn.
-!-----------------------------------------------------------------------
-    do i = 1,plonl
-       termh(i,ntopfl) = 1.0_fp/(1.0_fp + cah(i,ntopfl))
-       zeh(i,ntopfl) = cah(i,ntopfl)*termh(i,ntopfl)
-    end do
-    do k = ntopfl+1,plev-1
-       do i = 1,plonl
-          termh(i,k) = 1.0_fp/(1.0_fp + cah(i,k) + cch(i,k) &
-                      - cch(i,k)*zeh(i,k-1))
-          zeh(i,k) = cah(i,k)*termh(i,k)
-       end do
-    end do
-!-----------------------------------------------------------------------
-! 	... diffuse constituents
-!-----------------------------------------------------------------------
-    call qvdiff( nspcmix, qmx, dqbot, cch, zeh, &
-	         termh, qp1, plonl )
-!-----------------------------------------------------------------------
-! 	... identify and correct constituents exceeding user defined bounds
-!-----------------------------------------------------------------------
-!      call qneg3( 'vdiff   ', lat, qp1(1,1,1), plonl )
-!     simplified treatment
-    where (qp1 < 0.0_fp)
-       qp1 = 0.0_fp
-    endwhere
-
-    !Output values from local variables to arguments.(ccc, 11/17/09)
-    as2(:,lat,:,:) = qp1
-
-  END SUBROUTINE VDIFFAR
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
 ! !IROUTINE: pbldifar
 !
 ! !DESCRIPTION: Subroutine PBLDIFAR is a modified version of pbldif which only
@@ -2062,7 +1815,8 @@ CONTAINS
        ENDDO
 
        ! PEDGE at the top of the atmosphere
-       pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)
+       pint(I,J,State_Grid%NZ+1) = State_Met%PEDGE(I,J,State_Grid%NZ+1)     &
+                                 * 100.0_fp
 
        ! Corrected calculation of zm.
        ! Box height calculation now uses virtual temperature.
@@ -2112,12 +1866,6 @@ CONTAINS
     p_kvm    => kvm                (:, :, State_Grid%NZ+1:1:-1           )
     p_cgs    => cgs                (:, :, State_Grid%NZ+1:1:-1           )
 
-    ! Convert v/v -> m/m (i.e., kg/kg)
-    DO NA = 1, nAdvect
-       State_Chm%Species(NA)%Conc(:,:,:) = State_Chm%Species(NA)%Conc(:,:,:)                                     &
-                       / ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
-    ENDDO
-
     ! Convert g/kg -> kg/kg
     p_shp              =  p_shp * 1.e-3_fp
 
@@ -2130,14 +1878,15 @@ CONTAINS
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( J, EC  )
     DO J = 1, State_Grid%NY
-       CALL Vdiff( J,                 1,         p_um1,     p_vm1,           &
-                   p_tadv,            p_pmid,    p_pint,    p_rpdel,         &
-                   p_rpdeli,          dtime,     p_zm,      p_hflux,         &
-                   p_sflx,            p_thp,     p_pblh,                     &
-                   p_kvh,             p_kvm,     tpert,     qpert,           &
-                   p_cgs,             p_shp,     shflx,     State_Grid%NX,   &
-                   Input_Opt,         State_Met, State_Chm, State_Diag,      &
-                   ustar_arg=p_ustar, RC=EC                                 )
+       CALL Vdiff( J,                 1,         p_um1,      p_vm1,           &
+                   p_tadv,            p_pmid,    p_pint,     p_rpdel,         &
+                   p_rpdeli,          dtime,     p_zm,       p_hflux,         &
+                   p_sflx,            p_thp,     p_pblh,                      &
+                   p_kvh,             p_kvm,     tpert,      qpert,           &
+                   p_cgs,             p_shp,     shflx,      State_Grid%NX,   &
+                   Input_Opt,         State_Met, State_Grid,                  &
+                   State_Chm,         State_Diag,                             &
+                   ustar_arg=p_ustar, RC=EC                                   )
     ENDDO
     !$OMP END PARALLEL DO
 
@@ -2145,12 +1894,6 @@ CONTAINS
     IF ( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### VDIFFDR: after vdiff' )
     ENDIF
-
-    ! Convert kg/kg -> v/v
-    DO NA = 1, nAdvect
-       State_Chm%Species(NA)%Conc(:,:,:) = State_Chm%Species(NA)%Conc(:,:,:)                                     &
-                       * ( AIRMW / State_Chm%SpcData(NA)%Info%MW_g )
-    ENDDO
 
     ! Convert kg/kg -> g/kg
     p_shp    = p_shp * 1.0e+3_fp
@@ -2210,6 +1953,7 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD,           ONLY : ITS_TIME_FOR_EMIS
     USE Time_Mod,           ONLY : Get_Ts_Dyn
+    USE Timers_Mod,         ONLY : Timer_End, Timer_Start
     USE UnitConv_Mod
 
     IMPLICIT NONE
@@ -2240,7 +1984,7 @@ CONTAINS
 !
     ! Scalars
     INTEGER            :: TS_Dyn
-    INTEGER            :: origUnit
+    INTEGER            :: previous_units
     REAL(fp)           :: DT_Dyn
 
     ! Strings
@@ -2301,27 +2045,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Unit conversion #1
-    !=======================================================================
-
-    ! Convert species concentration to [v/v dry] aka [mol/mol dry]
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = MOLES_SPECIES_PER_MOLES_DRY_AIR,                       &
-         origUnit   = origUnit,                                              &
-         RC         = RC                                                    )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units" (to mol.mol dry)!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    !=======================================================================
     ! PBL mixing
     !=======================================================================
 
@@ -2347,10 +2070,6 @@ CONTAINS
 
     ! Update air quantities and species concentrations with updated
     ! specific humidity (ewl, 10/28/15)
-    !
-    ! NOTE: Prior to October 2015, air quantities were not updated
-    ! with specific humidity modified in VDIFFDR at this point in
-    ! the model
     CALL AirQnt( Input_Opt, State_Chm, State_Grid,                           &
                  State_Met, RC,        Update_Mixing_Ratio=.TRUE.           )
 
@@ -2364,26 +2083,6 @@ CONTAINS
     ! Debug print
     IF( Input_Opt%Verbose ) THEN
        CALL DEBUG_MSG( '### DO_PBL_MIX_2: after AIRQNT' )
-    ENDIF
-
-    !=======================================================================
-    ! Unit conversion #2
-    !=======================================================================
-
-    ! Convert species back to the original units
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         outUnit    = origUnit,                                              &
-         RC         = RC                                                    )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountred in "Convert_Spc_Units"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
     !=======================================================================

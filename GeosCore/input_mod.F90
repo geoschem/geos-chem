@@ -233,8 +233,7 @@ CONTAINS
     !========================================================================
 
     ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_TagCH4_Sim .or. &
-         Input_Opt%Its_A_Carbon_Sim ) THEN
+    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -256,7 +255,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
 
     ! CO2/carbon simulation settings
     IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
@@ -320,65 +318,6 @@ CONTAINS
        CALL QFYAML_CleanUp( ConfigAnchored )
        RETURN
     ENDIF
-
-#ifdef BPCH_DIAG
-    ! GAMAP metadata files
-    ! (Skip if we are connecting to an external model)
-    CALL Config_Gamap( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Gamap"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
-    ! ND51 timeseries
-    ! (Skip if we are connecting to an external model)
-    CALL Config_ND51( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_ND51"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
-    ! ND51b timeseries
-    ! (Skip if we are connecting to an external model)
-    CALL Config_ND51b( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_ND51b"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
-    ! Bpch diagnostic output
-    ! (Skip if we are connecting to an external model)
-    CALL Config_Bpch_Output( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Bpch_Output"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-
-#ifdef TOMAS
-    ! Bpch prod & loss -- only needed for TOMAS
-    ! (Skip if we are connecting to an external model)
-    CALL Config_Bpch_ProdLoss( Config, Input_Opt, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error in "Config_Bpch_ProdLoss"!'
-       CALL GC_Error( errMsg, RC, thisLoc  )
-       CALL QFYAML_CleanUp( Config         )
-       CALL QFYAML_CleanUp( ConfigAnchored )
-       RETURN
-    ENDIF
-#endif
-#endif
 
     !========================================================================
     ! Check GEOS-CHEM timesteps
@@ -492,7 +431,6 @@ CONTAINS
          TRIM(Sim) /= 'HG'                                             .and. &
          TRIM(Sim) /= 'METALS'                                         .and. &
          TRIM(Sim) /= 'POPS'                                           .and. &
-         TRIM(Sim) /= 'TAGCH4'                                         .and. &
          TRIM(Sim) /= 'TAGCO'                                          .and. &
          TRIM(Sim) /= 'TAGO3'                                          .and. &
          TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
@@ -500,7 +438,7 @@ CONTAINS
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
                 ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
-                ' TransportTracers, TagCH4, TagCO, or TagO3.'
+                ' TransportTracers, TagCO, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -514,7 +452,6 @@ CONTAINS
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_TAGCH4_SIM     = ( TRIM(Sim) == 'TAGCH4'                )
     Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
@@ -672,10 +609,28 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
+#if defined( MODEL_GCHP )
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+#endif
+
+#if defined( MODEL_GEOS )
+    Input_Opt%MetField        = 'See ExtData.rc'
+#endif
+
     !------------------------------------------------------------------------
     ! Set other fields of Input_Opt accordingly
     !------------------------------------------------------------------------
-    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
     Input_Opt%RUN_DIR         = 'N/A'
 
@@ -849,14 +804,6 @@ CONTAINS
 
     ! Set the current time
     CALL Set_Current_Time()
-
-#ifdef BPCH_DIAG
-    !------------------------------------------------------------------------
-    ! Set the start of the 1st diagnostic interval
-    ! Only applies when GEOS-Chem is configured with -DBPCH_DIAG=y
-    !------------------------------------------------------------------------
-    CALL Set_DiagB( GET_TAU() )
-#endif
 
 #endif
 
@@ -1343,7 +1290,6 @@ CONTAINS
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
        IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
-            Input_Opt%ITS_A_TAGCH4_SIM  .or. &
             Input_Opt%ITS_A_CO2_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
@@ -1411,7 +1357,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput, Set_Input_Opt_Advect
+    USE Input_Opt_Mod, ONLY : OptInput
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -1591,14 +1537,9 @@ CONTAINS
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
     ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
-    ELSE IF ( Input_Opt%ITS_A_TAGCH4_SIM ) THEN
-       Input_Opt%LSPLIT = .TRUE.                      ! Always tag for this sim
     ELSE
        Input_Opt%LSPLIT = .FALSE.  
     ENDIF
-
-    ! Initialize arrays in Input_Opt that depend on N_ADVECT
-    CALL Set_Input_Opt_Advect( Input_Opt, RC )
 
   END SUBROUTINE Config_Transport
 !EOC
@@ -1662,6 +1603,20 @@ CONTAINS
     RC      = GC_SUCCESS
     errMsg  = ''
     thisLoc = ' -> at Config_Aerosol (in module GeosCore/input_mod.F90)'
+
+    !------------------------------------------------------------------------
+    ! Directories with aerosol optical property input files
+    !------------------------------------------------------------------------
+
+    key   = "aerosols%optics%input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%AER_OPTICS_DIR = TRIM( v_str )
 
     !------------------------------------------------------------------------
     ! Use online carbon aerosols?
@@ -1987,6 +1942,7 @@ CONTAINS
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 90  ) 'AEROSOL SETTINGS'
        WRITE( 6, 95  ) '----------------'
+       WRITE( 6, 125 ) 'Aerosol optical property dir: ', Input_Opt%AER_OPTICS_DIR
        WRITE( 6, 100 ) 'Online SULFATE AEROSOLS?    : ', Input_Opt%LSULF
        WRITE( 6, 100 ) 'Metal catalyzed SO2 ox.?    : ', Input_Opt%LMETALCATSO2
        WRITE( 6, 100 ) 'Online CARBON AEROSOLS?     : ', Input_Opt%LCARB
@@ -2023,6 +1979,7 @@ CONTAINS
 105 FORMAT( A, f8.2              )
 110 FORMAT( A, f8.2, ' - ', f8.2 )
 120 FORMAT( A, f8.2, 'K'         )
+125 FORMAT( A, A    )
 
   END SUBROUTINE Config_Aerosol
 !EOC
@@ -2076,12 +2033,12 @@ CONTAINS
     ! Initialize
     RC      = GC_SUCCESS
     errMsg  = ''
-    thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
+    thisLoc = ' -> at Config_CO (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2094,7 +2051,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2107,12 +2064,12 @@ CONTAINS
     !========================================================================
     ! Print to screen
     !========================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
-       WRITE(6,100) 'Use full chem. P(CO) from CH4?   :', Input_Opt%LPCO_CH4
-       WRITE(6,100) 'Use full chem. P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
+       WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
+       WRITE(6,100) 'Use archived P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
     ENDIF
 
     ! FORMAT statements
@@ -2174,87 +2131,9 @@ CONTAINS
     thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Use Fossil Fuel emissions?
+    ! Use archived fields of CO2 production from CO oxidation?
     !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%fossil_fuel_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LFOSSIL = v_bool
-
-    !------------------------------------------------------------------------
-    ! Use Ocean Exchange?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%ocean_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LOCEAN = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on (balanced) biosphere with diurnal cycle?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%balanced_biosphere_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LBIODIURNAL = v_bool
-
-    !------------------------------------------------------------------------
-    ! Use Net Terrestrial Exchange Climatology?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%net_terrestrial_exchange"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LBIONETCLIM = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on Ship emissions?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%ship_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LSHIP = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on Aviation emissions?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%aviation_emissions"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LPLANE = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on CO2 3D chemical source and surface correction?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%3D_chemical_oxidation_source"
+    key    = "CO2_simulation_options%sources%use_archived_PCO2_from_CO"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2263,19 +2142,6 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%LCHEMCO2 = v_bool
-
-    !------------------------------------------------------------------------
-    ! Background CO2 (no emissions or exchange) for Tagged-CO2 runs
-    !------------------------------------------------------------------------
-    key = "CO2_simulation_options%tagged_species%save_fossil_fuel_in_background"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LFFBKGRD = v_bool
 
     !------------------------------------------------------------------------
     ! Turn on biosphere and ocean exchange region tagged species?
@@ -2303,52 +2169,17 @@ CONTAINS
     ENDIF
     Input_Opt%LFOSSILTAG = v_bool
 
-    !------------------------------------------------------------------------
-    ! Turn on global ship emissions tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_global_ship_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LSHIPTAG = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on global aircraft emissions tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_global_aircraft_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LPLANETAG = v_bool
-
     !=================================================================
     ! Print to screen
     !=================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .and. Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'National Fossil Fuel Emission :', Input_Opt%LFOSSIL
-       WRITE( 6,100 ) 'Ocean CO2 Uptake/Emission     :', Input_Opt%LOCEAN
-       WRITE( 6,100 ) 'Biosphere seas/diurnal cycle  :', Input_Opt%LBIODIURNAL
-       WRITE( 6,100 ) 'Net Terr Exch - Climatology   :', Input_Opt%LBIONETCLIM
-       WRITE( 6,100 ) 'Intl/Domestic Ship emissions  :', Input_Opt%LSHIP
-       WRITE( 6,100 ) 'Intl/Domestic Aviation emiss  :', Input_Opt%LPLANE
-       WRITE( 6,100 ) 'CO2 from oxidation (CO,CH4,..):', Input_Opt%LCHEMCO2
+       WRITE( 6,100 ) 'Use archived P(CO2) from CO?  :', Input_Opt%LCHEMCO2
        WRITE( 6, 95 ) 'Tagged CO2 settings'
-       WRITE( 6,100 ) '  Save Fossil CO2 in Bckgrnd  :', Input_Opt%LFFBKGRD
        WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
        WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG
-       WRITE( 6,100 ) '  Tag Global Ship CO2         :', Input_Opt%LSHIPTAG
-       WRITE( 6,100 ) '  Tag Global Aviation CO2     :', Input_Opt%LPLANETAG
     ENDIF
 
     ! FORMAT statements
@@ -2965,6 +2796,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                      :: v_bool
+    INTEGER                      :: v_int
     REAL(yp)                     :: v_real
 
     ! Strings
@@ -2995,6 +2827,138 @@ CONTAINS
        RETURN
     ENDIF
     Input_Opt%Do_Photolysis = v_bool
+
+    !------------------------------------------------------------------------
+    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_levs_with_cloud"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%NLevs_Phot_Cloud = v_int
+
+    !------------------------------------------------------------------------
+    ! Cloud-J cloud scheme flag (Cloud-J var CLDFLAG)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%cloud_scheme_flag"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Flag = v_int
+
+    !------------------------------------------------------------------------
+    ! Factor increase in cloud OD from layer to next below (Cloud-J var ATAU)
+    !  - used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%opt_depth_increase_factor"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%OD_Increase_Factor = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Minimum cloud OD in uppermost inserted layer (Cloud-J var ATAU0)
+    !  - used for inserting extra cloud layers in Cloud-J
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%min_top_inserted_cloud_OD"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Min_Cloud_OD = Cast_and_RoundOff( v_str, places=4 )
+
+    !------------------------------------------------------------------------
+    ! Cloud correlation between max-overlap blocks (will set Cloud-J var CLDCOR)
+    ! NOTE:
+    !  - only used for cloud schemes 5 and above
+    !  - 0.00 = random
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%cloud_overlap_correlation"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Cloud_Corr = Cast_and_RoundOff( v_str, places=3 )
+
+    !------------------------------------------------------------------------
+    ! Number of blocks with correlated cloud overlap (will set Cloud-J var LNRG)
+    !  - only used for cloud schemes 5 and above
+    !  - limited values possible: 0 = max-ran @ gaps, 3 = alt blocks, 6 = max-overlap
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_cloud_overlap_blocks"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_Max_Overlap = v_int
+
+    !------------------------------------------------------------------------
+    ! Spherical Earth atmospheric correction (will set Cloud-J var ATM0)
+    !  0 = flag
+    !  1 = spherical (standard)
+    !  2 = refractive
+    !  3 = geometric
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%sphere_correction"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Sphere_Correction = v_int
+
+    !------------------------------------------------------------------------
+    ! Number of wavelength bins in UV-Vis (will set Cloud-J var NWBIN)
+    ! - limited values possible
+    !  18 = standard full Fast-J
+    !  12 = trop-only (0% err in trop, 33% performance savings)
+    !   8 = trop-only (1-2% error in J-02 and J-OCS in upper trop, big savings)
+    !------------------------------------------------------------------------
+    key   = "operations%photolysis%cloud-j%num_wavelength_bins"
+    v_int = MISSING_INT
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%Num_WV_Bins = v_int
+
+    !------------------------------------------------------------------------
+    ! Whether to use absorption of UV by water vapor
+    !------------------------------------------------------------------------
+    key    = "operations%photolysis%cloud-j%use_H2O_UV_absorption"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%USE_H2O_UV_Abs = v_bool
 
     !------------------------------------------------------------------------
     ! Directories with photolysis input files
@@ -3076,7 +3040,7 @@ CONTAINS
     ! Scalar for JHNO3 for photoylsing NITs aerosol
     !------------------------------------------------------------------------
     key    = &
-     "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale_JHNO3"
+     "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3090,7 +3054,7 @@ CONTAINS
     ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
     !------------------------------------------------------------------------
     key    = &
-     "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale_JHNO2"
+     "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3207,6 +3171,16 @@ CONTAINS
                        TRIM( Input_Opt%FAST_JX_DIR )
        WRITE( 6,120 ) 'Cloud-J input directory     : ',                      &
                        TRIM( Input_Opt%CloudJ_Dir )
+       WRITE( 6,130 ) 'Number levels with cloud    : ',                      &
+                       Input_Opt%Nlevs_Phot_Cloud
+       WRITE( 6,130 ) 'Cloud-J cloud flag          : ', Input_Opt%Cloud_Flag
+       WRITE( 6,105 ) 'Layer OD increase factor    : ', Input_Opt%OD_Increase_Factor
+       WRITE( 6,105 ) 'Min cloud OD at top         : ', Input_Opt%Min_Cloud_OD
+       WRITE( 6,105 ) 'Cloud correlation           : ', Input_Opt%Cloud_Corr
+       WRITE( 6,130 ) 'Max # of overlap bins       : ', Input_Opt%Num_Max_Overlap
+       WRITE( 6,130 ) 'Sphere correction           : ', Input_Opt%Sphere_Correction
+       WRITE( 6,130 ) 'Number of wavelength bins   : ', Input_Opt%Num_WV_Bins
+       WRITE( 6,100 ) 'Use H2O UV absorption?      : ', Input_Opt%USE_H2O_UV_Abs
        WRITE( 6,100 ) 'Use online ozone?           : ', Input_Opt%USE_ONLINE_O3
        WRITE( 6,100 ) 'Use ozone from met?         : ',                      &
                        Input_Opt%USE_O3_FROM_MET
@@ -3234,7 +3208,8 @@ CONTAINS
 105 FORMAT( A, F8.3 )
 110 FORMAT( A, F4.2 )
 120 FORMAT( A, A    )
-
+130 FORMAT( A, I5   )
+    
     END SUBROUTINE Config_Photolysis
 !EOC
 !------------------------------------------------------------------------------
@@ -3245,7 +3220,9 @@ CONTAINS
 ! !IROUTINE: config_convection_mixing
 !
 ! !DESCRIPTION: Copies convection & PBL mixing information from the Config
-!  object to Input_Opt, and does necessary checks.
+!  object to Input_Opt, and does necessary checks. Also sets whether
+!  to reconstruct convective precipitation flux based on meteorology
+!  source and simulation start date.
 !\\
 !\\
 ! !INTERFACE:
@@ -3329,12 +3306,39 @@ CONTAINS
     ENDIF
     Input_Opt%LNLPBL = v_bool
 
+    !------------------------------------------------------------------------
+    ! Other settings based on inputs
+    !------------------------------------------------------------------------
+
     ! Set the PBL drydep flag. This determines if dry deposition is
     ! applied (and drydep frequencies are calculated) over the entire
     ! PBL or the first model layer only. For now, set this value
     ! automatically based upon the selected PBL scheme: 1st model layer
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
+
+    ! Set whether to reconstruct convective precipitation flux based on
+    ! meteorology source and simulation start date. This is important for
+    ! avoiding a bug where convective precipitation met-fields are all zero
+    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    !
+    ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
+    ! is the same as simulation year and (2) the simulation does not
+    ! run across June 1, 2020. Use the following rules to ensure your
+    ! simulation is correct:
+    !   (1) Manually update code below if GEOS-FP data year is
+    !       different than simulation year:
+    !          - Set to .FALSE. if data is prior to June 1, 2020
+    !          - Set to .TRUE. if data is on or after June 1, 2020
+    !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
+    !       up the run in time to avoid this.
+    IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+    ELSE
+       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+    ENDIF
 
     ! Return success
     RC = GC_SUCCESS
@@ -3346,6 +3350,16 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
+       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
+            Input_Opt%Reconstruct_Conv_Precip_Flux
+
+       IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
+          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
+          ELSE
+             WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
+          ENDIF
+       ENDIF
 
        WRITE( 6, 90  ) 'PBL MIXING SETTINGS'
        WRITE( 6, 95  ) '-------------------'
@@ -3501,7 +3515,6 @@ CONTAINS
 
     ! Turn off wetdep for simulations that don't need it
     IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCH4_SIM  ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
@@ -3543,240 +3556,6 @@ CONTAINS
   END SUBROUTINE Config_DryDep_WetDep
 !!EOC
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
-#ifdef BPCH_DIAG
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_gamap
-!
-! !DESCRIPTION: Copies GAMAP information from the Config object
-!  to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_Gamap( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  25 Apr 2005 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    !========================================================================
-    ! Config_Gamap begins here!
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Config_Gamap (in module GeosCore/input_mod.F90)'
-
-    !------------------------------------------------------------------------
-    ! diaginfo.dat
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%gamap%diaginfo_dat_file"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%GAMAP_DIAGINFO = TRIM( ADJUSTL( v_str ) )
-
-    !------------------------------------------------------------------------
-    ! tracerinfo.dat
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%gamap%tracerinfo_dat_file"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%GAMAP_TRACERINFO = TRIM( ADJUSTL( v_str ) )
-
-    !========================================================================
-    ! Print to screen
-    !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'GAMAP SETTINGS (when -DBPCH_DIAG=y)'
-       WRITE( 6, '(  a)' ) '-----------------------------------'
-       WRITE( 6, '(a,a)' ) 'GAMAP "diaginfo.dat"   file : ',                 &
-                            TRIM( Input_Opt%GAMAP_DIAGINFO   )
-       WRITE( 6, '(a,a)' ) 'GAMAP "tracerinfo.dat" file : ',                 &
-                            TRIM( Input_Opt%GAMAP_TRACERINFO )
-    ENDIF
-
-  END SUBROUTINE Config_Gamap
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_bpch_output
-
-! !DESCRIPTION: Copies bpch output information from the Config object
-!  to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_Bpch_Output( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE QFYAML_Mod,     ONLY : QFYAML_t
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    INTEGER                      :: N
-    INTEGER                      :: v_int
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! String arrays
-    CHARACTER(LEN=3)             :: mon(12)=  (/'JAN', 'FEB', 'MAR', 'APR',  &
-                                                'MAY', 'JUN', 'JUL', 'AUG',  &
-                                                'SEP', 'OCT', 'NOV', 'DEC'/)
-
-    !========================================================================
-    ! Config_Bpch_Output begins here!
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Config_Bpch_Output (in module GeosCore/input_mod.F90)'
-
-    !========================================================================
-    ! Read data into the Input_Opt%NJDAY array
-    !========================================================================
-    DO N = 1, 12
-
-       key = "extra_diagnostics%legacy_bpch%output_menu%" // &
-             "schedule_output_for_"                       // mon(N)
-       v_str = MISSING_STR
-       CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error parsing ' // TRIM( key ) // '!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       ! Parse string into NJDAY array by month
-       SELECT CASE( N )
-          CASE( 1 )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(1:31)
-          CASE( 2  )
-             READ( v_str, '(29i1)' ) Input_Opt%NJDAY(32:60)
-          CASE( 3 )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(61:91)
-          CASE( 4  )
-             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(92:121)
-          CASE( 5  )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(122:152)
-          CASE( 6  )
-             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(153:182)
-          CASE( 7  )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(183:213)
-          CASE( 8  )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(214:244)
-          CASE( 9  )
-             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(245:274)
-          CASE( 10 )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(275:305)
-          CASE( 11 )
-             READ( v_str, '(30i1)' ) Input_Opt%NJDAY(306:335)
-          CASE( 12 )
-             READ( v_str, '(31i1)' ) Input_Opt%NJDAY(336:366)
-       END SELECT
-    ENDDO
-
-    !=================================================================
-    ! Print to screen
-    !=================================================================
-    IF( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'BPCH OUTPUT SETTINGS'
-       WRITE( 6, '(  a)' ) '--------------------'
-       WRITE( 6, 110     )
-       WRITE( 6, 120     )
-       WRITE( 6, 130     )
-       WRITE( 6, 140     ) Input_Opt%NJDAY
-    ENDIF
-
-    ! FORMAT statements
-110 FORMAT( '              1111111111222222222233' )
-120 FORMAT( '     1234567890123456789012345678901' )
-130 FORMAT( '     -------------------------------' )
-140 FORMAT( 'JAN--', 31i1, /, 'FEB--', 29i1, /, 'MAR--', 31i1, /, &
-            'APR--', 30i1, /, 'MAY--', 31i1, /, 'JUN--', 30i1, /, &
-            'JUL--', 31i1, /, 'AUG--', 31i1, /, 'SEP--', 30i1, /, &
-            'OCT--', 31i1, /, 'NOV--', 30i1, /, 'DEC--', 31i1 )
-
-    ! Make sure we have output at end of run
-    CALL IS_LAST_DAY_GOOD( Input_Opt, RC )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE Config_Bpch_Output
-!EOC
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -4072,647 +3851,6 @@ CONTAINS
 
   END SUBROUTINE Config_ObsPack
 !EOC
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
-#ifdef BPCH_DIAG
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_nd51
-!
-! !DESCRIPTION: Copies ND51 satellite diagnostic information from the Config
-!  object to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_ND51( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL                      :: v_bool
-    INTEGER                      :: N
-
-    ! Arrays
-    INTEGER                      :: a_int(QFYAML_MaxArr)
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=255)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! String arrays
-    CHARACTER(LEN=QFYAML_StrLen) :: a_str(QFYAML_MaxArr)
-
-
-    !========================================================================
-    ! Config_ND51 begins here!
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Config_ND51 (in module GeosCore/input_mod.F90)'
-
-    !------------------------------------------------------------------------
-    ! Turn on ND51 diagnostic
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%activate"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%DO_ND51 = v_bool
-
-    !------------------------------------------------------------------------
-    ! Instantaneous 3-D timeseries file
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%ND51_satellite%output_file"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_FILE = TRIM( v_str )
-
-    !------------------------------------------------------------------------
-    ! Tracers to include
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%ND51_satellite%tracers"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    DO N = 1, SIZE( a_int )
-       IF ( a_int(N) == MISSING_INT ) EXIT
-       Input_Opt%ND51_TRACERS(N) = a_int(N)
-    ENDDO
-    Input_Opt%N_ND51 = N - 1
-
-    !------------------------------------------------------------------------
-    ! NHMS_WRITE
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%ND51_satellite%UTC_hour_for_write"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_HR_WRITE = Cast_and_RoundOff( v_str, places=2 )
-
-    ! Make sure ND51_HR_WRITE is in the range 0-23.999 hrs
-    Input_Opt%ND51_HR_WRITE = MOD( Input_Opt%ND51_HR_WRITE, 24.0_fp )
-
-    !------------------------------------------------------------------------
-    ! HR1, HR2
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51_satellite%averaging_period_in_LT"
-    a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_HR1 = Cast_and_RoundOff( a_str(1), places=2 )
-    Input_Opt%ND51_HR2 = Cast_and_RoundOff( a_str(2), places=2 )
-
-    !------------------------------------------------------------------------
-    ! IMIN, IMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51_satellite%IMIN_and_IMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_IMIN = a_int(1)
-    Input_Opt%ND51_IMAX = a_int(2)
-
-    !------------------------------------------------------------------------
-    ! JMIN, JMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51_satellite%JMIN_and_JMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_JMIN = a_int(1)
-    Input_Opt%ND51_JMAX = a_int(2)
-
-    !------------------------------------------------------------------------
-    ! LMIN, LMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51_satellite%LMIN_and_LMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51_LMIN = a_int(1)
-    Input_Opt%ND51_LMAX = a_int(2)
-
-    !========================================================================
-    ! Print to screen
-    !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6,90  ) 'ND51 TIMESERIES SETTINGS (when -DBPCH_DIAG=y)'
-       WRITE( 6,95  ) '---------------------------------------------'
-       WRITE( 6,100 ) 'Turn on ND51 timeseries?    : ', Input_Opt%DO_ND51
-       WRITE( 6,110 ) 'ND51 timeseries file name   : ',                      &
-                        TRIM( Input_Opt%ND51_FILE )
-       WRITE( 6,120 ) 'ND51 timeseries tracers     : ',                      &
-                       ( Input_Opt%ND51_TRACERS(N), N=1, Input_Opt%N_ND51 )
-       WRITE( 6,140 ) 'ND51 hour to write to disk  : ', Input_Opt%ND51_HR_WRITE
-       WRITE( 6,140 ) 'ND51 averaging period [GMT] : ', Input_Opt%ND51_HR1,  &
-                                                        Input_Opt%ND51_HR2
-       WRITE( 6,130 ) 'ND51 longitude limits       : ', Input_Opt%ND51_IMIN, &
-                                                        Input_Opt%ND51_IMAX
-       WRITE( 6,130 ) 'ND51 latitude  limits       : ', Input_Opt%ND51_JMIN, &
-                                                        Input_Opt%ND51_JMAX
-       WRITE( 6,130 ) 'ND51 altitude  limits       : ', Input_Opt%ND51_LMIN, &
-                                                        Input_Opt%ND51_LMAX
-    ENDIF
-
-    ! FORMAT statements
-90  FORMAT( /, A     )
-95  FORMAT( A        )
-100 FORMAT( A, L5    )
-110 FORMAT( A, A     )
-120 FORMAT( A, 100I4 )
-130 FORMAT( A, 2I5   )
-140 FORMAT( A, 2F5.1 )
-
-  END SUBROUTINE Config_Nd51
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_nd51b
-!
-! !DESCRIPTION: Copies ND51b satellite diagnostic information from the Config
-!  object to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_ND51b( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE RoundOff_Mod,  ONLY : Cast_and_RoundOff
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL                      :: v_bool
-    INTEGER                      :: N
-
-    ! Arrays
-    INTEGER                      :: a_int(QFYAML_MaxArr)
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=255)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! String arrays
-    CHARACTER(LEN=QFYAML_StrLen) :: a_str(QFYAML_MaxArr)
-
-    !========================================================================
-    ! Config_ND51b begins here!
-    !========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Config_ND51b (in module GeosCore/input_mod.F90)'
-
-    !------------------------------------------------------------------------
-    ! Turn on ND51b diagnostic
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%ND51b_satellite%activate"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%DO_ND51b = v_bool
-
-    !------------------------------------------------------------------------
-    ! Instantaneous 3-D timeseries file
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%ND51b_satellite%output_file"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_FILE = TRIM( v_str )
-
-    !------------------------------------------------------------------------
-    ! Tracers to include
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%ND51b_satellite%tracers"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    DO N = 1, SIZE( a_int )
-       IF ( a_int(N) == MISSING_INT ) EXIT
-       Input_Opt%ND51b_TRACERS(N) = a_int(N)
-    ENDDO
-    Input_Opt%N_ND51b = N - 1
-
-    !------------------------------------------------------------------------
-    ! NHMS_WRITE
-    !------------------------------------------------------------------------
-    key   = "extra_diagnostics%legacy_bpch%ND51b_satellite%UTC_hour_for_write"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_HR_WRITE = Cast_and_RoundOff( v_str, places=2 )
-
-    ! Make sure ND51b_HR_WRITE is in the range 0-23.999 hrs
-    Input_Opt%ND51b_HR_WRITE = MOD( Input_Opt%ND51b_HR_WRITE, 24.0_fp )
-
-    !------------------------------------------------------------------------
-    ! HR1, HR2
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51b_satellite%averaging_period_in_LT"
-    a_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, key, a_str, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_HR1 = Cast_and_RoundOff( a_str(1), places=2 )
-    Input_Opt%ND51b_HR2 = Cast_and_RoundOff( a_str(2), places=2 )
-
-    !------------------------------------------------------------------------
-    ! IMIN, IMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51b_satellite%IMIN_and_IMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_IMIN = a_int(1)
-    Input_Opt%ND51b_IMAX = a_int(2)
-
-    !------------------------------------------------------------------------
-    ! JMIN, JMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51b_satellite%JMIN_and_JMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_JMIN = a_int(1)
-    Input_Opt%ND51b_JMAX = a_int(2)
-
-    !------------------------------------------------------------------------
-    ! LMIN, LMAX
-    !------------------------------------------------------------------------
-    key = "extra_diagnostics%legacy_bpch%ND51b_satellite%LMIN_and_LMAX_of_region"
-    a_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, a_int, "", RC, dynamic_size=.TRUE. )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND51b_LMIN = a_int(1)
-    Input_Opt%ND51b_LMAX = a_int(2)
-
-    !========================================================================
-    ! Print to screen
-    !========================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6,90  ) 'ND51b TIMESERIES SETTINGS (when -DBPCH_DIAG=y)'
-       WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'Turn on ND51b timeseries?   : ', Input_Opt%DO_ND51b
-       WRITE( 6,110 ) 'ND51b timeseries file name  : ',                      &
-                        TRIM( Input_Opt%ND51b_FILE )
-       WRITE( 6,120 ) 'ND51b timeseries tracers    : ',                      &
-                       ( Input_Opt%ND51b_TRACERS(N), N=1, Input_Opt%N_ND51b )
-       WRITE( 6,140 ) 'ND51b hour to write to disk : ', Input_Opt%ND51b_HR_WRITE
-       WRITE( 6,140 ) 'ND51b averaging period [GMT]: ', Input_Opt%ND51b_HR1, &
-                                                        Input_Opt%ND51b_HR2
-       WRITE( 6,130 ) 'ND51b longitude limits      : ', Input_Opt%ND51b_IMIN,&
-                                                        Input_Opt%ND51b_IMAX
-       WRITE( 6,130 ) 'ND51b latitude  limits      : ', Input_Opt%ND51b_JMIN,&
-                                                        Input_Opt%ND51b_JMAX
-       WRITE( 6,130 ) 'ND51b altitude  limits      : ', Input_Opt%ND51b_LMIN,&
-                                                        Input_Opt%ND51b_LMAX
-    ENDIF
-
-    ! FORMAT statements
-90  FORMAT( /, A     )
-95  FORMAT( A        )
-100 FORMAT( A, L5    )
-110 FORMAT( A, A     )
-120 FORMAT( A, 100I4 )
-130 FORMAT( A, 2I5   )
-140 FORMAT( A, 2F5.1 )
-
-  END SUBROUTINE Config_Nd51b
-#ifdef TOMAS
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: config_bpch_prodloss
-
-! !DESCRIPTION: Copies bpch prodloss information from the Config object
-!  to Input_Opt, and does necessary checks.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE Config_Bpch_ProdLoss( Config, Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE CMN_DIAG_MOD,     ONLY : ND65
-    USE gckpp_Monitor,    ONLY : Fam_Names
-    USE gckpp_Parameters, ONLY : nFam
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE QFYAML_Mod,       ONLY : QFYAML_t
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(QFYAML_t), INTENT(INOUT) :: Config      ! YAML Config object
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input options
-!
-! !OUTPUT PARAMETERS:
-!
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
-!
-! !REVISION HISTORY:
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL                      :: v_bool
-    INTEGER                      :: v_int, F, N, n_Advect
-
-    ! Strings
-    CHARACTER(LEN=255)           :: thisLoc
-    CHARACTER(LEN=512)           :: errMsg
-    CHARACTER(LEN=QFYAML_NamLen) :: key
-    CHARACTER(LEN=QFYAML_StrLen) :: v_str
-
-    ! Arrays
-!    CHARACTER(LEN=255) :: SUBSTRS(MAXDIM)
-
-    !=========================================================================
-    ! Config_Bpch_ProdLoss begins here!
-    !=========================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = 'Error reading the "geoschem_config.yml" file!'
-    thisLoc = ' -> at Config_Bpch_ProdLoss (in module GeosCore/input_mod.F90)'
-
-    !------------------------------------------------------------------------
-    ! Activate bpch ND65 diagnostic?
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%bpch_diagnostics%"            // &
-             "ND65_prodloss%activate"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%DO_SAVE_PL = v_bool
-
-    !------------------------------------------------------------------------
-    ! Number of levels for ND65 bpch diagnostic
-    !------------------------------------------------------------------------
-    key    = "extra_diagnostics%legacy_bpch%bpch_diagnostics%"            // &
-             "ND65_prodloss%number_of_levels"
-    v_int = MISSING_INT
-    CALL QFYAML_Add_Get( Config, key, v_int, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%ND65 = v_int
-
-    ! Copy field to variable in CMN_DIAG
-    ND65 = Input_Opt%ND65
-
-    !=================================================================
-    ! Error check families for certain types of simulations
-    !=================================================================
-
-    ! Offline aerosol -- turn off DO_SAVE_PL
-    IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
-       Input_Opt%DO_SAVE_PL    = .FALSE.
-       Input_Opt%ND65          = 0
-    ENDIF
-
-    !=================================================================
-    ! Set fields of Input Options object
-    !=================================================================
-
-    ! Number of advected species
-    N_ADVECT = Input_Opt%N_ADVECT
-
-    IF ( Input_Opt%DO_SAVE_PL ) THEN
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-          ! Fullchem - Obtain NFAM from KPP
-          Input_Opt%NFAM = NFAM
-       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-          ! Tagged O3
-          Input_Opt%NFAM = 2*N_ADVECT
-       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-          ! Tagged CO
-          IF ( Input_Opt%LPCO_NMVOC ) THEN
-             Input_Opt%NFAM = N_ADVECT+2
-          ELSE
-             Input_Opt%NFAM = N_ADVECT+6
-          ENDIF
-       ENDIF
-    ENDIF
-
-    ! Return if there are no prod/loss families
-    ! or if we have turned off this diagnostic
-    IF ( .not. ( Input_Opt%DO_SAVE_PL .and. Input_Opt%NFAM > 0 )) THEN
-       Input_Opt%DO_SAVE_PL = .FALSE.
-       Input_Opt%ND65       = 0
-    ENDIF
-
-    ! Loop over families
-    DO F = 1, Input_Opt%NFAM
-
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-
-          ! Fullchem - Obtain FAM_NAME from KPP
-          Input_Opt%FAM_NAME(F) = FAM_NAMES(F)
-
-       ELSEIF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
-
-          ! Tagged O3
-          IF ( F <= N_ADVECT ) THEN
-             Input_Opt%FAM_NAME(F) = &
-                  'P' // TRIM(Input_Opt%AdvectSpc_Name(F))
-          ELSE
-             Input_Opt%FAM_NAME(F) = &
-                  'L' // TRIM(Input_Opt%AdvectSpc_Name(F-N_ADVECT))
-          ENDIF
-
-       ELSEIF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-          ! Tagged CO
-          IF ( F <= N_ADVECT ) THEN
-             Input_Opt%FAM_NAME(F) = 'L'//Input_Opt%AdvectSpc_Name(F)
-          ELSEIF ( F == N_ADVECT+1 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_CH4'
-          ELSEIF ( F == N_ADVECT+2 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_NMVOC'
-          ELSEIF ( F == N_ADVECT+3 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_ISOP'
-          ELSEIF ( F == N_ADVECT+4 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_CH3OH'
-          ELSEIF ( F == N_ADVECT+5 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_MONO'
-          ELSEIF ( F == N_ADVECT+6 ) THEN
-             Input_Opt%FAM_NAME(F) = 'PCO_ACET'
-          ENDIF
-
-       ENDIF
-
-       ! Get family type as prod or loss
-       IF ( Input_Opt%FAM_NAME(F)(1:1) == 'P'   .or. &
-            Input_Opt%FAM_NAME(F)(1:1) == 'p' ) THEN
-          Input_Opt%FAM_TYPE(F) = 'prod'
-       ELSE
-          Input_Opt%FAM_TYPE(F) = 'loss'
-       ENDIF
-
-    ENDDO
-
-    !=================================================================
-    ! Print to screen
-    !=================================================================
-    IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6, '(/,a)' ) 'PROD & LOSS DIAGNOSTIC SETTINGS'
-       WRITE( 6, '(  a)' ) '-------------------------------'
-       WRITE( 6, 100 ) 'Turn on prod & loss diag?   : ', &
-                        Input_Opt%DO_SAVE_PL
-       WRITE( 6, 110 ) '# of levels for P/L diag    : ', &
-                        Input_Opt%ND65
-
-       ! Loop over families
-       DO F = 1, Input_Opt%NFAM
-
-          ! Write family name and type
-          WRITE( 6, 120 ) TRIM(Input_Opt%FAM_NAME(F)), &
-                          TRIM(Input_Opt%FAM_TYPE(F))
-
-       ENDDO
-
-    ENDIF
-
-    ! FORMAT statements
-90  FORMAT( /, A                             )
-95  FORMAT( A                                )
-100 FORMAT( A, L5                            )
-110 FORMAT( A, I5                            )
-120 FORMAT( /, 'Family=', A10, '  Type=', A4 )
-
-  END SUBROUTINE Config_Bpch_ProdLoss
-!EOC
-#endif
-#endif
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -5027,6 +4165,11 @@ CONTAINS
                                                    Input_Opt%CH4BoundaryConditionIncreaseEast,&
                                                    Input_Opt%CH4BoundaryConditionIncreaseWest
     ENDIF
+
+    ! Flag to denote if any AIRS, GOSAT, TCCON columns will be used
+    Input_Opt%Satellite_CH4_Columns = ( Input_Opt%AIRS_CH4_OBS          .or. &
+                                        Input_Opt%GOSAT_CH4_OBS         .or. &
+                                        Input_Opt%TCCON_CH4_OBS             )
 
     ! FORMAT statements
 90  FORMAT( /, A    )
@@ -5631,88 +4774,6 @@ CONTAINS
 
   END SUBROUTINE Check_Time_Steps
 !EOC
-#if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
-#ifdef BPCH_DIAG
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: is_last_day_good
-!
-! !DESCRIPTION: Tests to see if there is output scheduled on the last day of
-!  the run.
-!\\
-!\\
-! !INTERFACE:
-!
-  SUBROUTINE IS_LAST_DAY_GOOD( Input_Opt, RC )
-!
-! !USES:
-!
-    USE ErrCode_Mod
-    USE Input_Opt_Mod, ONLY : OptInput
-    USE JULDAY_MOD,    ONLY : JULDAY
-    USE TIME_MOD,      ONLY : GET_NYMDe, ITS_A_LEAPYEAR, YMD_EXTRACT
-!
-! !INPUT/OUTPUT PARAMETERS:
-!
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt  ! Input options
-    INTEGER,        INTENT(OUT)   :: RC         ! Success or failure?
-!
-! !REVISION HISTORY:
-!  20 Jul 2004 - R. Yantosca - Initial version
-!  See https://github.com/geoschem/geos-chem for complete history
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-!
-! !LOCAL VARIABLES:
-!
-    ! Scalars
-    LOGICAL            :: IS_LEAPYEAR
-    INTEGER            :: NYMDe, Y, M, D, LASTDAY
-    REAL(fp)           :: JD, JD0
-
-    ! Strings
-    CHARACTER(LEN=255) :: errMsg, thisLoc
-
-    !=================================================================
-    ! Is_Last_Day_Good begins here!
-    !=================================================================
-
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = ' -> at Is_Last_Day_Good (in module GeosCore/input_mod.F90)'
-
-    ! Astronomical Julian Day corresponding to NYMDe
-    NYMDe = GET_NYMDe()
-    CALL YMD_EXTRACT( NYMDe, Y, M, D )
-    JD = JULDAY( Y, M, DBLE( D ) )
-
-    ! Astronomical Julian Day corresponding to the 1st of the year
-    JD0 = JULDAY( Y, 1, 0d0 )
-
-    ! LASTDAY is the day of year corresponding to NYMDe
-    LASTDAY = JD - JD0
-
-    ! Skip past the element of NJDAY for Feb 29, if necessary
-    IF ( .not. ITS_A_LEAPYEAR( Y, .TRUE. ) .and. LASTDAY > 59 ) THEN
-       LASTDAY = LASTDAY + 1
-    ENDIF
-
-    ! Exit w/ error if THIS_NJDAY = 0
-    IF ( Input_Opt%NJDAY(LASTDAY) == 0 ) THEN
-       errMsg = 'No output scheduled on last day of run!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-  END SUBROUTINE IS_LAST_DAY_GOOD
-!EOC
-#endif
-#endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

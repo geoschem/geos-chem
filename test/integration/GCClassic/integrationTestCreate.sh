@@ -12,8 +12,7 @@
 #\\
 #\\
 # !CALLING SEQUENCE:
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file
-#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file quick=1
+#  ./integrationTestCreate.sh /path/to/int/test/root /path/to/env-file [yes|no]
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -72,22 +71,11 @@ cd ${superProjectDir}
 
 # GEOS-Chem and HEMCO submodule directories
 geosChemDir="${superProjectDir}/src/GEOS-Chem"
-hemcoDir="${superProjectDir}/src/HEMCO"
-
-# Get the Git commit of the superproject and submodules
-head_gcc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${superProjectDir}" log --oneline --no-decorate -1)
-head_gc=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-          git -C "${geosChemDir}" log --oneline --no-decorate -1)
-head_hco=$(export GIT_DISCOVERY_ACROSS_FILESYSTEM=1; \
-           git -C "${hemcoDir}" log --oneline --no-decorate -1)
 
 # Echo header
 printf "${SEP_MAJOR}\n"
 printf "Creating GEOS-Chem Classic Integration Tests\n\n"
-printf "GCClassic #${head_gcc}\n"
-printf "GEOS-Chem #${head_gc}\n"
-printf "HEMCO     #${head_hco}\n"
+print_submodule_head_commits "10" "${superProjectDir}" ""
 printf "${SEP_MAJOR}\n"
 
 #=============================================================================
@@ -196,21 +184,23 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     #=========================================================================
     printf "\nCreating new run directories:\n"
 
-    # 4x5 merra2 CH4
-    create_rundir "3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 CO2
-    create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
     # 4x5 merra2 aerosol
     create_rundir "2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 carbon
-    create_rundir "12\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "3\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 carbon CH4 only
-    dir="gc_4x5_merra2_carbon_CH4only"
-    create_rundir "12\n2\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+    create_rundir "3\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon CO2 only
+    create_rundir "3\n3\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon CO only
+    create_rundir "3\n4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 carbon OCS only
+    create_rundir "3\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 fullchem
     create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
@@ -250,28 +240,31 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 Hg
-    create_rundir "5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 POPs_BaP
-    create_rundir "6\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 tagCH4
-    create_rundir "7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 tagCO
-    create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "5\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 tagO3
-    create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "6\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 TransportTracers
-    create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 TransportTracers_LuoWd
     dir="gc_4x5_merra2_TransportTracers_LuoWd"
-    create_rundir "10\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+    create_rundir "7\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
 
     # 4x5 merra2 metals
+    create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 CH4
+    create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 CO2
+    create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 4x5 merra2 tagCO
     create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     #=========================================================================
@@ -282,17 +275,59 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
 
     #=========================================================================
+    # GCAP 2.0 simulations
+    #=========================================================================
+
+    # 2x2.5 ModelE2.1 fullchem (scenario SSP2-4.5, option 6)
+    create_rundir "1\n1\n4\n6\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    #=========================================================================
     # Nested-grid simulations
     #=========================================================================
 
     # 05x0625 merra2 CH4_47L_na
-    create_rundir "3\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "9\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
     # 05x0625 merra2 fullchem_47L_na
     create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
+    #=========================================================================
+    # Simulation with all diagnostics on
+    #==========================================================================
+
+    # Configuration files
+    allDiagsDir="gc_4x5_merra2_fullchem_alldiags"
+    extDataDir=$(grep "GC_DATA_ROOT" "${HOME}/.geoschem/config")
+    extDataDir=${extDataDir/export GC_DATA_ROOT\=/}
+    pfDat="${geosChemDir}/test/shared/alldiags/Planeflight.dat.20190701"
+    obsPk="${extDataDir}/Data_for_Int_Tests/obspack_input_for_testing.20190701.nc"
+    # Copy the fullchem_benchmark rundir to fullchem_alldiags
+    echo "... ${itRoot}/rundirs/${allDiagsDir}"
+    cd "${rundirsDir}"
+    cp -r "gc_4x5_merra2_fullchem_benchmark" "${allDiagsDir}"
+    cd "${allDiagsDir}"
+
+    # Turn on all collections except RRTMG and Tomas collections (which
+    # Make sure to activate these in the RRTMG and TOMAS integration tests.
+    # Also note; there is a floating point error in the UVFlux diagnostic,
+    # so temporarily comment that out.
+    sed_ie "s|#'|'|"               "HISTORY.rc"
+    sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
+    sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
+    sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
+    sed_ie "s|'UVFlux'|#'UVFlux'|" "HISTORY.rc"
+
+    # Activate the planeflight diagnostic
+    cp -r "${pfDat}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "planeflight" "true "
+
+    # Activate the ObsPack diagnostic
+    cp -r "${obsPk}" .
+    toggle_geoschem_config_option "geoschem_config.yml" "obspack"     "true "
+
     # Switch back to the present directory
     cd "${thisDir}"
+
 fi
 
 #=============================================================================
@@ -300,15 +335,19 @@ fi
 #=============================================================================
 
 # Free local variables
+unset allDiagsDir
 unset binDir
 unset buildDir
 unset commonFuncs
 unset dir
 unset envDir
+unset extDataDir
 unset geosChemDir
 unset itRoot
 unset log
 unset logsDir
+unset pfDat
+unset obsPk
 unset rundirsDir
 unset superProjectDir
 unset scriptsDir

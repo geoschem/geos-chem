@@ -105,16 +105,15 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. Aerosols only\n"
-printf "   3. CH4\n"
-printf "   4. CO2\n"
-printf "   5. Hg\n"
-printf "   6. POPs\n"
-printf "   7. Tagged CH4\n"
-printf "   8. Tagged CO\n"
-printf "   9. Tagged O3\n"
-printf "  10. TransportTracers\n"
-printf "  11. Trace metals\n"
-printf "  12. Carbon\n"
+printf "   3. Carbon\n"
+printf "   4. Hg\n"
+printf "   5. POPs\n"
+printf "   6. Tagged O3\n"
+printf "   7. TransportTracers\n"
+printf "   8. Trace metals\n"
+printf "   9. CH4\n"
+printf "  10. CO2\n"
+printf "  11. Tagged CO\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read -p "${USER_PROMPT}" sim_num
@@ -124,25 +123,23 @@ while [ "${valid_sim}" -eq 0 ]; do
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=aerosol
     elif [[ ${sim_num} = "3" ]]; then
-	sim_name=CH4
-    elif [[ ${sim_num} = "4" ]]; then
-	sim_name=CO2
-    elif [[ ${sim_num} = "5" ]]; then
-	sim_name=Hg
-    elif [[ ${sim_num} = "6" ]]; then
-	sim_name=POPs
-    elif [[ ${sim_num} = "7" ]]; then
-	sim_name=tagCH4
-    elif [[ ${sim_num} = "8" ]]; then
-	sim_name=tagCO
-    elif [[ ${sim_num} = "9" ]]; then
-	sim_name=tagO3
-    elif [[ ${sim_num} = "10" ]]; then
-	sim_name=TransportTracers
-    elif [[ ${sim_num} = "11" ]]; then
-	sim_name=metals
-    elif [[ ${sim_num} = "12" ]]; then
 	sim_name=carbon
+    elif [[ ${sim_num} = "4" ]]; then
+	sim_name=Hg
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=POPs
+    elif [[ ${sim_num} = "6" ]]; then
+	sim_name=tagO3
+    elif [[ ${sim_num} = "7" ]]; then
+	sim_name=TransportTracers
+    elif [[ ${sim_num} = "8" ]]; then
+	sim_name=metals
+    elif [[ ${sim_num} = "9" ]]; then
+	sim_name=CH4
+    elif [[ ${sim_num} = "10" ]]; then
+	sim_name=CO2
+    elif [[ ${sim_num} = "11" ]]; then
+	sim_name=tagCO
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -356,6 +353,26 @@ while [ "${valid_met}" -eq 0 ]; do
 	met="geosfp"
 	shared_met_settings=${gcdir}/run/shared/settings/geosfp/geosfp.preprocessed_ll.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
+
+	# Print warning about GEOS-FP and require user to acknowledge it.
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	printf "\n${fp_msg}\n"
+	printf "This warning will be printed to run directory file warnings.txt.\n"
+	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
+	valid_fp_accept=0
+	while [ "${valid_fp_accept}" -eq 0 ]; do
+	    read -p "${USER_PROMPT}" fp_accept
+	    valid_fp_accept=1
+	    if [[ ${fp_accept} = "y" ]]; then
+		x=0
+	    elif [[ ${fp_accept} = "q" ]]; then
+		exit
+	    else
+		valid_fp_accept=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
     elif [[ ${met_num} = "3" ]]; then
 	met="geosit"
 	shared_met_settings=${gcdir}/run/shared/settings/geosit/geosit.preprocessed_ll.txt
@@ -456,8 +473,13 @@ if [[ ${met} = "ModelE2.1" ]]; then
     # NOTE: Benchmark simulations always use the climatological emissions!
     if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
        [[ "x${sim_name}" == "xaerosol"  ]]; then
-        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
-        RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+        RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
+
+	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
+	else
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	fi
     fi
 
 else
@@ -473,16 +495,21 @@ else
     # NOTE: Benchmark simulations always use the climatological emissions!
     if [[ "x${sim_name}" == "xfullchem" ]]  ||  \
        [[ "x${sim_name}" == "xaerosol"  ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
 	if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 	else
-	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	    RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
 	fi
     fi
 
  fi
+
+# Turn off MEGAN for the aerosol-only simulation
+if [[ "x${sim_name}" == "xaerosol"  ]]; then
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
+fi
 
 #-----------------------------------------------------------------
 # Ask user to select horizontal resolution
@@ -497,6 +524,9 @@ if [[ "x${met}" == "xModelE2.1" || "x${met}" == "xModelE2.2" ]]; then
 elif [[ ${met} = "geosit" ]]; then
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
+    if [[ "${sim_name}" = "TransportTracers" ]]; then
+	printf "  3. 0.5  x 0.625\n"
+    fi
 else
     printf "  1. 4.0  x 5.0\n"
     printf "  2. 2.0  x 2.5\n"
@@ -536,7 +566,7 @@ while [ "${valid_res}" -eq 0 ]; do
     fi
 done
 
-if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
+if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" = "025x03125" ]]; then
     printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"
@@ -848,10 +878,6 @@ done
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/CreateRunDirLogs
-mkdir -p ${rundir_config}
-
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh       ${rundir}
 cp ${gcdir}/run/shared/download_data.py     ${rundir}
@@ -866,9 +892,16 @@ if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
   cp ${gcdir}/run/shared/download_data.gcap2.40L.yml ${rundir}/download_data.yml
 fi
 
+# Copy the OH metrics Python script to the rundir (fullchem/CH4 only)
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
+fi
+
+# Copy the KPP standalone interface config file to ther rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem"  ]]; then
+    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
+    chmod 644 ${rundir}/kpp_standalone_interface.yml
 fi
 
 # Set permissions
@@ -881,7 +914,7 @@ chmod 744 ${rundir}/archiveRun.sh
 # inactive species that are active in the other simulations, and this
 # causes a conflict.  Work out a better solution later.
 #  -- Bob Yantosca, 10 Dec 2021
-if [[ "x${sim_num}" == "x5" ]]; then
+if [[ "x${sim_name}" == "xHg" ]]; then
     cp -r ${gcdir}/run/shared/species_database_hg.yml ${rundir}/species_database.yml
 else
     cp -r ${gcdir}/run/shared/species_database.yml ${rundir}
@@ -917,7 +950,8 @@ cd ${rundir}
 # start year/month/day matches default initial restart file.
 if [[ "x${sim_name}" == "xHg"     ||
       "x${sim_name}" == "xCH4"    ||
-      "x${sim_name}" == "xtagCH4" ||
+      "x${sim_name}" == "xCO2"    ||
+      "x${sim_name}" == "xtagCO"  ||
       "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'
@@ -961,6 +995,7 @@ fi
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -973,6 +1008,7 @@ if [[ ${met} = "ModelE2.1" ]]; then
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -1004,6 +1040,7 @@ else
 	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
@@ -1015,8 +1052,13 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
+# Define a subdirectory for rundir configuration files
+rundir_config_dirname=CreateRunDirLogs
+mkdir -p ${rundir}/${rundir_config_dirname}
+
 # Save RUNDIR variables to a file in the rundirConfig folder
-rundir_config_log=${rundir_config}/rundir_vars.txt
+rundir_config_logname=rundir_vars.txt
+rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 #sort -o ${rundir_config_log} ${rundir_config_log}
 
@@ -1025,10 +1067,10 @@ echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 ${srcrundir}/init_rd.sh ${rundir_config_log}
 
 #--------------------------------------------------------------------
-# Print run direcory setup info to screen
+# Print run directory setup info to screen
 #--------------------------------------------------------------------
 
-printf "\n  -- See rundir_vars.txt for summary of default run directory settings"
+printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory has been set up to start on ${startdate}"
 printf "\n  -- A restart file for this date has been copied to the Restarts subdirectory"
 printf "\n  -- You may add more restart files using format GEOSChem.Restart.YYYYMMDD_HHmmz.nc4"
@@ -1121,7 +1163,7 @@ commit_hash=$(git log -n 1 --pretty=format:"%h")
 cd ${srcrundir}
 
 # Write commit info to a version log
-version_log=${rundir_config}/rundir.version
+version_log=${rundir}/${rundir_config_dirname}/rundir.version
 printf   " This run directory was created with:"        >  ${version_log}
 printf "\n ${srcrundir}/createRunDir.sh.\n"             >> ${version_log}
 printf "\n GEOS-Chem repository version information:\n" >> ${version_log}
@@ -1202,7 +1244,7 @@ unset msg
 printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
 
 # Add a "# " characters to the front of each line so we can use
-# it as a comment heading for rundir_vars.txt
+# it as a comment heading for ${rundir_config_logname}
 sed 's/^/# /' ${version_log} > tmp.txt
 mv tmp.txt ${version_log}
 
@@ -1218,9 +1260,16 @@ if [[ "x${enable_git}" == "xy" ]]; then
     if [[ -f ${rundir_config_log} ]]; then
 	cd ${rundir}
 	git add ${rundir_config_log}
-	git commit -m "Update header of rundirConfig/rundir_vars.txt" > /dev/null
+	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_logname}" > /dev/null
 	cd ${srcrundir}
     fi
+fi
+
+#-----------------------------------------------------------------
+# Create and populate warnings file
+#-----------------------------------------------------------------
+if [[ $met == "geosfp" ]]; then
+   echo -e ${fp_msg} > ${rundir}/warnings.txt
 fi
 
 #-----------------------------------------------------------------
