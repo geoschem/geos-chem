@@ -2709,7 +2709,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 5
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 5
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
-0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
+0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s TMB   26     10 5
 0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     10 5
 )))CEDSv2_SHIP
 
