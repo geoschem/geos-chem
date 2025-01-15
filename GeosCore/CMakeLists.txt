@@ -19,6 +19,7 @@ add_library(GeosCore
   STATIC EXCLUDE_FROM_ALL
   aero_drydep.F90
   aerosol_mod.F90
+  aerosol_thermodynamics_mod.F90
   airs_ch4_mod.F90
   calc_met_mod.F90
   carbon_mod.F90
@@ -47,7 +48,7 @@ add_library(GeosCore
   hco_interface_gc_mod.F90
   hco_utilities_gc_mod.F90
   input_mod.F90
-  aerosol_thermodynamics_mod.F90
+  kppsa_interface_mod.F90
   land_mercury_mod.F90
   linear_chem_mod.F90
   linoz_mod.F90

@@ -436,6 +436,7 @@ CONTAINS
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
     USE UnitConv_Mod,   ONLY : Check_Units, KG_SPECIES_PER_KG_DRY_AIR
+    USE TIME_MOD,       ONLY : GET_LOCALTIME
 !
 ! !INPUT PARAMETERS:
 !
@@ -465,7 +466,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL               :: Found
-    INTEGER               :: N, S
+    INTEGER               :: N, S, I
     REAL(fp)              :: LT,  GOOD
 
     ! Strings
@@ -473,6 +474,12 @@ CONTAINS
 
     ! Objects
     TYPE(DgnMap), POINTER :: mapData
+
+
+   ! Arrays 
+    REAL(fp)   :: TmpSpcArr(State_Grid%NX,State_Grid%NY, &
+                           State_Grid%NZ,State_Chm%nSpecies)
+
 
     !====================================================================
     ! Set_SpcAdj_Diagnostic begins here!
@@ -546,6 +553,7 @@ CONTAINS
           !$OMP PRIVATE( N, S   )
           DO S = 1, mapData%nSlots
              N = mapData%slot2id(S)
+     ! TmpSpcArr is not defined    
              State_Diag%SatDiagnConc(I,:,:,S) = TmpSpcArr(I,:,:,N) * GOOD
           ENDDO
           !$OMP END PARALLEL DO
@@ -1466,11 +1474,16 @@ CONTAINS
             locTime <= State_Diag%SatDiagn_EndHr   ) good = 1.0_fp
 
        !---------------------------------------------------------------------
-       ! SatDiagnCount: Count number of local times
+       ! SatDiagnCount and SatDiagnEdgeCount: Count number of local times
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnCount ) THEN
           State_Diag%SatDiagnCount(I,:,:) = &
           State_Diag%SatDiagnCount(I,:,:) + good
+       ENDIF
+
+       IF ( State_Diag%Archive_SatDiagnEdgeCount ) THEN
+          State_Diag%SatDiagnEdgeCount(I,:,:) = &
+          State_Diag%SatDiagnEdgeCount(I,:,:) + good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1510,8 +1523,7 @@ CONTAINS
        ! Pressure edges [hPa]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnPEdge ) THEN
-          State_Diag%SatDiagnPEdge(I,:,:) = &
-               State_Met%PEDGE(I,:,1:State_Grid%NZ) * good
+          State_Diag%SatDiagnPEdge(I,:,:) = State_Met%PEDGE(I,:,:) * good
        ENDIF
 
        !---------------------------------------------------------------------
@@ -1519,6 +1531,13 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
           State_Diag%SatDiagnTROPP(I,:) = State_Met%TROPP(I,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! Tropopause level [unitless]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnTropLev ) THEN
+          State_Diag%SatDiagnTropLev(I,:) = State_Met%TropLev(I,:) * good
        ENDIF
 
        !---------------------------------------------------------------------

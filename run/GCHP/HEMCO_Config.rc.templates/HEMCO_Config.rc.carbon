@@ -112,6 +112,7 @@ Mask fractions:              false
     --> GMD_SFC_CH4            :       true     # 1979-2020
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
+    --> SHIP                   :       true
     --> CEDS_01x01_SHIP        :       ${RUNDIR_USE_CEDS}    # 1980-2019
     --> ICOADS_SHIP            :       false    # 2004
 #------ OCS FLUX DATA ---------------------------------------------------------
@@ -235,8 +236,8 @@ Mask fractions:              false
 0 GHGI_COAST_WASTEWATER_IND   -                                                                    -                                            -                  -   -  -           CH4 1009    6 1
 
 ### Rice ###
-0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc emi_ch4_3C_Rice_Cultivation                   2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
-0 GHGI_COAST_RICE             -                                                                   -                                             -                  -   -  -           CH4 58/1009 7 1
+0 GHGI_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2018/1-12/1/0 EFY xy molec/cm2/s CH4 58/1008 7 100
+0 GHGI_COAST_RICE             -                                                                    -                                            -                  -   -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
 0 GHGI_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2018/1/1/0    EFY xy molec/cm2/s CH4 1008    8 100
@@ -319,7 +320,7 @@ Mask fractions:              false
 
 ### Rice ###
 0 GHGI_EE_RICE                   $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_3C_Rice_Cultivation                  2012-2020/1-12/1/0 C xy molec/cm2/s CH4 58/1008 7 100
-0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - - -           CH4 58/1009 7 1
+0 GHGI_EE_COAST_RICE             -                                                                                      -                                            -                  - -  -           CH4 58/1009 7 1
 
 ### Other Anthro ###
 0 GHGI_EE_OTHER_MCOMB            $ROOT/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_$YYYY.nc  emi_ch4_1A_Combustion_Mobile                 2012-2020/1/1/0    C xy molec/cm2/s CH4 1008    8 100
@@ -394,7 +395,7 @@ Mask fractions:              false
 )))Scarpelli_Canada
 
 #==============================================================================
-# --- CH4: Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021)
+# --- CH4: Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021) ---
 #
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
@@ -406,6 +407,10 @@ Mask fractions:              false
 
 #==============================================================================
 # --- CH4: EDGAR v8.0 emissions ---
+#
+# NOTES:
+# - EDGAR v8 livestock emissions have unexplained hotspots and no seasonality.
+#   Use EDGAR v7 emissions for that sector instead.
 #==============================================================================
 (((EDGARv8
 ### Oil ###
@@ -418,9 +423,9 @@ Mask fractions:              false
 ### Coal ###
 0 EDGAR8_CH4_PRO_COAL            $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_PRO_COAL_flx.nc         emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 3 1
 
-### Livestock ###
-0 EDGAR8_CH4_ENF                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_ENF_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
-0 EDGAR8_CH4_MNM                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_MNM_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 4 1
+### Livestock (from EDGAR v7) ###
+0 EDGAR7_CH4_LIVESTOCK__4A       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_ENF.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 24 4 1
+0 EDGAR7_CH4_LIVESTOCK__4B       $ROOT/CH4/v2023-04/EDGARv7/$YYYY/v7.0_FT2021_CH4_$YYYY_MNM.0.1x0.1.nc              emi_ch4 2010-2021/1-12/1/0 C xy kg/m2/s CH4 28 4 1
 
 ### Landfills ###
 0 EDGAR8_CH4_SWD_LDF             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_LDF_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 5 1
@@ -443,7 +448,8 @@ Mask fractions:              false
 0 EDGAR8_CH4_RCO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_RCO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_CHE                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_CHE_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_IRO                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_IRO_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
-0 EDGAR8_CH4_AWB                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AWB_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
+# Comment out to avoid double counting with GFED
+#0 EDGAR8_CH4_AWB                 $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_AWB_flx.nc              emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 0 EDGAR8_CH4_SWD_INC             $ROOT/CH4/v2024-02/EDGARv8/$YYYY/v8.0_FT2022_GHG_CH4_$YYYY_SWD_INC_flx.nc          emi_ch4 2010-2022/1-12/1/0 C xy kg/m2/s CH4 - 8 1
 )))EDGARv8
 
@@ -471,11 +477,11 @@ Mask fractions:              false
 )))BB4MIPS
 
 #==============================================================================
-# --- CH4: biomass burning ---
+# --- CH4: QFED2 biomass burning ---
+#
+# Use QFED v2.4r8 for CH4. The data in QFED/v2014-09 are for v2.4r5 and have
+# been found to be buggy for CH4 (same emissions on each day).
 #==============================================================================
-
-# --- QFED v2.4r8 ---
-# NOTE: Use this instead of data in QFED/v2014-09 (these are buggy)
 (((QFED2
 0 QFED_CH4   $ROOT/CH4/v2017-10/QFED/QFEDv2.4r8.emis_ch4.$YYYY.nc              emi_ch4 2009-2015/1-12/1-31/0 C xy molec/cm2/s CH4 -  9 2
 )))QFED2
@@ -509,8 +515,8 @@ Mask fractions:              false
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 - 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -667,13 +673,13 @@ Mask fractions:              false
 # %%% for the global base emissions.                                   %%%
 #==============================================================================
 (((CEDS_01x01
-0 CEDS_CO_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2401                 1 5
-0 CEDS_CO_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2406/706/315         1 5
-0 CEDS_CO_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s CO    2407/707/316         1 5
-0 CEDS_CO_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2411/711             1 5
-0 CEDS_CO_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2409/709             1 5
-0 CEDS_CO_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy   kg/m2/s CO    2407/707             1 5
-0 CEDS_CO_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy   kg/m2/s CO    26                   1 5
+0 CEDS_CO_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_agr  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2401         1 5
+0 CEDS_CO_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s CO 2406/706/315 1 5
+0 CEDS_CO_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s CO 2407/707/316 1 5
+0 CEDS_CO_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_tra  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2411/711     1 5
+0 CEDS_CO_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_rco  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2409/709     1 5
+0 CEDS_CO_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_slv  1980-2019/1-12/1/0 C xy   kg/m2/s CO 2407/707     1 5
+0 CEDS_CO_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO_wst  1980-2019/1-12/1/0 C xy   kg/m2/s CO 26           1 5
 )))CEDS_01x01
 
 #==============================================================================
@@ -952,19 +958,19 @@ Mask fractions:              false
 (((USE_OCS_DATA
 
 (((OCS_ANTHRO_FLUX
-0 OCS_ANTHRO $ROOT/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 1 1
+0 OCS_ANTHRO $ROOT/OCS_FLUX/v2022-11/anthro_v3/v3_anthro/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 1 1
 )))OCS_ANTHRO_FLUX
 
 (((OCS_BIOMASS_FLUX
-0 OCS_BIOMASS $ROOT/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 2 1
+0 OCS_BIOMASS $ROOT/OCS_FLUX/v2022-11/Biomassburn/CMSV2-CO2-GFED3-ZC/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 2 1
 )))OCS_BIOMASS_FLUX
 
 (((OCS_MISSING_OCEAN_FLUX
-0 OCS_MISSING_OCEAN $ROOT/OCS_FLUX/v2022-11/MissingOcean/LUKAI/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 3 1
+0 OCS_MISSING_OCEAN $ROOT/OCS_FLUX/v2022-11/MissingOcean/LUKAI/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 3 1
 )))OCS_MISSING_OCEAN_FLUX
 
 (((OCS_OCEAN_FLUX
-0 OCS_OCEAN $ROOT/OCS_FLUX/v2022-11/OceanCOS/Kettle/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70/71 4 1
+0 OCS_OCEAN $ROOT/OCS_FLUX/v2022-11/OceanCOS/Kettle/$YYYY/$MM.nc COS_Flux 2012-2016/1-12/1/0 C xy kgS/km2/s OCS 70 4 1
 )))OCS_OCEAN_FLUX
 
 )))USE_OCS_DATA
@@ -1232,6 +1238,9 @@ Mask fractions:              false
 #------------------------------------------------------------------------------
 # --- Global OH fields ---
 #------------------------------------------------------------------------------
+
+(((USE_CH4_DATA.or.USE_CO_DATA
+
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
 
@@ -1252,9 +1261,13 @@ ${RUNDIR_GLOBAL_OH}
 ))).not.GLOBAL_OH_GCv5
 )))GLOBAL_OH_GC14
 
+)))USE_CH4_DATA.or.USE_CO_DATA
+
 #------------------------------------------------------------------------------
 # --- Quantities needed for CH4 chemistry ---
 #------------------------------------------------------------------------------
+
+(((USE_CH4_DATA
 
 # --- Global CH4 loss frequencies [1/s] -----------
 (((CH4_LOSS_FREQ
@@ -1266,9 +1279,12 @@ ${RUNDIR_CH4_LOSS}
 ${RUNDIR_GLOBAL_Cl}
 )))GLOBAL_CL
 
+)))USE_CH4_DATA
+
 #------------------------------------------------------------------------------
 # --- Quantities needed for CO chemistry ---
 #------------------------------------------------------------------------------
+(((USE_CO_DATA
 
 # -- P(CO) from CH4 and NMVOC from the last 10-yr benchmark [molec/cm3/s] ---
 (((PROD_CO_CH4
@@ -1280,33 +1296,25 @@ ${RUNDIR_PCO_NMVOC}
 
 # --- GMI chemistry: prod/loss rates (for strato-/mesosphere) ---
 # --- Units: prod [v/v/s]; loss [1/s]                         ---
-(((USE_CO_DATA
 (((GMI_PROD_LOSS
 * GMI_LOSS_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  loss  2005/1-12/1/0 C xyz s-1     CO - 1 1
 * GMI_PROD_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  prod  2005/1-12/1/0 C xyz v/v/s   CO - 1 1
 )))GMI_PROD_LOSS
-)))USE_CO_DATA
 
-# If CO is not an advected species, then just read as a chemistry input
-(((.not.USE_CO_DATA
-(((GMI_PROD_LOSS
-* GMI_LOSS_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  loss  2005/1-12/1/0 C xyz s-1     *  - 1 1
-* GMI_PROD_CO    $ROOT/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc  prod  2005/1-12/1/0 C xyz v/v/s   *  - 1 1
-)))GMI_PROD_LOSS
-))).not.USE_CO_DATA
+)))USE_CO_DATA
 
 #------------------------------------------------------------------------------
 # --- Quantities needed for CO2 chemistry ---
 #------------------------------------------------------------------------------
+(((USE_CO2_DATA
 
 # --- CHEMICAL PRODUCTION FROM CO OXIDATION ------
 # --- Recommended for use in forward modelling ---
 # --- Optional for inversion/assimilation --------
-
-(((USE_CO2_DATA
 (((CO2_COPROD
 ${RUNDIR_CO2_COPROD}
 )))CO2_COPROD
+
 )))USE_CO2_DATA
 
 )))CHEMISTRY_INPUT
@@ -1362,7 +1370,7 @@ ${RUNDIR_CO2_COPROD}
 
 (((EMISSIONS
 #==============================================================================
-# --- Scale factors for CH4 emissions ----
+# --- CH4: Seasonal scaling factors ----
 #==============================================================================
 (((USE_CH4_DATA
 
@@ -1383,12 +1391,20 @@ ${RUNDIR_CO2_COPROD}
 )))GHGI_v2.or.GHGI_v2_Express_Ext
 
 #------------------------------------------------------------------------------
-# --- Scarpelli et al Mexico manure & rice scale factors ---
+# --- Scarpelli_Mexico manure & rice scale factors ---
 #------------------------------------------------------------------------------
 (((Scarpelli_Mexico
 10 MANURE_SF $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc  sf_ch4 2008-2016/1-12/1/0 C xy 1 1
 11 RICE_SF   $ROOT/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc         sf_ch4 2012/1-12/1/0      C xy 1 1
 )))Scarpelli_Mexico
+
+#------------------------------------------------------------------------------
+# --- Seasonality for EDGAR livestock emissions ---
+#------------------------------------------------------------------------------
+(((EDGARv8
+24 EDGAR_SEASONAL_SF_ENF  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc  sf_ch4 2018/1-12/1/0 C xy 1 1
+28 EDGAR_SEASONAL_SF_MNM  $ROOT/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_MNM.0.1x0.1.nc  sf_ch4 2018/1-12/1/0 C xy 1 1
+)))EDGARv8
 
 )))USE_CH4_DATA
 
@@ -1509,12 +1525,7 @@ ${RUNDIR_CO2_COPROD}
 #------------------------------------------------------------------------------
 # --- S to OCS ratio ---
 #------------------------------------------------------------------------------
-70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1 
-
-#------------------------------------------------------------------------------
-# --- km-2 to m-2 ---
-#------------------------------------------------------------------------------
-71 Km2ToM2 1.0e-6 - - - xy unitless 1
+70 StoOCS  MATH:60.07/32.06 - - - xy unitless 1
 
 )))USE_OCS_DATA
 
@@ -1695,6 +1706,10 @@ ${RUNDIR_CO2_COPROD}
 (((CEDS_01x01
 2009 CHINA_MASK  $ROOT/MASKS/v2018-09/China_mask.generic.1x1.nc          MASK     2000/1/1/0 C xy 1 1  70/10/150/60
 )))CEDS_01x01
+
+(((RESERVOIRS
+1500 SEASONAL_RES_MASK $ROOT/CH4/v2024-01/ResME/reservoir_mask.01x01.nc Mask 2022/1-12/1/0 C xy 1 1 -180/-90/180/90
+)))RESERVOIRS
 
 )))EMISSIONS
 

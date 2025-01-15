@@ -65,10 +65,19 @@ operations:
 
   photolysis:
     activate: true
-    num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
+    cloud-j:
+      num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
+      cloud_scheme_flag: 3
+      opt_depth_increase_factor: 1.050
+      min_top_inserted_cloud_OD: 0.005
+      cloud_overlap_correlation: 0.33
+      num_cloud_overlap_blocks: 6
+      sphere_correction: 1
+      num_wavelength_bins: 18
+      use_H2O_UV_absorption: true
     input_directories:
       fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2024-05/
-      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2023-05/
+      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2024-09/
     overhead_O3:
       use_online_O3_from_model: false
       use_column_O3_from_met: true
@@ -116,6 +125,9 @@ operations:
 #============================================================================
 aerosols:
 
+  optics:
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2024-08/
+
   carbon:
     activate: true
     brown_carbon: false
@@ -144,7 +156,7 @@ extra_diagnostics:
   obspack:
     activate: false
     quiet_logfile_output: false
-    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    input_file: ./obspack_input_for_testing.20190701.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
       - BCPI
@@ -152,4 +164,4 @@ extra_diagnostics:
   planeflight:
     activate: false
     flight_track_file: Planeflight.dat.YYYYMMDD
-    output_file: plane.log.YYYYMMDD
+    output_file: ./OutputDir/plane.log.YYYYMMDD

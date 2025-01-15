@@ -57,6 +57,7 @@ CONTAINS
 !
 ! !USES:
 !
+    USE Aerosol_Mod,    ONLY : RD_AOD, CALC_AOD
     USE CMN_FJX_Mod,    ONLY : JVN_, NJX, NRATJ, W_, WL
     USE CMN_FJX_Mod,    ONLY : TITLEJX, JLABEL, RNAMES, JFACTA
     USE ErrCode_Mod
@@ -201,6 +202,27 @@ CONTAINS
        CALL freeUnit(JXUnit)
     ENDIF
 #endif
+
+    !------------------------------------------------------------------------
+    ! Read in AOD data
+    !------------------------------------------------------------------------
+    CALL RD_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "RD_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+    IF (Input_Opt%amIRoot) WRITE(6,*) 'Wavelength optics read successfully'
+
+    !------------------------------------------------------------------------
+    ! Compute the required wavelengths in the LUT to calculate requested AOD
+    !------------------------------------------------------------------------
+    CALL CALC_AOD( Input_Opt, State_Chm, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in routine "CALC_AOD"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE Init_FastJX
 !EOC

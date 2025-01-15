@@ -32,6 +32,7 @@ SED_CONFIG_3='s/end_date: \[20160201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_4='s/end_date: \[20160101, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_5='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 010000\]/'
 SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
+SED_CONFIG_7='s/end_date: \[20900801, 000000\]/end_date: \[20900701, 002000\]/'
 SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
 SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
 SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
@@ -39,8 +40,8 @@ SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
 SED_HEMCO_CONF_3='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 010000/'
 SED_HEMCO_CONF_4='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 002000/'
 SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
-SED_HISTORY_RC_1='s/00000100 000000/00000000 010000/'
-SED_HISTORY_RC_N='s/00000100 000000/00000000 002000/'
+SED_HISTORY_RC_1='s/00000... 0..000/00000000 010000/'
+SED_HISTORY_RC_N='s/00000... 0..000/00000000 002000/'
 CMP_PASS_STR='Configure & Build.....PASS'
 CMP_FAIL_STR='Configure & Build.....FAIL'
 EXE_PASS_STR='Execute Simulation....PASS'
@@ -229,6 +230,7 @@ function update_config_files() {
     sed_ie "${SED_CONFIG_4}" "${runPath}/geoschem_config.yml"
     sed_ie "${SED_CONFIG_5}" "${runPath}/geoschem_config.yml"
     sed_ie "${SED_CONFIG_6}" "${runPath}/geoschem_config.yml"
+    sed_ie "${SED_CONFIG_7}" "${runPath}/geoschem_config.yml"
 
     #------------------------------------------------------------------------
     # Replace text in HEMCO_Config.rc
@@ -267,14 +269,23 @@ function update_config_files() {
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 
-    # For nested-grid fullchem runs, change frequency and duration to 20 mins
-    # in order to reduce the run time of the whole set of integration tests.
     if grep -q "05x0625" <<< "${runPath}"; then
-        sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
-    fi
 
-    # Other text replacements
-    sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
+	# For nested-grid fullchem runs, change frequency and duration
+	# to 20 mins to reduce the run time of the whole set of tests.
+	sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
+
+    elif grep -q "ModelE2.1" <<< "${runPath}"; then
+
+	# For ModelE2.1 fullchem runs, change frequency and duration to 20
+	# mins to reduce the run time of the whole set of integration tests.
+        sed_ie "${SED_HISTORY_RC_N}" "${runPath}/HISTORY.rc"
+
+    else
+
+	# Otherwise change frequency & duration to 1 hour
+	sed_ie "${SED_HISTORY_RC_1}" "${runPath}/HISTORY.rc"
+    fi
 }
 
 
@@ -767,7 +778,7 @@ function get_default_gcc_env_file() {
     #========================================================================
     # Returns the default environment file for GEOS-Chem Classic
     #========================================================================
-    envFile=$(realpath "../../../run/GCClassic/runScriptSamples/operational_examples/harvard_cannon/gcclassic.gcc10_cannon_rocky.env")
+    envFile=$(realpath "../../../run/GCClassic/runScriptSamples/operational_examples/harvard_cannon/gcclassic.gcc12_cannon_rocky.env")
     echo "$envFile"
     return 0
 }
@@ -777,7 +788,76 @@ function get_default_gchp_env_file() {
     #========================================================================
     # Returns the default environment file for GCHP
     #========================================================================
-    envFile=$(realpath "../../../run/GCHP/runScriptSamples/operational_examples/harvard_cannon/gchp.gcc10_openmpi4_cannon_rocky.env")
+    envFile=$(realpath "../../../run/GCHP/runScriptSamples/operational_examples/harvard_cannon/gchp.gcc12_openmpi4_cannon_rocky.env")
     echo "$envFile"
     return 0
+}
+
+
+function print_submodule_head_commits() {
+    #========================================================================
+    # Print the head commits for each Git submodule #####
+    #
+    # 1st argument: Number of pad characters before commit line starts
+    # 2nd argument: Path to top-level code directory
+    # 3rd argument: Log file where output will be written
+    #========================================================================
+    export GIT_DISCOVERY_ACROSS_FILESYSTEM=1
+    n_pad=${1}
+    baseDir=$(basename "${2}")
+    pad="                       "
+
+    # Get submodule names from .gitmodules in the superproject folder
+    submods=(.)
+    submods+=$(grep path "${2}/.gitmodules")
+    submods=${submods//path = /}
+
+    # Loop over submodules
+    # Skip blank entries and geos-chem-shared-docs
+    for submod in ${submods[@]}; do
+	if [[ "X${submod}" != "X" ]]; then
+	    if [[ ! "${submod}" =~ "geos-chem-shared-docs" ]]; then
+
+		# Get the head commit for each submodule and create a
+		# display string to print either to log file or to stdout.
+		# For clarity, remove _GridComp from FVdycoreCubed_GridComp.
+		if [[ -d "${2}/$submod" ]]; then
+		    head=$(git -C "${2}/$submod" log --oneline -1)
+		    y=$(basename $submod)
+		    y=${y/_GridComp/}
+		    y=${y/\./${baseDir}}
+		    if [[ "X${3}" == "X" ]]; then
+			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head"
+		    else
+			echo "${y:0:n_pad}${pad:0:$((n_pad - ${#y}))}: $head" >> "${3}"
+		    fi
+
+		fi
+	    fi
+	fi
+    done
+}
+
+
+function toggle_geoschem_config_option() {
+
+    #===================================================================
+    # Toggles the "activate " option in geoschem_config.yml
+    # for a given YAML tag to either "true " or "false".
+    #
+    # 1st argument: geoschem_config.yml file
+    # 2nd argument: YAML tag (e.g. "planeflight")
+    # 3rd argument: Replacement
+    #===================================================================
+
+    # Replace newlines with formfeed and save to a temporary file
+    cat "${1}" | tr '\n' '\t' > "tmp.${1}"
+
+    # Replace the activate value (one line below the option name)
+    # to the value specified.  Must have 5 characters!
+    sed -i -e "s/${2}:\t    activate: ...../${2}:\t    activate: ${3}/g" "tmp.${1}"
+
+    # Replace form feed with new line and delete temporary file
+    cat "tmp.${1}" | tr '\t' '\n' > "${1}"
+    rm -f "tmp.${1}"
 }

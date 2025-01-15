@@ -86,8 +86,8 @@ CH4_simulation_options:
 #============================================================================
 
 CO_simulation_options:
-  use_fullchem_PCO_from_CH4: true
-  use_fullchem_PCO_from_NMVOC: true
+  use_archived_PCO_from_CH4: false
+  use_archived_PCO_from_NMVOC: true
 
 #============================================================================
 # Options for CO2
@@ -96,7 +96,7 @@ CO_simulation_options:
 CO2_simulation_options:
 
   sources:
-    3D_chemical_oxidation_source: true
+    use_archived_PCO2_from_CO: false
 
   tagged_species:
     tag_bio_and_ocean_CO2: false
@@ -110,7 +110,7 @@ extra_diagnostics:
   obspack:
     activate: false
     quiet_logfile_output: false
-    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    input_file: ./obspack_input_for_testing.20190701.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
       - CH4
@@ -120,4 +120,4 @@ extra_diagnostics:
   planeflight:
     activate: false
     flight_track_file: Planeflight.dat.YYYYMMDD
-    output_file: plane.log.YYYYMMDD
+    output_file: ./OutputDir/plane.log.YYYYMMDD
