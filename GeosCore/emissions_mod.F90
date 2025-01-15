@@ -125,7 +125,6 @@ CONTAINS
 !
     USE CARBON_MOD,            ONLY : EmissCarbon
     USE Carbon_Gases_Mod,      ONLY : CO2_Production
-    USE CO2_MOD,               ONLY : EmissCO2
     USE ErrCode_Mod
     USE HCO_Interface_GC_Mod,  ONLY : HCOI_GC_Run
     USE Input_Opt_Mod,         ONLY : OptInput
@@ -229,23 +228,6 @@ CONTAINS
        RETURN
     ENDIF
 #endif
-
-    ! For the CO2 simulation, we manually add the chemical production of CO2
-    ! from CO oxidation (which is listed as a non-chemical source in HEMCO)
-    ! to State_Chm%Species.  This is done in EmissCO2.  All other CO2 emissions
-    ! (as of GEOS-Chem 12.0.2) are now added via HEMCO, and diagnostics for
-    ! these quantities are saved out via HEMCO diagnostics. (bmy, 10/18/18)
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL EmissCO2( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                      State_Met, RC )
-
-       ! Trap potential errors
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "EmissCO2"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
 
     ! For transport tracer simulation
     IF ( Input_Opt%ITS_A_TRACER_SIM ) THEN

@@ -35,7 +35,7 @@ DummyNMVOC  = IGNORE;  { Dummy placeholder for NMVOC reactant     }
 
 #EQUATIONS
 //
-// Reactions extracted from ch4_co_co2_mod.F
+// Reactions extracted from carbon_gases_mod.F
 // Based on Bukosa et al. (2021) with additions for OCS
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%

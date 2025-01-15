@@ -329,10 +329,8 @@ MODULE State_Chm_Mod
 #endif
 
      !-----------------------------------------------------------------------
-     ! Fields for CH4 specialty simulation
+     ! Fields for CH4 in the carbon simulation
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: BOH        (:,:,:  ) ! OH values [molec/cm3]
-     REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
      LOGICAL                    :: IsCH4BCPerturbed     ! Is CH4 BC perturbed?
 
 #ifdef APM
@@ -543,8 +541,6 @@ CONTAINS
     State_Chm%TO3_DAILY         => NULL()
     State_Chm%TOMS1             => NULL()
     State_Chm%TOMS2             => NULL()
-    State_Chm%BOH               => NULL()
-    State_Chm%BCl               => NULL()
     State_Chm%SFC_CH4           => NULL()
 
     State_Chm%UCX_REGRID        => NULL()
@@ -852,7 +848,7 @@ CONTAINS
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
-    ! but for certain other simulations (tagO3, tagCO), advected species
+    ! but for certain other simulations (tagO3, carbon), advected species
     ! can have prod and loss diagnostic entries.
     CALL GetNumProdLossSpecies( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2278,42 +2274,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Initialize State_Chm quantities pertinent to CH4 simulations
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       ! Global OH and Cl from HEMCO input
-       chmId = 'BOH'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%BOH,                                      &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       chmId = 'BCl'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%BCl,                                      &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !=======================================================================
     ! Initialize State_Chm quantities pertinent to RRTMG simulations
     !=======================================================================
     If (Input_Opt%LRAD) Then
@@ -3676,20 +3636,6 @@ CONTAINS
        State_Chm%TLSTT => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Chm%BOH ) ) THEN
-       DEALLOCATE( State_Chm%BOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%BCl ) ) THEN
-       DEALLOCATE( State_Chm%BCl, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BCl', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BCl => NULL()
-    ENDIF
-
 #ifdef LUO_WETDEP
     IF ( ASSOCIATED( State_Chm%QQ3D ) ) THEN
        DEALLOCATE( State_Chm%QQ3D, STAT=RC )
@@ -4807,16 +4753,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
-
-       CASE( 'BOH' )
-          IF ( isDesc  ) Desc  = 'OH values, CH4 specialty simulation only'
-          IF ( isUnits ) Units = 'molec/cm3'
-          IF ( isRank  ) Rank  = 3
-
-       CASE( 'BCL' )
-          IF ( isDesc  ) Desc  = 'Cl values, CH4 specialty simulation only'
-          IF ( isUnits ) Units = 'v/v'
-          IF ( isRank  ) Rank  = 3
 
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
@@ -6957,24 +6893,11 @@ CONTAINS
           IF ( Fam_Names(N)(1:1) == 'P' ) State_Chm%nProd = State_Chm%nProd + 1
        ENDDO
 
-    ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-       !------------------------------
-       ! Tagged CO simulation
-       !------------------------------
-
-       ! Each advected species can have a loss diagnostic attached ...
-       State_Chm%nLoss = State_Chm%nAdvect
-
-       ! ... but no prod diagnostics.  These will get archived by separate
-       ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
-       State_Chm%nProd = 0
-
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
               Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !------------------------------
-       ! Tagged O3 simulation
+       ! Tagged O3 or carbon simulation
        !-----------------------------
 
        ! Each advected species can have a prod and loss diagnostic attached
@@ -7106,23 +7029,7 @@ CONTAINS
 
        ENDDO
 
-    ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
 
-       !--------------------------------------------------------------------
-       ! Tagged CO simulations
-       !--------------------------------------------------------------------
-
-       ! Each advected species can have an attached loss diagnostic ...
-       DO Id = 1, State_Chm%nLoss
-          Name = 'Loss_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
-          State_Chm%Name_Loss(Id) = TRIM( Name )
-          State_Chm%Map_Loss(Id)  = Id
-       ENDDO
-
-       ! ... but not an attached prod diagnostic.  These will be
-       ! archived by other fields of the State_Diag object.
-       State_Chm%Name_Prod => NULL()
-       State_Chm%Map_Prod  => NULL()
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
               Input_Opt%ITS_A_CARBON_SIM      ) THEN

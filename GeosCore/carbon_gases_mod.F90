@@ -7,8 +7,8 @@
 !
 ! !DESCRIPTION: Module CARBON_GASES_MOD contains variables and routines
 ! for simulating CH4, CO, CO2, and OCS with an online calculation of the
-! chemistry between them using KPP. It was adapted directly from
-! the module CH4_CO_CO2_MOD.F provided by Beata Bukosa.
+! chemistry between them using KPP. It was adapted directly from code
+! provided by Beata Bukosa.
 !\\
 !\\
 ! !INTERFACE:

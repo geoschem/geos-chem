@@ -103,9 +103,8 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
-printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
-printf "   5. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -116,11 +115,9 @@ while [ "${valid_sim}" -eq 0 ]; do
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
-	sim_name=CO2
+	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
-    elif [[ ${sim_num} = "5" ]]; then
-	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -629,7 +626,7 @@ cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 
-# Copy file to auto-update common settings. Use adjoint version for CO2.
+# Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then

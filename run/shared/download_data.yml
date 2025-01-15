@@ -60,12 +60,6 @@ restarts:
   carbon:
     remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
-  ch4:
-    remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
-  co2:
-    remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
   fullchem:
     remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
@@ -78,9 +72,6 @@ restarts:
   pops:
     remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
-  tagco:
-    remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
-    local:  GEOSChem.Restart.20190101_0000z.nc4
   tago3:
     remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4

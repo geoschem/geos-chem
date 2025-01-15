@@ -72,12 +72,9 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=255)          :: SpcMetaDataOutFile
      LOGICAL                     :: ITS_AN_AEROSOL_SIM
      LOGICAL                     :: ITS_A_CARBON_SIM
-     LOGICAL                     :: ITS_A_CH4_SIM
-     LOGICAL                     :: ITS_A_CO2_SIM
      LOGICAL                     :: ITS_A_FULLCHEM_SIM
      LOGICAL                     :: ITS_A_MERCURY_SIM
      LOGICAL                     :: ITS_A_POPS_SIM
-     LOGICAL                     :: ITS_A_TAGCO_SIM
      LOGICAL                     :: ITS_A_TAGO3_SIM
      LOGICAL                     :: ITS_A_TRACEMETAL_SIM
      LOGICAL                     :: ITS_A_TRACER_SIM
@@ -565,12 +562,9 @@ CONTAINS
     Input_Opt%SpcMetaDataOutFile     = ''
     Input_Opt%ITS_AN_AEROSOL_SIM     = .FALSE.
     Input_Opt%ITS_A_CARBON_SIM       = .FALSE.
-    Input_Opt%ITS_A_CH4_SIM          = .FALSE.
-    Input_Opt%ITS_A_CO2_SIM          = .FALSE.
     Input_Opt%ITS_A_FULLCHEM_SIM     = .FALSE.
     Input_Opt%ITS_A_MERCURY_SIM      = .FALSE.
     Input_Opt%ITS_A_POPS_SIM         = .FALSE.
-    Input_Opt%ITS_A_TAGCO_SIM        = .FALSE.
     Input_Opt%ITS_A_TAGO3_SIM        = .FALSE.
     Input_Opt%ITS_A_TRACEMETAL_SIM   = .FALSE.
     Input_Opt%ITS_A_TRACER_SIM       = .FALSE.
