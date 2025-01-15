@@ -255,28 +255,12 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 metals"
     create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # 4x5 merra2 CH4
-    create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 CO2
-    create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-    
-    # 4x5 merra2 tagCO
-    create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
     #=========================================================================
     # Create individual run directories: 4x5 and 47L (MERRA2)
     #=========================================================================
 
     # 4x5 merra2 fullchem_47L"
     create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
-
-    #=========================================================================
-    # Nested-grid simulations
-    #=========================================================================
-
-    # 05x0625 merra2 CH4_47L_na"
-    create_rundir "9\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
 fi
 
