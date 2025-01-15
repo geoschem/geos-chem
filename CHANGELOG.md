@@ -7,6 +7,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [14.5.2] - TBD
 
 ### Fixed
+- Fixed GCHP refresh time for CO2_WEEKLY scale factors so updated daily 
+
 ## [14.5.1] - 2025-01-10
 ### Added
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
