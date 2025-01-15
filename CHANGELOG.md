@@ -4,13 +4,9 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [14.5.1] - 2025-01-10
-### Added
-- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
-- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
-
+## [Unreleased] - TBD
 ### Fixed
-- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
+- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
 
 ## [14.5.1] - 2025-01-10
 ### Added
@@ -27,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
 - Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
 - Added surface precipitation flux fields as inputs to GCHP
+- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
+- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -59,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
 - Changed dimension of EmisOCS_Total from 3D to 2D since all emissions for all sectors are 2D
 - Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
+- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
