@@ -905,7 +905,7 @@ Mask fractions:              false
 )))ICOADS_SHIP
 
 (((CEDS_01x01_SHIP
-0 CEDS_CO2_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
+0 CEDS_CO2_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO2_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 )))CEDS_01x01_SHIP
 )))SHIP
 
