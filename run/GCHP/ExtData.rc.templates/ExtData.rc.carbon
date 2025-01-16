@@ -256,7 +256,7 @@ CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites
 # --- Soil absorption fro MeMo model (Murguia-Flores et al. 2018, GMD) ---
 #
 # Note: Use climatology by default
-CH4_SOILABSORB kg/m2/s Y Y F2009-%m2-01T00:00:00 none none  CH4uptake  ./HcoDir/CH4/v2019-10/MeMo_SoilAbs/MeMo_CH4uptake_Climatology.nc
+CH4_SOILABSORB kg/m2/s  2009 Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoDir/CH4/v2019-10/MeMo_SoilAbs/MeMo_CH4uptake_Climatology.nc
 #
 # Annual emissions are disabled by default
 #CH4_SOILABSORB kg/m2/s N    Y F%y4-%m2-01T00:00:00 none none  CH4uptake  ./HcoDir/CH4/v2019-10/MeMo_SoilAbs/MeMo_CH4uptake_1990-2009.nc
@@ -438,8 +438,8 @@ PCO_CH4    molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromCH4   ./HcoD
 PCO_NMVOC  molec/cm3/s N Y F%y4-%m2-01T00:00:00 none none ProdCOfromNMVOC ./HcoDir/CH4/v2024-01/GCC_14_Output/%y4/GEOSChem.ProdLoss.%y4%m201_0000z.nc4
 
 #--- GMI chemistry: prod/loss rates (GMI_PROD_LOSS) ---
-GMI_LOSS_CO  s-1   Y Y F2005-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
-GMI_PROD_CO  v/v/s Y Y F2005-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
+GMI_LOSS_CO  s-1   2005 Y F%y4-%m2-01T00:00:00 none none loss ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
+GMI_PROD_CO  v/v/s 2005 Y F%y4-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2022-11/gmi.clim.CO.geos5.2x25.nc
 
 ###############################################################################
 ###
@@ -464,8 +464,8 @@ GHGI_RIC_CUL_SF  1 N Y F%y4-%m2-01T00:00:00 none none monthly_scale_factor_3C_Ri
 GHGI_OTH_BUR_SF  1 N Y F%y4-%m2-01T00:00:00 none none monthly_scale_factor_3F_Field_Burning                   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Gridded_GHGI_Methane_v2_Monthly_Scale_Factors_%y4.nc
 
 # --- Scarpelli_Mexico manure and rice scale factors ---
-MANURE_SF  1 N Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc
-RICE_SF    1 Y Y F2012-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc
+MANURE_SF  1 N    Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Manure_ScalingFactors.WithClimatology.nc
+RICE_SF    1 2012 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2017-10/Seasonal_SF/EMICH4_Rice_ScalingFactors.SetMissing.nc
 
 # --- Seasonal scale factors for EDGARv7 ---
 EDGAR_SEASONAL_SF_ENF 1 2018 Y F%y4-%m2-01T00:00:00 none none sf_ch4 ./HcoDir/CH4/v2023-04/EDGARv6_SF/EDGARv6_CH4_MonthlyScaleFactors_ENF.0.1x0.1.nc
@@ -486,7 +486,7 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 
 # --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
 CO2_DIURNAL 1 N Y F2006-01-01T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
-CO2_WEEKLY  1 D Y F2006-01-01T00:00:00   none none weekly_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
+CO2_WEEKLY  1 D Y F2006-01-01T00:00:00   none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
 
 # --- Domestic aviation surface correction factor ---
 AVIATION_SURF_CORR      1       Y  Y F2004-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
