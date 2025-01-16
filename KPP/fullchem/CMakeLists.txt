@@ -20,24 +20,12 @@ if(KPP_INT_NAME STREQUAL "rosenbrock_autoreduce")
   target_compile_definitions(
     GEOSChemBuildProperties INTERFACE KPP_INT_AUTOREDUCE
   )
-elseif(KPP_INT_NAME STREQUAL "lsode")
-  set(KPP_INT_LSODE ON CACHE BOOL "Integrator is LSODE?")
-  target_compile_definitions(
-    GEOSChemBuildProperties INTERFACE KPP_INT_LSODE
-  )
-elseif(KPP_INT_NAME STREQUAL "beuler")
-  set(KPP_INT_BEULER ON CACHE BOOL "Integrator is BEULER?")
-  target_compile_definitions(
-    GEOSChemBuildProperties INTERFACE KPP_INT_BEULER
-  )
 endif()
 
 # Print results
 gc_pretty_print(SECTION "KPP integrator (read from fullchem.kpp)")
 gc_pretty_print(VARIABLE KPP_INT_NAME)
 gc_pretty_print(VARIABLE KPP_INT_AUTOREDUCE IS_BOOLEAN)
-gc_pretty_print(VARIABLE KPP_INT_LSODE IS_BOOLEAN)
-gc_pretty_print(VARIABLE KPP_INT_BEULER IS_BOOLEAN)
 
 #----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- fullchem mechanism

@@ -6,7 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
-- Added the `KPP_INT_AUTOREDUCE`, `KPP_INT_LSODE`, and `KPP_INT_BEULER` C-preprocessor switches for integrator-specific handling
+- Added the `KPP_INT_AUTOREDUCE` C-preprocessor switch integrator-specific handling
+- Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 
 ### Fixed
 - Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
@@ -55,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
-- Fixed missing Is_Advected for TMB in species_database.yml
+- Fixed missing `Is_Advected` for TMB in species_database.yml
 - Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
 - Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
 - Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
