@@ -326,7 +326,7 @@ CONTAINS
     REAL, POINTER                :: PTR_O1D(:,:,:)     => NULL()
     REAL, ALLOCATABLE            :: OXLOCAL(:,:,:)
     LOGICAL                      :: NeedO3
-    INTEGER                      :: OrigUnit
+    INTEGER                      :: previous_units
 
     __Iam__('GEOS_RATSandOxDiags')
 
@@ -336,7 +336,8 @@ CONTAINS
     ! Make sure that species are in kg/kg total. This should be the case already,
     ! but better be safe!
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
+                             new_units=KG_SPECIES_PER_KG_TOTAL_AIR,       &
+                             previous_units=previous_units, RC=RC )
 
     !=======================================================================
     ! Fill RATS export states if GC is the RATS provider
@@ -437,7 +438,7 @@ CONTAINS
 
     ! Convert back to original unit
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             OutUnit=OrigUnit, RC=RC )
+                             new_units=previous_units, RC=RC )
 
     ! All done
     RETURN_(ESMF_SUCCESS)
@@ -489,7 +490,7 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     INTEGER   :: IndH2O, LM 
-    INTEGER   :: OrigUnit
+    INTEGER   :: previous_units
 
     __Iam__('GEOS_SetH2O')
 
@@ -499,7 +500,8 @@ CONTAINS
        ! Make sure that species are in kg/kg total. This should be the case already,
        ! but better be safe!
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                outUnit=KG_SPECIES_PER_KG_TOTAL_AIR, OrigUnit=OrigUnit, RC=RC )
+                                new_units=KG_SPECIES_PER_KG_TOTAL_AIR,       &
+                                previous_units=previous_units, RC=RC )
   
        ! Sync Q and H2O concentration array. Q is in kg/kg total, so is H2O. 
        LM = State_Grid%NZ
@@ -514,7 +516,7 @@ CONTAINS
 
        ! Convert back to original unit
        CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                outUnit=OrigUnit, RC=RC )
+                                new_units=previous_units, RC=RC )
     ENDIF
 
     ! All done

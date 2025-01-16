@@ -1,0 +1,198 @@
+---
+# ============================================================================
+# Configuration file for the KPP-Standalone Interface.
+#
+# This file specifies at which locations we will archive the model
+# state so that we can initialize KPP-Standalone Box Model simulations.
+# ============================================================================
+
+# ------------------------------------
+# General settngs
+# ------------------------------------
+settings:
+  activate: false                      # Main on/off switch
+  start_output_at: [19000101, 000000]  # Save model state for KPP standalone
+  stop_output_at:  [21000101, 000000]  # ... if between these 2 datetimes
+  output_directory: "./OutputDir/"     # This directory should already exist
+  levels:                              # Model levels to archive
+    - 1
+    - 2
+    - 10
+    - 23
+    - 35
+    - 48
+    - 56
+
+# ------------------------------------
+# Where to archive model state?
+# ------------------------------------
+active_cells:
+  - Alert
+  - Amazon
+  - AtlanticOcean
+  - Beijing
+  - Borneo
+  - Boulder
+  - Broadmeadows
+  - Congo
+  - DeBilt
+  - Edmonton
+  - ElDjouf
+  - Eureka
+  - Graciosa
+  - GooseBay
+  - HiloHawaii
+  - Hohenpeissenberg
+  - Kennaook
+  - Kinshasa
+  - IndianOcean
+  - Lauder
+  - Legionowo
+  - Lindenberg
+  - LosAngeles
+  - MacquarieIsland
+  - McMurdo
+  - NahaOkinawa
+  - Nairobi
+  - Ozarks
+  - PacificOcean
+  - Paramibo
+  - Paris
+  - Payerne
+  - Reunion
+  - Sapporo
+  - Sodankyla
+  - Syowa
+  - TatenoTsukuba
+  - TrinidadHead
+  - Uccle
+  - Utqiagvik
+  - WallopsIsland
+
+# ------------------------------------
+# Active cell geographic coordinates
+# ------------------------------------
+locations:
+  Alert:
+    latitude: 82.5
+    longitude: -62.3
+  Amazon:
+    latitude: -3.4653
+    longitude: -62.2159
+  AtlanticOcean:
+    latitude: 34.707874
+    longitude: -41.574755
+  Beijing:
+    latitude: 39.9042
+    longitude: 116.4074
+  Borneo:
+    latitude: 0.0
+    longitude: 114.0
+  Boulder:
+    latitude: 39.99
+    longitude: -105.26
+  Broadmeadows:
+    latitude: -37.69
+    longitude: 114.95
+  Congo:
+    latitude: -5.9175
+    longitude: 12.5484
+  DeBilt:
+    latitude: 52.1
+    longitude: 5.18
+  Edmonton:
+    latitude: 53.55
+    longitude: -114.1
+  ElDjouf:
+    latitude: 21.5008
+    longitude: -6.6661
+  Eureka:
+    latitude: 80.05
+    longitude: -86.42
+  Graciosa:
+    latitude: 39.0525
+    longitude: -28.0069
+  GooseBay:
+    latitude: 53.29:
+    longitude: -60.39:
+  HiloHawaii:
+    latitude: 19.58
+    longitude: -155.07
+  Hohenpeissenberg:
+    latitude: 47.8
+    longitude: 11.0
+  Kennaook:
+    latitude: -40.6833
+    longitude: 144.6833
+  Kinshasa:
+    latitude: -4.3033
+    longitude: 15.3105
+  IndianOcean:
+    latitude: 23.0
+    longitude: 87.2
+  Lauder:
+    latitude: -45.05
+    longitude: 169.68
+  Legionowo:
+    latitude: 52.4
+    longitude: 20.97
+  Lindenberg:
+    latitude: 52.22
+    longitude: 14.12
+  LosAngeles:
+    latitude: 34.0522
+    longitude: -118.243
+  MacquarieIsland:
+    latitude: -54.5
+    longitude: 158.94
+  McMurdo:
+    latitude: -77.8455
+    longitude: 166.6698
+  NahaOkinawa:
+    latitude: 26.21
+    longitude: 127.69
+  Nairobi:
+    latitude: -1.3
+    longitude: 36.8
+  Ozarks:
+    latitude: 37.502
+    longitude: -91.259
+  PacificOcean:
+    latitude: 0.0
+    longitude: -121.964508
+  Paramibo:
+    latitude: 5.806
+    longitude: -55.214
+  Paris:
+    latitude: 48.8566
+    longitude: 2.3522
+  Payerne:
+    latitude: 46.81
+    longitude: 6.94
+  Reunion:
+    latitude: -21.1
+    longitude: 55.5
+  Sapporo:
+    latitude: 43.06
+    longitude: 141.33
+  Sodankyla:
+    latitude: 67.36
+    longitude: 26.63
+  Syowa:
+    latitude: -69.0
+    longitude: 39.58
+  TatenoTsukuba:
+    latitude: 36.06
+    longitude: 140.13
+  TrinidadHead:
+    latitude: 41.05
+    longitude: -124.15
+  Uccle:
+    latitude: 50.8
+    longitude: 4.36
+  Utqiagvik:
+    latitude: 71.2906
+    longitude: -156.7886
+  WallopsIsland:
+    latitude: 37.94
+    longitude: -75.46

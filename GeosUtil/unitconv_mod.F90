@@ -2081,7 +2081,7 @@ CONTAINS
 #ifdef ADJOINT
        IF ( isAdjoint ) THEN
           State_Chm%SpeciesAdj(:,:,:,N) =                                    &
-          State_Chm%SpeciesAdj(:,:,:,N) const * State_Met%AIRVOL
+          State_Chm%SpeciesAdj(:,:,:,N) * const * State_Met%AIRVOL
        ENDIF
 #endif
 

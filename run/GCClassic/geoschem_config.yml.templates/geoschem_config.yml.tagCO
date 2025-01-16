@@ -84,8 +84,8 @@ operations:
 #============================================================================
 
 CO_simulation_options:
-  use_fullchem_PCO_from_CH4: true
-  use_fullchem_PCO_from_NMVOC: true
+  use_archived_PCO_from_CH4: true
+  use_archived_PCO_from_NMVOC: true
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)

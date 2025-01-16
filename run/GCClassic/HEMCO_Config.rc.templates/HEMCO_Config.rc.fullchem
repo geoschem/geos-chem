@@ -174,6 +174,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> LightningClimatology   :       ${RUNDIR_LIGHTNOX_CLIM}
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
+    --> UseSoilTemperature     :       false
     --> Use fertilizer NOx     :       true
 105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
@@ -204,7 +205,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -216,7 +217,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
-114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP
+114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP/STYR/EBZ/TMB/ROH/RCOOH/RCHO/ACTA/EOH/HCOOH/ISOP/MACR/MVK/MOH/R4N2/FURA
     --> FINN_daily             :       false
     --> Scaling_CO             :       1.0
     --> Scaling_SOAP           :       0.013
@@ -321,7 +322,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__agTOL              $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__agXYLMN            $ROOT/NEI2016/v2021-06/2016fh_16j_ag_0pt1degree_month_$MM.ncf                         XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__airportsACET       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__airportsACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__airportsACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__airportsALD2       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__airportsALDX       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__airportsBENZ       $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -356,7 +357,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__airportsTOL        $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__airportsXYLMN      $ROOT/NEI2016/v2021-06/2016fh_16j_airports_0pt1degree_month_$MM.ncf                   XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__nonptACET          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__nonptACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__nonptACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__nonptALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__nonptALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__nonptBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -394,7 +395,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__nonptTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__nonptXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_nonpt_0pt1degree_month_$MM.ncf                      XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__nonroadACET        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__nonroadACROLEIN    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__nonroadACROLEIN    $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__nonroadALD2        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__nonroadALDX        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__nonroadBENZ        $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -430,7 +431,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__nonroadTOL         $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__nonroadXYLMN       $ROOT/NEI2016/v2021-06/2016fh_16j_nonroad_0pt1degree_month_$MM.ncf                    XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__npogACET           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__npogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__npogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__npogALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__npogALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__npogBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -467,7 +468,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__npogTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__npogXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_np_oilgas_0pt1degree_month_$MM.ncf                  XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__onroadACET         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__onroadACROLEIN     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__onroadACROLEIN     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__onroadALD2         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__onroadALDX         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__onroadBENZ         $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -502,7 +503,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__onroadTOL          $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__onroadXYLMN        $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_0pt1degree_month_$MM.ncf                     XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__onroad_caACET      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__onroad_caACROLEIN  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__onroad_caACROLEIN  $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__onroad_caALD2      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__onroad_caALDX      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__onroad_caBENZ      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -537,7 +538,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__onroad_caTOL       $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__onroad_caXYLMN     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_ca_adj_0pt1degree_month_$MM.ncf              XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__railACET           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__railACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__railACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__railALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__railALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__railBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -573,7 +574,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__railTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__railXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_rail_0pt1degree_month_$MM.ncf                       XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__rwcACET            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__rwcACROLEIN        $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__rwcACROLEIN        $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__rwcALD2            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__rwcALDX            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__rwcBENZ            $ROOT/NEI2016/v2021-06/2016fh_16j_rwc_0pt1degree_month_$MM.ncf                        BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -680,7 +681,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__c3TOL              $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          TOL        2002-2020/1-12/1/0 RF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__c3XYLMN            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_cmv_c3_12_0pt1degree_3D_month_$MM.ncf          XYLMN      2002-2020/1-12/1/0 RF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__pteguACET          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ACET       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__pteguACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__pteguACROLEIN      $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__pteguALD2          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ALD2       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__pteguALDX          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              ALDX       2002-2020/1-12/1/0 RF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__pteguBENZ          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              BENZ       2002-2020/1-12/1/0 RF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -718,7 +719,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__pteguTOL           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              TOL        2002-2020/1-12/1/0 RF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__pteguXYLMN         $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptegu_0pt1degree_3D_month_$MM.ncf              XYLMN      2002-2020/1-12/1/0 RF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__ptogACET           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ACET       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__ptogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__ptogACROLEIN       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__ptogALD2           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ALD2       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__ptogALDX           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  ALDX       2002-2020/1-12/1/0 RF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__ptogBENZ           $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  BENZ       2002-2020/1-12/1/0 RF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -756,7 +757,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__ptogTOL            $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  TOL        2002-2020/1-12/1/0 RF xyz  kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__ptogXYLMN          $ROOT/NEI2016/v2021-06/2016fh_16j_emln_pt_oilgas_allinln_0pt1degree_3D_month_$MM.ncf  XYLMN      2002-2020/1-12/1/0 RF xyz  kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__ptnonipmACET       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ACET       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__ptnonipmACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__ptnonipmACROLEIN   $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ACROLEIN   2002-2020/1-12/1/0 RF xyz  kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__ptnonipmALD2       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ALD2       2002-2020/1-12/1/0 RF xyz  kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__ptnonipmALDX       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   ALDX       2002-2020/1-12/1/0 RF xyz  kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__ptnonipmBENZ       $ROOT/NEI2016/v2021-06/2016fh_16j_emln_ptnonipm_allinln_0pt1degree_3D_month_$MM.ncf   BENZ       2002-2020/1-12/1/0 RF xyz  kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -829,7 +830,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EPA16_TOLU__onroad_canTOL      $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 TOL        2002-2020/1-12/1/0 RF xy   kg/m2/s    TOLU   26/213/254/1007        1 50
 0 EPA16_XYLE__onroad_canXYLMN    $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_can_0pt1degree_month_$MM.ncf                 XYLMN      2002-2020/1-12/1/0 RF xy   kg/m2/s    XYLE   26/213/254/1007        1 50
 0 EPA16_ACET__onroad_mexACET     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ACET       2002-2020/1-12/1/0 RF xy   kg/m2/s    ACET   26/213/254/1007        1 50
-0 EPA16_MACR__onroad_mexACROLEIN $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    MACR   26/213/254/1007        1 50
+0 EPA16_MACR__onroad_mexACROLEIN $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ACROLEIN   2002-2020/1-12/1/0 RF xy   kg/m2/s    ACR    26/213/254/1007        1 50
 0 EPA16_ALD2__onroad_mexALD2     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ALD2       2002-2020/1-12/1/0 RF xy   kg/m2/s    ALD2   26/213/254/1007        1 50
 0 EPA16_RCHO__onroad_mexALDX     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 ALDX       2002-2020/1-12/1/0 RF xy   kg/m2/s    RCHO   26/213/254/1007        1 50
 0 EPA16_BENZ__onroad_mexBENZ     $ROOT/NEI2016/v2021-06/2016fh_16j_onroad_mex_0pt1degree_month_$MM.ncf                 BENZ       2002-2020/1-12/1/0 RF xy   kg/m2/s    BENZ   26/213/254/1007        1 50
@@ -1224,7 +1225,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_HOUSEFUELWOOD_C2H6  $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  C2H6  2013/1/1/0 C xy g/m2/yr  C2H6  26/1008          2 60
 0 DICE_HOUSEFUELWOOD_HAC   $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  HAC   2013/1/1/0 C xy g/m2/yr  HAC   26/1008          2 60
 0 DICE_HOUSEFUELWOOD_GLYC  $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  GLYC  2013/1/1/0 C xy g/m2/yr  GLYC  26/1008          2 60
-0 DICE_HOUSEFUELWOOD_MOH   $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc   MOH  2013/1/1/0 C xy g/m2/yr  MOH   26/1008          2 60
+0 DICE_HOUSEFUELWOOD_MOH   $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  MOH   2013/1/1/0 C xy g/m2/yr  MOH   26/1008          2 60
 #0 DICE_HOUSEFUELWOOD_MGLY $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  MGLY  2013/1/1/0 C xy g/m2/yr  MGLY  26/1008          2 60
 #0 DICE_HOUSEFUELWOOD_APIN $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  APIN  2013/1/1/0 C xy g/m2/yr  APIN  26/1008          2 60
 0 DICE_HOUSEFUELWOOD_C2H2  $ROOT/DICE_Africa/v2016-10/DICE-Africa-household-fuelwood-use-2013-v01-4Oct2016.nc  C2H2  2013/1/1/0 C xy g/m2/yr  C2H2  26/1008          2 60
@@ -1541,13 +1542,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C5H12_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2407/707            1 5
 0 CEDS_C5H12_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  26                  1 5
 
-0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2401                1 5
-0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK4  2406/706/315        1 5
-0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK4  2407/707/316        1 5
-0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2411/711            1 5
-0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2409/709            1 5
-0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  2407/707            1 5
-0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy   kg/m2/s ALK4  26                  1 5
+0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2401                1 5
+0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2406/706/315        1 5
+0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2407/707/316        1 5
+0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2411/711            1 5
+0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2409/709            1 5
+0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  2407/707            1 5
+0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy   kg/m2/s ALK6  26                  1 5
 
 0 CEDS_C2H4_AGR   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          1750-2019/1-12/1/0 C xy   kg/m2/s C2H4  2401                1 5
 0 CEDS_C2H4_ENE   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          1750-2019/1-12/1/0 C xyL* kg/m2/s C2H4  2406/706/315        1 5
@@ -1628,6 +1629,22 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_HCOOH_RCO  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_rco         1750-2019/1-12/1/0 C xy   kg/m2/s HCOOH 2409/709            1 5
 0 CEDS_HCOOH_SLV  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_slv         1750-2019/1-12/1/0 C xy   kg/m2/s HCOOH 2407/707            1 5
 0 CEDS_HCOOH_WST  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_wst         1750-2019/1-12/1/0 C xy   kg/m2/s HCOOH 26                  1 5
+
+0 CEDS_TMB_AGR    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_agr           1750-2019/1-12/1/0 C xy   kg/m2/s TMB 2401                  1 5
+0 CEDS_TMB_ENE    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_ene           1750-2019/1-12/1/0 C xyL* kg/m2/s TMB 2406/706/315          1 5
+0 CEDS_TMB_IND    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_ind           1750-2019/1-12/1/0 C xyL* kg/m2/s TMB 2407/707/316          1 5
+0 CEDS_TMB_TRA    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_tra           1750-2019/1-12/1/0 C xy   kg/m2/s TMB 2411/711              1 5
+0 CEDS_TMB_RCO    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_rco           1750-2019/1-12/1/0 C xy   kg/m2/s TMB 2409/709              1 5
+0 CEDS_TMB_SLV    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_slv           1750-2019/1-12/1/0 C xy   kg/m2/s TMB 2407/707              1 5
+0 CEDS_TMB_WST    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_wst           1750-2019/1-12/1/0 C xy   kg/m2/s TMB 26                    1 5
+
+0 CEDS_OTH_AGR    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_agr     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 2401                 1 5
+0 CEDS_OTH_ENE    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ene     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6 2406/706/315         1 5
+0 CEDS_OTH_IND    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_ind     1750-2019/1-12/1/0 C xyL* kg/m2/s ALK6 2407/707/316         1 5
+0 CEDS_OTH_TRA    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_tra     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 2411/711             1 5
+0 CEDS_OTH_RCO    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_rco     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 2409/709             1 5
+0 CEDS_OTH_SLV    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_slv     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 2407/707             1 5
+0 CEDS_OTH_WST    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_wst     1750-2019/1-12/1/0 C xy   kg/m2/s ALK6 26                   1 5
 )))CEDSv2
 
 #==============================================================================
@@ -2657,6 +2674,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 4
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 4
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 4
+0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s TMB   26     10 4
+0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     10 4
 )))HTAPv3_SHIP
 
 (((CEDSv2_SHIP
@@ -2690,6 +2709,8 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_ALD2_SHP   $ROOT/CEDS/v2021-06/$YYYY/ALD2-em-anthro_CMIP_CEDS_$YYYY.nc          ALD2_shp          1750-2019/1-12/1/0 C xy kg/m2/s ALD2  26     10 5
 0 CEDS_MEK_SHP    $ROOT/CEDS/v2021-06/$YYYY/MEK-em-anthro_CMIP_CEDS_$YYYY.nc           MEK_shp           1750-2019/1-12/1/0 C xy kg/m2/s MEK   26     10 5
 0 CEDS_HCOOH_SHP  $ROOT/CEDS/v2021-06/$YYYY/HCOOH-em-anthro_CMIP_CEDS_$YYYY.nc         HCOOH_shp         1750-2019/1-12/1/0 C xy kg/m2/s HCOOH 26     10 5
+0 CEDS_TMB_SHP    $ROOT/CEDS/v2021-06/$YYYY/TMB-em-anthro_CMIP_CEDS_$YYYY.nc           TMB_shp           1750-2019/1-12/1/0 C xy kg/m2/s TMB   26     10 5
+0 CEDS_OTH_SHP    $ROOT/CEDS/v2021-06/$YYYY/OTHER_VOC-em-anthro_CMIP_CEDS_$YYYY.nc     OTHER_VOC_shp     1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     10 5
 )))CEDSv2_SHIP
 
 (((CEDS_GBDMAPS_SHIP
@@ -3128,26 +3149,46 @@ VerboseOnCores:              root       # Accepted values: root all
 #   in a 0.5x0.625 HEMCO 3.6.1 standalone simulation.
 #==============================================================================
 (((GFED4_CLIMATOLOGY
-0 GFED4_CLIM_ACET  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_ACET 2019/1-12/1/0 C xy kg/m2/s ACET - 5 1
-0 GFED4_CLIM_ALD2  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_ALD2 2019/1-12/1/0 C xy kg/m2/s ALD2 - 5 1
-0 GFED4_CLIM_ALK4  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_ALK4 2019/1-12/1/0 C xy kg/m2/s ALK4 - 5 1
-0 GFED4_CLIM_BCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPI 2019/1-12/1/0 C xy kg/m2/s BCPI - 5 1
-0 GFED4_CLIM_BCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BCPO 2019/1-12/1/0 C xy kg/m2/s BCPO - 5 1
-0 GFED4_CLIM_BENZ  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_BENZ 2019/1-12/1/0 C xy kg/m2/s BENZ - 5 1
-0 GFED4_CLIM_C2H6  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_C2H6 2019/1-12/1/0 C xy kg/m2/s C2H6 - 5 1
-0 GFED4_CLIM_C3H8  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_C3H8 2019/1-12/1/0 C xy kg/m2/s C3H8 - 5 1
-0 GFED4_CLIM_CH2O  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_ACET 2019/1-12/1/0 C xy kg/m2/s CH2O - 5 1
-0 GFED4_CLIM_CO    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_CO   2019/1-12/1/0 C xy kg/m2/s CO   - 5 1
-0 GFED4_CLIM_EOH   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_EOH  2019/1-12/1/0 C xy kg/m2/s EOH  - 5 1
-0 GFED4_CLIM_MEK   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_MEK  2019/1-12/1/0 C xy kg/m2/s MEK  - 5 1
-0 GFED4_CLIM_NO    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_NO   2019/1-12/1/0 C xy kg/m2/s NO   - 5 1
-0 GFED4_CLIM_OCPI  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPI 2019/1-12/1/0 C xy kg/m2/s OCPI - 5 1
-0 GFED4_CLIM_OCPO  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_OCPO 2019/1-12/1/0 C xy kg/m2/s OCPO - 5 1
-0 GFED4_CLIM_PRPE  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_PRPE 2019/1-12/1/0 C xy kg/m2/s PRPE - 5 1
-0 GFED4_CLIM_SO2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SO2  2019/1-12/1/0 C xy kg/m2/s SO2  - 5 1
-0 GFED4_CLIM_SOAP  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_SOAP 2019/1-12/1/0 C xy kg/m2/s SOAP - 5 1
-0 GFED4_CLIM_TOLU  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_TOLU 2019/1-12/1/0 C xy kg/m2/s TOLU - 5 1
-0 GFED4_CLIM_XYLE  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2019_05x0625.nc GFED4_XYLE 2019/1-12/1/0 C xy kg/m2/s XYLE - 5 1
+0 GFED4_CLIM_ACET   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ACET  2023/1-12/1/0 C xy kg/m2/s ACET  - 5 1
+0 GFED4_CLIM_ACR    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ACR   2023/1-12/1/0 C xy kg/m2/s ACR   - 5 1
+0 GFED4_CLIM_ACTA   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ACTA  2023/1-12/1/0 C xy kg/m2/s ACTA  - 5 1
+0 GFED4_CLIM_ALD2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ALD2  2023/1-12/1/0 C xy kg/m2/s ALD2  - 5 1
+0 GFED4_CLIM_ALK4   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ALK4  2023/1-12/1/0 C xy kg/m2/s ALK4  - 5 1
+0 GFED4_CLIM_BCPI   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_BCPI  2023/1-12/1/0 C xy kg/m2/s BCPI  - 5 1
+0 GFED4_CLIM_BCPO   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_BCPO  2023/1-12/1/0 C xy kg/m2/s BCPO  - 5 1
+0 GFED4_CLIM_BENZ   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_BENZ  2023/1-12/1/0 C xy kg/m2/s BENZ  - 5 1
+0 GFED4_CLIM_C2H2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_C2H2  2023/1-12/1/0 C xy kg/m2/s C2H2  - 5 1
+0 GFED4_CLIM_C2H4   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_C2H4  2023/1-12/1/0 C xy kg/m2/s C2H4  - 5 1
+0 GFED4_CLIM_C2H6   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_C2H6  2023/1-12/1/0 C xy kg/m2/s C2H6  - 5 1
+0 GFED4_CLIM_C3H8   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_C3H8  2023/1-12/1/0 C xy kg/m2/s C3H8  - 5 1
+0 GFED4_CLIM_C4H6   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_C4H6  2023/1-12/1/0 C xy kg/m2/s C4H6  - 5 1
+0 GFED4_CLIM_CH2O   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_CH2O  2023/1-12/1/0 C xy kg/m2/s CH2O  - 5 1
+0 GFED4_CLIM_CO     $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_CO    2023/1-12/1/0 C xy kg/m2/s CO    - 5 1
+0 GFED4_CLIM_EOH    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_EOH   2023/1-12/1/0 C xy kg/m2/s EOH   - 5 1
+0 GFED4_CLIM_FURA   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_FURA  2023/1-12/1/0 C xy kg/m2/s FURA  - 5 1
+0 GFED4_CLIM_GLYX   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_GLYX  2023/1-12/1/0 C xy kg/m2/s GLYX  - 5 1
+0 GFED4_CLIM_HCOOH  $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_HCOOH 2023/1-12/1/0 C xy kg/m2/s HCOOH - 5 1
+0 GFED4_CLIM_ISOP   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_ISOP  2023/1-12/1/0 C xy kg/m2/s ISOP  - 5 1
+0 GFED4_CLIM_MEK    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_MEK   2023/1-12/1/0 C xy kg/m2/s MEK   - 5 1
+0 GFED4_CLIM_MGLY   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_MGLY  2023/1-12/1/0 C xy kg/m2/s MGLY  - 5 1
+0 GFED4_CLIM_MOH    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_MOH   2023/1-12/1/0 C xy kg/m2/s MOH   - 5 1
+0 GFED4_CLIM_MVK    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_MVK   2023/1-12/1/0 C xy kg/m2/s MVK   - 5 1
+0 GFED4_CLIM_MTPA   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_MTPA  2023/1-12/1/0 C xy kg/m2/s MTPA  - 5 1
+0 GFED4_CLIM_NAP    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_NAP   2023/1-12/1/0 C xy kg/m2/s NAP   - 5 1
+0 GFED4_CLIM_NH3    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_NH3   2023/1-12/1/0 C xy kg/m2/s NH3   - 5 1
+0 GFED4_CLIM_NO     $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_NO    2023/1-12/1/0 C xy kg/m2/s NO    - 5 1
+0 GFED4_CLIM_OCPI   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_OCPI  2023/1-12/1/0 C xy kg/m2/s OCPI  - 5 1
+0 GFED4_CLIM_OCPO   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_OCPO  2023/1-12/1/0 C xy kg/m2/s OCPO  - 5 1
+0 GFED4_CLIM_PHEN   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_PHEN  2023/1-12/1/0 C xy kg/m2/s PHEN  - 5 1
+0 GFED4_CLIM_POG1   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_POG1  2023/1-12/1/0 C xy kg/m2/s POG1  - 5 1
+0 GFED4_CLIM_POG2   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_POG2  2023/1-12/1/0 C xy kg/m2/s POG2  - 5 1
+0 GFED4_CLIM_PRPE   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_PRPE  2023/1-12/1/0 C xy kg/m2/s PRPE  - 5 1
+0 GFED4_CLIM_RCHO   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_RCHO  2023/1-12/1/0 C xy kg/m2/s RCHO  - 5 1
+0 GFED4_CLIM_SO2    $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_SO2   2023/1-12/1/0 C xy kg/m2/s SO2   - 5 1
+0 GFED4_CLIM_SOAP   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_SOAP  2023/1-12/1/0 C xy kg/m2/s SOAP  - 5 1
+0 GFED4_CLIM_STYR   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_STYR  2023/1-12/1/0 C xy kg/m2/s STRY  - 5 1
+0 GFED4_CLIM_TOLU   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_TOLU  2023/1-12/1/0 C xy kg/m2/s TOLU  - 5 1
+0 GFED4_CLIM_XYLE   $ROOT/GFED4/v2023-03/GFED4_climatology_2010-2023_05x0625.nc GFED4_XYLE  2023/1-12/1/0 C xy kg/m2/s XYLE  - 5 1
 )))GFED4_CLIMATOLOGY
 
 #==============================================================================

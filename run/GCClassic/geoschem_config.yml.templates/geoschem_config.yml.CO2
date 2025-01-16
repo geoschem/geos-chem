@@ -73,7 +73,7 @@ operations:
 CO2_simulation_options:
 
   sources:
-    3D_chemical_oxidation_source: true
+    use_archived_PCO2_from_CO: true
 
   tagged_species:
     tag_bio_and_ocean_CO2: false

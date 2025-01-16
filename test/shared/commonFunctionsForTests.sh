@@ -778,7 +778,7 @@ function get_default_gcc_env_file() {
     #========================================================================
     # Returns the default environment file for GEOS-Chem Classic
     #========================================================================
-    envFile=$(realpath "../../../run/GCClassic/runScriptSamples/operational_examples/harvard_cannon/gcclassic.gcc10_cannon_rocky.env")
+    envFile=$(realpath "../../../run/GCClassic/runScriptSamples/operational_examples/harvard_cannon/gcclassic.gcc12_cannon_rocky.env")
     echo "$envFile"
     return 0
 }
@@ -788,7 +788,7 @@ function get_default_gchp_env_file() {
     #========================================================================
     # Returns the default environment file for GCHP
     #========================================================================
-    envFile=$(realpath "../../../run/GCHP/runScriptSamples/operational_examples/harvard_cannon/gchp.gcc10_openmpi4_cannon_rocky.env")
+    envFile=$(realpath "../../../run/GCHP/runScriptSamples/operational_examples/harvard_cannon/gchp.gcc12_openmpi4_cannon_rocky.env")
     echo "$envFile"
     return 0
 }
