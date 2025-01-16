@@ -90,7 +90,7 @@ Mask fractions:              false
     --> AEIC2019_DAILY         :       false    # 2019 (daily data)
     --> AEIC2019_MONMEAN       :       true     # 2019 (monthly-mean data)
     --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
-    --> CEDS_01x01             :       ${RUNDIR_USE_CEDS}    # 1980-2019
+    --> CEDS_01x01             :       true     # 1980-2019
     --> HTAP                   :       false    # 2008-2010
     --> FOSSIL_ODIAC           :       true     # 2000-2018
     --> FOSSIL_CDIAC           :       false    # 1980-2014
@@ -113,7 +113,7 @@ Mask fractions:              false
     --> CMIP6_SFC_CH4          :       false    # 1750-1978
 # ..... Ship emissions ...............
     --> SHIP                   :       true
-    --> CEDS_01x01_SHIP        :       ${RUNDIR_USE_CEDS}    # 1980-2019
+    --> CEDS_01x01_SHIP        :       true     # 1980-2019
     --> ICOADS_SHIP            :       false    # 2004
 #------ OCS FLUX DATA ---------------------------------------------------------
     --> OCS_ANTHRO_FLUX        :       true     # 2012-2016
