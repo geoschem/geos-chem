@@ -609,10 +609,28 @@ CONTAINS
     ENDIF
     Input_Opt%CHEM_INPUTS_DIR = TRIM( v_str )
 
+#if defined( MODEL_GCHP )
+    !------------------------------------------------------------------------
+    ! Meteorology field
+    !------------------------------------------------------------------------
+    key   = "simulation%met_field"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%MetField = TRIM( v_str )
+#endif
+
+#if defined( MODEL_GEOS )
+    Input_Opt%MetField        = 'See ExtData.rc'
+#endif
+
     !------------------------------------------------------------------------
     ! Set other fields of Input_Opt accordingly
     !------------------------------------------------------------------------
-    Input_Opt%MetField        = 'See ExtData.rc'
     Input_Opt%DATA_DIR        = 'N/A'
     Input_Opt%RUN_DIR         = 'N/A'
 
@@ -2020,7 +2038,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_CH4"
+    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2033,7 +2051,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_fullchem_PCO_from_NMVOC"
+    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2050,8 +2068,8 @@ CONTAINS
        WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
-       WRITE(6,100) 'Use full chem. P(CO) from CH4?   :', Input_Opt%LPCO_CH4
-       WRITE(6,100) 'Use full chem. P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
+       WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
+       WRITE(6,100) 'Use archived P(CO) from NMVOC? :', Input_Opt%LPCO_NMVOC
     ENDIF
 
     ! FORMAT statements
@@ -2113,9 +2131,9 @@ CONTAINS
     thisLoc = ' -> at Config_CO2 (in module GeosCore/input_mod.F90)'
 
     !------------------------------------------------------------------------
-    ! Turn on CO2 3D chemical source and surface correction?
+    ! Use archived fields of CO2 production from CO oxidation?
     !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%3D_chemical_oxidation_source"
+    key    = "CO2_simulation_options%sources%use_archived_PCO2_from_CO"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2158,7 +2176,7 @@ CONTAINS
        WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
-       WRITE( 6,100 ) 'CO2 from oxidation (CO,CH4,..):', Input_Opt%LCHEMCO2
+       WRITE( 6,100 ) 'Use archived P(CO2) from CO?  :', Input_Opt%LCHEMCO2
        WRITE( 6, 95 ) 'Tagged CO2 settings'
        WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
        WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG

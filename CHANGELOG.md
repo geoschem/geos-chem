@@ -5,10 +5,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
-### Fixed
-- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
+### Added
+- Added the `KPP_INT_AUTOREDUCE`, `KPP_INT_LSODE`, and `KPP_INT_BEULER` C-preprocessor switches for integrator-specific handling
 
-## [Unreleased] - TBD
+### Fixed
+- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
+
+## [14.5.1] - 2025-01-10
 ### Added
 - Added allocate guards for arrays in `pressure_mod`
 - Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
@@ -23,7 +26,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
 - Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
 - Added surface precipitation flux fields as inputs to GCHP
-- Added the `KPP_INT_AUTOREDUCE`, `KPP_INT_LSODE`, and `KPP_INT_BEULER` C-preprocessor switches for integrator-specific handling
+- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
+- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -36,6 +40,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed doing Linoz and Linearized chemistry messages to print only if verbose
 - Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
 - Updated configuration files for using GEOS-Chem 14.5 in CESM
+- Modified tagCO simulation to use GFED4 biomass burning emissions and GEOS-Chem v5 OH fields for consistency with carbon simulation
+- Changed integration tests to use Harvard Cannon GNU 12 environment files by default
 
 ### Fixed
 - Added a fix to skip the call to KPP when only CO2 is defined in the carbon simulation
@@ -50,6 +56,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
 - Fixed missing Is_Advected for TMB in species_database.yml
+- Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
+- Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
+- Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
+- Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
+- Changed dimension of EmisOCS_Total from 3D to 2D since all emissions for all sectors are 2D
+- Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
+- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`

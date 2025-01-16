@@ -31,7 +31,7 @@ function isItemInList() {
     #
     # Arguments:
     # ${1}: The item
-    # ${2}: Thie list
+    # ${2}: The list
     #
     # Returns (via $?)
     # 0 if item is in the list
@@ -110,17 +110,22 @@ function updateGeosChemConfig() {
         sed -i -e "${cmd}" "${file}"
     done
 
-    # NOTE: CH4 options are already deactivated
-    # in the out-of-the-box geoschem_config.yml
-
-    # If CO2 is in the exclude list, turn off CO2 options
+    # If CO2 is in the include list, turn on CO2 production options
     isItemInList "CO2" "${1}"
-    if [[ $? == 0 ]]; then
-        keys=("3D_chemical_oxidation_source"   \
-              "tag_bio_and_ocean_CO2"          \
-              "tag_land_fossil_fuel_CO2"      )
+    if [[ $? == 1 ]]; then
+        keys=("use_archived_PCO2_from_CO" )
         for key in ${keys[@]}; do
-            keyValueUpdate "${key}" "true" "false" "${file}"
+            keyValueUpdate "${key}" "false" "true" "${file}"
+        done
+    fi
+
+    # If CO is in the include list, turn on CO production options
+    isItemInList "CO" "${1}"
+    if [[ $? == 1 ]]; then
+        keys=("use_archived_PCO_from_CH4"      \
+	      "use_archived_PCO_from_NMVOC"   )
+        for key in ${keys[@]}; do
+            keyValueUpdate "${key}" "false" "true" "${file}"
         done
     fi
 }

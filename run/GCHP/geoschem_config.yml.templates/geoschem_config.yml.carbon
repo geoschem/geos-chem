@@ -31,6 +31,7 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   transport:
+    activate: true
     transported_species:
       - CH4
       - CO

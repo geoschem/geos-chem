@@ -336,6 +336,10 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem boundary conditions for use in nested grid simulations
 #
 # Available for all simulations
+#
+# NOTE: Do not change the BoundaryConditions.frequency setting below,
+# because GEOS-Chem nested-grid simulations expect to read boundary
+# condition data at 3 hour intervals.
 #==============================================================================
   BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
   BoundaryConditions.frequency:  00000000 030000
