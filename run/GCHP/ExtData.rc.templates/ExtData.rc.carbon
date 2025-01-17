@@ -270,6 +270,16 @@ AEIC19_MONMEAN_CO kg/m2/s Y Y F2019-%m2-01T00:00:00 none none CO ./HcoDir/AEIC20
 #
 ##AEIC19_DAILY_CO   kg/m2/s Y Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 
+# --- CEDS 0.1 x 0.1 ---
+CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+
 #==============================================================================
 # --- CO2 emissions ---
 #==============================================================================
