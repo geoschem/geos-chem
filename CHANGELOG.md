@@ -5,8 +5,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
+
+### Changed
+- Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
+
 ### Fixed
-- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
+- Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
+
+### Removed
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 
 ## [14.5.1] - 2025-01-10
 ### Added

@@ -154,16 +154,17 @@ EDGAR_CO_25_SWD  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGA
 EDGAR_CO_25_FFF  kg/m2/s N Y F%y4-01-01T00:00:00 none none emi_co  ./HcoDir/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
 #
 #==============================================================================
-# --- CEDS (CEDSv2) ---
+# --- CEDS (CEDS_01x01) ---
 #==============================================================================
-CEDS_CO_25_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_25_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO_25_AGR    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_ENE    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_IND    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_TRA    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_RCO    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_SLV    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_WST    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_25_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp   ./HcoDir/CEDS/v2023-04/%y4/CEDS_CO_0.1x0.1_%y4.nc
+
 #
 ###############################################################################
 ###
