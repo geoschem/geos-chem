@@ -317,6 +317,25 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	met="geosfp"
 
+	# Print warning about GEOS-FP and require user to acknowledge it.
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	printf "\n${fp_msg}\n"
+	printf "This warning will be printed to run directory file warnings.txt.\n"
+	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
+	valid_fp_accept=0
+	while [ "${valid_fp_accept}" -eq 0 ]; do
+	    read -p "${USER_PROMPT}" fp_accept
+	    valid_fp_accept=1
+	    if [[ ${fp_accept} = "y" ]]; then
+		x=0
+	    elif [[ ${fp_accept} = "q" ]]; then
+		exit
+	    else
+		valid_fp_accept=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
 	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
@@ -600,10 +619,6 @@ done
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/CreateRunDirLogs
-mkdir -p ${rundir_config}
-
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
@@ -784,8 +799,14 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RUNDIR variables to file
-rundir_config_log=${rundir_config}/rundir_vars.txt
+# Define a subdirectory for rundir configuration files
+rundir_config_dirname=CreateRunDirLogs
+rundir_config=${rundir}/${rundir_config_dirname}
+mkdir -p ${rundir_config}
+
+# Save RUNDIR variables to a file in the rundirConfig folder
+rundir_config_logname=rundir_vars.txt
+rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
@@ -818,7 +839,7 @@ cd ${srcrundir}
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir_config}/rundir.version
+version_log=${rundir}/${rundir_config_dirname}/rundir.version
 echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
@@ -864,11 +885,8 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
-#-----------------------------------------------------------------
-# Done!
-#-----------------------------------------------------------------
-
 printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory is set up for simulation start date $start_date"
 printf "\n  -- Restart files for this date at different grid resolutions are in the"
 printf "\n     Restarts subdirectory"
@@ -914,5 +932,41 @@ msg+="$ make -j\n"
 msg+="$ make install\n"
 printf "${msg}" > ${rundir}/build/README
 unset msg
+
+#-----------------------------------------------------------------
+# Add the version info to the top of the rundir configuration log
+#-----------------------------------------------------------------
+
+# Add a caveat that these rundir settings only go with this commit
+printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
+
+# Add a "# " characters to the front of each line so we can use
+# it as a comment heading for ${rundir_config_logname}
+sed 's/^/# /' ${version_log} > tmp.txt
+mv tmp.txt ${version_log}
+
+# Add the version log to the top of the rundir config log
+cat ${version_log} ${rundir_config_log} > tmp.txt
+mv tmp.txt ${rundir_config_log}
+
+# Remove the version log
+rm -rf ${version_log}
+
+# Save the updated rundir_vars file to the git repo
+if [[ "x${enable_git}" == "xy" ]]; then
+    if [[ -f ${rundir_config_log} ]]; then
+	cd ${rundir}
+	git add ${rundir_config_log}
+	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
+	cd ${srcrundir}
+    fi
+fi
+
+#-----------------------------------------------------------------
+# Create and populate warnings file
+#-----------------------------------------------------------------
+if [[ $met == "geosfp" ]]; then
+   echo -e ${fp_msg} > ${rundir}/warnings.txt
+fi
 
 exit 0

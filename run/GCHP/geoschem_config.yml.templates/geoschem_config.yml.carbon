@@ -7,6 +7,7 @@
 #============================================================================
 simulation:
   name: ${RUNDIR_SIM_NAME}
+  met_field: ${RUNDIR_MET}
   chem_inputs_dir: ./ChemDir/
   species_database_file: ./species_database.yml
   species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
@@ -30,6 +31,7 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   transport:
+    activate: true
     transported_species:
       - CH4
       - CO

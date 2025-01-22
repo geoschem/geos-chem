@@ -517,42 +517,57 @@ CONTAINS
     RC      = GC_SUCCESS
     ThisLoc = ' -> at Init_Pressure (in GeosUtil/pressure_mod.F90)'
 
-    ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_DRY', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    PFLT_DRY = 0e+0_fp
+    IF (.NOT. ALLOCATED( PFLT_DRY )) THEN
+      ALLOCATE( PFLT_DRY( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_DRY', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PFLT_DRY = 0e+0_fp
+    END IF
 
-    ALLOCATE( PFLT_WET( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_WET', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    PFLT_WET = 0e+0_fp
+    IF (.NOT. ALLOCATED( PFLT_WET )) THEN
+      ALLOCATE( PFLT_WET( State_Grid%NX, State_Grid%NY ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:PFLT_WET', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      PFLT_WET = 0e+0_fp
+    END IF
 
-    ALLOCATE( AP( State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:AP', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    AP = 1e+0_fp
+    IF (.NOT. ALLOCATED( AP )) THEN
+      ALLOCATE( AP( State_Grid%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:AP', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AP = 1e+0_fp
+    END IF
 
-    ALLOCATE( BP( State_Grid%NZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:BP', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    BP = 0e+0_fp
+    IF (.NOT. ALLOCATED( BP )) THEN
+      ALLOCATE( BP( State_Grid%NZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:BP', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      BP = 0e+0_fp
+    END IF
 
-    ALLOCATE( AP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:AP_FULLGRID', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    AP = 1e+0_fp
+    IF (.NOT. ALLOCATED( AP_FULLGRID )) THEN
+      ALLOCATE( AP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:AP_FULLGRID', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      AP = 1e+0_fp
+    END IF
 
-    ALLOCATE( BP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:BP_FULLGRID', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    BP = 0e+0_fp
+    IF (.NOT. ALLOCATED( BP_FULLGRID )) THEN
+      ALLOCATE( BP_FULLGRID( State_Grid%NativeNZ+1 ), STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:BP_FULLGRID', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      BP = 0e+0_fp
+    END IF
 
 #if defined( ESMF_ ) || defined( MODEL_ )
-    ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY, State_Grid%NZ+1 ), &
-              STAT=RC )
-    CALL GC_CheckVar( 'vdiff_mod.F90:EXTERNAL_PEDGE', 2, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    EXTERNAL_PEDGE = 0e+0_fp
+    IF (.NOT. ALLOCATED( EXTERNAL_PEDGE )) THEN
+      ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY, &
+                                State_Grid%NZ+1 ), &
+                STAT=RC )
+      CALL GC_CheckVar( 'vdiff_mod.F90:EXTERNAL_PEDGE', 2, RC )
+      IF ( RC /= GC_SUCCESS ) RETURN
+      EXTERNAL_PEDGE = 0e+0_fp
+    END IF
 #endif
 
     IF ( State_Grid%NZ == 47 ) THEN
