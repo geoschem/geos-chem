@@ -1519,13 +1519,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C5H12_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_pentanes_0.1x0.1_$YYYY.nc ALK4_pentanes_slv 1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  2407/707            1 5
 0 CEDS_C5H12_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_pentanes_0.1x0.1_$YYYY.nc ALK4_pentanes_wst 1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  26                  1 5
 
-0 CEDS_C6H14_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_agr  1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  2401                1 5
-0 CEDS_C6H14_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s ALK4  2406/706/315        1 5
-0 CEDS_C6H14_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s ALK4  2407/707/316        1 5
-0 CEDS_C6H14_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_tra  1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  2411/711            1 5
-0 CEDS_C6H14_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_rco  1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  2409/709            1 5
-0 CEDS_C6H14_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_slv  1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  2407/707            1 5
-0 CEDS_C6H14_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_wst  1980-2019/1-12/1/0 C xy   kg/m2/s ALK4  26                  1 5
+0 CEDS_C6H14_AGR  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_agr  1980-2019/1-12/1/0 C xy   kg/m2/s ALK6  2401                1 5
+0 CEDS_C6H14_ENE  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_ene  1980-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2406/706/315        1 5
+0 CEDS_C6H14_IND  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_ind  1980-2019/1-12/1/0 C xyL* kg/m2/s ALK6  2407/707/316        1 5
+0 CEDS_C6H14_TRA  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_tra  1980-2019/1-12/1/0 C xy   kg/m2/s ALK6  2411/711            1 5
+0 CEDS_C6H14_RCO  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_rco  1980-2019/1-12/1/0 C xy   kg/m2/s ALK6  2409/709            1 5
+0 CEDS_C6H14_SLV  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_slv  1980-2019/1-12/1/0 C xy   kg/m2/s ALK6  2407/707            1 5
+0 CEDS_C6H14_WST  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_wst  1980-2019/1-12/1/0 C xy   kg/m2/s ALK6  26                  1 5
 
 0 CEDS_C2H4_AGR   $ROOT/CEDS/v2024-06/$YYYY/CEDS_C2H4_0.1x0.1_$YYYY.nc          C2H4_agr          1980-2019/1-12/1/0 C xy   kg/m2/s C2H4  2401                1 5
 0 CEDS_C2H4_ENE   $ROOT/CEDS/v2024-06/$YYYY/CEDS_C2H4_0.1x0.1_$YYYY.nc          C2H4_ene          1980-2019/1-12/1/0 C xyL* kg/m2/s C2H4  2406/706/315        1 5
@@ -1807,13 +1807,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CMIP6_C5H12_SLV  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_pentanes_slv 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 0 CMIP6_C5H12_WST  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_pentanes_wst 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
 
-0 CMIP6_C6H14_AGR  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_agr  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_ENE  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_ene  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_IND  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_ind  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_TRA  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_tra  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_RCO  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_rco  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_SLV  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_slv  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
-0 CMIP6_C6H14_WST  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_wst  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        1 5
+0 CMIP6_C6H14_AGR  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_agr  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_ENE  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_ene  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_IND  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_ind  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_TRA  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_tra  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_RCO  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_rco  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_SLV  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_slv  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
+0 CMIP6_C6H14_WST  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   ALK4_hexanes_wst  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        1 5
 
 0 CMIP6_C2H4_AGR   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   C2H4_agr          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
 0 CMIP6_C2H4_ENE   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4                   C2H4_ene          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        1 5
@@ -2158,13 +2158,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C5H12_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
 0 CEDS_C5H12_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
 
-0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
-0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26        1 5
+0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
+0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26        1 5
 
 0 CEDS_C2H4_AGR   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26        1 5
 0 CEDS_C2H4_ENE   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26        1 5
@@ -2399,13 +2399,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C5H12_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_rco 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
 0 CEDS_C5H12_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_slv 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
 0 CEDS_C5H12_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_wst 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
-0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26    1 4
+0 CEDS_C6H14_AGR  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_agr  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_ENE  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ene  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_IND  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_ind  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_TRA  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_tra  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_RCO  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_rco  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_SLV  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_slv  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
+0 CEDS_C6H14_WST  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_wst  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26    1 4
 0 CEDS_C2H4_AGR   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_agr          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26    1 4
 0 CEDS_C2H4_ENE   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ene          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26    1 4
 0 CEDS_C2H4_IND   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_ind          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26    1 4
@@ -2619,7 +2619,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C3H8_SHP   $ROOT/CEDS/v2021-06/$YYYY/C3H8-em-anthro_CMIP_CEDS_$YYYY.nc          C3H8_shp          1750-2019/1-12/1/0 C xy kg/m2/s C3H8  26     10 4
 0 CEDS_C4H10_SHP  $ROOT/CEDS/v2021-06/$YYYY/ALK4_butanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_butanes_shp  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 4
 0 CEDS_C5H12_SHP  $ROOT/CEDS/v2021-06/$YYYY/ALK4_pentanes-em-anthro_CMIP_CEDS_$YYYY.nc ALK4_pentanes_shp 1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 4
-0 CEDS_C6H14_SHP  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_shp  1750-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 4
+0 CEDS_C6H14_SHP  $ROOT/CEDS/v2021-06/$YYYY/ALK4_hexanes-em-anthro_CMIP_CEDS_$YYYY.nc  ALK4_hexanes_shp  1750-2019/1-12/1/0 C xy kg/m2/s ALK6  26     10 4
 0 CEDS_C2H4_SHP   $ROOT/CEDS/v2021-06/$YYYY/C2H4-em-anthro_CMIP_CEDS_$YYYY.nc          C2H4_shp          1750-2019/1-12/1/0 C xy kg/m2/s C2H4  26     10 4
 0 CEDS_PRPE_SHP   $ROOT/CEDS/v2021-06/$YYYY/PRPE-em-anthro_CMIP_CEDS_$YYYY.nc          PRPE_shp          1750-2019/1-12/1/0 C xy kg/m2/s PRPE  26     10 4
 0 CEDS_C2H2_SHP   $ROOT/CEDS/v2021-06/$YYYY/C2H2-em-anthro_CMIP_CEDS_$YYYY.nc          C2H2_shp          1750-2019/1-12/1/0 C xy kg/m2/s C2H2  26     10 4
@@ -2652,7 +2652,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_C3H8_SHP   $ROOT/CEDS/v2024-06/$YYYY/CEDS_C3H8_0.1x0.1_$YYYY.nc          C3H8_shp          1980-2019/1-12/1/0 C xy kg/m2/s C3H8  26     10 5
 0 CEDS_C4H10_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_butanes_0.1x0.1_$YYYY.nc  ALK4_butanes_shp  1980-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 5
 0 CEDS_C5H12_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_pentanes_0.1x0.1_$YYYY.nc ALK4_pentanes_shp 1980-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 5
-0 CEDS_C6H14_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_shp  1980-2019/1-12/1/0 C xy kg/m2/s ALK4  26     10 5
+0 CEDS_C6H14_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_ALK4_hexanes_0.1x0.1_$YYYY.nc  ALK4_hexanes_shp  1980-2019/1-12/1/0 C xy kg/m2/s ALK6  26     10 5
 0 CEDS_C2H4_SHP   $ROOT/CEDS/v2024-06/$YYYY/CEDS_C2H4_0.1x0.1_$YYYY.nc          C2H4_shp          1980-2019/1-12/1/0 C xy kg/m2/s C2H4  26     10 5
 0 CEDS_PRPE_SHP   $ROOT/CEDS/v2024-06/$YYYY/CEDS_PRPE_0.1x0.1_$YYYY.nc          PRPE_shp          1980-2019/1-12/1/0 C xy kg/m2/s PRPE  26     10 5
 0 CEDS_C2H2_SHP   $ROOT/CEDS/v2024-06/$YYYY/CEDS_C2H2_0.1x0.1_$YYYY.nc          C2H2_shp          1980-2019/1-12/1/0 C xy kg/m2/s C2H2  26     10 5
@@ -2700,7 +2700,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CMIP6_C3H8_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            C3H8_shp          1750-2100/1-12/1/0 C xy kg/m2/s    C3H8  26        10 5
 0 CMIP6_C4H10_SHP  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            ALK4_butanes_shp  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        10 5
 0 CMIP6_C5H12_SHP  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            ALK4_pentanes_shp 1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        10 5
-0 CMIP6_C6H14_SHP  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            ALK4_hexanes_shp  1750-2100/1-12/1/0 C xy kg/m2/s    ALK4  26        10 5
+0 CMIP6_C6H14_SHP  $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            ALK4_hexanes_shp  1750-2100/1-12/1/0 C xy kg/m2/s    ALK6  26        10 5
 0 CMIP6_C2H4_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            C2H4_shp          1750-2100/1-12/1/0 C xy kg/m2/s    C2H4  26        10 5
 0 CMIP6_PRPE_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            PRPE_shp          1750-2100/1-12/1/0 C xy kg/m2/s    PRPE  26        10 5
 0 CMIP6_C2H2_SHP   $ROOT/CMIP6/v2021-01/$GCAPSCENARIO/$GCAPSCENARIO_$YYYY.nc4            C2H2_shp          1750-2100/1-12/1/0 C xy kg/m2/s    C2H2  26        10 5
