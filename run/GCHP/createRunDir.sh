@@ -477,13 +477,12 @@ while [ "${valid_met}" -eq 0 ]; do
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
 	
 	elif [[ ${met_file_type} = "processed_cs" ]]; then
-		if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	    if [[ ${adv_flux_src} = "mass_flux" ]]; then
 	        RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_mass_flux.txt)\n"
 	    elif [[ ${adv_flux_src} == "wind" ]]; then
-			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_wind_cs.txt)\n"
-		fi
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_cs.txt)\n"
-	
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_wind_cs.txt)\n"
+	    fi
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_cs.txt)\n"
 	else
 	    if [[ ${use_discover} = "y" ]]; then
 		
@@ -494,15 +493,15 @@ while [ "${valid_met}" -eq 0 ]; do
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_cs.discover.txt)\n"  
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
-			fi
-		
+		fi
+
 		# Settings for all other met vars in ExtData.rc, running on discover
-			if [[ ${met_file_type} = "raw_cs" ]]; then
-	    		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
-			elif [[ ${met_file_type} = "raw_ll" ]]; then
-	    		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
-			fi
-		
+		if [[ ${met_file_type} = "raw_cs" ]]; then
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
+		fi
+
 	    elif [[ ${use_discover} = "n" ]]; then
 		
 		# Settings for advection vars in ExtData.rc, NOT running on discover
@@ -512,15 +511,15 @@ while [ "${valid_met}" -eq 0 ]; do
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_cs.txt)\n"
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
-			fi
-	        
+		fi
+
 		# Settings for all other met vars in ExtData.rc, NOT running on discover
-			if [[ ${met_file_type} = "raw_cs" ]]; then
+		if [[ ${met_file_type} = "raw_cs" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
-			elif [[ ${met_file_type} = "raw_ll" ]]; then
+		elif [[ ${met_file_type} = "raw_ll" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
-			fi
-		
+		fi
+
 	    fi
 	fi  # end GEOS-IT
 	

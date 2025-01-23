@@ -19,6 +19,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
 
+### Removed
+- Removed unused RUNDIR settings for GCHP pressure units and scaling
+
 ## [14.5.1] - 2025-01-10
 ### Added
 - Added allocate guards for arrays in `pressure_mod`
