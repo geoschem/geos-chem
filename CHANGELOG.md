@@ -5,9 +5,11 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [14.5.2] - TBD
-
 ### Fixed
-- Fixed GCHP refresh time for CO2_WEEKLY scale factors so updated daily 
+- Fixed GCHP refresh time for CO2_WEEKLY scale factors so updated daily
+
+### Added
+- Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
 
 ## [14.5.1] - 2025-01-10
 ### Added
