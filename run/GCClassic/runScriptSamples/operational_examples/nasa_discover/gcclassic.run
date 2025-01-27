@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# For discover
+#SBATCH --time 00:20:00
+#SBATCH --nodes=1 --ntasks-per-node=48
+#SBATCH --mem 4G
+#SBATCH --job-name=gcc_4x5
+#SBATCH --constraint=mil
+#SBATCH --account=s____
+##SBATCH --qos=long
+
+
+# Assume symbolic link gcclassic.env exists. This is created within gcclassic.build.
+source gcclassic.env
+./gcclassic > gcclassic.log

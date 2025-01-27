@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# For discover
+#SBATCH --time 00:10:00
+#SBATCH --nodes=1 --ntasks-per-node=12
+#SBATCH --mem 4G
+#SBATCH --job-name=gcclassic.build
+#SBATCH --constraint=mil
+#SBATCH --account=s____
+
+# Edit env file path
+ln -nsf ~ewlundgr/envs/gcc.spack-stack-1.7.0-intel.env gcclassic.env
+
+source gcclassic.env
+cd build
+cmake ../CodeDir -DRUNDIR=..
+make -j
+make install
+cd ..
