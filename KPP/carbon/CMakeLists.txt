@@ -11,12 +11,12 @@ EXECUTE_PROCESS(
   OUTPUT_VARIABLE RESULT
 )
 separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
-list(GET SUBSTRINGS 1 KPP_INT_NAME)
-string(TOLOWER "${KPP_INT_NAME}" KPP_INT_NAME)
+list(GET SUBSTRINGS 1 KPP_INTEGRATOR_NAME)
+string(TOLOWER "${KPP_INTEGRATOR_NAME}" KPP_INTEGRATOR_NAME)
 
 # Print result
 gc_pretty_print(SECTION "KPP integrator (read from carbon.kpp)")
-gc_pretty_print(VARIABLE KPP_INT_NAME)
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
 
 #----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- carbon mechanism

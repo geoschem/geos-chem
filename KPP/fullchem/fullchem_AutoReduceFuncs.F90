@@ -1,4 +1,4 @@
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

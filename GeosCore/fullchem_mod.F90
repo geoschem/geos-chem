@@ -104,7 +104,7 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGERATOR_AUTOREDUCE
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
@@ -507,7 +507,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Always consider halogens as "fast" species for auto-reduce
     !------------------------------------------------------------------------
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGERATOR_AUTOREDUCE
     IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
           CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
@@ -581,7 +581,7 @@ CONTAINS
 #endif
 #endif
 
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGERATOR_AUTOREDUCE
        ! Per discussions for Lin et al., force keepActive throughout the
        ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
@@ -1003,7 +1003,7 @@ CONTAINS
 
        ENDIF
 
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGERATOR_AUTOREDUCE
        !=====================================================================
        ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
        ! This now needs to be done within the parallel loop
@@ -1123,7 +1123,7 @@ CONTAINS
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
 
-#ifdef KPP_INT_AUTOREDUCE
+#ifdef KPP_INTEGERATOR_AUTOREDUCE
           ! Update autoreduce solver statistics
           ! (only if the autoreduction is turned on)
           IF ( Input_Opt%Use_AutoReduce ) THEN

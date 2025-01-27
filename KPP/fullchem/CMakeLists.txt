@@ -11,21 +11,22 @@ EXECUTE_PROCESS(
   OUTPUT_VARIABLE RESULT
 )
 separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
-list(GET SUBSTRINGS 1 KPP_INT_NAME)
-string(TOLOWER "${KPP_INT_NAME}" KPP_INT_NAME)
+list(GET SUBSTRINGS 1 KPP_INTEGRATOR_NAME)
+string(TOLOWER "${KPP_INTEGRATOR_NAME}" KPP_INTEGRATOR_NAME)
 
 # Set C-preprocessor flags
-if(KPP_INT_NAME STREQUAL "rosenbrock_autoreduce")
-  set(KPP_INT_AUTOREDUCE ON CACHE BOOL "Integrator is rosenbrock_autoreduce?")
+if(KPP_INTEGRATOR_NAME STREQUAL "rosenbrock_autoreduce")
+  set(KPP_INTEGRATOR_AUTOREDUCE ON CACHE BOOL
+      "Integrator is rosenbrock_autoreduce?")
   target_compile_definitions(
-    GEOSChemBuildProperties INTERFACE KPP_INT_AUTOREDUCE
+    GEOSChemBuildProperties INTERFACE KPP_INTEGRATOR_AUTOREDUCE
   )
 endif()
 
 # Print results
 gc_pretty_print(SECTION "KPP integrator (read from fullchem.kpp)")
-gc_pretty_print(VARIABLE KPP_INT_NAME)
-gc_pretty_print(VARIABLE KPP_INT_AUTOREDUCE IS_BOOLEAN)
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_AUTOREDUCE IS_BOOLEAN)
 
 #----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- fullchem mechanism

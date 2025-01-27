@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased] - TBD
 ### Added
-- Added the `KPP_INT_AUTOREDUCE` C-preprocessor switch integrator-specific handling
+- Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
 - Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 
 ### Fixed
