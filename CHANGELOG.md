@@ -13,6 +13,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
+- Move Cloud-J and Fast-JX input directoryies to Cloud-J and new Fast-JX  menus respectively in geoschem_config.yml
+- Updated photolysis input directory path to use FJX_scat-aer.dat with new mineral dust values based on spheroidal shapex
 
 ### Fixed
 - Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
@@ -20,6 +22,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Remove Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 
 ## [14.5.1] - 2025-01-10
 ### Added
