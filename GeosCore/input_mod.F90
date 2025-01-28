@@ -2964,7 +2964,7 @@ CONTAINS
     ! Directories with photolysis input files
     !------------------------------------------------------------------------
 
-    key   = "operations%photolysis%input_directories%fastjx_input_dir"
+    key   = "operations%photolysis%fast-jx%fastjx_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2974,7 +2974,7 @@ CONTAINS
     ENDIF
     Input_Opt%FAST_JX_DIR = TRIM( v_str )
 
-    key   = "operations%photolysis%input_directories%cloudj_input_dir"
+    key   = "operations%photolysis%cloudj_input_dir"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
