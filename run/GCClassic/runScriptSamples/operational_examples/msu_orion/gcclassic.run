@@ -2,9 +2,9 @@
 
 #SBATCH -c 24
 #SBATCH -N 1
-#SBATCH -t 0-03:00
-#SBATCH --qos=batch
+#SBATCH -t 0-00:30
 #SBATCH --mem=15G
+#SBATCH --qos=batch
 
 ###############################################################################
 ### Sample GEOS-Chem Classic run script for Harvard Cannon (using SLURM).
@@ -24,10 +24,8 @@
 # SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
 export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
 
-# Run GEOS_Chem.  The "time" command will return CPU and wall times.
-# Stdout and stderr will be directed to the "GC.log" log file
-# (you can change the log file name below if you wish)
-srun -c $OMP_NUM_THREADS time -p ./gcclassic >> GC.log
+# Run GEOS_Chem
+./gcclassic >> GC.log
 
 # Exit normally
 exit 0
