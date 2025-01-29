@@ -1,14 +1,15 @@
 #!/bin/bash
 
-# For discover
+# For NASA discover cluster. Edit before run.
 #SBATCH --time 00:30:00
 #SBATCH --nodes=1 --ntasks-per-node=24
 #SBATCH --mem=60G
 #SBATCH --job-name=gchp.run
-#SBATCH --constraint=mil # Edit as needed
-#SBATCH --account=s___   # Fill in
-##SBATCH --qos=___       # Fill in and uncomment if using
-##SBATCH --exclusive     # Uncomment to reserve entire nodes
+#SBATCH --constraint=mil
+#SBATCH --account=s____
+##SBATCH --exclusive
+##SBATCH --qos=debug
+##SBATCH --qos=chmdev
 
 # If a subsequent command fails, treat it as fatal (don't continue)
 set -e
