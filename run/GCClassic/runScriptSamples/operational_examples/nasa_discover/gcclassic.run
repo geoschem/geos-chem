@@ -1,15 +1,17 @@
 #!/bin/bash
 
-# For discover
-#SBATCH --time 00:20:00
-#SBATCH --nodes=1 --ntasks-per-node=48
-#SBATCH --mem 4G
-#SBATCH --job-name=gcc_4x5
+# For use on NASA discover cluster. Edit prior to run.
+#SBATCH --time 00:10:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem 10G
+#SBATCH --job-name=gcclassic.run
 #SBATCH --constraint=mil
 #SBATCH --account=s____
+##SBATCH --exclusive
+##SBATCH --qos=debug
 ##SBATCH --qos=long
 
 
-# Assume symbolic link gcclassic.env exists. This is created within gcclassic.build.
+# Assume file or symbolic link gcclassic.env exists in run directory
 source gcclassic.env
-./gcclassic > gcclassic.log
+./gcclassic > GC.log

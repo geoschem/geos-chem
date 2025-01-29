@@ -1,16 +1,14 @@
 #!/bin/bash
 
 # For discover
-#SBATCH --time 00:10:00
+#SBATCH --time 00:05:00
 #SBATCH --nodes=1 --ntasks-per-node=12
-#SBATCH --mem 4G
+#SBATCH --mem 3G
 #SBATCH --job-name=gcclassic.build
 #SBATCH --constraint=mil
 #SBATCH --account=s____
 
-# Edit env file path
-ln -nsf ~ewlundgr/envs/gcc.spack-stack-1.7.0-intel.env gcclassic.env
-
+# Assumes file or symbolic link gcclassic.env is in run directory
 source gcclassic.env
 cd build
 cmake ../CodeDir -DRUNDIR=..
