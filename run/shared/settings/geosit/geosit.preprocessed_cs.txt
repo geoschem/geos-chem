@@ -1,0 +1,121 @@
+RUNDIR_MET='GEOSIT'
+RUNDIR_MET_LOWERCASE='geosit'
+RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/GEOS_IT"
+RUNDIR_MET_DIR_RAW="${RUNDIR_DATA_ROOT}/GEOS_C180/GEOS_IT"
+
+RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.false.
+RUNDIR_MET_RES='C180'
+RUNDIR_MET_EXT='nc'
+
+RUNDIR_MET_CN_YR=1998
+
+RUNDIR_OFFLINE_EMIS_RES='0.5x0.625'
+RUNDIR_OFFLINE_EMIS_LAT_RES='05'
+
+RUNDIR_METLIGHTNING='MERRA2'
+RUNDIR_METLIGHTNING_DIR="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
+RUNDIR_METLIGHTNING_RES='0.5x0.625'
+RUNDIR_LIGHTNOX_CLIM=true
+RUNDIR_MET_LCLIM='1980-2019'
+
+RUNDIR_PHOT_CLD_NLEV=34
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION}
+
+#-------------------------------------------------------
+# --- 1-hr time-averaged, 2D ---
+#-------------------------------------------------------
+
+ALBD     1  N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+CLDFRC   1  N Y F0;003000 none none CLDTOT   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+EFLUX    1  N Y F0;003000 none none EFLUX    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+EVAP     1  N Y F0;003000 none none EVAP     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+FRSEAICE 1  N Y F0;003000 none none FRSEAICE ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+FRSNO    1  N Y F0;003000 none none FRSNO    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+GRN      1  N Y F0;003000 none none GRN      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+GWETROOT 1  N Y F0;003000 none none GWETROOT ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+GWETTOP  1  N Y F0;003000 none none GWETTOP  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+HFLUX    1  N Y F0;003000 none none HFLUX    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+LAI      1  N Y F0;003000 none none LAI      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PARDF    1  N Y F0;003000 none none PARDF    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PARDR    1  N Y F0;003000 none none PARDR    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PBLH     1  N Y F0;003000 none none PBLH     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PRECANV  1  N Y F0;003000 none none PRECANV  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PRECCON  1  N Y F0;003000 none none PRECCON  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PRECLSC  1  N Y F0;003000 none none PRECLSC  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PRECSNO  1  N Y F0;003000 none none PRECSNO  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+PRECTOT  1  N Y F0;003000 none none PRECTOT  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+QV2M     1  N Y F0;003000 none none QV2M     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+SLP    hPa  N Y F0;003000 none none SLP      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+SNODP    1  N Y F0;003000 none none SNODP    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+SNOMAS   1  N Y F0;003000 none none SNOMAS   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+RADSWG   1  N Y F0;003000 none none SWGDN    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+TO3 dobson  N Y F0;003000 none none TO3      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+TROPP  hPa  N Y F0;003000 none none TROPPT   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+TSKIN    1  N Y F0;003000 none none TS       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+TS       1  N Y F0;003000 none none T2M      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+USTAR    1  N Y F0;003000 none none USTAR    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+U10M m_s-1  N Y F0;003000 none none U10M     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+V10M m_s-1  N Y F0;003000 none none V10M     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+Z0       1  N Y F0;003000 none none Z0M      ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A1.C180.nc
+
+# SEAICE[0-9]0 bins not used except in Hg simulation
+
+SEAICE00 1 N Y F0;003000 none none SEAICE00 /dev/null
+SEAICE10 1 N Y F0;003000 none none SEAICE10 /dev/null
+SEAICE20 1 N Y F0;003000 none none SEAICE20 /dev/null
+SEAICE30 1 N Y F0;003000 none none SEAICE30 /dev/null
+SEAICE40 1 N Y F0;003000 none none SEAICE40 /dev/null
+SEAICE50 1 N Y F0;003000 none none SEAICE50 /dev/null
+SEAICE60 1 N Y F0;003000 none none SEAICE60 /dev/null
+SEAICE70 1 N Y F0;003000 none none SEAICE70 /dev/null
+SEAICE80 1 N Y F0;003000 none none SEAICE80 /dev/null
+SEAICE90 1 N Y F0;003000 none none SEAICE90 /dev/null
+
+#-------------------------------------------------------
+# --- 3-hr instantaneous (all 3D) ---
+#-------------------------------------------------------
+
+TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.C180.nc
+TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.I3.C180.nc
+
+#-------------------------------------------------------
+# --- 3-hr time-averaged (all 3D) ---
+#-------------------------------------------------------
+
+QI       1      N Y F0;013000 none none QI       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+QL       1      N Y F0;013000 none none QL       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+TAUCLI   1      N Y F0;013000 none none TAUCLI   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+TAUCLW   1      N Y F0;013000 none none TAUCLW   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+OPTDEP   1      N Y F0;013000 none none OPTDEPTH ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+CLDF     1      N Y F0;013000 none none CLOUD    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3cld.C180.nc
+DTRAIN   1      N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.C180.nc
+OMEGA    Pa_s-1 N Y F0;013000 none none OMEGA    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.C180.nc
+RH       -      N Y F0;013000 none none RH       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.C180.nc
+DQRCU    1      N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.C180.nc
+DQRLSAN  1      N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.C180.nc
+REEVAPCN 1      N Y F0;013000 none none REEVAPCN ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.C180.nc
+REEVAPLS 1      N Y F0;013000 none none REEVAPLS ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstC.C180.nc
+CMFMC    1      N Y F0;013000 none none CMFMC    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.C180.nc
+PFICU    1      N Y F0;013000 none none PFICU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.C180.nc
+PFILSAN  1      N Y F0;013000 none none PFILSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.C180.nc
+PFLCU    1      N Y F0;013000 none none PFLCU    ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.C180.nc
+PFLLSAN  1      N Y F0;013000 none none PFLLSAN  ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3mstE.C180.nc
+
+#-------------------------------------------------------
+# --- Fixed variables, from constants file ---
+#-------------------------------------------------------
+
+FRLAKE     1      N Y - none none FRLAKE   ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+FRLAND     1      N Y - none none FRLAND   ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+FRLANDIC   1      N Y - none none FRLANDIC ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+FROCEAN    1      N Y - none none FROCEAN  ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+PHIS       m2_s-2 N Y - none none PHIS     ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+OCEAN_MASK 1      N Y - none none FROCEAN  ./MetDir/1998/01/GEOSIT.19980101.CN.C180.nc
+
+"""
+
+RUNDIR_MET_EXTDATA_DERIVED_EXPORTS="""
+"""
