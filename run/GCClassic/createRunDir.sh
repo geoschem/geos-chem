@@ -898,12 +898,6 @@ if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
     chmod 744 ${rundir}/metrics.py
 fi
 
-# Copy the KPP standalone interface config file to ther rundir (fullchem only)
-if [[ "x${sim_name}" == "xfullchem"  ]]; then
-    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
-    chmod 644 ${rundir}/kpp_standalone_interface.yml
-fi
-
 # Set permissions
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
@@ -1202,21 +1196,42 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
+#-----------------------------------------------------------------
+# Ask user whether to build the KPP-standalone box model
+#-----------------------------------------------------------------
+enable_kppsa=""
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    printf "${thinline}Do you want to build the KPP-Standalone Box Model? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" enable_kppsa
+	if [[ "x${enable_kppsa}" == "xy" ]]; then
+	    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml  ${rundir}
+	    chmod 644 ${rundir}/kpp_standalone_interface.yml
+	    valid_response=1
+	elif [[ "x${enable_kppsa}" = "xn" ]]; then
+	    valid_response=1
+	else
+	    printf "Input not recognized. Try again.\n"
+	fi
+    done
+fi
+
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
 hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
-
 EXTRA_CMAKE_OPTIONS=""
-[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
-[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15 "
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40 "
 fi
+[[ "x${enable_kppsa}" == "xy" ]] && EXTRA_CMAKE_OPTIONS+="-DKPPSA=y"
 
 # Add to RUNDIR_VARS
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
