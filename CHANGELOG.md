@@ -7,16 +7,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [14.5.2] - TBD
 ### Fixed
 - Fixed GCHP refresh time for CO2_WEEKLY scale factors so updated daily
+- Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
 
 ### Added
 - Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
+- Added run directory creation for processed cubed-sphere GEOS-IT meteorology
+- Added GC-Classic and GCHP environment files, build scripts, and run scripts for MSU Orion cluster
+
+### Changed
+- Updated GC-Classic and GCHP environment files, build scripts, and run scripts for NASA discover cluster
 
 ## [14.5.1] - 2025-01-10
 ### Added
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
 - Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
 - Added `.zenodo.json` for auto-DOI generation upon version releases
-- Added run directory creation for processed cubed-sphere GEOS-IT meteorology
 
 ### Fixed
 - Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
