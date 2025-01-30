@@ -7,11 +7,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [14.5.2] - TBD
 ### Fixed
 - Fixed GCHP refresh time for CO2_WEEKLY scale factors so updated daily
+- Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
 
 ### Added
 - Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
 - Added run directory creation for processed cubed-sphere GEOS-IT meteorology
-- Added env and run script for MSU cluster used by NOAA
+- Added GC-Classic and GCHP environment files, build scripts, and run scripts for MSU Orion cluster
+
+### Changed
+- Updated GC-Classic and GCHP environment files, build scripts, and run scripts for NASA discover cluster
 
 ## [14.5.1] - 2025-01-10
 ### Added
