@@ -1477,22 +1477,11 @@ CONTAINS
              ! Equivalent dry deposition land type:
              ! 11 in GEOS-Chem dry dep; 73 in Olson landcover type
              II     = IDEP(IOLSON)
-             !
-             ! Define LAI for this grid square and landcover type:
-             XLAI_FP = XLAI(I,J,LDT)
-
-             ! Set LAI as zero for ocean landcover types.
-             IF (II .eq. 11) XLAI_FP = 0.e+0_f8
              
              ! If the surface is snow or ice, set dry deposition
              ! landcover type to 1.
-             ! StateMet isSnow and isIce condition is if majority of
-             ! box covered in snow/ice, so also set LAI to zero.
              !
-             IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) THEN
-                II=1
-                XLAI_FP = 0.e+0_f8
-             ENDIF
+             IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
              !* Read the internal resistance RI (minimum stomatal resistance for
              !* water vapor,per unit area of leaf) from the IRI array; a '9999'
@@ -1507,10 +1496,10 @@ CONTAINS
              !** for the bulk canopy.  If IRLU is '9999' it means there are no
              !** cuticular surfaces on which to deposit so we impose a very large
              !** value for RLU.
-             IF ( IRLU(II) >= 9999 .or. XLAI_FP <= 0.e+0_f8 ) THEN
+             IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.e+0_f8 ) THEN
                 RLU(LDT) = 1.e+6_f8
              ELSE
-                RLU(LDT) = DBLE( IRLU(II) ) / XLAI_FP
+                RLU(LDT) = DBLE( IRLU(II) ) / XLAI(I,J,LDT)
                 ! Additional resistance at low temperatures.
                 ! Limit increase to a factor of 2.
                 ! V. Shah 23 Oct 18
@@ -1573,10 +1562,10 @@ CONTAINS
                 IF (TEMPC .GT. 0.e+0_f8 .AND. TEMPC .LT. 40.e+0_f8) &
                      GFACT = 400.e+0_f8/TEMPC/(40.0e+0_f8-TEMPC)
                 GFACI = 100.e+0_f8
-                IF ( RAD0 > 0.e+0_f8 .and. XLAI_FP > 0.e+0_f8 ) THEN
+                IF ( RAD0 > 0.e+0_f8 .and. XLAI(I,J,IDT) > 0.e+0_f8 ) THEN
                    ! Now make sure all inputs to BIOFIT are flexible precision
                    ! so that the code will compile properly (bmy, 12/18/14)
-                   !XLAI_FP   = XLAI(I,J,LDT)
+                   XLAI_FP   = XLAI(I,J,LDT)
                    SUNCOS_FP = SUNCOS(I,J)
                    CFRAC_FP  = CFRAC(I,J)
                    GFACI     = 1.e+0_f8 / BIOFIT( DRYCOEFF,  XLAI_FP, &
@@ -1934,21 +1923,6 @@ CONTAINS
              DO LDT = 1, IREG(I,J)
                 IF ( IUSE(I,J,LDT) > 0 ) THEN
 
-                   ! Needs a call to ILAND and to IDEP to get II
-                   ! value of Olson landcover type for this loop.
-                   ! Missing pre-14.5.0, so presumably wasn't finding
-                   ! all instances of ocean (II=11) for O3 Ocean dry
-                   ! deposition (eam, 2025).
-                   ! Olson land type index + 1
-                   IOLSON = ILAND(I,J,LDT)+1
-                   
-                   ! Equivalent dry deposition land type:
-                   ! 11 in GEOS-Chem dry dep; 73 in Olson landcover type
-                   II     = IDEP(IOLSON)
-
-                   ! If the surface is snow or ice, set dry deposition
-                   ! landcover type to 1.
-                   IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
                    ! because of high resistance values, different rule applied for
                    ! ocean ozone
                    N_SPC = State_Chm%Map_DryDep(K)
