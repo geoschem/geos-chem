@@ -1724,7 +1724,8 @@ CONTAINS
       ! Directory and file name
       nc_dir  = './Restarts/'
       WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
-      nc_file = 'GEOSChem.Restart.' // DateStr // '_0000z.nc4'
+      WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+      nc_file = 'GEOSChem.Restart.' // DateStr // '_' // TimeStr(1:4) // 'z.nc4'
       nc_path = TRIM( nc_dir ) // TRIM( nc_file )
 
       ! Test if the file exists
