@@ -3707,15 +3707,15 @@ CONTAINS
      CALL NcDef_Glob_Attributes( fId, 'contact',      TRIM( ThisContact   ) )
     ENDIF
 
-    IF ( PRESENT( StartTimeStamp ) ) THEN
-     CALL NcDef_Glob_Attributes( fId, 'simulation_start_date_and_time',      &
-                                       TRIM( ThisStartTimeStamp   )         )
-    ENDIF
-
-    IF ( PRESENT( EndTimeStamp ) ) THEN
-     CALL NcDef_Glob_Attributes( fId, 'simulation_end_date_and_time',        &
-                                       TRIM( ThisEndTimeStamp )             )
-    ENDIF
+!    IF ( PRESENT( StartTimeStamp ) ) THEN
+!     CALL NcDef_Glob_Attributes( fId, 'simulation_start_date_and_time',      &
+!                                       TRIM( ThisStartTimeStamp   )         )
+!    ENDIF
+!
+!    IF ( PRESENT( EndTimeStamp ) ) THEN
+!     CALL NcDef_Glob_Attributes( fId, 'simulation_end_date_and_time',        &
+!                                       TRIM( ThisEndTimeStamp )             )
+!    ENDIF
 
     !=======================================================================
     ! Set dimensions
