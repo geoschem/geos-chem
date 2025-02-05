@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
+- Added met-field dependent dust tuning factors for GCHP C24 and C30 resolution in `setCommonRunSettings.sh`.  Others to be added later.
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)

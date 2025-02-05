@@ -211,6 +211,21 @@ RRTMG_Timestep_sec=10800
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
 # benchmarking and is resolution-dependent. We recommend using offline dust
 # instead of the online extension for GCHP science runs.
+#
+# NOTE: We have retuned the dust scaling factors to account for the fact
+# that the HEMCO DustDead extension uses USTAR from the meteorology
+# instead of computing it from U10M and V10M.  For now we have computed
+# new scale factors for C24 and C30 to allow benchmarks to proceed.
+# Other resolution/met field combinations will be added later.
+#   -- Bob Yantosca (05 Feb 2025)
+
+metField=$(grep "met_field:" geoschem_config.yml)
+metField=${metField/met_field\:/}
+metField=${metField// /}
+
+errorMsg="Dust scale factor not defined for ${CS_RES} with met field "
+errorMsg+="${metField}. Please add the tuning factor you wish to use "
+errorMsg+="for the target resolution above."
 
 dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
 if [[ ${dustEntry} != "missing" ]]; then
@@ -220,10 +235,21 @@ if [[ ${dustEntry} != "missing" ]]; then
             echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
         fi
         if [[ $CS_RES -eq 24 ]]; then
-            Dust_SF=6.0e-4
-        elif [[ $CS_RES -eq 30 ]]; then
-            Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
-        elif [[ $CS_RES -eq 48 ]]; then
+	    if [[ "x${metField}" == "xMERRA2" ]]; then
+		Dust_SF=5.4856e-5
+	    elif [[ "x${metField}" == "xGEOSFP" ]]; then
+		Dust_SF=4.6495e-5
+	    else
+		echo "${errorMsg}"
+		exit 1
+	    fi
+        elif [[ $CS_RES -eq 30 ]]; then	    
+	    if [[ "x${metField}" == "xGEOSIT" ]]; then
+		Dust_SF=3.7410e-5
+	    else
+		echo "${errorMsg}"
+	    fi
+	elif [[ $CS_RES -eq 48 ]]; then
             Dust_SF=5.0416e-4
         elif [[ $CS_RES -eq 90 ]]; then
             Dust_SF=4.0e-4
@@ -245,6 +271,13 @@ fi
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
 # benchmarking and is resolution-dependent. We recommend using offline dust
 # instead of the online extension for GCHP science runs.
+#
+# NOTE: We have retuned the dust scaling factors to account for the fact
+# that the HEMCO DustDead extension uses USTAR from the meteorology
+# instead of computing it from U10M and V10M.  For now we have computed
+# new scale factors for C24 and C30 to allow benchmarks to proceed.
+# Other resolution/met field combinations will be added later.
+#   -- Bob Yantosca (05 Feb 2025)
 
 TomasDustEntry=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
 if [[ ${TomasDustEntry} != "missing" ]]; then
@@ -254,7 +287,21 @@ if [[ ${TomasDustEntry} != "missing" ]]; then
             echo "WARNING: Online dust (TOMAS_DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
         fi
         if [[ $CS_RES -eq 24 ]]; then
-            TomasDust_SF=6.0e-4
+	    if [[ "x${metField}" == "xMERRA2" ]]; then
+		TomasDust_SF=5.4856e-5
+	    elif [[ "x${metField}" == "xGEOSFP" ]]; then
+		TomasDust_SF=4.6495e-5
+	    else
+		echo "${errorMsg}"
+		exit 1
+	    fi
+        elif [[ $CS_RES -eq 30 ]]; then	    
+	    if [[ "x${metField}" == "xGEOSIT" ]]; then
+		TomasDust_SF=3.7410e-5
+	    else
+		echo "${errorMsg}"
+		exit 1
+	    fi
         elif [[ $CS_RES -eq 48 ]]; then
             TomasDust_SF=5.0416e-4
         elif [[ $CS_RES -eq 90 ]]; then
