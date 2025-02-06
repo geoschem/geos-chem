@@ -247,6 +247,10 @@ if [[ "x${dustDead}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
 	    echo "${msg}"
 	    exit 1
 	fi
+    #
+    # NOTE: Met-field dependent mass tuning factors for the grid resolutions
+    # listed below will be added later.  Leave the prior values for now.
+    #
     elif [[ $CS_RES -eq 30 ]]; then
 	Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
     elif [[ $CS_RES -eq 48 ]]; then
