@@ -1601,20 +1601,8 @@ CONTAINS
              F0_K = F0(K)
 
              !** Only consider dry depositing gas-phase species:
-             !IF (.NOT. LDEP(K) .OR. AEROSOL(K)) GOTO 155  ! If LDEP and not an aerosol proceed:
              IF ( LDEP(K) .AND. ( .NOT. AEROSOL(K) ) ) THEN
 
-                IF ( .NOT. LDEP(K) ) THEN
-                   PRINT*, 'processing non-depositing species. FIX!'
-                   STOP
-                ENDIF
-
-                IF ( AEROSOL(K) ) THEN
-                   PRINT*, 'processing aerosol species. FIX!'
-                   STOP
-                ENDIF
-
-                ! Test for special treatment for O3 drydep to ocean
                 N_SPC = State_Chm%Map_DryDep(K)
                 IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
 
@@ -1660,10 +1648,10 @@ CONTAINS
                       ! But if this is the rainforest land type and we fall
                       ! within the bounding box of the Amazon rainforest,
                       ! then increase reactivity as inferred from observations.
-                      IF ( II                   ==  6         .AND.             &
-                           State_Grid%XMid(I,J) >  -82.0_f8   .AND.             &
-                           State_Grid%XMid(I,J) <  -33.0_f8   .AND.             &
-                           State_Grid%YMid(I,J) >  -34.0_f8   .AND.             &
+                      IF ( II                   ==  6         .AND.          &
+                           State_Grid%XMid(I,J) >  -82.0_f8   .AND.          &
+                           State_Grid%XMid(I,J) <  -33.0_f8   .AND.          &
+                           State_Grid%YMid(I,J) >  -34.0_f8   .AND.          &
                            State_Grid%YMid(I,J) <   14.0_f8 ) THEN
                          F0_K = 2.0e-01_f8
                       ENDIF
@@ -1729,14 +1717,7 @@ CONTAINS
 
              !** get surface deposition velocity for aerosols if needed;
              !** equations (15)-(17) of Walcek et al. [1986]
-             !155          IF (.NOT. AEROSOL(K)) GOTO 160   ! If aerosol:
-             ELSE IF ( AEROSOL(K) ) THEN
-
-                ! Error check for now:
-                IF (.NOT. LDEP(K)) THEN
-                   PRINT*, 'This is not a dry deposition species. Fix!'
-                   STOP
-                ENDIF
+             ELSE IF ( LDEP(K) .and. AEROSOL(K) ) THEN
 
                 ! Get information about this species from the database
                 SpcId   =  NTRAIND(K)

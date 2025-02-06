@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Changed
+- Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
+
 ## [14.5.1] - 2025-01-10
 ### Added
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
