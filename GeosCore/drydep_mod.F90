@@ -1562,7 +1562,7 @@ CONTAINS
                 IF (TEMPC .GT. 0.e+0_f8 .AND. TEMPC .LT. 40.e+0_f8) &
                      GFACT = 400.e+0_f8/TEMPC/(40.0e+0_f8-TEMPC)
                 GFACI = 100.e+0_f8
-                IF ( RAD0 > 0.e+0_f8 .and. XLAI(I,J,IDT) > 0.e+0_f8 ) THEN
+                IF ( RAD0 > 0.e+0_f8 .and. XLAI(I,J,LDT) > 0.e+0_f8 ) THEN
                    ! Now make sure all inputs to BIOFIT are flexible precision
                    ! so that the code will compile properly (bmy, 12/18/14)
                    XLAI_FP   = XLAI(I,J,LDT)
