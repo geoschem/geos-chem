@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
 - Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
 - Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
+- Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
 
 ### Fixed
 - Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
