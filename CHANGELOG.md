@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
+- Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
+- Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 
 ### Fixed
 - Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
@@ -47,6 +49,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
+- Wrapped code specific to the `rosenbrock_autoreduce` KPP integrator in `#if` blocks
+- Changed `CALL Integrate(TIN, TOUT, ...` to `CALL INTEGRATE(0.0_dp, DT, ...` in `GeosCore/fullchem_mod.F90` to prevent the `TIN` variable fron being inadvertently overwritten by some integrators
 - Changed doing Linoz and Linearized chemistry messages to print only if verbose
 - Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
 - Updated configuration files for using GEOS-Chem 14.5 in CESM
@@ -65,7 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
-- Fixed missing Is_Advected for TMB in species_database.yml
+- Fixed missing `Is_Advected` for TMB in species_database.yml
 - Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
 - Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
 - Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
@@ -76,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
+- Removed `T`, `TIN`, `TOUT` from `GeosCore/fullchem_mod.F90`
 - Removed error messages in HEMCO interface pointing users to HEMCO log
 
 ## [14.5.0] - 2024-11-07
@@ -171,7 +176,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Cloud-J status output and error handling for it
 
 ### Changed
-- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation
 - Use hard-coded years for met fields and BC files in `HEMCO_Config.rc` so they are not read hourly
 - Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
 - Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid
