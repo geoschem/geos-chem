@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# For MSU Orion cluster
+#SBATCH --time 01:00:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem=5G
+#SBATCH --job-name=gchp.build
+
+source gchp.env
+cd build
+cmake ../CodeDir -DRUNDIR=.. -DMECH=carbon
+make -j
+make install
+
+exit 0

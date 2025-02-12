@@ -407,7 +407,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	printf "${thinline}Choose meteorology files:${thinline}"
 	printf "  1. Raw C180 (recommended)\n"
 	printf "  2. Raw 0.5x0.625 \n"
-	printf "  3. Pre-processed C180 (not yet available)\n"
+	printf "  3. Pre-processed C180 \n"
 	printf "  4. Pre-processed 0.5x0.625 \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
@@ -421,8 +421,7 @@ while [ "${valid_met}" -eq 0 ]; do
 		met_desc="raw_ll"
 	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_cs"
-		valid_response=0
-		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
+		met_desc="processed_cs"
 	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
 		met_desc="processed_ll"
@@ -436,7 +435,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	# advection. If using raw lat-lon then always use winds.
 	if [[ ${met_file_type} = "raw_ll" ]]; then
 	    adv_flux_src="wind"
-	elif [[ ${met_file_type} = "raw_cs" ]]; then
+	elif [[ ${met_file_type} = "processed_cs" || ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
 	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
 	    printf "  2. C180 3-hourly winds\n"
@@ -476,7 +475,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	# Set text files containing settings for met data. Different settings based options aboves.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
-	    
+	
+	elif [[ ${met_file_type} = "processed_cs" ]]; then
+	    if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	        RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_mass_flux.txt)\n"
+	    elif [[ ${adv_flux_src} == "wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_wind_cs.txt)\n"
+	    fi
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_cs.txt)\n"
 	else
 	    if [[ ${use_discover} = "y" ]]; then
 		
@@ -488,14 +494,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
 		fi
-		
+
 		# Settings for all other met vars in ExtData.rc, running on discover
 		if [[ ${met_file_type} = "raw_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
 		elif [[ ${met_file_type} = "raw_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
 		fi
-		
+
 	    elif [[ ${use_discover} = "n" ]]; then
 		
 		# Settings for advection vars in ExtData.rc, NOT running on discover
@@ -506,14 +512,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
 		fi
-	        
+
 		# Settings for all other met vars in ExtData.rc, NOT running on discover
 		if [[ ${met_file_type} = "raw_cs" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
 		elif [[ ${met_file_type} = "raw_ll" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
 		fi
-		
+
 	    fi
 	fi  # end GEOS-IT
 	
@@ -899,6 +905,27 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
+#-----------------------------------------------------------------
+# Ask user whether to build the KPP-standalone box model
+#-----------------------------------------------------------------
+enable_kppsa=""
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    printf "${thinline}Do you want to build the KPP-Standalone Box Model? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" enable_kppsa
+	if [[ "x${enable_kppsa}" == "xy" ]]; then
+	    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml  ${rundir}
+	    chmod 644 ${rundir}/kpp_standalone_interface.yml
+	    valid_response=1
+	elif [[ "x${enable_kppsa}" = "xn" ]]; then
+	    valid_response=1
+	else
+	    printf "Input not recognized. Try again.\n"
+	fi
+    done
+fi
+
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
@@ -906,14 +933,15 @@ hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
 
 EXTRA_CMAKE_OPTIONS=""
-[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
-[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15 "
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40 "
 fi
+[[ "x${enable_kppsa}" == "xy" ]] && EXTRA_CMAKE_OPTIONS+="-DKPPSA=y"
 
 # Add to RUNDIR_VARS
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
