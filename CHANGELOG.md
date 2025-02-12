@@ -4,13 +4,33 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.5.2] - 2025-02-12
+### Added
+- Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
+- Added run directory creation for processed cubed-sphere GEOS-IT meteorology
+- Added GC-Classic and GCHP environment files, build scripts, and run scripts for MSU Orion cluster
+
+### Changed
+- Updated GC-Classic and GCHP environment files, build scripts, and run scripts for NASA discover cluster
+- Updated rundir scripts to ask for confirmation before building the KPP-Standalone executable
+- Updated rundir scripts to print a reminder to compile with `-DKPPSA=y` to build the KPP-Standalone executable
+- Updated `integrationTestCreate.sh` and `parallelTestCreate.sh` scripts to decline building the KPP-Standalone.
+
+### Fixed
+- Fixed GCHP refresh time for `CO2_WEEKLY` scale factors so updated daily
+- Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
+
 ## [14.5.1] - 2025-01-10
 ### Added
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
 - Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
+- Added `.zenodo.json` for auto-DOI generation upon version releases
 
 ### Fixed
 - Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
+
+### Removed
+- Removed unused RUNDIR settings for GCHP pressure units and scaling
 
 ## [14.5.1] - 2025-01-10
 ### Added

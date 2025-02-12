@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# For discover
+#SBATCH --time 01:00:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem=5G
+#SBATCH --job-name=gchp.build
+#SBATCH --constraint=mil
+##SBATCH --account=s____
+##SBATCH --qos=debug
+##SBATCH --qos=chmdev
+
+source gchp.env
+cd build
+cmake ../CodeDir -DRUNDIR=..
+make -j
+make install
