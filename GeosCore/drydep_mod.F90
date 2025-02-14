@@ -1293,8 +1293,8 @@ CONTAINS
 
     !***********************************************************************
     !
-    !** If LDEP(K)=F, species does not deposit.
-    !** Deposition is applied only to species with LDEP=T.
+    ! If LDEP(K)=F, species does not deposit.
+    ! Deposition is applied only to species with LDEP=T.
     DO K = 1,NUMDEP
 
        ! Better test for depositing species K: We need both HSTAR and XMW
@@ -1316,9 +1316,9 @@ CONTAINS
 #endif
 
     !***********************************************************************
-    !*
-    !*    Begin section for computing deposition velocities
-    !*
+    !
+    ! Begin section for computing deposition velocities
+    !
 #ifdef TOMAS
     !=================================================================
     ! FOR TOMAS MICROPHYSICS:
@@ -1328,7 +1328,6 @@ CONTAINS
     ! because at each box the aerosol size&density is different
     ! depending on the internally-mixed composition (win, 7/15/09)
     !=================================================================
-
     IF ( id_NK01 > 0 ) THEN
        CALL AERO_DIADEN( 1, Input_Opt, State_Chm, State_Grid, State_Met, &
                          State_Diag, SIZ_DIA, SIZ_DEN, RC )
@@ -1419,50 +1418,47 @@ CONTAINS
        VTSoutput  = 0.0_fp
        VTSoutput_ = 0.0_fp
 
-       !** CZ is Altitude (m) at which deposition velocity is computed
+       ! CZ is Altitude (m) at which deposition velocity is computed
        CZ    = CZ1(I,J)
 
-       !** TEMPK and TEMPC are surface air temperatures in K and in C
+       ! TEMPK and TEMPC are surface air temperatures in K and in C
        TEMPK = TEMP(I,J)
        TEMPC = TEMP(I,J)-273.15e+0_f8
 
-       !** Calculate the kinematic viscosity XNU (m2 s-1) of air
-       !** as a function of temperature.
-       !** The kinematic viscosity is used to calculate the roughness heights
-       !** over water surfaces and to diagnose whether such surfaces are
-       !** aerodynamically rough or smooth using a Reynolds number criterion.
-       !** The expression for the temperature dependence of XNU
-       !** is from the FORTRAN code in Appendix II of Wesely [1988];
-       !** I wasn't able to find an original reference but it seems benign enough.
+       ! Calculate the kinematic viscosity XNU (m2 s-1) of air
+       ! as a function of temperature.
+       ! The kinematic viscosity is used to calculate the roughness heights
+       ! over water surfaces and to diagnose whether such surfaces are
+       ! aerodynamically rough or smooth using a Reynolds number criterion.
+       ! The expression for the temperature dependence of XNU
+       ! is from the FORTRAN code in Appendix II of Wesely [1988];
+       ! I wasn't able to find an original reference but it seems benign enough.
        C1  = TEMPK/273.15e+0_f8
        XNU = 0.151e+0_f8*(C1**1.77e+0_f8)*1.0e-04_f8
 
-       !* Compute bulk surface resistance for gases.
-       !*
-       !* Adjust external surface resistances for temperature;
-       !* from Wesely [1989], expression given in text on p. 1296.
-       !*
-       !* BUG FIX!  Wesely [1989] gives RT = 1000.0*EXP(-TEMPC-4.0)
-       !* so the inner parentheses are not needed (bmy, 3/4/99)
-       !*        RT = 1000.0*EXP(-(TEMPC-4.0))
+       ! Compute bulk surface resistance for gases.
+       !
+       ! Adjust external surface resistances for temperature;
+       ! from Wesely [1989], expression given in text on p. 1296.
+       !
        RT = 1000.0e+0_f8*EXP(-TEMPC-4.0e+0_f8)
-       !*
-       !    Get surface resistances - loop over land types LDT
+       !
+       ! Get surface resistances - loop over land types LDT
        !***********************************************************************
-       !* The land types within each grid square are defined using the Olson
-       !* land-type database.  Each of the Olson land types is assigned a
-       !* corresponding "deposition land type" with characteristic values of
-       !* surface resistance components.  There are 74 Olson land-types but only
-       !* 11 deposition land-types (i.e., many of the Olson land types share the
-       !* same deposition characteristics).  Surface resistance components for
-       !* the "deposition land types" are from Wesely [1989] except for tropical
-       !* forests [Jacob and Wofsy, 1990] and for tundra [Jacob et al., 1992].
-       !* All surface resistance components are normalized to a leaf area index
-       !* of unity.
-       !*
-       !* Olson land types, deposition land types, and surface resistance
-       !* components are read from file 'drydep.table'; check that file for
-       !* further details.
+       ! The land types within each grid square are defined using the Olson
+       ! land-type database.  Each of the Olson land types is assigned a
+       ! corresponding "deposition land type" with characteristic values of
+       ! surface resistance components.  There are 74 Olson land-types but only
+       ! 11 deposition land-types (i.e., many of the Olson land types share the
+       ! same deposition characteristics).  Surface resistance components for
+       ! the "deposition land types" are from Wesely [1989] except for tropical
+       ! forests [Jacob and Wofsy, 1990] and for tundra [Jacob et al., 1992].
+       ! All surface resistance components are normalized to a leaf area index
+       ! of unity.
+       !
+       ! Olson land types, deposition land types, and surface resistance
+       ! components are read from file 'drydep.table'; check that file for
+       ! further details.
        !***********************************************************************
 
        ! Loop over the # of Olson land types in this grid box (I,J)
@@ -1483,19 +1479,19 @@ CONTAINS
              !
              IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
-             !* Read the internal resistance RI (minimum stomatal resistance for
-             !* water vapor,per unit area of leaf) from the IRI array; a '9999'
-             !* value means no deposition to stomata so we impose a very large
-             !* value for RI.
+             ! Read the internal resistance RI (minimum stomatal resistance for
+             ! water vapor,per unit area of leaf) from the IRI array; a '9999'
+             ! value means no deposition to stomata so we impose a very large
+             ! value for RI.
              RI(LDT) = DBLE(IRI(II))
              IF (RI(LDT)   .GE. 9999.e+0_f8) RI(LDT)   = 1.e+12_f8
 
-             !** Cuticular resistances IRLU read in from 'drydep.table'
-             !** are per unit area of leaf;
-             !** divide them by the leaf area index to get a cuticular resistance
-             !** for the bulk canopy.  If IRLU is '9999' it means there are no
-             !** cuticular surfaces on which to deposit so we impose a very large
-             !** value for RLU.
+             ! Cuticular resistances IRLU read in from 'drydep.table'
+             ! are per unit area of leaf;
+             ! divide them by the leaf area index to get a cuticular resistance
+             ! for the bulk canopy.  If IRLU is '9999' it means there are no
+             ! cuticular surfaces on which to deposit so we impose a very large
+             ! value for RLU.
              IF ( IRLU(II) >= 9999 .or. XLAI(I,J,LDT) <= 0.e+0_f8 ) THEN
                 RLU(LDT) = 1.e+6_f8
              ELSE
@@ -1506,9 +1502,9 @@ CONTAINS
                 ! Ref Jaegle et al. 2018
                 RLU(LDT) = MIN( RLU(LDT) + RT, 2.e+0_f8 * RLU(LDT) )
              ENDIF
-             !** The following are the remaining resistances for the Wesely
-             !** resistance-in-series model for a surface canopy
-             !** (see Atmos. Environ. paper, Fig.1).
+             ! The following are the remaining resistances for the Wesely
+             ! resistance-in-series model for a surface canopy
+             ! (see Atmos. Environ. paper, Fig.1).
              RAC(LDT)  = MAX(DBLE(IRAC(II)), 1.e+0_f8)
              IF (RAC(LDT)  .GE. 9999.e+0_f8) RAC(LDT)  = 1.e+12_f8
              RGSS(LDT) = MAX(DBLE(IRGSS(II)), 1.e+0_f8)
@@ -1527,39 +1523,39 @@ CONTAINS
              RCLO(LDT) = DBLE(IRCLO(II))
              RCLO(LDT) = MIN( RCLO(LDT) + RT, 2.e+0_f8 * RCLO(LDT) )
              IF (RCLO(LDT) .GE. 9999.e+0_f8) RCLO(LDT) = 1.e+12_f8
-             !********************************************************************
-             !*
-             !*    Adjust stomatal resistances for insolation and temperature:
-             !*
-             !*     Temperature adjustment is from Wesely [1989], equation (3).
-             !*
-             !*     Light adjustment by the function BIOFIT is described by Wang
-             !*     [1996]. It combines
-             !*       - Local dependence of stomal resistance on the intensity I
-             !*         of light impinging the leaf; this is expressed as a
-             !*         mutliplicative factor I/(I+b) to the stomatal resistance
-             !*         where b = 50 W m-2 (equation (7) of Baldocchi et al.[1987])
-             !*       - radiative transfer of direct and diffuse radiation in the
-             !*         canopy using equations (12)-(16) from Guenther et al.[1995]
-             !*       - separate accounting of sunlit and shaded leaves using
-             !*         equation (12) of Guenther et al. [1995]
-             !*       - partitioning of the radiation at the top of the canopy into
-             !*         direct and diffuse components using a parameterization to
-             !*         results from an atmospheric radiative transfer model
-             !*         [Wang, 1996]
-             !*     The dependent variables of the function BIOFIT are the leaf
-             !*     area index (XYLAI), the cosine of zenith angle (SUNCOS) and
-             !*     the fractional cloud cover (CFRAC).  The factor GFACI
-             !*     integrates the light dependence over the canopy depth; sp even
-             !*     though RI is input per unit area of leaf it need not be scaled
-             !*     by LAI to yield a bulk canopy value because that's already
-             !*     done in the GFACI formulation.
-             !********************************************************************
+             !****************************************************************
+             !
+             ! Adjust stomatal resistances for insolation and temperature:
+             !
+             !  Temperature adjustment is from Wesely [1989], equation (3).
+             !
+             !  Light adjustment by the function BIOFIT is described by Wang
+             !  [1996]. It combines
+             !    - Local dependence of stomal resistance on the intensity I
+             !      of light impinging the leaf; this is expressed as a
+             !      mutliplicative factor I/(I+b) to the stomatal resistance
+             !      where b = 50 W m-2 (equation (7) of Baldocchi et al.[1987])
+             !    - radiative transfer of direct and diffuse radiation in the
+             !      canopy using equations (12)-(16) from Guenther et al.[1995]
+             !    - separate accounting of sunlit and shaded leaves using
+             !      equation (12) of Guenther et al. [1995]
+             !    - partitioning of the radiation at the top of the canopy into
+             !      direct and diffuse components using a parameterization to
+             !      results from an atmospheric radiative transfer model
+             !      [Wang, 1996]
+             !  The dependent variables of the function BIOFIT are the leaf
+             !  area index (XYLAI), the cosine of zenith angle (SUNCOS) and
+             !  the fractional cloud cover (CFRAC).  The factor GFACI
+             !  integrates the light dependence over the canopy depth; sp even
+             !  though RI is input per unit area of leaf it need not be scaled
+             !  by LAI to yield a bulk canopy value because that's already
+             !  done in the GFACI formulation.
+             !****************************************************************
              RAD0 = RADIAT(I,J)
              RIX = RI(LDT)
              IF (RIX < 9999.e+0_f8) THEN
                 GFACT = 100.0e+0_f8
-                IF (TEMPC .GT. 0.e+0_f8 .AND. TEMPC .LT. 40.e+0_f8) &
+                IF (TEMPC .GT. 0.e+0_f8 .AND. TEMPC .LT. 40.e+0_f8)          &
                      GFACT = 400.e+0_f8/TEMPC/(40.0e+0_f8-TEMPC)
                 GFACI = 100.e+0_f8
                 IF ( RAD0 > 0.e+0_f8 .and. XLAI(I,J,LDT) > 0.e+0_f8 ) THEN
@@ -1568,7 +1564,7 @@ CONTAINS
                    XLAI_FP   = XLAI(I,J,LDT)
                    SUNCOS_FP = SUNCOS(I,J)
                    CFRAC_FP  = CFRAC(I,J)
-                   GFACI     = 1.e+0_f8 / BIOFIT( DRYCOEFF,  XLAI_FP, &
+                   GFACI     = 1.e+0_f8 / BIOFIT( DRYCOEFF,  XLAI_FP,        &
                                                   SUNCOS_FP, CFRAC_FP, NN )
                 ENDIF
 
@@ -1582,335 +1578,339 @@ CONTAINS
 
              ENDIF   ! If RIX < 9999
 
-          ENDIF   ! If IUSE(I,J,IDT) > 0
+             !
+             ! Compute aerodynamic resistance to lower elements in lower part
+             ! of the canopy or structure, assuming level terrain -
+             ! equation (5) of Wesely [1989].
+             !
+             RDC = 100.e+0_f8*(1.0e+0_f8+1000.0e+0_f8/(RAD0+10.e+0_f8))
+             !
+             ! Loop over species; species-dependent corrections to resistances
+             ! are from equations (6)-(9) of Wesely [1989].
+             !
+             DO K = 1,NUMDEP
 
-          !*
-          !*    Compute aerodynamic resistance to lower elements in lower part
-          !*    of the canopy or structure, assuming level terrain -
-          !*    equation (5) of Wesely [1989].
-          !*
-          RDC = 100.e+0_f8*(1.0e+0_f8+1000.0e+0_f8/(RAD0+10.e+0_f8))
-          !*
-          !*    Loop over species; species-dependent corrections to resistances
-          !*    are from equations (6)-(9) of Wesely [1989].
-          !*
-          DO K = 1,NUMDEP
+                ! Save F0(K) in a private variable to avoid diffs due
+                ! to parallelization -- Bob Yantosca (17 May 2023)
+                F0_K = F0(K)
 
-             ! Save F0(K) in a private variable to avoid diffs due
-             ! to parallelization -- Bob Yantosca (17 May 2023)
-             F0_K = F0(K)
+                ! Only consider dry depositing gas-phase species:
+                IF ( LDEP(K) .AND. ( .NOT. AEROSOL(K) ) ) THEN
 
-             !** Only consider dry depositing gas-phase species:
-             IF ( LDEP(K) .AND. ( .NOT. AEROSOL(K) ) ) THEN
+                   N_SPC = State_Chm%Map_DryDep(K)
+                   IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
 
-                N_SPC = State_Chm%Map_DryDep(K)
-                IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
+                      IF (State_Chm%SALINITY(I,J) .GT. 20.0_f8) THEN
 
-                   IF (State_Chm%SALINITY(I,J) .GT. 20.0_f8) THEN
+                         ! Now apply the Luhar et al. [2018] equations for the
+                         ! special treatment of O3 dry deposition to the ocean
+                         ! surface
+                         CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),       &
+                                      State_Chm%IODIDE(I,J),I,J,DEPVw)
 
-                      ! Now apply the Luhar et al. [2018] equations for the
-                      ! special treatment of O3 dry deposition to the ocean
-                      ! surface
-                      CALL OCEANO3(State_Met%TSKIN(I,J),USTAR(I,J),&
-                                   State_Chm%IODIDE(I,J),I,J,DEPVw)
+                         ! Now convert to the new rc value(s) can probably tidy
+                         ! this up a bit
+                         alpha = 10.0_f8**(-0.25-0.013*( &
+                                           State_Met%TSKIN(I,J)-273.16_f8))
+                         RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw)
 
-                      ! Now convert to the new rc value(s) can probably tidy
-                      ! this up a bit
-                      alpha = 10.0_f8**(-0.25-0.013*( &
-                                        State_Met%TSKIN(I,J)-273.16_f8))
-                      RSURFC(K,LDT) = 1.0_f8/(alpha*DEPVw)
+                      ELSE
 
-                   ELSE
+                         ! It's not 'ocean' so we instead don't change it from
+                         ! 'default' rc
+                         RSURFC(K,LDT) = 2000.0_f8
 
-                      ! It's not 'ocean' so we instead don't change it from
-                      ! 'default' rc
-                      RSURFC(K,LDT) = 2000.0_f8
-
-                   ENDIF
-
-                ! Test for if surface is snow/ice to change O3
-                ! surface resistance to an observation derived value
-                ELSE IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 1)) THEN
-                    RSURFC(K,LDT) = 10000.0_f8
-                ELSE
-                   ! Check latitude and longitude, alter F0 only for Amazon
-                   ! rainforest for Hg0 (see reference: Feinberg et al., ESPI,
-                   ! 2022: Evaluating atmospheric mercury (Hg) uptake by
-                   ! vegetation in a chemistry-transport model)
-                   !
-                   ! Remove IF/ELSE block using never-nesting technique.
-                   !   - Bob Yantosca (17 May 2023)
-                   IF ( N_SPC == ID_Hg0 ) THEN
-
-                      ! Assume lower reactivity 
-                      F0_K = 3.0e-05_f8 
-                   
-                      ! But if this is the rainforest land type and we fall
-                      ! within the bounding box of the Amazon rainforest,
-                      ! then increase reactivity as inferred from observations.
-                      IF ( II                   ==  6         .AND.          &
-                           State_Grid%XMid(I,J) >  -82.0_f8   .AND.          &
-                           State_Grid%XMid(I,J) <  -33.0_f8   .AND.          &
-                           State_Grid%YMid(I,J) >  -34.0_f8   .AND.          &
-                           State_Grid%YMid(I,J) <   14.0_f8 ) THEN
-                         F0_K = 2.0e-01_f8
                       ENDIF
-                   ENDIF
 
-                   !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
-                   XMWH2O = H2OMW * 1.e-3_f8
+                   ! Test for if surface is snow/ice to change O3
+                   ! surface resistance to an observation derived value
+                   ELSE IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 1)) THEN
+                      RSURFC(K,LDT) = 10000.0_f8
+                   ELSE
+                      ! Check latitude and longitude, alter F0 only for Amazon
+                      ! rainforest for Hg0 (see reference: Feinberg et al., ESPI,
+                      ! 2022: Evaluating atmospheric mercury (Hg) uptake by
+                      ! vegetation in a chemistry-transport model)
+                      !
+                      ! Remove IF/ELSE block using never-nesting technique.
+                      !   - Bob Yantosca (17 May 2023)
+                      IF ( N_SPC == ID_Hg0 ) THEN
+
+                         ! Assume lower reactivity
+                         F0_K = 3.0e-05_f8
+                   
+                         ! But if this is the rainforest land type and we fall
+                         ! within the bounding box of the Amazon rainforest,
+                         ! then implicit nonecrease reactivity as inferred
+                         ! from observations.
+                         IF ( II                   ==  6         .AND.       &
+                              State_Grid%XMid(I,J) >  -82.0_f8   .AND.       &
+                              State_Grid%XMid(I,J) <  -33.0_f8   .AND.       &
+                              State_Grid%YMid(I,J) >  -34.0_f8   .AND.       &
+                              State_Grid%YMid(I,J) <   14.0_f8 ) THEN
+                            F0_K = 2.0e-01_f8
+                         ENDIF
+                      ENDIF
+
+                      !XMWH2O = 18.e-3_f8 ! Use global H2OMW (ewl, 1/6/16)
+                      XMWH2O = H2OMW * 1.e-3_f8
 #ifdef LUO_WETDEP
-                   RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
-                        DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                        + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0_K)
+                      RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
+                           DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
+                         + 1.e+0_f8/(HSTAR3D(I,J,K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #else
-                   RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
-                        DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
-                        + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0_K)
+                      RIXX = RIX*DIFFG(TEMPK,PRESSU(I,J),XMWH2O)/ &
+                           DIFFG(TEMPK,PRESSU(I,J),XMW(K)) &
+                         + 1.e+0_f8/(HSTAR(K)/3000.e+0_f8+100.e+0_f8*F0_K)
 #endif
-                   RLUXX = 1.e+12_f8
-                   IF (RLU(LDT).LT.9999.e+0_f8) &
+                      RLUXX = 1.e+12_f8
+                      IF (RLU(LDT).LT.9999.e+0_f8)                           &
 #ifdef LUO_WETDEP
-                        RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0_K)
+                         RLUXX = RLU(LDT)/(HSTAR3D(I,J,K)/1.0e+05_f8 + F0_K)
 #else
-                        RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0_K)
+                         RLUXX = RLU(LDT)/(HSTAR(K)/1.0e+05_f8 + F0_K)
 #endif
 
-                   ! If POPs simulation, scale cuticular resistances with octanol-
-                   ! air partition coefficient (Koa) instead of HSTAR
-                   ! (clf, 1/3/2011)
-                   IF (IS_POPS) &
+                      ! If POPs simulation, scale cuticular resistances with
+                      ! octanol-air partition coefficient (Koa) instead of
+                      ! HSTAR (clf, 1/3/2011)
+                      IF (IS_POPS) &
                         RLUXX = RLU(LDT)/(KOA(K)/1.0e+05_f8 + F0_K)
 
-                   !*
-                   !* To prevent virtually zero resistance to species with huge
-                   !* HSTAR, such as HNO3, a minimum value of RLUXX needs to be
-                   !* set. The rationality of the existence of such a minimum is
-                   !* demonstrated by the observed relationship between Vd(NOy-NOx)
-                   !* and Ustar in Munger et al.[1996];
-                   !* Vd(HNO3) never exceeds 2 cm s-1 in observations. The
-                   !* corresponding minimum resistance is 50 s m-1. This correction
-                   !* was introduced by J.Y. Liang on 7/9/95.
-                   !*
+                      !
+                      ! To prevent virtually zero resistance to species with
+                      ! huge HSTAR, such as HNO3, a minimum value of RLUXX
+                      ! needs to be The rationality of the existence of such
+                      ! a minimum is demonstrated by the observed relationship
+                      ! between Vd(NOy-NOx) and Ustar in Munger et al.[1996];
+                      ! Vd(HNO3) never exceeds 2 cm s-1 in observations. The
+                      ! corresponding minimum resistance is 50 s m-1. This
+                      ! correction was introduced by J.Y. Liang on 7/9/95.
+                      !
 #ifdef LUO_WETDEP
-                   RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
-                        F0_K/RGSO(LDT))
-                   RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
-                        F0_K/RCLO(LDT))
+                      RGSX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RGSS(LDT) + &
+                           F0_K/RGSO(LDT))
+                      RCLX = 1.e+0_f8/(HSTAR3D(I,J,K)/1.0e+05_f8/RCLS(LDT) + &
+                           F0_K/RCLO(LDT))
 #else
-                   RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) + &
-                        F0_K/RGSO(LDT))
-                   RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) + &
-                        F0_K/RCLO(LDT))
+                      RGSX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RGSS(LDT) +       &
+                           F0_K/RGSO(LDT))
+                      RCLX = 1.e+0_f8/(HSTAR(K)/1.0e+05_f8/RCLS(LDT) +       &
+                           F0_K/RCLO(LDT))
 #endif
-                   !*
-                   !** Get the bulk surface resistance of the canopy, RSURFC, from
-                   !** the network of resistances in parallel and in series (Fig. 1
-                   !** of Wesely [1989])
-                   DTMP1=1.e+0_f8/RIXX
-                   DTMP2=1.e+0_f8/RLUXX
-                   DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
-                   DTMP4=1.e+0_f8/(RDC+RCLX)
-                   RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
+                      !
+                      ! Get the bulk surface resistance of the canopy,
+                      ! RSURFC, from the network of resistances in parallel
+                      ! and in series (Fig. 1 of Wesely [1989])
+                      DTMP1=1.e+0_f8/RIXX
+                      DTMP2=1.e+0_f8/RLUXX
+                      DTMP3=1.e+0_f8/(RAC(LDT)+RGSX)
+                      DTMP4=1.e+0_f8/(RDC+RCLX)
+                      RSURFC(K,LDT) = 1.e+0_f8/(DTMP1 + DTMP2 + DTMP3 + DTMP4)
 
-                ENDIF
+                   ENDIF
 
-             !** get surface deposition velocity for aerosols if needed;
-             !** equations (15)-(17) of Walcek et al. [1986]
-             ELSE IF ( LDEP(K) .and. AEROSOL(K) ) THEN
+                ! get surface deposition velocity for aerosols if needed;
+                ! equations (15)-(17) of Walcek et al. [1986]
+                ELSE IF ( LDEP(K) .and. AEROSOL(K) ) THEN
 
-                ! Get information about this species from the database
-                SpcId   =  NTRAIND(K)
-                SpcInfo => State_Chm%SpcData(SpcId)%Info
+                   ! Get information about this species from the database
+                   SpcId   =  NTRAIND(K)
+                   SpcInfo => State_Chm%SpcData(SpcId)%Info
 
-                IF ( SpcInfo%DD_AeroDryDep ) THEN
+                   IF ( SpcInfo%DD_AeroDryDep ) THEN
 
-                   !=====================================================
-                   ! Use size-resolved dry deposition calculations for
-                   ! seasalt aerosols.  We need to account for the
-                   ! hygroscopic growth of the aerosol particles.
-                   !=====================================================
+                      !=====================================================
+                      ! Use size-resolved dry deposition calculations for
+                      ! seasalt aerosols.  We need to account for the
+                      ! hygroscopic growth of the aerosol particles.
+                      !=====================================================
 
-                   ! [Zhang et al., 2001]
-                   RSURFC(K,LDT) = AERO_SFCRSII( K,                   &
-                                                 II,                  &
-                                                 PRESSU(I,J)*1e-3_f8, &
-                                                 TEMPK,               &
-                                                 USTAR(I,J),          &
-                                                 RHB(I,J),            &
-                                                 W10(I,J),            &
-                                                 VTSoutput,           &
-                                                 Input_Opt,           & 
-                                                 State_Chm )
+                      ! [Zhang et al., 2001]
+                      RSURFC(K,LDT) = AERO_SFCRSII( K,                       &
+                                                    II,                      &
+                                                    PRESSU(I,J)*1e-3_f8,     &
+                                                    TEMPK,                   &
+                                                    USTAR(I,J),              &
+                                                    RHB(I,J),                &
+                                                    W10(I,J),                &
+                                                    VTSoutput,               &
+                                                    Input_Opt,               &
+                                                    State_Chm )
 
-                   VTSoutput_(K,LDT) = VTSoutput  
+                      VTSoutput_(K,LDT) = VTSoutput
 
-                ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
+                   ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
 
-                   !=====================================================
-                   ! Use size-resolved dry deposition calculations for
-                   ! dust aerosols only.  Do not account for hygroscopic
-                   ! growth of the dust aerosol particles.
-                   !=====================================================
+                      !=====================================================
+                      ! Use size-resolved dry deposition calculations for
+                      ! dust aerosols only.  Do not account for hygroscopic
+                      ! growth of the dust aerosol particles.
+                      !=====================================================
 #ifdef TOMAS
-                   !-------------------------------
-                   !%%% TOMAS SIMULATIONS %%%
-                   !-------------------------------
-                   IF ( TRIM(SpcInfo%Name) == 'DST1' .or. &
-                        TRIM(SpcInfo%Name) == 'DST2' .or. &
-                        TRIM(SpcInfo%Name) == 'DST3' .or. &
-                        TRIM(SpcInfo%Name) == 'DST4' ) THEN
+                      !-------------------------------
+                      !%%% TOMAS SIMULATIONS %%%
+                      !-------------------------------
+                      IF ( TRIM(SpcInfo%Name) == 'DST1' .or.                 &
+                           TRIM(SpcInfo%Name) == 'DST2' .or.                 &
+                           TRIM(SpcInfo%Name) == 'DST3' .or.                 &
+                           TRIM(SpcInfo%Name) == 'DST4' ) THEN
+
+                         ! Particle diameter, convert [m] -> [um]
+                         DIAM  = A_RADI(K) * 2.e+0_f8
+                      
+                         ! Particle density [kg/m3]
+                         DEN   = A_DEN(K)
+
+                      ELSE
+
+                         ! Get current aerosol diameter and density
+                         ! NOTE: In TOMAS the aerosol diameter and density
+                         ! evolves with time.  We have to save these in the
+                         ! DIAM and DEN variables so that we can hold these
+                         ! PRIVATE for the parallel loop.
+                         BIN  = NTRAIND(K) - id_NK01 + 1
+                         DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
+                         DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
+                      
+                      ENDIF
+#else
+                      !-------------------------------
+                      !%%% NON-TOMAS SIMULATIONS %%%
+                      !-------------------------------
 
                       ! Particle diameter, convert [m] -> [um]
                       DIAM  = A_RADI(K) * 2.e+0_f8
-                      
+
+                      IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.           &
+                           K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
+                         DIAM = 0.66895E-6
+                      ENDIF
+
+                      IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.           &
+                           K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
+                         DIAM = 2.4907E-6
+                      ENDIF
+                   
+                      IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.           &
+                           K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
+                         DIAM = 4.164E-6
+                      ENDIF
+
+                      IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.           &
+                           K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
+                         DIAM = 6.677E-6
+                      ENDIF
+
                       ! Particle density [kg/m3]
                       DEN   = A_DEN(K)
-
-                   ELSE
-
-                      ! Get current aerosol diameter and density
-                      ! NOTE: In TOMAS the aerosol diameter and density
-                      ! evolves with time.  We have to save these in the
-                      ! DIAM and DEN variables so that we can hold these
-                      ! PRIVATE for the parallel loop.
-                      BIN  = NTRAIND(K) - id_NK01 + 1
-                      DIAM = SIZ_DIA( I, J, BIN )     ! Diameter [m]
-                      DEN  = SIZ_DEN( I, J, BIN )     ! Density  [kg/m3]
-                      
-                   ENDIF
-#else
-                   !-------------------------------
-                   !%%% NON-TOMAS SIMULATIONS %%%
-                   !-------------------------------
-
-                   ! Particle diameter, convert [m] -> [um]
-                   DIAM  = A_RADI(K) * 2.e+0_f8
-
-                   IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
-                        K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
-                      DIAM = 0.66895E-6
-                   ENDIF
-
-                   IF ( K == idd_DST2  .or. K == idd_DSTAL2 .or.              &
-                        K == idd_NITD2 .or. K == idd_SO4D2       ) THEN
-                      DIAM = 2.4907E-6
-                   ENDIF
-                   
-                   IF ( K == idd_DST3  .or. K == idd_DSTAL3 .or.              &
-                        K == idd_NITD3 .or. K == idd_SO4D3       ) THEN
-                      DIAM = 4.164E-6
-                   ENDIF
-
-                   IF ( K == idd_DST4  .or. K == idd_DSTAL4 .or.              &
-                        K == idd_NITD4 .or. K == idd_SO4D4       ) THEN
-                      DIAM = 6.677E-6
-                   ENDIF
-
-                   ! Particle density [kg/m3]
-                   DEN   = A_DEN(K)
 #endif
 
 #ifdef APM
-                   IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
-                      DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)* &
-                           GFTOT3D(I,J,1,1)*2.D0
-                      DEN = DENWET3D(I,J,1,1)*1.D3
-                   ENDIF
-                   IF(SpcInfo%Name(1:9)=='APMSEABIN')THEN
-                      DIAM = RSALT(SpcId-APMIDS%id_SEABIN1+1)* &
-                           GFTOT3D(I,J,1,2)*2.D0
-                      DEN = DENWET3D(I,J,1,2)*1.D3
-                   ENDIF
-                   IF(SpcInfo%Name(1:9)=='APMDSTBIN')THEN
-                      DIAM = RDST(SpcId-APMIDS%id_DSTBIN1+1)*2.D0
-                      DEN = DENDST(SpcId-APMIDS%id_DSTBIN1+1)*1.D3
-                   ENDIF
-                   IF(SpcInfo%Name(1:8)=='APMLVSOA')THEN
-                      DIAM = MWSIZE3D(I,J,1,1)*2.D0
-                      DEN = DENWET3D(I,J,1,1)*1.D3
-                   ENDIF
-                   IF(SpcInfo%Name(1:8)=='APMCTSEA')THEN
-                      DIAM = MWSIZE3D(I,J,1,2)*2.D0
-                      DEN = DENWET3D(I,J,1,2)*1.D3
-                   ENDIF
-                   IF(SpcInfo%Name(1:8)=='APMCTDST')THEN
-                      DIAM = MWSIZE3D(I,J,1,3)*2.D0
-                      DEN = DENDST(12)*1.D3
-                   ENDIF
+                      IF(SpcInfo%Name(1:8)=='APMSPBIN')THEN
+                         DIAM = RDRY(SpcId-APMIDS%id_SO4BIN1+1)* &
+                              GFTOT3D(I,J,1,1)*2.D0
+                         DEN = DENWET3D(I,J,1,1)*1.D3
+                      ENDIF
+                      IF(SpcInfo%Name(1:9)=='APMSEABIN')THEN
+                         DIAM = RSALT(SpcId-APMIDS%id_SEABIN1+1)* &
+                              GFTOT3D(I,J,1,2)*2.D0
+                         DEN = DENWET3D(I,J,1,2)*1.D3
+                      ENDIF
+                      IF(SpcInfo%Name(1:9)=='APMDSTBIN')THEN
+                         DIAM = RDST(SpcId-APMIDS%id_DSTBIN1+1)*2.D0
+                         DEN = DENDST(SpcId-APMIDS%id_DSTBIN1+1)*1.D3
+                      ENDIF
+                      IF(SpcInfo%Name(1:8)=='APMLVSOA')THEN
+                         DIAM = MWSIZE3D(I,J,1,1)*2.D0
+                         DEN = DENWET3D(I,J,1,1)*1.D3
+                      ENDIF
+                      IF(SpcInfo%Name(1:8)=='APMCTSEA')THEN
+                         DIAM = MWSIZE3D(I,J,1,2)*2.D0
+                         DEN = DENWET3D(I,J,1,2)*1.D3
+                      ENDIF
+                      IF(SpcInfo%Name(1:8)=='APMCTDST')THEN
+                         DIAM = MWSIZE3D(I,J,1,3)*2.D0
+                         DEN = DENDST(12)*1.D3
+                      ENDIF
 #endif
 
-                   ! [Zhang et al., 2001]
-                   RSURFC(K,LDT) = DUST_SFCRSII( K,                   &
-                                                 II,                  &
-                                                 PRESSU(I,J)*1e-3_f8, &
-                                                 TEMPK,               &
-                                                 USTAR(I,J),          &
-                                                 DIAM,                &
-                                                 DEN,                 &
-                                                 VTSoutput )
+                      ! [Zhang et al., 2001]
+                      RSURFC(K,LDT) = DUST_SFCRSII( K,                       &
+                                                    II,                      &
+                                                    PRESSU(I,J)*1e-3_f8,     &
+                                                    TEMPK,                   &
+                                                    USTAR(I,J),              &
+                                                    DIAM,                    &
+                                                    DEN,                     &
+                                                    VTSoutput )
 
-                   VTSoutput_(K,LDT) = VTSoutput
+                      VTSoutput_(K,LDT) = VTSoutput
 
-                ELSE
+                   ELSE
 
-                   !=====================================================
-                   ! Replace original code to statement 160 here: only
-                   ! do this for non-size-resolved species where
-                   ! AEROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
-                   !=====================================================
-                   !! use Zhang et al for all aerosols (hotp 10/26/07)
-                   !VDS = 0.002D0*USTAR(I,J)
-                   !IF (OBK(I,J) .LT. 0.0D0) THEN
-                   !   VDS = VDS*(1.D0+(-300.D0/OBK(I,J))**0.6667D0)
-                   !ENDIF
-                   !
-                   !IF ( OBK(I,J) .EQ. 0.0D0 ) &
-                   !    WRITE(6,156) OBK(I,J),I,J,LDT
-                   ! 156 FORMAT(1X,'OBK(I,J)=',E11.2,1X,' I,J =',2I4, 1X,'LDT=',I3/)
-                   !CZH  = ZH(I,J)/OBK(I,J)
-                   !IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(I,J)* &
-                   !   (-CZH)**0.6667D0
+                      !=====================================================
+                      ! Replace original code to statement 160 here: only
+                      ! do this for non-size-resolved species where
+                      ! AEROSOL(K)=T. (rjp, tdf, bec, bmy, 4/20/04)
+                      !=====================================================
+                      !! use Zhang et al for all aerosols (hotp 10/26/07)
+                      !VDS = 0.002D0*USTAR(I,J)
+                      !IF (OBK(I,J) .LT. 0.0D0) THEN
+                      !   VDS = VDS*(1.D0+(-300.D0/OBK(I,J))**0.6667D0)
+                      !ENDIF
+                      !
+                      !IF ( OBK(I,J) .EQ. 0.0D0 ) &
+                      !    WRITE(6,156) OBK(I,J),I,J,LDT
+                      ! 156 FORMAT(1X,'OBK(I,J)=',E11.2,1X,' I,J =',2I4, 1X,'LDT=',I3/)
+                      !CZH  = ZH(I,J)/OBK(I,J)
+                      !IF (CZH.LT.-30.0D0) VDS = 0.0009D0*USTAR(I,J)* &
+                      !   (-CZH)**0.6667D0
 
-                   RSURFC(K, LDT) = ADUST_SFCRSII(K, II, PRESSU(I,J)*1e-3_f8, &
-                                                  TEMPK, USTAR(I,J), &
-                                                  VTSoutput, RHB(I,J), &
-                                                 State_Chm)
+                      RSURFC(K, LDT) = ADUST_SFCRSII( K,                     &
+                                                      II,                    &
+                                                      PRESSU(I,J)*1e-3_f8,   &
+                                                      TEMPK,                 &
+                                                      USTAR(I,J),            &
+                                                      VTSoutput,             &
+                                                      RHB(I,J),              &
+                                                      State_Chm )
 
-                   VTSoutput_(K,LDT) = VTSoutput
+                      VTSoutput_(K,LDT) = VTSoutput
 
-                   !*
-                   !*    Set VDS to be less than VDSMAX (entry in input file
-                   !*    divided by 1.D4) VDSMAX is taken from Table 2 of Walcek
-                   !*    et al. [1986]. Invert to get corresponding R
+                      !
+                      ! Set VDS to be less than VDSMAX (entry in input file
+                      ! divided by 1.D4) VDSMAX is taken from Table 2 of Walcek
+                      ! et al. [1986]. Invert to get corresponding R
 
-                   !RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
-                ENDIF
+                      !RSURFC(K,LDT) = 1.D0/MIN(VDS, DBLE(IVSMAX(II))/1.D4)
+                   ENDIF
 
-                ! Free pointer
-                SpcInfo => NULL()
+                   ! Free pointer
+                   SpcInfo => NULL()
 
-             ENDIF   ! If gas else if Aerosol(K)
+                ENDIF   ! If gas else if Aerosol(K)
+             ENDDO      ! DO K=1, NUMDEP
+          ENDIF         ! If IUSE(I,J,IDT) > 0
+       ENDDO            ! LDT = 1, IREG
 
-          ENDDO  ! DO K=1, NUMDEP
-          !*
-       ENDDO   ! LDT = 1, IREG
-
-       !*
-       !*    Set max and min values for bulk surface resistances
-       !*
+       !
+       ! Set max and min values for bulk surface resistances
+       !
        DO K = 1,NUMDEP
           IF ( LDEP(K) ) THEN
              DO LDT = 1, IREG(I,J)
                 IF ( IUSE(I,J,LDT) > 0 ) THEN
 
-                   ! because of high resistance values, different rule applied for
-                   ! ocean ozone
+                   ! because of high resistance values, different rule
+                   ! applied for ocean ozone
                    N_SPC = State_Chm%Map_DryDep(K)
                    IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
-                      RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),999999.e+0_f8))
+                      RSURFC(K,LDT) =                                        &
+                           MAX(1.e+0_f8, MIN(RSURFC(K,LDT),999999.e+0_f8))
                    ELSE
-                      RSURFC(K,LDT)= MAX(1.e+0_f8, MIN(RSURFC(K,LDT),9999.e+0_f8))
+                      RSURFC(K,LDT) =                                        &
+                           MAX(1.e+0_f8, MIN(RSURFC(K,LDT),9999.e+0_f8))
                    ENDIF
                    ! Set Rc for strong acids (HNO3,HCl,HBr) to 1 s/m
                    ! V. Shah (23 Oct 18)
@@ -1919,102 +1919,109 @@ CONTAINS
                       RSURFC(K,LDT)= 1.e+0_f8
                    ENDIF
                 ENDIF   ! If IUSE(I,J,LDT) > 0
-             ENDDO   ! DO LDT=1,LREG(I,J)
-          ENDIF   ! LDEP species condition
-       ENDDO   ! Numdep species
+             ENDDO      ! DO LDT=1,LREG(I,J)
+          ENDIF         ! LDEP species condition
+       ENDDO            ! Numdep species
 
-       !*
-       !*    Loop through the different landuse types present in
-       !*    the grid square
-       !*
+       !
+       ! Loop through the different landuse types present in
+       ! the grid square
+       !
        DO LDT = 1, IREG(I,J)
           IF ( IUSE(I,J,LDT) > 0 ) THEN   !GOTO 500
              ! IOLSON = ... line previously located here. Not needed, so
              ! removed (eam, 2025).
 
              !***** Get aerodynamic resistances Ra and Rb. ***********
-             !   The aerodynamic resistance Ra is integrated from altitude z0+d up
-             !   to the altitude z1 at which the dry deposition velocity is to be
-             !   referenced. The integration corrects for stability using Monin-
-             !   Obukhov similarity formulas from Businger et al. [1971] which
-             !   apply over the range -2.5 < z/zMO < 1.5 (see their Figure 2).
-             !   Under very unstable conditions when z1 > -2.5 zMO, we assume that
-             !   there is no resistance to transfer in the convective column
-             !   between zMO and z1. Under very stable conditions when z1 > 1.5 zMO
-             !   we assume that vertical transfer in the column between zMO and z1
-             !   is strongly suppressed so that the deposition velocity at altitude
-             !   z1 is very low.  Under these conditions we just specify a very
-             !   large Ra=1.E4 s m-1 (LRGERA = T).
+             ! The aerodynamic resistance Ra is integrated from altitude
+             ! z0+d up to the altitude z1 at which the dry deposition
+             ! velocity is to be referenced. The integration corrects for
+             ! stability using Monin-Obukhov similarity formulas from
+             ! Businger et al. [1971] which apply over the range
+             ! 2.5 < z/zMO < 1.5 (see their Figure 2).  Under very unstable
+             ! conditions when z1 > -2.5 zMO, we assume that there is no
+             ! resistance to transfer in the convective column between zMO
+             ! and z1. Under very stable conditions when z1 > 1.5 zMO we
+             ! assume that vertical transfer in the column between zMO and
+             ! z1 is strongly suppressed so that the deposition velocity at
+             ! altitude z1 is very low.  Under these conditions we just
+             ! specify a very large Ra=1.E4 s m-1 (LRGERA = T).
              !**
-             !   The Reynolds number REYNO diagnoses whether a surface is
-             !   aerodynamically rough (REYNO > 1) or smooth.
+             ! The Reynolds number REYNO diagnoses whether a surface is
+             ! aerodynamically rough (REYNO > 1) or smooth.
              !
-             !   NOTE: The criterion "REYNO > 1" was originally "REYNO > 10". See
-             !   below for an explanation of why it was changed (hyl, 10/15/99)
+             ! NOTE: The criterion "REYNO > 1" was originally "REYNO > 10".
+             ! See below for an explanation of why it was changed
+             ! (hyl, 10/15/99)
              !
-             !   Surface is rough in all cases except over water with low wind
-             !   speeds. In the smooth case, vertical transport IN THE SUBLAYER
-             !   near the surface is limited by molecular diffusion and is
-             !   therefore very slow; we assign a large value we assign a large
-             !   value of Ra + Rb to account for this effect.  [In Versions 3.2
-             !   and earlier we used the formulation for Ra + Rb given in Equation
-             !   (12) of Walcek et al [1986] to calculate the aerodynamic
-             !   resistance over smooth surfaces.  However, that expression fails
-             !   when u* is very small, as it yields negative values of Ra + Rb].
-             !   (djj, hyl, bmy, 5/8/00)
+             ! Surface is rough in all cases except over water with low
+             ! wind speeds. In the smooth case, vertical transport IN THE
+             ! SUBLAYER near the surface is limited by molecular diffusion
+             ! and is therefore very slow; we assign a large value we assign
+             ! a large value of Ra + Rb to account for this effect.
+             ! [In Versions 3.2 and earlier we used the formulation for
+             ! Ra + Rb given in Equation (12) of Walcek et al [1986] to
+             ! calculate the aerodynamic resistance over smooth surfaces.
+             ! However, that expression fails  when u* is very small, as it
+             ! yields negative values of Ra + Rb]. (djj, hyl, bmy, 5/8/00)
+             !
              !**
-             !   In the aerodynamically rough case, the expression for Ra is as
-             !   given in equation (5) of Jacob et al. [1992]:
+             ! In the aerodynamically rough case, the expression for Ra
+             ! is as given in equation (5) of Jacob et al. [1992]:
              !
-             !          Ra = (1/ku*)*int(from z0 to z1) (phi(x)/z)dz
+             !     Ra = (1/ku*)*int(from z0 to z1) (phi(x)/z)dz
              !
-             !   where x = (z-D)/zMO, z is the height above ground, and D is the
-             !   displacement height which is typically 70-80% of the canopy
-             !   height [Brutsaert, 1982].  We change the vertical coordinate so
-             !   that z=0 at the displacement height; that's OK since for all
-             !   practical applications z1 >> D.  In this manner we don't need
-             !   to assume any specific value for the displacement height.
-             !   Applying the variable transformation z -> x = z/zMO, the equation
-             !   above becomes
+             ! where x = (z-D)/zMO, z is the height above ground, and D is
+             ! the displacement height which is typically 70-80% of the
+             ! canopy height [Brutsaert, 1982].  We change the vertical
+             ! coordinate so that z=0 at the displacement height; that's OK
+             ! since for all practical applications z1 >> D.  In this manner
+             ! we don't need to assume any specific value for the displacement
+             ! height.  Applying the variable transformation z -> x = z/zMO,
+             ! the equation above becomes
              !
-             !          Ra = (1/ku*)*int(from x0 to x1) (phi(x)/x)dx with x=z/zMO
+             !     Ra = (1/ku*)*int(from x0 to x1) (phi(x)/x)dx with x=z/zMO
              !
-             !   Here phi is a stability correction function originally formulated
-             !   by Businger et al. [1971] and given in eqns 5a and 5b of Jacob et
-             !   al. [1992]. For unstable conditions,
+             ! Here phi is a stability correction function originally
+             ! formulated by Businger et al. [1971] and given in eqns 5a and
+             ! 5b of Jacob et al. [1992]. For unstable conditions,
              !
-             !          phi(x) = a/sqrt(1-bx)  where a=0.74, b = 9
+             !     phi(x) = a/sqrt(1-bx)  where a=0.74, b = 9
              !
-             !   The analytical solution to the integral is [Dwight, 1957,
-             !   integral 192.11]:
+             ! The analytical solution to the integral is [Dwight, 1957,
+             ! integral 192.11]:
              !
-             !          int(dx/(x*sqrt(1-bx))) = log(abs((sqrt(1-bx)-1)
-             !                                   /(sqrt(1-bx)+1)))
+             !     int(dx/(x*sqrt(1-bx))) = log(abs((sqrt(1-bx)-1)
+             !                            /(sqrt(1-bx)+1)))
              !
-             !   which yields the expression for Ra used in the code for
-             !   unstable conditions.  For stable conditions,
+             ! which yields the expression for Ra used in the code for
+             ! unstable conditions.  For stable conditions,
              !
-             !          phi(x) = a + bx        where a=0.74, b = 4.7
+             !     phi(x) = a + bx        where a=0.74, b = 4.7
              !
-             !   and the analytical solution to the integral is
+             ! and the analytical solution to the integral is
              !
-             !          int((a/x)+b)dx = a*ln(x) + bx
+             !     int((a/x)+b)dx = a*ln(x) + bx
              !
-             !   which yields the expression of Ra used in the code for stable
-             !   conditions.
+             ! which yields the expression of Ra used in the code for stable
+             ! conditions.
+             !
              !**
-             !   The formulation of RB for gases is equation (12) of Walcek et al.
-             !   [1986].  The parameterization for deposition of aerosols does not
-             !   include an RB term so RB for aerosols is set to zero.
-             !   Modify phi(x) according to the non-local mixing scheme
-             !   by Holtslag and Boville [1993] ( Lin, 07/18/08 )
-             !   For unstable conditions,
-             !          phi(x) = a/sqrt(1-bx)  where a=1.0, b=15.0
+             ! The formulation of RB for gases is equation (12) of Walcek
+             ! et al. [1986].  The parameterization for deposition of aerosols
+             ! does not include an RB term so RB for aerosols is set to zero.
+             ! Modify phi(x) according to the non-local mixing scheme
+             ! by Holtslag and Boville [1993] ( Lin, 07/18/08 )
+             ! For unstable conditions,
              !
-             !   For stable conditions,
-             !          phi(x) = a + bx
-             !              where a=1.0, b=5.0 for 0 <= x <= 1, and
-             !                    a=5.0, b=1.0 for x > 1.0
+             !     phi(x) = a/sqrt(1-bx)  where a=1.0, b=15.0
+             !
+             ! For stable conditions,
+             !
+             !     phi(x) = a + bx
+             !
+             !     where a=1.0, b=5.0 for 0 <= x <= 1, and
+             !           a=5.0, b=1.0 for x > 1.0
              !********************************************************
 
              CKUSTR = VON_KARMAN * USTAR(I,J)
@@ -2058,43 +2065,45 @@ CONTAINS
              ENDIF
 
              !...aerodynamically rough or smooth surface
-             ! "In the classic study by Nikuradse (1933) the transition from
-             ! smooth to rough was examined in pipe flow. He introduced a
-             ! roughness Reynolds number Rr = U* Z0 / Nu and found the flow to
-             ! be smooth for Rr < 0.13 and rough for Rr > 2.5 with a transition
-             ! regime in between." (E.B. Kraus and J.A. Businger, Atmosphere-Ocean
-             ! Interaction, second edition, P.144-145, 1994).
-             ! Similar statements can be found in the books: Evaporation into the
-             ! atmosphere, by Wilfried Brutsaert ,P.59,89, 1982; or Seinfeld &
-             ! Pandis, P.858, 1998.
+             ! "In the classic study by Nikuradse (1933) the transition
+             ! from smooth to rough was examined in pipe flow. He introduced
+             ! a roughness Reynolds number Rr = U* Z0 / Nu and found the flow
+             ! to be smooth for Rr < 0.13 and rough for Rr > 2.5 with a
+             ! transition regime in between." (E.B. Kraus and J.A. Businger,
+             ! Atmosphere-Ocean Interaction, second edition, P.144-145, 1994).
+             ! Similar statements can be found in the books: Evaporation into
+             ! the atmosphere, by Wilfried Brutsaert ,P.59,89, 1982; or
+             ! Seinfeld & Pandis, P.858, 1998.
+             !
              ! Here we assume a sudden transition point Rr = 1 from smooth to
              ! rough, following L. Merlivat (1978, The dependence of bulk
              ! evaporation coefficients on air-water interfacial conditions as
              ! determined by the isotopic method, J. Geophys. Res., Oceans &
-             ! Atmos., 83, C6, 2977-2980). Also refer to Brutsaert's book, P.125.
-             ! We used to use the criterion "REYNO > 10" for aerodynamically rough
-             ! surface and now change to "REYNO > 1". (hyl, 10/15/99)
+             ! Atmos., 83, C6, 2977-2980). Also refer to Brutsaert's book,
+             ! P.125.  We used to use the criterion "REYNO > 10" for
+             ! aerodynamically rough surface and now change to "REYNO > 1".
+             ! (hyl, 10/15/99)
              !
-             ! D. J. Jacob says to change the criterion for aerodynamically rough
-             ! surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
+             ! D. J. Jacob says to change the criterion for aerodynamically
+             ! rough surface to REYNO > 0.1 (eck, djj, bmy, 11/17/05)
              IF ( REYNO >= 0.1e+0_f8 ) THEN
 
                 ! Add option for non-local PBL (Lin, 03/31/09)
                 IF (.NOT. Input_Opt%LNLPBL) THEN
 
                    !...aerodynamically rough surface.
-                   !*
+                   !
                    IF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .LT. -1.e+0_f8)THEN
-                      !*... unstable condition; set RA to zero.
-                      !*    (first implemented in V. 3.2)
+                      !... unstable condition; set RA to zero.
+                      !    (first implemented in V. 3.2)
                       RA     = 0.e+0_f8
-                      !*... error trap: prevent CORR1 or Z0OBK from being
-                      !*... zero or close to zero (ckeller, 3/15/16)
+                      !... error trap: prevent CORR1 or Z0OBK from being
+                      !... zero or close to zero (ckeller, 3/15/16)
                    ELSEIF ( ABS(CORR1)<=SMALL .OR. ABS(Z0OBK)<=SMALL ) THEN
                       RA = 0.e+0_f8
                    ELSEIF (CORR1.LE.0.0e+0_f8 .AND. Z0OBK .GE. -1.e+0_f8) THEN
-                      !*... unstable conditions;
-                      !*... compute Ra as described above
+                      !... unstable conditions;
+                      !... compute Ra as described above
                       DUMMY1 = (1.e+0_f8 - 9e+0_f8*CORR1)**0.5e+0_f8
                       DUMMY2 = (1.e+0_f8 - 9e+0_f8*Z0OBK)**0.5e+0_f8
                       DUMMY3 = ABS((DUMMY1 - 1.e+0_f8)/(DUMMY1 + 1.e+0_f8))
@@ -2102,22 +2111,23 @@ CONTAINS
                       RA = 0.74e+0_f8* (1.e+0_f8/CKUSTR) * LOG(DUMMY3/DUMMY4)
                       
                    ELSEIF((CORR1.GT.0.0e+0_f8).AND.(.NOT.LRGERA(I,J)))  THEN
-                      !*... moderately stable conditions (z/zMO <1);
-                      !*... compute Ra as described above
-                      RA = (1e+0_f8/CKUSTR) * (.74e+0_f8*LOG(CORR1/Z0OBK) + &
+                      !... moderately stable conditions (z/zMO <1);
+                      !... compute Ra as described above
+                      RA = (1e+0_f8/CKUSTR) * (.74e+0_f8*LOG(CORR1/Z0OBK) +  &
                            4.7e+0_f8*(CORR1-Z0OBK))
                    ELSEIF(LRGERA(I,J)) THEN
-                      !*... very stable conditions
+                      !... very stable conditions
                       RA     = 1.e+04_f8
                    ENDIF
-                   !* check that RA is positive; if RA is negative (as occassionally
-                   !* happened in version 3.1) send a warning message.
+                   ! check that RA is positive; if RA is negative
+                   ! (as occassionally happened in version 3.1) send a
+                   ! warning message.
                    
                 ELSE
 
                    IF (CORR1.LT.0.0e+0_f8) THEN
-                      !*... unstable conditions; compute Ra as described
-                      !*... above.
+                      !... unstable conditions; compute Ra as described
+                      !... above.
                       !coef_a=1.e+0_f8
                       !coef_b=15.e+0_f8
                       DUMMY1 = (1.D0 - 15.e+0_f8*CORR1)**0.5e+0_f8
@@ -2131,16 +2141,16 @@ CONTAINS
                       !--------------------------------------------------
                       IF ( State_Diag%Archive_ConcAboveSfc ) THEN
                          DUMMY2_Alt = SQRT( 1.0_f8 - 15.0_f8 * Z0OBK_Alt )
-                         DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 ) &
+                         DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 )            &
                                            / ( DUMMY2_Alt + 1.0_f8 ) )
-                         RA_Alt     = ( 1.0_f8 / CKUSTR ) &
+                         RA_Alt     = ( 1.0_f8 / CKUSTR )                    &
                               * LOG( DUMMY3 / DUMMY4_Alt )
                       ENDIF
                      
                    ELSEIF((CORR1.GE.0.0e+0_f8).AND.(CORR1.LE.1.0e+0_f8)) THEN
                       !coef_a=1.e+0_f8
                       !coef_b=5.e+0_f8
-                      RA = (1D0/CKUSTR) * (1.e+0_f8*LOG(CORR1/Z0OBK) + &
+                      RA = (1D0/CKUSTR) * (1.e+0_f8*LOG(CORR1/Z0OBK) +       &
                            5.e+0_f8*(CORR1-Z0OBK))
                       !--------------------------------------------------
                       ! Compute RA at user-defined altitude above surface
@@ -2155,7 +2165,7 @@ CONTAINS
                    ELSE ! CORR1 .GT. 1.0D0
                       !coef_a=5e+0_f8
                       !coef_b=1.e+0_f8
-                      RA = (1D0/CKUSTR) * (5.e+0_f8*LOG(CORR1/Z0OBK) + &
+                      RA = (1D0/CKUSTR) * (5.e+0_f8*LOG(CORR1/Z0OBK) +       &
                            1.e+0_f8*(CORR1-Z0OBK))
                       !--------------------------------------------------
                       ! Compute RA at user-defined altitude above surface
@@ -2163,7 +2173,7 @@ CONTAINS
                       !--------------------------------------------------
                       IF ( State_Diag%Archive_ConcAboveSfc ) THEN
                          RA_Alt = ( 1.0_f8 / CKUSTR ) &
-                              * ( 5.0_f8 * LOG( CORR1 / Z0OBK_Alt ) &
+                              * ( 5.0_f8 * LOG( CORR1 / Z0OBK_Alt )          &
                               + 1.0_f8 *( CORR1 - Z0OBK_Alt ) )
                       ENDIF
                    ENDIF
@@ -2187,7 +2197,8 @@ CONTAINS
                    IF ( RA_Alt <  0.0_f8 ) THEN
                       IF ( Input_Opt%amIRoot ) THEN
                          WRITE (6,1001) I,J, RA_Alt, CZ, ZO(I,J) ,OBK(I,J)
-1001                     FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',2I4,4(1X,E12.5))
+1001                     FORMAT('WARNING: RA < 0 IN SUBROUTINE DEPVEL',      &
+                                 2I4,4(1X,E12.5))
                       ENDIF
                       RA_Alt = 0.0_f8
                    ENDIF
@@ -2204,13 +2215,13 @@ CONTAINS
 
                 ENDIF
                
-                !* Get total resistance for deposition
-                !* loop over species.
+                ! Get total resistance for deposition
+                ! loop over species.
                 DO K = 1,NUMDEP
                    IF ( LDEP(K) ) THEN
-                      !** DAIR is the thermal diffusivity of air;
-                      !** value of 0.2*1.E-4 m2 s-1 cited on p. 16,476 of
-                      !** Jacob et al. [1992]
+                      ! DAIR is the thermal diffusivity of air;
+                      ! value of 0.2*1.E-4 m2 s-1 cited on p. 16,476 of
+                      ! Jacob et al. [1992]
                       DAIR = 0.2e0_f8*1.e-4_f8
                       RB = (2.e+0_f8/CKUSTR)* &
                            (DAIR/DIFFG(TEMPK,PRESSU(I,J),XMW(K))) &
@@ -2223,10 +2234,11 @@ CONTAINS
              ! Smooth surface:
              ELSE IF ( REYNO <  0.1e+0_f8 ) THEN
             
-                !** ... aerodynamically smooth surface
-                !** BUG FIX -- suppress drydep over smooth surfaces by setting Ra to
-                !** a large value (1e4).  This prevents negative dry deposition
-                !** velocities when u* is very small (djj, bmy, 5/8/00)
+                ! ... aerodynamically smooth surface
+                ! BUG FIX -- suppress drydep over smooth surfaces by setting
+                ! Ra to a large value (1e4).  This prevents negative dry
+                ! deposition  velocities when u* is very small
+                ! (djj, bmy, 5/8/00)
                 DO K = 1,NUMDEP
                    IF ( LDEP(K) ) THEN
                       RA     = 1.0D4
@@ -2235,12 +2247,12 @@ CONTAINS
                 ENDDO
              ENDIF   ! Rough versus smooth surface based on REYNO
              
-             !*
-             !* IJUSE is the fraction of the grid square occupied by surface LDT
-             !* in units of per mil (IJUSE=500 -> 50% of the grid square).  Add
-             !* the contribution of surface type LDT to the deposition velocity;
-             !* this is a loop over all surface types in the gridbox.
-             !*
+             !
+             ! IUSE is the fraction of the grid square occupied by surface LDT
+             ! in units of per mil (IJUSE=500 -> 50% of the grid square).  Add
+             ! the contribution of surface type LDT to the deposition velocity;
+             ! this is a loop over all surface types in the gridbox.
+             !
              DO K = 1,NUMDEP
                 IF ( LDEP(K) ) THEN
                    VK(K) = VD(K)
@@ -2251,24 +2263,27 @@ CONTAINS
                       SpcInfo => State_Chm%SpcData(SpcId)%Info
                       
                       IF ( SpcInfo%DD_AeroDryDep ) THEN
-                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
-                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )   &
+                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) * &
+                              VTSoutput_(K,LDT)
                       ELSE IF ( SpcInfo%DD_DustDryDep ) THEN
-                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
-                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )   &
+                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) * &
+                              VTSoutput_(K,LDT)
                       ELSE
-                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )  &
-                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) *VTSoutput_(K,LDT)
+                         VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )   &
+                              /C1X(K) + .001D0* DBLE( IUSE(I,J,LDT) ) * &
+                              VTSoutput_(K,LDT)
                       ENDIF
                    ELSE
                       VD(K) = VK(K) +.001D0* DBLE( IUSE(I,J,LDT) )/C1X(K)
                    ENDIF   ! IF AEROSOL
-                ENDIF  ! IF LDEP
-             ENDDO   ! K=1,NUMDEP
-          ENDIF  ! IF IUSE > 0
-       ENDDO   !LDT = 1, IREG(I,J)
+                ENDIF      ! IF LDEP
+             ENDDO         ! K=1,NUMDEP
+          ENDIF            ! IF IUSE > 0
+       ENDDO               ! LDT = 1, IREG(I,J)
 
-       !** Load array State_Chm%DryDepVel
+       ! Load array State_Chm%DryDepVel
        DO K=1,NUMDEP
           IF ( LDEP(K) ) THEN
              State_Chm%DryDepVel(I,J,K) = VD(K)
@@ -2329,10 +2344,10 @@ CONTAINS
 #endif
                 !$OMP END CRITICAL
              ENDIF
-          ENDIF   ! Depositing species condition
-       ENDDO  ! K=1, NUMDEP 
-    ENDDO   ! I
-    ENDDO   ! J
+          ENDIF    ! Depositing species condition
+       ENDDO       ! K=1, NUMDEP
+    ENDDO          ! I
+    ENDDO          ! J
     !$OMP END PARALLEL DO
 
 #ifdef MODEL_GEOS
