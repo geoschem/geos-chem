@@ -1474,9 +1474,7 @@ CONTAINS
              ! 11 in GEOS-Chem dry dep; 73 in Olson landcover type
              II     = IDEP(IOLSON)
              
-             ! If the surface is snow or ice, set dry deposition
-             ! landcover type to 1.
-             !
+             ! Over snow or ice, set drydep landcover type to 1
              IF ((State_Met%isSnow(I,J)).OR.(State_Met%isIce(I,J))) II=1
 
              ! Read the internal resistance RI (minimum stomatal resistance for
@@ -1902,8 +1900,21 @@ CONTAINS
              DO LDT = 1, IREG(I,J)
                 IF ( IUSE(I,J,LDT) > 0 ) THEN
 
-                   ! because of high resistance values, different rule
-                   ! applied for ocean ozone
+                   ! Because of high resistance values, a different rule
+                   ! is applied for deposition of O3 to ocean.
+                   ! Recompute the drydep landcover value II here,
+                   ! which had been missing prior to 14.5.1.
+                   !  -- Eloise Marais (07 Feb 2025)
+
+                   ! Olson land type index + 1
+                   IOLSON = ILAND(I,J,LDT) + 1
+
+                   ! Equivalent dry deposition land type
+                   II     = IDEP(IOLSON)
+
+                   ! Over snow or ice, set drydep land cover type to 1
+                   IF ( State_Met%isSnow(I,J) .OR. State_Met%isIce(I,J) ) II=1
+
                    N_SPC = State_Chm%Map_DryDep(K)
                    IF ((N_SPC .EQ. ID_O3) .AND. (II .EQ. 11)) THEN
                       RSURFC(K,LDT) =                                        &
@@ -2141,7 +2152,7 @@ CONTAINS
                       !--------------------------------------------------
                       IF ( State_Diag%Archive_ConcAboveSfc ) THEN
                          DUMMY2_Alt = SQRT( 1.0_f8 - 15.0_f8 * Z0OBK_Alt )
-                         DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 )            &
+                         DUMMY4_Alt = ABS( ( DUMMY2_Alt - 1.0_f8 )           &
                                            / ( DUMMY2_Alt + 1.0_f8 ) )
                          RA_Alt     = ( 1.0_f8 / CKUSTR )                    &
                               * LOG( DUMMY3 / DUMMY4_Alt )
