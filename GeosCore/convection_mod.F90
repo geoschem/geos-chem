@@ -660,11 +660,13 @@ CONTAINS
        PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
                 +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
     ELSE
-       PDOWN(NLAY) = DQRCU_MET(NLAY) * DELP(NLAY) * G0_100 * 100e+0_fp
+       PDOWN(NLAY) = DQRCU_MET(NLAY) * DELP(NLAY) * G0_100 / 1000e+0_fp * 100e+0_fp
        DO K = NLAY-1, 1, -1
           PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K) & 
-                    * DELP(K) * G0_100 * 100e+0_fp
+                    * DELP(K) * G0_100 / 1000e+0_fp * 100e+0_fp
                     ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
+                    ! since we no longer have water phase information, assume all liquid water
+                    ! use liquid water density 1000e+0_fp
        ENDDO
     ENDIF
 
