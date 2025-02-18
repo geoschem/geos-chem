@@ -1723,12 +1723,13 @@ CONTAINS
          ! the restart file in mol/mol
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ), &
-                            MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D(:,:,1:State_Grid%NZ) )
+                            MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D )
          ENDIF
 
          !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED ) &
-         !$OMP PRIVATE( I, J, L )
+         !$OMP DEFAULT( SHARED  )&
+         !$OMP PRIVATE( I, J, L )&
+         !$OMP COLLAPSE( 3 )
          DO L = 1, State_Grid%NZ
          DO J = 1, State_Grid%NY
          DO I = 1, State_Grid%NX

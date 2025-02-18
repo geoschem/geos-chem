@@ -4991,7 +4991,8 @@ CONTAINS
              tmpFlx = 0.0_fp
              !$OMP PARALLEL DO            &
              !$OMP DEFAULT( SHARED       )&
-             !$OMP PRIVATE( I, J, tmpFlx )
+             !$OMP PRIVATE( I, J, tmpFlx )&
+             !$OMP COLLAPSE( 2 )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
