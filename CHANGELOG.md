@@ -10,20 +10,30 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added met-field dependent dust tuning factors for GCHP C24 resolution in `setCommonRunSettings.sh`.  Others to be added later.
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
+- Added utility subroutine Print_Species_Min_Max_Sum to print_mod.F90
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
 - Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
 - Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 - Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
+- Changed several diagnostic subroutines to expect species concentrations in mol/mol rather than kg/kg
+- Added precision when registering State_Met and State_Chm arrays to change output file precision to match precision in the model
+- Changed GEOS-Chem Classic restart file precision of species concentrations (State_Chm%SpcRestart) from REAL4 to REAL8 to match precision in the model
+- Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to GC_Get_Restart for consistency with handling of all other restart variables
 
 ### Fixed
 - Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
 - Added C6H14 emissions into the ALK6 species for CMIP6 & HTAPv3 inventories
 - Fixed the ocean landcover type for dry deposition of O3 to oceans (cf issue #2707)
+- Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
+- Moved species concentration unit conversions between mol/mol and kg/kg to start and end of every timestep in GEOS-Chem Classic to remove differences introduced when reading and writing restart files
+- Fixed bug in restart file entry for ORVCSESQ in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
+- Fixed parallelization issue when computing State_Chm%DryDepNitrogren used in HEMCO soil NOx extension
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Remove unused level argument passed to SOIL_DRYDEP and SOIL_WETDEP
 
 ## [14.5.1] - 2025-01-10
 ### Added
