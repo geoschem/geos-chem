@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 - Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
 
+### Fixed
+- Fixed PDOWN definition to lower rather than upper edge
+
 ## [14.5.2] - 2025-02-12
 ### Added
 - Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
@@ -46,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Removed re-evaporation requirement for washout
 
 ### Removed
 - Removed unused RUNDIR settings for GCHP pressure units and scaling
