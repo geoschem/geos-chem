@@ -414,6 +414,8 @@ CONTAINS
          State_Diag%BudgetTransportTrop = 0.0_f8
     IF ( State_Diag%Archive_BudgetTransportPBL ) &
          State_Diag%BudgetTransportPBL = 0.0_f8
+    IF ( State_Diag%Archive_BudgetTransportLevs ) &
+         State_Diag%BudgetTransportLevs = 0.0_f8
 
     IF ( State_Diag%Archive_BudgetMixingFull ) &
          State_Diag%BudgetMixingFull = 0.0_f8
@@ -421,6 +423,8 @@ CONTAINS
          State_Diag%BudgetMixingTrop = 0.0_f8
     IF ( State_Diag%Archive_BudgetMixingPBL ) &
          State_Diag%BudgetMixingPBL = 0.0_f8
+    IF ( State_Diag%Archive_BudgetMixingLevs ) &
+         State_Diag%BudgetMixingLevs = 0.0_f8
 
     IF ( State_Diag%Archive_BudgetConvectionFull ) &
          State_Diag%BudgetConvectionFull = 0.0_f8
@@ -428,6 +432,8 @@ CONTAINS
          State_Diag%BudgetConvectionTrop = 0.0_f8
     IF ( State_Diag%Archive_BudgetConvectionPBL ) &
          State_Diag%BudgetConvectionPBL = 0.0_f8
+    IF ( State_Diag%Archive_BudgetConvectionLevs ) &
+         State_Diag%BudgetConvectionLevs = 0.0_f8
 
     IF ( State_Diag%Archive_BudgetWetDepFull ) &
          State_Diag%BudgetWetDepFull = 0.0_f8
@@ -435,6 +441,32 @@ CONTAINS
          State_Diag%BudgetWetDepTrop = 0.0_f8
     IF ( State_Diag%Archive_BudgetWetDepPBL ) &
          State_Diag%BudgetWetDepPBL = 0.0_f8
+    IF ( State_Diag%Archive_BudgetWetDepLevs ) &
+         State_Diag%BudgetWetDepLevs = 0.0_f8
+
+#ifdef MODEL_CLASSIC
+    ! GC-Classic calls DO_TEND every dynamic timestep
+    IF ( State_Diag%Archive_BudgetEmisDryDepFull ) &
+         State_Diag%BudgetEmisDryDepFull = 0.0_f8
+    IF ( State_Diag%Archive_BudgetEmisDryDepTrop ) &
+         State_Diag%BudgetEmisDryDepTrop = 0.0_f8
+    IF ( State_Diag%Archive_BudgetEmisDryDepPBL ) &
+         State_Diag%BudgetEmisDryDepPBL = 0.0_f8
+    IF ( State_Diag%Archive_BudgetEmisDryDepLevs ) &
+         State_Diag%BudgetEmisDryDepLevs = 0.0_f8
+#else
+    IF ( isChemTime ) THEN
+       ! GCHP and GEOS call DO_TEND every emissions timestep
+       IF ( State_Diag%Archive_BudgetEmisDryDepFull ) &
+            State_Diag%BudgetEmisDryDepFull = 0.0_f8
+       IF ( State_Diag%Archive_BudgetEmisDryDepTrop ) &
+            State_Diag%BudgetEmisDryDepTrop = 0.0_f8
+       IF ( State_Diag%Archive_BudgetEmisDryDepPBL ) &
+            State_Diag%BudgetEmisDryDepPBL = 0.0_f8
+       IF ( State_Diag%Archive_BudgetEmisDryDepLevs ) &
+            State_Diag%BudgetEmisDryDepLevs = 0.0_f8
+    ENDIF
+#endif
 
     ! Only zero out chemistry/emissions/dry dep budget diagnostic arrays
     ! if this is a chemistry timestep to avoid zero values in history
@@ -446,13 +478,8 @@ CONTAINS
             State_Diag%BudgetChemistryTrop = 0.0_f8
        IF ( State_Diag%Archive_BudgetChemistryPBL ) &
             State_Diag%BudgetChemistryPBL = 0.0_f8
-
-       IF ( State_Diag%Archive_BudgetEmisDryDepFull ) &
-            State_Diag%BudgetEmisDryDepFull = 0.0_f8
-       IF ( State_Diag%Archive_BudgetEmisDryDepTrop ) &
-            State_Diag%BudgetEmisDryDepTrop = 0.0_f8
-       IF ( State_Diag%Archive_BudgetEmisDryDepPBL ) &
-            State_Diag%BudgetEmisDryDepPBL = 0.0_f8
+       IF ( State_Diag%Archive_BudgetChemistryLevs ) &
+            State_Diag%BudgetChemistryLevs = 0.0_f8
     ENDIF
 
   END SUBROUTINE Zero_Diagnostics_StartofTimestep
