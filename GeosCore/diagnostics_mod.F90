@@ -1333,13 +1333,13 @@ CONTAINS
              ! After operation: Compute change in column mass (final-initial),
              ! convert to [kg/s], and store in the diagLevs array.
              IF ( before ) THEN
-                colMass(I,J,N,3) = colSum
+                colMass(I,J,N,4) = colSum
              ELSE
 #ifdef MODEL_GEOS
-                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep &
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,4) ) / timeStep &
                                / State_Grid%AREA_M2(I,J)
 #else
-                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,3) ) / timeStep
+                diagLevs(I,J,S) = ( colSum - colMass(I,J,N,4) ) / timeStep
 #endif
              ENDIF
           ENDDO

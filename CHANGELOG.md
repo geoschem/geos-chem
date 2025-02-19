@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
+- Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
 
 ## [14.5.2] - 2025-02-12
 ### Added
