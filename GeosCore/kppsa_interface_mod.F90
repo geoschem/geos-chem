@@ -566,12 +566,12 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-   SUBROUTINE KppSa_Write_Samples( I,           J,            L,             &
-                                   initC,       localRCONST,  initHvalue,    &
-                                   exitHvalue,  ICNTRL,       RCNTRL,        &
-                                   State_Grid,  State_Chm,    State_Met,     &
-                                   Input_Opt,   KPP_TotSteps, RC,            &
-                                   FORCE_WRITE, CELL_NAME                   )
+   SUBROUTINE KppSa_Write_Samples( I,           J,              L,           &
+                                   initC,       localRCONST,    initHvalue,  &
+                                   exitHvalue,  ICNTRL,         RCNTRL,      &
+                                   State_Grid,  State_Chm,      State_Met,   &
+                                   Input_Opt,   KPP_TotSteps,   RC,          &
+                                   FORCE_WRITE, FORCE_FILENAME, CELL_NAME,  )
 !
 ! !USES:
 !
@@ -611,9 +611,11 @@ CONTAINS
                                                            !  RSTATE(Nhexit)
       REAL(dp),         INTENT(IN)  :: RCNTRL(20)          ! Integrator options
       LOGICAL,          OPTIONAL    :: FORCE_WRITE         ! Write even if not
-                                                           ! in an active cell
+                                                           !  in an active cell
+      CHARACTER(LEN=*), OPTIONAL    :: FORCE_FILENAME      ! Force-assign
+                                                           !  the file name
       CHARACTER(LEN=*), OPTIONAL    :: CELL_NAME           ! Customize name of
-                                                           !  this file
+                                                           !  the active cell
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -639,7 +641,9 @@ CONTAINS
       ! Strings
       CHARACTER(LEN=255) :: YYYYMMDD_hhmmz
       CHARACTER(LEN=255) :: level_string
-      CHARACTER(LEN=512) :: errMsg, filename
+      CHARACTER(LEN=255) :: location
+      CHARACTER(LEN=512) :: errMsg
+      CHARACTER(LEN=512) :: filename
 
       ! Arrays
       REAL(dp)           :: Aout(NREACT)
@@ -687,16 +691,24 @@ CONTAINS
       WRITE( YYYYMMDD_hhmmz,'(I0.4,I0.2,I0.2,a,I0.2,I0.2)' )                 &
          Get_Year(), Get_Month(), Get_Day(), '_', Get_Hour(), Get_Minute()
 
-      ! Filename for output
-      filename = TRIM( KppSa_State%Output_Directory                     ) // &
-                 '/'                                                      // &
-                 TRIM( Cell_Name_Aux                                    ) // &
-                 TRIM( KppSa_ActiveCell%Active_Cell_Name       ) // &
-                 '_L'                                                     // &
-                 trim( level_string                                     ) // &
-                 '_'                                                      // &
-                 TRIM( YYYYMMDD_hhmmz                                   ) // &
-                 '.txt'
+      ! Filename for output.  Use FORCE_FILENAME if it is passed,
+      ! otherwise construct the file name from active cell metadata
+      IF ( PRESENT( FORCE_FILENAME ) ) THEN
+         filename = FORCE_FILENAME
+         location = FORCE_FILENAME
+         IF ( LEN( CELL_NAME_AUX > 0 ) ) location = CELL_NAME_AUX
+      ELSE
+         location = TRIM( Cell_Name_Aux                                 ) // &
+                    TRIM( KppSa_ActiveCell%Active_Cell_Name             )
+         filename = TRIM( KppSa_State%Output_Directory                  ) // &
+                    '/'                                                   // &
+                    TRIM( location                                      ) // &
+                    '_L'                                                  // &
+                    TRIM( level_string                                  ) // &
+                    '_'                                                   // &
+                    TRIM( YYYYMMDD_hhmmz                                ) // &
+                    '.txt'
+      ENDIF
 
       ! Open the file
       ! NOTE: We cannot exit from within an !$OMP CRITICAL block
@@ -747,8 +759,7 @@ CONTAINS
          'Meteorological and general grid cell metadata    '
       WRITE( IU_FILE, '(a,a)'     )                                          &
          'Location:                                        '              // &
-          TRIM( CELL_NAME_AUX                     )                       // &
-          TRIM( KppSa_ActiveCell%ACTIVE_CELL_NAME )
+          TRIM( location )
       WRITE( IU_FILE, '(a,a)'     )                                          &
          'Timestamp:                                       ',                &
           TIMESTAMP_STRING()
@@ -811,17 +822,31 @@ CONTAINS
       WRITE( IU_FILE, '(a)'       ) REPEAT("=", 76 )
       WRITE( IU_FILE, '(a)'       ) 'Name,   Value,   Absolute Tolerance'
 
-      ! Write species concentrations and absolute tolerances
-      DO N = 1, NSPEC
+      ! Write variable species concentrations and absolute tolerances
+      DO N = 1, NVAR
          SpcID = State_Chm%Map_KppSpc(N)
          IF ( SpcID <= 0 ) THEN
             WRITE( IU_FILE, 120 ) N, initC(N), ATOL(N)
  120        FORMAT( "C", i0, ",", es25.16e3, ",", es10.2e2 )
             CYCLE
          ENDIF
-         WRITE( IU_FILE, 130 )                                               &
+         WRITE( IU_FILE, 125 )                                               &
             TRIM(State_Chm%SpcData(SpcID)%Info%Name), initC(N), ATOL(N)
- 130     FORMAT( a, ",", es25.16e3, ",", es10.2e2 )
+ 125     FORMAT( a, ",", es25.16e3, ",", es10.2e2 )
+      ENDDO
+
+      ! Write fixed species concentrations
+      ! NOTE: Fixed species do not have tolerances
+      DO N = NVAR+1, NSPEC
+         SpcID = State_Chm%Map_KppSpc(N)
+         IF ( SpcID <= 0 ) THEN
+            WRITE( IU_FILE, 130 ) N, initC(N)
+ 130        FORMAT( "C", i0, ",", es25.16e3 )
+            CYCLE
+         ENDIF
+         WRITE( IU_FILE, 135 )                                               &
+            TRIM(State_Chm%SpcData(SpcID)%Info%Name), initC(N)
+ 135     FORMAT( a, ",", es25.16e3 )
       ENDDO
 
       ! Write reaction rates

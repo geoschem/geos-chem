@@ -181,8 +181,10 @@ CONTAINS
     INTEGER                :: errorCount, previous_units
     REAL(fp)               :: SO4_FRAC,   SR,        LWC
     REAL(dp)               :: KPPH_before_integrate
+
     ! Strings
     CHARACTER(LEN=255)     :: errMsg,     thisLoc
+    CHARACTER(LEN=255)     :: error_cell
 
     ! SAVEd scalars
     LOGICAL,  SAVE         :: FIRSTCHEM = .TRUE.
@@ -1212,10 +1214,10 @@ CONTAINS
              ENDIF
 
              ! # of singular-matrix decompositions
-!             IF ( State_Diag%Archive_KppSmDecomps ) THEN
-!                State_Diag%KppSmDecomps(I,J,L) =                             &
-!                State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
-!             ENDIF
+             IF ( State_Diag%Archive_KppSmDecomps ) THEN
+                State_Diag%KppSmDecomps(I,J,L) =                             &
+                State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
+             ENDIF
           ENDIF
 
           !==================================================================
@@ -1265,6 +1267,30 @@ CONTAINS
              DO N = 1, NREACT
                 PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
              ENDDO
+             
+             ! Force-write KPP-Standalone output file to facilitate
+             ! later analysis & debugging (Bob Yantosca, 19 Feb 2025)
+             WRITE( error_cell, 200 ) I, J, L
+ 200         FORMAT( "KPP_Error_Box", 3("_", i5.5) )                     
+             CALL KppSa_Write_Samples(                                       &
+                  I              = I,                                        &
+                  J              = J,                                        &
+                  L              = L,                                        &
+                  initC          = C_before_integrate,                       &
+                  localRCONST    = local_RCONST,                             &
+                  initHvalue     = KPPH_before_integrate,                    &
+                  exitHvalue     = RSTATE(Nhexit),                           &
+                  ICNTRL         = ICNTRL,                                   &
+                  RCNTRL         = RCNTRL,                                   &
+                  State_Grid     = State_Grid,                               &
+                  State_Chm      = State_Chm,                                &
+                  State_Met      = State_Met,                                &
+                  Input_Opt      = Input_Opt,                                &
+                  KPP_TotSteps   = ISTATUS(3),                               &
+                  FORCE_WRITE    = .TRUE.,                                   &
+                  FORCE_FILENAME = TRIM( error_cell ) // ".txt",             &
+                  CELL_NAME      = TRIM( error_cell ),                       &
+                  RC             = RC                                       )
              !
              !$OMP END CRITICAL
              !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
