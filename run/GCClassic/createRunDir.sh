@@ -651,9 +651,12 @@ fi
 RUNDIR_VARS+="$(cat ${shared_met_settings})\n"   # shared_met_settings needs to be included after RUNDIR_GRID_DIR is defined
 
 # Set timesteps according to grid resolution
-if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
+if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
     RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='300'\n"
     RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='600'\n"
+elif  [[ ${grid_res} = "0125x015625" ]]; then
+    RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='150'\n"
+    RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='300'\n"
 else
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='1800'\n"
