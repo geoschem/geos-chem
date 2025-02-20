@@ -1209,12 +1209,15 @@ CONTAINS
        ri2   = i2_gl
        rj2m1 = j2_gl - 1
 
-       IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-          dl    = 2.0e+0_fp * PI / 1152.0_fp
-          dp    = PI /720e+0_fp
-       ELSEIF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+       IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
           dl    = 2.0e+0_fp * PI / 576.0_fp
           dp    = PI /360e+0_fp
+       ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+          dl    = 2.0e+0_fp * PI / 1152.0_fp
+          dp    = PI /720e+0_fp
+       ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+          dl    = 2.0e+0_fp * PI / 2304.0_fp
+          dp    = PI /1440e+0_fp
        ENDIF
 
        dtdy  = tdt / (Re * dp)
@@ -1373,12 +1376,15 @@ CONTAINS
     ri2   = i2_gl
     rj2m1 = j2_gl - 1
 
-    IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       dl    = 2.0e+0_fp * PI / 1152.0_fp
-       dp    = PI /720.0_fp
-    ELSEIF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        dl    = 2.0e+0_fp * PI / 576.0_fp
        dp    = PI /360.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       dl    = 2.0e+0_fp * PI / 1152.0_fp
+       dp    = PI /720.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       dl    = 2.0e+0_fp * PI / 2304.0_fp
+       dp    = PI /1440.0_fp
     ENDIF
 
     facty  = 0.5_fp * tdt / (Re * dp)
@@ -1866,18 +1872,22 @@ CONTAINS
     ENDDO
 
     ! Longitude spacing
-    IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       DLON_FV    = 2.0_fp * PI / 1152.0_fp
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        DLON_FV    = 2.0_fp * PI / 576.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       DLON_FV    = 2.0_fp * PI / 1152.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       DLON_FV    = 2.0_fp * PI / 2304.0_fp
     ENDIF
     
     ! Latitude edge at south pole [radians]
     !ELAT_FV(1) = -0.5e+0_fp * PI
-    IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       ELAT_FV(1) = CLAT_FV(1) - 0.125_fp * PI / 180.0_fp
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        ELAT_FV(1) = CLAT_FV(1) - 0.25_fp  * PI / 180.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       ELAT_FV(1) = CLAT_FV(1) - 0.125_fp * PI / 180.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       ELAT_FV(1) = CLAT_FV(1) - 0.0625_fp * PI / 180.0_fp
     ENDIF
 
     ! SIN and COS of lat edge at south pole [unitless]
@@ -1897,10 +1907,12 @@ CONTAINS
     ! Latitude edge at North Pole [radians]
     !ELAT_FV(J2_GL+1) = 0.5e+0_fp * PI
     ! for nested NA or EA (lzh, 07/20/2010)
-    IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125_fp * PI / 180.0_fp
-    ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.25_fp  * PI / 180.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.125_fp * PI / 180.0_fp
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+       ELAT_FV(J2_GL+1) = CLAT_FV(J2_GL)+0.0625_fp * PI / 180.0_fp
     ENDIF
 
     ! SIN of lat edge at North Pole
