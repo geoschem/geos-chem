@@ -140,10 +140,10 @@ MODULE TOMAS_MOD
   REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE30(:)
   REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE100(:)
 
-  INTEGER  :: bin_nuc = 0, tern_nuc = 0  ! Switches for nucleation type.
-  INTEGER  :: dunn_nuc = 1
-  INTEGER  :: act_nuc = 0 ! in BL
-  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+  INTEGER, PARAMETER  :: bin_nuc = 0, tern_nuc = 0  ! Switches for nucleation type.
+  INTEGER, PARAMETER  :: dunn_nuc = 1
+  INTEGER, PARAMETER  :: act_nuc = 0 ! in BL
+  INTEGER, PARAMETER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
                           ! (Yu currently broken, JRP 202101)
   INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                           ! nucleation tuned by factor of 1.0D-5
@@ -1992,12 +1992,12 @@ CONTAINS
     !=================================================================
 
     h2so4 = Gci(srtso4)/boxvol*1000.e+0_fp/98.e+0_fp*6.022e+23_fp
-    nh3ppt = Gci(srtnh4)/17.e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
-             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
+    nh3ppt = Gci(srtnh4)/17.04e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
+             PRES/101325.0_fp*273.0_fp/TEMPTMS ! corrected for pressure (because this should be concentration)
     
     nh3moleccm3 = Gci(srtnh4)/boxvol*1000.e+0_fp/17e+0_fp*6.022e+23_fp ! Changed by SamO
 
-    Mair = 2.69E19*273.15/TEMPTMS*PRES/101325.
+    Mair = 2.69E19_fp*273.15_fp/TEMPTMS*PRES/101325.0_fp
     fn = 0.e+0_fp
     fntemp1 = 0.e+0_fp   !SamO
     fntemp2 = 0.e+0_fp   !SamO
@@ -2071,8 +2071,8 @@ CONTAINS
           tempin=dble(TEMPTMS)
           !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
           !            fn, dum1, rnuc, dum2)
-          fn=0.
-          rnuc=1E-9
+          fn=0._fp
+          rnuc=1E-9_fp
           nflg=.true.
        
        elseif (nh3moleccm3.gt.0.1.and.dunn_nuc.eq.1) then
@@ -2822,10 +2822,10 @@ CONTAINS
 
     errorswitch = .false.
 
-    Mair = 2.69E19*273.15/TEMPTMS*PRES/101325.
+    Mair = 2.69E19_fp*273.15_fp/TEMPTMS*PRES/101325.0_fp
     h2so4 = Gci(srtso4)/boxvol*1000.e+0_fp/98.e+0_fp*6.022e+23_fp
-    nh3ppt = Gci(srtnh4)/17.e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
-             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
+    nh3ppt = Gci(srtnh4)/17.04e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
+             PRES/101325.0_fp*273.0_fp/TEMPTMS ! corrected for pressure (because this should be concentration)
     nh3moleccm3 = Gci(srtnh4)/boxvol*1000.e+0_fp/17e+0_fp*6.022e+23_fp ! Changed by SamO
 
     fn = 0.e+0_fp
@@ -3124,18 +3124,18 @@ CONTAINS
       !parameter(pbi=2.73, ubi=24.1, vbi=166., pti=2.86, uti=18.3)
       !parameter(vti=208., pAi=5.00, ai=5.0d-7)
       ! Complex temperature dependence (comment out this or simple)
-      parameter(pbn=3.95, ubn=9.70, vbn=12.6, wbn=-0.00707, ptn=2.89)
-      parameter(utn=182., vtn=1.20, wtn=-4.19, pAn=8.00, an=1.6d-6)
-      parameter(pbi=3.37, ubi=-11.5, vbi=25.5, wbi=0.181, pti=3.14)
-      parameter(uti=-23.8, vti=37.0, wti=0.227, pAi=3.07, ai=0.00485)
+      parameter(pbn=3.95d0, ubn=9.70d0, vbn=12.6d0, wbn=-0.00707d0, ptn=2.89d0)
+      parameter(utn=182.d0, vtn=1.20d0, wtn=-4.19d0, pAn=8.00d0, an=1.6d-6d0)
+      parameter(pbi=3.37d0, ubi=-11.5d0, vbi=25.5d0, wbi=0.181d0, pti=3.14d0)
+      parameter(uti=-23.8d0, vti=37.0d0, wti=0.227d0, pAi=3.07d0, ai=0.00485d0)
 
 
 !-----CODE--------------------------------------------------------------
       !nh3i = 1e10  !SamO
       temp=tempi   !SamO
       !temp=278.0
-      nh3=nh3i*1E-6 ! I think they want it in units of 1E6 molec cm-3
-      cna=cnai*1E-6
+      nh3=nh3i*1d-6 ! I think they want it in units of 1E6 molec cm-3
+      cna=cnai*1d-6
       !cna=1E7*1E-6  !SamO
       fion=fioni
       Mair=Mairi
@@ -3143,7 +3143,7 @@ CONTAINS
       !fion = 75.0 !SamO
 
 ! CALCULATE ION CONCENTRATION
-      alpha_ion = 6d-8*sqrt(300./temp) + 6d-26*Mair*(300./temp)**4 ! Need Mair in air molec per cm3
+      alpha_ion = 6d-8*sqrt(300.0d0/temp) + 6d-26*Mair*(300.0d0/temp)**4.0d0 ! Need Mair in air molec per cm3
       ionc = sqrt(fion/alpha_ion) ! assume that ion-ion recombination dominates from conversion with svensmakr, need to verify
 
 ! CALCULATE k VALUES
@@ -3153,10 +3153,10 @@ CONTAINS
       !kbi = exp(ubi - vbi*(temp/1000.))
       !kti = exp(uti - vti*(temp/1000.))
       ! Complex temperature dependence (comment out this or simple)
-      kbn = exp(ubn - exp(vbn*(temp/1000. - wbn)))
-      ktn = exp(utn - exp(vtn*(temp/1000. - wtn)))
-      kbi = exp(ubi - exp(vbi*(temp/1000. - wbi)))
-      kti = exp(uti - exp(vti*(temp/1000. - wti)))
+      kbn = exp(ubn - exp(vbn*(temp/1000.0d0 - wbn)))
+      ktn = exp(utn - exp(vtn*(temp/1000.0d0 - wtn)))
+      kbi = exp(ubi - exp(vbi*(temp/1000.0d0 - wbi)))
+      kti = exp(uti - exp(vti*(temp/1000.0d0 - wti)))
 
 
 ! CALCULATE f VALUES
@@ -3164,8 +3164,8 @@ CONTAINS
          ffn = nh3*cna**ptn/(an + (cna**ptn)/(nh3**pAn))
          ffi = nh3*cna**pti/(ai + (cna**pti)/(nh3**pAi))
       else
-         ffn = 0.
-         ffi = 0.
+         ffn = 0.0d0
+         ffi = 0.0d0
       endif
 
 ! CALCULATE NUCLEATION RATES
