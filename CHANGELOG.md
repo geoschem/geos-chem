@@ -10,15 +10,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added met-field dependent dust tuning factors for GCHP C24 resolution in `setCommonRunSettings.sh`.  Others to be added later.
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
+- Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
 - Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
 - Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
 - Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
-
+- Changed several diagnostic subroutines to expect species concentrations in mol/mol rather than kg/kg
+- Added precision when registering `State_Met` and `State_Chm` arrays to change output file precision to match precision in the model
+- Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
+- Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
+  
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
+- Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
+- Moved species concentration unit conversions between mol/mol and kg/kg to start and end of every timestep in GEOS-Chem Classic to remove differences introduced when reading and writing restart files
+- Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
+- Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
+
+### Removed
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Removed re-evaporation requirement for washout
+- Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 
 ## [14.5.2] - 2025-02-12
 ### Added
@@ -38,24 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [14.5.1] - 2025-01-10
 ### Added
-- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
-- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
-- Added `.zenodo.json` for auto-DOI generation upon version releases
-
-### Fixed
-- Fixed CEDS `HEMCO_Config.rc` entries to emit TMB into the TMB species (and not HCOOH)
-- Added C6H14 emissions into the ALK6 species for CMIP6 & HTAPv3 inventories
-- Fixed the ocean landcover type for dry deposition of O3 to oceans (cf issue #2707)
-
-### Removed
-- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
-- Removed re-evaporation requirement for washout
-
-### Removed
-- Removed unused RUNDIR settings for GCHP pressure units and scaling
-
-## [14.5.1] - 2025-01-10
-### Added
 - Added allocate guards for arrays in `pressure_mod`
 - Added `State_Diag%SatDiagnEdgeCount` counter for the `SatDiagnEdge` collection
 - Added `State_Diag%Archive_SatDiagnEdgeCount` field
@@ -71,6 +67,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added surface precipitation flux fields as inputs to GCHP
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
 - Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
+- Added `.zenodo.json` for auto-DOI generation upon version releases
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -78,8 +75,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Allocated `State_Diag%SatDiagnPEDGE` ffield with vertical dimension `State_Grid%NZ+1`
 - Modified `run/GCClassic/cleanRunDir.sh` to skip removing bpch files, as well as now removing `fort.*` and `OutputDir/*.txt` files
 - Edited `run/shared/kpp_standalone_interface.yml` to include additional entries under `active cells` and `locations`
-- Wrapped code specific to the `rosenbrock_autoreduce` KPP integrator in `#if` blocks
-- Changed `CALL Integrate(TIN, TOUT, ...` to `CALL INTEGRATE(0.0_dp, DT, ...` in `GeosCore/fullchem_mod.F90` to prevent the `TIN` variable fron being inadvertently overwritten by some integrators
 - Changed doing Linoz and Linearized chemistry messages to print only if verbose
 - Updated HEMCO subroutine calls for error and log handling changes in HEMCO 3.9.1
 - Updated configuration files for using GEOS-Chem 14.5 in CESM
@@ -98,7 +93,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed errors in adjoint-only code preventing successful adjoint build
 - Fixed zero convective precipitation and high cloud base in runs using GEOS-FP (>=01Jun2020) or GEOS-IT
 - Updated GEOS-only code and configuration files for compatibility with GEOS-Chem 14.5
-- Fixed missing `Is_Advected` for TMB in species_database.yml
+- Fixed missing Is_Advected for TMB in species_database.yml
 - Fixed typos in `HEMCO_Config.rc` for CH4 simulations causing mobile combustion emissions to be double counted
 - Fixed handling of FIRST flag in carbon_gases_mod.F to limit log prints to first timestep only
 - Removed extraneous pressure correction in GCHP carbon simulations by adding 'activate: true' to geoschem_config.yml
@@ -109,8 +104,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
-- Removed `T`, `TIN`, `TOUT` from `GeosCore/fullchem_mod.F90`
 - Removed error messages in HEMCO interface pointing users to HEMCO log
+- Removed unused RUNDIR settings for GCHP pressure units and scaling
 
 ## [14.5.0] - 2024-11-07
 ### Added
