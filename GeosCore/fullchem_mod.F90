@@ -1015,7 +1015,15 @@ CONTAINS
                                               I,         J,         L,       &
                                               ICNTRL,    RCNTRL             )
 #endif
-
+#ifdef KPP_INTEGRATOR_SDIRK
+       !=====================================================================
+       ! Set options for the SDIRK integrator in vectors ICNTRL and RCNTRL
+       ! This now needs to be done within the parallel loop
+       !=====================================================================
+       ICNTRL(3)  = 6                          ! Backward Euler method
+       ICNTRL(15) = -1                         ! No rate updates in integrator
+       RCNTRL(3)  = State_Chm%KPPHvalue(I,J,L) ! Archived Hstart from restart
+#endif
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================

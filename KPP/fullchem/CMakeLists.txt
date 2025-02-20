@@ -21,12 +21,20 @@ if(KPP_INTEGRATOR_NAME STREQUAL "rosenbrock_autoreduce")
   target_compile_definitions(
     GEOSChemBuildProperties INTERFACE KPP_INTEGRATOR_AUTOREDUCE
   )
+elseif(KPP_INTEGRATOR_NAME STREQUAL "sdirk")
+  set(KPP_INTEGRATOR_SDIRK ON CACHE BOOL "Integrator is sdirk?")
+  target_compile_definitions(
+    GEOSChemBuildProperties INTERFACE KPP_INTEGRATOR_SDIRK
+  )
+else()
+  message(FATAL_ERROR "Invalid integrator for fullchem mechanism: You must select rosenbrock_autoreduce or sdirk!")
 endif()
 
 # Print results
 gc_pretty_print(SECTION "KPP integrator (read from fullchem.kpp)")
 gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
 gc_pretty_print(VARIABLE KPP_INTEGRATOR_AUTOREDUCE IS_BOOLEAN)
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_SDIRK IS_BOOLEAN)
 
 #----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- fullchem mechanism
