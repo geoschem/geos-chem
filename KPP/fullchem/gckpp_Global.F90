@@ -117,11 +117,11 @@ MODULE gckpp_Global
 ! CFACTOR - Conversion factor for concentration units
   REAL(kind=dp) :: CFACTOR
 
-! INLINED global variable declarations
+! Begin inlined code from F90_GLOBAL
 
 #include "commonIncludeVars.H"
 
-! INLINED global variable declarations
+! End inlined code from F90_GLOBAL
 
 
 END MODULE gckpp_Global

@@ -1264,9 +1264,9 @@ MODULE gckpp_Monitor
      'LCO                             ','PSO4                            ','LCH4                            ', & ! index 4 - 6
      'PH2O2                           ' /) ! index up to 7
 
-! INLINED global variables
+! Begin inlined code from F90_DATA
 
-! End INLINED global variables
+! End inlined code from F90_DATA
 
 
 END MODULE gckpp_Monitor

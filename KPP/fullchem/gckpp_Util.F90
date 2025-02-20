@@ -32,11 +32,11 @@ CONTAINS
 
 
 
-! User INLINED Utility Functions
+! Begin inlined code from F90_UTIL
 
-! End INLINED Utility Functions
+! End inlined code from F90_UTIL
 
-! Utility Functions from KPP_HOME/util/util
+! Begin Utility Functions from KPP_HOME/util/util
 ! ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 !
 ! UTIL - Utility functions

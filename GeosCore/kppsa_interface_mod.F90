@@ -571,7 +571,7 @@ CONTAINS
                                    exitHvalue,  ICNTRL,         RCNTRL,      &
                                    State_Grid,  State_Chm,      State_Met,   &
                                    Input_Opt,   KPP_TotSteps,   RC,          &
-                                   FORCE_WRITE, FORCE_FILENAME, CELL_NAME,  )
+                                   FORCE_WRITE, FORCE_FILENAME, CELL_NAME   )
 !
 ! !USES:
 !
@@ -696,7 +696,7 @@ CONTAINS
       IF ( PRESENT( FORCE_FILENAME ) ) THEN
          filename = FORCE_FILENAME
          location = FORCE_FILENAME
-         IF ( LEN( CELL_NAME_AUX > 0 ) ) location = CELL_NAME_AUX
+         IF ( LEN( CELL_NAME_AUX ) > 0 ) location = CELL_NAME_AUX
       ELSE
          location = TRIM( Cell_Name_Aux                                 ) // &
                     TRIM( KppSa_ActiveCell%Active_Cell_Name             )

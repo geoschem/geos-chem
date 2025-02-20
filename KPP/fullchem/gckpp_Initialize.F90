@@ -56,14 +56,14 @@ SUBROUTINE Initialize ( )
 
 ! ~~~ Set initial species concentrations
 
-! constant rate coefficients
+! Begin constant rate coefficients
   RCONST(126) = 4.51e-12
   RCONST(735) = 7.09e-11
-! END constant rate coefficients
+! End constant rate coefficients
 
-! INLINED initializations
+! Begin inlined code from F90_INIT
 
-! End INLINED initializations
+! End inlined code from F90_INIT
 
       
 END SUBROUTINE Initialize
