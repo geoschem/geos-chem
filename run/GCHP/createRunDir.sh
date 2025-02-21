@@ -640,7 +640,7 @@ mkdir -p ${rundir}/Restarts
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README.md                        ${rundir}
+cp ./README                           ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -851,14 +851,31 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     fi
 fi
 
+#-----------------------------------------------------------------
+# If doing a ctmEnv simulation then simplify the run directory
+#-----------------------------------------------------------------
+if [[ "${sim_name}" == "ctmEnv" ]]; then
+    cp ${srcrundir}/setCommonRunSettings.sh.ctmEnv  ${rundir}/setCommonRunSettings.sh
+    rm ${rundir}/geoschem_config.yml
+    rm ${rundir}/HEMCO_Config.rc
+    rm ${rundir}/HEMCO_Diagn.rc
+    rm ${rundir}/species_database.yml
+    rm ${rundir}/checkRunSettings.sh
+    rm ${rundir}/ChemDir
+    rm ${rundir}/HcoDir
+    rm ${rundir}/setRestartLink.sh
+    rm ${rundir}/CreateRunDirLogs/rundir_vars.txt
+    rm -rf ${rundir}/Restarts
+fi
+
+#--------------------------------------------------------------------
+# Update files anavigate back to source code directory
+#--------------------------------------------------------------------
 # Call setCommonRunSettings.sh so that all config files are consistent with its
 # default settings. Suppress informational prints.
 chmod +x setCommonRunSettings.sh
 ./setCommonRunSettings.sh --silent
 
-#--------------------------------------------------------------------
-# Navigate back to source code directory
-#--------------------------------------------------------------------
 cd ${srcrundir}
 
 #----------------------------------------------------------------------
@@ -950,8 +967,8 @@ fi
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
-hdr="\n>>>> REMINDER: You must compile with options:"
-ftr="<<<<\n"
+hdr="\n\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n\n"
 
 EXTRA_CMAKE_OPTIONS=""
 [[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
@@ -969,7 +986,11 @@ fi
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
 
 # Print a reminder to compile with extra CMake options, if necessary
-[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+build_msg="${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+if [[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]]; then
+    printf "${build_msg}"
+    echo -e ${build_msg} >> ${rundir}/README
+fi
 
 #---------------------------------------------------------------------------
 # Create build directory README file
@@ -984,56 +1005,10 @@ printf "${msg}" > ${rundir}/build/README
 unset msg
 
 #-----------------------------------------------------------------
-# Add the version info to the top of the rundir configuration log
-#-----------------------------------------------------------------
-
-# Add a caveat that these rundir settings only go with this commit
-printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
-
-# Add a "# " characters to the front of each line so we can use
-# it as a comment heading for ${rundir_config_logname}
-sed 's/^/# /' ${version_log} > tmp.txt
-mv tmp.txt ${version_log}
-
-# Add the version log to the top of the rundir config log
-cat ${version_log} ${rundir_config_log} > tmp.txt
-mv tmp.txt ${rundir_config_log}
-
-# Remove the version log
-rm -rf ${version_log}
-
-# Save the updated rundir_vars file to the git repo
-if [[ "x${enable_git}" == "xy" ]]; then
-    if [[ -f ${rundir_config_log} ]]; then
-	cd ${rundir}
-	git add ${rundir_config_log}
-	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
-	cd ${srcrundir}
-    fi
-fi
-
-#-----------------------------------------------------------------
 # Create and populate warnings file
 #-----------------------------------------------------------------
 if [[ $met == "geosfp" ]]; then
-   echo -e ${fp_msg} > ${rundir}/warnings.txt
-fi
-
-#-----------------------------------------------------------------
-# If doing a ctmEnv simulation then further customize rundir
-#-----------------------------------------------------------------
-if [[ "${sim_name}" == "ctmEnv" ]]; then
-    cp ./setCommonRunSettings.sh.ctmEnv  ${rundir}/setCommonRunSettings.sh
-    rm ${rundir}/geoschem_config.yml
-    rm ${rundir}/HEMCO_Config.rc
-    rm ${rundir}/HEMCO_Diagn.rc
-    rm ${rundir}/species_database.yml
-    rm ${rundir}/checkRunSettings.sh
-    rm ${rundir}/ChemDir
-    rm ${rundir}/HcoDir
-    rm ${rundir}/setRestartLink.sh
-    rm -rf ${rundir}/CreateRunDirLogs
-    rm -rf ${rundir}/Restarts
+    echo -e ${fp_msg} > ${rundir}/warnings.txt
 fi
 
 exit 0
