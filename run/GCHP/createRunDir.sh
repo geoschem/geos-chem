@@ -105,6 +105,7 @@ printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
 printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
+printf "   5. ctmEnv (skips GEOS-Chem and advection)\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -118,6 +119,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
+    elif [[ ${sim_num} = "5" ]]; then
+	sim_name=ctmEnv
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -200,7 +203,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     done
 
 # Currently no transport tracer extra options
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+elif [[ ${sim_name} = "TransportTracers" ]] || [[ ${sim_name} = "ctmEnv" ]]; then
     sim_extra_option=none
 
 # Ask user to specify carbon simulation options
@@ -715,6 +718,8 @@ elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
     restart_dir='GC_14.7.0'
     restart_name="${sim_name}"
+elif [[ ${sim_name} = "ctmEnv" ]]; then
+    start_date='20210101'
 fi
 for N in 24 30 48 90 180
 do
@@ -912,14 +917,16 @@ while [ "$valid_response" -eq 0 ]; do
 done
 
 printf "\n${thinline}Created ${rundir}\n"
-printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
-printf "\n  -- This run directory is set up for simulation start date $start_date"
-printf "\n  -- Restart files for this date at different grid resolutions are in the"
-printf "\n     Restarts subdirectory"
-printf "\n  -- To update start time, edit configuration file cap_restart and"
-printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
-printf "\n     where YYYYMMDD_HHmm is start date and time"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
+printf "\n  -- This run directory is set up for simulation start date ${start_date}"
+if [[ "${sim_name}" != "ctmEnv" ]]; then
+    printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
+    printf "\n  -- Restart files for this date at different grid resolutions are in the"
+    printf "\n     Restarts subdirectory"
+    printf "\n  -- To update start time, edit configuration file cap_restart and"
+    printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+    printf "\n     where YYYYMMDD_HHmm is start date and time"
+fi
+printf "\n  -- Edit commonly changed run settings in setCommonRunSettings.sh"
 printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
@@ -965,6 +972,7 @@ ftr="<<<<\n"
 EXTRA_CMAKE_OPTIONS=""
 [[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
 [[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
+[[ "x${sim_name}" == "xctmEnv" ]] && EXTRA_CMAKE_OPTIONS="-DMODEL_CTMENV=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
     [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
@@ -1025,6 +1033,23 @@ fi
 #-----------------------------------------------------------------
 if [[ $met == "geosfp" ]]; then
    echo -e ${fp_msg} > ${rundir}/warnings.txt
+fi
+
+#-----------------------------------------------------------------
+# If doing a ctmEnv simulation then further customize rundir
+#-----------------------------------------------------------------
+if [[ "${sim_name}" == "ctmEnv" ]]; then
+    cp ./setCommonRunSettings.sh.ctmEnv  ${rundir}/setCommonRunSettings.sh
+    rm ${rundir}/geoschem_config.yml
+    rm ${rundir}/HEMCO_Config.rc
+    rm ${rundir}/HEMCO_Diagn.rc
+    rm ${rundir}/species_database.yml
+    rm ${rundir}/checkRunSettings.sh
+    rm ${rundir}/ChemDir
+    rm ${rundir}/HcoDir
+    rm ${rundir}/setRestartLink.sh
+    rm -rf ${rundir}/CreateRunDirLogs
+    rm -rf ${rundir}/Restarts
 fi
 
 exit 0
