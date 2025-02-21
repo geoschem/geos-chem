@@ -4747,12 +4747,15 @@ CONTAINS
         IF ( DepSpec ) THEN
           CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
           IF ( found ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
-                            * State_Chm%Species(NA)%Conc(I,J,1) &
-                            / (AIRMW / ThisSpc%MW_g)  )
-             ! Get dry deposition velocity in cm/s:
-             dvel(I,J,NA) = dvel(I,J,NA) + ( dep * State_Met%BXHEIGHT(I,J,1) * &
-                                             1.0e+2_fp )
+
+             ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
+             dflx(I,J,NA) = dflx(I,J,NA) +                                   &
+                          + ( dep * State_Chm%Species(NA)%Conc(I,J,1)        &
+                                  / ( AIRMW / ThisSpc%MW_g                ) )
+
+             ! Sea-air deposition frequency [1/s] --> velocity [cm/s]
+             dvel(I,J,NA) = dvel(I,J,NA) +                                   &
+                            ( dep * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
           ENDIF
         ENDIF
       ENDDO ! I
@@ -4814,9 +4817,9 @@ CONTAINS
                         * State_Chm%Species(N)%Conc(I,J,1)      &
                         /  ( AIRMW / ThisSpc%MW_g )
 
-          ! Get dry deposition velocity in cm/s:
-          dvel(I,J,N) = dvel(I,J,N) + ( State_Chm%DryDepFreq(I,J,ND) * &
-                                        State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
+          ! Add the drydep velocities [cm/s] computed in drydep_mod.F90
+          ! to the drydep velocities [cm/s] computed by the SeaFlux extension.
+          dvel(I,J,N) = dvel(I,J,N) + State_Chm%DryDepVel(I,J,ND) * 100.0_fp
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
 
