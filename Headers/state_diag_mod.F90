@@ -17156,7 +17156,7 @@ CONTAINS
 
        ! KPP equation reaction rates
        CASE( 'RXN' )
-          WRITE ( Nstr, "(I3.3)" ) D
+          WRITE ( Nstr, "(I4.4)" ) D
           tagName = 'EQ' // TRIM(Nstr)
 
        ! UVFlux requested output fluxes
@@ -18962,7 +18962,7 @@ CONTAINS
     INTEGER                   :: S
 
     ! Strings
-    CHARACTER(LEN=3  )        :: rxnStr
+    CHARACTER(LEN=4  )        :: rxnStr
     CHARACTER(LEN=255)        :: mapName
     CHARACTER(LEN=255)        :: mapName2
     CHARACTER(LEN=255)        :: tagName
@@ -19146,10 +19146,10 @@ CONTAINS
 
           ELSE IF ( isRxnRate ) THEN
 
-             ! RxnRate: the last 3 characters is the index #
+             ! RxnRate: the last 4 characters is the index #
              S      = LEN_TRIM( TagItem%name )
-             rxnStr = TagItem%name(S-2:S)
-             READ( rxnstr, '(I3.3) ' ) index
+             rxnStr = TagItem%name(S-3:S)
+             READ( rxnstr, '(I4.4) ' ) index
              mapData%slot2id(TagItem%index) = index
 
           ELSE IF ( isUvFlx ) THEN
