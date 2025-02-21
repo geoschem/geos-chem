@@ -63,6 +63,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Scarpelli_Mexico       :       true     # 2015
 # ----- GLOBAL INVENTORIES ----------------------------------------------------
     --> GFEIv2                 :       true     # 2019
+    --> GRPI                   :       true     # 2022
     --> EDGARv8                :       true     # 2010-2022
     --> QFED2                  :       false    # 2009-2015
     --> JPL_WETCHARTS          :       true     # 2009-2017
@@ -366,6 +367,15 @@ VerboseOnCores:              root       # Accepted values: root all
 0 GFEI_CH4_GAS  $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc  emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  2 5
 0 GFEI_CH4_COAL $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc     emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  3 5
 )))GFEIv2
+
+#==============================================================================
+# --- Global Rice Patty Inventory (GRPI, Zichong Chen et al., 2025) ---
+#
+# This inventory will replace EDGAR (rice)
+#==============================================================================
+(((GRPI
+0 GRPI_CH4_RICE $ROOT/CH4/v2025-01/GRPI/GRPI_01x01.nc emi_ch4 2022/1-12/1/0 C xy kg/m2/s CH4 -  7 5
+)))GRPI
 
 #==============================================================================
 # --- EDGAR v8.0 emissions ---

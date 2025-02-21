@@ -1296,7 +1296,7 @@ CONTAINS
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
     USE Timers_Mod,     ONLY : Timer_End, Timer_Start
-    USE UnitConv_Mod
+    USE UnitConv_Mod,   ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -1334,7 +1334,6 @@ CONTAINS
     LOGICAL             :: prtLog,  doSample
     INTEGER             :: I,       J,        L,  N,  R,  S
     INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
-    INTEGER             :: previous_units
     REAL(f8)            :: TsStart, TsEnd
 
     ! Strings
@@ -1363,24 +1362,9 @@ CONTAINS
        CALL Timer_End( "Diagnostics", RC )
     ENDIF
 
-    ! Ensure that units of species are [v/v dry], which is dry air mole 
-    ! fraction, aka [mol/mol dry].  Capture the InUnit value, this is what 
-    ! the units are prior to this call.  After we sample the species, we'll 
-    ! call this again requesting that the species are converted back to the 
-    ! InUnit values.
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Grid     = State_Grid,                                        &
-         State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
-         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
-         previous_units = previous_units,                                    &
-         RC             = RC                                                )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Convert_Units"!'
+    ! Verify that incoming State_Chm%Species units are mol/mol dry air.
+    IF ( .not. Check_Units( State_Chm, MOLES_SPECIES_PER_MOLES_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "mol/mol dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -1475,9 +1459,6 @@ CONTAINS
              S = State_Diag%ObsPack_Species_Ind(R)
 
              ! Add the species concentration
-             !%%% TODO: Maybe do an in-line unit conversion to avoid
-             !%%% converting units for all species if we are only saving
-             !%%% out a few.
              State_Diag%ObsPack_Species(N,R) =                               &
              State_Diag%ObsPack_Species(N,R) + State_Chm%Species(S)%Conc(I,J,L)
           ENDDO
@@ -1518,24 +1499,6 @@ CONTAINS
     ! Halt diags timer (so that unit conv can be timed separately)
     IF ( Input_Opt%useTimers ) THEN
        CALL Timer_End( "Diagnostics", RC )
-    ENDIF
-
-    ! Return State_Chm%Species(:)%Conc to whatever units they had
-    ! coming into this routine
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_Advect,                                  &
-         new_units  = previous_units,                                        &
-         RC         = RC                                                    )
-
-    ! Trap potential errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Convert_Units"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
     ENDIF
 
     ! Start diags timer again

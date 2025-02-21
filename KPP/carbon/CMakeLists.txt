@@ -1,5 +1,22 @@
-
 # KPP/carbon/CMakeLists.txt
+
+#----------------------------------------------------------------------------
+# Determine the KPP integrator name and set corresponding variables
+# This is for informational purposes only.
+#----------------------------------------------------------------------------
+
+# Get integrator name
+EXECUTE_PROCESS(
+  COMMAND grep \#INTEGRATOR ${CMAKE_CURRENT_SOURCE_DIR}/carbon.kpp
+  OUTPUT_VARIABLE RESULT
+)
+separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
+list(GET SUBSTRINGS 1 KPP_INTEGRATOR_NAME)
+string(TOLOWER "${KPP_INTEGRATOR_NAME}" KPP_INTEGRATOR_NAME)
+
+# Print result
+gc_pretty_print(SECTION "KPP integrator (read from carbon.kpp)")
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
 
 #----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- carbon mechanism
@@ -12,15 +29,15 @@ add_library(KPP_FirstPass
 )
 
 # Define dependencies for libKPP_FirstPass.a
-target_link_libraries(KPP_FirstPass 
-  PUBLIC 
+target_link_libraries(KPP_FirstPass
+  PUBLIC
   GEOSChemBuildProperties
 )
 
 #----------------------------------------------------------------------------
 # Add libKPP.a -- carbon mechanism
 #----------------------------------------------------------------------------
-add_library(KPP 
+add_library(KPP
   STATIC EXCLUDE_FROM_ALL
   carbon_Funcs.F90
   gckpp_Function.F90
@@ -48,7 +65,7 @@ add_library(KPP
 )
 
 # Add dependencies
-target_link_libraries(KPP 
+target_link_libraries(KPP
   PUBLIC
   GeosUtil
 )

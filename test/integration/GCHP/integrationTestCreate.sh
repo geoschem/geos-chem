@@ -213,16 +213,16 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     fi
 
     # c24 merra2 fullchem_standard
-    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_benchmark
-    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_RRTMG
-    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_TOMAS15
-    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on

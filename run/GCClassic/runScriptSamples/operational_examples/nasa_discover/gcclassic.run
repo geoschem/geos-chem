@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# For use on NASA discover cluster. Edit prior to run.
+#SBATCH --time 00:10:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem 10G
+#SBATCH --job-name=gcclassic.run
+#SBATCH --constraint=mil
+#SBATCH --account=s____
+##SBATCH --exclusive
+##SBATCH --qos=debug
+##SBATCH --qos=long
+
+
+# Assume file or symbolic link gcclassic.env exists in run directory
+source gcclassic.env
+./gcclassic > GC.log

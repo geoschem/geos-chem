@@ -1,6 +1,34 @@
 # KPP/custom/CMakeLists.txt
 
 #----------------------------------------------------------------------------
+# Determine KPP integrator name and set corresponding C-preprocessor flags.
+# This enables integrator-specific handling in the custom mechanism.
+#----------------------------------------------------------------------------
+
+# Get integrator name
+EXECUTE_PROCESS(
+  COMMAND grep \#INTEGRATOR ${CMAKE_CURRENT_SOURCE_DIR}/custom.kpp
+  OUTPUT_VARIABLE RESULT
+)
+separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
+list(GET SUBSTRINGS 1 KPP_INTEGRATOR_NAME)
+string(TOLOWER "${KPP_INTEGRATOR_NAME}" KPP_INTEGRATOR_NAME)
+
+# Set C-preprocessor flags
+if(KPP_INTEGRATOR_NAME STREQUAL "rosenbrock_autoreduce")
+  set(KPP_INTEGRATOR_AUTOREDUCE ON CACHE BOOL
+      "Integrator is rosenbrock_autoreduce?")
+  target_compile_definitions(
+    GEOSChemBuildProperties INTERFACE KPP_INTEGRATOR_AUTOREDUCE
+  )
+endif()
+
+# Print results
+gc_pretty_print(SECTION "KPP integrator (read from custom.kpp)")
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_AUTOREDUCE IS_BOOLEAN)
+
+#----------------------------------------------------------------------------
 # Add libKPPFirstPass.a -- custom mechanism
 #----------------------------------------------------------------------------
 add_library(KPP_FirstPass

@@ -5,12 +5,54 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
+- Added met-field dependent dust tuning factors for GCHP C24 resolution in `setCommonRunSettings.sh`.  Others to be added later.
+- Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
+- Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
+- Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
+
 ### Changed
+- Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
+- Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
+- Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
+- Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
+- Changed several diagnostic subroutines to expect species concentrations in mol/mol rather than kg/kg
+- Added precision when registering `State_Met` and `State_Chm` arrays to change output file precision to match precision in the model
+- Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
+- Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
+- Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
+ 
+### Fixed
+- Fixed PDOWN definition to lower rather than upper edge
+- Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
+- Moved species concentration unit conversions between mol/mol and kg/kg to start and end of every timestep in GEOS-Chem Classic to remove differences introduced when reading and writing restart files
+- Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
+- Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
+- Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
+- In `hco_interface_gc_mod.F90`, update `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays with `(I,J,S)` instead of `(:,:,S)`
+
+### Removed
+- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Removed re-evaporation requirement for washout
+- Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+
+## [14.5.2] - 2025-02-12
+### Added
+- Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
+- Added run directory creation for processed cubed-sphere GEOS-IT meteorology
+- Added GC-Classic and GCHP environment files, build scripts, and run scripts for MSU Orion cluster
+
+### Changed
+- Updated GC-Classic and GCHP environment files, build scripts, and run scripts for NASA discover cluster
+- Updated rundir scripts to ask for confirmation before building the KPP-Standalone executable
+- Updated rundir scripts to print a reminder to compile with `-DKPPSA=y` to build the KPP-Standalone executable
+- Updated `integrationTestCreate.sh` and `parallelTestCreate.sh` scripts to decline building the KPP-Standalone.
 
 ### Fixed
-- Fixed CEDS HEMCO_Config.rc entries to emit TMB into the TMB species (and not HCOOH)
-- In `hco_interface_gc_mod.F90`, update `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays with `(I,J,S)` instead of `(:,:,S)`
+- Fixed GCHP refresh time for `CO2_WEEKLY` scale factors so updated daily
+- Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
 
 ## [14.5.1] - 2025-01-10
 ### Added
@@ -29,6 +71,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added surface precipitation flux fields as inputs to GCHP
 - Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
 - Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
+- Added `.zenodo.json` for auto-DOI generation upon version releases
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -66,6 +109,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
 - Removed error messages in HEMCO interface pointing users to HEMCO log
+- Removed unused RUNDIR settings for GCHP pressure units and scaling
 
 ## [14.5.0] - 2024-11-07
 ### Added
@@ -160,7 +204,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Cloud-J status output and error handling for it
 
 ### Changed
-- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation
 - Use hard-coded years for met fields and BC files in `HEMCO_Config.rc` so they are not read hourly
 - Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
 - Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid

@@ -1,0 +1,32 @@
+#!/bin/bash
+
+#SBATCH -c 24
+#SBATCH -N 1
+#SBATCH -t 0-00:30
+#SBATCH --mem=15G
+#SBATCH --qos=batch
+
+###############################################################################
+### Sample GEOS-Chem Classic run script for Harvard Cannon (using SLURM).
+###
+### If you are running a nested-grid simulation at fine resolution, you
+### will likely need to request additional memory, cores, and time.
+###
+### -c           : Requests this many cores
+### -N           : Requests a single node
+### --mem        : Requests this amount of memory in GB
+### -p           : Requests these partitions where the job can run
+### -t           : Requests time for the job (days-hours:minutes)
+###  --exclusive : Reserves entire nodes (i.e. to prevent backfilling jobs)
+###############################################################################
+
+# Set the proper # of threads for OpenMP
+# SLURM_CPUS_PER_TASK ensures this matches the number you set with -c above
+export OMP_NUM_THREADS=$SLURM_CPUS_PER_TASK
+
+# Run GEOS_Chem
+./gcclassic >> GC.log
+
+# Exit normally
+exit 0
+

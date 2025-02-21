@@ -4385,22 +4385,6 @@ CONTAINS
       D = GET_FIRST_I3_TIME()
       CALL FlexGrid_Read_I3_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
-      ! Get delta pressure per grid box stored in restart file to allow
-      ! mass conservation across consecutive runs.
-      v_name = 'DELPDRY'
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-      IF ( FOUND ) THEN
-         State_Met%DELP_DRY = Ptr3D
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'Initialize DELP_DRY from restart file'
-         ENDIF
-      ELSE
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-         ENDIF
-      ENDIF
-      Ptr3D => NULL()
-
       ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
       ! and compute avg dry pressure near polar caps
       CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
@@ -4972,9 +4956,6 @@ CONTAINS
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -5051,22 +5032,24 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, tmpFlx                                    )&
+             !$OMP COLLAPSE( 2                                              )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
-                tmpFlx = dflx(I,J,N)                                         &
-                       / MW_kg                                               &
-                       * AVO           * 1.e-4_fp                            &
+                tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
                        * GET_TS_CONV() / GET_TS_EMIS()
-
-                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
+                CALL Soil_DryDep( I, J, N, tmpFlx, State_Chm )
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
           ENDIF
 
           ! Free species database pointer
           ThisSpc => NULL()
+
        ENDDO
-       !$OMP END PARALLEL DO
 
     ENDIF
 

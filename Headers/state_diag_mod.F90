@@ -12494,7 +12494,7 @@ CONTAINS
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
                                                State_Grid%NY,                &
                                                State_Chm%nAdvect,            &
-                                               3                 ), STAT=RC )
+                                               4                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -14583,12 +14583,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
-       !--------------------------------------------------------------------
-       ! NOTE: We will eventually want restart file variables to be written
-       ! to netCDF as REAL*8, but HEMCO cannot yet read this.  For now
-       ! we will keep writing out restart files as REAL*4. (bmy, 8/14/20)
-       IF ( isOutType ) OutType  = KINDVAL_F4
-       !--------------------------------------------------------------------
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
@@ -17161,7 +17156,7 @@ CONTAINS
 
        ! KPP equation reaction rates
        CASE( 'RXN' )
-          WRITE ( Nstr, "(I3.3)" ) D
+          WRITE ( Nstr, "(I4.4)" ) D
           tagName = 'EQ' // TRIM(Nstr)
 
        ! UVFlux requested output fluxes
@@ -18967,7 +18962,7 @@ CONTAINS
     INTEGER                   :: S
 
     ! Strings
-    CHARACTER(LEN=3  )        :: rxnStr
+    CHARACTER(LEN=4  )        :: rxnStr
     CHARACTER(LEN=255)        :: mapName
     CHARACTER(LEN=255)        :: mapName2
     CHARACTER(LEN=255)        :: tagName
@@ -19151,10 +19146,10 @@ CONTAINS
 
           ELSE IF ( isRxnRate ) THEN
 
-             ! RxnRate: the last 3 characters is the index #
+             ! RxnRate: the last 4 characters is the index #
              S      = LEN_TRIM( TagItem%name )
-             rxnStr = TagItem%name(S-2:S)
-             READ( rxnstr, '(I3.3) ' ) index
+             rxnStr = TagItem%name(S-3:S)
+             READ( rxnstr, '(I4.4) ' ) index
              mapData%slot2id(TagItem%index) = index
 
           ELSE IF ( isUvFlx ) THEN
