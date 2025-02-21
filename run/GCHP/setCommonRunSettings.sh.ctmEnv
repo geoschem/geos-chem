@@ -1,0 +1,531 @@
+#!/bin/bash
+
+# setCommonRunSettings.sh: Set run-time settings for GCHP and update all config
+# files to use these settings. Pass optional argument --verbose to print
+# all settings configured when using this script.
+
+# Usage: ./setCommonRunSettings.sh [--verbose]
+
+#------------------------------------------------
+#   COMPUTE RESOURCES
+#------------------------------------------------
+# Total cores must be divisible by 6
+
+TOTAL_CORES=96
+NUM_NODES=2
+NUM_CORES_PER_NODE=48
+
+#------------------------------------------------
+#   GRID RESOLUTION
+#------------------------------------------------
+# Even integer representing number of grid cells per cubed-sphere face side
+#
+# NOTE: If using mass flux inputs then grid resolution must be evenly divisible
+# by input mass flux resolution, or vice versa. Acceptable resolutions for GEOS-IT
+# when using mass fluxes are therefore in set [10,30,90,180,360,540,720,etc]
+
+CS_RES=24
+
+#------------------------------------------------
+#   STRETCHED GRID
+#------------------------------------------------
+# Turn stretched grid ON/OFF. Follow these rules if ON:
+#    (1) Minimum STRETCH_FACTOR value is 1.0001
+#    (2) TARGET_LAT and TARGET_LON are floats containing decimal
+#    (3) TARGET_LON in range [0,360) or [-180,180)
+#    (4) STRETCH_FACTOR, TARGET_LAT, and TARGET_LON exactly match
+#        the global attribute values of these parameters in the
+#        initial restart file
+#
+# NOTE: Running with stretched grid requires using winds in advection.
+#       Create a new run directory to use winds if this one uses mass fluxes.
+
+STRETCH_GRID=OFF
+STRETCH_FACTOR=2.0
+TARGET_LAT=-45.0
+TARGET_LON=170.0
+
+#------------------------------------------------
+#    SIMULATION DURATION
+#------------------------------------------------
+# Format is "YYYYMMDD HHmmSS". Example: "0000100 000000" for 1 month
+
+Run_Duration="00000001 000000"
+
+#---------------------------------------------------------------------
+#    DIAGNOSTICS
+#---------------------------------------------------------------------
+# Auto-update settings in HISTORY.rc for specific collections (enable with ON)
+# NOTE: you must add new collections to the list below to auto-update them.
+
+AutoUpdate_Diagnostics=OFF
+
+# Instructions to auto-update diagnostics
+#   1. Set AutoUpdate_Diagnostics=ON:
+#   2. Set Diag_Monthly to compute monthly time-averaged values (0=OFF, 1=ON)
+#   3. If Diag_Monthly=OFF:
+#        3a. Set Diag_Frequency for diagnostic frequency, format "HHmmSS"
+#        3b. Set Diag_Duration for file write frequency, format "HHmmSS"
+#        *Note that number of hours may exceed 2 digits, e.g. 744 for 744 hrs
+#   4. Edit Diag_Collections list to specify which collections to update
+
+Diag_Monthly=0
+Diag_Frequency="240000"
+Diag_Duration="240000"
+Diag_Collections=(GCHPctmEnvLevCenter \
+                  GCHPctmEnvLevEdge \
+)
+
+###################################################################
+#    INFREQUENTLY CHANGED SETTINGS
+###################################################################
+
+#------------------------------------------------
+#   DOMAIN DECOMPOSITION
+#------------------------------------------------
+# Enable auto-update of NX and NY based on core count by setting to ON. This
+# will make NX by NY/6 as square as possible to reduce communication overhead
+# in GCHP. Only disable this feature if using mass fluxes.
+
+AutoUpdate_NXNY=ON
+
+# Specify NX and NY below if not auto-updating. Otherwise leave blank. See rules below.
+
+NX=
+NY=
+
+# Cores are distributed across each of the six cubed sphere faces using
+# configurable parameters NX and NY. Each face is divided into NX by NY/6
+# regions and each of those regions is processed by a single core
+# independent of which node it belongs to.
+#
+# Rules and tips for setting NX and NY manually:
+#   1. NY must be an integer and a multiple of 6
+#   2. NX*NY must equal total number of cores (NUM_NODES*NUM_CORES_PER_NODE)
+#   3. NX and NY should be as close to equal as possible (maximize squareness)
+#         Good examples: (NX=4,NY=24)  -> 96  cores at 4x4
+#                        (NX=6,NY=24)  -> 144 cores at 6x4
+#         Bad examples:  (NX=8,NY=12)  -> 96  cores at 8x2
+#                        (NX=12,NY=12) -> 144 cores at 12x2
+#   4. Domain decomposition requires that CS_RES/NX >= 4 and CS_RES*6/NY >= 4,
+#      which puts an upper limit on total cores per grid resolution.
+#         c24: 216 cores   (NX=6,  NY=36 )
+#         c48: 864 cores   (NX=12, NY=72 )
+#         c90: 3174 cores  (NX=22, NY=132)
+#        c180: 12150 cores (NX=45, NY=270)
+#        c360: 48600 cores (NX=90, NY=540)
+#      Using fewer cores may still trigger a domain decomposition error, e.g.:
+#         c48: 768 cores   (NX=16, NY=48)  --> 48/16=3 will trigger FV3 error
+#   5. If using mass flux inputs then both native mass flux resolution and model
+#      run resolution must be evenly divisible by both NX and NY/6.
+#         Example of C180 fluxes (e.g. GEOS-IT) run at C90:
+#            96 cores,  NX=4, NY/6=4 -> fail    (90/4=22.5)
+#            150 cores, NX=5, NY/6=5 -> success (180/5=36, 90/5=18)
+#            216 cores, NX=6, NY/6=6 -> success (180/6=30, 90/6=15)
+#            384 cores, NX=8, NY/6=8 -> fail    (180/8=22.5)
+
+#------------------------------------------------
+#    TIMESTEPS
+#------------------------------------------------
+# Non-RRTMG timesteps in GCHP are resolution-dependent.
+# Stretched grid timesteps are set based on the high-resolution region.
+
+CS_RES_EFFECTIVE=${CS_RES}
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    CS_RES_EFFECTIVE=$( echo $CS_RES $STRETCH_FACTOR | awk '{printf "%.0f",$1*$2}' )
+fi
+if [[ $CS_RES_EFFECTIVE -le 180 ]]; then
+    ChemEmiss_Timestep_sec=1200
+    TransConv_Timestep_sec=600
+    TransConv_Timestep_HHMMSS=001000
+else
+    ChemEmiss_Timestep_sec=600
+    TransConv_Timestep_sec=300
+    TransConv_Timestep_HHMMSS=000500
+fi
+RRTMG_Timestep_sec=10800
+
+#------------------------------------------------
+#   MODEL PHASE
+#------------------------------------------------
+# FORWARD for forward model, ADJOINT for adjoint model
+
+Model_Phase=FORWARD
+
+
+###############################
+####   ERROR CHECKS
+###############################
+
+#### Check that resource allocation makes sense
+if (( ${TOTAL_CORES}%6 != 0 )); then
+   echo "ERROR: TOTAL_CORES must be divisible by 6. Update value in setCommonRunSettings.sh."
+   exit 1
+fi
+if (( ${TOTAL_CORES} != ${NUM_NODES}*${NUM_CORES_PER_NODE} )); then
+   echo "ERROR: TOTAL_CORES must equal to NUM_NODES times NUM_CORES_PER_NODE. Update values in setCommonRunSettings.sh."
+   exit 1
+fi
+
+#### If on, auto-calculate NX and NY to maximize squareness of core regions
+if [[ ${AutoUpdate_NXNY} == 'ON' ]]; then
+   Z=$(( ${NUM_NODES}*${NUM_CORES_PER_NODE}/6 ))
+   # Use "bash calculator" if available; Python if not; fail otherwise
+   bc_ok=0
+   py_ok=0
+   which bc &> /dev/null || bc_ok=$?
+   which python &> /dev/null || py_ok=$?
+   if [[ $bc_ok -eq 0 ]]; then
+      # Use bash calculator
+      SQRT=$(echo "sqrt (${Z})" | bc -l)
+      N=$(echo $SQRT | awk '{print int($1+0.999)}')
+   elif [[ $py_ok -eq 0 ]]; then
+      # Use system Python
+      SQRT=$( python -c "import math; print(int(math.sqrt(${Z})))" )
+      N=$SQRT
+   else
+      echo "Cannot auto-determine NX and NY (need either bc or python available)"
+      exit 70
+   fi
+   while [[ "${N}" > 0 ]]; do
+      if (( ${Z} % ${N} == 0 )); then
+         NX=${N}
+         NY=$((${Z}/${N}*6))
+         break
+      else
+         N=$((${N}-1))
+      fi
+   done
+fi
+
+#### Check that NX and NY make sense
+if (( ${NX}*${NY} != ${TOTAL_CORES} )); then
+   echo "ERROR: NX*NY must equal TOTAL_CORES. Check values in setCommonRunSettings.sh."
+   exit 1
+fi
+if (( ${NY}%6 != 0 )); then
+   echo "ERROR: NY must be an integer divisible by 6. Check values in setCommonRunSettings.sh."
+   exit 1
+fi
+
+#### Check grid resolution
+if (( (${CS_RES}) % 2 != 0 )); then
+    echo "ERROR: Cubed-sphere face does not have even number of grid cells per side. Update grid resolution in setCommonRunSettings.sh to be an even number."
+    exit 1
+fi
+
+
+#### Check that domain decomposition will not trigger a FV3 domain error
+if [[ $(( ${CS_RES}/${NX} )) -lt 4 || $(( ${CS_RES}*6/${NY} )) -lt 4  ]]; then
+   echo "ERROR: NX and NY are set such that face side length divided by NX or NY/6 is less than 4. The cubed sphere compute domain has a minimum requirement of 4 points in NX and NY/6. This problem occurs when grid resolution is too low for core count requested. Edit setCommonRunSettings.sh to loower total number of cores or increase your grid resolution."
+   exit 1
+fi
+
+#### Check if domains are square enough (NOTE: approx using integer division)
+if [[ $(( ${NX}*6/${NY}*2 )) -ge 5 || $(( ${NY}/${NX}/6*2 )) -ge 5 ]] ; then
+    echo "WARNING: NX and NY are set such that NX x NY/6 has side ratio >= 2.5. Consider adjusting resources in setCommonRunSettings.sh to be more square. This will avoid negative effects due to excessive communication between cores."
+fi
+
+abs() {
+    [[ $[ $@ ] -lt 0 ]] && echo "$[ ($@) * - 1]" || echo "$[ $@ ]"
+}
+
+#### If using stretched grid, check that target lat and lon have decimal
+if [[ ${STRETCH_GRID} == 'ON' ]]; then
+    if [[ ${TARGET_LAT} != *"."* ]]; then
+	echo "ERROR: Stretched grid target latitude must be float. Edit entry in setCommonRunSettings.sh."
+	exit 1
+    elif [[ ${TARGET_LON} != *"."* ]]; then
+	echo "ERROR: Stretched grid target longitude must be float. Edit entry in setCommonRunSettings.sh."
+	exit 1
+    fi
+fi
+
+#### Mass flux checks for grid resolution and domain decomposition
+MassFlux_Entry=$(grep "MFXC" ExtData.rc || echo "missing")
+if [[ ${MassFlux_Entry} != "missing" ]]; then
+
+    #### Get met grid res (assume GEOS-IT and GEOS-FP are the only options)
+    C180_Entry=$(grep "MFXC.*C180x180x6" ExtData.rc || echo "missing")
+    if [[ ${C180_Entry} != "missing" ]]; then
+	input_res=180
+    else
+	input_res=720
+    fi
+    if (( ${CS_RES} < ${input_res} )); then
+	lowest_res=${CS_RES}
+	highest_res=${input_res}
+    else
+	lowest_res=${input_res}
+	highest_res=${CS_RES}
+    fi
+
+    #### Check that not using stretched grid
+    if [[ ${STRETCH_GRID} == 'ON' ]]; then
+	echo "ERROR: Do not use stretched grid when using mass flux inputs. Create a winds run directory for stretched grid simulations."
+	exit 1
+    fi
+
+    #### Check that input and grid resolutions are evenly divisible
+    if (( (${highest_res}) % (${lowest_res}) != 0 )); then
+	echo "ERROR: Mass flux input resolution and run grid resolution must be evenly divisible. Input resolution is ${input_res} but grid resolution is ${CS_RES}."
+	exit 1
+    fi
+
+    #### Check that grid/run resolutions are evenly divisible by NX and NY/6
+    if (( ${lowest_res} % ${NX} != 0 || ${lowest_res} % (${NY}/6) != 0 )); then
+	echo "ERROR: Input and run resolutions must divide evenly by NX and NY/6 when using mass flux inputs. Manually set NX and NY in setCommonRunSettings.sh for your simulation. Current settings are input resolution ${input_res}, grid resolution ${CS_RES}, NX ${NX} and NY ${NY}."
+	exit 1
+    fi
+fi
+
+##########################################
+####   DEFINE FUNCTIONS TO UPDATE FILES
+##########################################
+
+#### Determine whether to print info about updates. Prints enabled by default.
+verbose=0
+if [ $# -ne 0 ]; then
+    if [[ $1 = "--verbose" ]]; then
+        verbose=1
+    fi
+fi
+
+#### Function to print message
+print_msg() {
+    if [[ ${verbose} = "1" ]]; then
+        echo $1
+    fi
+}
+
+#### Define function to replace values in .rc files
+replace_val() {
+    KEY=$1
+    VAL=$2
+    FILE=$3
+    if [[ ${verbose} = "1" ]]; then
+	printf '%-30s : %-20s %-20s\n' "${KEY//\\}" "${VAL}" "${FILE}"
+    fi
+
+    # Use : for delimiter by default, unless argument passed
+    if [[ -z $4 ]]; then
+	DELIMITER=:
+    else
+	DELIMITER=$4
+    fi
+
+    # replace value in line starting with 'whitespace + key + whitespace + : +
+    # whitespace + value' where whitespace is variable length including none
+    sed "s|^\([\t ]*${KEY}[\t ]*${DELIMITER}[\t ]*\).*|\1${VAL}|" ${FILE} > tmp
+    mv tmp ${FILE}
+}
+
+#### Replaces a value (in-place) in a YAML file, see:
+#### unix.stackexchange.com/questions/618971/sed-replace-in-next-line-in-yaml
+function replace_val_yaml() {
+    CAT=${1}     # category
+    KEY=${2}     # subcategory key
+    VALUE=${3}   # subcategory value
+    FILE=${4}    # YAML file
+
+    # verbose print
+    if [[ ${verbose} = "1" ]]; then
+	printf '%-30s : %-20s %-20s\n' "${CAT//\\}:${KEY}" "${VALUE}" "${FILE}"
+    fi
+
+    # Switch the "activate" tag (always the first tag)
+    sed -i -e "/${CAT}:/{n;s/${KEY}:.*/${KEY}: ${VALUE}/;}" ${FILE}
+
+    # Also switch the use_non_local_mixing tag (after "activate")
+    if [[ "x${CAT}" == "xpbl_mixing" ]];then
+	sed -i -e "/${CAT}:/{n;n;s/${KEY}:.*/${KEY}: ${VALUE}/;}" ${FILE}
+    fi
+}
+
+#### Define function to uncomment line in config file
+uncomment_line() {
+    if [[ ${verbose} = "1" ]]; then
+	echo "--> Uncommenting $1 in $2"
+    fi
+    if [[ $(grep -c "^[\t ]*$1" $2) == "1" ]]; then
+	return
+    fi
+    num_lines=$(grep -c "^[\t ]*#*[\t ]*$1" $2)
+    if [[ $num_lines == "1" ]]; then
+        sed -i -e "s|[\t ]*#*[\t ]*$1|$1|" $2
+    elif [[ $num_lines == "0" ]]; then
+	echo "ERROR: Entry for $1 missing in $2!"
+        exit 1
+    else
+	echo "ERROR: Multiple entries for $1 found in $2!"
+        exit 1
+    fi
+}
+
+#### Define function to comment line in config file
+comment_line() {
+        if [[ ${verbose} = "1" ]]; then
+	echo "--> Commenting out $1 in $2"
+    fi
+    if [[ $(grep -c "#.*$1" $2) == "1" ]]; then
+	return
+    fi
+    num_lines=$(grep -c "^[\t ]*$1" $2)
+    if [[ $num_lines == "1" ]]; then
+        sed -i -e "s|[\t ]*$1|#$1|" $2
+    elif [[ $num_lines > "1" ]]; then
+	echo "ERROR: Multiple entries for $1 found in $2!"
+        exit 1
+    fi
+}
+
+#### Define function to replace met-field read frequency in ExtData.rc given var name
+update_dyn_freq() {
+
+    # String to search for
+    str="^[\t ]*$1*[\t ]"
+
+    # Check number of matches where first string is start of line, allowing for
+    # whitespace before and require whitespace after. # matches should be one;
+    # otherwise exit with an error.
+    numlines=$(grep -c "$str" $2)
+    if [[ ${numlines} == "0" ]]; then
+       echo "ERROR: met-field $1 missing in $2"
+       #exit 1
+    elif [[ ${numlines} > 1 ]]; then
+       echo "ERROR: more than one entry in $1 in $2. Reduce to one so that read frequency can be auto-synced with dynamic timestep from setCommonRunSettings.sh."
+       exit 1
+    fi
+
+    # Get line number
+    x=$(grep -n "$str" $2)
+    linenum=${x%%:*}
+
+    # Get current ExtData.rc frequency read string
+    x=$(grep "$str" $2)
+    z=${x%%;*}
+    charnum=${#z}
+    currentstr=${x[0]:${charnum}+1:6}
+
+    # Replace string with configured dynamic timestep
+    sed -i "${linenum}s/${currentstr}/${TransConv_Timestep_HHMMSS}/" $2
+
+    # Print what just happened
+    if [[ ${verbose} = "1" ]]; then
+	printf '%-30s : %-20s %-20s\n' "$1 read frequency" "0;${TransConv_Timestep_HHMMSS}" "$2"
+    fi
+}
+
+###############################
+####   UPDATE FILES
+###############################
+
+print_msg " "
+print_msg "============================================================"
+print_msg "Auto-updating config files based on settings in setCommonRunSettings.sh"
+print_msg "============================================================"
+
+#### Set # nodes, # cores, and shared memory option
+print_msg " "
+print_msg "Compute resources:"
+print_msg "------------------"
+replace_val NX            ${NX}                 GCHP.rc
+replace_val NY            ${NY}                 GCHP.rc
+replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
+
+####  set cubed-sphere resolution and related grid variables
+print_msg " "
+print_msg "Cubed-sphere resolution:"
+print_msg "------------------------"
+CS_RES_x_6=$((CS_RES*6))
+replace_val GCHP.IM_WORLD  ${CS_RES}                     GCHP.rc
+replace_val GCHP.IM        ${CS_RES}                     GCHP.rc
+replace_val GCHP.JM        ${CS_RES_x_6}                 GCHP.rc
+replace_val IM             ${CS_RES}                     GCHP.rc
+replace_val JM             ${CS_RES_x_6}                 GCHP.rc
+replace_val GCHP.GRIDNAME  PE${CS_RES}x${CS_RES_x_6}-CF  GCHP.rc
+if [[ ${STRETCH_GRID} == "ON" ]]; then
+    print_msg " "
+    print_msg "WARNING: stretched grid is enabled"
+    uncomment_line GCHP.STRETCH_FACTOR           GCHP.rc
+    uncomment_line GCHP.TARGET_LAT               GCHP.rc
+    uncomment_line GCHP.TARGET_LON               GCHP.rc
+    sed -i -e "s|#\&fv#_core_nml|\&fv_core_nml|" input.nml
+    uncomment_line do_schmidt                    input.nml
+    uncomment_line stretch_fac                   input.nml
+    uncomment_line target_lat                    input.nml
+    uncomment_line target_lon                    input.nml
+    replace_val GCHP.STRETCH_FACTOR ${STRETCH_FACTOR}  GCHP.rc
+    replace_val stretch_fac         ${STRETCH_FACTOR}, input.nml =
+    replace_val GCHP.TARGET_LAT     ${TARGET_LAT}      GCHP.rc
+    replace_val target_lat          ${TARGET_LAT},     input.nml =
+    replace_val GCHP.TARGET_LON     ${TARGET_LON}      GCHP.rc
+    replace_val target_lon          ${TARGET_LON}/     input.nml =
+elif [[ ${STRETCH_GRID} == "OFF" ]]; then
+    comment_line GCHP.STRETCH_FACTOR             GCHP.rc
+    comment_line GCHP.TARGET_LAT                 GCHP.rc
+    comment_line GCHP.TARGET_LON                 GCHP.rc
+    sed -i -e "s|\&fv_core_nml|#\&fv#_core_nml|" input.nml
+    comment_line do_schmidt                      input.nml
+    comment_line stretch_fac                     input.nml
+    comment_line target_lat                      input.nml
+    comment_line target_lon                      input.nml
+else
+    print_msg "WARNING: unknown setting for GCHP.STRETCH_GRID."
+    exit 1
+fi
+
+#### Time settings. This includes updating ExtData.rc entries for PS2,
+#### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
+if [[ ${Model_Phase} == "FORWARD" ]]; then
+   Reverse_Time=0
+else
+   Reverse_Time=1
+fi
+print_msg " "
+print_msg "Time settings:"
+print_msg "--------------------------------"
+replace_val JOB_SGMT              "${Run_Duration}" CAP.rc
+replace_val MODEL_PHASE           "${Model_Phase}"  GCHP.rc
+replace_val REVERSE_TIME          "${Reverse_Time}" CAP.rc
+replace_val SFEmissions.backwards "${Reverse_Time}" HISTORY.rc
+replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  GCHP.rc
+replace_val SOLAR_DT      ${TransConv_Timestep_sec}  GCHP.rc
+replace_val IRRAD_DT      ${TransConv_Timestep_sec}  GCHP.rc
+replace_val RUN_DT        ${TransConv_Timestep_sec}  GCHP.rc
+replace_val GCHPchem_DT   ${ChemEmiss_Timestep_sec}  GCHP.rc
+replace_val RRTMG_DT      ${RRTMG_Timestep_sec}      GCHP.rc
+replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
+replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
+replace_val GCHPchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
+update_dyn_freq PS2   ExtData.rc
+update_dyn_freq SPHU2 ExtData.rc
+update_dyn_freq TMPU2 ExtData.rc
+
+##### Set commonly changed settings in GCHP.rc. For this simulation always
+##### turn advection off.
+print_msg " "
+print_msg "Components on/off:"
+print_msg "------------------"
+replace_val      "AdvCore_Advection" 0 GCHP.rc
+
+#### Set output frequency, duration, and mode
+if [[ ${AutoUpdate_Diagnostics} == "ON" ]]; then
+   print_msg " "
+   print_msg "Diagnostics:"
+   print_msg "------------"
+   if [[ ${#Diag_Collections[@]} > 0 ]]; then
+      for c in ${Diag_Collections[@]}; do
+         replace_val $c.monthly     ${Diag_Monthly}   HISTORY.rc
+         replace_val $c.frequency   ${Diag_Frequency} HISTORY.rc
+         replace_val $c.duration    ${Diag_Duration}  HISTORY.rc
+      done
+   fi
+else
+    print_msg "Auto-update of diagnostic settings in HISTORY.rc is turned off"
+fi
+
+#### Done
+print_msg " "
+print_msg "setCommonRunSettings.sh done"
+print_msg " "
