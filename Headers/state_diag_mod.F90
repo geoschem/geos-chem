@@ -12494,7 +12494,7 @@ CONTAINS
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
                                                State_Grid%NY,                &
                                                State_Chm%nAdvect,            &
-                                               3                 ), STAT=RC )
+                                               4                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF

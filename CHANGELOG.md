@@ -29,6 +29,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved species concentration unit conversions between mol/mol and kg/kg to start and end of every timestep in GEOS-Chem Classic to remove differences introduced when reading and writing restart files
 - Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
 - Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
+- Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
