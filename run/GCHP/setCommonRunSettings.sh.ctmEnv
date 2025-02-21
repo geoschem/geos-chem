@@ -11,9 +11,9 @@
 #------------------------------------------------
 # Total cores must be divisible by 6
 
-TOTAL_CORES=96
-NUM_NODES=2
-NUM_CORES_PER_NODE=48
+TOTAL_CORES=24
+NUM_NODES=1
+NUM_CORES_PER_NODE=24
 
 #------------------------------------------------
 #   GRID RESOLUTION
@@ -58,7 +58,7 @@ Run_Duration="00000001 000000"
 # Auto-update settings in HISTORY.rc for specific collections (enable with ON)
 # NOTE: you must add new collections to the list below to auto-update them.
 
-AutoUpdate_Diagnostics=OFF
+AutoUpdate_Diagnostics=ON
 
 # Instructions to auto-update diagnostics
 #   1. Set AutoUpdate_Diagnostics=ON:
