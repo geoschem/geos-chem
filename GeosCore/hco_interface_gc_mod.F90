@@ -4532,6 +4532,9 @@ CONTAINS
     REAL(fp), TARGET        :: dflx(State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Chm%nAdvect                       )
+    REAL(fp), TARGET        :: dvel(State_Grid%NX,                           &
+                                    State_Grid%NY,                           &
+                                    State_Chm%nAdvect                       )
 
     ! Pointers and Objects
     REAL(f4),       POINTER :: Ptr2D(:,:) => NULL()
@@ -4550,6 +4553,7 @@ CONTAINS
     RC      =  GC_SUCCESS
     dflx    =  0.0_fp
     eflx    =  0.0_fp
+    dvel    =  0.0_fp
     colEflx =  0.0_fp
     ThisSpc => NULL()
     errMsg  = ''
@@ -4746,6 +4750,9 @@ CONTAINS
              dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
                             * State_Chm%Species(NA)%Conc(I,J,1) &
                             / (AIRMW / ThisSpc%MW_g)  )
+             ! Get dry deposition velocity in cm/s:
+             dvel(I,J,NA) = dvel(I,J,NA) + ( dep * State_Met%BXHEIGHT(I,J,1) * &
+                                             1.0e+2_fp )
           ENDIF
         ENDIF
       ENDDO ! I
@@ -4807,6 +4814,9 @@ CONTAINS
                         * State_Chm%Species(N)%Conc(I,J,1)      &
                         /  ( AIRMW / ThisSpc%MW_g )
 
+          ! Get dry deposition velocity in cm/s:
+          dvel(I,J,N) = dvel(I,J,N) + ( State_Chm%DryDepFreq(I,J,ND) * &
+                                        State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
 
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
 
@@ -4827,7 +4837,9 @@ CONTAINS
 
           ! Free species database pointer
           ThisSpc => NULL()
+          
        ENDDO
+
 
        !=====================================================================
        ! Convert DFLX from 1/s to kg/m2/s
@@ -4860,12 +4872,11 @@ CONTAINS
        !=====================================================================
        ! Defining Satellite Diagnostics
        !=====================================================================
-
        ! Define emission satellite diagnostics
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
           DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
              N = State_Diag%Map_SatDiagnColEmis%slot2id(S)
-             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)
+             State_Diag%SatDiagnColEmis(I,J,S) = colEflx(I,J,N)
           ENDDO
        ENDIF
 
@@ -4876,7 +4887,7 @@ CONTAINS
        IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
           DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
              N = State_Diag%Map_SatDiagnSurfFlux%slot2id(S)
-             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+             State_Diag%SatDiagnSurfFlux(I,J,S) = State_Chm%SurfaceFlux(I,J,N)
           ENDDO
        ENDIF
 
@@ -4920,7 +4931,7 @@ CONTAINS
        ENDIF
 
     ENDDO
-    ENDDO
+    ENDDO 
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
@@ -4939,7 +4950,9 @@ CONTAINS
     ! so we don't need to do any further special handling.
     !=======================================================================
     IF ( Input_Opt%LGTMM              .or. Input_Opt%LSOILNOX          .or.  &
-         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
+         State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep   .or.  &
+         State_Diag%Archive_DryDepVel .or. &
+         State_Diag%Archive_SatDiagnDryDepVel     ) THEN
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
@@ -4983,16 +4996,46 @@ CONTAINS
           ENDIF
 
           !-----------------------------------------------------------------
+          ! HISTORY: Update dry deposition velocity [cm/s]
+          !
+          ! Here we save the dry deposition velocities (stored in the
+          ! DVEL array) into the DryDepVel and SatDiagnDryDepVel History
+          ! diagnostics.  This is necessary in order to capture the
+          ! air-sea deposition velocity computed by the HEMCO "SeaFlux"
+          ! extension for certain species.
+          !
+          ! When using the full PBL mixing option (aka TURBDAY), the
+          ! DryDepVel and SatDiagnDryDepVel diagnostics will be archived
+          ! in drydep_mod.F90 instead.
+          !-----------------------------------------------------------------
+
+          ! Dry deposition velocity [cm/s]
+          IF ( State_Diag%Archive_DryDepVel ) THEN
+             S = State_Diag%Map_DryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepVel(:,:,S) = dvel(:,:,N)
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic dry deposition velocity (cm/s):
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(:,:,S) = dvel(:,:,N)
+             ENDIF
+          ENDIF
+
+          !-----------------------------------------------------------------
           ! If Soil NOx is turned on, then call SOIL_DRYDEP to
           ! archive dry deposition fluxes for nitrogen species
           ! (SOIL_DRYDEP will exit if it can't find a match.
           !-----------------------------------------------------------------
           IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
-             !$OMP PARALLEL DO            &
-             !$OMP DEFAULT( SHARED       )&
-             !$OMP PRIVATE( I, J, tmpFlx )&
-             !$OMP COLLAPSE( 2 )
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, tmpFlx                                    )&
+             !$OMP COLLAPSE( 2                                              )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
                 tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
