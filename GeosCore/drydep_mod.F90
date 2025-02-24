@@ -339,8 +339,8 @@ CONTAINS
 #if !defined( MODEL_CESM )
     ! Call UPDATE_DRYDEPFREQ to update dry deposition frequencies [s-1]
     ! from dry deposition velocities [m/s].
-    CALL UPDATE_DRYDEPFREQ( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                           State_Met, RC )
+    CALL UPDATE_DRYDEPFREQ( Input_Opt,  State_Chm, State_Diag,               &
+                            State_Grid, State_Met, RC                       )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -610,9 +610,7 @@ CONTAINS
     !$OMP END PARALLEL DO
 
     ! Set diagnostics - consider moving?
-    IF ( State_Diag%Archive_DryDepVel           .or.                         &
-         State_Diag%Archive_DryDepVelForALT1    .or.                         &
-         State_Diag%Archive_SatDiagnDryDepVel ) THEN
+    IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
 
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
@@ -621,40 +619,6 @@ CONTAINS
 
           ! Point to State_Chm%DryDepVel [m/s]
           NDVZ = NDVZIND(D)
-
-          ! When using the full PBL mixing option (aka TURBDAY),
-          ! update DryDepVel and SatDiagnDryDepVel diagnostics here.
-          !
-          ! When using the non-local PBL mixing option (VDIFF), then
-          ! update these diagnostics in Compute_Sflx_for_Vdiff (in
-          ! GeosCore/hco_interface_gc_mod.F90).  This is necessary in
-          ! order to capture the air-sea deposition velocities computed
-          ! by the HEMCO "SeaFlux" extension.  For more information,
-          ! see https://github.com/geoschem/geos-chem/pull/2606 and
-          ! https://github.com/geoschem/geos-chem/issues/2564.
-          !
-          !  -- Bob Yantosca (03 Dec 2024)
-          IF ( .not. Input_Opt%LNLPBL ) THEN
-
-             ! Dry dep velocity [cm/s]
-             IF ( State_Diag%Archive_DryDepVel ) THEN
-                S = State_Diag%Map_DryDepVel%id2slot(D)
-                IF ( S > 0 ) THEN
-                   State_Diag%DryDepVel(:,:,S) =                             &
-                      State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-                ENDIF
-             ENDIF
-
-             ! Satellite diagnostic: Dry dep velocity [cm/s]
-             IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
-                S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
-                IF ( S > 0 ) THEN
-                   State_Diag%SatDiagnDryDepVel(:,:,S) =                     &
-                      State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-                ENDIF
-             ENDIF
-
-          ENDIF
 
           ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
           IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN

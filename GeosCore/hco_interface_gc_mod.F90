@@ -46,30 +46,31 @@ MODULE HCO_Interface_GC_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
   PUBLIC  :: HCOI_GC_Init
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
 #endif
 
   PUBLIC  :: HCOI_GC_WriteDiagn
-
   PUBLIC  :: Compute_Sflx_For_Vdiff
+  PUBLIC  :: Update_DryDepVel_for_Turbday
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
   PRIVATE :: ExtState_InitTargets
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
 #endif
+
   PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
   PRIVATE :: Get_Met_Fields
 #endif
 !
@@ -4745,18 +4746,19 @@ CONTAINS
         ! (ckeller, 04/01/2014)
         !------------------------------------------------------------------
         IF ( DepSpec ) THEN
-          CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
-          IF ( found ) THEN
+           CALL GetHcoValDep( Input_Opt, State_Grid, NA,    I,               &
+                              J,         1,          found, dep             )
+           IF ( found ) THEN
 
-             ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
-             dflx(I,J,NA) = dflx(I,J,NA) +                                   &
-                          + ( dep * State_Chm%Species(NA)%Conc(I,J,1)        &
-                                  / ( AIRMW / ThisSpc%MW_g                ) )
+              ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
+              dflx(I,J,NA) = dflx(I,J,NA) +                                  &
+                           + ( dep * State_Chm%Species(NA)%Conc(I,J,1)       &
+                                   / ( AIRMW / ThisSpc%MW_g               ) )
 
-             ! Sea-air deposition frequency [1/s] --> velocity [cm/s]
-             dvel(I,J,NA) = dvel(I,J,NA) +                                   &
-                            ( dep * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
-          ENDIF
+              ! Sea-air deposition frequency [1/s] --> velocity [cm/s]
+              dvel(I,J,NA) = dvel(I,J,NA) +                                  &
+                             ( dep * State_Met%BXHEIGHT(I,J,1) * 1.0e+2_fp )
+           ENDIF
         ENDIF
       ENDDO ! I
       ENDDO ! J
@@ -4842,7 +4844,6 @@ CONTAINS
           ThisSpc => NULL()
           
        ENDDO
-
 
        !=====================================================================
        ! Convert DFLX from 1/s to kg/m2/s
@@ -5092,5 +5093,224 @@ CONTAINS
     IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
 
   END SUBROUTINE Compute_Sflx_For_Vdiff
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Update_DryDepVel_for_TurbDay
+!
+! !DESCRIPTION: Adds the sea-air exchange deposition velocity (computed in
+!  the SeaFlux extension) to the dry deposition velocity (computed in
+!  drydep_mod.F90) and stores in the History diagnostics.  This is only
+!  needed when full PBL mixing (TURBDAY) is activated.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Update_DryDepVel_for_Turbday( Input_Opt,  State_Chm,            &
+                                           State_Diag, State_Grid,           &
+                                           State_Met,  RC                   )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValDep
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnMap
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State
+    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostics State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  When using the full PBL mixing option (aka TURBDAY), update DryDepVel
+!  and SatDiagnDryDepVel diagnostics here.
+!
+! !REVISION HISTORY:
+!  18 May 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: DepSpec,   found
+    INTEGER            :: I,         J
+    INTEGER            :: L,         N
+    INTEGER            :: NA,        ND
+    INTEGER            :: pbl_top_l, S
+    REAL(fp)           :: dep,       height
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg,    thisLoc
+
+    ! Arrays
+    REAL(fp)           :: dvel(State_Grid%NX,                                &
+                               State_Grid%NY,                                &
+                               State_Chm%nAdvect                            )
+
+    !=======================================================================
+    ! Update_DryDepVel_for_Turbday begins here!
+    !=======================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+    ' -> at Update_DryDepVel_for_Turbday (in module GeosCore/hco_interface_gc_mod.F90)'
+
+    !=======================================================================
+    ! Skip unless the drydep velocity History diagnostics are requested
+    !=======================================================================
+    IF ( State_Diag%Archive_DryDepVel          .or.                          &
+         State_Diag%Archive_SatDiagnDryDepVel ) THEN
+
+       ! Zero values
+       dvel = 0.0_fp
+
+       !=====================================================================
+       ! Add deposition values calculated in HEMCO.
+       !
+       ! The loop has been separated to go over N, J, I in order to optimize
+       ! for retrieving regridded data from HEMCO. There is only one regrid
+       ! buffer per field (dep, N) so these must not be intertwined,
+       ! or there will be a large performance penalty.
+       !=====================================================================
+       DO NA = 1, State_Chm%nAdvect
+
+          ! Get the modelId and drydep ID
+          N  = State_Chm%Map_Advect(NA)
+          ND = State_Chm%SpcData(N)%Info%DryDepId
+
+#ifdef MODEL_CESM
+          ! Do not apply for MODEL_CESM as its handled by
+          ! HEMCO-CESM independently
+          DepSpec = .FALSE.
+#else
+          ! Check if there is deposition for this species
+          CALL InquireHco( N, Dep=DepSpec )
+#endif
+
+          !------------------------------------------------------------------
+          ! If there is sea-air deposition velocity for this species,
+          ! it must be loaded into memory first.   This is achieved by
+          ! attempting to retrieve a grid box while NOT in a parallel loop.
+          ! Failure to load this will result in severe performance issues!!
+          ! (hplin, 9/27/20)
+          !---------------------------------------------------------------------
+          IF ( DepSpec ) THEN
+             CALL LoadHcoValDep( Input_Opt, State_Grid, N )
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Sea-air deposition frequency [1/s] --> velocity [cm/s]
+          !------------------------------------------------------------------
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, pbl_top_l, dep, height, L                    )&
+          !$OMP COLLAPSE( 2                                                 )
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+             ! Zero values
+             pbl_top_l  = 0
+             dep        = 0.0_fp
+             height     = 0.0_fp
+
+             ! Save sea-air dep velocity in to the DVEL array.  We must
+             ! use the full height of the PBL instead of the height of the
+             ! 1st layer (as is done for non-local PBL mixing).
+             IF ( DepSpec ) THEN
+                CALL GetHcoValDep( Input_Opt, State_Grid, N,     I,          &
+                                   J,         L,          found, dep        )
+
+                IF ( found ) THEN
+                   ! Determine depositon height [m] as is done in the HEMCO
+                   ! SeaFlux extension module (hcox_seaflux_mod.F90).
+                   pbl_top_l = 1
+                   IF ( Input_Opt%PBL_DRYDEP ) THEN
+                      DO L = State_Grid%NZ, 1, -1
+                         IF ( State_Met%F_OF_PBL(I,J,L) > 0.0_fp ) THEN
+                            pbl_top_l = L
+                            EXIT
+                         ENDIF
+                      ENDDO
+                   ENDIF
+                   height = SUM( State_Met%BXHEIGHT(I,J,1:pbl_top_l) )
+
+                   ! Apply the sea-air deposition velocity over the
+                   ! deposition height and convert from [m/s] to [cm/s],
+                   dvel(I,J,NA) = dvel(I,J,NA) + ( dep * height * 100.0_fp )
+                ENDIF
+             ENDIF
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+       ENDDO
+
+       !=====================================================================
+       ! Add the sea-air dep velocity and the drydep velocity computed
+       ! in drydep_mod.F90 to the appropriate History diagnostics.
+       !=====================================================================
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, ND, N, S                                        )&
+       !$OMP COLLAPSE( 3                                                    )
+       DO ND = 1, State_Chm%nDryDep
+       DO J  = 1, State_Grid%NY
+       DO I  = 1, State_Grid%NX
+
+          ! Get the species ID from the drydep ID
+          N = State_Chm%Map_DryDep(ND)
+          IF ( N <= 0 ) CYCLE
+
+          ! Add the drydep velocities [cm/s] computed in drydep_mod.F90
+          ! to the drydep velocities [cm/s] computed by the SeaFlux extension.
+          dvel(I,J,N) = dvel(I,J,N) + State_Chm%DryDepVel(I,J,ND) * 100.0_fp
+
+          ! Dry deposition velocity [cm/s]
+          IF ( State_Diag%Archive_DryDepVel ) THEN
+             S = State_Diag%Map_DryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepVel(I,J,S) = dvel(I,J,N)
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic dry deposition velocity (cm/s):
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(I,J,S) = dvel(I,J,N)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+    ENDIF
+
+  END SUBROUTINE Update_DryDepVel_for_Turbday
 !EOC
 END MODULE Hco_Interface_GC_Mod

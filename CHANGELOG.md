@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
+- Added routine `Update_DryDepVel_for_Turbday` to `hco_interface_gc_mod.F90`
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)

@@ -627,6 +627,7 @@ CONTAINS
     USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
     USE HCO_Interface_Common, ONLY : SetHcoTime
     USE HCO_Interface_GC_Mod, ONLY : Compute_Sflx_For_Vdiff
+    USE HCO_Interface_GC_Mod, ONLY : Update_DryDepVel_for_Turbday
 
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt
@@ -1282,6 +1283,10 @@ CONTAINS
        ! Only do the following for the non-local PBL mixing
        IF ( Input_Opt%LNLPBL ) THEN
 
+          !------------------------------------------------------------
+          ! %%%%% VDIFF (non-local PBL mixing %%%%%
+          !------------------------------------------------------------
+
           ! Once the initial met fields have been read in, we need to find
           ! the maximum PBL level for the non-local mixing algorithm.
           ! This only has to be done once. (bmy, 5/28/20)
@@ -1296,6 +1301,20 @@ CONTAINS
           CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm, State_Diag,    &
                                        State_Grid, State_Met, RC            )
           _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_SFLX_FOR_VDIFF')
+
+       ELSE
+
+          !------------------------------------------------------------
+          ! %%%%% TURBDAY (full PBL mixing) %%%%%
+          !------------------------------------------------------------
+
+          ! Update dry-deposition velocities for full PBL mixing
+          ! by adding the sea-air deposition velocity from HEMCO
+          CALL Update_DryDepVel_for_Turbday( Input_Opt,  State_Chm,    &
+                                             State_Diag, State_Grid,   & 
+                                             State_Met,  RC           )
+          _ASSERT(RC==GC_SUCCESS, 'Error calling UPDATE_DRYDEPVEL_FOR_TURBDAY')
+
        ENDIF
 
        ! Do mixing and apply tendencies. This will use the dynamic time step,

@@ -1380,21 +1380,52 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
 
-          ! Compute the surface flux for the non-local mixing,
-          ! (which means getting emissions & drydep from HEMCO)
-          ! and store it in State_Chm%Surface_Flux
-          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
-             CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,             &
-                                          State_Diag, State_Grid,            &
-                                          State_Met,  RC                    )
-             IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
-                CALL Error_Stop( errMsg, thisLoc )
-             ENDIF
-          ENDIF
+          IF ( Input_Opt%LTURB ) THEN
 
-          IF ( VerboseAndRoot ) THEN
-             CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+             IF ( Input_Opt%LNLPBL ) THEN
+
+                !------------------------------------------------------------
+                ! %%%%% VDIFF (non-local PBL mixing %%%%%
+                ! Compute the surface flux for the non-local mixing,
+                ! (which means getting emissions & drydep from HEMCO)
+                ! and store it in State_Chm%Surface_Flux
+                !------------------------------------------------------------
+                CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
+
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                   CALL Error_Stop( errMsg, thisLoc )
+                ENDIF
+
+                IF ( VerboseAndRoot ) THEN
+                   CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+                ENDIF
+
+             ELSE
+
+                !------------------------------------------------------------
+                ! %%%%% TURBDAY (full PBL mixing) %%%%%
+                ! Update dry-deposition velocities for full PBL mixing
+                ! by adding the sea-air deposition veloscity from HEMCO
+                !------------------------------------------------------------
+                CALL Update_DryDepVel_for_Turbday( Input_Opt,  State_Chm,    &
+                                                   State_Diag, State_Grid,   &
+                                                   State_Met,  RC           )
+
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = &
+                     'Error encountered in "Update_DryDepVel_for_Turbday"!'
+                   CALL Error_Stop( errMsg, thisLoc )
+                ENDIF
+
+                IF ( VerboseAndRoot ) THEN
+                   CALL Debug_Msg( '### MAIN: a Update_DryDepVel_for_Turbday' )
+                ENDIF
+
+             ENDIF
+
           ENDIF
 
           ! Note: mixing routine expects tracers in v/v
