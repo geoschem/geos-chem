@@ -299,11 +299,11 @@ CONTAINS
     ! Other local variables
     !------------------------------------------------------------------------
 
-    ! These are currently never set. Should they be output from Cloud-J?
-    REAL(fp) :: FJBOT(W_)
-    REAL(fp) :: FSBOT(W_)
-    REAL(fp) :: FLXD(L1_,W_)
-    REAL(fp) :: FJFLX(L_,W_)
+    ! To be retrieved from Cloud-J
+    REAL(fp) :: FJBOT(W_+W_r)
+    REAL(fp) :: FSBOT(W_+W_r)
+    REAL(fp) :: FLXD(L1_,W_+W_r)
+    REAL(fp) :: FJFLX(L_,W_+W_r)
 
     ! For UVFlux* diagnostics
     REAL(fp) :: FDIRECT (L1_)
@@ -945,7 +945,8 @@ CONTAINS
                       REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,     &
                       AERSP,    NDXAER,   L1_,      AN_,      JVN_,      &
                       VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,      &
-                      NICA,     JCOUNT,   LDARK,    WTQCA,    RC         )
+                      NICA,     JCOUNT,   LDARK,    WTQCA,    FSBOT,     &
+                      FJBOT,    FLXD,     FJFLX,    RC                   )
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -994,8 +995,6 @@ CONTAINS
              FDIRECT  = 0.0_fp
              FDIFFUSE = 0.0_fp
        
-             ! ewl: this is messed up. FSBOT and FJBOT aren't set.
-
              ! Direct & diffuse fluxes at each level
              FDIRECT(1)  = FSBOT(K)                    ! surface
              FDIFFUSE(1) = FJBOT(K)                    ! surface
