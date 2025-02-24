@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
 - Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
 - Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
+- Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
