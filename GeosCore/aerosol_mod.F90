@@ -830,7 +830,7 @@ CONTAINS
 
        ! Particulate matter < 10um [kg/m3]
        State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
-                     SOILDUST(I,J,L,4) * 0.454_fp
+                     SOILDUST(I,J,L,4) * 0.454_fp   + &
                      SOILDUST(I,J,L,5)              + &   
                      SOILDUST(I,J,L,6)              + &   ! 
                      SOILDUST(I,J,L,7) * 0.156_fp   + &   ! (D. Zhang, 02/28/2025)
