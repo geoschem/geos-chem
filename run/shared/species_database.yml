@@ -47,6 +47,125 @@ AERI:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
+DSTbin1_PROP: &DSTbin1properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.51e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+DSTbin2_PROP: &DSTbin2properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.53e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]
+DSTbin3_PROP: &DSTbin3properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 4.02e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+DSTbin4_PROP: &DSTbin4properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 8.18e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+DSTbin5_PROP: &DSTbin5properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.491e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+DSTbin6_PROP: &DSTbin6properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.417e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+DSTbin7_PROP: &DSTbin7properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 3.721e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
 DST1_PROP: &DST1properties
   DD_DustDryDep: true
   DD_F0: 0.0
@@ -1120,21 +1239,33 @@ DMS:
   Is_Advected: true
   Is_Aerosol: true
   MW_g: 62.13
-DST1:
-  << : *DST1properties
-  FullName: Dust aerosol, Reff = 0.7 microns
+DSTbin1:
+  << : *DSTbin1properties
+  FullName: Dust aerosol, Reff = 0.151 microns
   MW_g: 29.0
-DST2:
-  << : *DST2properties
-  FullName: Dust aerosol, Reff = 1.4 microns
+DSTbin2:
+  << : *DSTbin2properties
+  FullName: Dust aerosol, Reff = 0.253 microns
   MW_g: 29.0
-DST3:
-  << : *DST3properties
-  FullName: Dust aerosol, Reff = 2.4 microns
+DSTbin3:
+  << : *DSTbin3properties
+  FullName: Dust aerosol, Reff = 0.402 microns
   MW_g: 29.0
-DST4:
-  << : *DST4properties
-  FullName: Dust aerosol, Reff = 4.5 microns
+DSTbin4:
+  << : *DSTbin4properties
+  FullName: Dust aerosol, Reff = 0.818 microns
+  MW_g: 29.0
+DSTbin5:
+  << : *DSTbin5properties
+  FullName: Dust aerosol, Reff = 1.491 microns
+  MW_g: 29.0
+DSTbin6:
+  << : *DSTbin6properties
+  FullName: Dust aerosol, Reff = 2.417 microns
+  MW_g: 29.0
+DSTbin7:
+  << : *DSTbin7properties
+  FullName: Dust aerosol, Reff = 3.721 microns
   MW_g: 29.0
 DSTAL1:
   << : *DST1properties

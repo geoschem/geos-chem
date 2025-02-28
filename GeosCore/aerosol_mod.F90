@@ -826,14 +826,14 @@ CONTAINS
                      SOILDUST(I,J,L,1)              + &
                      SOILDUST(I,J,L,2)              + &
                      SOILDUST(I,J,L,3)              + &
-                     SOILDUST(I,J,L,4)              + &
-                     SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
+                     SOILDUST(I,J,L,4) * 0.546_fp      ! (D. Zhang, 02/28/2025)
 
        ! Particulate matter < 10um [kg/m3]
        State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
-                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
-                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
-                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
+                     SOILDUST(I,J,L,4) * 0.454_fp
+                     SOILDUST(I,J,L,5)              + &   
+                     SOILDUST(I,J,L,6)              + &   ! 
+                     SOILDUST(I,J,L,7) * 0.156_fp   + &   ! (D. Zhang, 02/28/2025)
                      State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
 
        ! Include either simple SOA (default) or Complex SOA in
@@ -946,8 +946,7 @@ CONTAINS
           State_Diag%PM25du(I,J,L) = ( SOILDUST(I,J,L,1)           &
                                    +   SOILDUST(I,J,L,2)           &
                                    +   SOILDUST(I,J,L,3)           &
-                                   +   SOILDUST(I,J,L,4)           &
-                                   +   SOILDUST(I,J,L,5) * 0.38  ) &
+                                   +   SOILDUST(I,J,L,4) * 0.546 ) & ! (D. Zhang, 02/28/2025)
                                    * ( 1013.25_fp  / PMID(I,J,L) ) &
                                    * ( T(I,J,L)    / 298.0_fp    ) &
                                    * 1.0e+9_fp
