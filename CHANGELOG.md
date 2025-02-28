@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated rundir scripts to print a reminder to compile with `-DKPPSA=y` to build the KPP-Standalone executable
 - Updated `integrationTestCreate.sh` and `parallelTestCreate.sh` scripts to decline building the KPP-Standalone.
 - Changed CESM HEMCO_Config.rc to read 3D AEIC emissions every timestep to avoid differences upon restart
+- Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
 
 ### Fixed
 - Fixed GCHP refresh time for `CO2_WEEKLY` scale factors so updated daily
