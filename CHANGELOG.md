@@ -22,6 +22,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
+- Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
+- Changed the minimum KPP version to 3.2.0
   
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
