@@ -303,7 +303,7 @@ CONTAINS
     REAL(fp) :: FJBOT(W_+W_r)
     REAL(fp) :: FSBOT(W_+W_r)
     REAL(fp) :: FLXD(L1_,W_+W_r)
-    REAL(fp) :: FJFLX(L_,W_+W_r)
+    REAL(fp) :: FJFLX(L1_,W_+W_r)
 
     ! For UVFlux* diagnostics
     REAL(fp) :: FDIRECT (L1_)
