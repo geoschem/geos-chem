@@ -1277,7 +1277,7 @@ CONTAINS
     ! Index for dust in ODAER and LUT arrays
     IDST      = 8
 
-    ! Get dust density from species database (assume dust bin ID is contineous)
+    ! Get dust density from species database (assume dust bin ID is contiguous)
     DO N = 1, NDUST
       MSDENS(N) = State_Chm%SpcData(id_DSTbin1+N-1)%Info%Density
     ENDDO

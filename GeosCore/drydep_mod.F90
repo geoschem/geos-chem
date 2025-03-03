@@ -90,7 +90,7 @@ MODULE DRYDEP_MOD
 !  (14) Wesely, M. L., Parameterization of surface resistance to gaseous dry
 !        deposition in regional-scale numerical models.  Atmos. Environ., 23
 !        1293-1304, 1989.
-!  (15) Price, H., L. Jaegl�, A. Rice, P. Quay, P.C. Novelli, R. Gammon,
+!  (15) Price, H., L. Jaeglé, A. Rice, P. Quay, P.C. Novelli, R. Gammon,
 !        Global Budget of Molecular Hydrogen and its Deuterium Content:
 !        Constraints from Ground Station, Cruise, and Aircraft Observations,
 !        submitted to J. Geophys. Res., 2007.
@@ -1784,7 +1784,8 @@ CONTAINS
                 ! Particle diameter, convert [m] -> [um]
                 DIAM  = A_RADI(K) * 2.e+0_f8
                 
-               ! Redudant since Reff is dedined in species database? (D. Zhang, 28 Jun, 2024)
+                ! Redundant since Reff is dedined in species database. 
+                ! I think it is easier and more consistent to change species database if needed (D. Zhang, 28 Jun, 2024)
                !  IF ( K == idd_DST1  .or. K == idd_DSTAL1 .or.               &
                !       K == idd_NITD1 .or. K == idd_SO4D1       ) THEN
                !     DIAM = 0.66895E-6
@@ -4524,7 +4525,8 @@ CONTAINS
     DP    = DIAM * 1.e+6_f8
 
     ! Constant for settling velocity calculation
-    CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8
+    CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8 
+    ! Add effects of dust nonsphericity for gravitational settling (D. Zhang, Mar 3, 2025)
 
     !=================================================================
     !   # air molecule number density
