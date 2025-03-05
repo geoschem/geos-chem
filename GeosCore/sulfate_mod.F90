@@ -3263,8 +3263,8 @@ CONTAINS
 #else
           DUST = ( (Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + &
                     Spc(id_DSTbin3)%Conc(I,J,L) + Spc(id_DSTbin4)%Conc(I,J,L))*0.7_fp + &
-                    Spc(id_DST5)%Conc(I,J,L) +          &
-                   Spc(id_DST6)%Conc(I,J,L)        + Spc(id_DST7)%Conc(I,J,L)   )        &
+                    Spc(id_DSTbin5)%Conc(I,J,L) +          &
+                   Spc(id_DSTbin6)%Conc(I,J,L)        + Spc(id_DSTbin7)%Conc(I,J,L)   )        &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
                / ( AIRMW   / State_Chm%SpcData(id_DSTbin1)%Info%MW_g )          &
                / State_Met%AIRVOL(I,J,L)
