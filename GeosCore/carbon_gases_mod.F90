@@ -27,7 +27,7 @@ MODULE Carbon_Gases_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-  PUBLIC :: Emiss_Carbon_Gases
+  PUBLIC :: CO2_Production
   PUBLIC :: Chem_Carbon_Gases
   PUBLIC :: Init_Carbon_Gases
   PUBLIC :: Cleanup_Carbon_Gases
@@ -67,16 +67,16 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: emiss_carbon_gases
+! !IROUTINE: co2_production
 !
-! !DESCRIPTION: Places emissions of CH4, CO, CO2, OCS [kg] into the
-!  chemical species array.
+! !DESCRIPTION: Places CO2 production from CO oxidation into the chemical
+!  species array.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Emiss_Carbon_Gases( Input_Opt,  State_Chm, State_Diag,            &
-                                 State_Grid, State_Met, RC                    )
+  SUBROUTINE CO2_Production( Input_Opt,  State_Chm, State_Diag,            &
+                             State_Grid, State_Met, RC                    )
 !
 ! !USES:
 !
@@ -112,11 +112,14 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
+    ! SAVEd scalars
+    LOGICAL, SAVE          :: FIRST = .TRUE.
+
     ! Scalars
     LOGICAL                :: prtDebug
     INTEGER                :: I,        J
     INTEGER                :: L,        N
-    REAL(fp)               :: dtSrce,   E_CO2
+    REAL(fp)               :: dtSrce,   P_CO2
 
     ! Strings
     CHARACTER(LEN=255)     :: thisLoc
@@ -142,7 +145,7 @@ CONTAINS
     REAL(fp),    PARAMETER :: xnumol_C = AVO / 12.0e-3_fp
 
     !========================================================================
-    ! Emiss_Carbon_Gases begins here!
+    ! CO2_Production begins here!
     !========================================================================
 
     ! Initialize
@@ -151,7 +154,7 @@ CONTAINS
     Spc      => NULL()
     errMsg   =  ''
     thisLoc  =  &
-     ' -> at Emiss_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
+     ' -> at CO2_production (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Exit with error if we can't find the HEMCO state object
     IF ( .NOT. ASSOCIATED( HcoState ) ) THEN
@@ -166,7 +169,15 @@ CONTAINS
     !========================================================================
     ! CO2 production from CO oxidation
     !========================================================================
-    IF ( Input_Opt%LCHEMCO2 .and. id_CO2_adv > 0 ) THEN
+
+    ! If CO2 is an advected species but CO is not, use CO2_COPROD field
+    ! from HEMCO. Otherwise compute CO2 production via KPP.
+    IF ( id_CO2_adv > 0 .and. id_CO_adv <= 0 ) THEN
+
+       IF ( Input_Opt%amIRoot .and. FIRST ) THEN
+          WRITE( 6, 100 )
+100       FORMAT( 'Carbon_Gases: Applying production of CO2 from CO from file')
+       ENDIF
 
        ! Point to chemical species array [kg/kg dry air]
        Spc => State_Chm%Species
@@ -183,14 +194,14 @@ CONTAINS
        ! Loop over all grid boxes
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L, E_CO2, N                                     )&
+       !$OMP PRIVATE( I, J, L, P_CO2, N                                     )&
        !$OMP COLLAPSE( 3                                                    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
           ! Production is in [kg C/m3], convert to [molec/cm2/s]
-          E_CO2 = PCO2_fr_CO(I,J,L)                       & ! kg/m3
+          P_CO2 = PCO2_fr_CO(I,J,L)                       & ! kg/m3
                   / CM3perM3                              & ! => kg/cm3
                   * xnumol_C                              & ! => molec/cm3
                   / dtSrce                                & ! => molec/cm3/s
@@ -202,7 +213,7 @@ CONTAINS
           ! Save production of CO2 from CO oxidation [kg/m2/s]
           !------------------------------------------------------------------
           IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-             State_Diag%ProdCO2fromCO(I,J,L) = E_CO2       & ! molec/cm2/s
+             State_Diag%ProdCO2fromCO(I,J,L) = P_CO2       & ! molec/cm2/s
                                              / xnumol_CO2  & ! => kg/cm2/s
                                              * CM2perM2      ! => kg/m2/s
 
@@ -210,13 +221,13 @@ CONTAINS
 
           ! Convert emissions from [molec/cm2/s] to [kg/kg dry air]
           ! (ewl, 9/11/15)
-          E_CO2  =  E_CO2 * DTSRCE * CM2perM2 /                              &
+          P_CO2  =  P_CO2 * DTSRCE * CM2perM2 /                              &
                     ( XNUMOL_CO2 * State_Met%DELP(I,J,L)                     &
                     * G0_100 * ( 1.0e+0_fp                                   &
                     - State_Met%SPHU(I,J,L) * 1.0e-3_fp )                   )
 
           ! Total CO2 [kg/kg dry air]
-          Spc(id_CO2)%Conc(I,J,L) = Spc(id_CO2)%Conc(I,J,L) + E_CO2
+          Spc(id_CO2)%Conc(I,J,L) = Spc(id_CO2)%Conc(I,J,L) + P_CO2
 
        ENDDO
        ENDDO
@@ -227,11 +238,14 @@ CONTAINS
        Spc => NULL()
     ENDIF
 
+    ! Reset first-time flag
+    FIRST = .FALSE.
+
     ! Free pointers for safety's sake
     Spc   => NULL()
     Ptr2D => NULL()
 
-  END SUBROUTINE Emiss_Carbon_Gases
+  END SUBROUTINE CO2_Production
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -283,25 +297,6 @@ CONTAINS
 !
     INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
 !
-! !REMARKS:
-!  CH4 SOURCES
-!  ============================================================================
-!  (1 ) Oxidation of methane, isoprene and monoterpenes (SRCO_fromHCs).
-!  (2 ) Direct emissions of CO from fossil fuel combustion, biomass
-!        burning and wood (for fuel) burning (SR SETEMIS).
-!  (3 ) Emissions.
-!                                                                             .
-!  CH4 SINKS:
-!  ============================================================================
-!  (1 ) Removal of CO by OH (SR OHparam & CO_decay).
-!  (2 ) CO uptake by soils (neglected).
-!  (3 ) Transport of CO to stratosphere from troposphere
-!        (in dynamical subroutines).
-!  (4 ) Removal by OH (Clarissa's OH--climatol_OH.f and CO_decay.f)
-!  (5 ) Transport of CH4 between troposphere and stratosphere, and
-!        destruction in strat (CH4_strat.f).
-!  (6 ) Removel by Cl
-!
 ! !REVISION HISTORY:
 !EOP
 !------------------------------------------------------------------------------
@@ -310,7 +305,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    LOGICAL                :: first = .TRUE.
+    LOGICAL, SAVE          :: first = .TRUE.
 
     ! Scalars
     LOGICAL                :: failed
@@ -368,11 +363,14 @@ CONTAINS
        ENDIF
 
        ! Determine which OH oxidant field we are using
-       CALL InquireGlobalOHversion( Input_Opt, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = 'Error encountered in "InquireGlobalOHversion"!'
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
+       ! OH is only needed when CH4 or CO are included in the carbon species
+       IF ( id_CH4_adv > 0 .or. id_CO_adv > 0 ) THEN
+          CALL InquireGlobalOHversion( Input_Opt, RC )
+          IF ( RC /= GC_SUCCESS ) THEN
+             errMsg = 'Error encountered in "InquireGlobalOHversion"!'
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
        ENDIF
 
        ! Reset first-time flag
@@ -420,10 +418,15 @@ CONTAINS
     ! Compute OH diurnal cycle scaling factor
     ! (this scales OH by the position of the sun, and zeroes it at night)
     !========================================================================
-    CALL Calc_Diurnal(                                                       &
-         State_Grid   = State_Grid,                                          &
-         State_Met    = State_Met,                                           &
-         OHdiurnalFac = OHdiurnalFac                                        )
+    ! OH is only needed when CH4 or CO are included in the carbon species
+    IF ( id_CH4_adv > 0 .or. id_CO_adv > 0 ) THEN
+
+       CALL Calc_Diurnal(                                                    &
+            State_Grid   = State_Grid,                                       &
+            State_Met    = State_Met,                                        &
+            OHdiurnalFac = OHdiurnalFac                                     )
+
+    ENDIF
 
     !========================================================================
     ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
@@ -452,201 +455,201 @@ CONTAINS
        ENDDO
        ENDDO
        !$OMP END PARALLEL DO
+
     ENDIF
 
-    !========================================================================
-    ! Main chemistry loop -- call KPP to integrate the mechanism forward
-    !========================================================================
-
-    ! KPP forward-Euler integrator settings
-    ICNTRL     =  0
-    ICNTRL(1)  =  1   ! Verbose error output
-    ICNTRL(2)  =  0   ! Stop model on negative values
-    ICNTRL(15) = -1   ! Do not call Update_SUN, Update_RCONST w/in integrator
-
-    ! Set a flag to denote if the chemistry failed
-    failed     = .FALSE.
-
-    ! Loop over grid boxes
-    !$OMP PARALLEL DO                                                        &
-    !$OMP DEFAULT( SHARED                                                   )&
-    !$OMP PRIVATE( I, J, L, N                                               )&
-    !$OMP COLLAPSE( 3                                                       )&
-    !$OMP SCHEDULE( DYNAMIC, 24                                             )
-    DO L = 1, State_Grid%NZ
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
-
-       ! Initialize PRIVATE and THREADPRIVATE loop variables
-       C              = 0.0_dp                    ! Species conc. [molec/cm3]
-       CFACTOR        = 1.0_dp                    ! Not used, set = 1
-       k_Strat        = 0.0_dp                    ! Rate in stratosphere [1/s]
-       k_Trop         = 0.0_dp                    ! Rate in troposphere  [1/s]
-       NUMDEN         = State_Met%AIRNUMDEN(I,J,L)! Air density [molec/cm3]
-       TROP           = 0.0_dp                    ! Toggle for reaction
-       TEMP           = State_Met%T(I,J,L)        ! Temperature [K]
-       INV_TEMP       = 1.0_dp / TEMP             ! 1/T  term for equations
-       TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
-       K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
-       SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
+    ! Do not call KPP if neither CH4 or CO are advected species
+    IF ( id_CH4_adv > 0 .or. id_CO_adv > 0 ) THEN
 
        !=====================================================================
-       ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
+       ! Main chemistry loop -- call KPP to integrate the mechanism forward
        !=====================================================================
 
-       ! Convert units
-       CALL carbon_ConvertKgtoMolecCm3(                                      &
-            I          = I,                                                  &
-            J          = J,                                                  &
-            L          = L,                                                  &
-            id_CH4     = id_CH4,                                             &
-            id_CO      = id_CO,                                              &
-            id_CO2     = id_CO2,                                             &
-            xnumol_CH4 = xnumol_CH4,                                         &
-            xnumol_CO  = xnumol_CO,                                          &
-            xnumol_CO2 = xnumol_CO2,                                         &
-            State_Met  = State_Met,                                          &
-            State_Chm  = State_Chm                                          )
+       ! KPP forward-Euler integrator settings
+       ICNTRL     =  0
+       ICNTRL(1)  =  1   ! Verbose error output
+       ICNTRL(2)  =  0   ! Stop model on negative values
+       ICNTRL(15) = -1   ! Do not call Update_SUN, Update_RCONST w/in integrator
 
-       !===================================================================
-       ! Update reaction rates
-       !===================================================================
+       ! Set a flag to denote if the chemistry failed
+       failed     = .FALSE.
 
-       ! Compute the rate constants that will be used
-       CALL carbon_ComputeRateConstants(                                     &
-            I                = I,                                            &
-            J                = J,                                            &
-            L                = L,                                            &
-            dtChem           = dtChem,                                       &
-            ConcClMnd        = Global_Cl(I,J,L),                             &
-            ConcOHmnd        = Global_OH(I,J,L),                             &
-            LCH4_by_OH       = LCH4_by_OH(I,J,L),                            &
-            LCO_in_Strat     = LCO_in_Strat(I,J,L),                          &
-            OHdiurnalFac     = OHdiurnalFac(I,J),                            &
-            PCO_in_Strat     = PCO_in_Strat(I,J,L),                          &
-            PCO_fr_CH4_use   = Input_Opt%LPCO_CH4,                           &
-            PCO_fr_CH4       = PCO_fr_CH4(I,J,L),                            &
-            PCO_fr_NMVOC_use = Input_Opt%LPCO_NMVOC,                         &
-            PCO_fr_NMVOC     = PCO_fr_NMVOC(I,J,L),                          &
-            State_Met        = State_Met,                                    &
-            State_Chm        = State_Chm                                    )
+       ! Loop over grid boxes
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N                                            )&
+       !$OMP COLLAPSE( 3                                                    )&
+       !$OMP SCHEDULE( DYNAMIC, 24                                          )
+       DO L = 1, State_Grid%NZ
+       DO J = 1, State_Grid%NY
+       DO I = 1, State_Grid%NX
 
-       ! Update the array of rate constants for the KPP solver
-       CALL Update_RCONST()
+          ! Initialize PRIVATE and THREADPRIVATE loop variables
+          C              = 0.0_dp                    ! Species conc. [molec/cm3]
+          CFACTOR        = 1.0_dp                    ! Not used, set = 1
+          k_Strat        = 0.0_dp                    ! Rate in stratosphere[1/s]
+          k_Trop         = 0.0_dp                    ! Rate in troposphere [1/s]
+          NUMDEN         = State_Met%AIRNUMDEN(I,J,L)! Air density [molec/cm3]
+          TROP           = 0.0_dp                    ! Toggle for reaction
+          TEMP           = State_Met%T(I,J,L)        ! Temperature [K]
+          INV_TEMP       = 1.0_dp / TEMP             ! 1/T  term for equations
+          TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
+          K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
+          SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
 
-       !=====================================================================
-       ! Call the KPP integrator
-       !=====================================================================
+          ! Convert species to molec/cm3 for the KPP solver
+          CALL carbon_ConvertKgtoMolecCm3(                                   &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               id_CH4     = id_CH4,                                          &
+               id_CO      = id_CO,                                           &
+               id_CO2     = id_CO2,                                          &
+               xnumol_CH4 = xnumol_CH4,                                      &
+               xnumol_CO  = xnumol_CO,                                       &
+               xnumol_CO2 = xnumol_CO2,                                      &
+               State_Met  = State_Met,                                       &
+               State_Chm  = State_Chm                                       )
 
-       ! Integrate the mechanism forward in time
-       CALL Integrate(                                                       &
-            TIN      = 0.0_dp,                                               &
-            TOUT     = dtChem,                                               &
-            ICNTRL_U = ICNTRL,                                               &
-            IERR_U   = IERR                                                 )
+          !================================================================
+          ! Update reaction rates
+          !================================================================
 
-       ! Trap potential errors
-       IF ( IERR /= 1 ) failed = .TRUE.
+          ! Compute the rate constants that will be used
+          CALL carbon_ComputeRateConstants(                                  &
+               I                = I,                                         &
+               J                = J,                                         &
+               L                = L,                                         &
+               dtChem           = dtChem,                                    &
+               ConcClMnd        = Global_Cl(I,J,L),                          &
+               ConcOHmnd        = Global_OH(I,J,L),                          &
+               LCH4_by_OH       = LCH4_by_OH(I,J,L),                         &
+               LCO_in_Strat     = LCO_in_Strat(I,J,L),                       &
+               OHdiurnalFac     = OHdiurnalFac(I,J),                         &
+               PCO_in_Strat     = PCO_in_Strat(I,J,L),                       &
+               PCO_fr_CH4_use   = Input_Opt%LPCO_CH4,                        &
+               PCO_fr_CH4       = PCO_fr_CH4(I,J,L),                         &
+               PCO_fr_NMVOC_use = Input_Opt%LPCO_NMVOC,                      &
+               PCO_fr_NMVOC     = PCO_fr_NMVOC(I,J,L),                       &
+               State_Met        = State_Met,                                 &
+               State_Chm        = State_Chm                                 )
 
-       !=====================================================================
-       ! HISTORY: Archive KPP solver diagnostics
-       !=====================================================================
-       IF ( State_Diag%Archive_KppDiags ) THEN
+          ! Update the array of rate constants for the KPP solver
+          CALL Update_RCONST()
 
-          ! # of integrator calls
-          IF ( State_Diag%Archive_KppIntCounts ) THEN
-             State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+          !==================================================================
+          ! Call the KPP integrator
+          !=====================================================================
+
+          ! Integrate the mechanism forward in time
+          CALL Integrate(                                                    &
+               TIN      = 0.0_dp,                                            &
+               TOUT     = dtChem,                                            &
+               ICNTRL_U = ICNTRL,                                            &
+               IERR_U   = IERR                                              )
+
+          ! Trap potential errors
+          IF ( IERR /= 1 ) failed = .TRUE.
+
+          !==================================================================
+          ! HISTORY: Archive KPP solver diagnostics
+          !==================================================================
+          IF ( State_Diag%Archive_KppDiags ) THEN
+
+             ! # of integrator calls
+             IF ( State_Diag%Archive_KppIntCounts ) THEN
+                State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+             ENDIF
+
+             ! # of times Jacobian was constructed
+             IF ( State_Diag%Archive_KppJacCounts ) THEN
+                State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
+             ENDIF
+
+             ! # of internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
+             ENDIF
+
+             ! # of accepted internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
+             ENDIF
+
+             ! # of rejected internal timesteps
+             IF ( State_Diag%Archive_KppTotSteps ) THEN
+                State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
+             ENDIF
+
+             ! # of LU-decompositions
+             IF ( State_Diag%Archive_KppLuDecomps ) THEN
+                State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
+             ENDIF
+
+             ! # of forward and backwards substitutions
+             IF ( State_Diag%Archive_KppSubsts ) THEN
+                State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+             ENDIF
+
+             ! # of singular-matrix decompositions
+             IF ( State_Diag%Archive_KppSmDecomps ) THEN
+                State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+             ENDIF
           ENDIF
 
-          ! # of times Jacobian was constructed
-          IF ( State_Diag%Archive_KppJacCounts ) THEN
-             State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
-          ENDIF
+          ! Convert species back to kg
+          CALL carbon_ConvertMolecCm3ToKg(                                   &
+               I            = I,                                             &
+               J            = J,                                             &
+               L            = L,                                             &
+               id_CH4       = id_CH4,                                        &
+               id_CO        = id_CO,                                         &
+               id_CO2       = id_CO2,                                        &
+               xnumol_CO    = xnumol_CO,                                     &
+               xnumol_CH4   = xnumol_CH4,                                    &
+               xnumol_CO2   = xnumol_CO2,                                    &
+               State_Chm    = State_Chm,                                     &
+               State_Met    = State_Met                                     )
 
-          ! # of internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
-             State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
-          ENDIF
+          !==================================================================
+          ! HISTORY (aka netCDF diagnostics)
+          !
+          ! Production and loss of CO
+          !
+          ! NOTE: Call functions in KPP/carbon/carbon_Funcs.F90 so
+          ! that we avoid bringing in KPP species indices into this module.
+          ! This avoids compile-time dependency errors.
+          !=====================================================================
 
-          ! # of accepted internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
-             State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
-          ENDIF
-
-          ! # of rejected internal timesteps
-          IF ( State_Diag%Archive_KppTotSteps ) THEN
-             State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
-          ENDIF
-
-          ! # of LU-decompositions
-          IF ( State_Diag%Archive_KppLuDecomps ) THEN
-             State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
-          ENDIF
-
-          ! # of forward and backwards substitutions
-          IF ( State_Diag%Archive_KppSubsts ) THEN
-             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
-          ENDIF
-
-          ! # of singular-matrix decompositions
-          IF ( State_Diag%Archive_KppSmDecomps ) THEN
-             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
-          ENDIF
-       ENDIF
-
-       ! Convert CO, CO2, CH4 to molec/cm3 for the KPP solver
-       CALL carbon_ConvertMolecCm3ToKg(                                      &
-            I            = I,                                                &
-            J            = J,                                                &
-            L            = L,                                                &
-            id_CH4       = id_CH4,                                           &
-            id_CO        = id_CO,                                            &
-            id_CO2       = id_CO2,                                           &
-            xnumol_CO    = xnumol_CO,                                        &
-            xnumol_CH4   = xnumol_CH4,                                       &
-            xnumol_CO2   = xnumol_CO2,                                       &
-            State_Chm    = State_Chm,                                        &
-            State_Met    = State_Met                                        )
-
-       !=====================================================================
-       ! HISTORY (aka netCDF diagnostics)
-       !
-       ! Production and loss of CO
-       !
-       ! NOTE: Call functions in KPP/carbon/carbon_Funcs.F90 so
-       ! that we avoid bringing in KPP species indices into this module.
-       ! This avoids compile-time dependency errors.
-       !=====================================================================
-
-       ! Production of CO2 from CO oxidation [molec/cm3/s]
-       IF ( Input_Opt%LCHEMCO2 ) THEN
+          ! Production of CO2 from CO oxidation [molec/cm3/s]
           IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
              State_Diag%ProdCO2fromCO(I,J,L) =                               &
-                carbon_Get_CO2fromOH_Flux( dtChem )
+                  carbon_Get_CO2fromOH_Flux( dtChem )
           ENDIF
+       
+          ! Production of CO from CH4
+          IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+             State_Diag%ProdCOfromCH4(I,J,L) =                               &
+                  carbon_Get_COfromCH4_Flux( dtChem )
+          ENDIF
+
+          ! Units: [kg/s] Production of CO from NMVOCs
+          IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+             State_Diag%ProdCOfromNMVOC(I,J,L) =                             &
+                  carbon_Get_COfromNMVOC_Flux( dtChem )
+          ENDIF
+
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+       IF ( failed ) THEN
+          errMsg = 'KPP integration failed!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
 
-       ! Production of CO from CH4
-       IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-          State_Diag%ProdCOfromCH4(I,J,L) =                                  &
-             carbon_Get_COfromCH4_Flux( dtChem )
-       ENDIF
-
-       ! Units: [kg/s] Production of CO from NMVOCs
-       IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-          State_Diag%ProdCOfromNMVOC(I,J,L) =                                &
-             carbon_Get_COfromNMVOC_Flux( dtChem )
-       ENDIF
-
-    ENDDO
-    ENDDO
-    ENDDO
-    !$OMP END PARALLEL DO
-
-    IF ( failed ) THEN
-       errMsg = 'KPP integration failed!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
     ENDIF
 
     ! Free pointers for safety's sake
@@ -744,119 +747,145 @@ CONTAINS
     thisLoc = &
      ' -> at ReadInputChemFields (in module GeosCore/carbon_gases_mod.F90)'
 
-    !------------------------------------------------------------------------
-    ! Loss frequencies of CH4
-    ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
-    !------------------------------------------------------------------------
-    DgnName = 'CH4_LOSS'
-    CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                    &
-                         LCH4_by_OH, RC,         found=found                )
-    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Initialize fields to zero
+    Global_OH    = 0.0_fp
+    Global_Cl    = 0.0_fp
+    LCH4_by_OH   = 0.0_fp
+    LCO_in_Strat = 0.0_fp
+    PCO_in_Strat = 0.0_fp
+    PCO_fr_CH4   = 0.0_fp
+    PCO_fr_NMVOC = 0.0_fp
 
-    !------------------------------------------------------------------------
-    ! Cl concentration:
-    ! Input via HEMCO ("SpeciesConc" collection) as [mol/mol dry]
-    ! Convert to [molec/cm3] below
-    !------------------------------------------------------------------------
-    DgnName = 'GLOBAL_Cl'
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                     &
-                         Global_Cl, RC,         found=found                 )
-    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
+    ! Fields only needed if CH4 is an advected species
+    IF ( id_CH4_adv > 0 ) THEN
 
-    ! Convert orignal units [mol/mol dry air] to [molec/cm3]
-    Global_Cl = ( Global_Cl * State_Met%AirDen ) * toMolecCm3
-
-    !------------------------------------------------------------------------
-    ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
-    !------------------------------------------------------------------------
-    IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
-
-       ! NOTE: Container name is GLOBAL_OH for both data sets!
-       DgnName = 'GLOBAL_OH'
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,               &
-                            Global_OH, RC,         found=found           )
+       !------------------------------------------------------------------------
+       ! Loss frequencies of CH4
+       ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
+       !------------------------------------------------------------------------
+       DgnName = 'CH4_LOSS'
+       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                 &
+                            LCH4_by_OH, RC,         found=found             )
        IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
           errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
-    ENDIF
 
-    ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
-    ! then convert OH [mol/mol dry air] to [molec/cm3].
-    IF ( useGlobOHbmk10yr ) THEN
-       Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
-    ENDIF
+       !------------------------------------------------------------------------
+       ! Cl concentration:
+       ! Input via HEMCO ("SpeciesConc" collection) as [mol/mol dry]
+       ! Convert to [molec/cm3] below
+       !------------------------------------------------------------------------
 
-    ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
-    ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
-    IF ( useGlobOHv5 ) THEN
-       Global_OH = Global_OH * xnumol_OH / CM3perM3
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from GMI:
-    ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
-    ! Units will be converted in carbon_ComputeRateConstants
-    !------------------------------------------------------------------------
-    DgnName = 'GMI_PROD_CO'
-    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
-                         PCO_in_Strat, RC,         found=found              )
-    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-       errMsg = 'Cannot get pointer to ' // TRIM( DgnName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! L(CO) from GMI
-    ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
-    !------------------------------------------------------------------------
-    DgnName = 'GMI_LOSS_CO'
-    CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,                  &
-                         LCO_in_Strat, RC,         found=found              )
-    IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
-       errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! P(CO) from CH4
-    ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_CH4 ) THEN
-       DgnName = 'PCO_CH4'
-       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                  &
-                            PCO_fr_CH4, RC,         found=found              )
+       DgnName = 'GLOBAL_Cl'
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,                  &
+                            Global_Cl, RC,         found=found              )
        IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
           errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       ! Convert orignal units [mol/mol dry air] to [molec/cm3]
+       Global_Cl = ( Global_Cl * State_Met%AirDen ) * toMolecCm3
+
     ENDIF
 
-    !------------------------------------------------------------------------
-    ! P(CO) from NMVOC
-    ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
-    !------------------------------------------------------------------------
-    IF ( Input_Opt%LPCO_NMVOC ) THEN
-       DgnName = 'PCO_NMVOC'
+    ! Fields only needed if CH4 or CO are advected species
+    IF ( id_CH4_adv > 0 .or. id_CO_adv > 0 ) THEN
+
+       !------------------------------------------------------------------------
+       ! OH concentration: from GEOS-Chem v5 or GEOS-Chem 10yr benchmark
+       !------------------------------------------------------------------------
+
+       IF ( useGlobOHv5 .or. useGlobOHbmk10yr ) THEN
+
+          ! NOTE: Container name is GLOBAL_OH for both data sets!
+          DgnName = 'GLOBAL_OH'
+          CALL HCO_GC_EvalFld( Input_Opt, State_Grid, DgnName,               &
+                               Global_OH, RC,         found=found           )
+          IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       ! If we are using OH from recent a 10-year benchmark ("SpeciesConc")
+       ! then convert OH [mol/mol dry air] to [molec/cm3].
+       IF ( useGlobOHbmk10yr ) THEN
+          Global_OH = ( Global_OH * State_Met%AirDen ) * toMolecCm3
+       ENDIF
+
+       ! If we are using Global_OH from GEOS-Chem v5 (e.g. for the IMI or
+       ! methane simulations) then convert OH from [kg/m3] to [molec/cm3].
+       IF ( useGlobOHv5 ) THEN
+          Global_OH = Global_OH * xnumol_OH / CM3perM3
+       ENDIF
+
+    ENDIF
+
+    ! Fields only needed if CO is an advected species
+    IF ( id_CO_adv > 0 ) THEN
+
+       !---------------------------------------------------------------------
+       ! P(CO) from GMI:
+       ! Input via HEMCO ("GMI_PROD_CO" field) as [v/v/s]
+       ! Units will be converted in carbon_ComputeRateConstants
+       !---------------------------------------------------------------------
+       DgnName = 'GMI_PROD_CO'
        CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
-                            PCO_fr_NMVOC, RC,         found=found           )
+                            PCO_in_Strat, RC,         found=found           )
+       IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+          errMsg = 'Cannot get pointer to ' // TRIM( DgnName )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! L(CO) from GMI
+       ! Input via HEMCO ("GMI_LOSS_CO" field) as [1/s]
+       !---------------------------------------------------------------------
+       DgnName = 'GMI_LOSS_CO'
+       CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,               &
+                            LCO_in_Strat, RC,         found=found           )
        IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
           errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       !---------------------------------------------------------------------
+       ! P(CO) from CH4
+       ! Input via HEMCO ("ProdCOfromCH4 field") as [molec/cm3/s]
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%LPCO_CH4 ) THEN
+          DgnName = 'PCO_CH4'
+          CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,              &
+                               PCO_fr_CH4, RC,         found=found          )
+          IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
+       !---------------------------------------------------------------------
+       ! P(CO) from NMVOC
+       ! Input via HEMCO ("ProdCOfromNMVOC" field) as [molec/cm3/s]
+       !---------------------------------------------------------------------
+       IF ( Input_Opt%LPCO_NMVOC ) THEN
+          DgnName = 'PCO_NMVOC'
+          CALL HCO_GC_EvalFld( Input_Opt,    State_Grid, DgnName,            &
+                               PCO_fr_NMVOC, RC,         found=found        )
+          IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
+             errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
+             CALL GC_Error( errMsg, RC, thisLoc )
+             RETURN
+          ENDIF
+       ENDIF
+
     ENDIF
 
   END SUBROUTINE ReadChemInputFields

@@ -1,0 +1,19 @@
+RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA=.true.
+RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTION=0
+
+RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION="""
+
+#--------------------------------------
+# --- Meteorology used in advection ---
+#--------------------------------------
+
+# Cubed-sphere 1-hourly mass fluxes
+UA;VA     m_s-1      N Y F0;013000 none  none      U;V       ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.A3dyn.C180.nc
+MFXC;MFYC Pa_m+2_s-1 N H F0;003000 none  0.6666666 MFXC;MFYC ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_A1.C180.nc
+CXC;CYC   1          N H F0;003000 none  none      CX;CY     ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_A1.C180.nc
+PS1       hPa        N Y  0        none  none      PS        ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_I1.C180.nc
+PS2       hPa        N Y  0;001000 none  none      PS        ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_I1.C180.nc
+SPHU1     kg_kg-1    N Y  0        none  none      QV        ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_I1.C180.nc
+SPHU2     kg_kg-1    N Y  0;001000 none  none      QV        ./MetDir/%y4/%m2/GEOSIT.%y4%m2%d2.CTM_I1.C180.nc
+
+"""

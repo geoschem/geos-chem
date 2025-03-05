@@ -30,6 +30,7 @@ ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
 GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
 GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
 Logfile:                     *
+DiagnFile:                   HEMCO_Diagn.rc
 DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
 DiagnFreq:                   Monthly
 Wildcard:                    *
@@ -652,7 +653,7 @@ ${RUNDIR_CO2_COPROD}
 # main/national fossil fuel emission field if using avaition emissions.
 #==============================================================================
 (((FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
-80 AVIATION_SURF_CORR $ROOT/CO2/v2015-04/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
+80 AVIATION_SURF_CORR $ROOT/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc CO2 2004/1/1/0 C xy 1 1
 )))FOSSIL_CDIAC.or.FOSSIL_ODIAC.or.CO2CORR
 
 #==============================================================================

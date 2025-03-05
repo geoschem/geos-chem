@@ -715,7 +715,8 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                     :: output4Bytes,     isSatDiagn
+    LOGICAL                     :: output4Bytes
+    LOGICAL                     :: isSatDiagnEdge,   isSatDiagn
     INTEGER                     :: NcFileId,         NcVarId
     INTEGER                     :: Dim1,             Dim2,       Dim3
 
@@ -765,8 +766,8 @@ CONTAINS
     ThisLoc   =  &
          ' -> at History_Netcdf_Write (in History/history_netcdf_mod.F90)'
 
-    ! Test if this is the SatDiagn or SatDiagnEdge container
-    isSatDiagn = (INDEX(To_UpperCase(TRIM(Container%Name)), 'SATDIAGN' ) > 0)
+    ! Test if this is the SatDiagn or SatDiagnEdge collection
+    CALL SatDiagn_or_SatDiagnEdge( Container%Name, isSatDiagn, isSatDiagnEdge )
 
     !========================================================================
     ! Compute time elapsed since the reference time
@@ -856,10 +857,20 @@ CONTAINS
              Dim2 = SIZE( Item%Data_3d, 2 )
              Dim3 = SIZE( Item%Data_3d, 3 )
 
-             ! Get average for satellite diagnostic:
+             ! Get average for satellite diagnostic (vertical centers)
              IF ( isSatDiagn ) THEN
                 WHERE ( State_Diag%SatDiagnCount > 0.0_f8 )
                    Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnCount
+                ELSEWHERE
+                   Item%Data_3d = MISSING_DBLE
+                ENDWHERE
+                Item%nUpdates   = 1.0_f8
+             ENDIF
+
+             ! Get average for satellite diagnostic (vertical edges)
+             IF ( isSatDiagnEdge ) THEN
+                WHERE ( State_Diag%SatDiagnEdgeCount > 0.0_f8 )
+                   Item%Data_3d = Item%Data_3d / State_Diag%SatDiagnEdgeCount
                 ELSEWHERE
                    Item%Data_3d = MISSING_DBLE
                 ENDWHERE

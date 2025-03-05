@@ -317,6 +317,25 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	met="geosfp"
 
+	# Print warning about GEOS-FP and require user to acknowledge it.
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	printf "\n${fp_msg}\n"
+	printf "This warning will be printed to run directory file warnings.txt.\n"
+	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
+	valid_fp_accept=0
+	while [ "${valid_fp_accept}" -eq 0 ]; do
+	    read -p "${USER_PROMPT}" fp_accept
+	    valid_fp_accept=1
+	    if [[ ${fp_accept} = "y" ]]; then
+		x=0
+	    elif [[ ${fp_accept} = "q" ]]; then
+		exit
+	    else
+		valid_fp_accept=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
+
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
 	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
@@ -388,7 +407,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	printf "${thinline}Choose meteorology files:${thinline}"
 	printf "  1. Raw C180 (recommended)\n"
 	printf "  2. Raw 0.5x0.625 \n"
-	printf "  3. Pre-processed C180 (not yet available)\n"
+	printf "  3. Pre-processed C180 \n"
 	printf "  4. Pre-processed 0.5x0.625 \n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
@@ -402,8 +421,7 @@ while [ "${valid_met}" -eq 0 ]; do
 		met_desc="raw_ll"
 	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_cs"
-		valid_response=0
-		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
+		met_desc="processed_cs"
 	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
 		met_desc="processed_ll"
@@ -417,7 +435,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	# advection. If using raw lat-lon then always use winds.
 	if [[ ${met_file_type} = "raw_ll" ]]; then
 	    adv_flux_src="wind"
-	elif [[ ${met_file_type} = "raw_cs" ]]; then
+	elif [[ ${met_file_type} = "processed_cs" || ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
 	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
 	    printf "  2. C180 3-hourly winds\n"
@@ -457,7 +475,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	# Set text files containing settings for met data. Different settings based options aboves.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
-	    
+	
+	elif [[ ${met_file_type} = "processed_cs" ]]; then
+	    if [[ ${adv_flux_src} = "mass_flux" ]]; then
+	        RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_mass_flux.txt)\n"
+	    elif [[ ${adv_flux_src} == "wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_wind_cs.txt)\n"
+	    fi
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_cs.txt)\n"
 	else
 	    if [[ ${use_discover} = "y" ]]; then
 		
@@ -469,14 +494,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
 		fi
-		
+
 		# Settings for all other met vars in ExtData.rc, running on discover
 		if [[ ${met_file_type} = "raw_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
 		elif [[ ${met_file_type} = "raw_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
 		fi
-		
+
 	    elif [[ ${use_discover} = "n" ]]; then
 		
 		# Settings for advection vars in ExtData.rc, NOT running on discover
@@ -487,14 +512,14 @@ while [ "${valid_met}" -eq 0 ]; do
 	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
 	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
 		fi
-	        
+
 		# Settings for all other met vars in ExtData.rc, NOT running on discover
 		if [[ ${met_file_type} = "raw_cs" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
 		elif [[ ${met_file_type} = "raw_ll" ]]; then
 	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
 		fi
-		
+
 	    fi
 	fi  # end GEOS-IT
 	
@@ -600,10 +625,6 @@ done
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/CreateRunDirLogs
-mkdir -p ${rundir_config}
-
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
@@ -620,6 +641,12 @@ cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
+fi
+
+# Copy the KPP standalone interface config file to ther rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem"  ]]; then
+    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
+    chmod 644 ${rundir}/kpp_standalone_interface.yml
 fi
 
 # Set permissions
@@ -656,13 +683,13 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
 	restart_name="${sim_extra_option}"
     else
 	start_date='20190701'
-	restart_dir='GC_14.3.0'
+	restart_dir='GC_14.5.0'
 	restart_name="${sim_name}"
     fi
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.3.0'
+    restart_dir='GC_14.5.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
@@ -778,8 +805,14 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RUNDIR variables to file
-rundir_config_log=${rundir_config}/rundir_vars.txt
+# Define a subdirectory for rundir configuration files
+rundir_config_dirname=CreateRunDirLogs
+rundir_config=${rundir}/${rundir_config_dirname}
+mkdir -p ${rundir_config}
+
+# Save RUNDIR variables to a file in the rundirConfig folder
+rundir_config_logname=rundir_vars.txt
+rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
@@ -812,7 +845,7 @@ cd ${srcrundir}
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir_config}/rundir.version
+version_log=${rundir}/${rundir_config_dirname}/rundir.version
 echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
@@ -858,11 +891,8 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
-#-----------------------------------------------------------------
-# Done!
-#-----------------------------------------------------------------
-
 printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory is set up for simulation start date $start_date"
 printf "\n  -- Restart files for this date at different grid resolutions are in the"
 printf "\n     Restarts subdirectory"
@@ -875,6 +905,27 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
+#-----------------------------------------------------------------
+# Ask user whether to build the KPP-standalone box model
+#-----------------------------------------------------------------
+enable_kppsa=""
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    printf "${thinline}Do you want to build the KPP-Standalone Box Model? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" enable_kppsa
+	if [[ "x${enable_kppsa}" == "xy" ]]; then
+	    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml  ${rundir}
+	    chmod 644 ${rundir}/kpp_standalone_interface.yml
+	    valid_response=1
+	elif [[ "x${enable_kppsa}" = "xn" ]]; then
+	    valid_response=1
+	else
+	    printf "Input not recognized. Try again.\n"
+	fi
+    done
+fi
+
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
@@ -882,14 +933,15 @@ hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
 
 EXTRA_CMAKE_OPTIONS=""
-[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
-[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15 "
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40 "
 fi
+[[ "x${enable_kppsa}" == "xy" ]] && EXTRA_CMAKE_OPTIONS+="-DKPPSA=y"
 
 # Add to RUNDIR_VARS
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
@@ -908,5 +960,41 @@ msg+="$ make -j\n"
 msg+="$ make install\n"
 printf "${msg}" > ${rundir}/build/README
 unset msg
+
+#-----------------------------------------------------------------
+# Add the version info to the top of the rundir configuration log
+#-----------------------------------------------------------------
+
+# Add a caveat that these rundir settings only go with this commit
+printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
+
+# Add a "# " characters to the front of each line so we can use
+# it as a comment heading for ${rundir_config_logname}
+sed 's/^/# /' ${version_log} > tmp.txt
+mv tmp.txt ${version_log}
+
+# Add the version log to the top of the rundir config log
+cat ${version_log} ${rundir_config_log} > tmp.txt
+mv tmp.txt ${rundir_config_log}
+
+# Remove the version log
+rm -rf ${version_log}
+
+# Save the updated rundir_vars file to the git repo
+if [[ "x${enable_git}" == "xy" ]]; then
+    if [[ -f ${rundir_config_log} ]]; then
+	cd ${rundir}
+	git add ${rundir_config_log}
+	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
+	cd ${srcrundir}
+    fi
+fi
+
+#-----------------------------------------------------------------
+# Create and populate warnings file
+#-----------------------------------------------------------------
+if [[ $met == "geosfp" ]]; then
+   echo -e ${fp_msg} > ${rundir}/warnings.txt
+fi
 
 exit 0

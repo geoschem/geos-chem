@@ -96,6 +96,7 @@ MODULE Input_Opt_Mod
      !----------------------------------------
      ! AEROSOL MENU fields
      !----------------------------------------
+     CHARACTER(LEN=255)          :: AER_OPTICS_DIR
      LOGICAL                     :: LSULF
      LOGICAL                     :: LMETALCATSO2
      LOGICAL                     :: LCARB
@@ -135,6 +136,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LHCodedOrgHal
      LOGICAL                     :: LCMIP6OrgHal
      LOGICAL                     :: DoLightNOx ! Shadow for LightNOX extension
+     LOGICAL                     :: UseSoilTemp
 
      ! For HEMCO "intermediate" grid (hplin, 6/2/20)
      LOGICAL                     :: LIMGRID    ! Use different grid resolution for HEMCO?
@@ -183,7 +185,15 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: Do_Photolysis
      CHARACTER(LEN=255)          :: FAST_JX_DIR
      CHARACTER(LEN=255)          :: CloudJ_Dir
-     INTEGER                     :: Nlevs_Phot_Cloud
+     INTEGER                     :: Nlevs_Phot_Cloud   ! Cloud-J var LWEPAR
+     INTEGER                     :: Cloud_Flag         ! Cloud-J var CLDFLAG
+     REAL(fp)                    :: OD_Increase_Factor ! Cloud-J var ATAU
+     REAL(fp)                    :: Min_Cloud_OD       ! Cloud-J var ATAU0
+     REAL(fp)                    :: Cloud_Corr         ! Cloud-J var CLDCOR
+     INTEGER                     :: Num_Max_Overlap    ! Cloud-J var LNRG
+     INTEGER                     :: Sphere_Correction  ! Cloud-J var ATM0
+     INTEGER                     :: Num_WV_Bins        ! Cloud-J var NWBIN
+     LOGICAL                     :: USE_H2O_UV_Abs     ! Cloud-J var USEH2OUV
      LOGICAL                     :: USE_ONLINE_O3
      LOGICAL                     :: USE_O3_FROM_MET
      LOGICAL                     :: USE_TOMS_O3
@@ -229,6 +239,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCONV
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
+     LOGICAL                     :: Reconstruct_Conv_Precip_Flux
      INTEGER                     :: TS_CONV
 
      !----------------------------------------
@@ -593,6 +604,7 @@ CONTAINS
     CALL GC_CheckVar( arrayId, 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    Input_Opt%AER_OPTICS_DIR         = ''
     Input_Opt%LSULF                  = .FALSE.
     Input_Opt%LMETALCATSO2           = .FALSE.
     Input_Opt%LCARB                  = .FALSE.
@@ -626,6 +638,7 @@ CONTAINS
     Input_Opt%LHCodedOrgHal          = .FALSE.
     Input_Opt%LCMIP6OrgHal           = .FALSE.
     Input_Opt%DoLightNOx             = .FALSE.
+    Input_Opt%UseSoilTemp            = .FALSE.
     Input_Opt%LIMGRID                = .FALSE.
     Input_Opt%IMGRID_XSCALE          = 1
     Input_Opt%IMGRID_YSCALE          = 1
@@ -673,6 +686,14 @@ CONTAINS
     Input_Opt%FAST_JX_DIR           = ''
     Input_Opt%CloudJ_Dir            = ''
     Input_Opt%Nlevs_Phot_Cloud      = 0
+    Input_Opt%Cloud_Flag            = 0
+    Input_Opt%OD_Increase_Factor    = 0.0_fp
+    Input_Opt%Min_Cloud_OD          = 0.0_fp
+    Input_Opt%Cloud_Corr            = 0
+    Input_Opt%Num_Max_Overlap       = 0
+    Input_Opt%Sphere_Correction     = 0
+    Input_Opt%Num_WV_Bins           = 0
+    Input_Opt%USE_H2O_UV_Abs        = .FALSE.
     Input_Opt%USE_ONLINE_O3         = .FALSE.
     Input_Opt%USE_O3_FROM_MET       = .FALSE.
     Input_Opt%USE_TOMS_O3           = .FALSE.
@@ -739,6 +760,7 @@ CONTAINS
     Input_Opt%LCONV                  = .FALSE.
     Input_Opt%LTURB                  = .FALSE.
     Input_Opt%LNLPBL                 = .FALSE.
+    Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
     Input_Opt%TS_CONV                = 0
 
     !----------------------------------------
