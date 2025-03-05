@@ -169,9 +169,9 @@ MODULE SULFATE_MOD
 
   ! Species ID flags
   INTEGER                :: id_AS,     id_AHS,    id_AW01
-  INTEGER                :: id_DALbin1, id_DALbin2, id_DALbin3, 
+  INTEGER                :: id_DALbin1, id_DALbin2, id_DALbin3 
   INTEGER                :: id_DALbin4, id_DALbin5, id_DALbin6, id_DALbin7
-  INTEGER                :: id_DSTbin1, id_DSTbin2, id_DSTbin3, 
+  INTEGER                :: id_DSTbin1, id_DSTbin2, id_DSTbin3 
   INTEGER                :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7 ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
   INTEGER                :: id_H2O2,   id_HNO3,   id_LET
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
