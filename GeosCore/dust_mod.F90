@@ -50,8 +50,7 @@ MODULE DUST_MOD
 !
   ! Species ID flags
   INTEGER               :: id_DSTbin1,  id_DSTbin2,  id_DSTbin3,   id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
-  INTEGER               :: id_DST1,  id_DST2,  id_DST3,   id_DST4 ! redundant species ID for dust alkalinity (D. Zhang, 28 Jun 2024)
-  INTEGER               :: id_DAL1,   id_DAL2,  id_DAL3,   id_DAL4
+  INTEGER               :: id_DALbin1,  id_DALbin2,  id_DALbin3,   id_DALbin4, id_DALbin5, id_DALbin6, id_DALbin7
   INTEGER               :: id_DUST01, id_NK01
 
   ! Arrays
@@ -274,7 +273,7 @@ CONTAINS
     !-------------------------------------------------------------
     ! Dust settling for regular dust species
     !
-    ! NOTE: Assumes that id_DST1, id_DST2, id_DST3, id_DST4 are
+    ! NOTE: Assumes that id_DSTbin1 to id_DSTbin7 are
     ! contiguous in the species list.  This is usually correct,
     ! but we may have to update this later. (bmy, 7/5/16)
     !-------------------------------------------------------------
@@ -291,16 +290,16 @@ CONTAINS
     !-------------------------------------------------------------
     ! Dust settling for acid uptake on dust species
     !
-    ! NOTE: Assumes that id_DAL1, id_DAL2, id_DAL3, id_DAL4 are
+    ! NOTE: Assumes that id_DALbin1 to id_DALbin7 are
     ! contiguous in the species list.  This is usually correct,
-    ! but we may have to update this later. (bmy, 7/5/16)
+    ! but we may have to update this later. (bmy, 7/5/16; D. Zhang, 5 Mar, 2025)
     !
     ! ALSO NOTE: Dry settling of DSTNIT, DSTSO4 occurs in
     ! GRAV_SETTLING, called from CHEMSULFATE in SULFATE_MOD.
     !-------------------------------------------------------------
     IF ( LDSTUP ) THEN
        CALL DRY_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, id_DAL1,   id_DAL4,    RC )
+                          State_Met, id_DALbin1,   id_DALbin7,    RC )
 
 #ifdef APM
        ! Call APM size-resolved settling algorithm
@@ -1613,6 +1612,7 @@ CONTAINS
 !
 ! !REVISION HISTORY:
 !  08 Apr 2008 - T.D. Fairlie- Initial version
+!  05 Mar 2025 - D. Zhang - Modified to 7 dust bins
 !  See https://github.com/geoschem/geos-chem for complete history
 !EOP
 !------------------------------------------------------------------------------
@@ -1663,23 +1663,14 @@ CONTAINS
     ! Dust Surface Areas                                ! tdf 08/20/09
     REAL(fp)            :: AREA_d(NDSTBIN)              ! [cm^2/cm^3]
 
-    ! Dust Surface Areas within sub-bins 1-4 of BIN 1   ! tdf 08/20/09
-    REAL(fp)            :: AREA_sd1(4)                  ! [cm^2/cm^3]
-
     ! Dust Effective Radius                             ! tdf 08/20/09
     REAL(fp)            :: RD_d(NDSTBIN)                ! [cm]
-
-    ! Dust Effective Radii for sub-bins 1-4 of BIN 1    ! tdf 08/20/09
-    REAL(fp)            :: RD_sd1(4)                    ! [cm]
 
     ! Dust size-weighted Surface Areas                  ! tdf 08/20/09
     REAL(fp)            :: DF_AREA_d(NDSTBIN)           ! [1/s]
 
-    ! Dust size-weighted Surface Areas for sub-bins 1-4 ! tdf 08/20/09
-    REAL(fp)            :: DF_AREA_sd1(4)               ! [1/s]
-
     ! Molecular weights
-    REAL(fp)            :: MW_DST1, MW_DST2, MW_DST3, MW_DST4
+    REAL(fp)            :: MW_DST
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -1696,10 +1687,7 @@ CONTAINS
     TAREA    => State_Chm%AeroArea ! Aerosol Area [cm2/cm3]
 
     ! Get MWs from species database
-    MW_DST1 = State_Chm%SpcData(id_DST1)%Info%MW_g
-    MW_DST2 = State_Chm%SpcData(id_DST2)%Info%MW_g
-    MW_DST3 = State_Chm%SpcData(id_DST3)%Info%MW_g
-    MW_DST4 = State_Chm%SpcData(id_DST4)%Info%MW_g
+    MW_DST = State_Chm%SpcData(id_DSTbin1)%Info%MW_g
 
     ! Zero variables
     DO IBIN = 1, NDSTBIN
@@ -1714,18 +1702,25 @@ CONTAINS
     ! Air density [kg/m3]
     AIR_DENS = State_Met%AD(I,J,L) / State_Met%AIRVOL(I,J,L)
 
-    ! Retrieve Dust Alkalinity [v/v dry from Spc array
-    ALK_d(1) = Spc(id_DAL1)%Conc(I,J,L)
-    ALK_d(2) = Spc(id_DAL2)%Conc(I,J,L)
-    ALK_d(3) = Spc(id_DAL3)%Conc(I,J,L)
-    ALK_d(4) = Spc(id_DAL4)%Conc(I,J,L)
+    ! Retrieve Dust Alkalinity [v/v dry from Spc array (Update to 7 dust bins. D. Zhang, 5 Mar 2025)
+    ALK_d(1) = Spc(id_DALbin1)%Conc(I,J,L)
+    ALK_d(2) = Spc(id_DALbin2)%Conc(I,J,L)
+    ALK_d(3) = Spc(id_DALbin3)%Conc(I,J,L)
+    ALK_d(4) = Spc(id_DALbin4)%Conc(I,J,L)
+    ALK_d(5) = Spc(id_DALbin5)%Conc(I,J,L)
+    ALK_d(6) = Spc(id_DALbin6)%Conc(I,J,L)
+    ALK_d(7) = Spc(id_DALbin7)%Conc(I,J,L)
 
     ! Dust [kg/m3] from Spc, used to compute dust surface area
     ! Units: (moles/mole).(kg(air)/m3).(kg(dust)/mole)/(kg(air)/mole)
-    DST_d(1) = Spc(id_DST1)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST1 )
-    DST_d(2) = Spc(id_DST2)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST2 )
-    DST_d(3) = Spc(id_DST3)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST3 )
-    DST_d(4) = Spc(id_DST4)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST4 )
+    ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
+    DST_d(1) = Spc(id_DSTbin1)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(2) = Spc(id_DSTbin2)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(3) = Spc(id_DSTbin3)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(4) = Spc(id_DSTbin4)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(5) = Spc(id_DSTbin5)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(6) = Spc(id_DSTbin6)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
+    DST_d(7) = Spc(id_DSTbin7)%Conc(I,J,L) * AIR_DENS / ( AIRMW / MW_DST )
 
     ! tdf Now get aerosol surface area from TAREA (cm2/cm3)
     SULF_AREA = TAREA(I,J,L,NDUST+1)
@@ -1748,18 +1743,6 @@ CONTAINS
     SSA_FAC  = ( SSA_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
     SSC_FAC  = ( SSC_RAD / DG + 4.e+0_fp/(V*GAMMA_H2SO4) )
 
-    !tdf Surface areas and effective radii for sub-bins 1-4 of dust bin 1
-    DO ISBIN = 1, 4
-       T1 = TAREA  (I,J,L,ISBIN)
-       R1 = ERADIUS(I,J,L,ISBIN)
-       AREA_sd1    (ISBIN) = T1
-       RD_sd1      (ISBIN) = R1
-       !tdf surface area for sub bins 1-4 in bin 1, weighted by gas-phase
-       !tdf diffusion and collision limitations
-       !tdf used to compute proportionate uptake of H2SO4 only  [1/s]
-       DF_AREA_sd1 (ISBIN) = T1 / (R1/DG + 4.0e+0_fp/(V*GAMMA_H2SO4))
-    END DO
-
     !-----------------------------------------------------------------------
     ! Very Simple Formulation: For each size bin (i)   ! tdf 8/20/09
     ! Dust Area density = 3 * Dust Mass density  / (REFF(i) * DUSTDEN)
@@ -1779,30 +1762,24 @@ CONTAINS
     !-------------------------------------------------------------------------
 
     ! tdf Loop over size bins  (NDSTBIN = 4)
+    ! Update to 7 size bins (NDSTBIN = 7) (D. Zhang, 5 Mar 2025)
     DO IBIN = 1, NDSTBIN
 
        ! Dust Area density in grid box,      AREA_d [cm^2/cm^3]    tdf 8/21/09
        ! Dust weighted surface area density, DF_AREA_d [1/s]       tdf 8/21/09
 
-       IF (IBIN .EQ. 1) THEN
-          ! For Dust size bin 1, sum over the 4 size sub bins  tdf 8/21/09
-          AREA_d   (IBIN) = AREA_sd1(1) + AREA_sd1(2) &       ![cm^2/cm^3]
-                          + AREA_sd1(3) + AREA_sd1(4)
-          DF_AREA_d(IBIN) = DF_AREA_sd1(1) + DF_AREA_sd1(3) &  ! [1/s]
-                          + DF_AREA_sd1(2) + DF_AREA_sd1(4)
-       ELSE
-          T1 = TAREA(I,J,L,3+IBIN)      ! [cm^2/cm^3]
-          R1 = ERADIUS(I,J,L,3+IBIN)    ! [cm]
-          RD_d     (IBIN) = R1
-          AREA_d   (IBIN) = T1          ! [cm^2/cm^3]
-          DF_AREA_d(IBIN) = T1 / (R1/DG + 4.0D0/(V*GAMMA_H2SO4)) ! [1/s]
-       ENDIF
+      T1 = TAREA(I,J,L,IBIN)      ! [cm^2/cm^3]
+      R1 = ERADIUS(I,J,L,IBIN)    ! [cm]
+      RD_d     (IBIN) = R1
+      AREA_d   (IBIN) = T1          ! [cm^2/cm^3]
+      DF_AREA_d(IBIN) = T1 / (R1/DG + 4.0D0/(V*GAMMA_H2SO4)) ! [1/s]
 
     END DO
 
     ! tdf total aerosol surface area  [cm^2/cm^3]
+    ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
     TOTAL_AREA = SULF_AREA + BC_AREA + OC_AREA + SSA_AREA  + SSC_AREA + &
-                 AREA_d(1) + AREA_d(2) + AREA_d(3) + AREA_d(4)
+                 AREA_d(1) + AREA_d(2) + AREA_d(3) + AREA_d(4) + AREA_d(5) + AREA_d(6) + AREA_d(7) 
 
     ! tdf total surface area weighted by gas-phase diffusion limitation [1/s]
     DF_TOTAL_AREA = SULF_AREA / SULF_FAC + &
@@ -1813,10 +1790,13 @@ CONTAINS
                     DF_AREA_d(1)         + &
                     DF_AREA_d(2)         + &
                     DF_AREA_d(3)         + &
-                    DF_AREA_d(4)
+                    DF_AREA_d(4)         + &
+                    DF_AREA_d(5)         + &
+                    DF_AREA_d(6)         + &
+                    DF_AREA_d(7)
 
     ! tdf Total Dust Alkalinity
-    ALK = ALK_d(1) + ALK_d(2) + ALK_d(3) + ALK_d(4)  ! [v/v]
+    ALK = ALK_d(1) + ALK_d(2) + ALK_d(3) + ALK_d(4) + ALK_d(5) + ALK_d(6) + ALK_d(7) ! [v/v]
 
     ! set humidity index IRH as a percent
     IRH = State_Met%RH(I,J,L)
@@ -1860,40 +1840,19 @@ CONTAINS
           ! Corrected based on discussions with Becky     tdf 07/14/08
           KT1    = 0.0e+0_fp
 
-          IF (IBIN .EQ. 1) THEN
+          RD     = RD_d (IBIN)              ! effective radius [cm]
+          AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
 
-             ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
-             DO ISBIN = 1, 4
-                RD     = RD_sd1 (ISBIN)        ! effective radius [cm]
-                AREA   = AREA_sd1 (ISBIN)      ! Dust Surface Area [cm^2/cm^3]
-
-                ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
-                IF ( GAMS > 0.e+0_fp ) THEN
-                   CONST1 = 4.e+0_fp/(V*GAMS)  ! Collision [s/cm]
-                   CONST2 = RD/DG              ! Diffusion [s/cm]
-                   CONST  = CONST1 + CONST2
-                   KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
-                ELSE
-                   KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
-                ENDIF
-             END DO
-
+          ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
+          IF ( GAMS > 0.e+0_fp ) THEN
+             CONST1 = 4.e+0_fp/(V*GAMS)     ! Collision [s/cm]
+             CONST2 = RD/DG                 ! Diffusion [s/cm]
+             CONST  = CONST1 + CONST2
+             KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
           ELSE
-
-             RD     = RD_d (IBIN)              ! effective radius [cm]
-             AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
-
-             ! Prevent divide by zero if GAMS = 0 (tdf, mps, 11/14/13)
-             IF ( GAMS > 0.e+0_fp ) THEN
-                CONST1 = 4.e+0_fp/(V*GAMS)     ! Collision [s/cm]
-                CONST2 = RD/DG                 ! Diffusion [s/cm]
-                CONST  = CONST1 + CONST2
-                KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
-             ELSE
-                KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
-             ENDIF
-
+             KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
           ENDIF
+
 
           KTS(IBIN) = KT1
 
@@ -1941,39 +1900,17 @@ CONTAINS
           ! Corrected based on discussions with Becky     tdf 07/14/08
           KT1    = 0.0e+0_fp
 
-          IF (IBIN .EQ. 1) THEN
+          RD     = RD_d (IBIN)              ! effective radius [cm]
+          AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
 
-             ! tdf Sum over the 1-4 sub-bins for bin 1      ! tdf 08/21/2K9
-             DO ISBIN = 1, 4
-                RD = RD_sd1 (ISBIN)            ! effective radius [cm]
-                AREA = AREA_sd1 (ISBIN)        ! Dust Surface Area [cm^2/cm^3]
-
-                ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
-                IF ( GAMN > 0.e+0_fp ) THEN
-                   CONST1 = 4.e+0_fp/(V*GAMN)  ! Collision [s/cm]
-                   CONST2 = RD/DG              ! Diffusion [s/cm]
-                   CONST  = CONST1 + CONST2
-                   KT1    = KT1 + AREA / CONST ! [cm^2/cm^3] * [cm/s] = [1/s]
-                ELSE
-                   KT1    = KT1                ! [cm^2/cm^3] * [cm/s] = [1/s]
-                ENDIF
-             END DO
-
+          ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
+          IF ( GAMN > 0.e+0_fp ) THEN
+             CONST1 = 4.e+0_fp/(V*GAMN)     ! Collision [s/cm]
+             CONST2 = RD/DG                 ! Diffusion [s/cm]
+             CONST  = CONST1 + CONST2
+             KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
           ELSE
-
-             RD     = RD_d (IBIN)              ! effective radius [cm]
-             AREA   = AREA_d (IBIN)            ! Dust Surface Area [cm^2/cm^3]
-
-             ! Prevent divide by zero if GAMN = 0 (tdf, mps, 11/14/13)
-             IF ( GAMN > 0.e+0_fp ) THEN
-                CONST1 = 4.e+0_fp/(V*GAMN)     ! Collision [s/cm]
-                CONST2 = RD/DG                 ! Diffusion [s/cm]
-                CONST  = CONST1 + CONST2
-                KT1    = AREA / CONST          ! [cm^2/cm^3] * [cm/s] = [1/s]
-             ELSE
-                KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
-             ENDIF
-
+             KT1    = 0.0e+0_fp             ! [cm^2/cm^3] * [cm/s] = [1/s]
           ENDIF
 
           KTN(IBIN) = KT1
@@ -2095,12 +2032,6 @@ CONTAINS
     ! the Input_Opt object at a later point.  These can be directly
     ! obtained from the species database object now. (bmy, 6/20/16)
     !-----------------------------------------------------------------
-    ! redundant speices ID for dust alkalinity calculation (D. Zhang, 26 Jun 2024)
-    id_DST1 =  Ind_('DST1'    )
-    id_DST2 =  Ind_('DST2'    )
-    id_DST3 =  Ind_('DST3'    )
-    id_DST4 =  Ind_('DST4'    )
-
     id_DSTbin1 =  Ind_('DSTbin1'    )
     id_DSTbin2 =  Ind_('DSTbin2'    )
     id_DSTbin3 =  Ind_('DSTbin3'    )
@@ -2110,17 +2041,22 @@ CONTAINS
     id_DSTbin7 =  Ind_('DSTbin7'    )
 
     !-----------------------------------------------------------------
-    ! DAL1 - DAL4 and SO4d1 - SO4d4 species (acid uptake sims only)
+    ! DSTALbin1 - DSTALbin7 and SO4Dbin1 - SO4Dbin7 species (acid uptake sims only) 
+    ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
     !-----------------------------------------------------------------
-    id_DAL1 =  Ind_('DSTAL1'  )
-    id_DAL2 =  Ind_('DSTAL2'  )
-    id_DAL3 =  Ind_('DSTAL3'  )
-    id_DAL4 =  Ind_('DSTAL4'  )
+    id_DALbin1 =  Ind_('DSTALbin1'  )
+    id_DALbin2 =  Ind_('DSTALbin2'  )
+    id_DALbin3 =  Ind_('DSTALbin3'  )
+    id_DALbin4 =  Ind_('DSTALbin4'  )
+    id_DALbin5 =  Ind_('DSTALbin5'  )
+    id_DALbin6 =  Ind_('DSTALbin6'  )
+    id_DALbin7 =  Ind_('DSTALbin7'  )
 
     ! Error check the dust uptake species
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( id_DAL1 < 0 .or. id_DAL2 < 0   .or. &
-            id_DAL3 < 0 .or. id_DAL4 < 0 ) THEN
+       IF ( id_DALbin1 < 0 .or. id_DALbin2 < 0 .or. &
+            id_DALbin3 < 0 .or. id_DALbin4 < 0 .or. &
+            id_DALbin5 < 0 .or. id_DALbin6 < 0 .or. id_DALbin7 < 0) THEN
           ErrMsg = 'Dust uptake species are undefined!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
