@@ -164,14 +164,11 @@ MODULE DRYDEP_MOD
   INTEGER                        :: id_HNO3,    id_PAN,     id_IHN1
   INTEGER                        :: id_H2O2,    id_SO2,     id_NH3
   INTEGER                        :: idd_BCPO,   idd_BCPI,   idd_BrSALC
-  INTEGER                        :: idd_BrSALA, idd_DSTAL1
-  INTEGER                        :: idd_DSTAL2, idd_DSTAL3, idd_DSTAL4
+  INTEGER                        :: idd_BrSALA
   INTEGER                        :: idd_ISALA,  idd_ISALC,  idd_NH4
-  INTEGER                        :: idd_NIT,    idd_NITD1,  idd_NITD2
-  INTEGER                        :: idd_NITD3,  idd_NITD4,  idd_NITs
+  INTEGER                        :: idd_NIT,    idd_NITs
   INTEGER                        :: idd_SALA,   idd_SALC,   idd_SO4
-  INTEGER                        :: idd_SO4D1,  idd_SO4D2,  idd_SO4D3
-  INTEGER                        :: idd_SO4D4,  idd_SO4s
+  INTEGER                        :: idd_SO4s
 
   ! Arrays for Baldocchi drydep polynomial coefficients
   REAL(fp), TARGET               :: DRYCOEFF(NPOLY    ) = 0.0_fp
@@ -4748,30 +4745,14 @@ CONTAINS
     idd_BCPO   = Ind_('BCPO',   'D')
     idd_BrSALC = Ind_('BrSALC', 'D')
     idd_BrSALA = Ind_('BrSALA', 'D')
-   !  idd_DST1   = Ind_('DST1',   'D')
-   !  idd_DST2   = Ind_('DST2',   'D')
-   !  idd_DST3   = Ind_('DST3',   'D')
-   !  idd_DST4   = Ind_('DST4',   'D')
-    idd_DSTAL1 = Ind_('DSTAL1', 'D')
-    idd_DSTAL2 = Ind_('DSTAL2', 'D')
-    idd_DSTAL3 = Ind_('DSTAL3', 'D')
-    idd_DSTAL4 = Ind_('DSTAL4', 'D')
     idd_ISALA  = Ind_('ISALA',  'D')
     idd_ISALC  = Ind_('ISALC',  'D')
     idd_NH4    = Ind_('NH4',    'D')
     idd_NIT    = Ind_('NIT',    'D')
-    idd_NITD1  = Ind_('NITD1',  'D')
-    idd_NITD2  = Ind_('NITD2',  'D')
-    idd_NITD3  = Ind_('NITD3',  'D')
-    idd_NITD4  = Ind_('NITD4',  'D')
     idd_NITs   = Ind_('NITs',   'D')
     idd_SALA   = Ind_('SALA',   'D')
     idd_SALC   = Ind_('SALC',   'D')
     idd_SO4    = Ind_('SO4',    'D')
-    idd_SO4D1  = Ind_('SO4D1',  'D')
-    idd_SO4D2  = Ind_('SO4D2',  'D')
-    idd_SO4D3  = Ind_('SO4D3',  'D')
-    idd_SO4D4  = Ind_('SO4D4',  'D')
     idd_SO4s   = Ind_('SO4S',   'D')
 
     !===================================================================

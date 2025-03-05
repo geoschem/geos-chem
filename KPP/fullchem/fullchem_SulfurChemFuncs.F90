@@ -32,8 +32,7 @@ MODULE fullchem_SulfurChemFuncs
 ! !PUBLIC TYPES:
 !
   ! Species ID flags
-  INTEGER                :: id_ACTA,   id_CH2O,   id_DMS,    id_DST1
-  INTEGER                :: id_DST2,   id_DST3,   id_DST4,   id_H2O2
+  INTEGER                :: id_ACTA,   id_CH2O,   id_DMS,   id_H2O2
   ! For 7 dust bins (D. Zhang, 1 Jul 2024)
   INTEGER                :: id_DSTbin1, id_DSTbin2, id_DSTbin3,  id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
   INTEGER                :: id_HCL,    id_HCOOH,  id_HMS,    id_HNO3
@@ -3803,10 +3802,6 @@ CONTAINS
     id_DSTbin5   = Ind_( 'DSTbin5'   )
     id_DSTbin6   = Ind_( 'DSTbin6'   )
     id_DSTbin7   = Ind_( 'DSTbin7'   )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
     id_H2O2   = Ind_( 'H2O2'   )
     id_HCL    = Ind_( 'HCL'    )
     id_HCOOH  = Ind_( 'HCOOH'  )

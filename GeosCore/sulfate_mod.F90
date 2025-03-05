@@ -517,7 +517,7 @@ CONTAINS
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
                                  State_Met, id_SO4dbin7,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin4')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin7')
              ENDIF
           ENDIF
 
@@ -5384,9 +5384,9 @@ CONTAINS
     Spc(id_DALbin2)%Conc(I,J,L) = MAX( ALKA(2), MINDAT )
     Spc(id_DALbin3)%Conc(I,J,L) = MAX( ALKA(3), MINDAT )
     Spc(id_DALbin4)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
-    Spc(id_DALbin5)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
-    Spc(id_DALbin6)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
-    Spc(id_DALbin7)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
+    Spc(id_DALbin5)%Conc(I,J,L) = MAX( ALKA(5), MINDAT )
+    Spc(id_DALbin6)%Conc(I,J,L) = MAX( ALKA(6), MINDAT )
+    Spc(id_DALbin7)%Conc(I,J,L) = MAX( ALKA(7), MINDAT )
 
     ! Free pointers
     Spc    => NULL()
