@@ -203,6 +203,24 @@ MODULE CARBON_MOD
 
   REAL(fp), ALLOCATABLE :: BCCONV(:,:,:)
   REAL(fp), ALLOCATABLE :: OCCONV(:,:,:)
+  REAL(fp), ALLOCATABLE :: MCOVOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: MCOVHOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: MCOVHO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: MCOVHNO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: MCOVHN2O5(:,:,:)
+  REAL(fp), ALLOCATABLE :: GCOVOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: GCOVHOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: GCOVHO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: GCOVHNO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: GCOVHN2O5(:,:,:)
+
+  REAL(fp), ALLOCATABLE :: COVOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVNO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVHOH(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVHO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVHNO3(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVHN2O5(:,:,:)
+  REAL(fp), ALLOCATABLE :: COVGOH(:,:,:)
   REAL(fp), ALLOCATABLE :: TCOSZ(:,:)
   REAL(fp), ALLOCATABLE :: GLOB_DARO2(:,:,:,:,:) ! Diagnostic (dkh, 11/10/06)
 
@@ -271,8 +289,9 @@ MODULE CARBON_MOD
   INTEGER :: id_TSOA2,   id_TSOA3,  id_TSOG0,  id_TSOG1,  id_TSOG2
   INTEGER :: id_TSOG3,   id_XYLE,   id_LBRO2N, id_LBRO2H, id_LTRO2N
   INTEGER :: id_LTRO2H,  id_LXRO2N, id_LXRO2H, id_LNRO2N, id_LNRO2H
-  INTEGER :: id_LISOPOH, id_LISOPNO3
-  INTEGER :: id_SOAS,    id_SOAP
+  INTEGER :: id_LISOPOH, id_LISOPNO3, id_N2O5
+  INTEGER :: id_SOAS,    id_SOAP,   id_SO4
+  INTEGER :: id_LEVO,    id_MANN,   id_GALA,   id_LEVOG
 
 #ifdef APM
   REAL(fp), ALLOCATABLE :: BCCONVNEW(:,:,:)
@@ -544,7 +563,74 @@ CONTAINS
           CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_OCPI' )
        ENDIF
     ENDIF
+      ! Total chemical process for LEVO
+      IF (id_LEVOG > 0 .OR. id_LEVO>0 ) THEN
+       CALL LEVO_CHEMISTRY( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met  = State_Met,                                 &
+                       RC         = RC                                      )
 
+         IF ( Input_Opt%Verbose) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a LEVO_CHEMISTRY' )
+         ENDIF
+      ENDIF
+
+      ! AQ phase chemistry for Mannoson
+      IF ( id_MANN > 0 ) THEN
+       CALL CHEM_MANN( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met = State_Met,                                 &
+                       id=id_MANN,  &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_MANN' )
+         ENDIF
+      ENDIF
+      !  Heterogenous reaction for Mannoson
+      IF ( id_MANN > 0 ) THEN
+       CALL CHEM_MANNHR( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met  = State_Met,                                 &
+                       id=id_MANN, &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_MANNHR' )
+         ENDIF
+      ENDIF
+
+      ! AQ phase chemistry for galactosan
+      IF ( id_GALA > 0 ) THEN
+       CALL CHEM_GALA( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met = State_Met,                                 &
+                       id=id_GALA ,                  &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_GALA' )
+         ENDIF
+      ENDIF
+
+      !  Heterogenous reaction for galactosan
+      IF ( id_GALA > 0 ) THEN
+       CALL CHEM_GALAHR( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met = State_Met,                                 &
+                      id= id_GALA,  &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_GALAHR' )
+         ENDIF
+      ENDIF
 #ifdef APM
     !=====================================================================
     ! APM Microphysics
@@ -1380,6 +1466,1665 @@ CONTAINS
    TC => NULL()
 
  END SUBROUTINE CHEM_OCPI
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: levo_chemisty
+! (1) Do aqueouse phase reaction of levo
+! (2) Do hetergenouse reaction of levo
+! (3) Do gase phase reaction of levo
+! (4) G/P equilibrium calculation
+!
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE LEVO_CHEMISTRY( Input_Opt,  State_Chm, State_Diag, &
+                            State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE ERROR_MOD,          ONLY : DEBUG_MSG
+    USE ERROR_MOD,          ONLY : ERROR_STOP
+    USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
+    USE HCO_State_GC_Mod,   ONLY : HcoState                      ! APM: for HEMCO diags
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE Species_Mod,        ONLY : SpcConc
+    USE State_Chm_Mod,      ONLY : ChmState
+    USE State_Diag_Mod,     ONLY : DgnState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE ERROR_MOD,          ONLY : IT_IS_NAN
+    USE TIME_MOD,           ONLY : ITS_A_NEW_MONTH
+    USE TIME_MOD,           ONLY : GET_TS_CHEM
+#ifdef APM
+    USE APM_INIT_MOD,         ONLY : APMIDS
+    USE APM_INIT_MOD,         ONLY : NBCOC,CEMITBCOC1
+    USE HCO_DIAGN_MOD
+    USE HCO_TYPES_MOD,        ONLY : DiagnCont
+    USE HCO_STATE_MOD,        ONLY : HCO_GetHcoID
+#endif
+#ifdef BPCH_DIAG
+    USE CMN_O3_MOD,           ONLY : SAVEOA
+#endif
+#ifdef TOMAS
+    USE TOMAS_MOD,            ONLY : SOACOND
+    USE TOMAS_MOD,            ONLY : CHECKMN
+    USE PRESSURE_MOD,         ONLY : GET_PCENTER
+#endif
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure?
+! 
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      LOGICAL, SAVE   :: FIRSTCHEM = .TRUE.
+      INTEGER         :: I,        J,        L
+      REAL(fp)        :: RTEMP,    VOL,      FAC
+      REAL(fp)        :: MNEW ! Concentration of paricle-phase OM
+      REAL(fp)        :: KOM, DTCHEM
+      REAL(fp)        :: ORG_AER, ORG_GAS
+      REAL(fp)        :: Pvap ! pure levo vapor pressure
+      ! Gas constant
+      REAL(fp), PARAMETER    :: R_M_atm    = 8.206e-5_fp  ! [M3 atm K-1 mol-1] 
+      REAL(fp), PARAMETER    :: R          = 8.3145e+0_fp ! [J  K-1 mol-1]
+      ! Enthalpy of vaporization of LEVO
+      REAL(fp), PARAMETER    :: Hvap       = 84e+3_fp ! [J mol-1]
+      ! Pointers
+      
+!
+      !=================================================================
+      ! LEVO_CHEMISTRY begins here!
+      !=================================================================
+
+      ! Save fields from Input_Opt to local variables
+
+      ! Point to chemical species array [kg]
+     
+      ! Do we have to print debug output?
+
+      ! AQ phase chemistry for levoglucosan
+
+      IF ( id_LEVO > 0 .OR. id_LEVOG > 0) THEN
+         CALL CHEM_LEVO( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met = State_Met,                                 &
+                       id=id_LEVO, &
+                       idg=id_LEVOG, &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_LEVO' )
+         ENDIF
+      ENDIF
+
+      ! Heterogeneous reaction for levoglucosan
+      IF ( id_LEVO > 0 ) THEN
+         CALL CHEM_LEVOHR( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                          &
+                       State_Met = State_Met,                                 &
+                       id=id_LEVO,                                 &
+                       RC         = RC                                      )
+         IF ( Input_Opt%Verbose) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_LEVOHR' )
+         ENDIF
+      ENDIF
+      
+      ! Gas phase reaction for levoglucosan
+      IF ( id_LEVOG > 0 ) THEN
+         CALL CHEM_LEVOG( Input_Opt  = Input_Opt,                               &
+                       State_Chm  = State_Chm,                               &
+                       State_Diag = State_Diag,                              &
+                       State_Grid = State_Grid,                              &
+                       State_Met = State_Met ,           &
+                       id=id_LEVOG,                               &
+                       RC         = RC                                      )
+
+      IF ( Input_Opt%Verbose ) THEN
+            CALL DEBUG_MSG( '### CHEMCARBON: a CHEM_LEVOG' )
+         ENDIF
+      ENDIF
+
+
+!
+!$OMP PARALLEL DO  &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L)  &
+!$OMP PRIVATE( RTEMP, VOL, FAC, MNEW, KOM ) &
+!$OMP PRIVATE( ORG_AER, ORG_GAS, Pvap) &
+!$OMP SCHEDULE( DYNAMIC )
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+
+         
+         ! Volume of grid box [m3]
+         VOL    = State_Met%AIRVOL(I,J,L)
+
+         ! conversion factor from kg to ug/m3
+         FAC    = 1.e+9_fp / VOL
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+
+         ! Concentration of partic phase OM [ug m-3]
+         MNEW = ((State_Chm%Species(id_SOAS)%Conc(I,J,L)) +&
+             1.4e+0_fp *(State_Chm%Species(id_OCPI)%Conc(I,J,L) + State_Chm%Species(id_OCPO)%Conc(I,J,L)))*FAC
+         
+         ! Temperature depended Pvap
+         Pvap = 2.38e-10_fp * exp((Hvap/R)&
+               * (1e+0_fp/298.15e+0_fp - 1e+0_fp/RTEMP))
+
+         ! G/P partitioning coeffient [m3 ug-1]
+         KOM = R_M_atm * RTEMP / (1e-6_fp * 200e+0_fp * Pvap )
+         IF (KOM < 0.6e+0_fp ) THEN
+             KOM = 0.60e+0_fp
+         ENDIF
+
+         !===============================================================
+         ! Equilibrium calculation between GAS (LEVOG) and Aerosol (LEVO)
+         !===============================================================
+
+         ! Initialize
+         ORG_AER = 0e+0_fp
+         ORG_GAS = 0e+0_fp
+
+         ! after reation without equilibrium 
+         ORG_AER = State_Chm%Species(id_LEVO)%Conc(I,J,L) * FAC
+         ORG_GAS = State_Chm%Species(id_LEVOG)%Conc(I,J,L)* FAC
+
+         !==============================================================
+         ! Equilibrium partitioning into new gas and aerosol 
+         !==============================================================
+         IF ( MNEW > 0.e+0_fp ) THEN
+
+               ORG_AER = KOM*MNEW /     &
+                       (1.e+0_fp + KOM * MNEW ) * &
+                      (ORG_AER + ORG_GAS)
+
+               IF ( KOM.NE.0e+0_fp ) THEN
+                  ORG_GAS = ORG_AER * 1.e+16_fp / &
+                          ( KOM * MNEW * 1.e+16_fp)
+               ELSE
+                  ORG_GAS = 0.e+0_fp
+               ENDIF
+
+         IF( IT_IS_NAN(ORG_AER ) ) THEN
+             PRINT *,'+++++++ Found NaN in ORG_AER ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         IF( IT_IS_NAN(ORG_GAS ) ) THEN
+             PRINT *,'+++++++ Found NaN in ORG_GAS ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+
+         ! STORE PRODUCT INTO LEVO and LEVOG
+         ! Prevent underflow condition
+              IF ( (ORG_AER / FAC) < SMALLNUM ) THEN
+               State_Chm%Species(id_LEVO)%Conc(I,J,L) = 0e+0_fp
+              ELSE
+               State_Chm%Species(id_LEVO)%Conc(I,J,L) = ORG_AER / FAC
+              ENDIF
+              
+              IF ( (ORG_GAS / FAC) < SMALLNUM ) THEN
+               State_Chm%Species(id_LEVOG)%Conc(I,J,L) = 0e+0_fp
+              ELSE
+               State_Chm%Species(id_LEVOG)%Conc(I,J,L)= ORG_GAS / FAC
+              ENDIF
+         
+        ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      !------------------------------------------------------------------------
+
+      ! Free pointer
+   
+
+      END SUBROUTINE LEVO_CHEMISTRY
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_levog
+! !DESCRIPTION: Subroutine CHEM\_LEVOG 
+! Gas phase levoglucosan + gas phase OH
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_LEVOG(  Input_Opt, State_Chm ,State_Diag,  &
+                            State_Grid ,State_Met,id, RC )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE State_Grid_Mod, ONLY : GrdState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+      INTEGER,  INTENT(IN)  :: id
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             !ChemistryState object
+      REAL(fp), POINTER  :: TC(:,:,:) ! LEVO [kg]
+
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !LOCAL VARIABLES:
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, TC0, CNEW, RKT, RLEVO
+      REAL(fp)             :: RTEMP, BOXVOL![K,m3]
+      REAL(fp)             :: COH ![molecule cm-3]
+! !DEFINED PARAMETERS:
+!
+      REAL(fp)             :: KgOH  ![cm3 molecule-1 s-1]
+
+
+      !=================================================================
+      ! CHEM_LEVOG begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      ! time [s]
+      DTCHEM  = GET_TS_CHEM()
+      ! Diag
+      COVGOH = 0e+0_fp
+      TC   => State_Chm%Species(id)%Conc
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, RKT, CNEW ) &
+!$OMP PRIVATE( RTEMP, BOXVOL) &
+!$OMP PRIVATE( KgOH, COH) &
+!$OMP SCHEDULE( DYNAMIC )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+         ! Volume of grid box [m3]
+         BOXVOL  = State_Met%AIRVOL(I,J,L) ![m3]
+         ! concentrations [molec/cm3]
+         COH    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         ! gas phase k2 [cm3 molecule-1 s-1]
+         KgOH = 1.3e-23_fp*RTEMP**(3.71e+0_fp)*exp(735.7e+0_fp/RTEMP)   
+         ! Prevent over speed
+         IF (KgOH > 2.25e-13_fp ) KgOH = 2.25e-13_fp
+
+        
+         ! Initial LEVOG [kg]
+         TC0 = TC(I,J,L)
+         
+         ! [s-1]
+         RKT = (KgOH * COH)*DTCHEM
+         CNEW = TC0 * EXP( -RKT )
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of LEVO lost [kg/timestep]
+         IF (RKT > 0 ) THEN
+             COVGOH(I,J,L)=TC0 - CNEW
+         ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN( COVGOH(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in COVGOH ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         ! for history diag
+         IF ( State_Diag%Archive_LossLEVOgfromOH ) THEN
+            State_Diag%LossLEVOgfromOH(I,J,L) = COVGOH(I,J,L)
+         ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN(CNEW ) ) THEN
+             PRINT *,'+++++++ Found NaN in LEVOG ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+         ! Store modified LEVO concentration back in species array
+         TC(I,J,L) = CNEW
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      COVGOH = 0e+0_fp
+      TC => NULL()
+      END SUBROUTINE CHEM_LEVOG
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_levohr
+!
+! !DESCRIPTION: Subroutine CHEM\_LEVOHR converts levoglucosan to
+! products + HX + HO2 in heterogeneous reactions
+! levoglucosan + OH ----levor1 + H2O
+! levoglucosan + O3 ----levor2 + O2 + OH
+! levoglucosan + NO3 ----levor3 + HNO3
+! levoglucosan + N2O5 ---- levor4 + HNO3
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_LEVOHR(  Input_Opt, State_Chm,&
+                           State_Diag,State_Grid, State_Met, id, RC )
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+         USE State_Grid_Mod, ONLY : GrdState
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+
+
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! ChemistryState object
+      REAL(fp),       POINTER ::   TC(:,:,:) ! LEVO [kg]
+      INTEGER,        INTENT(IN)    :: id        ! BCPI species Id
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, TC0, CNEW, RKT, RLEVO
+      REAL(fp)             :: GAMA_OH, GAMA_O3, GAMA_NO3, GAMA_N2O5 ! uptake coefficient
+      REAL(fp)             :: RTEMP, BOXVOL![K,m3]
+      REAL(fp)             :: COH, CO3, CNO3, CN2O5 ![mol/l(gas)] 
+      REAL(fp)             :: K2OH
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp)             :: K1OH, K1O3, K1NO3, K1N2O5  ![s-1]
+      REAL(fp)             :: ROH, RO3, RNO3, RN2O5  ![molec cm3-1 s-1]
+      REAL(fp)             :: RADIUS ![cm]
+      REAL(fp)             :: AREA   ![cm^2 levo/ cm^3 air]
+      REAL(fp)             :: MSDENS ![kg levo/cm^3 levo]
+      REAL(fp)             :: MW_OH, MW_O3, MW_NO3, MW_N2O5 ![g/mol]
+      REAL(fp)             :: V_OH, V_O3, V_NO3, V_N2O5 ![cm/s]
+      ! Gas constant                                                           
+      REAL(fp), PARAMETER    :: R_L_atm        = 8.2e-2_fp ! [L atm/K/mol]   
+      REAL(fp), PARAMETER    :: R_m3_Pa        = 8.31e0_fp ! [m3 Pa/K/mol] 
+      !=================================================================
+      ! CHEM_LEVO begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC        =>  State_Chm%Species(id)%Conc
+      ! Density[kg/m3]
+      MSDENS = State_Chm%SpcData(id)%Info%Density
+      ! gas phase species MW [g/mol]
+      MW_OH   = State_Chm%SpcData(id_OH)%Info%MW_g
+      MW_O3   = State_Chm%SpcData(id_O3)%Info%MW_g
+      MW_NO3   = State_Chm%SpcData(id_NO3)%Info%MW_g
+      MW_N2O5   = State_Chm%SpcData(id_N2O5)%Info%MW_g
+      ! uptake coefficient (mean values 0.91, 0.013,1.29,0.037)
+      GAMA_OH = 0.91e+0_fp
+      GAMA_O3 = 0.013e-3_fp
+      GAMA_NO3 = 1.29e-3_fp
+      GAMA_N2O5 = 0.037e-3_fp
+      ! RADIUS [cm]
+      RADIUS = 4e-5_fp
+      ! time [s]
+      DTCHEM  = GET_TS_CHEM()
+      ! Diag
+      COVHOH = 0e+0_fp
+      COVHO3 = 0e+0_fp
+      COVHNO3 = 0e+0_fp
+      COVHN2O5 = 0e+0_fp
+
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, RKT, CNEW, BOXVOL) &
+!$OMP PRIVATE( RTEMP, V_OH, V_O3, V_NO3, V_N2O5) &
+!$OMP PRIVATE( K1OH, K1O3, K1NO3, K1N2O5,AREA) &
+!$OMP PRIVATE( ROH, RO3, RNO3, RN2O5, RLEVO) &
+!$OMP PRIVATE( COH, CO3, CNO3, CN2O5) &
+!$OMP SCHEDULE( DYNAMIC ) 
+     
+      DO L = 1, State_Grid%NZ
+      DO J = 1, State_Grid%NY
+      DO I = 1, State_Grid%NX
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+         ! Volume of grid box [m3]
+         BOXVOL  = State_Met%AIRVOL(I,J,L) ![m3]
+         ! Get concentration         ! Get offline OH, NO3, SO4
+         ! concentrations [molec/cm3]
+         COH    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         CO3    = GET_O3(  I, J, L, Input_Opt, State_Chm,State_Grid, State_Met )
+         CNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+         CN2O5  = GET_N2O5(I, J, L, Input_Opt, State_Chm, State_Met )
+
+         ! Initial LEVO [kg]
+         TC0 = TC(I,J,L)
+         ! levoglucosan concentration
+!         CLEVO = TC0 * (6.02e+23_fp / 162.14e-3_fp)/BOXVOL*1e+6_fp
+         ! Surface area  [cm2 levo/cm3 air]
+         AREA = 3e+0_fp/RADIUS*(TC0/BOXVOL)/MSDENS
+         ! Mean velocity of gas oxidant [cm/s]
+         V_OH = 1.455*1e+4_fp*(RTEMP/MW_OH)**(1/2)
+         V_O3 = 1.455*1e+4_fp*(RTEMP/MW_O3)**(1/2)
+         V_NO3 = 1.455*1e+4_fp*(RTEMP/MW_NO3)**(1/2)
+         V_N2O5 = 1.455*1e+4_fp*(RTEMP/MW_N2O5)**(1/2)
+
+         ! uplimite test
+!         K2OH = 6.2e-9_fp * exp(-1922.5e+0_fp/RTEMP) ![cm3 molec-1 s-1]
+        ! K2OH = 3.09e-13_fp
+!         GAMA_OH = K2OH*(2e+0_fp*1.05e-5_fp*MSDENS*6.02e+23_fp)/
+!     &            (3e+0_fp*V_OH*162.14e-3_fp)*1e-6_fp
+!         GAMA_OH = K2OH * 0.295e+0_fp
+
+         ! Reaction rate coefficient
+         K1OH = 1e+0_fp/4e+0_fp*V_OH*GAMA_OH*AREA
+         K1O3 = 1e+0_fp/4e+0_fp*V_O3*GAMA_O3*AREA
+         K1NO3 = 1e+0_fp/4e+0_fp*V_NO3*GAMA_NO3*AREA
+         K1N2O5 = 1e+0_fp/4e+0_fp*V_N2O5*GAMA_N2O5*AREA
+
+         ! Reaction rate
+         ROH = COH*K1OH  ! [molc/cm3/s]
+!         ROH = CLEVO*COH*K2OH
+         RO3 = CO3*K1O3
+         RNO3= CNO3*K1NO3
+         RN2O5=CN2O5*K1N2O5
+         RLEVO =(ROH + RO3 + RNO3 + RN2O5) &
+                /6.02e23_fp*BOXVOL*1e6_fp  ![mol/m3/s]
+
+       ! Amount of levo oxidize [kg]
+         RKT = RLEVO*DTCHEM*162.14_fp*1e-3_fp
+         ! Prevent underflow
+         IF (RKT > TC0) RKT = TC0
+         IF (RKT < SMALLNUM) RKT = 0e+0_fp
+         ! Amount of LEVO left after chemistry [kg]
+         CNEW = TC0 - RKT
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of LEVO lost [kg/timestep]
+         IF (RKT > 0 ) THEN 
+            COVHOH(I,J,L)=RKT*ROH/(ROH+RO3+RNO3+RN2O5)
+            COVHO3(I,J,L)=RKT*RO3/(ROH+RO3+RNO3+RN2O5)
+            COVHNO3(I,J,L)=RKT*RNO3/(ROH+RO3+RNO3+RN2O5)
+            COVHN2O5(I,J,L)=RKT*RN2O5/(ROH+RO3+RNO3+RN2O5)
+         ENDIF
+
+         ! if nan test
+         !IF( COH == 0) THEN
+          !   PRINT *,'+++++++ Found zero K1OH ++++++++'
+         !ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN( COVHOH(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in COVHOH ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         IF( IT_IS_NAN( RKT ) ) THEN
+             PRINT *,'+++++++ Found NaN in RKT LEVOHR ++++++++'
+         ENDIF
+
+        ! PRINT *,'ROH', ROH
+        ! PRINT *,'RO3', RO3
+        ! PRINT *, 'GAMA_OH', GAMA_OH
+
+         ! for history diag
+         IF ( State_Diag%Archive_LossLEVOhfromOH ) THEN
+            State_Diag%LossLEVOhfromOH(I,J,L) = COVHOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossLEVOhfromO3 ) THEN
+            State_Diag%LossLEVOhfromO3(I,J,L) = COVHO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossLEVOhfromNO3 ) THEN
+            State_Diag%LossLEVOhfromNO3(I,J,L) = COVHNO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossLEVOhfromN2O5 ) THEN
+            State_Diag%LossLEVOhfromN2O5(I,J,L) = COVHN2O5(I,J,L)
+         ENDIF
+
+         ! Store modified LEVO concentration back in species array
+         TC(I,J,L) = CNEW 
+
+         ! if nan test
+         IF( IT_IS_NAN( TC(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in TC LEVOHR++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+!         PRINT *,'GAMA_OH',GAMA_OH
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      COVHOH = 0e+0_fp
+      COVHO3 = 0e+0_fp
+      COVHNO3 = 0e+0_fp
+      COVHN2O5 = 0e+0_fp
+      PRINT *,'GAMA_OH',GAMA_OH
+      TC => NULL()
+      END SUBROUTINE CHEM_LEVOHR       
+       
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_levo
+!
+! !DESCRIPTION: Subroutine CHEM\_LEVO converts levoglucosan to
+! products + HX + HO2 in aq phase
+! levoglucosan + X+O2------[product]1 + HX + HO2 (with X ) OH,NO3, SO4-) 
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_LEVO(  Input_Opt, State_Chm,  &
+                             State_Diag, State_Grid,State_Met, id,idg, RC )
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+
+!
+! !INPUT PARAMETERS: 
+!
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             !ChemistryState object
+      INTEGER,        INTENT(IN)    :: id        ! OCPO species Id
+      INTEGER,        INTENT(IN)    :: idg        !
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, RLEVO, TC0, CNEW, RKT, FREQ
+      REAL(fp)             :: KH_NO3 ! Henry constant[M/atm]
+      REAL(fp)             :: delta_OH,F_NO3
+      REAL(fp)             :: RTEMP, BOXVOL, P ![K,m3,hpa]
+      REAL(fp)             :: LWC, FC, Nair
+      REAL(fp)             :: CNO3, COH ![mol/l(gas)] 
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp)             :: K2OH, K2NO3, K2SO4  ![l/mol.s]
+      REAL(fp)             :: K1OH, K1NO3         ![s-1]
+      REAL(fp)             :: OHMC, TTNO3, TTSO4 ![molec/l(aq)]
+      REAL(fp)             :: DRH, k, GF, Clevo ![concentration of aq phase]
+      REAL(fp)             :: RH, Vw, F, Faq, Density ![kg/m3]
+      REAL(fp)             :: TG0, TC1
+      !REAL(fp)             :: Tsol ! Amount of total dissolved
+      ! Gas constant                                                           
+      REAL(fp), PARAMETER    :: R_L_atm        = 8.2e-2_fp ! [L atm/K/mol]   
+      REAL(fp), PARAMETER    :: R_m3_Pa        = 8.31e0_fp ! [m3 Pa/K/mol] 
+      REAL(fp), POINTER      :: TC(:,:,:)
+      REAL(fp), POINTER      :: TG(:,:,:)
+
+      !=================================================================
+      ! CHEM_LEVO begins here!
+      !=================================================================
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC       => State_Chm%Species(id)%Conc
+      TG       => State_Chm%Species(idg)%Conc
+      ! Density[kg/m3]
+      Density = State_Chm%SpcData(id)%Info%Density
+
+
+      ! OH:                                                                 
+         ! assume a simple parameterization from Jacob et al. (2005)
+         ! where     
+         ! [OH(aq)] = delta*[OH(g)] where [OH(g)] is the gas-phase
+         ! concentrati 
+         ! calculated in GEOS-Chem without consideration of
+         ! aqueous-phase cloud
+         ! chemistry, and delta = 1E-19 M cm3 molecule-1 is chosen to
+         ! fit the  
+         ! cloud chemistry model results of Jacob (1986).                      
+      delta_OH = 1e-19_fp ! M cm3 molecule-1                                   
+
+      ! Use the consentration data from literature [mol/l]
+      !OHMC     = 6e-14_fp
+      !TTNO3    = 1e-15_fp
+      !TTSO4    = 1e-14_fp
+
+      DTCHEM  = GET_TS_CHEM()
+      COVOH = 0e+0_fp
+      COVNO3 = 0e+0_fp
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED) &
+!$OMP PRIVATE( I, J, L, TC0, TC1,TG0,FREQ, RKT, CNEW ) &
+!$OMP PRIVATE( RTEMP, P, RH, GF, FC, LWC, Nair, BOXVOL) &
+!$OMP PRIVATE( K2OH, K2NO3, K2SO4, COH, CNO3, F_NO3) &
+!$OMP SCHEDULE( DYNAMIC )
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+ 
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+         ! Volume of grid box [m3]
+         BOXVOL  = State_Met%AIRVOL(I,J,L) ![m3]
+         ! RH
+         RH = State_Met%RH(I,J,L)
+         ! Growth factor
+         GF = (1e+0_fp+k*RH/(100-RH))**(1/3)
+         ! P      : Pressure [hPa]                                                
+         P = State_Met%PMID_DRY(I,J,L)
+         ! Get cloud fraction from met fields                                  
+         FC = State_Met%CLDF(I,J,L)
+         ! calculate number density of air in molecules per cm3:               
+         Nair = P * 1e2_fp / (R_m3_Pa * RTEMP ) * 6.02e23_fp / 1e6_fp
+
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from
+         ! met flds 
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg
+         ! H2O]      
+         LWC   = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
+
+         LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
+         ! Secondary-order reaction  constants for OH, NO3, SO4
+         ! [l/(mol.s)] mean values: OH (8.7), NO3(2.3)
+         K2OH  =  (8.7e+0_fp)*(10**10)*exp((-1083e+0_fp)/RTEMP)
+         K2NO3 =  (2.3e+0_fp)*(10**10)*exp((-2141e+0_fp)/RTEMP)
+         ! K2SO4 =  (2.1e+0_fp)*(10**9)*exp((-1083e+0_fp)/RTEMP)
+
+         ! Get offline OH, NO3, SO4  concentrations [molec/cm3]
+         COH    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         CNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+         !TTSO4   = GET_SO4( I, J, L, Input_Opt, State_Chm, State_Met )
+
+         ! Initial LEVO [kg]
+         TC1 = TC(I,J,L) 
+         TG0 = TG(I,J,L)
+         TC0 = TC1 + TG0
+!---------------------------------------------------------------------
+!    In cloud oxidizing reaction begin here
+!---------------------------------------------------------------------
+      IF (( FC     > 0.e+0_fp   )  .AND. &
+         ( TC0    > 0.e+0_fp   )  .AND. &
+         ( RTEMP  > 258.0      )  .AND. &
+         ( LWC    > 0.e+0_fp   ) ) THEN
+
+          ! Henry's law constants (M per atm) 
+          !KH_NO3, Thomas.et al (1993) and (1998)
+          KH_NO3 = 1.8e0_fp*exp(2000e0_fp*((1/RTEMP) - 1/298.15e0_fp))
+          ! calculate fractions 
+          F_NO3 = 1e0_fp/(1e0_fp+KH_NO3*R_L_atm*RTEMP*LWC) ! unitless     
+          ! NO3 aqueous phase consenctration calculate from Henry's law,
+          ! ON(aq) use delta_OH
+          OHMC  = COH*delta_OH ! mol/l
+! Print OH concentration
+!          PRINT *,'Location (I,J,L):',I,J,L, 'OH:', OHMC
+
+          ! 1e3, mol/cm3 -> mol/l
+          TTNO3 = P/1013e0_fp * 1e0_fp/Nair *CNO3* F_NO3 * KH_NO3 !mol/l
+          ! First-order reaction constant
+          K1OH  = OHMC*K2OH
+          K1NO3 = TTNO3*K2NO3
+          ! Zero drydep freq
+          ! ### NOTE: Remove this later, but need to make
+          ! ### sure we don't incur numerical diffs (bmy, 6/12/15)
+          FREQ = 0e+0_fp
+          Faq = 0.65
+          !The aerosol scavenging efficiency* (part in cloud)
+          F =State_Chm%SpcData(id_LEVO)%Info%WD_AerScavEff*Faq
+
+         RKT = (K1OH+K1NO3 + FREQ ) * DTCHEM
+      ELSE
+         RKT =0e+0_fp
+      ENDIF
+
+         CNEW  = (F*TC0)* EXP( -RKT )
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of LEVO lost [kg/timestep]
+         COVOH(I,J,L)   = (F*TC0-CNEW)*K1OH/(K1OH+K1NO3+FREQ)
+         COVNO3(I,J,L)  = (F*TC0-CNEW)*K1NO3/(K1OH+K1NO3+FREQ)
+
+         ! for history diag
+         IF ( State_Diag%Archive_LossLEVOfromOH ) THEN
+            State_Diag%LossLEVOfromOH(I,J,L) = COVOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossLEVOfromNO3 ) THEN
+            State_Diag%LossLEVOfromNO3(I,J,L) = COVNO3(I,J,L)
+         ENDIF
+
+        ! Store modified LEVO concentration back in species array
+        !TC(I,J,L) = CNEW 
+        ! TC(I,J,L) = (1-F)*TC0+CNEW
+        IF (TC0 > 0) THEN
+            TC(I, J, L) = ((1-F)*TC0+CNEW) * (TC1/TC0)
+            TG(I, J, L) = ((1-F)*TC0+CNEW) * (TG0/TC0)
+        ELSE
+            TC(I, J, L) = 0e+0_fp
+            TG(I, J, L) = 0e+0_fp
+        ENDIF
+        
+ 
+         IF( IT_IS_NAN( COVOH(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in COVOH ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN( TC(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in TC ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         ! if nan test
+         IF( IT_IS_NAN( TG(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in TG ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+!      COVOH = 0e+0_fp
+      COVNO3 = 0e+0_fp
+      TC => NULL()
+      TG => NULL()
+      PRINT *,'OHaq',OHMC
+      END SUBROUTINE CHEM_LEVO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_mann
+!
+! !DESCRIPTION: Subroutine CHEM\_mann converts mannosan from levoglucosan and 
+! galactosan in aq phase
+! levoglucosan + OH +O2------Mannosan
+! galactosan +OH ------Mannosan
+! Mannosan + OH  -------HCOOH+ACTA+RCOOH
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_MANN(  Input_Opt, State_Chm, &
+                           State_Diag, State_Grid,State_Met, id, RC )
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT PARAMETERS: 
+!
+     
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! Meteorology State object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             !ChemistryState object
+      INTEGER,        INTENT(IN)    :: id        ! BCPO species Id
+! !OUTPUT PARAMETERS:
+      REAL(fp), POINTER   :: TC(:,:,:)
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !REMARKS:
+! ymli(2020/11/06) use yangchi data
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER  :: I,   J,     L
+      REAL(fp) :: TC0, CNEW, CCVl, CCVg
+      REAL(fp) :: RTEMP, FC, LWC
+      REAL(fp) :: DTCHEM ! 1200s
+      REAL(fp) :: RKT,FREQ,F, Faq
+!      REAL(fo) :: COH, delta_OH ! [mol/l(gas)]
+! !DEFINED PARAMETERS:
+      REAL(fp) :: Flm = 2.09e-2_fp ! isomerization ratio (LEVO to MANN)kg/kg
+      REAL(fp) :: Fgm = 1.53e-2_fp ! isomerization ratio (GALA to MANN)
+      REAL(fp) :: Fmg = 1.50e-2_fp ! isomerization ratio (Mann to GALA)
+      REAL(fp) :: KOH = 7.90e-4_fp ! first order reaction constant !up limit 
+      !=================================================================
+      ! CHEM_MANN begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC => State_Chm%Species(id)%Conc
+      DTCHEM = GET_TS_CHEM()
+      MCOVOH = 0e+0_fp
+
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, CCVl, CCVg, CNEW ) &
+!$OMP SCHEDULE( DYNAMIC ) 
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from
+         ! met flds 
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg
+         ! H2O]      
+         LWC   = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
+
+         LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
+ 
+         ! Initial MANN [kg]
+         !TC0 = TC(I,J,L)
+
+         ! Mannosan convert from levoglucosan [kg]
+         CCVl = Flm* COVOH(I,J,L)
+         ! Mannosan convert from galactosan [kg]
+         CCVg = Fgm* GCOVOH(I,J,L)
+
+         ! With isomerization
+         !TC0 = TC(I,J,L)+CCVl+CCVg
+         ! no isomerization test ymli
+         TC0 = TC(I,J,L)
+!---------------------------------------------------------------------
+!    In cloud oxidizing reaction begin here
+!---------------------------------------------------------------------
+      IF (( FC     > 0.e+0_fp   )  .AND.&
+         ( TC0    > 0.e+0_fp   )  .AND. &
+         ( RTEMP  > 258.0      )  .AND.&
+         ( LWC    > 0.e+0_fp   ) ) THEN
+        
+         FREQ = 0e+0_fp
+         Faq = 0.65
+         ! The aerosol scavening efficiency 
+         F = State_Chm%SpcData(id_LEVO)%Info%WD_AerScavEff*Faq
+         RKT = (KOH+FREQ)*DTCHEM
+      ELSE
+         RKT = 0e+0_fp
+      ENDIF
+         ! amount of MANN left in cloud
+         CNEW = F*TC0*EXP(-RKT)
+         ! amount of MANN lost [kg/time step]
+         MCOVOH(I,J,L) = (F*TC0) - CNEW
+        
+         ! set history diag here
+         IF ( State_Diag%Archive_LossMANNfromOH ) THEN
+            State_Diag%LossMANNfromOH(I,J,L) = MCOVOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_ProdMANNfromLEVO ) THEN
+            State_Diag%ProdMANNfromLEVO(I,J,L) = Flm*COVOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_ProdMANNfromGALA ) THEN
+            State_Diag%ProdMANNfromGALA(I,J,L) = Fgm*GCOVOH(I,J,L)
+         ENDIF
+
+
+         ! Store modified MANN concentration back in species array
+         TC(I,J,L)=(1-F)*TC0+CNEW
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      TC => NULL()
+      END SUBROUTINE CHEM_MANN
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!                  
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_mannhr
+!
+! !DESCRIPTION: Subroutine CHEM\_LEVOHR converts mannosan to
+! products + HX + HO2 in heterogeneous reactions
+! mannosan + OH ----levor1 + H2O
+! mannosan + O3 ----levor2 + O2 + OH
+! mannosan + NO3 ----levor3 + HNO3
+! mannosan + N2O5 ---- levor4 + HNO3
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_MANNHR(  Input_Opt, State_Chm, &
+                           State_Diag, State_Grid,State_Met,id, RC )
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )      
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+
+!
+! !INPUT PARAMETERS: 
+!
+     
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS: 
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            !DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             !Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             !ChemistryState object
+      INTEGER(fp),       INTENT(IN) :: id ! LEVO [kg]
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, TC0, CNEW, RKT, RMANN
+      REAL(fp)             :: GAMA_OH, GAMA_O3, GAMA_NO3, GAMA_N2O5 ! uptake coefficient
+      REAL(fp)             :: RTEMP, BOXVOL ![K,m3]
+      REAL(fp)             :: COH, CO3, CNO3, CN2O5 ![mol/l(gas)] 
+      REAL(fp)             :: K2OH
+      REAL(fp), POINTER    :: TC(:,:,:)
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp)             :: K1OH, K1O3, K1NO3, K1N2O5  ![s-1]
+      REAL(fp)             :: ROH, RO3, RNO3, RN2O5  ![molec cm3-1 s-1]
+      REAL(fp)             :: RADIUS ![cm]
+      REAL(fp)             :: AREA   ![cm^2 levo/ cm^3 air]
+      REAL(fp)             :: MSDENS ![kg levo/cm^3 levo]
+      REAL(fp)             :: MW_OH, MW_O3, MW_NO3, MW_N2O5 ![g/mol]
+      REAL(fp)             :: V_OH, V_O3, V_NO3, V_N2O5 ![cm/s]
+      ! Gas constant                                                           
+      REAL(fp), PARAMETER    :: R_L_atm        = 8.2e-2_fp ! [L atm/K/mol]   
+      REAL(fp), PARAMETER    :: R_m3_Pa        = 8.31e0_fp ! [m3 Pa/K/mol] 
+
+      !=================================================================
+      ! CHEM_MANNHR begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC        => State_Chm%Species(id)%Conc
+      ! Density[kg/m3]
+      MSDENS = State_Chm%SpcData(id_MANN)%Info%Density
+      ! gas phase species MW [g/mol]
+      MW_OH   = State_Chm%SpcData(id_OH)%Info%MW_g
+      MW_O3   = State_Chm%SpcData(id_O3)%Info%MW_g
+      MW_NO3   = State_Chm%SpcData(id_NO3)%Info%MW_g
+      MW_N2O5   = State_Chm%SpcData(id_N2O5)%Info%MW_g
+      ! uptake coefficient (mean values 0.91, 0.013,1.29,0.037
+      GAMA_OH = 0.91e+0_fp
+      GAMA_O3 = 0.025e-3_fp
+      GAMA_NO3 = 2.23e-3_fp
+      GAMA_N2O5 = 0.064e-3_fp
+      ! RADIUS [cm]
+      RADIUS = 4e-5_fp
+      ! time [s]
+      DTCHEM  = GET_TS_CHEM()
+      ! Diag
+      MCOVHOH = 0e+0_fp
+      MCOVHO3 = 0e+0_fp
+      MCOVHNO3 = 0e+0_fp
+      MCOVHN2O5 = 0e+0_fp
+
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, RKT, CNEW, BOXVOL) &
+!$OMP PRIVATE( RTEMP, V_OH, V_O3, V_NO3, V_N2O5) &
+!$OMP PRIVATE( K1OH, K1O3, K1NO3, K1N2O5,AREA) &
+!$OMP PRIVATE( ROH, RO3, RNO3, RN2O5, RMANN) &
+!$OMP PRIVATE( COH, CO3, CNO3, CN2O5) &
+!$OMP SCHEDULE( DYNAMIC )
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+         ! Volume of grid box [m3]
+         BOXVOL  = State_Met%AIRVOL(I,J,L) ![m3]
+         ! Get concentration         ! Get offline OH, NO3, SO4
+         ! concentrations [molec/cm3]
+         COH    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         CO3    = GET_O3(  I, J, L, Input_Opt, State_Chm,State_Grid, State_Met )
+         CNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+         CN2O5  = GET_N2O5(I, J, L, Input_Opt, State_Chm, State_Met )
+
+         ! Initial MANN [kg]
+         TC0 = TC(I,J,L)
+         AREA = 3e+0_fp/RADIUS*(TC0/BOXVOL)/MSDENS
+         ! Mean velocity of gas oxidant [cm/s]
+         V_OH = 1.455*1e+4_fp*(RTEMP/MW_OH)**(1/2)
+         V_O3 = 1.455*1e+4_fp*(RTEMP/MW_O3)**(1/2)
+         V_NO3 = 1.455*1e+4_fp*(RTEMP/MW_NO3)**(1/2)
+         V_N2O5 = 1.455*1e+4_fp*(RTEMP/MW_N2O5)**(1/2)
+
+         ! Reaction rate coefficient
+         K1OH = 1e+0_fp/4e+0_fp*V_OH*GAMA_OH*AREA
+         K1O3 = 1e+0_fp/4e+0_fp*V_O3*GAMA_O3*AREA
+         K1NO3 = 1e+0_fp/4e+0_fp*V_NO3*GAMA_NO3*AREA
+         K1N2O5 = 1e+0_fp/4e+0_fp*V_N2O5*GAMA_N2O5*AREA
+         
+         ! Reaction rate
+         ROH = COH*K1OH  ! [molc/cm3/s]
+         RO3 = CO3*K1O3
+         RNO3= CNO3*K1NO3
+         RN2O5=CN2O5*K1N2O5
+         RMANN =(ROH + RO3 + RNO3 + RN2O5) &
+                /6.02e23_fp*BOXVOL*1e6_fp  ![mol/m3/s]
+
+       ! Amount of mann oxidize [kg]
+         RKT = RMANN*DTCHEM*162.14_fp*1e-3_fp
+         ! Prevent underflow
+         IF (RKT > TC0) RKT = TC0
+         IF (RKT < SMALLNUM) RKT = 0e+0_fp
+         ! Amount of MANN left after chemistry [kg]
+         CNEW = TC0 - RKT
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of MANN lost [kg/timestep]
+         IF (RKT > 0 ) THEN
+            MCOVHOH(I,J,L)=RKT*ROH/(ROH+RO3+RNO3+RN2O5)
+            MCOVHO3(I,J,L)=RKT*RO3/(ROH+RO3+RNO3+RN2O5)
+            MCOVHNO3(I,J,L)=RKT*RNO3/(ROH+RO3+RNO3+RN2O5)
+            MCOVHN2O5(I,J,L)=RKT*RN2O5/(ROH+RO3+RNO3+RN2O5)
+         ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN( MCOVHOH(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in MCOVHOH ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         IF( IT_IS_NAN( RKT ) ) THEN
+             PRINT *,'+++++++ Found NaN in RKT MANNHR ++++++++'
+         ENDIF
+
+         ! for history diag
+         IF ( State_Diag%Archive_LossMANNhfromOH ) THEN
+            State_Diag%LossMANNhfromOH(I,J,L) = MCOVHOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossMANNhfromO3 ) THEN
+            State_Diag%LossMANNhfromO3(I,J,L) = MCOVHO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossMANNhfromNO3 ) THEN
+            State_Diag%LossMANNhfromNO3(I,J,L) = MCOVHNO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossMANNhfromN2O5 ) THEN
+            State_Diag%LossMANNhfromN2O5(I,J,L) = MCOVHN2O5(I,J,L)
+         ENDIF
+
+         ! Store modified MANN concentration back in species array
+         TC(I,J,L) = CNEW
+
+         ! if nan test
+         IF( IT_IS_NAN( TC(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in TC MANNHR++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO  
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      MCOVHOH = 0e+0_fp
+      MCOVHO3 = 0e+0_fp
+      MCOVHNO3 = 0e+0_fp
+      MCOVHN2O5 = 0e+0_fp
+      TC => NULL()
+      END SUBROUTINE CHEM_MANNHR
+
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_gala
+!
+! !DESCRIPTION: Subroutine CHEM\_gala converts galactosan from
+! levoglucosan and
+! mannosan in aq phase
+! levoglucosan + OH +O2------galactosan
+! mannosan +OH ------galactosan
+! galactosan + OH  -------HCOOH+ACTA+RCOOH
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_GALA(  Input_Opt, State_Chm, &
+                         State_Diag, State_Grid,State_Met, id, RC )
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+
+
+      USE State_Grid_Mod, ONLY : GrdState
+     
+!
+! !INPUT PARAMETERS:
+!
+   
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            ! DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met             ! Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             ! ChemistryState object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+      INTEGER,        INTENT(IN)    :: id        ! BCPO species Id
+    
+!
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !REMARKS:
+! ymli(2020/11/06) use yangchi data
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER  :: I,   J,     L
+      REAL(fp) :: TC0, CNEW, CCVl, CCVm
+      REAL(fp) :: RTEMP, FC, LWC
+      REAL(fp), POINTER :: TC(:,:,:)
+      REAL(fp) :: DTCHEM
+      REAL(fp) :: RKT, FREQ, F, Faq
+! !DEFINED PARAMETERS:
+      REAL(fp) :: Flg = 3.65e-2_fp  !isomerization ratio (LEVO to GALA)
+      REAL(fp) :: Fmg = 1.50e-2_fp  !isomerization ratio (MANN to GALA)
+      REAL(fp) :: Fgm = 1.53e-2_fp  !isomerization ratio (GALA to MANN)
+      REAL(fp) :: KOH = 1.21e-3_fp  !first orfer reaction constant uplimit
+      !=================================================================
+      ! CHEM_GALA begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC => State_Chm%Species(id)%Conc
+      DTCHEM = GET_TS_CHEM()
+      GCOVOH = 0e+0_fp
+
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, CCVl,CCVm, CNEW ) &
+!$OMP SCHEDULE( DYNAMIC ) 
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+
+         ! Get liquid water content [m3 H2O/m3 air] within cloud from
+         ! met flds
+         ! Units: [kg H2O/kg air] * [kg air/m3 air] * [m3 H2O/1e3 kg
+         ! H2O]
+         LWC   = State_Met%QL(I,J,L) * State_Met%AIRDEN(I,J,L) * 1e-3_fp
+
+         LWC     = SAFE_DIV( LWC, FC, 0e+0_fp )
+
+         ! Initial Gala [kg]
+         !TC0 = TC(I,J,L)
+
+         ! Galactosan convert from levoglucosan [kg]
+         CCVl = Flg* COVOH(I,J,L)
+         CCVm = Fmg* MCOVOH(I,J,L)
+
+         ! Consider isomerization
+         !TC0 = TC(I,J,L)+CCVm+CCVl
+         ! no isomerization test ymli
+         TC0 = TC(I,J,L)
+
+!---------------------------------------------------------------------
+!    In cloud oxidizing reaction begin here
+!---------------------------------------------------------------------
+      IF (( FC     > 0.e+0_fp   )  .AND. &
+         ( TC0    > 0.e+0_fp   )  .AND. &
+         ( RTEMP  > 258.0      )  .AND. &
+         ( LWC    > 0.e+0_fp   ) ) THEN
+
+         FREQ = 0e+0_fp
+         Faq = 0.65
+         ! The aerosol scavening efficiency
+         F = State_Chm%SpcData(id_LEVO)%Info%WD_AerScavEff*Faq
+         RKT = (KOH+FREQ)*DTCHEM
+      ELSE
+         RKT =0e+0_fp
+      ENDIF
+         ! amount of GALA left in cloud
+         CNEW = F*TC0*EXP(-RKT)
+         ! amount of GALA lost [kg/time step]
+         GCOVOH(I,J,L) = (F*TC0) - CNEW
+
+         ! set history diag here
+         IF ( State_Diag%Archive_LossGALAfromOH ) THEN
+            State_Diag%LossGALAfromOH(I,J,L) = GCOVOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_ProdGALAfromLEVO ) THEN
+            State_Diag%ProdGALAfromLEVO(I,J,L) = Flg*COVOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_ProdGALAfromMANN ) THEN
+            State_Diag%ProdGALAfromMANN(I,J,L) = Fmg*MCOVOH(I,J,L)
+         ENDIF
+
+         ! Store modified GALA concentration back in species array
+         TC(I,J,L) = (1-F)*TC0+CNEW
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      TC => NULL()
+      END SUBROUTINE CHEM_GALA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model!
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: chem_galahr
+!
+! !DESCRIPTION: Subroutine CHEM\_GALAHR converts galactosan to
+! products + HX + HO2 in heterogeneous reactions
+! galactosan + OH ----prod1 + H2O
+! galactosan + O3 ----prod2 + O2 + OH
+! galactosan + NO3 ----prod3 + HNO3
+! galactosan + N2O5 ---- prod4 + HNO3
+!\\
+!\\
+
+! !INTERFACE:
+!
+      SUBROUTINE CHEM_GALAHR( Input_Opt, State_Chm, &
+                          State_Diag, State_Grid,State_Met, id, RC )
+!
+!
+! !USES:
+!
+
+      USE CMN_SIZE_MOD
+#if defined( BPCH_DIAG )
+      USE CMN_DIAG_MOD
+      USE DIAG_MOD,       ONLY : AD07_OC
+#endif
+      USE ErrCode_Mod
+      USE ERROR_MOD,      ONLY : SAFE_DIV
+      USE ERROR_MOD,      ONLY : IT_IS_NAN
+      USE Input_Opt_Mod,  ONLY : OptInput
+      USE State_Diag_Mod, ONLY : DgnState
+      USE TIME_MOD,       ONLY : GET_TS_CHEM
+      USE State_Met_Mod,  ONLY : MetState
+      USE State_Chm_Mod,  ONLY : ChmState
+      USE State_Grid_Mod, ONLY : GrdState
+      
+
+!
+! !INPUT PARAMETERS:
+!
+     
+      TYPE(OptInput), INTENT(IN)    :: Input_Opt             ! Input Options
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+      TYPE(DgnState), INTENT(INOUT) :: State_Diag            !DiagsState
+      TYPE(MetState), INTENT(IN)    :: State_Met
+!Meteorology State object
+      TYPE(ChmState), INTENT(INOUT) :: State_Chm             !ChemistryState object
+      TYPE(GrdState), INTENT(IN)    :: State_Grid   ! Grid State object
+      INTEGER,        INTENT(IN)    :: id        ! BCPO species Id
+
+! !OUTPUT PARAMETERS:
+!
+      INTEGER,        INTENT(OUT)   :: RC                    ! Success?
+!BOC
+!-------------------------------------------------------------------------------
+! !LOCAL VARIABLES:
+!
+      ! Scalars
+      INTEGER              :: I,      J,   L
+      REAL(fp)             :: DTCHEM, TC0, CNEW, RKT, RGALA
+      REAL(fp)             :: GAMA_OH, GAMA_O3, GAMA_NO3, GAMA_N2O5 ! uptake coefficient
+      REAL(fp)             :: RTEMP, BOXVOL ![K,m3]
+      REAL(fp)             :: COH, CO3, CNO3, CN2O5 ![mol/l(gas)]
+      REAL(fp)             :: K2OH
+      REAL(fp),  POINTER   :: TC(:,:,:)
+! 
+! !DEFINED PARAMETERS:
+!
+      REAL(fp)             :: K1OH, K1O3, K1NO3, K1N2O5  ![s-1]
+      REAL(fp)             :: ROH, RO3, RNO3, RN2O5  ![molec cm3-1 s-1]
+      REAL(fp)             :: RADIUS ![cm]
+      REAL(fp)             :: AREA   ![cm^2 levo/ cm^3 air]
+      REAL(fp)             :: MSDENS ![kg levo/cm^3 levo]
+      REAL(fp)             :: MW_OH, MW_O3, MW_NO3, MW_N2O5 ![g/mol]
+      REAL(fp)             :: V_OH, V_O3, V_NO3, V_N2O5 ![cm/s]
+      ! Gas constant
+      REAL(fp), PARAMETER    :: R_L_atm        = 8.2e-2_fp ! [L atm/K/mol]
+      REAL(fp), PARAMETER    :: R_m3_Pa        = 8.31e0_fp ! [m3 Pa/K/mol]
+
+      !=================================================================
+      ! CHEM_GALAHR begins here!
+      !=================================================================
+
+      ! Assume success
+      RC        = GC_SUCCESS
+      TC       => State_Chm%Species(id)%Conc
+      ! Density[kg/m3]
+      MSDENS = State_Chm%SpcData(id_GALA)%Info%Density
+      ! gas phase species MW [g/mol]
+      MW_OH   = State_Chm%SpcData(id_OH)%Info%MW_g
+      MW_O3   = State_Chm%SpcData(id_O3)%Info%MW_g
+      MW_NO3   = State_Chm%SpcData(id_NO3)%Info%MW_g
+      MW_N2O5   = State_Chm%SpcData(id_N2O5)%Info%MW_g
+      ! uptake coefficient (mean values 0.91, 0.013,1.29,0.037
+      GAMA_OH = 0.91e+0_fp
+      GAMA_O3 = 0.025e-3_fp
+      GAMA_NO3 = 2.23e-3_fp
+      GAMA_N2O5 = 0.064e-3_fp
+      ! RADIUS [cm]
+      RADIUS = 4e-5_fp
+      ! time [s]
+      DTCHEM  = GET_TS_CHEM()
+      ! Diag
+      GCOVHOH = 0e+0_fp
+      GCOVHO3 = 0e+0_fp
+      GCOVHNO3 = 0e+0_fp
+      GCOVHN2O5 = 0e+0_fp
+
+!$OMP PARALLEL DO &
+!$OMP DEFAULT( SHARED ) &
+!$OMP PRIVATE( I, J, L, TC0, RKT, CNEW, BOXVOL) &
+!$OMP PRIVATE( RTEMP, V_OH, V_O3, V_NO3, V_N2O5) &
+!$OMP PRIVATE( K1OH, K1O3, K1NO3, K1N2O5,AREA) &
+!$OMP PRIVATE( ROH, RO3, RNO3, RN2O5, RGALA) &
+!$OMP PRIVATE( COH, CO3, CNO3, CN2O5) &
+!$OMP SCHEDULE( DYNAMIC )
+        DO L = 1, State_Grid%NZ
+        DO J = 1, State_Grid%NY
+        DO I = 1, State_Grid%NX
+
+
+         ! Temperature [K]
+         RTEMP  = State_Met%T(I,J,L)
+         ! Volume of grid box [m3]
+         BOXVOL  = State_Met%AIRVOL(I,J,L) ![m3]
+         ! Get concentration         ! Get offline OH, NO3, SO4
+         ! concentrations [molec/cm3]
+         COH    = GET_OH(  I, J, L, Input_Opt, State_Chm, State_Met )
+         CO3    = GET_O3(  I, J, L, Input_Opt, State_Chm,State_Grid, State_Met )
+         CNO3   = GET_NO3( I, J, L, Input_Opt, State_Chm, State_Met )
+         CN2O5  = GET_N2O5(I, J, L, Input_Opt, State_Chm, State_Met )
+
+         ! Initial GALA [kg]
+         TC0 = TC(I,J,L)
+         AREA = 3e+0_fp/RADIUS*(TC0/BOXVOL)/MSDENS
+         ! Mean velocity of gas oxidant [cm/s]
+         V_OH = 1.455*1e+4_fp*(RTEMP/MW_OH)**(1/2)
+         V_O3 = 1.455*1e+4_fp*(RTEMP/MW_O3)**(1/2)
+         V_NO3 = 1.455*1e+4_fp*(RTEMP/MW_NO3)**(1/2)
+         V_N2O5 = 1.455*1e+4_fp*(RTEMP/MW_N2O5)**(1/2)
+
+         ! Reaction rate coefficient
+         K1OH = 1e+0_fp/4e+0_fp*V_OH*GAMA_OH*AREA
+         K1O3 = 1e+0_fp/4e+0_fp*V_O3*GAMA_O3*AREA
+         K1NO3 = 1e+0_fp/4e+0_fp*V_NO3*GAMA_NO3*AREA
+         K1N2O5 = 1e+0_fp/4e+0_fp*V_N2O5*GAMA_N2O5*AREA
+
+         ! Reaction rate
+         ROH = COH*K1OH  ! [molc/cm3/s]
+         RO3 = CO3*K1O3
+         RNO3= CNO3*K1NO3
+         RN2O5=CN2O5*K1N2O5
+         RGALA =(ROH + RO3 + RNO3 + RN2O5) &
+                /6.02e23_fp*BOXVOL*1e6_fp  ![mol/m3/s]
+
+       ! Amount of gala oxidize [kg]
+         RKT = RGALA*DTCHEM*162.14_fp*1e-3_fp
+         ! Prevent underflow
+         IF (RKT > TC0) RKT = TC0
+         IF (RKT < SMALLNUM) RKT = 0e+0_fp
+         ! Amount of MANN left after chemistry [kg]
+         CNEW = TC0 - RKT
+         ! Prevent underflow condition
+         IF ( CNEW < SMALLNUM ) CNEW = 0e+0_fp
+
+         ! Amount of GALA lost [kg/timestep]
+         IF (RKT > 0 ) THEN
+            GCOVHOH(I,J,L)=RKT*ROH/(ROH+RO3+RNO3+RN2O5)
+            GCOVHO3(I,J,L)=RKT*RO3/(ROH+RO3+RNO3+RN2O5)
+            GCOVHNO3(I,J,L)=RKT*RNO3/(ROH+RO3+RNO3+RN2O5)
+            GCOVHN2O5(I,J,L)=RKT*RN2O5/(ROH+RO3+RNO3+RN2O5)
+         ENDIF
+
+         ! if nan test
+         IF( IT_IS_NAN( GCOVHOH(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in GCOVHOH ++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+         IF( IT_IS_NAN( RKT ) ) THEN
+             PRINT *,'+++++++ Found NaN in RKT GALAHR ++++++++'
+         ENDIF
+
+         ! for history diag
+         IF ( State_Diag%Archive_LossGALAhfromOH ) THEN
+            State_Diag%LossGALAhfromOH(I,J,L) = GCOVHOH(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossGALAhfromO3 ) THEN
+            State_Diag%LossGALAhfromO3(I,J,L) = GCOVHO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossGALAhfromNO3 ) THEN
+            State_Diag%LossGALAhfromNO3(I,J,L) = GCOVHNO3(I,J,L)
+         ENDIF
+         IF ( State_Diag%Archive_LossGALAhfromN2O5 ) THEN
+            State_Diag%LossGALAhfromN2O5(I,J,L) = GCOVHN2O5(I,J,L)
+         ENDIF
+
+         ! Store modified MANN concentration back in species array
+         TC(I,J,L) = CNEW
+
+         ! if nan test
+         IF( IT_IS_NAN( TC(I,J,L) ) ) THEN
+             PRINT *,'+++++++ Found NaN in TC GALAHR++++++++'
+             PRINT *,'Location (I,J,L):',I,J,L
+         ENDIF
+
+
+      ENDDO
+      ENDDO
+      ENDDO
+!$OMP END PARALLEL DO
+      !=================================================================
+      ! Zero COV array for next timestep
+      !=================================================================
+      GCOVHOH = 0e+0_fp
+      GCOVHO3 = 0e+0_fp
+      GCOVHNO3 = 0e+0_fp
+      GCOVHN2O5 = 0e+0_fp
+      TC => NULL()
+      END SUBROUTINE CHEM_GALAHR
+
 !EOC
 #ifdef TOMAS
 !-------------------------------------------------------------------------------
@@ -5744,6 +7489,106 @@ CONTAINS
    ENDIF
 
  END FUNCTION GET_NO3
+
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model
+!                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: get_n2o5
+!
+! !DESCRIPTION: Function GET\_N2O5 returns N2O5 from State\_Chm%Species
+! (for  coupled runs) 
+! copyed from get_no3
+!\\
+!\\
+! !INTERFACE:
+!
+      FUNCTION GET_N2O5( I, J, L, Input_Opt, State_Chm, State_Met  ) &
+              RESULT( N2O5_MOLEC_CM3 )
+!
+! !USES:
+!
+      USE CMN_SIZE_MOD
+      USE ERROR_MOD,          ONLY : ERROR_STOP
+      USE Input_Opt_Mod,      ONLY : OptInput
+      USE State_Chm_Mod,      ONLY : ChmState
+      USE State_Met_Mod,      ONLY : MetState
+      USE TIME_MOD,           ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS: 
+!
+      INTEGER,        INTENT(IN)  :: I           ! Longitude index
+      INTEGER,        INTENT(IN)  :: J           ! Latitude index
+      INTEGER,        INTENT(IN)  :: L           ! Altitude index
+      TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+      TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Chemistry State object
+      TYPE(MetState), INTENT(IN)  :: State_Met   ! Meteorology State object
+!
+! !RETURN VALUE:
+!
+      REAL(fp)                    :: N2O5_MOLEC_CM3
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+      REAL(fp),  PARAMETER :: XNUMOL_N2O5 = AVO / 62e-3_fp ! hard-coded MW
+!
+! !LOCAL VARIABLES:
+!
+      REAL(fp)             :: N2O5_MW_kg  ! kg N2O5 / mol
+      REAL(fp)             :: BOXVL
+
+      !=================================================================
+      ! GET_N2O5 begins here!
+      !=================================================================
+
+      IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
+         !----------------------
+         ! Fullchem simulation
+         !----------------------
+
+         ! NO3 is defined only in the chemistry grid
+         IF ( State_Met%InChemGrid(I,J,L) ) THEN
+
+            ! Get N2O5 from State_Chm%Species [kg] and convert to
+            ! [molec/cm3]
+            N2O5_MW_kg=State_Chm%SpcData(id_N2O5)%Info%MW_g*1.e-3_fp
+
+            N2O5_MOLEC_CM3 = State_Chm%Species(id_N2O5)%Conc(I,J,L) &
+                         * ( AVO / N2O5_MW_kg ) &
+                         / ( State_Met%AIRVOL(I,J,L) &
+                         * 1e+6_fp  )
+
+         ELSE
+
+            N2O5_MOLEC_CM3 = 0e+0_fp
+
+         ENDIF
+
+      ELSE IF ( Input_Opt%ITS_AN_AEROSOL_SIM ) THEN
+
+         !--------------------
+         ! Offline simulation
+         !--------------------   
+
+         ! Not supported yet for
+         ! offline aerosol simulations, set N2O5=0
+         N2O5_MOLEC_CM3 = 0e+0_fp
+
+      ELSE
+
+         !----------------------
+         ! Invalid sim type!
+         !----------------------       
+         CALL ERROR_STOP( 'Invalid Simulation Type!', &
+                         'GET_N2O5 ("carbon_mod.f")' )
+
+      ENDIF
+
+      END FUNCTION GET_N2O5 
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7652,12 +9497,17 @@ CONTAINS
    id_NH4      = IND_('NH4'     )
    id_NO       = IND_('NO'      )
    id_NO3      = IND_('NO3'     )
+   id_N2O5     = IND_('N2O5'    )
    id_OCIL01   = IND_('OCIL01'  )
    id_OCOB01   = IND_('OCOB01'  )
    id_O3       = IND_('O3'      )
    id_OH       = IND_('OH'      )
    id_OCPO     = IND_('OCPO'    )
    id_OCPI     = IND_('OCPI'    )
+   id_LEVO     = IND_('LEVO'    )
+   id_LEVOG    = IND_('LEVOG'   )
+   id_MANN     = IND_('MANN'    )
+   id_GALA     = IND_('GALA'    )
    id_OPOA1    = IND_('OPOA1'   )
    id_OPOG1    = IND_('OPOG1'   )
    id_OPOA2    = IND_('OPOA2'   )
@@ -7688,7 +9538,7 @@ CONTAINS
    id_LNRO2H   = IND_('LNRO2H'  )
    id_LISOPOH  = IND_('LISOPOH' )
    id_LISOPNO3 = IND_('LISOPNO3')
-
+   id_SO4      = IND_('SO4'     )
    ! Some parent hydrocarbons are lumped together into 1 or more
    ! semivolatiles. Map the parent HC to lumped semivolatiles here
    ! (hotp 5/13/10)
@@ -7753,6 +9603,63 @@ CONTAINS
    IF ( AS /= 0 ) CALL ALLOC_ERR( 'OCCONVNEW' )
    OCCONVNEW = 0e+0_fp
 #endif
+   ALLOCATE( MCOVOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOVOH' )
+   MCOVOH = 0e+0_fp
+
+   ALLOCATE( MCOVHOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOVHOH' )
+   MCOVHOH = 0e+0_fp
+   ALLOCATE( MCOVHO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOVHO3' )
+   MCOVHO3 = 0e+0_fp
+   ALLOCATE( MCOVHNO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOVHNO3' )
+   MCOVHNO3 = 0e+0_fp
+   ALLOCATE( MCOVHN2O5( State_Grid%NX,State_Grid%NY,State_Grid%NZ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'MCOVHN2O5' )
+   MCOVHN2O5 = 0e+0_fp
+
+
+   ALLOCATE( GCOVOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'GCOVOH' )
+   GCOVOH = 0e+0_fp
+
+   ALLOCATE( GCOVHOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'GCOVHOH' )
+   GCOVHOH = 0e+0_fp
+   ALLOCATE( GCOVHO3(State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'GCOVHO3' )
+   GCOVHO3 = 0e+0_fp
+   ALLOCATE( GCOVHNO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'GCOVHNO3' )
+   GCOVHNO3 = 0e+0_fp
+   ALLOCATE( GCOVHN2O5( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'GCOVHN2O5' )
+   GCOVHN2O5 = 0e+0_fp
+
+   ALLOCATE( COVOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVOH' )
+   COVOH = 0e+0_fp
+   ALLOCATE( COVNO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVNO3' )
+   COVNO3 = 0e+0_fp
+   ALLOCATE( COVHOH( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVHOH' )
+   COVHOH = 0e+0_fp
+   ALLOCATE( COVHO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVHO3' )
+   COVHO3 = 0e+0_fp
+   ALLOCATE( COVHNO3( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVHNO3' )
+   COVHNO3 = 0e+0_fp
+   ALLOCATE( COVHN2O5( State_Grid%NX,State_Grid%NY,State_Grid%NZ ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVHN2O5' )
+   COVHN2O5 = 0e+0_fp
+
+   ALLOCATE( COVGOH(State_Grid%NX,State_Grid%NY,State_Grid%NZ  ), STAT=AS )
+   IF ( AS /= 0 ) CALL ALLOC_ERR( 'COVGOH' )
+   COVGOH = 0e+0_fp
 
    ! JKODROS
 #ifdef TOMAS
@@ -7931,6 +9838,23 @@ CONTAINS
    !=================================================================
    IF ( ALLOCATED( BCCONV        ) ) DEALLOCATE( BCCONV        )
    IF ( ALLOCATED( OCCONV        ) ) DEALLOCATE( OCCONV        )
+   IF ( ALLOCATED( MCOVOH        ) ) DEALLOCATE( MCOVOH        )
+   IF ( ALLOCATED( MCOVHOH       ) ) DEALLOCATE( MCOVHOH       )
+   IF ( ALLOCATED( MCOVHO3       ) ) DEALLOCATE( MCOVHO3       )
+   IF ( ALLOCATED( MCOVHNO3      ) ) DEALLOCATE( MCOVHNO3      )
+   IF ( ALLOCATED( MCOVHN2O5     ) ) DEALLOCATE( MCOVHN2O5     )
+   IF ( ALLOCATED( GCOVOH        ) ) DEALLOCATE( GCOVOH        )
+   IF ( ALLOCATED( GCOVHOH       ) ) DEALLOCATE( GCOVHOH       )
+   IF ( ALLOCATED( GCOVHO3       ) ) DEALLOCATE( GCOVHO3       )
+   IF ( ALLOCATED( GCOVHNO3      ) ) DEALLOCATE( GCOVHNO3      )
+   IF ( ALLOCATED( GCOVHN2O5     ) ) DEALLOCATE( GCOVHN2O5     )
+   IF ( ALLOCATED( COVOH         ) ) DEALLOCATE( COVOH         )
+   IF ( ALLOCATED( COVNO3        ) ) DEALLOCATE( COVNO3        )
+   IF ( ALLOCATED( COVHOH        ) ) DEALLOCATE( COVHOH        )
+   IF ( ALLOCATED( COVHO3        ) ) DEALLOCATE( COVHO3        )
+   IF ( ALLOCATED( COVHNO3       ) ) DEALLOCATE( COVHNO3       )
+   IF ( ALLOCATED( COVHN2O5      ) ) DEALLOCATE( COVHN2O5      )
+   IF ( ALLOCATED( COVGOH        ) ) DEALLOCATE( COVGOH        )  
    IF ( ALLOCATED( TCOSZ         ) ) DEALLOCATE( TCOSZ         )
    IF ( ALLOCATED( GLOB_DARO2    ) ) DEALLOCATE( GLOB_DARO2    )
    IF ( ALLOCATED( POAEMISS      ) ) DEALLOCATE( POAEMISS      )
