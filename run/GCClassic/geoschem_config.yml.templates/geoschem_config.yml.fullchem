@@ -396,6 +396,16 @@ operations:
       - TMB
       - TOLU
       - XYLE
+      - LEVO
+      - LEVO_A
+      - LEVO_B
+      - LEVO_AAQ
+      - LEVO_BAQ
+      - MANN
+      - GALA
+      - KDUST
+      - KSALA
+      - LEVOG
 
   wet_deposition:
     activate: true
