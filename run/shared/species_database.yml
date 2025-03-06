@@ -166,25 +166,75 @@ DSTbin7_PROP: &DSTbin7properties
   WD_Is_DSTbin: true
   WD_WashoutRainPara: [3.37e-4, 0.84]
   WD_WashoutSnowPara: [2.42e-3, 0.73]
-AlFbin1:
-  << : *DSTbin1properties
+DST1_PROP: &DST1properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 7.3e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST2_PROP: &DST2properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST3_PROP: &DST3properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.4e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DST4_PROP: &DST4properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 4.5e-6
+  WD_AerScavEff: 1.0
+  WD_CoarseAer: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+AlF1:
+  << : *DST1properties
   Formula: Al
-  Fullname: Aluminium on DSTbin1
+  Fullname: Aluminium on dust Reff = 0.7 microns
   MW_g: 26.98
-AlFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+AlF2:
+  << : *DST2properties
   Formula: Al
-  Fullname: Aluminium on DSTbin2
-  MW_g: 26.98
-AlFbin3:
-  << : *DSTbin3properties
-  Formula: Al
-  Fullname: Aluminium on DSTbin3
-  MW_g: 26.98
-AlFbin4:
-  << : *DSTbin4properties
-  Formula: Al
-  Fullname: Aluminium on DSTbin4
+  Fullname: Aluminium on dust, Reff = 1.4 microns
   MW_g: 26.98
 ALD2:
   DD_F0: 1.0
@@ -282,25 +332,16 @@ AROMRO2:
   FullName: hydroxy-peroxy radical from aromatics
   Is_Gas: true
   MW_g: 127.00
-AsFbin1:
-  << : *DSTbin1properties
+AsF1:
+  << : *DST1properties
   Formula: As
-  Fullname: Arsenic on DSTbin1
+  Fullname: Arsenic on dust Reff = 0.7 microns
   MW_g: 74.92
-AsFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+AsF2:
+  << : *DST2properties
   Formula: As
-  Fullname: Arsenic on DSTbin2
-  MW_g: 74.92
-AsFbin3:
-  << : *DSTbin3properties
-  Formula: As
-  Fullname: Arsenic on DSTbin3
-  MW_g: 74.92
-AsFbin4:
-  << : *DSTbin4properties
-  Formula: As
-  Fullname: Arsenic on DSTbin4
+  Fullname: Arsenic on dust, Reff = 1.4 microns
   MW_g: 74.92
 ASOA_PROP: &ASOAproperties
   DD_DvzAerSnow: 0.03
@@ -677,25 +718,16 @@ C4HVP2:
   FullName: C4 hydroxy-vinyl peroxy radicals from HPALDS
   Is_Gas: true
   MW_g: 103.11
-CaFbin1:
-  << : *DSTbin1properties
+CaF1:
+  << : *DST1properties
   Formula: Ca
-  Fullname: Calcium on DSTbin1
+  Fullname: Calcium on dust Reff = 0.7 microns
   MW_g: 40.08
-CaFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+CaF2:
+  << : *DST2properties
   Formula: Ca
-  Fullname: Calcium on DSTbin2
-  MW_g: 40.08
-CaFbin3:
-  << : *DSTbin3properties
-  Formula: Ca
-  Fullname: Calcium on DSTbin3
-  MW_g: 40.08
-CaFbin4:
-  << : *DSTbin4properties
-  Formula: Ca
-  Fullname: Calcium on DSTbin4
+  Fullname: Calcium on dust, Reff = 1.4 microns
   MW_g: 40.08
 CaC3:
   << : *DST3properties
@@ -714,25 +746,16 @@ CCl4:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 153.82
-CdFbin1:
-  << : *DSTbin1properties
+CdF1:
+  << : *DST1properties
   Formula: Cd
-  Fullname: Cadmium on DSTbin1
+  Fullname: Cadmium on dust Reff = 0.7 microns
   MW_g: 112.41
-CdFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+CdF2:
+  << : *DST2properties
   Formula: Cd
-  Fullname: Cadmium on DSTbin2
-  MW_g: 112.41
-CdFbin3:
-  << : *DSTbin3properties
-  Formula: Cd
-  Fullname: Cadmium on DSTbin3
-  MW_g: 112.41
-CdFbin4:
-  << : *DSTbin4properties
-  Formula: Cd
-  Fullname: Cadmium on DSTbin4
+  Fullname: Cadmium on dust, Reff = 1.4 microns
   MW_g: 112.41
 CFC11:
   Formula: CCl3F
@@ -1408,25 +1431,16 @@ ETP:
   Is_WetDep: true
   MW_g: 62.08
   WD_RetFactor: 2.0e-2
-FeFbin1:
-  << : *DSTbin1properties
+FeF1:
+  << : *DST1properties
   Formula: Fe
-  Fullname: Iron on DSTbin1
+  Fullname: Iron on dust. Reff = 0.7 microns
   MW_g: 55.84
-FeFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+FeF2:
+  << : *DST2properties
   Formula: Fe
-  Fullname: Iron on DSTbin2
-  MW_g: 55.84
-FeFbin3:
-  << : *DSTbin3properties
-  Formula: Fe
-  Fullname: Iron on DSTbin3
-  MW_g: 55.84
-FeFbin4:
-  << : *DSTbin4properties
-  Formula: Fe
-  Fullname: Iron on DSTbin4
+  Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
 FixedCl:
   Formula: Cl
@@ -2859,40 +2873,26 @@ ITHN:
   Is_WetDep: true
   MW_g: 197.17
   WD_RetFactor: 2.0e-2
-KFbin1:
-  << : *DSTbin1properties
+KF1:
+  << : *DST1properties
   Formula: K
-  Fullname: Potassium on DSTbin1
+  Fullname: Potassium on dust. Reff = 0.7 microns
   MW_g: 39.10
-KFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+KF2:
+  << : *DST2properties
   Formula: K
-  Fullname: Potassium on DSTbin2
+  Fullname: Potassium on dust, Reff = 1.4 microns
   MW_g: 39.10
-KFbin3:
-  << : *DSTbin3properties
+KC3:
+  << : *DST3properties
   Formula: K
-  Fullname: Potassium on DSTbin3
+  Fullname: Potassium on dust, Reff = 2.4 microns
   MW_g: 39.10
-KFbin4:
-  << : *DSTbin4properties
+KC4:
+  << : *DST4properties
   Formula: K
-  Fullname: Potassium on DSTbin4
-  MW_g: 39.10
-KCbin5:
-  << : *DSTbin5properties
-  Formula: K
-  Fullname: Potassium on DSTbin5
-  MW_g: 39.10
-KCbin6:
-  << : *DSTbin6properties
-  Formula: K
-  Fullname: Potassium on DSTbin6
-  MW_g: 39.10
-KCbin7:
-  << : *DSTbin7properties
-  Formula: K
-  Fullname: Potassium on DSTbin7
+  Fullname: Potassium on dust, Reff = 4.5 microns
   MW_g: 39.10
 KO2:
   Formula: C4H5O3
@@ -3162,40 +3162,26 @@ MENO3:
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 77.05
-MgFbin1:
-  << : *DSTbin1properties
+MgF1:
+  << : *DST1properties
   Formula: Mg
-  Fullname: Magnesium on DSTbin1
+  Fullname: Magnesium on dust. Reff = 0.7 microns
   MW_g: 24.31
-MgFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+MgF2:
+  << : *DST2properties
   Formula: Mg
-  Fullname: Magnesium on DSTbin2
+  Fullname: Magnesium on dust, Reff = 1.4 microns
   MW_g: 24.31
-MgFbin3:
-  << : *DSTbin3properties
+MgC3:
+  << : *DST3properties
   Formula: Mg
-  Fullname: Magnesium on DSTbin3
+  Fullname: Magnesium on dust, Reff = 2.4 microns
   MW_g: 24.31
-MgFbin4:
-  << : *DSTbin4properties
+MgC4:
+  << : *DST4properties
   Formula: Mg
-  Fullname: Magnesium on DSTbin4
-  MW_g: 24.31
-MgCbin5:
-  << : *DSTbin5properties
-  Formula: Mg
-  Fullname: Magnesium on DSTbin5
-  MW_g: 24.31
-MgCbin6:
-  << : *DSTbin6properties
-  Formula: Mg
-  Fullname: Magnesium on DSTbin6
-  MW_g: 24.31
-MgCbin7:
-  << : *DSTbin7properties
-  Formula: Mg
-  Fullname: Magnesium on DSTbin7
+  Fullname: Magnesium on dust, Reff = 4.5 microns
   MW_g: 24.31
 MGLY:
   DD_F0: 1.0
@@ -3211,25 +3197,16 @@ MGLY:
   Is_WetDep: true
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
-MnFbin1:
-  << : *DSTbin1properties
+MnF1:
+  << : *DST1properties
   Formula: Mn
-  Fullname: Manganese on DSTbin1
+  Fullname: Manganese on dust. Reff = 0.7 microns
   MW_g: 54.94
-MnFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+MnF2:
+  << : *DST2properties
   Formula: Mn
-  Fullname: Manganese on DSTbin2
-  MW_g: 54.94
-MnFbi3:
-  << : *DSTbin3properties
-  Formula: Mn
-  Fullname: Manganese on DSTbin3
-  MW_g: 54.94
-MnFbin4:
-  << : *DSTbin4properties
-  Formula: Mn
-  Fullname: Manganese on DSTbin4
+  Fullname: Manganese on dust, Reff = 1.4 microns
   MW_g: 54.94
 MO2:
   Background_VV: 4.0e-15
@@ -3598,25 +3575,16 @@ NH4:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-NiFbin1:
-  << : *DSTbin1properties
+NiF1:
+  << : *DST1properties
   Formula: Ni
-  Fullname: Nickel on DSTbin1
+  Fullname: Nickel on dust. Reff = 0.7 microns
   MW_g: 58.69
-NiFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+NiF2:
+  << : *DST2properties
   Formula: Ni
-  Fullname: Nickel on DSTbin2
-  MW_g: 58.69
-NiFbin3:
-  << : *DSTbin3properties
-  Formula: Ni
-  Fullname: Nickel on DSTbin3
-  MW_g: 58.69
-NiFbin4:
-  << : *DSTbin4properties
-  Formula: Ni
-  Fullname: Nickel on DSTbin4
+  Fullname: Nickel on dust, Reff = 1.4 microns
   MW_g: 58.69
 NIT:
   DD_DvzAerSnow: 0.03
@@ -3990,25 +3958,16 @@ Pb210s:
   << : *Pbproperties
   FullName: Lead-210 isotope stratospheric-source tracer
 # Src_Vert: stratosphere
-PbFbin1:
-  << : *DSTbin1properties
+PbF1:
+  << : *DST1properties
   Formula: Pb
-  Fullname: Lead on DSTbin1
+  Fullname: Lead on dust. Reff = 0.7 microns
   MW_g: 210.0
-PbFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+PbF2:
+  << : *DST2properties
   Formula: Pb
-  Fullname: Lead on DSTbin2
-  MW_g: 210.0
-PbFbin3:
-  << : *DSTbin3properties
-  Formula: Pb
-  Fullname: Lead on DSTbin3
-  MW_g: 210.0
-PbFbin4:
-  << : *DSTbin4properties
-  Formula: Pb
-  Fullname: Lead on DSTbin4
+  Fullname: Lead on dust, Reff = 1.4 microns
   MW_g: 210.0
 PCO:
   FullName: Dummy species to track production rate of CO
@@ -4650,21 +4609,14 @@ SF6:
   Snk_Mode: none
   Src_Add: true
   Src_Mode: HEMCO
-SiFbin1:
-  << : *DSTbin1properties
-  Fullname: Silicon on DSTbin1
+SiF1:
+  << : *DST1properties
+  Fullname: Silicon on dust, Reff = 0.7 microns
   MW_g: 28.09
-SiFbin2:
-  << : *DSTbin2properties
-  Fullname: Silicon on DSTbin2
-  MW_g: 28.09
-SiFbin3:
-  << : *DSTbin3properties
-  Fullname: Silicon on DSTbin3
-  MW_g: 28.09
-SiFbin4:
-  << : *DSTbin4properties
-  Fullname: Silicon on DSTbin4
+  WD_CoarseAer: true
+SiF2:
+  << : *DST2properties
+  Fullname: Silicon on dust, Reff = 1.4 microns
   MW_g: 28.09
 SO2:
   DD_DvzAerSnow: 0.03
@@ -4846,25 +4798,16 @@ stOX:
   Src_Horiz: all
   Src_Mode: model_field
   Src_Vert: stratosphere
-TiFbin1:
-  << : *DSTbin1properties
+TiF1:
+  << : *DST1properties
   Formula: Ti
-  Fullname: Titanium on DSTbin1
+  Fullname: Titanium on dust, Reff = 0.7 microns
   MW_g: 47.87
-TiFbin2:
-  << : *DSTbin2properties
+  WD_CoarseAer: true
+TiF2:
+  << : *DST2properties
   Formula: Ti
-  Fullname: Titanium on DSTbin2
-  MW_g: 47.87
-TiFbin3:
-  << : *DSTbin3properties
-  Formula: Ti
-  Fullname: Titanium on DSTbin3
-  MW_g: 47.87
-TiFbin4:
-  << : *DSTbin4properties
-  Formula: Ti
-  Fullname: Titanium on DSTbin4
+  Fullname: Titanium on dust, Reff = 1.4 microns
   MW_g: 47.87
 TOLU:
   Formula: C7H8
