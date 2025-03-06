@@ -512,6 +512,43 @@ EmisXYLE_BioBurn   XYLE   111    -1  -1   2   kg/m2/s  XYLE_emission_flux_from_b
 EmisXYLE_Ship      XYLE   0      10  -1   2   kg/m2/s  XYLE_emission_flux_from_ships
 
 ###############################################################################
+#####  LEVO emissions                                                    ######
+###############################################################################
+EmisLEVO_Total     LEVO   -1     -1  -1   3   kg/m2/s  LEVO_emission_flux_from_all_sectors
+EmisLEVO_Anthro    LEVO   0      1   -1   3   kg/m2/s  LEVO_emission_flux_from_anthropogenic
+EmisLEVO_Biofuel   LEVO   0      2   -1   2   kg/m2/s  LEVO_emission_flux_from_biofuel
+EmisLEVO_BioBurn   LEVO   111    -1  -1   2   kg/m2/s  LEVO_emission_flux_from_biomass_burning
+EmisLEVO_B_BioBurn LEVO_B 111    -1  -1   2   kg/m2/s  LEVO_B_emission_flux_from_biomass_burning
+EmisLEVOG_Total     LEVOG   -1     -1  -1   3   kg/m2/s  LEVOG_emission_flux_from_all_sectors
+EmisLEVOG_Anthro    LEVOG   0      1   -1   3   kg/m2/s  LEVOG_emission_flux_from_anthropogenic
+EmisLEVOG_Biofuel   LEVOG   0      2   -1   2   kg/m2/s  LEVOG_emission_flux_from_biofuel
+EmisLEVOG_BioBurn   LEVOG   111    -1  -1   2   kg/m2/s  LEVOG_emission_flux_from_biomass_burning
+
+###############################################################################
+#####  K+ emissions                                                    ######
+###############################################################################
+EmisK+_Total    K+   -1     -1  -1   3   kg/m2/s   K+_emission_flux_from_all_sectors
+EmisK+_Anthro   K+    0      1   -1   3   kg/m2/s  K+_emission_flux_from_anthropogenic
+EmisK+_BioBurn  K+    111    -1  -1   2   kg/m2/s  K+_emission_flux_from_biomass_burning
+EmisKDUST_Natural  KDUST   0      3   -1   2   kg/m2/s  KDUST_emission_flux_from_natural_sources
+#InvSALA_SeaSalt   SALA   107    -1  -1   2   kg/m2/s  SALA_emission_flux_from_SeaSalt_extension
+EmisKSALA_Natural  KSALA   107    -1  -1   2   kg/m2/s  KSALA_emission_flux_from_natural_sources
+
+###############################################################################
+#####  MANN emissions                                                    ######
+###############################################################################
+EmisMANN_Total     MANN   -1     -1  -1   3   kg/m2/s  MANN_emission_flux_from_all_sectors
+EmisMANN_Anthro    MANN   0      1   -1   3   kg/m2/s  MANN_emission_flux_from_anthropogenic
+EmisMANN_Biofuel   MANN   0      2   -1   2   kg/m2/s  MANN_emission_flux_from_biofuel
+EmisMANN_BioBurn   MANN   111    -1  -1   2   kg/m2/s  MANN_emission_flux_from_biomass_burning
+###############################################################################
+#####  GALA emissions                                                    ######
+###############################################################################
+EmisGALA_Total     GALA   -1     -1  -1   3   kg/m2/s  GALA_emission_flux_from_all_sectors
+EmisGALA_Anthro    GALA   0      1   -1   3   kg/m2/s  GALA_emission_flux_from_anthropogenic
+EmisGALA_Biofuel   GALA   0      2   -1   2   kg/m2/s  GALA_emission_flux_from_biofuel
+EmisGALA_BioBurn   GALA   111    -1  -1   2   kg/m2/s  GALA_emission_flux_from_biomass_burning
+###############################################################################
 #####  Additional diagnostics saved out via HEMCO extensions              #####
 ###############################################################################
 
