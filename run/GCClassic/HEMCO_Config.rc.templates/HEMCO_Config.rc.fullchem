@@ -179,7 +179,7 @@ VerboseOnCores:              root       # Accepted values: root all
 105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
-107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
+107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI/KSALA
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
     --> SALC lower radius      :       0.5
@@ -195,6 +195,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> N per snowflake        :       5.0
     --> Model sea salt Br-     :       true
     --> Br- mass ratio         :       2.11e-3
+    --> K+ mass ratio          :       1.0e-2
 108     MEGAN                  : ${RUNDIR_MEGAN_EXT}    ISOP/ACET/PRPE/C2H4/ALD2/MOH/EOH/MTPA/MTPO/LIMO/SESQ/SOAP/SOAS
     --> Isoprene scaling       :       1.0
     --> CO2 inhibition         :       true
@@ -205,7 +206,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
+111     GFED                   : ${RUNDIR_GFED_EXT}   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/MTPA/BENZ/TOLU/XYLE/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6/LEVO/LEVOG/LEVO_B/LEVO_BAQ/K+/MANN/GALA
     --> GFED4                  :       true
     --> GFED_daily             :       false
     --> GFED_3hourly           :       false
@@ -215,6 +216,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> hydrophilic OC         :       0.5
     --> fraction POG1          :       0.49
     --> CO to SOAP             :       0.013
+    --> Gas phase LEVO         :       0.1
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
 114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP/STYR/EBZ/TMB/ROH/RCOOH/RCHO/ACTA/EOH/HCOOH/ISOP/MACR/MVK/MOH/R4N2/FURA
@@ -1082,7 +1084,12 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_CHARCOALPROD_OCPO  -                                                                                -     -          - -  -        OCPO  73/1008/320      1 60
 0 DICE_CHARCOALPROD_POG1  -                                                                                -     -          - -  -        POG1  74/76/1008/320   1 60
 0 DICE_CHARCOALPROD_POG2  -                                                                                -     -          - -  -        POG2  74/77/1008/320   1 60
-
+0 DICE_CHARCOALPROD_LEVO  -                                                                                -     -          - -  -        LEVO  872/885/1008/320     1 60
+0 DICE_CHARCOALPROD_LEVOG  -                                                                                -     -          - -  -        LEVOG  872/886/1008/320     1 60
+0 DICE_CHARCOALPROD_LEVO_A  -                                                                              -     -          - -  -        LEVO_A  872/1008/320          1 60
+0 DICE_CHARCOALPROD_LEVO_AAQ  -                                                                            -     -          - -  -        LEVO_AAQ  872/1008/320          1 60
+0 DICE_CHARCOALPROD_MANN  -                                                                                -     -          - -  -     MANN  872/881/1008/320          1 60
+0 DICE_CHARCOALPROD_GALA  -                                                                                -     -          - -  -     GALA  872/882/1008/320          1 60
 # ------------------------
 #  Flaring of natural gas
 # ------------------------
@@ -1142,7 +1149,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_AGBURNING_OCPO  -                                                                                       -     -          - -  -        OCPO  73/1008          2 60
 0 DICE_AGBURNING_POG1  -                                                                                       -     -          - -  -        POG1  74/76/1008       2 60
 0 DICE_AGBURNING_POG2  -                                                                                       -     -          - -  -        POG2  74/77/1008       2 60
-
+0 DICE_AGBURNING_LEVO  -                                                                                       -     -          - -  g/m2/yr  LEVO  871/885/1008     2 60
+0 DICE_AGBURNING_LEVOG  -                                                                                       -     -          - -  g/m2/yr  LEVOG  871/886/1008   2 60
+0 DICE_AGBURNING_LEVO_A  -                                                                                       -     -          - -  g/m2/yr  LEVO_A  871/1008     2 60
+0 DICE_AGBURNING_LEVO_AAQ  -                                                                                       -     -          - -  g/m2/yr  LEVO_AAQ  871/1008 2 60
+0 DICE_AGBURNING_K+  -                                                                                       -     -          - -  g/m2/yr  K+  875/1008             2 60
+0 DICE_AGBURNING_MANN  -                                                                                       -     -          - -  g/m2/yr  MANN  871/879/1008     2 60
+0 DICE_AGBURNING_GALA  -                                                                                       -     -          - -  g/m2/yr  GALA  871/880/1008     2 60
 # ------------------------------
 #  Charcoal use
 # ------------------------------
@@ -1164,7 +1177,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_CHARCOALUSE_OCPO  -                                                                         -     -          - -  -        OCPO  73/1008          2 60
 0 DICE_CHARCOALUSE_POG1  -                                                                         -     -          - - -         POG1  74/76/1008       2 60
 0 DICE_CHARCOALUSE_POG2  -                                                                         -     -          - - -         POG2  74/77/1008       2 60
-
+0 DICE_CHARCOALUSE_LEVO  -                                                                         -     -          - -  -        LEVO  873/885/1008          2 60
+0 DICE_CHARCOALUSE_LEVOG  -                                                                         -     -          - -  -        LEVOG  873/886/1008          2 60
+0 DICE_CHARCOALUSE_LEVO_A  -                                                                         -     -          - -  -        LEVO_A  873/1008          2 60
+0 DICE_CHARCOALUSE_LEVO_AAQ  -                                                                         -     -          - -  -        LEVO_AAQ  873/1008          2 60
+0 DICE_CHARCOALUSE_K+  -                                                                         -     -          - -  -        K+  876/1008          2 60
+0 DICE_CHARCOALUSE_MANN  -                                                                         -     -          - -  -        MANN  873/883/1008          2 60
+0 DICE_CHARCOALUSE_GALA  -                                                                         -     -          - -  -        GALA  873/884/1008          2 60
 # ------------------------------
 #  Kerosene use
 # ------------------------------
@@ -1240,7 +1259,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_HOUSEFUELWOOD_OCPO  -                                                                                   -     -          - -  -        OCPO  73/1008          2 60
 0 DICE_HOUSEFUELWOOD_POG1  -                                                                                   -     -          - -  -        POG1  74/76/1008       2 60
 0 DICE_HOUSEFUELWOOD_POG2  -                                                                                   -     -          - -  -        POG2  74/77/1008       2 60
-
+0 DICE_HOUSEFUELWOOD_LEVO  -                                                                                   -     -          - -  -        LEVO  87/885/1008          2 60
+0 DICE_HOUSEFUELWOOD_LEVOG  -                                                                                   -     -          - -  -        LEVOG  87/886/1008          2 60
+0 DICE_HOUSEFUELWOOD_LEVO_A  -                                                                                   -     -          - -  -        LEVO_A  87/1008          2 60
+0 DICE_HOUSEFUELWOOD_LEVO_AAQ  -                                                                                   -     -          - -  -        LEVO_AAQ  87/1008          2 60
+0 DICE_HOUSEFUELWOOD_K+  -                                                                                   -     -          - -  -        K+  874/1008          2 60
+0 DICE_HOUSEFUELWOOD_MANN  -                                                                                   -     -          - -  -        MANN  877/1008          2 60
+0 DICE_HOUSEFUELWOOD_GALA  -                                                                                   -     -          - -  -        GALA  878/1008          2 60
 # ---------------------------------
 #  Commercial (other) fuelwood use
 # ---------------------------------
@@ -1277,7 +1302,13 @@ VerboseOnCores:              root       # Accepted values: root all
 0 DICE_OTHERFUELWOOD_OCPO  -                                                                               -     -          - -  -        OCPO  73/1008          2 60
 0 DICE_OTHERFUELWOOD_POG1  -                                                                               -     -          - -  -        POG1  74/76/1008       2 60
 0 DICE_OTHERFUELWOOD_POG2  -                                                                               -     -          - -  -        POG2  74/77/1008       2 60
-
+0 DICE_OTHERFUELWOOD_LEVO  -                                                                               -     -          - -  -        LEVO  87/885/1008          2 60
+0 DICE_OTHERFUELWOOD_LEVOG  -                                                                               -     -          - -  -        LEVOG  87/886/1008          2 60
+0 DICE_OTHERFUELWOOD_LEVO_A  -                                                                               -     -          - -  -        LEVO_A  87/1008          2 60
+0 DICE_OTHERFUELWOOD_LEVO_AAQ  -                                                                               -     -          - -  -        LEVO_AAQ  87/1008          2 60
+0 DICE_OTHERFUELWOOD_K+  -                                                                               -     -          - -  -        K+  874/1008          2 60
+0 DICE_OTHERFUELWOOD_MANN  -                                                                               -     -          - -  -        MANN  877/1008          2 60
+0 DICE_OTHERFUELWOOD_GALA  -                                                                               -     -          - -  -        GALA  878/1008          2 60
 # ---------------------------------------------------
 #  Efficient Combustion Emissions from EDGAR
 #  This makes up for sources that DICE-Africa lacks
@@ -1378,7 +1409,55 @@ VerboseOnCores:              root       # Accepted values: root all
 0 CEDS_NO_RCO     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_rco            1750-2019/1-12/1/0 C xy   kg/m2/s NO    2409/709            1 5
 0 CEDS_NO_SLV     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_slv            1750-2019/1-12/1/0 C xy   kg/m2/s NO    2407/707            1 5
 0 CEDS_NO_WST     $ROOT/CEDS/v2021-06/$YYYY/NO-em-anthro_CMIP_CEDS_$YYYY.nc            NO_wst            1750-2019/1-12/1/0 C xy   kg/m2/s NO    25                  1 5
-
+0 CEDS_LEVO_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2401  1 5
+0 CEDS_LEVO_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2406/706/315  1 5
+0 CEDS_LEVO_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2407/707/316  1 5  
+0 CEDS_LEVO_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2411/711   1 5
+0 CEDS_LEVO_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2409/709   1 5
+0 CEDS_LEVO_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885/2407/707   1 5
+0 CEDS_LEVO_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO  87/885  1 5
+0 CEDS_LEVOG_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2401  1 5
+0 CEDS_LEVOG_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2406/706/315  1 5
+0 CEDS_LEVOG_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2407/707/316  1 5
+0 CEDS_LEVOG_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2411/711  1 5
+0 CEDS_LEVOG_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2409/709  1 5
+0 CEDS_LEVOG_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886/2407/707  1 5
+0 CEDS_LEVOG_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVOG  87/886  1 5
+0 CEDS_LEVO_A_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2401  1 5
+0 CEDS_LEVO_A_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2406/706/315  1 5
+0 CEDS_LEVO_A_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2407/707/316  1  5
+0 CEDS_LEVO_A_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2411/711  1 5
+0 CEDS_LEVO_A_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2409/709  1 5
+0 CEDS_LEVO_A_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87/2407/707   1 5
+0 CEDS_LEVO_A_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_A  87  1 5
+0 CEDS_LEVO_AAQ_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2401  1 5
+0 CEDS_LEVO_AAQ_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2406/706/315  1 5
+0 CEDS_LEVO_AAQ_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2407/707/316  1 5
+0 CEDS_LEVO_AAQ_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2411/711  1 5
+0 CEDS_LEVO_AAQ_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2409/709  1 5
+0 CEDS_LEVO_AAQ_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87/2407/707  1 5
+0 CEDS_LEVO_AAQ_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s LEVO_AAQ  87  1 5
+0 CEDS_K+_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2401  1 5
+0 CEDS_K+_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2406/706/315  1 5
+0 CEDS_K+_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2407/707/316  1 5
+0 CEDS_K+_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2411/711  1 5
+0 CEDS_K+_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2409/709  1 5
+0 CEDS_K+_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874/2407/707  1 5
+0 CEDS_K+_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s K+  874  1 5
+0 CEDS_MANN_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2401  1 5
+0 CEDS_MANN_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2406/706/315  1 5
+0 CEDS_MANN_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2407/707/316  1 5
+0 CEDS_MANN_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2411/711  1 5
+0 CEDS_MANN_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2409/709  1 5
+0 CEDS_MANN_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877/2407/707  1 5
+0 CEDS_MANN_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s MANN  877  1 5
+0 CEDS_GALA_AGR   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ARG_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2401  1 5
+0 CEDS_GALA_ENE   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_ENE_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2406/706/315  1 5
+0 CEDS_GALA_IND   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_IND_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2407/707/316  1 5
+0 CEDS_GALA_TRA   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_TRA_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2411/711  1 5
+0 CEDS_GALA_RCO   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_RCO_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2409/709  1 5
+0 CEDS_GALA_SLV   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_SLV_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878/2407/707  1 5
+0 CEDS_GALA_WST   $ROOT/CEDS/v2021-06/$YYYY/OC-em-SOLID-BIOFUEL-anthro_WST_CEDS_$YYYY.nc  OC_em_SOLID_BIOFUEL_anthro  1950-2014/1-12/1/0  C xy kg/m2/s GALA  878  1 5
 0 CEDS_CO_AGR     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_agr            1750-2019/1-12/1/0 C xy   kg/m2/s CO    2401                1 5
 0 CEDS_SOAP_AGR   -                                                                    -                 -                  - -    -       SOAP  280/2401            1 5
 0 CEDS_CO_ENE     $ROOT/CEDS/v2021-06/$YYYY/CO-em-anthro_CMIP_CEDS_$YYYY.nc            CO_ene            1750-2019/1-12/1/0 C xyL* kg/m2/s CO    2406/706/315        1 5
@@ -3197,8 +3276,11 @@ VerboseOnCores:              root       # Accepted values: root all
 #==============================================================================
 (((AFCID
 0 PM25FINE_1 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DST1 -    1 1
+0 PM25K+_1   -                                                           -        -             - -  -        KDUST   607  1 1
 0 PM25FINE_2 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DST1 1009 1 2
+0 PM25K+_2   -                                                           -        -             - -  -        KDUST   1009/607 1 2
 0 PM25FINE_3 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DST1 1010 1 3
+0 PM25K+_3   -                                                           -        -             - -  -        KDUST   1010/607 1 3
 )))AFCID
 
 #==============================================================================
@@ -3207,7 +3289,9 @@ VerboseOnCores:              root       # Accepted values: root all
 (((OFFLINE_DUST
 (((.not.DustDead.or.DustGinoux
 0 EMIS_DST1 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST1 - 3 2
+0 EMIS_DST1K -                                                                                  -         -                     - -  -       KDUST   606/607 3 2 
 0 EMIS_DST2 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST2 - 3 2
+0 EMIS_DST2K -                                                                                  -         -                     - -  -       KDUST   606/607/608 3 2
 0 EMIS_DST3 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST3 - 3 2
 0 EMIS_DST4 $ROOT/OFFLINE_DUST/v2021-08/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST4 - 3 2
 ))).not.DustDead.or.DustGinoux
@@ -4294,7 +4378,35 @@ ${RUNDIR_TES_CLIM_N2O}
 74 POGSCAL  1.27 - - - xy unitless 1
 76 SV2POG1  0.49 - - - xy unitless 1
 77 SV2POG2  0.51 - - - xy unitless 1
+88 BF_COtoLEVO  4.10e-3 - - - xy unitless 1
+87 BF_OCtoLEVO  0.225   - - - xy unitless 1
+871 Cope_OCtoLEVO 0.167 - - - xy unitless 1
+872 ChaM_OCtoLEVO 0.075 - - - xy unitless 1
+873 ChaB_OCtoLEVO 0.359 - - - xy unitless 1
+874 BF_OCtoK      0.042 - - - xy unitless 1
+875 Cope_OCtoK    0.127 - - - xy unitless 1
+876 ChaB_OCtoK    0.341 - - - xy unitless 1
+877 BF_OCtoMANN   0.0071 - - - xy unitless 1
+878 BF_OCtoGALA   0.0052 - - - xy unitless 1
+879 Cope_LEVOtoMANN 0.049 - - - xy unitless 1
+880 Cope_LEVOtoGALA 0.078 - - - xy unitless 1
+881 ChaM_LEVOtoMANN 0.059 - - - xy unitless 1
+882 ChaM_LEVOtoGALA 0.050 - - - xy unitless 1
+883 ChaB_LEVOtoMANN 0.335 - - - xy unitless 1
+884 ChaB_LEVOtoGALA 0.155 - - - xy unitless 1
+885 A_LEVO        0.9   - - - xy unitless 1
+886 G_LEVO        0.1   - - - xy unitless 1
+#==============================================================================
+# --- Offline dust scale factors ---
+#
+# Scale annual emission totals for offline dust to 2x2.5 online dust values
+# Use 6.42e-5 for GEOS-FP and 3.86e-4 for MERRA-2
+#==============================================================================
+606 DST_SF 6.42e-5 - - - xy 1 1
 
+# change to K+ factors
+607 DSTtoK+  0.2e-2  - - - xy unitless 1
+608 DST2toPM25  0.38 - - - xy unitless 1
 (((BB4MIPS
 # Convert MOH to ACET emissions for CMIP6 Scenarios
 79 MOH2ACET 0.2094649 - - - xy unitless 1
