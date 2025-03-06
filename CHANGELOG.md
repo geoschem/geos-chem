@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Fixed
+- Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
+
 ## [14.5.3] - 2025-03-04
 ### Changed
 - Changed CESM `HEMCO_Config.rc` to read 3D AEIC emissions every timestep to avoid differences upon restart
