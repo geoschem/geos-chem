@@ -156,8 +156,8 @@ function set_common_settings() {
        [[ ${sim_extra_option}    =~ "complexSOA" ]] || \
        [[ "x${sim_extra_option}" == "xAPM"       ]]; then
 
-	# Add complex SOA species ASOA* and ASOG* following ALK4
-        prev_line='      - ALK4'
+	# Add complex SOA species ASOA* and ASOG* following AROMPN
+        prev_line='      - AROMPN'
         new_line='\      - ASOA1\
       - ASOA2\
       - ASOA3\
@@ -300,6 +300,11 @@ function set_common_settings() {
     # TOMAS settings
     #------------------------------------------------------------------------
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
+
+	# Change time cycle flag to allow missing species (GCClassic only)
+	if [[ "x${model}" == "xGCClassic" ]]; then
+	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
+	fi
 
 	# Remove extra species in extension settings for TOMAS15 simulations
 	if [[ "x${sim_extra_option}" == "xTOMAS15" ]]; then

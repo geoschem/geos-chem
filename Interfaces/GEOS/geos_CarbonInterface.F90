@@ -504,7 +504,7 @@ CONTAINS
 !
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonSetConc'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
-    INTEGER                      :: OrigUnit
+    INTEGER                      :: previous_units
     INTEGER                      :: I, LM, indCO2, indCO, STATUS
     REAL, POINTER                :: CO2(:,:,:)  => null()
     REAL, POINTER                :: COmeso(:,:) => null()
@@ -520,13 +520,13 @@ CONTAINS
        ! Make sure concentrations are in kg/kg total
        ! (this should already be the case) 
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = KG_SPECIES_PER_KG_TOTAL_AIR,                        &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            new_units      = KG_SPECIES_PER_KG_TOTAL_AIR,                    &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
        ASSERT_(RC==GC_SUCCESS)
 
        ! Get index
@@ -571,7 +571,7 @@ CONTAINS
           State_Chm  = State_Chm,                                            &
           State_Grid = State_Grid,                                           &
           State_Met  = State_Met,                                            &
-          outUnit    = origUnit,                                             &
+          new_units  = previous_units,                                       &
           RC         = RC                                                   )
        ASSERT_( RC == GC_SUCCESS )
 
@@ -624,7 +624,7 @@ CONTAINS
     CHARACTER(LEN=*), PARAMETER  :: myname = 'GEOS_CarbonRunPhoto'
     CHARACTER(LEN=*), PARAMETER  :: Iam = myname    
 
-    INTEGER                      :: origUnit
+    INTEGER                      :: previous_units
     REAL, ALLOCATABLE            :: aj(:)
     INTEGER                      :: I, J, L, LM, STATUS
     INTEGER                      :: indCO, indCO2, indO3
@@ -641,13 +641,13 @@ CONTAINS
 
        ! Convert to molec/cm3 units are molec/cm3 
        CALL Convert_Spc_Units(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            State_Met  = State_Met,                                          &
-            outUnit    = MOLECULES_SPECIES_PER_CM3,                          &
-            origUnit   = origUnit,                                           &
-            RC         = RC                                                 )
+            Input_Opt       = Input_Opt,                                     &
+            State_Chm       = State_Chm,                                     &
+            State_Grid      = State_Grid,                                    &
+            State_Met       = State_Met,                                     &
+            new_units       = MOLECULES_SPECIES_PER_CM3,                     &
+            previous_units  = previous_units,                                &
+            RC              = RC                                            )
        ASSERT_(RC==GC_SUCCESS)
 
        ! Chemistry time step in secods
@@ -725,7 +725,7 @@ CONTAINS
             State_Chm  = State_Chm,                                          &
             State_Grid = State_Grid,                                         &
             State_Met  = State_Met,                                          &
-            outUnit    = origUnit,                                           &
+            new_units  = previous_units,                                     &
             RC         = RC                                                 )
        ASSERT_( RC == GC_SUCCESS )
 

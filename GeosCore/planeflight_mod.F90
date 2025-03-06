@@ -218,10 +218,17 @@ CONTAINS
     INTEGER            :: I,  IP,      N,   TEMP, LENGTH
     INTEGER            :: RN, COUNTER, IOS, NYMD, NHMS
     CHARACTER(LEN=6)   :: TYPE
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !=================================================================
     ! SETUP_PLANEFLIGHT begins here!
     !=================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = &
+     ' -> at Setup_Planeflight (located in GeosCore/planeflight_mod.f90)'
 
     ! Assume that there is flight data for today
     DO_PF   = .TRUE.
@@ -258,7 +265,12 @@ CONTAINS
     ENDIF
 
     ! Compute # of species and # of points & allocate arrays
-    CALL INIT_PLANEFLIGHT( Input_Opt, State_Grid )
+    CALL INIT_PLANEFLIGHT( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error encountered in "Init_Planeflight!"'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
     ! Return if there are no flight track points for today
     IF ( NPOINTS == 0 ) THEN
@@ -368,11 +380,10 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,  ONLY : GEOS_CHEM_STOP
-    USE FILE_MOD,   ONLY : IOERROR
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
+    USE FILE_MOD,      ONLY : IOERROR
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species
+    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -396,7 +407,7 @@ CONTAINS
     LOGICAL             :: IS_FULLCHEM
     INTEGER             :: M, N, NUM, R, IK, IOS, nAdvect, P
     INTEGER             :: PR, J, NF, FM
-    CHARACTER(LEN=255)  :: LINE
+    CHARACTER(LEN=255)  :: LINE, errMsg, thisLoc
     CHARACTER(LEN=10)   :: PRODNAME
 
     ! Objects
@@ -406,8 +417,10 @@ CONTAINS
     ! READ_VARIABLES begins here!
     !=================================================================
 
-    ! Assume success
-    RC = GC_SUCCESS
+    ! Initialize
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Read_Variables (located in GeosCore/planeflight_mod.F90)'
 
     ! Get fields from Input_Opt
     IS_FULLCHEM = Input_Opt%ITS_A_FULLCHEM_SIM
@@ -475,12 +488,11 @@ CONTAINS
           ! Make sure the tracer # is valid!
           IF ( NUM < 0 .or. NUM > nAdvect ) THEN
              IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, 100 ) TRIM( LINE )
+                WRITE( errMsg, 100 ) TRIM( LINE )
 100             FORMAT( 'TRACER ', i4, ' is out of range!' )
-                WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
-                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
+                CALL GC_ERROR( errMsg, RC, thisLoc )
+                RETURN
              ENDIF
-             CALL GEOS_CHEM_STOP
           ENDIF
 
           ! Save in PVAR -- add offset of 100000
@@ -500,10 +512,9 @@ CONTAINS
           ! Make sure the tracer # is valid!
           IF ( NUM < 0 .or. NUM > nAdvect ) THEN
              IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, 100 ) TRIM( LINE )
-                WRITE( 6, '(a)' ) 'STOP in SETUP_PLANEFLIGHT!'
-                WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                CALL GEOS_CHEM_STOP
+                WRITE( errMsg, 100 ) TRIM( LINE )
+                CALL GC_ERROR( errMsg, RC, thisLoc )
+                RETURN
              ENDIF
           ENDIF
 
@@ -580,7 +591,7 @@ CONTAINS
           IF ( LINE == 'HG2_FRACP'  ) PVAR(N) = 4002
 
        !===========================================================
-       ! ISORROPIA H+, pH, water, and bisulfate (eam, 06/2015)
+       ! ISORROPIA/HETP H+, pH, water, and bisulfate (eam, 06/2015)
        !===========================================================
        CASE( 'ISOR' )
 
@@ -603,6 +614,7 @@ CONTAINS
 
        !===========================================================
        ! Uptake coefficient for SOA formation (eam, 06/2015)
+       ! NOTE: This may not work
        !===========================================================
        CASE( 'GAMM' )
 
@@ -805,12 +817,11 @@ CONTAINS
            ! Stop w/ error
            IF ( PVAR(N) == -999 ) THEN
                IF ( Input_Opt%amIRoot ) THEN
-                  WRITE (6,*) 'Cant match up J-rate reaction number'
-                  WRITE (6,*) NUM, P
-                  WRITE (6,*) 'NOTE: Reactions indexs are from FJX_j2j.dat'
-                  WRITE (6,*) 'Stopping'
+                  WRITE ( errMsg, 105 ) NUM, P
+105               FORMAT( 'Cant match up J-rate reaction number', 2i6 )
+                  CALL GC_ERROR( errMsg, RC, thisLoc )
+                  RETURN
                ENDIF
-               CALL GEOS_CHEM_STOP
            ENDIF
 
          ENDIF
@@ -854,11 +865,9 @@ CONTAINS
           ! Error check
           IF ( PVAR(N) == 0 ) THEN
              IF ( Input_Opt%amIRoot ) THEN
-                WRITE( 6, '(a)' ) 'ERROR: invalid species!'
-                WRITE( 6, 110   ) TRIM( LINE )
-110             FORMAT( 'Species ', a, ' not found!' )
-                WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
-                CALL GEOS_CHEM_STOP
+                WRITE( errMsg, 110 ) PVAR(N)
+110             FORMAT( 'Species ', i5, ' not found!' )
+                CALL GC_Error( errMsg, RC, thisLoc )
              ENDIF
           ENDIF
 
@@ -891,7 +900,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE FILE_MOD,           ONLY : IOERROR
     USE GC_GRID_MOD,        ONLY : GET_IJ
     USE Input_Opt_Mod,      ONLY : OptInput
@@ -920,22 +928,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER           :: N, IOS, QYY, QMM, QDD, QHH, QMN
-    REAL*4            :: LAT, LON, PRES, OBS
-    REAL*4            :: TAMB, H2OMR, POTTEMP, GPSALT
-    CHARACTER(LEN=7)  :: TYPE
-    CHARACTER(LEN=7)  :: NAME
+    INTEGER            :: N, IOS, QYY, QMM, QDD, QHH, QMN
+    REAL*4             :: LAT, LON, PRES, OBS
+    REAL*4             :: TAMB, H2OMR, POTTEMP, GPSALT
+    CHARACTER(LEN=7)   :: TYPE
+    CHARACTER(LEN=7)   :: NAME
+    CHARACTER(LEN=255) :: thisLoc
+    CHARACTER(LEN=512) :: errMsg
 
     ! ajt for CCGG
-    INTEGER           :: IJ(2), L, L_ALT
-    REAL(fp)          :: MOD_ELEV
+    INTEGER            :: IJ(2), L, L_ALT
+    REAL(fp)           :: MOD_ELEV
 
     !=================================================================
     ! READ_POINTS begins here!
     !=================================================================
 
     ! Assume success
-    RC = GC_SUCCESS
+    RC      = GC_SUCCESS
+    errMsg  = ''
+    thisLoc = ' -> at Read_Points (located in GeosCore/planeflight_mod.F90)'
 
     ! Read 4 header lines
     DO N = 1, 4
@@ -967,42 +979,37 @@ CONTAINS
        ! Error check MONTH
        IF ( QMM < 1 .or. QMM > 12 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 105 ) QMM
-             WRITE( 6, 106 )
-105          FORMAT( 'ERROR: MONTH out of range: ', f8.3 )
-106          FORMAT( 'STOP in READ_POINTS (planeflight_mod.F90)' )
+             WRITE( errMsg, 105 ) QMM
+105          FORMAT( 'ERROR: MONTH out of range: ', i3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Error check DAY
        IF ( QDD < 1 .or. QDD > 31 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 110 ) QDD
-111          WRITE( 6, 106 )
-110          FORMAT( 'ERROR: DAY out of range: ', f8.3 )
+             WRITE( errMsg, 110 ) QDD
+110          FORMAT( 'ERROR: DAY out of range: ', i3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Error check HOUR
        IF ( QHH < 0 .or. QHH > 23 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 115 ) QHH
-             WRITE( 6, 106 )
-115          FORMAT( 'ERROR: HOUR out of range: ', f8.3 )
+             WRITE( errMsg, 115 ) QHH
+115          FORMAT( 'ERROR: HOUR out of range: ', i3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Error check MINUTES
        IF ( QMN < 0 .or. QMN > 59 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 120 ) QMN
-             WRITE( 6, 106 )
-120          FORMAT( 'ERROR: MINUTES out of range: ', f8.3 )
+             WRITE( errMsg, 120 ) QMN
+120          FORMAT( 'ERROR: MINUTES out of range: ', i3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Store type in the global PTYPE array
@@ -1028,21 +1035,19 @@ CONTAINS
        ! Error check LONGITUDE
        IF ( LON < -180.0 .OR. LON > 180.0 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 125 ) LON
-             WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.F90)'
+             WRITE( errMsg, 125 ) LON
 125          FORMAT( 'ERROR: Longitude out of range: ', f8.3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Error check LATITUDE
        IF ( LAT < -90.0 .OR. LAT > 90.0 ) THEN
           IF ( Input_Opt%amIRoot ) THEN
-             WRITE( 6, 130 ) LAT
-             WRITE( 6, 106 ) 'STOP in READ_POINTS (planeflight_mod.F90)'
+             WRITE( errMsg, 130 ) LAT
 130          FORMAT( 'ERROR: Latitude out of range: ', f8.3 )
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
-          CALL GEOS_CHEM_STOP
        ENDIF
 
        ! Skip observations outside the domain
@@ -1095,18 +1100,17 @@ CONTAINS
           ! Make sure it is the users intention for 'S' to represent
           ! surface observations
           IF ( NAME(1:1) .EQ. 'S' .and. Input_Opt%amIRoot ) THEN
-             WRITE( 6, '(a)') 'WARNING: Names beginning with "S" are '
-             WRITE( 6, '(a)') 'assumed to be NOAA Surface observations. '
-             WRITE( 6, '(a)') 'Vertical coordinates are assumed to be '
-             WRITE( 6, '(a)') 'altitude and will be converted to pressure. '
-             WRITE( 6, '(a)') 'In routine PLANEFLIGHT, L=1 is forced. '
-             WRITE( 6, '(a)') 'If this is intended, you may comment out the '
-             WRITE( 6, '(a)') 'call to GEOS_CHEM_STOP in routine '
-             WRITE( 6, '(a)') 'READ_POINTS (planeflight_mod.F90). Otherwise,'
-             WRITE( 6, '(a)') 'remove "S" from the IF statement in the same '
-             WRITE( 6, '(a)') 'location.'
-             WRITE( 6, '(a)') REPEAT( '=', 79 )
-             CALL GEOS_CHEM_STOP
+             errMsg = 'WARNING: Names beginning with "S" are '            // &
+                      'assumed to be NOAA Surface observations. '         // &
+                      'Vertical coordinates are assumed to be '           // &
+                      'altitude and will be converted to pressure. '      // &
+                      'In routine PLANEFLIGHT, L=1 is forced. '           // &
+                      'If this is intended, you may comment out the '     // &
+                      'call to GC_Error in routine '                      // &
+                      'READ_POINTS (planeflight_mod.F90). Otherwise,'     // &  
+                      'remove "S" from the IF statement in the same      '// &
+                      'location.'
+             CALL GC_Error( errMsg, RC, thisLoc )
           ENDIF
 
           ! Change units
@@ -1164,10 +1168,9 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species
+    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1187,7 +1190,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: M
+    ! Scalars
+    INTEGER                :: M
+
+    ! Strings
+    CHARACTER(LEN=255)     :: errMsg, thisLoc
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -1197,9 +1204,11 @@ CONTAINS
     !=================================================================
 
     ! Initialize
+    RC      =  GC_SUCCESS
     NPRO2   =  0
     SpcInfo => NULL()
-    RC = GC_SUCCESS
+    errMsg  =  ''
+    thisLoc =  ' -> at RO2_Setup (located in GeosCore/planeflight_mod.F90)'
 
     ! We only need to proceed for full-chemistry simulations
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1247,10 +1256,8 @@ CONTAINS
     ! Error check
     IF ( NPRO2 > MAXRO2 ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)' ) 'NPRO2 exceeds maximum allowed value!'
-          WRITE( 6, '(a)' ) 'STOP in RO2_SETUP (planeflight_mod.F90)'
-          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-          CALL GEOS_CHEM_STOP
+          errMsg = 'NPRO2 exceeds maximum allowed value!'
+          CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
     ENDIF
 
@@ -1282,10 +1289,9 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species
+    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1305,7 +1311,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: M
+    ! Scalars
+    INTEGER                :: M
+
+    ! Strings
+    CHARACTER(LEN=255)     :: errMsg, thisLoc
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -1318,7 +1328,8 @@ CONTAINS
     NPNOY   =  0
     SpcInfo => NULL()
     RC = GC_SUCCESS
-
+    errMsg  =  ''
+    thisLoc =  ' -> at RO2_Setup (located in GeosCore/planeflight_mod.F90)'
     ! We only need to proceed for full-chemistry simulations
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
 
@@ -1359,10 +1370,8 @@ CONTAINS
     ! Error check
     IF ( NPNOY > MAXNOY ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)' ) 'NPNOY exceeds maximum allowed value!'
-          WRITE( 6, '(a)' ) 'STOP in NOY_SETUP (planeflight_mod.F90)'
-          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-          CALL GEOS_CHEM_STOP
+          errMsg ='NPNOY exceeds maximum allowed value!'
+          CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
     ENDIF
 
@@ -1394,10 +1403,9 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE Species_Mod,        ONLY : Species
-    USE State_Chm_Mod,      ONLY : ChmState
+    USE Input_Opt_Mod, ONLY : OptInput
+    USE Species_Mod,   ONLY : Species
+    USE State_Chm_Mod, ONLY : ChmState
 !
 ! !INPUT PARAMETERS:
 !
@@ -1417,7 +1425,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: M
+    ! Scalars
+    INTEGER                :: M
+
+    ! Strings
+    CHARACTER(LEN=255)     :: errMsg, thisLoc
 
     ! Objects
     TYPE(Species), POINTER :: SpcInfo
@@ -1427,9 +1439,11 @@ CONTAINS
     !=================================================================
 
     ! Initialize
+    RC = GC_SUCCESS
     NPAN    =  0
     SpcInfo => NULL()
-    RC = GC_SUCCESS
+    errMsg  =  ''
+    thisLoc =  ' -> at RO2_Setup (located in GeosCore/planeflight_mod.F90)'
 
     ! We only need to proceed for full-chemistry simulations
     IF ( .not. Input_Opt%ITS_A_FULLCHEM_SIM ) RETURN
@@ -1467,10 +1481,8 @@ CONTAINS
     ! Error check
     IF ( NPAN > MAXAN ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)' ) 'NPAN exceeds maximum allowed value!'
-          WRITE( 6, '(a)' ) 'STOP in AN_SETUP (planeflight_mod.F90)'
-          WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-          CALL GEOS_CHEM_STOP
+          errMsg = 'NPAN exceeds maximum allowed value!'
+          CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
     ENDIF
 
@@ -1479,7 +1491,7 @@ CONTAINS
     !=================================================================
     IF ( Input_Opt%amIRoot ) THEN
        WRITE( 6, 100 ) NPAN
-100    FORMAT( 'Number of AN components      : ', i6 )
+100    FORMAT( 'Number of AN components       : ', i6 )
     ENDIF
 
   END SUBROUTINE AN_SETUP
@@ -1504,7 +1516,6 @@ CONTAINS
 !
     USE CMN_SIZE_MOD,       ONLY : NDUST, NAER
     USE ErrCode_Mod
-    USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Ncdf_Mod,           ONLY : GET_TAU0
     USE OCEAN_MERCURY_MOD,  ONLY : Fg !eds 10/27/11
@@ -1517,11 +1528,6 @@ CONTAINS
     USE State_Met_Mod,      ONLY : MetState
     USE TIME_MOD
     USE UnitConv_Mod,       ONLY : Convert_Spc_Units
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-    USE DIAG_MOD,           ONLY : AD61_INST   ! (win, 7/28/09)
-#endif
-#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -1571,6 +1577,7 @@ CONTAINS
     REAL(fp)            :: MW_g, MW_kg
     CHARACTER(LEN=63)   :: OrigUnit
     CHARACTER(LEN=7)    :: NAME
+    CHARACTER(LEN=255)  :: errMsg, thisLoc
 
     ! Aerosol types: SULF, BLKC, ORGC, SALA, SALC
     INTEGER             :: IND(5) = (/ 22, 29, 36, 43, 50 /)
@@ -1601,7 +1608,7 @@ CONTAINS
     ! PLANEFLIGHT begins here!
     !=================================================================
 
-    ! Assume success
+    ! Initialize
     RC = GC_SUCCESS
 
     ! Get fields from Input_Opt
@@ -1609,6 +1616,10 @@ CONTAINS
 
     ! Return if there is no flighttrack data for today
     IF ( .not. DO_PF ) RETURN
+
+    ! For error trapping
+    errMsg  = ''
+    thisLoc = ' -> at Planeflight (located in GeosCore/planeflight_mod.F90'
 
     ! Initialize pointers
     IWVSELECT => State_Chm%Phot%IWVSELECT   ! Indexes of requested WLs
@@ -2170,7 +2181,7 @@ CONTAINS
                 VARI(V) = OMMFP(I,J,LL) !L+1 sample 4/24/12
 
              !---------------------------------------------------------------
-             ! ISORROPIA H+ and pH (eam, 06/2015)
+             ! ISORROPIA/HETP H+ and pH (eam, 06/2015)
              !---------------------------------------------------------------
              CASE( 5001 )
                 VARI(V) = State_Chm%IsorropHplus(I,J,L,1)
@@ -2286,36 +2297,15 @@ CONTAINS
 
                 IF ( VARI(V) < TINY ) VARI(V) = 0.0_fp
 
-#ifdef TOMAS
-#ifdef BPCH_DIAG
-             !---------------------------------------------------------------
-             ! TOMAS microphysics rate [kg/s] or [no./cm3/s]
-             !---------------------------------------------------------------
-             CASE( 200000:299999 )
-
-                ! Remove offset from PVAR
-                N = PVAR(V) - 200000
-
-                ! Archive the microphysics rate
-                VARI(V) = AD61_INST(I,J,L,N)
-
-                IF ( Input_Opt%amIRoot ) THEN
-                   write (6,*) 'ARCHIVE TO PLANEFLIGHT DIAG', &
-                               'AD61_INST at',I,J,L,N,'=',AD61_INST(I,J,L,N)
-                ENDIF
-#endif
-#endif
-
              !---------------------------------------------------------------
              ! Otherwise it's an error!
              !---------------------------------------------------------------
              CASE DEFAULT
-                IF ( Input_Opt%amIRoot) THEN
-                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                   WRITE( 6, '(a)' ) 'PLANEFLIGHT: Bad variable #!'
-                   WRITE( 6, '(a)' ) 'STOP in PLANEFLIGHT!'
-                   WRITE( 6, '(a)' ) REPEAT( '=', 79 )
-                   CALL GEOS_CHEM_STOP
+                IF ( Input_Opt%amIRoot ) THEN
+                   WRITE( errMsg, '(i6)' ) PVAR(V)
+                   errMsg = 'Bad variable: ' // TRIM( errMsg )
+                   CALL GC_Error( errMsg, RC, thisLoc )
+                   RETURN
                 ENDIF
 
              END SELECT
@@ -2572,20 +2562,23 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PLANEFLIGHT( Input_Opt, State_Grid )
+  SUBROUTINE INIT_PLANEFLIGHT( Input_Opt, State_Grid, RC )
 !
 ! !USES:
 !
-    USE ERROR_MOD,      ONLY : ALLOC_ERR
-    USE ERROR_MOD,      ONLY : GEOS_CHEM_STOP
+    USE ErrCode_Mod
     USE FILE_MOD,       ONLY : IOERROR
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN) :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN) :: State_Grid  ! Grid State object
+    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+!
+! !OUTPUT PARAMETERS:
+! 
+    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  08 Jul 2002 - M. Evans - Initial version
@@ -2596,9 +2589,10 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    LOGICAL           :: IS_INIT = .FALSE.
-    INTEGER           :: N, AS, IOS
-    CHARACTER(LEN=20) :: LINE
+    LOGICAL            :: IS_INIT = .FALSE.
+    INTEGER            :: N, IOS
+    CHARACTER(LEN=20)  :: LINE
+    CHARACTER(LEN=255) :: errMsg, thisLoc
 
     !=================================================================
     ! INIT_PLANEFLIGHT begins here!
@@ -2627,21 +2621,17 @@ CONTAINS
     ! Make sure NPVAR is at least 1
     IF ( NPVAR < 1 ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)') 'NPVAR cannot be zero or negative!'
-          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.F90)'
-          WRITE( 6, '(a)') REPEAT( '=', 79 )
+          errMsg = 'NPVAR cannot be zero or negative!'
+          CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
-       CALL GEOS_CHEM_STOP
     ENDIF
 
     ! Make sure NPVAR is less than MAXVARS
     IF ( NPVAR > MAXVARS ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)') 'NPVAR exceeds maximum allowed value!'
-          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.F90)'
-          WRITE( 6, '(a)') REPEAT( '=', 79 )
+          errMsg = 'NPVAR exceeds maximum allowed value!'
+          CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
-       CALL GEOS_CHEM_STOP
     ENDIF
 
     ! Read in a separation line
@@ -2710,11 +2700,10 @@ CONTAINS
     ! Make sure NPOINTS is less than MAXPOINTS
     IF ( NPOINTS > MAXPOINTS ) THEN
        IF ( Input_Opt%amIRoot ) THEN
-          WRITE( 6, '(a)') 'NPOINTS exceeds maximum allowed value!'
-          WRITE( 6, '(a)') 'STOP in INIT_PLANEFLIGHT (planeflight_mod.F90)'
-          WRITE( 6, '(a)') REPEAT( '=', 79 )
+          errMsg = 'NPOINTS exceeds maximum allowed value!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
        ENDIF
-       CALL GEOS_CHEM_STOP
     ENDIF
 
     !=================================================================
@@ -2728,60 +2717,74 @@ CONTAINS
        !-------------------------
        ! Arrays of size NPREAC
        !-------------------------
-       ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PREAC' )
+       ALLOCATE( PREAC( MAX( NPREAC, 1 ) ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PREAC', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        ALLOCATE( PRRATE( State_Grid%NX, State_Grid%NY, State_Grid%NZ, &
-                         MAX( NPREAC, 1 ) ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PRRATE' )
+                         MAX( NPREAC, 1 ) ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PRRATE', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !-------------------------
        ! Arrays of size NJPREAC
        !-------------------------
-       ALLOCATE( JPREAC( MAX( NJPREAC, 1 ) ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PJREAC' )
+       ALLOCATE( JPREAC( MAX( NJPREAC, 1 ) ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:JPREAC', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        ! ---------------------
        ! Arrays of size NPROD
        ! ---------------------
-       ALLOCATE( IPROD( MAX( NPROD, 1 ) ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'IPROD' )
+       ALLOCATE( IPROD( MAX( NPROD, 1 ) ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:IPROD', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !--------------------------
        ! Arrays of size MAXVARS
        !--------------------------
-       ALLOCATE( PVAR( MAXVARS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PVAR' )
+       ALLOCATE( PVAR( MAXVARS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PVAR', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PNAME( MAXVARS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PNAMES' )
+       ALLOCATE( PNAME( MAXVARS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PNAME', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        !---------------------------
        ! Arrays of size MAXPOINTS
        !---------------------------
-       ALLOCATE( PTYPE( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTYPE' )
+       ALLOCATE( PTYPE( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PTYPE', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PDATE( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PDATE' )
+       ALLOCATE( PDATE( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PDATE', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PTIME( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTIME' )
+       ALLOCATE( PTIME( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PTIME', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PTAU( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PTAU' )
+       ALLOCATE( PTAU( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PTAUC', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PLATTD( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLATTD' )
+       ALLOCATE( PLATTD( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PLATTD', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PLONGTD( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PLONGTD' )
+       ALLOCATE( PLONGTD( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PLONGTD', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( PPRESS( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'PPRESS' )
+       ALLOCATE( PPRESS( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:PPRESS', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
-       ALLOCATE( POBS( MAXPOINTS ), STAT=AS )
-       IF ( AS /= 0 ) CALL ALLOC_ERR( 'POBS' )
+       ALLOCATE( POBS( MAXPOINTS ), STAT=RC )
+       CALL GC_CheckVar( 'planeflight_mod:POBS', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
 
        ! Reset IS_INIT flag
        IS_INIT = .TRUE.

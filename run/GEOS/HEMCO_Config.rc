@@ -81,7 +81,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> UCX_PROD_LOSS          :       false
     --> OMOC_RATIO             :       false
     --> GMD_SFC_CH4            :       false
-    --> GEOS_3HR_CH4           :       true   
+    --> GEOS_3HR_CH4           :       true
     --> CMIP6_SFC_CH4          :       false
 # OLSON and MODIS read via MAPL not HEMCO in GEOS
     --> OLSON_LANDMAP          :       false
@@ -103,6 +103,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Use CNV_FRC       :       false
     --> OTD-LIS factors   :       false
 104     SoilNOx           : on    NO 
+    --> UseSoilTemperature:       false
     --> Use fertilizer NOx:       true
 105     DustDead          : on    DST1/DST2/DST3/DST4
     --> Mass tuning factor:       2.454e-4 
@@ -138,7 +139,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Monoterp to SOAS       :       0.050
     --> Othrterp to SOAP       :       0.050
     --> Othrterp to SOAS       :       0.050
-111     GFED              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/NAP
+111     GFED              : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C3H8/CH2O/C2H6/SO2/NH3/BCPO/BCPI/OCPO/OCPI/POG1/POG2/NAP/EOH/MOH/SOAP/FURA/PHEN/MVK/ISOP/ACTA/MGLY/GLYX/RCHO/HCOOH/ACR/STYR/C4H6
     --> GFED4             :       true
     --> GFED_daily        :       false
     --> GFED_3hourly      :       false

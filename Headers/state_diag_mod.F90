@@ -268,6 +268,7 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDep
      LOGICAL                     :: Archive_SatDiagnDryDep
      LOGICAL                     :: Archive_SatDiagn
+     LOGICAL                     :: Archive_SatDiagnEdge
 
      REAL(f4),           POINTER :: SatDiagnDryDepVel(:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnDryDepVel
@@ -673,6 +674,10 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM10(:,:,:)
      LOGICAL                     :: Archive_PM10
 
+     ! H. Zhu
+     REAL(f4),           POINTER :: PDER(:,:,:)
+     LOGICAL                     :: Archive_PDER
+
      REAL(f4),           POINTER :: TotalOA(:,:,:)
      LOGICAL                     :: Archive_TotalOA
 
@@ -910,6 +915,9 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: SatDiagnCount(:,:,:)
      LOGICAL                     :: Archive_SatDiagnCount
+
+     REAL(f8),           POINTER :: SatDiagnEdgeCount(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnEdgeCount
      
      REAL(f8),           POINTER :: SatDiagnConc(:,:,:,:)
      TYPE(DgnMap),       POINTER :: Map_SatDiagnConc
@@ -940,6 +948,9 @@ MODULE State_Diag_Mod
 
      REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
      LOGICAL                     :: Archive_SatDiagnTROPP
+
+     REAL(f8),           POINTER :: SatDiagnTropLev(:,:)
+     LOGICAL                     :: Archive_SatDiagnTropLev
 
      REAL(f8),           POINTER :: SatDiagnPBLHeight(:,:)
      LOGICAL                     :: Archive_SatDiagnPBLHeight
@@ -1294,6 +1305,12 @@ MODULE State_Diag_Mod
 
      REAL(f4),           POINTER :: DTRad(:,:,:)
      LOGICAL                     :: Archive_DTRad
+
+     REAL(f4),           POINTER :: IsWater(:,:)
+     REAL(f4),           POINTER :: IsLand(:,:)
+     REAL(f4),           POINTER :: IsIce(:,:)
+     REAL(f4),           POINTER :: IsSnow(:,:)
+     LOGICAL                     :: Archive_sfcType
 
      !----------------------------------------------------------------------
      ! Variables for the ObsPack diagnostic
@@ -2120,6 +2137,10 @@ CONTAINS
     State_Diag%PM10                                => NULL()
     State_Diag%Archive_PM10                        = .FALSE.
 
+    ! Paremeterized Dry Effective radius (H. Zhu, April 05 2024)
+    State_Diag%PDER                                => NULL()
+    State_Diag%Archive_PDER                        = .FALSE.
+
     State_Diag%TotalOA                             => NULL()
     State_Diag%Archive_TotalOA                     = .FALSE.
 
@@ -2364,6 +2385,9 @@ CONTAINS
 
     State_Diag%SatDiagnCount                       => NULL()
     State_Diag%Archive_SatDiagnCount               = .FALSE.
+
+    State_Diag%SatDiagnEdgeCount                   => NULL()
+    State_Diag%Archive_SatDiagnEdgeCount           = .FALSE.
     
     State_Diag%SatDiagnConc                        => NULL()
     State_Diag%Map_SatDiagnConc                    => NULL()
@@ -2394,6 +2418,9 @@ CONTAINS
 
     State_Diag%SatDiagnTROPP                       => NULL()
     State_Diag%Archive_SatDiagnTROPP               = .FALSE.
+
+    State_Diag%SatDiagnTropLev                     => NULL()
+    State_Diag%Archive_SatDiagnTropLev             = .FALSE.
 
     State_Diag%SatDiagnPBLHeight                   => NULL()
     State_Diag%Archive_SatDiagnPBLHeight           = .FALSE.
@@ -2509,6 +2536,12 @@ CONTAINS
 
     State_Diag%DTRad                               => NULL()
     State_Diag%Archive_DTRad                       = .FALSE.
+
+    State_Diag%IsWater                             => NULL()
+    State_Diag%IsLand                              => NULL()
+    State_Diag%IsIce                               => NULL()
+    State_Diag%IsSnow                              => NULL()
+    State_Diag%Archive_SfcType                     = .FALSE.
 
     State_Diag%Archive_RadOptics                   = .FALSE.
 
@@ -3940,6 +3973,84 @@ CONTAINS
        RETURN
     ENDIF
 
+    !-----------------------------------------------------------------------
+    ! Surface types
+    !-----------------------------------------------------------------------
+    diagID  = 'IsWater'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsWater,                                &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsLand'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsLand,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsIce'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsIce,                                  &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    diagID  = 'IsSnow'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%IsSnow,                                 &
+         archiveData    = State_Diag%Archive_SfcType,                        &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
 
 #ifdef MODEL_GEOS
     !-----------------------------------------------------------------------
@@ -4796,6 +4907,28 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Tropopause level (TropLev)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnTropLev'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnTropLev,                        &
+         archiveData    = State_Diag%Archive_SatDiagnTropLev,                &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: PBL Height (m)
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnPBLHeight'
@@ -5082,7 +5215,7 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! Set a single logical for SatDiagn output
+    ! Set logicals for SatDiagn and/or SatDiagnEdge output
     ! For ease of comparison, place fields in alphabetical order
     !------------------------------------------------------------------------
     State_Diag%Archive_SatDiagn = (                                          &
@@ -5092,6 +5225,11 @@ CONTAINS
          State_Diag%Archive_SatDiagnConc                                .or. &
          State_Diag%Archive_SatDiagnDryDep                              .or. &
          State_Diag%Archive_SatDiagnDryDepVel                           .or. &
+         State_Diag%Archive_SatDiagnTROPP                               .or. &
+         State_Diag%Archive_SatDiagnTropLev                             .or. &
+         State_Diag%Archive_SatDiagnPBLHeight                           .or. &
+         State_Diag%Archive_SatDiagnPBLTop                              .or. &
+         State_Diag%Archive_SatDiagnTAir                                .or. &
          State_Diag%Archive_SatDiagnGWETROOT                            .or. &
          State_Diag%Archive_SatDiagnGWETTOP                             .or. &
          State_Diag%Archive_SatDiagnJval                                .or. &
@@ -5106,7 +5244,6 @@ CONTAINS
          State_Diag%Archive_SatDiagnPBLHeight                           .or. &
          State_Diag%Archive_SatDiagnPBLTop                              .or. &
          State_Diag%Archive_SatDiagnPBLTopL                             .or. &
-         State_Diag%Archive_SatDiagnPEdge                               .or. &
          State_Diag%Archive_SatDiagnPRECTOT                             .or. &
          State_Diag%Archive_SatDiagnProd                                .or. &
          State_Diag%Archive_SatDiagnRH                                  .or. &
@@ -5120,19 +5257,30 @@ CONTAINS
          State_Diag%Archive_SatDiagnWetLossLS                           .or. &
          State_Diag%Archive_SatDiagnWetLossConv                             )
 
+    State_Diag%Archive_SatDiagnEdge = (                                      &
+         State_Diag%Archive_SatDiagnPEdge                                   )
+
     !------------------------------------------------------------------------
-    ! Satellite diagnostic: Counter
+    ! Satellite diagnostic: Counters
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_SatDiagn ) THEN 
-
-       ! Array to contain the satellite diagnostic weights
        ALLOCATE( State_Diag%SatDiagnCount( State_Grid%NX,                    &
                                            State_Grid%NY,                    &
                                            State_Grid%NZ ), STAT=RC         )
-       CALL GC_CheckVar( 'State_Diag%DiagnCount', 0, RC )
+       CALL GC_CheckVar( 'State_Diag%SatDiagnCount', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Diag%SatDiagnCount = 0.0_f4
        State_Diag%Archive_SatDiagnCount = .TRUE.
+    ENDIF
+
+    IF ( State_Diag%Archive_SatDiagnEdge ) THEN
+       ALLOCATE( State_Diag%SatDiagnEdgeCount( State_Grid%NX,                &
+                                               State_Grid%NY,                &
+                                               State_Grid%NZ+1 ), STAT=RC   )
+       CALL GC_CheckVar( 'State_Diag%SatDiagnEdgeCount', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Diag%SatDiagnEdgeCount = 0.0_f4
+       State_Diag%Archive_SatDiagnEdgeCount = .TRUE.
     ENDIF
 
     !=======================================================================
@@ -7167,8 +7315,7 @@ CONTAINS
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM                                     ) THEN
+         Input_Opt%ITS_A_CH4_SIM                                        ) THEN
 
        !--------------------------------------------------------------------
        ! OH concentration upon exiting the FlexChem solver (fullchem
@@ -9400,6 +9547,29 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! PDER, aka parameterized dry effective radius for SNA and OM [nm]
+       ! H. Zhu, April 05, 2024
+       !-------------------------------------------------------------------
+       diagID = 'PDER'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%PDER,                                &
+            archiveData    = State_Diag%Archive_PDER,                        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! PM25 nitrates+ammonium
@@ -10645,7 +10815,6 @@ CONTAINS
     ! THE CH4 SPECIALTY SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
-         Input_Opt%ITS_A_TAGCH4_SIM   .or. &
          Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
@@ -10740,7 +10909,7 @@ CONTAINS
           IF ( Found ) THEN
              ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
                       'but this is only appropriate for the CH4 '         // &
-                      'and tagged CH4 specialty simulations.'
+                      'and carbon specialty simulations.'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
           ENDIF
@@ -12257,6 +12426,7 @@ CONTAINS
     State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
                                 State_Diag%Archive_AODHygWL2            .or. &
                                 State_Diag%Archive_AODHygWL3            .or. &
+                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
                                 State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
                                 State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
@@ -12603,6 +12773,26 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'IsWater',                                     &
+                   Ptr2Data = State_Diag%IsWater,                            &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsLand',                                      &
+                   Ptr2Data = State_Diag%IsLand,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsIce',                                       &
+                   Ptr2Data = State_Diag%IsIce,                              &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'IsSnow',                                      &
+                   Ptr2Data = State_Diag%IsSnow,                             &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnDryDep',                              &
                    Ptr2Data = State_Diag%SatDiagnDryDep,                     &
                    mapData  = State_Diag%Map_SatDiagnDryDep,                 &
@@ -12811,6 +13001,16 @@ CONTAINS
 !       State_Diag%WashFracLS => NULL()
 !    ENDIF
 
+    CALL Finalize( diagId   = 'SatDiagnCount',                               &
+                   Ptr2Data = State_Diag%SatDiagnCount,                      &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnEdgeCount',                           &
+                   Ptr2Data = State_Diag%SatDiagnEdgeCount,                  &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnConc',                                &
                    Ptr2Data = State_Diag%SatDiagnConc,                       &
                    mapData  = State_Diag%Map_SatDiagnConc,                   &
@@ -12856,6 +13056,11 @@ CONTAINS
 
     CALL Finalize( diagId   = 'SatDiagnTROPP',                             &
                    Ptr2Data = State_Diag%SatDiagnTROPP,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnTropLev',                           &
+                   Ptr2Data = State_Diag%SatDiagnTropLev,                  &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -13636,6 +13841,12 @@ CONTAINS
     CALL Finalize( diagId   = 'PM10',                                        &     
                    Ptr2Data = State_Diag%PM10,                               &     
                    RC       = RC                                            )     
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+! H. Zhu
+    CALL Finalize( diagId   = 'PDER',                                        &
+                   Ptr2Data = State_Diag%PDER,                               &
+                   RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
     CALL Finalize( diagId   = 'TotalOA',                                     &
@@ -14602,6 +14813,26 @@ CONTAINS
        IF ( isRank    ) Rank  = 2
        IF ( isTagged  ) TagId = 'DRY'
 
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISWATER' ) THEN
+       IF ( isDesc    ) Desc  = 'Water mask including lakes and oceans'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISLAND' ) THEN
+       IF ( isDesc    ) Desc  = 'Land mask excluding ice and snow'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISICE' ) THEN
+       IF ( isDesc    ) Desc  = 'Ice mask including over land and ocean'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'ISSNOW' ) THEN
+       IF ( isDesc    ) Desc  = 'Snow mask over land only'
+       IF ( isUnits   ) Units = '.'
+       IF ( isRank    ) Rank  = 2
+
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNDRYDEP' ) THEN
        IF ( isDesc    ) Desc  = 'Dry deposition flux of species'
        IF ( isUnits   ) Units = 'molec cm-2 s-1'
@@ -14973,11 +15204,16 @@ CONTAINS
        IF ( isDesc    ) Desc  = 'Pressure edges'
        IF ( isUnits   ) Units = 'hPa'
        IF ( isRank    ) Rank  = 3
-       !IF ( isVLoc    ) VLoc  = VLocationEdge
+       IF ( isVLoc    ) VLoc  = VLocationEdge
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPP' ) THEN
        IF ( isDesc    ) Desc  = 'Tropopause pressure'
        IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 2
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPLEV' ) THEN
+       IF ( isDesc    ) Desc  = 'Tropopause level'
+       IF ( isUnits   ) Units = 'unitless'
        IF ( isRank    ) Rank  = 2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPBLHEIGHT' ) THEN
@@ -15642,6 +15878,12 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PM10' ) THEN
        IF ( isDesc    ) Desc  = 'Particulate matter with radii < 10 um'
        IF ( isUnits   ) Units = 'ug m-3'
+       IF ( isRank    ) Rank  =  3
+
+! H. Zhu
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PDER' ) THEN
+       IF ( isDesc    ) Desc  = 'Paremeterized Effective Radius for SNA and OM'
+       IF ( isUnits   ) Units = 'um'
        IF ( isRank    ) Rank  =  3
 
 #ifdef MODEL_GEOS
@@ -16962,6 +17204,7 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
+    USE CharPak_Mod, ONLY : To_UpperCase
 !
 ! !INPUT PARAMETERS:
 !
@@ -16996,11 +17239,11 @@ CONTAINS
     RC      = GC_SUCCESS
     bin     = -1
     errMsg  = ''
-    thisLoc = ' -> at Get_UVFlux_Index (in module Headers/state_diag_mod.F90)'
+    thisLoc = ' -> at Get_UVFlux_Bin (in module Headers/state_diag_mod.F90)'
 
     ! Get the index for the tagname
     DO N = 1, 18
-       IF ( TRIM( tagName ) == TRIM( UVFlux_Tag_Names(N) ) ) THEN
+       IF ( TRIM( tagName ) == To_UpperCase( TRIM( UVFlux_Tag_Names(N))) ) THEN
           bin = N
           EXIT
        ENDIF
@@ -19887,9 +20130,10 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,  ONLY : OptInput
-    USE State_Chm_Mod,  ONLY : ChmState
-    USE State_Grid_Mod, ONLY : GrdState
+    USE Input_Opt_Mod,       ONLY : OptInput
+    USE State_Chm_Mod,       ONLY : ChmState
+    USE State_Grid_Mod,      ONLY : GrdState
+    USE Registry_Params_Mod, ONLY : VLocationEdge
 !
 ! !INPUT PARAMETERS:
 !
@@ -19925,7 +20169,7 @@ CONTAINS
     ! Scalars
     LOGICAL            :: alwaysDefine, found
     INTEGER            :: NX,           NY,       NZ
-    INTEGER            :: NW,           numSlots
+    INTEGER            :: NW,           numSlots, vLoc
 
     ! Strings
     CHARACTER(LEN=1)   :: indFlag
@@ -19942,6 +20186,7 @@ CONTAINS
     RC         = GC_SUCCESS
     numSlots   = -1
     found      = .FALSE.
+    vLoc       = .FALSE.
     arrayID    = 'State_Diag%' // TRIM( diagId )
     errMsg     = ''
     thisLoc    = &
@@ -20007,6 +20252,15 @@ CONTAINS
     NX = State_Grid%NX
     NY = State_Grid%NY
     NZ = State_Grid%NZ
+
+    ! Determine if the array is defined on level edges
+    ! NOTE: This is only needed for the SatDiagnPEDGE field
+    CALL Get_Metadata_State_Diag( am_I_Root  = Input_Opt%amIRoot,          &
+                                  metadataId = diagId,                     &
+                                  found      = found,                      &
+                                  vLoc       = vLoc,                       &
+                                  RC         = RC                         )
+    IF ( vLoc == vLocationEdge ) NZ = NZ + 1
 
     ! Allocate array
     IF ( numSlots > 0 ) THEN

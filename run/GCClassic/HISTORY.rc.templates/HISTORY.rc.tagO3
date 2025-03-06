@@ -113,10 +113,6 @@ COLLECTIONS: 'Restart',
                        'BudgetConvectionTrop_?ADV?           ',
                        'BudgetConvectionPBL_?ADV?            ',
                        'BudgetConvectionLevs1to35_?ADV?      ',
-                       'BudgetWetDepFull_?WET?               ',
-                       'BudgetWetDepTrop_?WET?               ',
-                       'BudgetWetDepPBL_?WET?                ',
-                       'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -221,15 +217,6 @@ COLLECTIONS: 'Restart',
                               'SatDiagnTROPP                  ',
                               'SatDiagnPBLHeight              ',
                               'SatDiagnPBLTop                 ',
-                              'SatDiagnTAir                   ',
-                              'SatDiagnGWETROOT               ',
-                              'SatDiagnGWETTOP                ',
-                              'SatDiagnPARDR                  ',
-                              'SatDiagnPARDF                  ',
-                              'SatDiagnPRECTOT                ',
-                              'SatDiagnSLP                    ',
-                              'SatDiagnSPHU                   ',
-                              'SatDiagnTS                     ',
                               'SatDiagnPBLTOPL                ',
                               'SatDiagnMODISLAI               ',
                               'SatDiagnDryDep_O3              ',
@@ -250,7 +237,7 @@ COLLECTIONS: 'Restart',
   SatDiagnEdge.duration:      00000100 000000
   SatDiagnEdge.hrrange:       11.98 15.02
   SatDiagnEdge.mode:          'time-averaged'
-  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                  ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
@@ -281,10 +268,10 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
@@ -348,6 +335,10 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem boundary conditions for use in nested grid simulations
 #
 # Available for all simulations
+#
+# NOTE: Do not change the BoundaryConditions.frequency setting below,
+# because GEOS-Chem nested-grid simulations expect to read boundary
+# condition data at 3 hour intervals.
 #==============================================================================
   BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
   BoundaryConditions.frequency:  00000000 030000

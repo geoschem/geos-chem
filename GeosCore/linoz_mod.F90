@@ -302,7 +302,7 @@ CONTAINS
     ENDIF
 
     ! Echo info
-    IF ( Input_Opt%amIRoot ) THEN
+    IF ( Input_Opt%verbose ) THEN
        WRITE( 6, 100 )
 100    FORMAT( '     - LINOZ_CHEM3: Doing LINOZ' )
     ENDIF

@@ -16,7 +16,7 @@
 # !REMARKS:
 #  If optional run directory name argument is not passed then the user
 #  will be prompted to enter a name interactively, or choose to use the
-#  default name gchp_{grid_display}_{met}_{sim_name}_{sim_extra_option}.
+#  default name gchp_{met}_{sim_name}_{sim_extra_option}.
 #
 # !REVISION HISTORY:
 #  Initial version: E. Lundgren,10/5/2018
@@ -284,12 +284,12 @@ fi
 
 # NOTE: Fullchem benchmarks use the climatological volcano emissions!
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+    RUNDIR_VARS+="RUNDIR_VOLC_CLIMATOLOGY='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
 
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/so2_volcanic_emissions_CARN_v202005.degassing_only.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/so2_volcanic_emissions_CARN_v202401.degassing_only.rc'\n"
     else
-	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2021-09/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
+	RUNDIR_VARS+="RUNDIR_VOLC_TABLE='\$ROOT/VOLCANO/v2024-04/\$YYYY/\$MM/so2_volcanic_emissions_Carns.\$YYYY\$MM\$DD.rc'\n"
     fi
 fi
 
@@ -316,6 +316,25 @@ while [ "${valid_met}" -eq 0 ]; do
     elif [[ ${met_num} = "2" ]]; then
 
        	met="geosfp"
+
+	# Print warning about GEOS-FP and require user to acknowledge it.
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	printf "\n${fp_msg}\n"
+	printf "This warning will be printed to run directory file warnings.txt.\n"
+	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
+	valid_fp_accept=0
+	while [ "${valid_fp_accept}" -eq 0 ]; do
+	    read -p "${USER_PROMPT}" fp_accept
+	    valid_fp_accept=1
+	    if [[ ${fp_accept} = "y" ]]; then
+		x=0
+	    elif [[ ${fp_accept} = "q" ]]; then
+		exit
+	    else
+		valid_fp_accept=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
 
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
@@ -556,7 +575,7 @@ if [ -z "$1" ]; then
     printf "NOTE: This will be a subfolder of the path you entered above.${thinline}"
     read -e -p "${USER_PROMPT}" rundir_name
     if [[ -z "${rundir_name}" ]]; then
-	rundir_name=gchp_${sim_name}_${met}
+	rundir_name=gchp_${met}_${sim_name}
 	if [[ "${sim_extra_option}" != "none" ]]; then
 	    rundir_name=${rundir_name}_${sim_extra_option}
 	fi
@@ -600,10 +619,6 @@ done
 mkdir -p ${rundir}
 mkdir -p ${rundir}/Restarts
 
-# Define a subdirectory for rundir configuration files
-rundir_config=${rundir}/CreateRunDirLogs
-mkdir -p ${rundir_config}
-
 # Copy run directory files and subdirectories
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
@@ -617,9 +632,15 @@ cp ./gitignore                        ${rundir}/.gitignore
 # Copy file to auto-update common settings. Use adjoint version for CO2.
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
+fi
+
+# Copy the KPP standalone interface config file to ther rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem"  ]]; then
+    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
+    chmod 644 ${rundir}/kpp_standalone_interface.yml
 fi
 
 # Set permissions
@@ -656,13 +677,13 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
 	restart_name="${sim_extra_option}"
     else
 	start_date='20190701'
-	restart_dir='GC_14.3.0'
+	restart_dir='GC_14.5.0'
 	restart_name="${sim_name}"
     fi
 elif [[ "x${sim_name}" == "xtagO3" ]]; then
     # NOTE: we use the fullchem restart file for tagO3
     start_date='20190701'
-    restart_dir='GC_14.3.0'
+    restart_dir='GC_14.5.0'
     restart_name="fullchem"
 elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     start_date='20190101'
@@ -720,6 +741,7 @@ fi
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
@@ -751,6 +773,7 @@ else
 	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
     fi
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
@@ -761,10 +784,10 @@ if [[ "x${sim_extra_option}" == "xbenchmark"        ||
       "x${sim_extra_option}" == "xmarinePOA"        ||
       "x${sim_extra_option}" == "xcomplexSOA_SVPOA" ||
       "x${sim_extra_option}" == "xAPM"              ||
+      "x${sim_name}"         == "xcarbon"           ||
       "x${sim_extra_option}" == "xTOMAS15"          ||
       "x${sim_extra_option}" == "xTOMAS40"          ||
       "x${sim_name}"         == "xPOPs"             ||
-      "x${sim_name}"         == "xtagCH4"           ||
       "x${sim_name}"         == "xTransportTracers" ||
       "x${sim_name}"         == "xtagO3"        ]]; then
     RUNDIR_VARS+="RUNDIR_INITIAL_RESTART_SPECIES_REQUIRED='0'\n"
@@ -776,8 +799,14 @@ fi
 # Replace settings in config files with RUNDIR variables
 #--------------------------------------------------------------------
 
-# Save RUNDIR variables to file
-rundir_config_log=${rundir_config}/rundir_vars.txt
+# Define a subdirectory for rundir configuration files
+rundir_config_dirname=CreateRunDirLogs
+rundir_config=${rundir}/${rundir_config_dirname}
+mkdir -p ${rundir_config}
+
+# Save RUNDIR variables to a file in the rundirConfig folder
+rundir_config_logname=rundir_vars.txt
+rundir_config_log=${rundir}/${rundir_config_dirname}/${rundir_config_logname}
 echo -e "$RUNDIR_VARS" > ${rundir_config_log}
 
 # Initialize run directory
@@ -810,7 +839,7 @@ cd ${srcrundir}
 #----------------------------------------------------------------------
 # Archive repository version in run directory file rundir.version
 #----------------------------------------------------------------------
-version_log=${rundir_config}/rundir.version
+version_log=${rundir}/${rundir_config_dirname}/rundir.version
 echo "This run directory was created with ${srcrundir}/createRunDir.sh." > ${version_log}
 echo " " >> ${version_log}
 echo "GEOS-Chem repository version information:" >> ${version_log}
@@ -842,7 +871,7 @@ while [ "$valid_response" -eq 0 ]; do
 	printf "\n"
 	git init
 	git add *.rc *.sh *.yml input.nml
-	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+	if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
 	    git add *.py
 	fi
 	printf " " >> ${version_log}
@@ -856,11 +885,8 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
-#-----------------------------------------------------------------
-# Done!
-#-----------------------------------------------------------------
-
 printf "\n${thinline}Created ${rundir}\n"
+printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
 printf "\n  -- This run directory is set up for simulation start date $start_date"
 printf "\n  -- Restart files for this date at different grid resolutions are in the"
 printf "\n     Restarts subdirectory"
@@ -906,5 +932,41 @@ msg+="$ make -j\n"
 msg+="$ make install\n"
 printf "${msg}" > ${rundir}/build/README
 unset msg
+
+#-----------------------------------------------------------------
+# Add the version info to the top of the rundir configuration log
+#-----------------------------------------------------------------
+
+# Add a caveat that these rundir settings only go with this commit
+printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
+
+# Add a "# " characters to the front of each line so we can use
+# it as a comment heading for ${rundir_config_logname}
+sed 's/^/# /' ${version_log} > tmp.txt
+mv tmp.txt ${version_log}
+
+# Add the version log to the top of the rundir config log
+cat ${version_log} ${rundir_config_log} > tmp.txt
+mv tmp.txt ${rundir_config_log}
+
+# Remove the version log
+rm -rf ${version_log}
+
+# Save the updated rundir_vars file to the git repo
+if [[ "x${enable_git}" == "xy" ]]; then
+    if [[ -f ${rundir_config_log} ]]; then
+	cd ${rundir}
+	git add ${rundir_config_log}
+	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
+	cd ${srcrundir}
+    fi
+fi
+
+#-----------------------------------------------------------------
+# Create and populate warnings file
+#-----------------------------------------------------------------
+if [[ $met == "geosfp" ]]; then
+   echo -e ${fp_msg} > ${rundir}/warnings.txt
+fi
 
 exit 0

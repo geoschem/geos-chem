@@ -1,5 +1,5 @@
 ###############################################################################
-###  HISTORY.rc file for GEOS-Chem Transport Tracers simulations            ###
+###  HISTORY.rc file for GEOS-Chem trace metals simulations                 ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
 
@@ -182,19 +182,9 @@ COLLECTIONS: 'Restart',
                               'SatDiagnRH                     ',
                               'SatDiagnAirDen                 ',
                               'SatDiagnBoxHeight              ',
-                              'SatDiagnPEdge                  ',
                               'SatDiagnTROPP                  ',
                               'SatDiagnPBLHeight              ',
                               'SatDiagnPBLTop                 ',
-                              'SatDiagnTAir                   ',
-                              'SatDiagnGWETROOT               ',
-                              'SatDiagnGWETTOP                ',
-                              'SatDiagnPARDR                  ',
-                              'SatDiagnPARDF                  ',
-                              'SatDiagnPRECTOT                ',
-                              'SatDiagnSLP                    ',
-                              'SatDiagnSPHU                   ',
-                              'SatDiagnTS                     ',
                               'SatDiagnPBLTOPL                ',
                               'SatDiagnMODISLAI               ',
                               'SatDiagnWetLossLS_AlF1         ',
@@ -217,7 +207,7 @@ COLLECTIONS: 'Restart',
   SatDiagnEdge.duration:      00000100 000000
   SatDiagnEdge.hrrange:       11.98 15.02
   SatDiagnEdge.mode:          'time-averaged'
-  SatDiagnEdge.fields:        'SatDiagnConc_PEDGE             ',
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                  ',
 ::
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
@@ -248,10 +238,10 @@ COLLECTIONS: 'Restart',
                               'Met_FRCLND                    ',
                               'Met_FRLAKE                    ',
                               'Met_FRLAND                    ',
-                              'Met_FRLANDIC                  ',
+                              'Met_FRLANDICE                 ',
                               'Met_FROCEAN                   ',
                               'Met_FRSEAICE                  ',
-                              'Met_FRSNO                     ',
+                              'Met_FRSNOW                    ',
                               'Met_GWETROOT                  ',
                               'Met_GWETTOP                   ',
                               'Met_HFLUX                     ',
@@ -343,6 +333,10 @@ COLLECTIONS: 'Restart',
 # Diagnostics for evaluating transport, including age of air [s]
 #
 # Available for all simulations
+#
+# NOTE: Do not change the BoundaryConditions.frequency setting below,
+# because GEOS-Chem nested-grid simulations expect to read boundary
+# condition data at 3 hour intervals.
 #==============================================================================
   AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AdvFluxVert.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}

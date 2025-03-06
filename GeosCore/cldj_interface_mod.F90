@@ -131,8 +131,27 @@ CONTAINS
     ! Initialize Cloud-J. Includes reading input data files
     ! FJX_spec.dat (RD_XXX), FJX_scat-aer.dat (RD_MIE), and 
     ! FJX_j2j.dat (RD_JS_JX)
-    CALL Init_CldJ(Input_Opt%amIRoot, Input_Opt%CloudJ_Dir, &
-                   State_Grid%NZ, TITLEJXX, JVN_, NJXX)
+    CALL Init_CldJ(Input_Opt%amIRoot,            &
+                   Input_Opt%CloudJ_Dir,         &
+                   State_Grid%NZ,                &
+                   Input_Opt%Nlevs_Phot_Cloud,   &
+                   TITLEJXX,                     &
+                   JVN_,                         &
+                   Input_Opt%OD_Increase_Factor, &
+                   Input_Opt%Min_Cloud_OD,       &
+                   Input_Opt%Num_WV_Bins,        &
+                   Input_Opt%Cloud_Flag,         &
+                   Input_Opt%Cloud_Corr,         &
+                   Input_Opt%Num_Max_Overlap,    &
+                   Input_Opt%Sphere_Correction,  &
+                   Input_Opt%Use_H2O_UV_Abs,     &
+                   NJXX,                         &
+                   RC)
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in subroutine Init_Cldj within Cloud-J photolysis'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Store # of photolysis reactions in State_Chm object
     State_Chm%Phot%nPhotRxns = NRatJ
@@ -164,7 +183,7 @@ CONTAINS
     USE Cmn_Size_Mod,   ONLY : NRHAER, NRH, NDUST
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
-    USE PhysConstants,  ONLY : AVO, H2OMW, AIRMW, G0_100, PI, PI_180
+    USE PhysConstants,  ONLY : AVO, H2OMW, G0_100, PI, PI_180
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
@@ -277,7 +296,7 @@ CONTAINS
     REAL(8)  :: VALJXX(L_,JVN_)
 
     !------------------------------------------------------------------------
-    ! For diagnostics
+    ! Other local variables
     !------------------------------------------------------------------------
 
     ! These are currently never set. Should they be output from Cloud-J?
@@ -291,7 +310,13 @@ CONTAINS
     REAL(fp) :: FDIFFUSE(L1_)
     REAL(fp) :: UVX_CONST
 
+    ! For computing water concentration from specific humidity
+    REAL(fp) :: SPHU_kgkg
+    REAL(fp) :: H2O_kgkgdry
+    REAL(fp) :: MW_kg
+
     ! Species ids
+    INTEGER, SAVE :: id_H2O
     INTEGER, SAVE :: id_O3
     INTEGER, SAVE :: id_SO4
 
@@ -364,10 +389,11 @@ CONTAINS
 
     ! Set species ids for use in diagnostics
     IF ( FIRST ) THEN
+       id_H2O  = Ind_('H2O')
        id_O3   = Ind_('O3')
        id_SO4  = Ind_('SO4')
-       IF ( id_O3 < 0 ) THEN
-          ErrMsg = 'O3 is not a defined species!'
+       IF ( id_O3 <= 0 ) THEN
+          ErrMsg = 'O3 is not a defined species but is required for Cloud-J photolysis!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -398,7 +424,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED ) &
     !$OMP PRIVATE( A, I, J, L, K, N, S, MW_g, BoxHt, RH_ind                    ) &
     !$OMP PRIVATE( S_rh0, S_rhx, K_rh0, K_rhx, FRAC, RAA_eff, QAA_eff, SAA_eff ) &
-    !$OMP PRIVATE( dry_to_wet_factor                                           ) &
+    !$OMP PRIVATE( dry_to_wet_factor, SPHU_kgkg, H2O_kgkgdry, MW_kg            ) &
     !$OMP PRIVATE( R_interp_factor, Q_interp_factor                            ) &
     !$OMP PRIVATE( U0, SZA, SOLF, T_CTM, P_CTM,  O3_CTM                        ) &
     !$OMP PRIVATE( T_CLIM, O3_CLIM, AIR_CLIM, Z_CLIM                           ) &
@@ -533,7 +559,38 @@ CONTAINS
        ENDDO
 
        !-----------------------------------------------------------------
-       ! Compute concentrations per aerosol [g/m2]
+       ! Water concentration [molecules/cm2] for UV absorption by H2O
+       !-----------------------------------------------------------------
+       IF ( id_H2O > 0 ) THEN
+
+          ! Set water concentration from species concentration currently in [molecules/cm3]
+          DO L= 1, State_Grid%NZ
+             HHH(L) = State_Chm%Species(id_H2O)%Conc(I,J,L) * State_Met%BXHEIGHT(I,J,L) * 1.0e+2_fp
+          ENDDO
+
+       ELSE
+
+          DO L= 1, State_Grid%NZ
+
+             ! Convert specific humidity from [g H2O/kg total air] to [kg H2O/kg total air]
+             SPHU_kgkg = State_Met%SPHU(I,J,L) * 1.e-3_fp
+
+             ! Compute H2O concentration as [kg/kg dry air]
+             H2O_kgkgdry = SPHU_kgkg / ( 1.0e+0_fp - SPHU_kgkg )
+
+             ! Compute H2O molecular weight as [kg/mol]
+             MW_kg = H2OMW * 1.e-3_fp
+
+             ! Convert [kg/kg dry] to [molecules/cm2]
+             HHH(L) = H2O_kgkgdry * State_Met%AIRDEN(I,J,L) * State_Met%BXHEIGHT(I,J,L) &
+                  * 1.0e-4_fp * AVO / MW_kg
+
+       ENDDO
+       ENDIF
+       HHH(State_Grid%NZ+1) = HHH(State_Grid%NZ)
+
+       !-----------------------------------------------------------------
+       ! Compute aerosol concentrations [g/m2]
        !-----------------------------------------------------------------
        ! AERSP is column concentration in g/m2 for each aerosol. The array currently
        ! includes entries for clouds but these are not used in Cloud-J and can be
@@ -847,7 +904,6 @@ CONTAINS
        IRAN = 1
 
        ! Required variables that are not used
-       HHH = 0.d0
        CCC = 0.d0
 
        !-----------------------------------------------------------------
@@ -889,7 +945,7 @@ CONTAINS
                       REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,     &
                       AERSP,    NDXAER,   L1_,      AN_,      JVN_,      &
                       VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,      &
-                      NICA,     JCOUNT,   LDARK,    WTQCA               )
+                      NICA,     JCOUNT,   LDARK,    WTQCA,    RC         )
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -987,6 +1043,12 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in subroutine Cloud_JX within Cloud-J photolysis'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Reset first-time flag
     FIRST=.FALSE.
@@ -1261,9 +1323,6 @@ CONTAINS
     !========================================================================
     amIRoot = Input_Opt%amIRoot
 
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'CJ77_inp.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_spec.dat'
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
@@ -1274,21 +1333,6 @@ CONTAINS
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-ssa.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-UMa.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_scat-geo.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_std.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_h2och4.dat'
-    CALL Check_File_For_DryRun( filePath, amIRoot )
-
-    filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'atmos_geomip.dat'
     CALL Check_File_For_DryRun( filePath, amIRoot )
 
     filePath = TRIM( Input_Opt%CloudJ_Dir ) // 'FJX_j2j.dat'

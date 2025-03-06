@@ -62,19 +62,26 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: EFLUX         (:,:  ) ! Latent heat flux [W/m2]
      REAL(fp), POINTER :: FLASH_DENS    (:,:  ) ! Lightning flash density [#/km2/s]
      REAL(fp), POINTER :: FRCLND        (:,:  ) ! Olson land fraction [1]
-     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake [1]
-     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land [1]
-     REAL(fp), POINTER :: FRLANDIC      (:,:  ) ! Fraction of land ice [1]
-     REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean [1]
-     REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Sfc sea ice fraction
-     REAL(fp), POINTER :: FRSNO         (:,:  ) ! Sfc snow fraction
+     REAL(fp), POINTER :: FRLAKE        (:,:  ) ! Fraction of lake in grid box [1]
+     REAL(fp), POINTER :: FRLAND        (:,:  ) ! Fraction of land without lake or
+                                                ! ice in grid box [1]
+     REAL(fp), POINTER :: FRLANDICE     (:,:  ) ! Fraction of land ice in grid box [1]
+     REAL(fp), POINTER :: FROCEAN       (:,:  ) ! Fraction of ocean in grid box [1]
+     REAL(fp), POINTER :: FRSEAICE      (:,:  ) ! Fraction of ocean covered by sea
+                                                ! ice [1]
+     REAL(fp), POINTER :: FRSNOW        (:,:  ) ! Fraction of snow over land in
+                                                ! grid box [1]
      REAL(fp), POINTER :: GWETROOT      (:,:  ) ! Root soil wetness [1]
      REAL(fp), POINTER :: GWETTOP       (:,:  ) ! Top soil moisture [1]
      REAL(fp), POINTER :: HFLUX         (:,:  ) ! Sensible heat flux [W/m2]
-     LOGICAL,  POINTER :: IsLand        (:,:  ) ! Is this a land  grid box?
-     LOGICAL,  POINTER :: IsWater       (:,:  ) ! Is this a water grid box?
-     LOGICAL,  POINTER :: IsIce         (:,:  ) ! Is this a ice   grid box?
-     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! Is this a snow  grid box?
+     LOGICAL,  POINTER :: IsLand        (:,:  ) ! True if majority surface type is land,
+                                                ! without snow or ice
+     LOGICAL,  POINTER :: IsWater       (:,:  ) ! True if majority surface type is water,
+                                                ! including lake or ocean
+     LOGICAL,  POINTER :: IsIce         (:,:  ) ! True if majority surface type is ice,
+                                                ! including over land or ocean
+     LOGICAL,  POINTER :: IsSnow        (:,:  ) ! True if majority surface type is snow,
+                                                ! over land only
      REAL(fp), POINTER :: LAI           (:,:  ) ! Leaf area index [m2/m2]
                                                 !  (online)
      REAL(fp), POINTER :: PARDR         (:,:  ) ! Direct photsynthetically
@@ -138,6 +145,7 @@ MODULE State_Met_Mod
      REAL(fp), POINTER :: TropHt        (:,:  ) ! Tropopause height [km]
      REAL(fp), POINTER :: TS            (:,:  ) ! Surface temperature [K]
      REAL(fp), POINTER :: TSKIN         (:,:  ) ! Surface skin temperature [K]
+     REAL(fp), POINTER :: TSOIL1        (:,:  ) ! Soil temperature [K]
      REAL(fp), POINTER :: U10M          (:,:  ) ! E/W wind speed @ 10m ht [m/s]
      REAL(fp), POINTER :: USTAR         (:,:  ) ! Friction velocity [m/s]
      REAL(fp), POINTER :: UVALBEDO      (:,:  ) ! UV surface albedo [1]
@@ -281,8 +289,6 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! Fields for boundary layer mixing
      !----------------------------------------------------------------------
-     INTEGER,  POINTER :: IMIX          (:,:  ) ! Integer and fractional level
-     REAL(fp), POINTER :: FPBL          (:,:  ) !  where PBL top occurs
      INTEGER           :: PBL_MAX_L             ! Max level where PBL top occurs
 
      !----------------------------------------------------------------------
@@ -375,10 +381,10 @@ CONTAINS
     State_Met%FRCLND         => NULL()
     State_Met%FRLAKE         => NULL()
     State_Met%FRLAND         => NULL()
-    State_Met%FRLANDIC       => NULL()
+    State_Met%FRLANDICE      => NULL()
     State_Met%FROCEAN        => NULL()
     State_Met%FRSEAICE       => NULL()
-    State_Met%FRSNO          => NULL()
+    State_Met%FRSNOW         => NULL()
     State_Met%GWETROOT       => NULL()
     State_Met%GWETTOP        => NULL()
     State_Met%HFLUX          => NULL()
@@ -430,6 +436,7 @@ CONTAINS
     State_Met%TropHt         => NULL()
     State_Met%TS             => NULL()
     State_Met%TSKIN          => NULL()
+    State_Met%TSOIL1         => NULL()
     State_Met%U10M           => NULL()
     State_Met%USTAR          => NULL()
     State_Met%UVALBEDO       => NULL()
@@ -504,8 +511,6 @@ CONTAINS
     State_Met%PDOWN          => NULL()
     State_Met%QQ             => NULL()
     State_Met%REEVAP         => NULL()
-    State_Met%IMIX           => NULL()
-    State_Met%FPBL           => NULL()
     State_Met%REEVAP         => NULL()
     State_Met%PBL_MAX_L      = 0
 
@@ -751,25 +756,6 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FPBL [1] : Local variable for PBL mixing -- do not register this
-    !------------------------------------------------------------------------
-    metId = 'FPBL'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FPBL,                                        &
-         noRegister = .TRUE.,                                                &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
     ! FRCLND [1]
     !------------------------------------------------------------------------
     metId = 'FRCLND'
@@ -824,15 +810,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FRLANDIC [1]
+    ! FRLANDICE [1]
     !------------------------------------------------------------------------
-    metId = 'FRLANDIC'
+    metId = 'FRLANDICE'
     CALL Init_and_Register(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Met  = State_Met,                                             &
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FRLANDIC,                                    &
+         Ptr2Data   = State_Met%FRLANDICE,                                   &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -878,15 +864,15 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
-    ! FRSNO [1]
+    ! FRSNOW [1]
     !------------------------------------------------------------------------
-    metId = 'FRSNO'
+    metId = 'FRSNOW'
     CALL Init_and_Register(                                                  &
          Input_Opt  = Input_Opt,                                             &
          State_Met  = State_Met,                                             &
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
-         Ptr2Data   = State_Met%FRSNO,                                       &
+         Ptr2Data   = State_Met%FRSNOW,                                      &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -941,25 +927,6 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%HFLUX,                                       &
-         RC         = RC                                                    )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
-    ! IMIX [1]: Local variable for PBL mixing -- Do not register this
-    !------------------------------------------------------------------------
-    metId = 'IMIX'
-    CALL Init_and_Register(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Met  = State_Met,                                             &
-         State_Grid = State_Grid,                                            &
-         metId      = metId,                                                 &
-         Ptr2Data   = State_Met%IMIX,                                        &
-         noRegister = .TRUE.,                                                &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -1864,6 +1831,24 @@ CONTAINS
          State_Grid = State_Grid,                                            &
          metId      = metId,                                                 &
          Ptr2Data   = State_Met%TSKIN,                                       &
+         RC         = RC                                                    )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( metId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
+    ! TSOIL1 [K]
+    !------------------------------------------------------------------------
+    metId = 'TSOIL1'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%TSOIL1,                                      &
          RC         = RC                                                    )
 
     IF ( RC /= GC_SUCCESS ) THEN
@@ -3371,11 +3356,11 @@ CONTAINS
        State_Met%FRLAND => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%FRLANDIC ) ) THEN
-       DEALLOCATE( State_Met%FRLANDIC, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRLANDIC', 2, RC )
+    IF ( ASSOCIATED( State_Met%FRLANDICE ) ) THEN
+       DEALLOCATE( State_Met%FRLANDICE, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRLANDICE', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FRLANDIC => NULL()
+       State_Met%FRLANDICE => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%FROCEAN ) ) THEN
@@ -3392,11 +3377,11 @@ CONTAINS
        State_Met%FRSEAICE => NULL()
     ENDIF
 
-    IF ( ASSOCIATED( State_Met%FRSNO ) ) THEN
-       DEALLOCATE( State_Met%FRSNO, STAT=RC )
-       CALL GC_CheckVar( 'State_Met%FRSNO', 2, RC )
+    IF ( ASSOCIATED( State_Met%FRSNOW ) ) THEN
+       DEALLOCATE( State_Met%FRSNOW, STAT=RC )
+       CALL GC_CheckVar( 'State_Met%FRSNOW', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FRSNO => NULL()
+       State_Met%FRSNOW => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Met%GWETROOT ) ) THEN
@@ -3735,6 +3720,13 @@ CONTAINS
        State_Met%TSKIN => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Met%TSOIL1 ) ) THEN
+       DEALLOCATE( State_Met%TSOIL1, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TSOIL1', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TSOIL1 => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Met%TO3 ) ) THEN
        DEALLOCATE( State_Met%TO3, STAT=RC  )
        CALL GC_CheckVar( 'State_Met%TO3', 2, RC )
@@ -3796,20 +3788,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Met%IREG', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Met%IREG => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%IMIX) ) THEN
-       DEALLOCATE( State_Met%IMIX, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%IMIX', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%IMIX => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Met%FPBL ) ) THEN
-       DEALLOCATE( State_Met%FPBL, STAT=RC  )
-       CALL GC_CheckVar( 'State_Met%FPBL', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Met%FPBL => NULL()
     ENDIF
 
     !========================================================================
@@ -4622,32 +4600,32 @@ CONTAINS
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAKE' )
-          IF ( isDesc  ) Desc  = 'Fraction of lake'
+          IF ( isDesc  ) Desc  = 'Fraction of lake in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRLAND' )
-          IF ( isDesc  ) Desc  = 'Fraction of land'
+          IF ( isDesc  ) Desc  = 'Fraction of land in grid box, excluding lake and ice'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'FRLANDIC' )
-          IF ( isDesc  ) Desc  = 'Fraction of land ice'
+       CASE ( 'FRLANDICE' )
+          IF ( isDesc  ) Desc  = 'Fraction of land ice in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FROCEAN' )
           IF ( isUnits ) Units = '1'
-          IF ( isDesc  ) Desc  = 'Fraction of ocean'
+          IF ( isDesc  ) Desc  = 'Fraction of ocean in grid box'
           IF ( isRank  ) Rank  = 2
 
        CASE ( 'FRSEAICE' )
-          IF ( isDesc  ) Desc  = 'Fraction of sea ice'
+          IF ( isDesc  ) Desc  = 'Fraction of sea ice in grid box'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
-       CASE ( 'FRSNO' )
-          IF ( isDesc  ) Desc  = 'Fraction of snow on surface'
+       CASE ( 'FRSNOW' )
+          IF ( isDesc  ) Desc  = 'Fraction of snow in grid box, excluding snow on ice'
           IF ( isUnits ) Units = '1'
           IF ( isRank  ) Rank  = 2
 
@@ -4890,6 +4868,11 @@ CONTAINS
 
        CASE ( 'TSKIN' )
           IF ( isDesc  ) Desc  = 'Surface skin temperature'
+          IF ( isUnits ) Units = 'K'
+          IF ( isRank  ) Rank  = 2
+
+       CASE ( 'TSOIL1' )
+          IF ( isDesc  ) Desc  = 'Soil temperature'
           IF ( isUnits ) Units = 'K'
           IF ( isRank  ) Rank  = 2
 
