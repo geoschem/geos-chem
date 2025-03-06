@@ -4378,6 +4378,24 @@ CONTAINS
       CALL FlexGrid_Read_A3( D(1), D(2), Input_Opt, State_Grid, State_Met )
    ENDIF
 
+   !---------------------------------------------------------
+   ! Read 3-hr time averaged DynHeating data (crb, 15/03/24)
+   !---------------------------------------------------------
+   IF (Input_Opt%RRTMG_FDH .and. Input_Opt%Read_Dyn_Heating) THEN
+      ! We can use the boundary condition time functions 
+      ! as they also have no time adjustment
+      IF ( PHASE == 0 ) THEN
+         D = GET_FIRST_BC_TIME()
+      ELSE
+         D = GET_BC_TIME()
+      ENDIF
+      ! We can use ITS_TIME_FOR_A3 as we are also loading in the data every 3 hrs.
+      IF ( PHASE == 0 .or. ITS_TIME_FOR_A3() .and. &
+         .not. ITS_TIME_FOR_EXIT() ) THEN
+         CALL FlexGrid_Read_Dyn( D(1), D(2), Input_Opt, State_Grid, State_Met )  
+      ENDIF
+   ENDIF
+
    !----------------------------------
    ! Read 3-hr instantanous data
    !----------------------------------
