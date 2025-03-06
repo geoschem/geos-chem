@@ -4716,7 +4716,7 @@ SO4H4:
 SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
-  MW_g: 31.4
+  MW_g: 96.06
   WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
