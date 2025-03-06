@@ -752,6 +752,53 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: ProdOCPIfromOCPO(:,:,:)
      LOGICAL                     :: Archive_ProdOCPIfromOCPO
 
+
+     ! LEVO
+     REAL(f4),  POINTER :: LossLEVOfromOH(:,:,:  ) ! Loss LEVO from OH AQ
+     REAL(f4),  POINTER :: LossLEVOfromNO3(:,:,:  ) ! Loss LEVO from NO3  AQ
+     REAL(f4),  POINTER :: LossLEVOhfromOH(:,:,:  ) ! Loss LEVO from OH het
+     REAL(f4),  POINTER :: LossLEVOhfromO3(:,:,:  ) ! Loss LEVO from O3 het
+     REAL(f4),  POINTER :: LossLEVOhfromNO3(:,:,:  ) ! Loss LEVO from NO3 het
+     REAL(f4),  POINTER :: LossLEVOhfromN2O5(:,:,:  ) ! Loss LEVO from N2O5 het
+     REAL(f4),  POINTER :: LossLEVOgfromOH(:,:,:  ) ! Loss LEVO from OH gas
+     LOGICAL :: Archive_LossLEVOfromOH
+     LOGICAL :: Archive_LossLEVOfromNO3
+     LOGICAL :: Archive_LossLEVOhfromOH
+     LOGICAL :: Archive_LossLEVOhfromO3
+     LOGICAL :: Archive_LossLEVOhfromNO3
+     LOGICAL :: Archive_LossLEVOhfromN2O5
+     LOGICAL :: Archive_LossLEVOgfromOH     
+
+     !MANN and GALA
+     REAL(f4),  POINTER :: LossMANNfromOH(:,:,:  ) ! Loss MANN from OH AQ
+     REAL(f4),  POINTER :: LossMANNhfromOH(:,:,:  ) ! Loss MANN from OH het
+     REAL(f4),  POINTER :: LossMANNhfromO3(:,:,:  ) ! Loss MANN from O3 het
+     REAL(f4),  POINTER :: LossMANNhfromNO3(:,:,:  ) ! Loss MANN from NO3 het
+     REAL(f4),  POINTER :: LossMANNhfromN2O5(:,:,:  ) ! Loss MANN from N2O5 het
+     REAL(f4),  POINTER :: LossGALAfromOH(:,:,:  ) ! Loss GALA from OH AQ
+     REAL(f4),  POINTER :: LossGALAhfromOH(:,:,:  ) ! Loss GALA from OH het
+     REAL(f4),  POINTER :: LossGALAhfromO3(:,:,:  ) ! Loss GALA from O3 het
+     REAL(f4),  POINTER :: LossGALAhfromNO3(:,:,:  ) ! Loss GALA from NO3 het
+     REAL(f4),  POINTER :: LossGALAhfromN2O5(:,:,:  ) ! Loss GALA from N2O5 het
+     REAL(f4),  POINTER :: ProdMANNfromLEVO(:,:,:  ) ! Production of MANN from LEVO AQ
+     REAL(f4),  POINTER :: ProdMANNfromGALA(:,:,:  ) ! Production of MANN from GALA AQ
+     REAL(f4),  POINTER :: ProdGALAfromLEVO(:,:,:  ) ! Production of GALA from LEVO AQ
+     REAL(f4),  POINTER :: ProdGALAfromMANN(:,:,:  ) ! Production of GALA from MANN AQ
+     LOGICAL :: Archive_LossMANNfromOH
+     LOGICAL :: Archive_LossGALAfromOH
+     LOGICAL :: Archive_ProdMANNfromLEVO
+     LOGICAL :: Archive_ProdMANNfromGALA
+     LOGICAL :: Archive_ProdGALAfromLEVO
+     LOGICAL :: Archive_ProdGALAfromMANN
+     LOGICAL :: Archive_LossMANNhfromOH
+     LOGICAL :: Archive_LossMANNhfromO3
+     LOGICAL :: Archive_LossMANNhfromNO3
+     LOGICAL :: Archive_LossMANNhfromN2O5
+     LOGICAL :: Archive_LossGALAhfromOH
+     LOGICAL :: Archive_LossGALAhfromO3
+     LOGICAL :: Archive_LossGALAhfromNO3
+     LOGICAL :: Archive_LossGALAhfromN2O5  
+
      !%%%%%  Sulfur aerosols prod & loss %%%%%
      REAL(f4),           POINTER :: ProdSO2fromDMSandOH(:,:,:)
      LOGICAL                     :: Archive_ProdSO2fromDMSandOH
@@ -2213,6 +2260,53 @@ CONTAINS
 
     State_Diag%ProdOCPIfromOCPO                    => NULL()
     State_Diag%Archive_ProdOCPIfromOCPO            = .FALSE.
+    
+    ! LEVO
+    State_Diag%LossLEVOfromOH                      => NULL()
+    State_Diag%LossLEVOfromNO3                     => NULL()
+    State_Diag%LossLEVOhfromOH                     => NULL()
+    State_Diag%LossLEVOhfromO3                     => NULL()
+    State_Diag%LossLEVOhfromNO3                    => NULL()
+    State_Diag%LossLEVOhfromN2O5                   => NULL()
+    State_Diag%LossLEVOgfromOH                     => NULL()
+    State_Diag%Archive_LossLEVOfromOH              = .FALSE.
+    State_Diag%Archive_LossLEVOfromNO3             = .FALSE.
+    State_Diag%Archive_LossLEVOhfromOH             = .FALSE.
+    State_Diag%Archive_LossLEVOhfromO3             = .FALSE.
+    State_Diag%Archive_LossLEVOhfromNO3            = .FALSE.
+    State_Diag%Archive_LossLEVOhfromN2O5           = .FALSE.
+    State_Diag%Archive_LossLEVOgfromOH             = .FALSE.
+
+    ! MANN and GALA
+    State_Diag%LossMANNfromOH                      => NULL()
+    State_Diag%LossMANNhfromOH                     => NULL()
+    State_Diag%LossMANNhfromO3                     => NULL()
+    State_Diag%LossMANNhfromNO3                    => NULL()
+    State_Diag%LossMANNhfromN2O5                   => NULL()
+    State_Diag%LossGALAfromOH                      => NULL()
+    State_Diag%LossGALAhfromOH                     => NULL()
+    State_Diag%LossGALAhfromO3                     => NULL()
+    State_Diag%LossGALAhfromNO3                    => NULL()
+    State_Diag%LossGALAhfromN2O5                   => NULL()
+    State_Diag%ProdMANNfromLEVO                    => NULL()
+    State_Diag%ProdMANNfromGALA                    => NULL()
+    State_Diag%ProdGALAfromLEVO                    => NULL()
+    State_Diag%ProdGALAfromMANN                    => NULL()
+    State_Diag%Archive_LossMANNfromOH              = .FALSE.
+    State_Diag%Archive_LossGALAfromOH              = .FALSE.
+    State_Diag%Archive_ProdMANNfromLEVO            = .FALSE.
+    State_Diag%Archive_ProdMANNfromGALA            = .FALSE.
+    State_Diag%Archive_ProdGALAfromLEVO            = .FALSE.
+    State_Diag%Archive_ProdGALAfromMANN            = .FALSE.
+    State_Diag%Archive_LossMANNhfromOH             = .FALSE.
+    State_Diag%Archive_LossMANNhfromO3             = .FALSE.
+    State_Diag%Archive_LossMANNhfromNO3            = .FALSE.
+    State_Diag%Archive_LossMANNhfromN2O5           = .FALSE.
+    State_Diag%Archive_LossGALAhfromOH             = .FALSE.
+    State_Diag%Archive_LossGALAhfromO3             = .FALSE.
+    State_Diag%Archive_LossGALAhfromNO3            = .FALSE.
+    State_Diag%Archive_LossGALAhfromN2O5           = .FALSE.
+
 
     !%%%%% Aerosol prod and loss diagnostics %%%%%
 
@@ -9145,6 +9239,456 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from OH AQ
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOfromOH,              &
+            archiveData    = State_Diag%Archive_LossLEVOfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from NO3 AQ
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOfromNO3,              &
+            archiveData    = State_Diag%Archive_LossLEVOfromNO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from OH HET
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOhfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOhfromOH,              &
+            archiveData    = State_Diag%Archive_LossLEVOhfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from O3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOhfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOhfromO3,              &
+            archiveData    = State_Diag%Archive_LossLEVOhfromO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from NO3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOhfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOhfromNO3,              &
+            archiveData    = State_Diag%Archive_LossLEVOhfromNO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from N2O5 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOhfromN2O5'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOhfromN2O5,              &
+            archiveData    = State_Diag%Archive_LossLEVOhfromN2O5,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of LEVO from OH gas
+       !--------------------------------------------------------------------
+       diagID = 'LossLEVOgfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossLEVOgfromOH,              &
+            archiveData    = State_Diag%Archive_LossLEVOgfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of MANN from OH AQ
+       !--------------------------------------------------------------------
+       diagID = 'LossMANNfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossMANNfromOH,              &
+            archiveData    = State_Diag%Archive_LossMANNfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of GALA from OH AQ
+       !--------------------------------------------------------------------
+       diagID = 'LossGALAfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossGALAfromOH,              &
+            archiveData    = State_Diag%Archive_LossGALAfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Prod of MANN from LEVO AQ
+       !--------------------------------------------------------------------
+       diagID = 'ProdMANNfromLEVO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdMANNfromLEVO,              &
+            archiveData    = State_Diag%Archive_ProdMANNfromLEVO,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Prod of MANN from GALA AQ
+       !--------------------------------------------------------------------
+       diagID = 'ProdMANNfromGALA'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdMANNfromGALA,              &
+            archiveData    = State_Diag%Archive_ProdMANNfromGALA,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Prod of GALA from LEVO AQ
+       !--------------------------------------------------------------------
+       diagID = 'ProdGALAfromLEVO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdGALAfromLEVO,              &
+            archiveData    = State_Diag%Archive_ProdGALAfromLEVO,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Prod of GALA from MANN AQ
+       !--------------------------------------------------------------------
+       diagID = 'ProdGALAfromMANN'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%ProdGALAfromMANN,              &
+            archiveData    = State_Diag%Archive_ProdGALAfromMANN,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of MANN from OH HET
+       !--------------------------------------------------------------------
+       diagID = 'LossMANNhfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossMANNhfromOH,              &
+            archiveData    = State_Diag%Archive_LossMANNhfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of MANN from O3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossMANNhfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossMANNhfromO3,              &
+            archiveData    = State_Diag%Archive_LossMANNhfromO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of MANN from NO3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossMANNhfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossMANNhfromNO3,              &
+            archiveData    = State_Diag%Archive_LossMANNhfromNO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Loss of MANN from N2O5 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossMANNhfromN2O5'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossMANNhfromN2O5,              &
+            archiveData    = State_Diag%Archive_LossMANNhfromN2O5,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of GALA from OH HET
+       !--------------------------------------------------------------------
+       diagID = 'LossGALAhfromOH'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossGALAhfromOH,              &
+            archiveData    = State_Diag%Archive_LossGALAhfromOH,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of GALA from O3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossGALAhfromO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossGALAhfromO3,              &
+            archiveData    = State_Diag%Archive_LossGALAhfromO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of GALA from NO3 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossGALAhfromNO3'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossGALAhfromNO3,              &
+            archiveData    = State_Diag%Archive_LossGALAhfromNO3,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !--------------------------------------------------------------------
+       ! Loss of GALA from N2O5 HET
+       !--------------------------------------------------------------------
+       diagID = 'LossGALAhfromN2O5'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%LossGALAhfromN2O5,              &
+            archiveData    = State_Diag%Archive_LossGALAhfromN2O5,      &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
 
        !--------------------------------------------------------------------
        ! Production of SO4 from aqueous oxidation of H2O2 in cloud
@@ -9928,7 +10472,7 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 25
+       DO N = 1, 46
 
           ! Select the diagnostic ID
           SELECT CASE( N )
@@ -9985,6 +10529,48 @@ CONTAINS
                 diagID = 'AerMassHMS'
              CASE( 25 ) ! (jmm, 06/29/18)
                 diagID = 'ProdSO2andHCHOfromHMSinCloud'
+             CASE( 26 )
+                diagID = 'LossLEVOfromOH'
+             CASE( 27 )
+                diagID = 'LossLEVOfromNO3'
+             CASE( 28 )
+                diagID = 'LossLEVOhfromOH'
+             CASE( 29 )
+                diagID = 'LossLEVOhfromO3'
+             CASE( 30 )
+                diagID = 'LossLEVOhfromNO3'
+             CASE( 31 )
+                diagID = 'LossLEVOhfromN2O5'
+             CASE( 32 )
+                diagID = 'LossLEVOgfromOH'
+             CASE( 33 )
+                diagID = 'LossMANNfromOH'
+             CASE( 34 )
+                diagID = 'LossGALAfromOH'
+             CASE( 35 )
+                diagID = 'ProdMANNfromLEVO'
+             CASE( 36 )
+                diagID = 'ProdMANNfromGALA'
+             CASE( 37 )
+                diagID = 'ProdGALAfromLEVO'
+             CASE( 38 )
+                diagID = 'ProdGALAfromMANN'
+             CASE( 39 )
+                diagID = 'LossMANNhfromOH'
+             CASE( 40 )
+                diagID = 'LossMANNhfromO3'
+             CASE( 41 )
+                diagID = 'LossMANNhfromNO3'
+             CASE( 42 )
+                diagID = 'LossMANNhfromN2O5'
+             CASE( 43 )
+                diagID = 'LossGALAhfromOH'
+             CASE( 44 )
+                diagID = 'LossGALAhfromO3'
+             CASE( 45 )
+                diagID = 'LossGALAhfromNO3'
+             CASE( 46 )
+                diagID = 'LossGALAhfromN2O5'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list
@@ -13254,6 +13840,113 @@ CONTAINS
                    Ptr2Data = State_Diag%ProdBCPIfromBCPO,                   &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
+    CALL Finalize( diagId   = 'LossLEVOfromOH',                            &
+                   Ptr2Data = State_Diag%LossLEVOfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOfromNO3',                            &
+                   Ptr2Data = State_Diag%LossLEVOfromNO3,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOhfromOH',                            &
+                   Ptr2Data = State_Diag%LossLEVOhfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOhfromO3',                            &
+                   Ptr2Data = State_Diag%LossLEVOhfromO3,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOhfromNO3',                            &
+                   Ptr2Data = State_Diag%LossLEVOhfromNO3,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOhfromN2O5',                            &
+                   Ptr2Data = State_Diag%LossLEVOhfromN2O5,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossLEVOgfromOH',                            &
+                   Ptr2Data = State_Diag%LossLEVOgfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossMANNfromOH',                            &
+                   Ptr2Data = State_Diag%LossMANNfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossGALAfromOH',                            &
+                   Ptr2Data = State_Diag%LossGALAfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdMANNfromLEVO',                            &
+                   Ptr2Data = State_Diag%ProdMANNfromLEVO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdMANNfromGALA',                            &
+                   Ptr2Data = State_Diag%ProdMANNfromGALA,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdGALAfromLEVO',                            &
+                   Ptr2Data = State_Diag%ProdGALAfromLEVO,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'ProdGALAfromMANN',                            &
+                   Ptr2Data = State_Diag%ProdGALAfromMANN,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossMANNhfromOH',                            &
+                   Ptr2Data = State_Diag%LossMANNhfromOH,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossMANNhfromO3 ',                            &
+                   Ptr2Data = State_Diag%LossMANNhfromO3 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossMANNhfromNO3 ',                            &
+                   Ptr2Data = State_Diag%LossMANNhfromNO3 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossMANNhfromN2O5 ',                            &
+                   Ptr2Data = State_Diag%LossMANNhfromN2O5 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossGALAhfromOH ',                            &
+                   Ptr2Data = State_Diag%LossGALAhfromOH ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'LossGALAhfromO3 ',                            &
+                   Ptr2Data = State_Diag%LossGALAhfromO3 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+    CALL Finalize( diagId   = 'LossGALAhfromNO3 ',                            &
+                   Ptr2Data = State_Diag%LossGALAhfromNO3 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+
+    CALL Finalize( diagId   = 'LossGALAhfromN2O5 ',                            &
+                   Ptr2Data = State_Diag%LossGALAhfromN2O5 ,                   &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
 
     CALL Finalize( diagId   = 'OHconcAfterChem',                             &
                    Ptr2Data = State_Diag%OHconcAfterChem,                    &
@@ -15445,6 +16138,125 @@ CONTAINS
     ELSE IF ( TRIM( Name_AllCaps ) == 'PRODOCPIFROMOCPO' ) THEN
        IF ( isDesc    ) Desc  = 'Production of hydrophilic organic ' // &
                                 'carbon from hydrophobic organic carbon'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from OH radical in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from NO3 radical in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOHFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from OH radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOHFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from O3 in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOHFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from HO3 radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOHFROMN2O5' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan       ' // &
+                                'from N2O5 in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSLEVOGFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of levoglucosan      ' // &
+                                'from OH radical in gas phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ! MANN and GALA
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSMANNFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannosan       ' // &
+                                'from OH radical in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSGALAFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of galactosan       ' // &
+                                'from OH radical in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODMANNFROMLEVO' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannosan       ' // &
+                                'from levoglucosan in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODMANNFROMGALA' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of mannosan       ' // &
+                                'from galactosan in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODGALAFROMLEVO' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of galactosan       ' // &
+                                'from levoglucosan in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'PRODGALAFROMMANN' ) THEN
+       IF ( isDesc    ) Desc  = 'Production of galactosan       ' // &
+                                'from mannosan in aqueous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSMANNHFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannosan       ' // &
+                                'from OH radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSMANNHFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannosan       ' // &
+                                'from O3 in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSMANNHFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannnosan       ' // &
+                                'from HO3 radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSMANNHFROMN2O5' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of mannosan       ' // &
+                                'from N2O5 in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSGALAHFROMOH' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of galactosan       ' // &
+                                'from OH radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSGALAHFROMO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of galactosan       ' // &
+                                'from O3 in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSGALAHFROMNO3' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of galactosan       ' // &
+                                'from HO3 radical in heterogeneous phase'
+       IF ( isUnits   ) Units = 'kg'
+       IF ( isRank    ) Rank  = 3
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'LOSSGALAHFROMN2O5' ) THEN
+       IF ( isDesc    ) Desc  = 'Loss of galactosan       ' // &
+                                'from N2O5 in heterogeneous phase'
        IF ( isUnits   ) Units = 'kg'
        IF ( isRank    ) Rank  = 3
 
