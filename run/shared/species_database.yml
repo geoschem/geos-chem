@@ -3627,7 +3627,7 @@ NITDbin6:
   FullName: Nitrate on DSTbin6
   MW_g: 62.01
 NITDbin7:
-  << : *DSTbin4properties
+  << : *DSTbin7properties
   FullName: Nitrate on DSTbin7
   MW_g: 62.01
 NITs:
