@@ -1,6 +1,237 @@
 # GEOS-Chem Species Database
 # Core species only (neglecting microphysics)
 # NOTE: Anchors must be defined before any variables that reference them.
+LEVO:
+  Formula: C6H10O5
+  FullName: Levoglucosan
+  Is_Gas: false
+  Is_Aerosol: true
+  Density: 1688.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  Is_HygroGrowth: true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+LEVO_A:
+  Formula: C6H10O5
+  FullName: Levoglucosan_anthro
+  Is_Aerosol: true
+  Is_Gas: false
+  Density: 1688.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  Is_HygroGrowth: true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+LEVO_B:
+  Formula: C6H10O5
+  FullName: Levoglucosan_biomass
+  Is_Gas: false
+  Is_Aerosol: true
+  Density: 1688.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  Is_HygroGrowth: true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+LEVO_BAQ:
+  Formula: C6H10O5
+  FullName: Levoglucosan_biomass aqu reaction
+  Is_Gas: false
+  Is_Aerosol: true
+  Density: 1688.0
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  Is_HygroGrowth: true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+
+LEVO_AAQ:
+  Formula: C6H10O5
+  FullName: Levoglucosan_anthro aqu reaction
+  Is_Gas: false
+  Density: 1688.0
+  Is_Aerosol: true
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  Is_HygroGrowth: true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+
+LEVOG:
+  Formula: C6H10O5
+  FullName: Levoglucosan gas phase
+  Is_Gas: true
+  Is_Advected: true
+  Is_DryDep: true
+  Is_WetDep: true
+  MW_g: 162.14
+  DD_F0         : 0.0
+  DD_Hstar_old  : 9.50e+0
+  Henry_K0      : 9.50e+0
+  Henry_CR      : 4700.0
+  WD_RetFactor  : 2.0e-2
+LEVOR:
+  Formula: C6H10O5
+  FullName : Levo Production
+  MW_g : 162.14
+  Is_Advected: false
+  Is_Gas: false
+  Is_Aerosol: true
+  Is_Drydep : false
+  Is_Wetdep : false
+  Density: 1688.0
+LEVOR1:
+  Formula: C6H10O5
+  FullName : Levo Production with OH
+  MW_g : 162.14
+  Is_Advected: false
+  Is_Gas: false
+  Is_Aerosol: true
+  Is_Drydep : false
+  Is_Wetdep : false
+  Density: 1688.0
+LEVOR2:
+  Formula: C6H10O5
+  FullName : Levo Production with O3
+  MW_g : 162.14
+  Is_Advected: false
+  Is_Gas: false
+  Is_Aerosol: true
+  Is_Drydep : false
+  Is_Wetdep : false
+  Density: 1688.0
+LEVOR3:
+  Formula: C6H10O5
+  FullName : Levo Production with NO3
+  MW_g : 162.14
+  Is_Advected: false
+  Is_Gas: false
+  Is_Aerosol: true
+  Is_Drydep : false
+  Is_Wetdep : false
+  Density: 1688.0
+LEVOR4:
+  Formula: C6H10O5
+  FullName : Levo Production  with N2O5
+  MW_g : 162.14
+  Is_Advected: false
+  Is_Gas: false
+  Is_Aerosol: true
+  Is_Drydep : false
+  Is_Wetdep : false
+  Density: 1688.0
+
+MANN:
+  Formula       : C6H10O5
+  FullName      : Mannosan
+  MW_g          : 162.14
+  Is_Advected   : true
+  Is_Gas        : false
+  Is_Aerosol    : true
+  Is_Drydep     : true
+  Is_Wetdep     : true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+
+
+GALA:
+  Formula       : C6H10O'
+  FullName      : Galactosan
+  MW_g          : 162.14
+  Is_Advected   : true
+  Is_Gas        : false
+  Is_Aerosol    : true
+  Is_Drydep     : true
+  Is_Wetdep     : true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+
+
+K+:
+  Formula       : K'
+  FullName      : Potassium
+  MW_g          : 39.1
+  Is_Advected   : true
+  Is_Gas        : false
+  Is_Aerosol    : true
+  Is_Drydep     : true
+  Is_Wetdep     : true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+KDUST:
+  Formula       : K'
+  FullName      : Potassium
+  MW_g          : 39.1
+  Is_Advected   : true
+  Is_Gas        : false
+  Is_Aerosol    : true
+  Is_Drydep     : true
+  Is_Wetdep     : true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+KSALA:
+  Formula       : K'
+  FullName      : Potassium
+  MW_g          : 39.1
+  Is_Advected   : true
+  Is_Gas        : false
+  Is_Aerosol    : true
+  Is_Drydep     : true
+  Is_Wetdep     : true
+  DD_DvzAerSnow : 0.03
+  DD_F0         : 0.0
+  DD_Hstar_Old  : 0.0
+  WD_AerScavEff : 1.0
+  WD_KcScaleFac : [1.0,0.5,1.0]
+  WD_RainoutEff : [1.0,0.0,1.0]
+
 A3O2:
   Formula: CH3CH2CH2OO
   FullName: Primary peroxy radical from C3H8
