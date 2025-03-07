@@ -11,7 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
-- Added routine `Update_DryDepVel_for_Turbday` to `hco_interface_gc_mod.F90`
+- Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -32,7 +32,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
 - Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
 - Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
-- In `hco_interface_gc_mod.F90`, update `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays with `(I,J,S)` instead of `(:,:,S)`
+- Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
