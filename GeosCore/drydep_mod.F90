@@ -609,35 +609,6 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    ! Set diagnostics - consider moving?
-    IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
-
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( D, S, N, A, NDVZ                                      )
-       DO D = 1, State_Chm%nDryDep
-
-          ! Point to State_Chm%DryDepVel [m/s]
-          NDVZ = NDVZIND(D)
-
-          ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
-          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
-             ! Get the "DryAltID" index, that is used to archive species
-             ! concentrations at a user-defined altitude above the surface
-             ! GEOS-CHEM species number
-             N = State_Chm%Map_DryDep(D)
-             A = State_Chm%SpcData(N)%Info%DryAltID
-             IF ( A > 0 ) THEN
-                State_Diag%DryDepVelForALT1(:,:,A) = &
-                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
-             ENDIF
-          ENDIF
-
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
-
   END SUBROUTINE UPDATE_DRYDEPFREQ
 !EOC
 !------------------------------------------------------------------------------

@@ -5059,7 +5059,7 @@ CONTAINS
 !
 ! !DESCRIPTION: Adds the sea-air exchange deposition velocity (computed in
 !  the SeaFlux extension) to the dry deposition velocity (computed in
-!  drydep_mod.F90) and stores in the History diagnostics.
+!  drydep_mod.F90) and archives them in the History diagnostics.
 !\\
 !\\
 ! !INTERFACE:
@@ -5094,7 +5094,7 @@ CONTAINS
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,          INTENT(INOUT) :: RC          ! Success or failure?
+    INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
 !
 ! !REMARKS:
 !  When using the full PBL mixing option (aka TURBDAY), update DryDepVel
@@ -5111,6 +5111,7 @@ CONTAINS
 !
     ! Scalars
     LOGICAL            :: DepSpec,   found
+    INTEGER            :: A
     INTEGER            :: I,         J
     INTEGER            :: L,         N
     INTEGER            :: NA,        ND
@@ -5121,31 +5122,30 @@ CONTAINS
     CHARACTER(LEN=255) :: errMsg,    thisLoc
 
     ! Arrays
-    REAL(fp)           :: dvel(State_Grid%NX,                                &
-                               State_Grid%NY,                                &
-                               State_Chm%nAdvect                            )
+    REAL(fp)           :: dvel(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
 
     !=======================================================================
     ! Update_DryDepVel_for_Turbday begins here!
     !=======================================================================
 
-    ! Initialize
-    RC      = GC_SUCCESS
-    errMsg  = ''
-    thisLoc = &
-    ' -> at Update_DryDepVel_for_Turbday (in module GeosCore/hco_interface_gc_mod.F90)'
+    ! Success or failure?
+    RC = GC_SUCCESS
 
     !=======================================================================
     ! Skip unless the drydep velocity History diagnostics are requested
     !=======================================================================
-    IF ( State_Diag%Archive_DryDepVel          .or.                          &
-         State_Diag%Archive_SatDiagnDryDepVel ) THEN
+    IF ( State_Diag%Archive_DryDepVel           .or.                        &
+         State_Diag%Archive_SatDiagnDryDepVel   .or.                        &
+         State_Diag%Archive_DryDepVelForALT1  ) THEN
 
        ! Zero values
+       errMsg  = ''
+       thisLoc = &
+' -> at Set_DryDepVel_Diagnostics (in module GeosCore/hco_interface_gc_mod.F90)'
        dvel = 0.0_fp
 
        !=====================================================================
-       ! Get sea-air deposition frequencies calculated in HEMCO.
+       ! Get sea-air  frequencies calculated in HEMCO.
        !
        ! The loop has been separated to go over N, J, I in order to optimize
        ! for retrieving regridded data from HEMCO. There is only one regrid
@@ -5244,7 +5244,7 @@ CONTAINS
        !=====================================================================
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, ND, N, S                                        )&
+       !$OMP PRIVATE( I, J, ND, N, S, A                                     )&
        !$OMP COLLAPSE( 3                                                    )
        DO ND = 1, State_Chm%nDryDep
        DO J  = 1, State_Grid%NY
@@ -5274,6 +5274,13 @@ CONTAINS
              ENDIF
           ENDIF
 
+          ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
+          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+             A = State_Chm%SpcData(N)%Info%DryAltID
+             IF ( A > 0 ) THEN
+                State_Diag%DryDepVelForALT1(I,J,A) = dvel(I,J,N)
+             ENDIF
+          ENDIF
        ENDDO
        ENDDO
        ENDDO

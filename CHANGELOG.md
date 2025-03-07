@@ -24,6 +24,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
+- Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
  
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
