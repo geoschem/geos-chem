@@ -23,7 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in geoschem_config.yml
-- Updated photolysis and aerosol optics input directories to use new mineral dust values in FJX_spec.dat and dust.dat based on spheroidal shapes
+- Updated photolysis and aerosol optics input directories to use new mineral dust values in FJX_scat-aer.dat and dust.dat based on spheroidal shapes
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
@@ -35,9 +35,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
-<<<<<<< HEAD
 - Removed re-evaporation requirement for washout
-- Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 
 ## [14.5.2] - 2025-02-12
 ### Added
@@ -54,9 +54,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Fixed GCHP refresh time for `CO2_WEEKLY` scale factors so updated daily
 - Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
-=======
-- Remove Fast-JX input directory from geoschem_config.yml files except for Hg simulation
->>>>>>> a65a69b3c (Update changelog)
 
 ## [14.5.1] - 2025-01-10
 ### Added
