@@ -891,14 +891,14 @@ PROGRAM GEOS_Chem
        ! the State_Chm%Species(:)%Conc unit is the same for most of the dynamic
        ! timestep as the unit used in GCHP/GEOS GEOS-Chem Run method.
        !---------------------------------------------------------------------
-       CALL Convert_Spc_Units(                                                  &
-            Input_Opt      = Input_Opt,                                         &
-            State_Chm      = State_Chm,                                         &
-            State_Grid     = State_Grid,                                        &
-            State_Met      = State_Met,                                         &
-            new_units      = KG_SPECIES_PER_KG_DRY_AIR,                         &
-            previous_units = previous_units,                                    &
-            RC             = RC                                                )
+       CALL Convert_Spc_Units(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Grid     = State_Grid,                                     &
+            State_Met      = State_Met,                                      &
+            new_units      = KG_SPECIES_PER_KG_DRY_AIR,                      &
+            previous_units = previous_units,                                 &
+            RC             = RC                                             )
 
        !=====================================================================
        !       ***** R U N   H E M C O   P H A S E   1 *****
@@ -1380,21 +1380,49 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
 
-          ! Compute the surface flux for the non-local mixing,
-          ! (which means getting emissions & drydep from HEMCO)
-          ! and store it in State_Chm%Surface_Flux
-          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
-             CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,             &
-                                          State_Diag, State_Grid,            &
-                                          State_Met,  RC                    )
+          IF ( Input_Opt%LTURB ) THEN
+
+             IF ( Input_Opt%LNLPBL ) THEN
+
+                !------------------------------------------------------------
+                ! %%%%% VDIFF (non-local PBL mixing) %%%%%
+                ! Compute the surface flux for the non-local mixing,
+                ! (which means getting emissions & drydep from HEMCO)
+                ! and store it in State_Chm%Surface_Flux
+                !------------------------------------------------------------
+                CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
+
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                   CALL Error_Stop( errMsg, thisLoc )
+                ENDIF
+
+                IF ( VerboseAndRoot ) THEN
+                   CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+                ENDIF
+
+             ENDIF
+
+             !------------------------------------------------------------
+             ! Update drydep velocities by adding the sea-air deposition
+             ! velocity computed by the HEMCO SeaFlux extension
+             !------------------------------------------------------------
+             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
+                                             State_Diag, State_Grid,      &
+                                             State_Met,  RC              )
+
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                ErrMsg = &
+                     'Error encountered in "Update_DryDepVel_for_Turbday"!'
                 CALL Error_Stop( errMsg, thisLoc )
              ENDIF
-          ENDIF
 
-          IF ( VerboseAndRoot ) THEN
-             CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: a Set_DryDepVel_Diagnostics' )
+             ENDIF
+
           ENDIF
 
           ! Note: mixing routine expects tracers in v/v

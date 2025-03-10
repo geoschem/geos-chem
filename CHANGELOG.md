@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
+- Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -22,7 +23,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
-  
+- Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
+- Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
+ 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
@@ -30,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
 - Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
 - Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
+- Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files

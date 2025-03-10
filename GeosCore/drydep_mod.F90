@@ -36,7 +36,6 @@ MODULE DRYDEP_MOD
 #if defined( MODEL_CESM )
   PUBLIC :: UPDATE_DRYDEPFREQ
 #else
-
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
@@ -340,8 +339,8 @@ CONTAINS
 #if !defined( MODEL_CESM )
     ! Call UPDATE_DRYDEPFREQ to update dry deposition frequencies [s-1]
     ! from dry deposition velocities [m/s].
-    CALL UPDATE_DRYDEPFREQ( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                           State_Met, RC )
+    CALL UPDATE_DRYDEPFREQ( Input_Opt,  State_Chm, State_Diag,               &
+                            State_Grid, State_Met, RC                       )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -609,55 +608,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-    ! Set diagnostics - cnsider moving?
-    IF ( State_Diag%Archive_DryDepVel                                   .or. &
-         State_Diag%Archive_DryDepVelForALT1                            .or. &
-         State_Diag%Archive_SatDiagnDryDepVel                         ) THEN 
-
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( D, S, N, A, NDVZ                                      )
-       DO D = 1, State_Chm%nDryDep
-
-          ! Point to State_Chm%DryDepVel [m/s]
-          NDVZ = NDVZIND(D)
-
-          ! Dry dep velocity [cm/s]
-          IF ( State_Diag%Archive_DryDepVel ) THEN
-             S = State_Diag%Map_DryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN
-                State_Diag%DryDepVel(:,:,S)   =                              &
-                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-             ENDIF
-          ENDIF
-
-          ! Satellite diagnostic: Dry dep velocity [cm/s]
-          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
-             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(D)
-             IF ( S > 0 ) THEN
-                State_Diag%SatDiagnDryDepVel(:,:,S)   =                      &
-                State_Chm%DryDepVel(:,:,NDVZ) * 100.0_f4
-             ENDIF
-          ENDIF
-
-          ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
-          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
-             ! Get the "DryAltID" index, that is used to archive species
-             ! concentrations at a user-defined altitude above the surface
-             ! GEOS-CHEM species number
-             N = State_Chm%Map_DryDep(D)
-             A = State_Chm%SpcData(N)%Info%DryAltID
-             IF ( A > 0 ) THEN
-                State_Diag%DryDepVelForALT1(:,:,A) = &
-                           State_Chm%DryDepVel(:,:,NDVZ) * 100._f4
-             ENDIF
-          ENDIF
-
-       ENDDO
-       !$OMP END PARALLEL DO
-
-    ENDIF
 
   END SUBROUTINE UPDATE_DRYDEPFREQ
 !EOC
@@ -3261,7 +3211,7 @@ CONTAINS
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8),       INTENT(OUT) :: VTSout    ! Settling velocity [m/s]
 
@@ -4028,7 +3978,7 @@ CONTAINS
   FUNCTION ADUST_SFCRSII( K, II, PRESS, TEMP, USTAR, &
                           VTSout, RHB, State_Chm ) RESULT( RS )
 !
-! !USES: 
+! !USES:
 !
       USE Species_Mod,        ONLY : Species
       USE State_Chm_Mod,      ONLY : ChmState
@@ -4045,7 +3995,7 @@ CONTAINS
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
 
@@ -4261,7 +4211,7 @@ CONTAINS
     !BC
     ELSE IF ( K == idd_BCPI .OR. K == idd_BCPO )  THEN
        ! DIAM is not changed
-    
+
     !OA
     ELSE
         DIAM = DIAM * ((1.0_fp + 0.1_fp * RHBL / (1.0_fp - RHBL))            &
@@ -4383,7 +4333,7 @@ CONTAINS
     REAL(f8), INTENT(IN) :: DEN     ! Particle density [kg/m3]
 
 !
-! !OUTPUT PARAMETERS: 
+! !OUTPUT PARAMETERS:
 !
     REAL(f8), INTENT(OUT) :: VTSout ! Settling velocity [m/s]
 
