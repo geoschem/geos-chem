@@ -300,7 +300,7 @@ CONTAINS
     !------------------------------------------------------------------------
 
     ! To be retrieved from Cloud-J
-    REAL(fp) :: FJBOT(W_+W_r)
+    REAL(fp) :: FJXBOT(W_+W_r)
     REAL(fp) :: FSBOT(W_+W_r)
     REAL(fp) :: FLXD(L1_,W_+W_r)
     REAL(fp) :: FJFLX(L1_,W_+W_r)
@@ -431,7 +431,7 @@ CONTAINS
     !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P      ) &
     !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC              ) &
     !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX     ) &
-    !$OMP PRIVATE( FJBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST     ) &
+    !$OMP PRIVATE( FJXBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST     ) &
     !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over all latitudes and all longitudes
@@ -939,14 +939,14 @@ CONTAINS
           print *, " -> IRAN     : ", IRAN
        ENDIF
 
-       CALL Cloud_JX( U0,       SZA,      RFL,      SOLF,     LPRTJ,     &
-                      P_CTM,    Z_CLIM,   T_CLIM,   HHH,      AIR_CLIM,  &
-                      RRR,      O3_CLIM,  CCC,      LWP,      IWP,       &
-                      REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,     &
-                      AERSP,    NDXAER,   L1_,      AN_,      JVN_,      &
-                      VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,      &
-                      NICA,     JCOUNT,   LDARK,    WTQCA,    FSBOT,     &
-                      FJBOT,    FLXD,     FJFLX,    RC                   )
+       CALL Cloud_JX( U0,       SZA,      RFL,      SOLF,     LPRTJ,       &
+                      P_CTM,    Z_CLIM,   T_CLIM,   HHH,      AIR_CLIM,    &
+                      RRR,      O3_CLIM,  CCC,      LWP,      IWP,         &
+                      REFFL,    REFFI,    CLDF,     CLDCOR,   CLDIW,       &
+                      AERSP,    NDXAER,   L1_,      AN_,      JVN_,        &
+                      VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,        &
+                      NICA,     JCOUNT,   LDARK,    WTQCA,    RC,          &
+                      FSBOT=FSBOT, FJXBOT=FJXBOT, FLXD=FLXD, FJFLX=FJFLX    )
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -997,7 +997,7 @@ CONTAINS
        
              ! Direct & diffuse fluxes at each level
              FDIRECT(1)  = FSBOT(K)                    ! surface
-             FDIFFUSE(1) = FJBOT(K)                    ! surface
+             FDIFFUSE(1) = FJXBOT(K)                   ! surface
              DO L = 2, State_Grid%NZ
                 FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
                 FDIFFUSE(L) = FJFLX(L-1,K)
