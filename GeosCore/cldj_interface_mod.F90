@@ -300,10 +300,10 @@ CONTAINS
     !------------------------------------------------------------------------
 
     ! To be retrieved from Cloud-J
-    REAL(fp) :: FJXBOT(W_+W_r)
-    REAL(fp) :: FSBOT(W_+W_r)
-    REAL(fp) :: FLXD(L1_,W_+W_r)
-    REAL(fp) :: FJFLX(L1_,W_+W_r)
+    REAL(fp) :: DiffSfcFlux(W_+W_r)
+    REAL(fp) :: DirSfcFlux(W_+W_r)
+    REAL(fp) :: DepFlux(L1_,W_+W_r)
+    REAL(fp) :: DiffTopFlux(L1_,W_+W_r)
 
     ! For UVFlux* diagnostics
     REAL(fp) :: FDIRECT (L1_)
@@ -431,7 +431,8 @@ CONTAINS
     !$OMP PRIVATE( CLDIW, CLDF, IWP, LWP, REFFI, REFFL, IWC, LWC, DELTA_P      ) &
     !$OMP PRIVATE( AERSP, RFL, RRR, LPRTJ, IRAN, CLDCOR, HHH, CCC              ) &
     !$OMP PRIVATE( LDARK, NICA, JCOUNT, SWMSQ, OD18, WTQCA, SKPERD, VALJXX     ) &
-    !$OMP PRIVATE( FJXBOT, FSBOT, FLXD, FJFLX, FDIRECT, FDIFFUSE, UVX_CONST     ) &
+    !$OMP PRIVATE( DiffSfcFlux, DirSfcFlux, DepFlux, DiffTopFlux               ) &
+    !$OMP PRIVATE( FDIRECT, FDIFFUSE, UVX_CONST                                ) &
     !$OMP SCHEDULE( DYNAMIC )
 
     ! Loop over all latitudes and all longitudes
@@ -946,7 +947,8 @@ CONTAINS
                       AERSP,    NDXAER,   L1_,      AN_,      JVN_,        &
                       VALJXX,   SKPERD,   SWMSQ,    OD18,     IRAN,        &
                       NICA,     JCOUNT,   LDARK,    WTQCA,    RC,          &
-                      FSBOT=FSBOT, FJXBOT=FJXBOT, FLXD=FLXD, FJFLX=FJFLX    )
+                      DirSfcFlux=DirSfcFlux, DiffSfcFlux=DiffSfcFlux,      &
+                      DepFlux=DepFlux,       DiffTopFlux=DiffTopFlux      )
 
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
@@ -996,11 +998,11 @@ CONTAINS
              FDIFFUSE = 0.0_fp
        
              ! Direct & diffuse fluxes at each level
-             FDIRECT(1)  = FSBOT(K)                    ! surface
-             FDIFFUSE(1) = FJXBOT(K)                   ! surface
+             FDIRECT(1)  = DirSfcFlux(K)                    ! surface
+             FDIFFUSE(1) = DiffSfcFlux(K)                   ! surface
              DO L = 2, State_Grid%NZ
-                FDIRECT(L) = FDIRECT(L-1) + FLXD(L-1,K)
-                FDIFFUSE(L) = FJFLX(L-1,K)
+                FDIRECT(L) = FDIRECT(L-1) + DepFlux(L-1,K)
+                FDIFFUSE(L) = DiffTopFlux(L-1,K)
              ENDDO
        
              ! Constant to multiply UV fluxes at each wavelength bin
