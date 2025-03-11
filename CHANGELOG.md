@@ -40,6 +40,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed re-evaporation requirement for washout
 - Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 
+## [14.5.3] - 2025-03-04
+### Changed
+- Changed CESM `HEMCO_Config.rc` to read 3D AEIC emissions every timestep to avoid differences upon restart
+
 ## [14.5.2] - 2025-02-12
 ### Added
 - Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
