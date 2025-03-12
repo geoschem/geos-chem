@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
 - Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
+- Updated `run/shared/download_data.yml` to use `--no-sign-request` for S3 downloads via anonymous login
  
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
@@ -35,6 +36,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
 - Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
 - Fixed incorrect description metadata for `FluxHg0FromAirToOcean` and `FluxHg0FromOceanToAir` diagnostics
+- Placed call to `Convert_Spc_Units` in `main.F90` within an `IF ( notDryrun )` block to avoid executing unit conversions in dryrun simulations
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
