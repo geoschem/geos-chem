@@ -12488,7 +12488,7 @@ CONTAINS
 
     !========================================================================
     ! Work array used to to calculate budget diagnostics, if needed
-    ! 4th dimension is column region: Full, Trop, PBL respectively
+    ! 4th dimension is column region: Full, Trop, PBL, fixed Levs
     !========================================================================
     IF ( State_Diag%Archive_Budget ) THEN
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
@@ -14675,7 +14675,7 @@ CONTAINS
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTTROP' ) THEN
           IF ( isDesc    ) Desc  = 'Troposphere-only total mass rate of ' // &
                                    'change in column for transport'
-       
+
        ELSE IF ( TRIM( Name_AllCaps ) == 'BUDGETTRANSPORTPBL' ) THEN
           IF ( isDesc    ) Desc  = 'PBL-only total mass rate of change ' // &
                                    ' in column for transport'
