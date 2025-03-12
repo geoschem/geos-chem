@@ -16496,13 +16496,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMAIRTOOCEAN' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Volatization flux of Hg0 from the ocean to the atmosphere'
+            'Volatization flux of Hg0 from the atmosphere to the ocean'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMOCEANTOAIR' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Deposition flux of Hg0 from the atmosphere to the ocean'
+            'Deposition flux of Hg0 from the ocean to the atmosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
