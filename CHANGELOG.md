@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
 - Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
+- Added dry-run integration tests for selected simulations
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
