@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
 - Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
 - Updated `run/shared/download_data.yml` to use `--no-sign-request` for S3 downloads via anonymous login
+- Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
  
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
