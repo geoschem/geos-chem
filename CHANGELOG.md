@@ -23,12 +23,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added precision when registering `State_Met` and `State_Chm` arrays to change output file precision to match precision in the model
 - Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
-- Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
 - Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
 - Updated `run/shared/download_data.yml` to use `--no-sign-request` for S3 downloads via anonymous login
 - Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
- 
+- Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
+- Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
+
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
@@ -44,7 +45,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 - Removed re-evaporation requirement for washout
-- Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 
 ## [14.5.3] - 2025-03-04
 ### Changed

@@ -2829,8 +2829,36 @@ CONTAINS
     Input_Opt%Do_Photolysis = v_bool
 
     !------------------------------------------------------------------------
-    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
+    ! FAST-JX menu
     !------------------------------------------------------------------------
+
+    ! Input directory path
+    key   = "operations%photolysis%fast-jx%fastjx_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%FAST_JX_DIR = TRIM( v_str )
+
+    !------------------------------------------------------------------------
+    ! CLOUD-J menu
+    !------------------------------------------------------------------------
+
+    ! Input directory path
+    key   = "operations%photolysis%cloud-j%cloudj_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CloudJ_DIR = TRIM( v_str )
+
+    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
     key   = "operations%photolysis%cloud-j%num_levs_with_cloud"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2841,9 +2869,7 @@ CONTAINS
     ENDIF
     Input_Opt%NLevs_Phot_Cloud = v_int
 
-    !------------------------------------------------------------------------
     ! Cloud-J cloud scheme flag (Cloud-J var CLDFLAG)
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%cloud_scheme_flag"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2854,10 +2880,8 @@ CONTAINS
     ENDIF
     Input_Opt%Cloud_Flag = v_int
 
-    !------------------------------------------------------------------------
     ! Factor increase in cloud OD from layer to next below (Cloud-J var ATAU)
     !  - used for inserting extra cloud layers in Cloud-J
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%opt_depth_increase_factor"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2868,10 +2892,8 @@ CONTAINS
     ENDIF
     Input_Opt%OD_Increase_Factor = Cast_and_RoundOff( v_str, places=4 )
 
-    !------------------------------------------------------------------------
     ! Minimum cloud OD in uppermost inserted layer (Cloud-J var ATAU0)
     !  - used for inserting extra cloud layers in Cloud-J
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%min_top_inserted_cloud_OD"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2882,12 +2904,10 @@ CONTAINS
     ENDIF
     Input_Opt%Min_Cloud_OD = Cast_and_RoundOff( v_str, places=4 )
 
-    !------------------------------------------------------------------------
     ! Cloud correlation between max-overlap blocks (will set Cloud-J var CLDCOR)
     ! NOTE:
     !  - only used for cloud schemes 5 and above
     !  - 0.00 = random
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%cloud_overlap_correlation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2898,11 +2918,9 @@ CONTAINS
     ENDIF
     Input_Opt%Cloud_Corr = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Number of blocks with correlated cloud overlap (will set Cloud-J var LNRG)
     !  - only used for cloud schemes 5 and above
     !  - limited values possible: 0 = max-ran @ gaps, 3 = alt blocks, 6 = max-overlap
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%num_cloud_overlap_blocks"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2913,13 +2931,11 @@ CONTAINS
     ENDIF
     Input_Opt%Num_Max_Overlap = v_int
 
-    !------------------------------------------------------------------------
     ! Spherical Earth atmospheric correction (will set Cloud-J var ATM0)
     !  0 = flag
     !  1 = spherical (standard)
     !  2 = refractive
     !  3 = geometric
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%sphere_correction"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2930,13 +2946,11 @@ CONTAINS
     ENDIF
     Input_Opt%Sphere_Correction = v_int
 
-    !------------------------------------------------------------------------
     ! Number of wavelength bins in UV-Vis (will set Cloud-J var NWBIN)
     ! - limited values possible
     !  18 = standard full Fast-J
     !  12 = trop-only (0% err in trop, 33% performance savings)
     !   8 = trop-only (1-2% error in J-02 and J-OCS in upper trop, big savings)
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%num_wavelength_bins"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2947,9 +2961,7 @@ CONTAINS
     ENDIF
     Input_Opt%Num_WV_Bins = v_int
 
-    !------------------------------------------------------------------------
     ! Whether to use absorption of UV by water vapor
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%use_H2O_UV_absorption"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2961,32 +2973,10 @@ CONTAINS
     Input_Opt%USE_H2O_UV_Abs = v_bool
 
     !------------------------------------------------------------------------
-    ! Directories with photolysis input files
+    ! Overhead O3 menu
     !------------------------------------------------------------------------
 
-    key   = "operations%photolysis%input_directories%fastjx_input_dir"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%FAST_JX_DIR = TRIM( v_str )
-
-    key   = "operations%photolysis%input_directories%cloudj_input_dir"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%CloudJ_DIR = TRIM( v_str )
-
-    !------------------------------------------------------------------------
-    ! Use online ozone in extinction calculations for FAST-JX?
-    !------------------------------------------------------------------------
+    ! Use online ozone in extinction calculations?
     key    = "operations%photolysis%overhead_O3%use_online_O3_from_model"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2997,9 +2987,7 @@ CONTAINS
     ENDIF
     Input_Opt%USE_ONLINE_O3 = v_bool
 
-    !------------------------------------------------------------------------
     ! Use ozone columns from met fields?
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_column_O3_from_met"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -3010,9 +2998,7 @@ CONTAINS
     ENDIF
     Input_Opt%USE_O3_FROM_MET = v_bool
 
-    !------------------------------------------------------------------------
     ! Use ozone columns from TOMS?
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_TOMS_SBUV_O3"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -3024,8 +3010,10 @@ CONTAINS
     Input_Opt%USE_TOMS_O3 = v_bool
 
     !------------------------------------------------------------------------
-    ! Photoylse nitrate aerosol?
+    ! Nitrate photolysis menu
     !------------------------------------------------------------------------
+
+    ! Photoylse nitrate aerosol?
     key    = "operations%photolysis%photolyze_nitrate_aerosol%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -3036,9 +3024,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT = v_bool
 
-    !------------------------------------------------------------------------
     ! Scalar for JHNO3 for photoylsing NITs aerosol
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale"
     v_str = MISSING_STR
@@ -3050,9 +3036,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT_JNITs = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale"
     v_str = MISSING_STR
@@ -3064,9 +3048,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT_JNIT = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis
-    !------------------------------------------------------------------------
     key   = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_A_HONO"
     v_str = MISSING_STR
@@ -3078,9 +3060,7 @@ CONTAINS
     ENDIF
     Input_Opt%JNITChanA = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_B_NO2"
     v_str = MISSING_STR
