@@ -328,6 +328,35 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Switch back to the present directory
     cd "${thisDir}"
 
+    #=========================================================================
+    # Create rundirs for dry-run tests
+    #==========================================================================
+
+    # Create dryrun directories by direct copy
+    dirs=( "gc_4x5_merra2_aerosol"              \
+           "gc_4x5_merra2_carbon"               \
+	   "gc_4x5_merra2_fullchem"             \
+           "gc_4x5_merra2_fullchem_APM"         \
+           "gc_4x5_merra2_47L_fullchem_TOMAS15" \
+           "gc_4x5_merra2_fullchem_benchmark"   \
+           "gc_4x5_merra2_fullchem_RRTMG"       \
+           "gc_4x5_merra2_Hg"                   \
+           "gc_4x5_merra2_metals"               \
+           "gc_4x5_merra2_tagCO"                \
+           "gc_4x5_merra2_tagO3"                \
+           "gc_4x5_merra2_TransportTracers"       )
+
+    # Navigate to the rundirs folder
+    cd "${rundirsDir}"
+    
+    # Create dryrun directories by direct copy
+    for dir in ${dirs[@]}; do
+	echo "... ${itRoot}/rundirs/${dir}_dryrun"
+	cp -r "${dir}" "${dir}_dryrun"
+    done
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
 
 #=============================================================================
