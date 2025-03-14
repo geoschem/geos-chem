@@ -184,21 +184,19 @@ CONTAINS
        !%%% TAGGED SPECIES HANDLING -- comment out for now
        !%%% State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
 
-       !---------------------------------------------------------------------
-       ! k_Trop(1): Rate [1/s] for rxn: CH4 + OH_E = CO + CO_CH4
-       !---------------------------------------------------------------------
-
        ! OH and Cl concentrations [molec/cm3]
-       C(ind_FixedOH) = ConcOHmnd * OHdiurnalFac
+       C(ind_FixedOH) = ConcOHmnd
        C(ind_FixedCl) = ConcClMnd
 
-       ! CH4 + offline OH reaction rate [1/s]
-       ! Use rates saved from full-chemistry run (if CH4 is not advected)
+       !---------------------------------------------------------------------
+       ! k_Trop(1): Rate [1/s] for rxn for DummyCH4trop -> CO + COfromCH4
+       !---------------------------------------------------------------------
        IF ( PCO_fr_CH4_use ) THEN
-          k_Trop(1) = PCO_fr_CH4 * OHdiurnalFac
-          k_Trop(1) = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
-       ELSE
-          k_Trop(1) = 2.45E-12_dp * EXP( -1775.0E+0_dp /TEMP )  ! JPL 1997
+          ! Apply diurnal factor
+          C(ind_FixedOH) = C(ind_FixedOH) * OHdiurnalFac
+          k_Trop(1)      = PCO_fr_CH4     * OHdiurnalFac
+
+          k_Trop(1)      = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
        ENDIF
 
        !---------------------------------------------------------------------
@@ -220,14 +218,14 @@ CONTAINS
        !=====================================================================
 
        !---------------------------------------------------------------------
-       ! k_Strat(1): Loss rate [1/s] for CH4 -> DUMMY
+       ! k_Strat(1): Loss rate [1/s] for CH4 -> LCH4strat
        ! k_Strat(3): Loss rate [1/s] for CO  -> CO2 + CO2fromOH
        !---------------------------------------------------------------------
        k_Strat(1) = LCH4_by_OH
        k_Strat(3) = LCO_in_Strat
 
        !---------------------------------------------------------------------
-       ! k_Strat(2): Loss rate [molec/cm3/s] for DummyCH4 -> CO
+       ! k_Strat(2): Loss rate [molec/cm3/s] for DummyCH4strat -> CO
        !
        ! NOTE: This reaction rate is in molec/cm3/s instead of 1/s because
        ! of the way the reaction is written.  CH4_E is a "dummy" species

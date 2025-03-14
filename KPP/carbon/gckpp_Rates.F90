@@ -419,13 +419,14 @@ SUBROUTINE Update_RCONST ( )
 
 ! End INLINED RCONST
 
-  RCONST(1) = (k_Trop(1))
+  RCONST(1) = (2.45d-12*EXP(-1775.0d0/TEMP)*TROP)
   RCONST(2) = (9.60d-12*EXP(-1360.0d0/TEMP)*TROP)
-  RCONST(3) = (k_Trop(2))
-  RCONST(4) = (k_Trop(3))
-  RCONST(5) = (k_Strat(1))
-  RCONST(6) = (k_Strat(2))
-  RCONST(7) = (k_Strat(3))
+  RCONST(3) = (k_Trop(1))
+  RCONST(4) = (k_Trop(2))
+  RCONST(5) = (k_Trop(3))
+  RCONST(6) = (k_Strat(1))
+  RCONST(7) = (k_Strat(2))
+  RCONST(8) = (k_Strat(3))
       
 END SUBROUTINE Update_RCONST
 

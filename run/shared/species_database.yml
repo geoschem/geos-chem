@@ -1431,14 +1431,14 @@ DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
-Dummy:
-  FullName: Dummy species (carbon mechanism)
-  Is_Gas: true
-  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
-DummyCH4:
+DummyCH4trop:
   << : *CH4properties
   Background_VV: 1.8e-6
-  FullName: Methane (external input for carbon mechanism)
+  FullName: Dummy species for CH4 reactant (external input for carbon mechanism)
+DummyCH4strat:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Dummy species for CH4 reactant (external input for carbon mechanism)
 DummyNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
@@ -3073,6 +3073,18 @@ LCH4:
   Is_Gas: true
   MW_g: 16.04
   KPP_AbsTol: 1.0e+25
+LCH4Cl:
+  FullName: Dummy species to track loss of CH4 by Cl (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
+LCH4OH:
+  FullName: Dummy species to track loss of CH4 by OH (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
+LCH4strat:
+  FullName: Dummy species to track loss of CH4 in strat (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
