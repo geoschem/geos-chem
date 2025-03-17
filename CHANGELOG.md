@@ -42,6 +42,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 - Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
 
+### Removed
+- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used

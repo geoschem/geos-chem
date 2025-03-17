@@ -419,16 +419,6 @@ CONTAINS
     ! Assume success
     RC = GC_SUCCESS
 
-    ! Check that species units are in [kg]. While species units
-    ! are now generally [kg/kg] in GEOS-Chem, they are converted to
-    ! kg for TOMAS elsewhere in tomas_mod prior to calling this subroutine
-    ! (ewl, 8/13/15)
-    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
-       MSG = 'Not all species are in kg!'
-       LOC = 'Routine AEROPHYS in tomas_mod.F90'
-       CALL GC_Error( MSG, RC, LOC )
-    ENDIF
-
     ! Point to chemical species array [kg]
     Spc => State_Chm%Species
 
@@ -3881,13 +3871,6 @@ CONTAINS
     RC                 = GC_SUCCESS
     SOACOND_WARNING_CT = 0
 
-    ! Check that species units are in [kg]
-    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
-       MSG = 'Not all species are in kg!'
-       LOC = 'Routine SOACOND in tomas_mod.F90'
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
-
     ! Point to the chemical species array
     Spc => State_Chm%Species
 
@@ -7084,13 +7067,6 @@ CONTAINS
     ! Assume success
     RC                =  GC_SUCCESS
 
-    ! Check that species units are in [kg]
-    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
-       MSG = 'Not all species are in kg!'
-       LOC = 'Routine GETACTBIN in tomas_mod.F90'
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
-
     ! Point to chemical species array
     Spc => State_Chm%Species
 
@@ -7707,13 +7683,6 @@ CONTAINS
     Spc       => State_Chm%Species
 
     ERRORSWITCH = .FALSE.
-
-    ! Check that species units are in [kg]
-    IF ( .not. Check_Units( State_Chm, KG_SPECIES ) ) THEN
-       MSG = 'Not all species are in kg!'
-       LOC = 'Routine CHECKMN in tomas_mod.F90: ' // TRIM( LOCATION )
-       CALL ERROR_STOP( MSG, LOC )
-    ENDIF
 
     ! Check throughout all grid boxes
     IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN
