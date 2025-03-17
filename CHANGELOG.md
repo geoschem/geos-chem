@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
 - Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
 - Added dry-run integration tests for selected simulations
+- Added `RETURN` statements at the end of each `IF` block in routine `AERODIAG`, to minimize the number of `IF` statements that need to be evauluated
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -29,6 +30,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
+- Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
+- Commented out debug print statement for TOMAS `H2SO4RATE` variable
 
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance

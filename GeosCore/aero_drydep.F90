@@ -213,14 +213,17 @@
           CALL ERROR_STOP('CALL AERO_DIADEN', 'AERO_DRYDEP in aero_drydep.F')
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( BIN, I, J, DP, DEN, CONST, L, P, TEMP )   &
-       !$OMP PRIVATE( PDP, SLIP, VISC, VTS, JC, ID, TC0, TC )   &
-       !$OMP PRIVATE( DELZ, DELZ1, AREA_CM2, TOT1, TOT2, FLUX ) &
-       !$OMP SCHEDULE( DYNAMIC )
-       DO I = 1, State_Grid%NX
-       DO J = 1, State_Grid%NY
+       !TODO: Reverse loop order
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( BIN,   I,        J,     DP,   DEN,  CONST             )&
+       !$OMP PRIVATE( L,     P,        TEMP,  PDP,  SLIP, VISC              )&
+       !$OMP PRIVATE( VTS,   JC,       ID,    TC0,  TC,   DELZ              )&
+       !$OMP PRIVATE( DELZ1, AREA_CM2, TOT1,  TOT2, FLUX                    )&
+       !$OMP SCHEDULE( DYNAMIC, 8                                           )&
+       !$OMP COLLAPSE( 3                                                    )
+       DO I   = 1, State_Grid%NX
+       DO J   = 1, State_Grid%NY
        DO BIN = 1, IBINS
 
           DP    = SIZ_DIA(I,J,BIN) * 1.d6 ![=] um
@@ -348,13 +351,14 @@
     ! %%% are totally lost anyway. The way Spc / STT is defined, tracerid    %%%
     ! %%% should always be the outermost loop...                             %%%
     ! %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !$OMP PARALLEL DO                                      &
-    !$OMP PRIVATE( L, J, I, AREA_CM2, RKT, flux, JC, BIN ) &
-    !$OMP PRIVATE( ID, X0, X, Y0, Y )                      &
-    !$OMP DEFAULT( SHARED )                                &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO I = 1, State_Grid%NX
+    !$OMP PARALLEL DO                                                        &
+    !$OMP PRIVATE( L,   J,  I,  AREA_CM2, RKT, flux, JC                     )&
+    !$OMP PRIVATE( BIN, ID, X0, X,        Y0,  Y                            )&
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
     DO L = 1, State_Grid%MaxChemLev
 
        ! Initialize for safety's sake
@@ -399,7 +403,7 @@
           IF (RKT > 0d0) THEN
              RKT = RKT * DTCHEM
              ! Remaining amount after drydep
-             X  = X0(BIN,JC)* EXP(-RKT)
+             X = X0(BIN,JC)* EXP(-RKT)
           ELSE
              X = X0(BIN,JC)
           ENDIF
