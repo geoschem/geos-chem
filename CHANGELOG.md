@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed incorrect description metadata for `FluxHg0FromAirToOcean` and `FluxHg0FromOceanToAir` diagnostics
 - Placed call to `Convert_Spc_Units` in `main.F90` within an `IF ( notDryrun )` block to avoid executing unit conversions in dryrun simulations
 - Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
+- Fixed path error `download_data.py` when downloading from `geoschem+http` or `nested+http` portals
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
