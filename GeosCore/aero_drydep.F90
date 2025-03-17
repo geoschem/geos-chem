@@ -118,15 +118,6 @@
     ! Number of bins
     IBINS     = State_Chm%nTomasBins
 
-    ! Check that species units are in [kg] (ewl, 8/13/15)
-    IF ( .not. Check_Units( State_Chm,                                       &
-                            KG_SPECIES,                                      &
-                            mapping=State_Chm%Map_Advect ) ) THEN
-       MSG = 'Not all advected species have units of "kg"!'
-       LOC = 'Routine AERO_DRYDEP in GeosCore/aero_drydep.F90'
-       CALL GC_Error( MSG, RC, LOC )
-    ENDIF
-
     ! DTCHEM is the chemistry timestep in seconds
     DTCHEM    = GET_TS_CHEM()
 

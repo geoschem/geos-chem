@@ -30,6 +30,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
 
+### Removed
+- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
