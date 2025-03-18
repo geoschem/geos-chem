@@ -213,7 +213,6 @@ COLLECTIONS: 'Restart',
   SatDiagn.hrrange:           11.98 15.02
   SatDiagn.mode:              'time-averaged'
   SatDiagn.fields:            'SatDiagnConc_CH4               ',
-                              'SatDiagnOH                     ',
                               'SatDiagnRH                     ',
                               'SatDiagnAirDen                 ',
                               'SatDiagnBoxHeight              ',
