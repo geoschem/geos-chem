@@ -56,7 +56,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 =======
 - Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
 - Commented out debug print statement for TOMAS `H2SO4RATE` variable
-- Changed TOMAS variables `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMAS` from `REAL*4` to `REAL(fp)`
+- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, from `REAL*4` to `REAL(fp)`
 
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance

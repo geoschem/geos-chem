@@ -1055,7 +1055,7 @@ CONTAINS
     Real(fp)               :: MDIST(State_Chm%nTomasBins,ICOMP)
     REAL(fp)               :: NDIST2(State_Chm%nTomasBins)
     REAL(fp)               :: MDIST2(State_Chm%nTomasBins,ICOMP)
-    REAL*4                 :: TSCALE, BOXVOL, TEMP, PRES
+    REAL(fp)               :: TSCALE, BOXVOL, TEMP, PRES
 
     !REAL(fp)              :: N0(State_Grid%NZ,State_Chm%nTomasBins)
     !REAL(fp)              :: M0(State_Grid%NZ,State_Chm%nTomasBins)

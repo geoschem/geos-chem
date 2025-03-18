@@ -4374,7 +4374,7 @@ CONTAINS
    REAL(fp)  :: MDIST(State_Chm%nTomasBins,ICOMP)
    REAL(fp)  :: NDIST2(State_Chm%nTomasBins)
    REAL(fp)  :: MDIST2(State_Chm%nTomasBins,ICOMP)
-   REAL*4    :: BOXVOL, TEMP, PRES, BOXMASS
+   REAL(fp)  :: BOXVOL, TEMP, PRES, BOXMASS
    INTEGER   :: I, J, L, K, C, N, PBL_MAX, IBINS
    REAL(fp)  :: F_OF_PBL
    LOGICAL   :: ERRORSWITCH, PDBUG

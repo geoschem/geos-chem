@@ -161,7 +161,7 @@ MODULE TOMAS_MOD
   REAL(fp), ALLOCATABLE :: PSO4AQ_RATE(:,:,:) ! Cld chem sulfate prod rate [kg s-1]
 
   ! Subgrid coagulation timescale (win, 10/28/08)
-  REAL*4 :: SGCTSCALE
+  REAL(fp) :: SGCTSCALE
 !
 ! !PRIVATE TYPES:
 !
@@ -391,23 +391,26 @@ CONTAINS
 
     !The following are constants used in calculating rel. humidity
     real(fp) axcons, bxcons, bytf, tf  !for RH calculation
-    parameter(axcons=1.8094520287589733, &
-              bxcons=0.0021672473136556273, &
-              bytf=0.0036608580560606877, tf=273.16)
+    parameter(axcons=1.8094520287589733_fp, &
+              bxcons=0.0021672473136556273_fp, &
+              bytf=0.0036608580560606877_fp, tf=273.16_fp)
     !lhe and lhs are the latent heats of evaporation and sublimation
 
     logical, save     :: firsttime = .true.
     integer           :: num_iter
 
-    real(fp)    cplevels(9) ! cosmic ray pressure levels (for interp)
-    data        cplevels  / 959., 894., 786., 634., 468., &
-                            321., 201., 103., 27. /
+    ! cosmic ray pressure levels (for interp)
+    real(fp) ::  cplevels(9) = (/ 959.0_fp, 894.0_fp, 786.0_fp,  &
+                                  634.0_fp, 468.0_fp, 321.0_fp,  &
+                                  201.0_fp, 103.0_fp, 27.0_fp  /)
 
     integer     lev
     real(fp)    weight
 
-    double precision soil_ions(9) ! ion pairs cm-3 s-1 from radioactive elements in soil
-    data             soil_ions / 5.,3.3,1.8,0.7,0.,0.,0.,0.,0./
+    ! ion pairs cm-3 s-1 from radioactive elements in soil
+    real(fp) :: soil_ions(9) = (/ 5.0_fp, 3.3_fp, 1.8_fp,  &
+                                  0.7_fp, 0.0_fp, 0.0_fp,  &
+                                  0.0_fp, 0.0_fp, 0.0_fp /)
 
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
@@ -7056,6 +7059,7 @@ CONTAINS
        IF ( BIN == 0 ) BIN = IBINS
     ENDIF
 
+    ! Zero variables for safety's sake
     MECIL    = 0.0_fp
     MOCIL    = 0.0_fp
     MOCOB    = 0.0_fp
@@ -7070,17 +7074,27 @@ CONTAINS
        MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,L) * UNITFACTOR
        MOCOB = Spc(id_OCOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     ENDIF
-    IF ( id_DUST01 > 0 ) MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+
+    IF ( id_DUST01 > 0 ) THEN
+       MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    ENDIF
+
     !account for ammonium sulfate
-    IF ( id_SF01 > 0 ) MSO4  = Spc(id_SF01-1+BIN)%Conc(I,J,L) * 1.2 * UNITFACTOR
-    IF ( id_SS01 > 0 ) MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_SF01 > 0 ) THEN
+       MSO4  = Spc(id_SF01-1+BIN)%Conc(I,J,L) * 1.2_fp * UNITFACTOR
+    ENDIF
+
+    IF ( id_SS01 > 0 ) THEN
+       MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    ENDIF
+
     MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20_fp
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4  / MTOT
     XNACL = MNACL / MTOT
-    ISO4  = MIN(101, INT(XSO4*100)+1)
-    INACL = MIN(101, INT(XNACL*100)+1)
-    IOCIL = MIN(101, INT(XOCIL*100)+1)
+    ISO4  = MIN( 101, INT( XSO4  * 100.0_fp ) + 1 )
+    INACL = MIN( 101, INT( XNACL * 100.0_fp ) + 1 )
+    IOCIL = MIN( 101, INT( XOCIL * 100.0_fp ) + 1 )
 
     !==========================================================
     ! subroutine was written considering bin 1 is 10nm
@@ -7121,7 +7135,9 @@ CONTAINS
 
     ! Calculate the soluble fraction of mass
     MECOB = 0.0_fp
-    IF ( id_ECOB01 > 0 ) MECOB = Spc(id_ECOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    IF ( id_ECOB01 > 0 ) THEN
+       MECOB = Spc(id_ECOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
+    ENDIF
     SOLFRAC = MTOT / ( MTOT + MECOB )
 
     ! Free pointer
@@ -7223,9 +7239,9 @@ CONTAINS
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4 / MTOT
     XNACL = MNACL / MTOT
-    ISO4  = MIN( 101, INT( XSO4 * 100.0_fp ) + 1 )
-    INACL = MIN( 101, INT( XNACL *100.0_fp ) + 1 )
-    IOCIL = MIN( 101, INT( XOCIL *100.0_fp ) + 1 )
+    ISO4  = MIN( 101, INT( XSO4  * 100.0_fp ) + 1 )
+    INACL = MIN( 101, INT( XNACL * 100.0_fp ) + 1 )
+    IOCIL = MIN( 101, INT( XOCIL * 100.0_fp ) + 1 )
 
     !==========================================================
     ! subroutine was written considering bin 1 is 10nm
@@ -7323,7 +7339,7 @@ CONTAINS
 
     do k=1,ibins
 
-       so4mass=Mke(k,srtso4)*1.2  !1.2 converts kg so4 to kg nh4hso4
+       so4mass=Mke(k,srtso4)*1.2_fp  !1.2 converts kg so4 to kg nh4hso4
        wrso4=waterso4(rhe)
 
        ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
@@ -7420,10 +7436,11 @@ CONTAINS
 
     rhe = State_Met%RH(i,j,l)             !RH [=] percent
 
-    if (rhe .gt. 99.) rhe=99.
-    if (rhe .lt. 1.) rhe=1.
+    if (rhe .gt. 99.) rhe=99.0_fp
+    if (rhe .lt. 1. ) rhe=1.0_fp
 
-    so4mass=Spc(id_SF01-1+bin)%Conc(I,J,L)*1.2 !1.2 converts kg so4 to kg nh4hso4
+    !1.2 converts kg so4 to kg nh4hso4
+    so4mass=Spc(id_SF01-1+bin)%Conc(I,J,L)*1.2_fp 
     wrso4=waterso4(rhe)       !use external function
 
     ! Add condition for srtnacl in case of running so4 only. (win, 5/8/06)
@@ -7674,8 +7691,12 @@ CONTAINS
        ! Prepare the mass mixing ratio to call external function
        ! for density
        MH2O = Spc(WID)%Conc(I,J,1)
-       IF ( id_SF01 > 0 ) MSO4 = Spc(id_SF01-1+BIN)%Conc(I,J,LEV)
-       IF ( id_SS01 > 0 ) MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,LEV)
+       IF ( id_SF01 > 0 ) THEN
+          MSO4 = Spc(id_SF01-1+BIN)%Conc(I,J,LEV)
+       ENDIF
+       IF ( id_SS01 > 0 ) THEN
+          MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,LEV)
+       ENDIF
        IF ( id_ECIL01 > 0 .AND. id_ECOB01 > 0 .AND. &
             id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
           MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,LEV)
@@ -7683,7 +7704,9 @@ CONTAINS
           MOCIL = Spc(id_OCIL01-1+BIN)%Conc(I,J,LEV)
           MOCOB = Spc(id_OCOB01-1+BIN)%Conc(I,J,LEV)
        ENDIF
-       IF ( id_DUST01 > 0 ) MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,LEV)
+       IF ( id_DUST01 > 0 ) THEN
+          MDUST = Spc(id_DUST01-1+BIN)%Conc(I,J,LEV)
+       ENDIF
 
        ! Get density from external function
        DENSITY(I,J,BIN) = AERODENS(MSO4,0.e+0_fp,1.875e-1_fp*MSO4, &
@@ -8311,12 +8334,12 @@ CONTAINS
              !KK = K + 1 ! jrp, this was causing errors
              !ERRORSWITCH=.TRUE.
              KK = K
-             XNEW = xk(KK+1)/ 1.1
+             XNEW = xk(KK+1)/ 1.1_fp
              if ( PRT ) PRINT *, 'k',k,'AVG',AVG,' XNEW ',XNEW
 100          IF ( XNEW <= AVG ) THEN
                 IF ( KK < IBINS ) THEN
                    KK = KK + 1
-                   XNEW = xk(KK+1)/ 1.1
+                   XNEW = xk(KK+1)/ 1.1_fp
                    if (PRT) PRINT *, '..move up to bin ',KK,' XNEW ',XNEW
                    GOTO 100
                 ELSE
@@ -8395,11 +8418,11 @@ CONTAINS
 200          IF ( XNEW >= AVG ) THEN
                 IF ( KK > 1 ) THEN
                    KK = KK - 1
-                   XNEW = xk(KK)* 1.1
+                   XNEW = xk(KK)* 1.1_fp
                    GOTO 200
                 ELSE
                    ! Already reach lowest bin - must remove some number (win, 8/1/07)
-                   NK(K) = DRYMASS/ ( xk(1)* 1.2 )
+                   NK(K) = DRYMASS/ ( xk(1)* 1.2_fp )
                    GOTO 222
                 ENDIF
              ENDIF
@@ -8630,11 +8653,11 @@ CONTAINS
     REAL(fp) ndistinit(ibins)
     REAL(fp) ndist(ibins)
     REAL(fp) mdist(ibins,icomp)
-    REAL*4 boxvolume, temp , PRES
-    REAL*4 tscale
+    REAL(fp) boxvolume, temp, PRES
+    REAL(fp) tscale
     REAL(fp) ndistfinal(ibins)
     REAL(fp) maddfinal(ibins)
-    logical pdbug  ! for pringing out during debugging
+    logical  pdbug  ! for pringing out during debugging
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -8645,29 +8668,29 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(fp) mp                     ! mass of the particle (kg)
-    REAL*4 density                !density (kg/m3) of particles
+    REAL(fp) density                !density (kg/m3) of particles
     REAL(fp) fracdiaml(ibins,ibins) ! fraction of coagulation that occurs with each bin larger
     REAL(fp) kcoag(ibins) ! the coagulation rate for the particles in each bin (s^-1)
     !REAL*4 aerodens
     !external aerodens
 
-    REAL*4 mu                     !viscosity of air (kg/m s)
-    REAL*4 mfp                    !mean free path of air molecule (m)
-    REAL*4 Kn                     !Knudsen number of particle
-    REAL*4 beta                   !correction for coagulation coeff.
-    REAL(fp) Mktot      !total mass of aerosol
-    REAL*4 kij(ibins,ibins)
-    REAL*4 Dpk(ibins)             !diameter (m) of particles in bin k
-    REAL*4 Dk(ibins)              !Diffusivity (m2/s) of bin k particles
-    REAL*4 ck(ibins)              !Mean velocity (m/2) of bin k particles
-    REAL*4 neps
-    REAL*4 meps
+    REAL(fp) mu                     !viscosity of air (kg/m s)
+    REAL(fp) mfp                    !mean free path of air molecule (m)
+    REAL(fp) Kn                     !Knudsen number of particle
+    REAL(fp) beta                   !correction for coagulation coeff.
+    REAL(fp) Mktot                  !total mass of aerosol
+    REAL(fp) kij(ibins,ibins)
+    REAL(fp) Dpk(ibins)             !diameter (m) of particles in bin k
+    REAL(fp) Dk(ibins)              !Diffusivity (m2/s) of bin k particles
+    REAL(fp) ck(ibins)              !Mean velocity (m/2) of bin k particles
+    REAL(fp) neps
+    REAL(fp) meps
     INTEGER I, J, K, KK
     LOGICAL ERRORSWITCH
 
     ! Adjustable parameters
-    real*4 pi, kB               !kB is Boltzmann constant (J/K)
-    real*4 R       !gas constant (J/ mol K)
+    real(fp) pi, kB               !kB is Boltzmann constant (J/K)
+    real(fp) R       !gas constant (J/ mol K)
     parameter (pi=3.141592654, kB=1.38e-23, R=8.314)
     parameter (neps=1E8, meps=1E-8)
 
@@ -8689,11 +8712,11 @@ CONTAINS
 
     if (pdbug) call debugprint(Ndist,Mdist,0,0,0,'SUBDGRIDCOAG: after MNFIX_1')
 
-    mu=2.5277e-7*temp**0.75302
-    mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*temp) ) )  !S&P eqn 9.6
+    mu=2.5277e-7_fp*temp**0.75302_fp
+    mfp=2.0_fp*mu / ( pres*sqrt( 8.0_fp * 0.0289_fp / (pi*R*temp) ) )  !S&P eqn 9.6
     ! Calculate particle sizes and diffusivities
     do k=1,ibins
-       Mktot=0.2*mdist(k,srtso4)
+       Mktot=0.2_fp*mdist(k,srtso4)
        do j=1, icomp
           Mktot=Mktot+mdist(k,j)
        enddo
@@ -8704,39 +8727,40 @@ CONTAINS
                   mdist(k,srtocil),mdist(k,srtocob),mdist(k,srtdust), &
                   mdist(k,srth2o)) !assume bisulfate
        else
-          density = 1400.
+          density = 1400.0_fp
        endif
        if(ndist(k).gt.neps .and. Mktot.gt.meps)then
           mp=Mktot/ndist(k)
        else
           mp=sqrt(xk(k)*xk(k+1))
        endif
-       Dpk(k)=((mp/density)*(6./pi))**(0.333)
+       Dpk(k)=((mp/density)*(6.0_fp/pi))**(0.333_fp)
        Kn=2.0*mfp/Dpk(k)                            !S&P Table 12.1
-       Dk(k)=kB*temp/(3.0*pi*mu*Dpk(k)) &           !S&P Table 12.1
-             *((5.0+4.0*Kn+6.0*Kn**2+18.0*Kn**3)/(5.0-Kn+(8.0+pi)*Kn**2))
-       ck(k)=sqrt(8.0*kB*temp/(pi*mp))              !S&P Table 12.1
+       Dk(k)=kB*temp/(3.0_fp*pi*mu*Dpk(k)) &           !S&P Table 12.1
+             *((5.0_fp+4.0_fp*Kn+6.0_fp*Kn**2+18.0_fp*Kn**3)/&
+              (5.0_fp-Kn+(8.0_fp+pi)*Kn**2))
+       ck(k)=sqrt(8.0_fp*kB*temp/(pi*mp))              !S&P Table 12.1
     enddo
 
     ! Calculate coagulation coefficients
 
     do i=1,ibins
        do j=1,ibins
-          Kn=4.0*(Dk(i)+Dk(j)) &
-             /(sqrt(ck(i)**2+ck(j)**2)*(Dpk(i)+Dpk(j))) !S&P eqn 12.51
-          beta=(1.0+Kn)/(1.0+2.0*Kn*(1.0+Kn))          !S&P eqn 12.50
+          Kn=4.0_fp*(Dk(i)+Dk(j)) &
+             /(sqrt(ck(i)**2+ck(j)**2)*(Dpk(i)+Dpk(j)))    !S&P eqn 12.51
+          beta=(1.0_fp+Kn)/(1.0_fp+2.0_fp*Kn*(1.0_fp+Kn))  !S&P eqn 12.50
           !This is S&P eqn 12.46 with non-continuum correction, beta
-          kij(i,j)=2.0*pi*(Dpk(i)+Dpk(j))*(Dk(i)+Dk(j))*beta
-          kij(i,j)=kij(i,j)*1.0e6/boxvolume  !normalize by grid cell volume
+          kij(i,j)=2.0_fp*pi*(Dpk(i)+Dpk(j))*(Dk(i)+Dk(j))*beta
+          kij(i,j)=kij(i,j)*1.0e6_fp/boxvolume  !normalize by grid cell volume
        enddo
     enddo
 
     ! get the first order loss rate
-    kcoag(ibins)=0.0
+    kcoag(ibins)=0.0_fp
     !debug
     if(pdbug) print *,'Bin  KCOAG'
     do k=1,ibins-1
-       kcoag(k)=0.0
+       kcoag(k)=0.0_fp
        do kk=k+1,ibins
           kcoag(k)=kcoag(k)+kij(k,kk)*ndist(kk)
        enddo
@@ -8747,7 +8771,7 @@ CONTAINS
     ! get the fraction of the coagulation that occurs from each bin larger
     do k=1,ibins
        do kk=1,ibins
-          fracdiaml(k,kk)=0.
+          fracdiaml(k,kk)=0.0_fp
        enddo
     enddo
     do k=1,ibins-1
@@ -8775,7 +8799,7 @@ CONTAINS
 
     ! determine the mass added to each bin coagulation
     do k=1,ibins
-       maddfinal(k)=0.
+       maddfinal(k)=0.0_fp
     enddo
     do k=1,ibins-1
        do kk=k+1,ibins
@@ -9401,15 +9425,15 @@ CONTAINS
 !
     real(fp) mwair, Svair   !same as above, but for air
     real(fp) mwf, Svf
-    parameter(mwair=28.9, Svair=20.1)
+    parameter(mwair=28.9_fp, Svair=20.1_fp)
 
     !========================================================================
     ! GASDIFF begins here!
     !========================================================================
 
     mwf=sqrt((mw+mwair)/(mw*mwair))
-    Svf=(Sv**(1./3.)+Svair**(1./3.))**2.
-    VALUE =1.0e-7*temp**1.75*mwf/pres*1.0e5/Svf
+    Svf=(Sv**(1.0_fp/3.0_fp)+Svair**(1.0_fp/3.0_fp))**2
+    VALUE =1.0e-7_fp*temp**1.75_fp*mwf/pres*1.0e5_fp/Svf
 
   END FUNCTION GASDIFF
 !EOC
@@ -9427,8 +9451,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION GETDP( I, J, L, N, State_Met, State_Chm, RC ) &
-       RESULT( VALUE )
+  FUNCTION GETDP( I, J, L, N, State_Met, State_Chm, RC ) RESULT( VALUE )
 !
 ! !USES:
 !
@@ -9646,8 +9669,8 @@ CONTAINS
 
     TIMENOW   = GET_TAU()   ! Current time in the run (Julian time) (hrs)
     TIMEBEGIN = GET_TAUb()  ! Begin time of this run (hrs)
-    TIMEINIT  = 141000. !2/1/2001    ! Start time for spin-up (hrs)
-    HOURS = DAYS * 24.0     ! Period allow error to pass (hrs)
+    TIMEINIT  = 141000.0_fp !2/1/2001    ! Start time for spin-up (hrs)
+    HOURS = DAYS * 24.0_fp  ! Period allow error to pass (hrs)
 
     ! Criteria to let error go or to terminate the run
     !IF ( TIMENOW > MIN( TIMEBEGIN, TIMEINIT ) + HOURS  ) THEN
@@ -9781,35 +9804,76 @@ CONTAINS
 
     !=================================================================
     ! WATERNACL begins here!
+    !
+    ! NOTE: Removed ELSE blocks for efficiency (Bob Y., 18 Mar 2025) 
     !=================================================================
 
-    if (rhe .gt. 99.) rhe=99.
-    if (rhe .lt. 1.) rhe=1.
+    ! Cap RH
+    if (rhe .gt. 99.0_fp) rhe = 99.0_fp
+    if (rhe .lt. 1.0_fp ) rhe =1.0_fp
 
-    if (rhe .gt. 90.) then
-       VALUE=5.1667642e-2*rhe**3-14.153121*rhe**2+1292.8377*rhe-3.9373536e4
-    else
-       if (rhe .gt. 80.) then
-          VALUE=1.0629e-3*rhe**3-0.25281*rhe**2+20.171*rhe-5.3558e2
-       else
-          if (rhe .gt. 50.) then
-             VALUE=4.2967e-5*rhe**3-7.3654e-3*rhe**2+.46312*rhe-7.5731
-          else
-             if (rhe .gt. 20.) then
-                VALUE=2.9443e-5*rhe**3-2.4739e-3*rhe**2+7.3430e-2*rhe+1.3727
-             else
-                VALUE=1.17
-             endif
-          endif
+    ! RH > 90%
+    if (rhe .gt. 90.0_fp) then
+       VALUE = 5.1667642e-2_fp * rhe**3 &
+             - 14.153121_fp    * rhe**2 &
+             + 1292.8377_fp    * rhe    &
+             - 3.9373536e4_fp
+
+       if (VALUE .gt. 45.) then
+          write(*,*) 'ERROR in waternacl', rhe, value
+          STOP
        endif
+
+       return
     endif
 
-    !check for error
-    if (VALUE .gt. 45.) then
-       write(*,*) 'ERROR in waternacl'
-       write(*,*) rhe,VALUE
-       STOP
+    ! RH > 80%
+    if (rhe .gt. 80.0_fp) then
+       VALUE = 1.0629e-3_fp * rhe**3    &
+             - 0.25281_fp   * rhe**2    &
+             + 20.171_fp    * rhe       &
+             - 5.3558e2_fp
+
+       if (VALUE .gt. 45.) then
+          write(*,*) 'ERROR in waternacl', rhe, value
+          STOP
+       endif
+
+       return
     endif
+
+    ! RH > 50%
+    if (rhe .gt. 50.0_fp) then
+       VALUE = 4.2967e-5_fp * rhe**3 &
+             - 7.3654e-3_fp * rhe**2 &
+             + 0.46312_fp   * rhe    &
+             - 7.5731_fp
+
+       if (VALUE .gt. 45.) then
+          write(*,*) 'ERROR in waternacl', rhe, value
+          STOP
+       endif
+
+       return
+    endif
+
+    ! RH > 20%
+    if (rhe .gt. 20.0_fp) then
+       VALUE = 2.9443e-5_fp * rhe**3 &
+             - 2.4739e-3_fp * rhe**2 &
+             + 7.3430e-2_fp * rhe    &
+             + 1.3727_fp
+
+       if (VALUE .gt. 45.) then
+          write(*,*) 'ERROR in waternacl', rhe, value
+          STOP
+       endif
+
+       return
+    endif
+
+    ! RH <= 20%
+    VALUE = 1.17_fp
 
   END FUNCTION WATERNACL
 !EOC
@@ -9855,24 +9919,34 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     REAL(fp) :: a, b, c, d, e, f, prefactor, activcoef
-    parameter(a=1.0034, b=0.1614, c=1.1693,d=-3.1,e=6.0)
+    parameter(a=1.0034_fp, b=0.1614_fp, c=1.1693_fp, d=-3.1_fp, e=6.0_fp)
 
     !=================================================================
     ! WATEROCIL begins here!
     !=================================================================
 
-    if (rhe .gt. 99.) rhe=99.
-    if (rhe .lt. 1.) rhe=1.
+    ! Cap RH
+    if (rhe .gt. 99.0_fp) rhe = 99.0_fp
+    if (rhe .lt. 1.0_fp ) rhe = 1.0_fp
 
+    ! RH > 85%
     if (rhe .gt. 85.) then
-       VALUE =d+e*(rhe/100)
+       VALUE =d + e * ( rhe / 100.0_fp )
        !yhl Growth factor above RH 85% is not available, so it assumes linear
        !yhl growth at above 85%.
-    else
-       VALUE =a+b*(rhe/100)+c*(rhe/100)**2.
-       !yhl This eq is based on the extrapolation curve obtained from
-       !yhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
+
+       if (VALUE .gt. 10.) then
+          write(*,*) 'ERROR in waterocil', rhe, value
+          STOP
+       endif
+
+       return
     endif
+
+    ! RH <= 85%
+    VALUE =a + b*(rhe/100.0_fp) + c*(rhe/100.0_fp)**2
+    !yhl This eq is based on the extrapolation curve obtained from
+    !yhl Dick et al 2000 figure 5.(High organic,density=1400g/cm3)
 
     !check for error
     if (VALUE .gt. 10.) then
@@ -9931,35 +10005,88 @@ CONTAINS
     ! WATERSO4 begins here!
     !=================================================================
 
-    if (rhe .gt. 99.) rhe=99.
-    if (rhe .lt. 1.) rhe=1.
+    ! Cap RH to prevent blowups
+    if (rhe .gt. 99.0_fp ) rhe = 99.0_fp
+    if (rhe .lt. 1.0_fp  ) rhe = 1.0_fp
 
-    if (rhe .gt. 96.) then
-       value=0.7540688*rhe**3-218.5647*rhe**2+21118.19*rhe-6.801999e5
-    else
-       if (rhe .gt. 91.) then
-          value=8.517e-2*rhe**2 -15.388*rhe +698.25
-       else
-          if (rhe .gt. 81.) then
-             value=8.2696e-3*rhe**2 -1.3076*rhe +53.697
-          else
-             if (rhe .gt. 61.) then
-                value=9.3562e-4*rhe**2 -0.10427*rhe +4.3155
-             else
-                if (rhe .gt. 41.) then
-                   value=1.9149e-4*rhe**2 -8.8619e-3*rhe +1.2535
-                else
-                   value=5.1337e-5*rhe**2 +2.6266e-3*rhe +1.0149
-                endif
-             endif
-          endif
+    ! RH > 96%
+    if (rhe .gt. 96.0_fp) then
+       value = 0.7540688_fp * rhe**3 &
+             - 218.5647_fp  * rhe**2 &
+             + 21118.19_fp  * rhe    &
+             - 6.801999e5_fp
+
+       if (value .gt. 30.) then
+          write(*,*) 'ERROR in waterso4', rhe, value
+          STOP
        endif
+
+       return
     endif
 
-    !check for error
+    ! RH > 91%
+    if (rhe .gt. 91.0_fp) then
+       value = 8.517e-2_fp * rhe**2 &
+             - 15.388_fp   * rhe    &
+             + 698.25_fp
+
+       if (value .gt. 30.) then
+          write(*,*) 'ERROR in waterso4', rhe, value
+          STOP
+       endif
+
+       return
+    endif
+
+    ! RH > 81%
+    if (rhe .gt. 81.0_fp ) then
+       value = 8.2696e-3_fp * rhe**2 &
+             - 1.3076_fp    * rhe    &
+             + 53.697_fp
+
+       if (value .gt. 30.) then
+          write(*,*) 'ERROR in waterso4', rhe, value
+          STOP
+       endif
+
+       return
+    endif
+
+    ! RH > 61%
+    if (rhe .gt. 61.0_fp) then
+       value = 9.3562e-4_fp * rhe**2  &
+             - 0.10427_fp   * rhe     &
+             + 4.3155_fp
+
+       if (value .gt. 30.) then
+          write(*,*) 'ERROR in waterso4', rhe, value
+          STOP
+       endif
+
+       return
+    endif
+
+    ! RH > 41%
+    if (rhe .gt. 41.0_fp ) then
+       value = 1.9149e-4_fp * rhe**2 &
+             - 8.8619e-3_fp * rhe    &
+             + 1.2535_fp
+
+       if (value .gt. 30.) then
+          write(*,*) 'ERROR in waterso4', rhe, value
+          STOP
+       endif
+       
+       return
+    endif
+    
+    ! RH <= 40%
+    value = 5.1337e-5_fp * rhe**2 &
+          + 2.6266e-3_fp * rhe    &
+          + 1.0149_fp
+    
     if (value .gt. 30.) then
-       write(*,*) 'ERROR in waterso4'
-       write(*,*) rhe,value
+       write(*,*) 'ERROR in waterso4', rhe, value
        STOP
     endif
 
@@ -10009,14 +10136,14 @@ CONTAINS
     temp=dble(tempi)
     rh=dble(rhi)
 
-    if (nh3ppt .lt. 0.1) then
-       alpha1=4.276e-10*sqrt(temp/293.15) ! For sulfuric acid
+    if (nh3ppt .lt. 0.1_fp) then
+       alpha1 = 4.276e-10_fp * sqrt(temp/293.15_fp) ! For sulfuric acid
     else
-       alpha1=3.684e-10*sqrt(temp/293.15) ! For ammonium sulfate
+       alpha1 = 3.684e-10_fp * sqrt(temp/293.15_fp) ! For ammonium sulfate
     endif
-    fn = alpha1*cna**2*3600.
+    fn = alpha1*cna**2.0_fp*3600.0_fp
     ! sensitivity       fn = 1.e-3 * fn ! 10^-3 tuner
-    if (fn.gt.1.0e9) fn=1.0e9 ! For numerical conversion
+    if (fn.gt.1.0e9_fp) fn=1.0e9_fp ! For numerical conversion
 
 10  return
 
