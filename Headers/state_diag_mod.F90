@@ -946,6 +946,9 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: SatDiagnPEdge(:,:,:)
      LOGICAL                     :: Archive_SatDiagnPEdge
 
+     REAL(f8),           POINTER :: SatDiagnPMid(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnPMid
+
      REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
      LOGICAL                     :: Archive_SatDiagnTROPP
 
@@ -2415,6 +2418,9 @@ CONTAINS
 
     State_Diag%SatDiagnPEdge                       => NULL()
     State_Diag%Archive_SatDiagnPEdge               = .FALSE.
+
+    State_Diag%SatDiagnPMid                        => NULL()
+    State_Diag%Archive_SatDiagnPMid                = .FALSE.
 
     State_Diag%SatDiagnTROPP                       => NULL()
     State_Diag%Archive_SatDiagnTROPP               = .FALSE.
@@ -4885,6 +4891,28 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Pressure @ midpoint of layer (PMID)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPMid'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPMid,                           &
+         archiveData    = State_Diag%Archive_SatDiagnPMid,                   &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: Tropopause pressure (TROPP)
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnTROPP'
@@ -5244,6 +5272,7 @@ CONTAINS
          State_Diag%Archive_SatDiagnPBLHeight                           .or. &
          State_Diag%Archive_SatDiagnPBLTop                              .or. &
          State_Diag%Archive_SatDiagnPBLTopL                             .or. &
+         State_Diag%Archive_SatDiagnPMID                                .or. &
          State_Diag%Archive_SatDiagnPRECTOT                             .or. &
          State_Diag%Archive_SatDiagnProd                                .or. &
          State_Diag%Archive_SatDiagnRH                                  .or. &
@@ -13054,6 +13083,11 @@ CONTAINS
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+    CALL Finalize( diagId   = 'SatDiagnPMid',                              &
+                   Ptr2Data = State_Diag%SatDiagnPMid,                     &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
     CALL Finalize( diagId   = 'SatDiagnTROPP',                             &
                    Ptr2Data = State_Diag%SatDiagnTROPP,                    &
                    RC       = RC                                            )
@@ -15205,6 +15239,11 @@ CONTAINS
        IF ( isUnits   ) Units = 'hPa'
        IF ( isRank    ) Rank  = 3
        IF ( isVLoc    ) VLoc  = VLocationEdge
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPMID' ) THEN
+       IF ( isDesc    ) Desc  = 'Pressure at level midpoints'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPP' ) THEN
        IF ( isDesc    ) Desc  = 'Tropopause pressure'

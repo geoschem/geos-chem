@@ -4,6 +4,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added `State_Diag%SatDiagnPMid` and `State_Diag%Archive_SatDiagnPMid` to save pressure at level midpoints to the `SatDiagn` collection
+
+### Changed
+- Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
+
 ## [14.5.3] - 2025-03-04
 ### Changed
 - Changed CESM `HEMCO_Config.rc` to read 3D AEIC emissions every timestep to avoid differences upon restart
