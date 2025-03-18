@@ -368,7 +368,7 @@ CONTAINS
 
 #ifdef TOMAS
     INTEGER            :: I, J
-    REAL*4             :: BOXVOL, TEMPTMS, PRES, BOXMASS
+    REAL(fp)           :: BOXVOL, TEMPTMS, PRES, BOXMASS
 #endif
 
     ! Pointers
@@ -4928,10 +4928,10 @@ CONTAINS
    INTEGER                  :: FLAG, ERR
    REAL(fp)                 :: DTSRCE, AREA_M2
    REAL(fp)                 :: CO_ANTH_TOTAL
-   REAL*4                   :: BOXVOL  ! calculated from State_Met
-   REAL*4                   :: BOXMASS  ! calculated from State_Met
-   REAL*4                   :: TEMPTMS ! calculated from State_Met
-   REAL*4                   :: PRES    ! calculated from State_Met
+   REAL(fp)                 :: BOXVOL  ! calculated from State_Met
+   REAL(fp)                 :: BOXMASS  ! calculated from State_Met
+   REAL(fp)                 :: TEMPTMS ! calculated from State_Met
+   REAL(fp)                 :: PRES    ! calculated from State_Met
    REAL(fp)                 :: OC2OM = 1.8d0
    LOGICAL                  :: SGCOAG = .FALSE. ! bc,jrp turn off subgrid coag 18/12/23
    INTEGER                  :: L, K, EMTYPE

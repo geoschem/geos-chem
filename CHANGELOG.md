@@ -44,6 +44,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
+<<<<<<< HEAD
 - Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
@@ -52,6 +53,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
 - Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 - Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
+=======
+- Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
+- Commented out debug print statement for TOMAS `H2SO4RATE` variable
+- Changed TOMAS variables `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMAS` from `REAL*4` to `REAL(fp)`
+
+### Removed
+- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+>>>>>>> 5e56c22ac (Changed some TOMAS local variables from REAL*4 to REAL(fp))
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge

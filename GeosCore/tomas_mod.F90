@@ -334,7 +334,7 @@ CONTAINS
 !
     INTEGER             :: I, J, L, N, JC, K !counters
     INTEGER             :: MPNUM    !microphysical process id #
-    REAL*4              :: ADT      !aerosol microphysics time step (seconds)
+    REAL(fp)            :: ADT      !aerosol microphysics time step (seconds)
     REAL(fp)            :: QSAT     !used in RH calculation
     INTEGER             :: TRACNUM
     REAL(fp)            :: FRAC
@@ -354,8 +354,8 @@ CONTAINS
     REAL(fp)           :: Gc(ICOMP - 1)
     REAL(fp)           :: Gcd(ICOMP - 1)
 
-    REAL*4             :: BOXVOL,  BOXMASS, TEMPTMS
-    REAL*4             :: PRES,    RHTOMAS
+    REAL(fp)           :: BOXVOL,  BOXMASS, TEMPTMS
+    REAL(fp)           :: PRES,    RHTOMAS
 
     REAL(fp)           ::  surf_area     ! aerosol surface area [micon^2 cm^-3]
     REAL(fp)           ::  ionrate       ! ion pair formation
@@ -497,7 +497,7 @@ CONTAINS
        BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
        ERR_IND     = 0
        ERR_MSG     = ''
-       ERR_VAR     = 0.0_fp
+       ERR_VAR     = ''
        ERRORSWITCH = .FALSE.
        fn          = 0.0_fp
        fn1         = 0.0_fp
@@ -1031,7 +1031,7 @@ CONTAINS
     ! dt                - total model time step to be taken (s)
     REAL(fp) Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
     double precision H2SO4rate
-    real             dti
+    REAL(fp)         dti
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -1044,7 +1044,7 @@ CONTAINS
     REAL(fp) Nkcond(ibins),Mkcond(ibins,icomp)
     double precision fnavg        ! nucleation rate of clusters cm-3 s-1
     double precision fn1avg       ! formation rate of particles to first size bin cm-3 s-1
-    REAL*4           BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
+    REAL(fp)         BOXVOL, BOXMASS, TEMPTMS, RHTOMAS, PRES
     logical          errswitch    ! signal for error
     integer          lev          ! layer of the model
     REAL(fp)   surf_area
@@ -1550,7 +1550,7 @@ CONTAINS
     !Mk(ibins, icomp) - mass of a given species per size bin/grid cell
     !spec - number of the species we are finding the condensation sink for
     double precision Nko(ibins), Mko(ibins, icomp)
-    REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
+    REAL(fp), INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
     integer spec
 !
 ! !OUTPUT PARAMETERS:
@@ -1570,12 +1570,12 @@ CONTAINS
 !
     integer i,j,k,c           ! counters
     double precision pi, R    ! pi and gas constant (J/mol K)
-    double precision mu                  !viscosity of air (kg/m s)
-    double precision mfp                 !mean free path of air molecule (m)
-    double precision l_ab                !mean free path of h2so4 molecule (m)
-    real Di       !diffusivity of gas in air (m2/s)
+    double precision mu       !viscosity of air (kg/m s)
+    double precision mfp      !mean free path of air molecule (m)
+    double precision l_ab     !mean free path of h2so4 molecule (m)
+    double precision Di       !diffusivity of gas in air (m2/s)
     double precision Neps     !tolerance for number
-    real density  !density [kg m^-3]
+    double precision density  !density [kg m^-3]
     double precision mp       !mass per particle [kg]
     double precision Dpk(ibins) !diameter of particle [m]
     double precision Kn       !Knudson number
@@ -1588,10 +1588,7 @@ CONTAINS
     parameter(pi=3.141592654, R=8.314) !pi and gas constant (J/mol K)
     parameter(Neps=1.0e+10_fp)
     double precision alpha(icomp) ! accomodation coef
-    !data alpha/0.65,0.,0.,0.,0.,0.,0.,0.,0./
-    real Sv(icomp)         !parameter used for estimating diffusivity
-    !data Sv /42.88,42.88,42.88,42.88,42.88,42.88,42.88, &
-    !         42.88,42.88/
+    double precision Sv(icomp)    !parameter used for estimating diffusivity
 
     !=================================================================
     ! getCondSink begins here
@@ -1617,7 +1614,7 @@ CONTAINS
 
     !mfp=2.0*mu / ( pres*sqrt( 8.0 * 0.0289 / (pi*R*TEMPTMS) ) )  !S&P eqn 8.6
 
-    Di=gasdiff(TEMPTMS,pres,98.0,Sv(spec))
+    Di=gasdiff(TEMPTMS,pres,98.0_fp,Sv(spec))
 
     c_a  = sqrt(8.0 * TEMPTMS * R / 0.098)
     l_ab = 2.0 * Di / c_a
@@ -1710,10 +1707,10 @@ CONTAINS
     REAL(fp)            :: Nk(IBINS)
     REAL(fp)            :: Mk(IBINS, ICOMP)
     double precision       H2SO4rate
-    double precision       CS
+    double precision        CS
     double precision       NH3conc
-    REAL*4, INTENT(IN)  :: BOXVOL,  BOXMASS, TEMPTMS
-    REAL*4, INTENT(IN)  :: PRES,    RHTOMAS
+    REAL(fp), INTENT(IN) :: BOXVOL,  BOXMASS, TEMPTMS
+    REAL(fp), INTENT(IN) :: PRES,    RHTOMAS
     integer                lev
 !
 ! !OUTPUT PARAMETERS:
@@ -1928,8 +1925,8 @@ CONTAINS
     !=================
     ! Gci(icomp-1) - amount (kg/grid cell) of all species present in the
     !                gas phase except water
-    REAL*4,   INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
-    REAL*4,   INTENT(IN)       :: PRES,    RHTOMAS
+    REAL(fp), INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+    REAL(fp), INTENT(IN)       :: PRES,    RHTOMAS
     REAL(fp), INTENT(IN)       :: Gci(icomp-1)
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -2168,14 +2165,14 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    real*4,   intent(in)   :: tempi ! temperature of air [K]
-    real*4,   intent(in)   :: rhi ! relative humidity of air as a fraction
-    real(fp), intent(in)   :: cnai ! concentration of gas phase sulfuric acid [molec cm-3]
+    real(fp), intent(in)   :: tempi ! temperature of air [K]
+    real(fp), intent(in)   :: rhi   ! relative humidity of air as a fraction
+    real(fp), intent(in)   :: cnai  ! conc. of gas phase H2SO4 [molec cm-3]
 !
 ! !OUTPUT PARAMETERS:
 !
-    real(fp), intent(out)  :: fn ! nucleation rate [cm-3 s-1]
-    real(fp), intent(out)  :: rnuc ! critical cluster radius [nm]
+    real(fp), intent(out)  :: fn    ! nucleation rate [cm-3 s-1]
+    real(fp), intent(out)  :: rnuc  ! critical cluster radius [nm]
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -2378,8 +2375,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    real*4,   intent(in) :: tempi ! temperature of air [K]
-    real*4,   intent(in) :: rhi ! relative humidity of air as a fraction
+    real(fp), intent(in) :: tempi ! temperature of air [K]
+    real(fp), intent(in) :: rhi ! relative humidity of air as a fraction
     real(fp), intent(in) :: cnai ! concentration of gas phase sulfuric acid [molec cm-3]
     real(fp), intent(in) :: nh3ppti ! concentration of gas phase ammonia
 !
@@ -2518,7 +2515,7 @@ CONTAINS
     ! Nk(ibins) - number of particles per size bin in grid cell
     ! Mk(ibins, icomp) - mass of a given species per size bin/grid cell
     REAL(fp), INTENT(IN)        :: Nko(ibins), Mko(ibins, icomp)
-    REAL*4,   INTENT(IN)        :: BOXVOL, TEMPTMS, PRES
+    REAL(fp), INTENT(IN)        :: BOXVOL, TEMPTMS, PRES
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2543,9 +2540,9 @@ CONTAINS
     REAL(fp)       :: pi, R    ! pi and gas constant (J/mol K)
     REAL(fp)       :: mu                  !viscosity of air (kg/m s)
     REAL(fp)       :: mfp                 !mean free path of air molecule (m)
-    REAL*4         :: Di       !diffusivity of gas in air (m2/s)
+    REAL(fp)       :: Di       !diffusivity of gas in air (m2/s)
     REAL(fp)       :: Neps     !tolerance for number
-    REAL*4         :: density  !density [kg m^-3]
+    REAL(fp)       :: density  !density [kg m^-3]
     REAL(fp)       :: mp       !mass per particle [kg]
     REAL(fp)       :: Dpk(ibins) !diameter of particle [m]
     REAL(fp)       :: Kn       !Knudson number
@@ -2648,9 +2645,9 @@ CONTAINS
     ! boxvol: box volume [cm3]
     REAL(fp), INTENT(IN)  ::  d1,d2    ! initial and final diameters [m]
     REAL(fp), INTENT(IN)  ::  h2so4    ! h2so4 amount [kg]
-    real*4,   INTENT(IN)  ::  temp     ! temperature [K]
-    real*4,   INTENT(IN)  ::  boxvol  ! box volume [cm3]
-    REAL(fp), INTENT(IN)  ::  density  ! density of particles in first bin [kg/m3]
+    REAL(fp), INTENT(IN)  ::  temp     ! temperature [K]
+    REAL(fp), INTENT(IN)  ::  boxvol   ! box volume [cm3]
+    REAL(fp), INTENT(IN)  ::  density  ! density of particles in 1st bin [kg/m3]
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2738,8 +2735,8 @@ CONTAINS
     !               gas phase except water
     !dt - total model time step to be taken (s)
     double precision Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
-    REAL*4, INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
-    REAL*4, INTENT(IN)       :: PRES,    RHTOMAS
+    REAL(fp), INTENT(IN)       :: BOXVOL,  BOXMASS, TEMPTMS
+    REAL(fp), INTENT(IN)       :: PRES,    RHTOMAS
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3060,7 +3057,7 @@ CONTAINS
     !spec - the number of the species to condense
     double precision Nki(ibins), Mki(ibins, icomp)
     double precision mcondi
-    REAL*4, INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
+    REAL(fp), INTENT(IN)       :: BOXVOL, TEMPTMS, PRES
     LOGICAL ERRSWITCH   ! signal error to outside
 
 !
@@ -3542,9 +3539,9 @@ CONTAINS
     REAL(fp)                 :: Mkd(IBINS,ICOMP)
     REAL(fp)                 :: Gc(ICOMP - 1)
     REAL(fp)                 :: Gcd(ICOMP - 1)
-    REAL*4                   :: BOXVOL
-    REAL*4                   :: BOXMASS
-    REAL*4                   :: thresh
+    REAL(fp)                 :: BOXVOL
+    REAL(fp)                 :: BOXMASS
+    REAL(fp)                 :: thresh
     CHARACTER(LEN=255)       :: MSG, LOC ! (ewl)
 
     LOGICAL, SAVE            :: doPrintErr = .TRUE.
@@ -3843,7 +3840,7 @@ CONTAINS
 !
     REAL(fp)                      :: MSOA
     INTEGER,        INTENT(IN)    :: I, J, L
-    REAL*4,         INTENT(IN)    :: BOXVOL, TEMPTMS, PRES, BOXMASS
+    REAL(fp),       INTENT(IN)    :: BOXVOL, TEMPTMS, PRES, BOXMASS
     TYPE(GrdState), INTENT(IN)    :: State_Grid
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -4140,10 +4137,10 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*4,    INTENT(IN)     :: DT                ! Time step (s)
-    REAL*4,    INTENT(IN)     :: PRES
-    REAL*4,    INTENT(IN)     :: TEMPTMS
-    REAL*4,    INTENT(IN)     :: BOXVOL
+    REAL(fp),  INTENT(IN)     :: DT                ! Time step (s)
+    REAL(fp),  INTENT(IN)     :: PRES
+    REAL(fp),  INTENT(IN)     :: TEMPTMS
+    REAL(fp),  INTENT(IN)     :: BOXVOL
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -4763,12 +4760,12 @@ CONTAINS
     ! Gci(icomp-1) - amount (kg/grid cell) of all species present in the
     !                gas phase except water
     ! dt - total model time step to be taken (s)
-    REAL(fp)           :: Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
-    REAL*4             :: dt
-    LOGICAL            :: errspot
+    REAL(fp)             :: Nki(ibins), Mki(ibins, icomp), Gci(icomp-1)
+    REAL(fp)             :: dt
+    LOGICAL              :: errspot
 
-    REAL*4, INTENT(IN) :: BOXVOL,  BOXMASS, TEMPTMS
-    REAL*4, INTENT(IN) :: PRES, RHTOMAS
+    REAL(fp), INTENT(IN) :: BOXVOL,  BOXMASS, TEMPTMS
+    REAL(fp), INTENT(IN) :: PRES, RHTOMAS
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -4787,23 +4784,23 @@ CONTAINS
     REAL(fp)    :: tau(ibins)          !condensation parameter (see cond)
     REAL(fp)    :: atau(ibins, icomp)  !same as tau, but all species
     REAL(fp)    :: atauc(ibins, icomp) !same as atau, but for const dp
-    REAL*4      :: time                !amount of time (s) that has been simulated
-    REAL*4      :: cdt                 !internal, adaptive time step
-    REAL*4      :: mu                  !viscosity of air (kg/m s)
-    REAL*4      :: mfp                 !mean free path of air molecule (m)
-    REAL*4      :: Kn                  !Knudsen number of particle
-    REAL*4      :: Dpk(ibins)          !diameter (m) of particles in bin k
-    REAL*4      :: density             !density (kg/m3) of particles
+    REAL(fp)    :: time                !amount of time (s) that has been simulated
+    REAL(fp)    :: cdt                 !internal, adaptive time step
+    REAL(fp)    :: mu                  !viscosity of air (kg/m s)
+    REAL(fp)    :: mfp                 !mean free path of air molecule (m)
+    REAL(fp)    :: Kn                  !Knudsen number of particle
+    REAL(fp)    :: Dpk(ibins)          !diameter (m) of particles in bin k
+    REAL(fp)    :: density             !density (kg/m3) of particles
     INTEGER     :: j,k,jj,kk        !counters
     REAL(fp)    :: tj(icomp-1), tk(ibins)  !factors used for calculating tau
     REAL(fp)    :: sK                  !exponential decay const for H2SO4(g)
-    REAL(fp)    :: pi, R            !constants
+    REAL(fp)    :: pi, R              !constants
     REAL(fp)    :: zeta13             !from Eqn B30 of Tzivion et al. (1989)
-    REAL*4      ::Di                  !diffusivity of gas in air (m2/s)
-    REAL*4      ::gmw(icomp-1)        !molecular weight of condensing gas
-    REAL*4      ::Sv(icomp-1)         !parameter used for estimating diffusivity
-    REAL*4      ::alpha(icomp-1)      !accomodation coefficients
-    REAL*4      ::beta                !correction for non-continuum
+    REAL(fp)    :: Di                 !diffusivity of gas in air (m2/s)
+    REAL(fp)    :: gmw(icomp-1)       !molecular weight of condensing gas
+    REAL(fp)    :: Sv(icomp-1)        !parameter used for estimating diffusivit y
+    REAL(fp)    :: alpha(icomp-1)     !accomodation coefficients
+    REAL(fp)    :: beta               !correction for non-continuum
     REAL(fp)    :: mp         !particle mass (kg)
     REAL(fp)    :: Nko(ibins), Mko(ibins, icomp), Gco(icomp-1) !output of cond routine
     REAL(fp)    :: mi, mf  !initial and final aerosol masses (updates Gc)
@@ -5979,7 +5976,7 @@ CONTAINS
     REAL(fp),       INTENT(IN) :: Nkd(IBINS)
     REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
     REAL(fp),       INTENT(IN) :: Mkd(IBINS,ICOMP)
-    REAL*4,         INTENT(IN) :: BOXMASS
+    REAL(fp),       INTENT(IN) :: BOXMASS
     TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -6109,22 +6106,23 @@ CONTAINS
                 IF ( S > 0 ) THEN
                    State_Diag%TomasAQOXmass(I,J,L,K) =                       &
                    State_Diag%TomasAQOXmass(I,J,L,K) +                       &
-                   (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
-                   ! kg/kg air/sec
-              ENDIF
-           ENDIF
-        ENDDO
-        IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
-           S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
-           IF ( S > 0 ) THEN
-              State_Diag%TomasAQOXnumber(I,J,L,K) =                          &
-              State_Diag%TomasAQOXnumber(I,J,L,K) +                          &
-                 (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                 ! no./kg air/sec
-           ENDIF
-        ENDDO
-        RETURN
-     ENDIF
+                      (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                      ! kg/kg air/sec
+                ENDIF
+             ENDIF
+          ENDDO
+          IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
+             S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasAQOXnumber(I,J,L,K) =                        &
+                State_Diag%TomasAQOXnumber(I,J,L,K) +                        &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                    ! no./kg air/sec
+             ENDIF
+          ENDIF 
+       ENDDO
+       RETURN
+    ENDIF
 
     !------------------------------------------------------------------------
     ! TomasMNFIXmass and TomasMNFIXnumber
@@ -7031,9 +7029,9 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
-    REAL*4                 ::  MECOB, MDUST
-    REAL*4                 ::  XOCIL, XSO4, XNACL
+    REAL(fp)               ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
+    REAL(fp)               ::  MECOB, MDUST
+    REAL(fp)               ::  XOCIL, XSO4, XNACL
     INTEGER                ::  ISO4, INACL, IOCIL
     INTEGER                ::  GETBINACT
     INTEGER                ::  BIN
@@ -7058,12 +7056,14 @@ CONTAINS
        IF ( BIN == 0 ) BIN = IBINS
     ENDIF
 
-    MECIL = 0.E0
-    MOCIL = 0.E0
-    MOCOB = 0.E0
-    MSO4  = 0.E0
-    MNACL = 0.E0
-    MDUST = 0.E0
+    MECIL    = 0.0_fp
+    MOCIL    = 0.0_fp
+    MOCOB    = 0.0_fp
+    MSO4     = 0.0_fp
+    MNACL    = 0.0_fp
+    MDUST    = 0.0_fp
+    FRACTION = 0.0_fp
+    SOLFRAC  = 0.0_fp
 
     IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
        MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L) * UNITFACTOR
@@ -7074,7 +7074,7 @@ CONTAINS
     !account for ammonium sulfate
     IF ( id_SF01 > 0 ) MSO4  = Spc(id_SF01-1+BIN)%Conc(I,J,L) * 1.2 * UNITFACTOR
     IF ( id_SS01 > 0 ) MNACL = Spc(id_SS01-1+BIN)%Conc(I,J,L) * UNITFACTOR
-    MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20
+    MTOT  = MECIL + MOCIL + MOCOB + MSO4 + MNACL + MDUST + 1.e-20_fp
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4  / MTOT
     XNACL = MNACL / MTOT
@@ -7108,7 +7108,7 @@ CONTAINS
     !print*,'N, BINACT = ',N,GETBINACT
 
     IF ( GETBINACT > BIN ) THEN
-       FRACTION = 0. !NOT ACTIVATED
+       FRACTION = 0.0_fp  !NOT ACTIVATED
     ELSE IF ( GETBINACT == BIN ) THEN
        IF ( LS ) THEN
           FRACTION = FRACTION1(ISO4, INACL, IOCIL ) !PARTLY ACTIVATED
@@ -7116,11 +7116,11 @@ CONTAINS
           FRACTION = FRACTION2(ISO4, INACL, IOCIL ) !PARTLY ACTIVATED
        ENDIF
     ELSE
-       FRACTION = 1. !ALL ACTIVATED
+       FRACTION = 1.0_fp !ALL ACTIVATED
     ENDIF
 
     ! Calculate the soluble fraction of mass
-    MECOB = 0.E0
+    MECOB = 0.0_fp
     IF ( id_ECOB01 > 0 ) MECOB = Spc(id_ECOB01-1+BIN)%Conc(I,J,L) * UNITFACTOR
     SOLFRAC = MTOT / ( MTOT + MECOB )
 
@@ -7175,9 +7175,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*4                 ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
-    REAL*4                 ::  MECOB, MDUST
-    REAL*4                 ::  XOCIL, XSO4, XNACL
+    REAL(fp)               ::  MECIL, MOCIL, MOCOB, MSO4, MNACL, MTOT
+    REAL(fp)               ::  MECOB, MDUST
+    REAL(fp)               ::  XOCIL, XSO4, XNACL
     INTEGER                ::  ISO4, INACL, IOCIL
     INTEGER                ::  BIN
     INTEGER                ::  OFFSET
@@ -7202,11 +7202,13 @@ CONTAINS
        IF ( BIN == 0 ) BIN = IBINS
     ENDIF
 
-    MECIL = 0.E0
-    MOCIL = 0.E0
-    MOCOB = 0.E0
-    MSO4  = 0.E0
-    MNACL = 0.E0
+    ! Initialize
+    BINACT = 0
+    MECIL  = 0.0_fp
+    MOCIL  = 0.0_fp
+    MOCOB  = 0.0_fp
+    MSO4   = 0.0_fp
+    MNACL  = 0.0_fp
 
     IF ( id_ECIL01 > 0 .AND.id_OCIL01 > 0 .AND. id_OCOB01 > 0 ) THEN
        MECIL = Spc(id_ECIL01-1+BIN)%Conc(I,J,L)
@@ -7221,9 +7223,9 @@ CONTAINS
     XOCIL = MOCIL / MTOT
     XSO4  = MSO4 / MTOT
     XNACL = MNACL / MTOT
-    ISO4  = MIN(101, INT(XSO4*100)+1)
-    INACL = MIN(101, INT(XNACL*100)+1)
-    IOCIL = MIN(101, INT(XOCIL*100)+1)
+    ISO4  = MIN( 101, INT( XSO4 * 100.0_fp ) + 1 )
+    INACL = MIN( 101, INT( XNACL *100.0_fp ) + 1 )
+    IOCIL = MIN( 101, INT( XOCIL *100.0_fp ) + 1 )
 
     !==========================================================
     ! subroutine was written considering bin 1 is 10nm
@@ -7288,11 +7290,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*4,  INTENT(IN)    :: RHTOMAS
+    REAL(fp), INTENT(IN)    :: RHTOMAS
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    REAL(fp),INTENT(INOUT) :: Mke(IBINS,ICOMP)
+    REAL(fp), INTENT(INOUT) :: Mke(IBINS,ICOMP)
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -7791,8 +7793,8 @@ CONTAINS
     REAL(fp)            :: Mkd(IBINS,ICOMP)
     REAL(fp)            :: Gc(ICOMP - 1)
     REAL(fp)            :: Gcd(ICOMP - 1)
-    REAL*4              :: BOXVOL
-    REAL*4              :: BOXMASS
+    REAL(fp)            :: BOXVOL
+    REAL(fp)            :: BOXMASS
     REAL(fp)            :: XFER(IBINS)
 
     ! Pointers
@@ -7831,7 +7833,7 @@ CONTAINS
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,       J,   L,   BOXVOL, BOXMASS,     K                )&
     !$OMP PRIVATE( TRACNUM, Nk,  JC,  Mk,     Gc,          XFER             )&
-    !$OMP PRIVATE( Nkd,     Mkd, Gcd, MPNUM.  ERRORSWITCH                   )&
+    !$OMP PRIVATE( Nkd,     Mkd, Gcd, MPNUM,  ERRORSWITCH                   )&
     !$OMP SCHEDULE( DYNAMIC, 8                                              )&
     !$OMP COLLAPSE( 3                                                       )
     DO I = I1, I2
@@ -9381,13 +9383,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    real temp, pres  !temperature (K) and pressure (Pa) of air
-    real mw          !molecular weight (g/mol) of diffusing species
-    real Sv          !sum of atomic diffusion volumes of diffusing species
+    real(fp) temp, pres  !temperature (K) and pressure (Pa) of air
+    real(fp) mw          !molecular weight (g/mol) of diffusing species
+    real(fp) Sv          !sum of atomic diffusion volumes of diffusing species
 !
 ! !RETURN VALUE:
 !
-    real VALUE
+    real(fp) VALUE
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -9397,8 +9399,8 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    real mwair, Svair   !same as above, but for air
-    real mwf, Svf
+    real(fp) mwair, Svair   !same as above, but for air
+    real(fp) mwf, Svf
     parameter(mwair=28.9, Svair=20.1)
 
     !========================================================================
@@ -9982,15 +9984,15 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    real tempi                ! temperature of air [K]
-    real rhi                  ! relative humidity of air as a fraction
-    double precision cna      ! concentration of gas phase sulfuric acid [molec cm-3]
+    double precision tempi    ! temperature of air [K]
+    double precision rhi      ! relative humidity of air as a fraction
+    double precision cna      ! conc. of gas phase sulfuric acid [molec cm-3]
     double precision nh3ppt   ! mixing ratio of ammonia in ppt
 !
 ! !OUTPUT PARAMETERS:
 !
-    double precision fn                   ! nucleation rate [cm-3 s-1]
-    double precision rnuc                 ! critical cluster radius [nm]
+    double precision fn       ! nucleation rate [cm-3 s-1]
+    double precision rnuc     ! critical cluster radius [nm]
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -10040,7 +10042,7 @@ CONTAINS
     ! q = ion formation rate [ion pairs cm^-3 s-1]
     ! rh = relative humidity as a fraction
 
-    real ti, rhi
+    real(fp) ti, rhi
     double precision h2so4i,qi,sai
     double precision t,rh,h2so4,q,sa
     double precision h1,h2,h3,h4,h6,h5
