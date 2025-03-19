@@ -816,7 +816,8 @@ CONTAINS
       ! AGE SOAP -> SOA
 
 #ifdef TOMAS
-      CALL CHECKMN( 0,         0,           0, 
+      ! Move call to CHECKMN outside parallel loop (Bob Y., 3/19/25)
+      CALL CHECKMN( 0,         0,           0,                               &
                     Input_Opt, State_Chm,   State_Grid,                      &
                     State_Met, State_Diag, 'CHECKMN from chemcarbon',        &
                     RC                                                      )
