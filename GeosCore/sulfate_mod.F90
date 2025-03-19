@@ -906,10 +906,10 @@ CONTAINS
        IF ( SRTNH4 > 0 ) THEN
           TID = IBINS*(ICOMP-IDIAG) + 1
 
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( I, J, L, M, TEMPNH4, MK_TEMP2, NH4_CONC ) &
-          !$OMP SCHEDULE( DYNAMIC )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L, M, TEMPNH4, MK_TEMP2, NH4_CONC            )&
+          !$OMP COLLAPSE( 3                                                 )
           DO L=1,State_Grid%NZ
           DO J=1,State_Grid%NY
           DO I=1,State_Grid%NX
@@ -978,7 +978,6 @@ CONTAINS
 
   END SUBROUTINE EMISSSULFATETOMAS
 !EOC
-#endif
 !-----------------------------------------------------------------------------
 !                  Jack Kodros re-writing this
 !-----------------------------------------------------------------------------
@@ -991,7 +990,6 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-#ifdef TOMAS
   SUBROUTINE SRCSF30( Input_Opt, State_Grid, State_Met, State_Chm, TC2, RC )
 !
 ! !USES:
@@ -1192,43 +1190,49 @@ CONTAINS
     ! Compute SO4 emissions
     !=================================================================
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, NTOP, SO4, TSO4, L, FEMIS, EFRAC, K )      &
-    !$OMP PRIVATE( NDISTINIT, NDIST, MDIST, NDISTFINAL, MADDFINAL ) &
-    !$OMP PRIVATE( Ndiag, Mdiag)                                    &
-    !$OMP PRIVATE( MADDTOTAL, NDIST2, MDIST2, C , ERRORSWITCH)      &
-    !$OMP PRIVATE( BOXVOL, TEMP, PRES, pdbug )                      &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,           J,         NTOP,       SO4,       TSO4      )&
+    !$OMP PRIVATE( L,           FEMIS,     EFRAC,      K,         NDISTINIT )&
+    !$OMP PRIVATE( NDIST,       MDIST,     NDISTFINAL, MADDFINAL, Ndiag     )&
+    !$OMP PRIVATE( Mdiag,       MADDTOTAL, NDIST2,     MDIST2,    C         )&
+    !$OMP PRIVATE( ERRORSWITCH, BOXVOL,    TEMP,       PRES,      pdbug     )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
-       !initialize diagnostics
-       Ndiag(:) = 0.0D0
-       Mdiag(:) = 0.0D0
+       ! Zero private loop variables
+       SO4         = 0.0_fp
+       TSO4        = 0.0_fp
+       FEMIS       = 0.0_fp
+       EFRAC       = 0.0_fp
+       NDISTINIT   = 0.0_fp
+       NDIST       = 0.0_fp
+       MDIST       = 0.0_fp
+       NDISTFINAL  = 0.0_fp
+       MADDFINAL   = 0.0_fp
+       Ndiag       = 0.0_fp
+       Mdiag       = 0.0_fp
+       MADDTOTAL   = 0.0_fp
+       NDIST2      = 0.0_fp
+       MDIST2      = 0.0_fp
+       MDIST       = 0.0_fp
+       ERRORSWITCH = .FALSE.
+       BOXVOL      = 0.0_fp
+       TEMP        = 0.0_fp
+       PRES        = 0.0_fp
+       pdbug       = .FALSE.
 
        ! Top level of boundary layer at (I,J)
        NTOP = CEILING( State_Met%PBL_TOP_L(I,J) )
 
-       ! Zero SO4 array at all levels
-       DO L = 1, State_Grid%NZ
-          SO4(L) = 0.0
-       ENDDO
-
        ! Compute total anthro SO4 (surface + 100m) plus biofuel SO4
-       TSO4 = 0.d0
        TSO4 = SUM( SO4an(I,J,:) ) + SO4bf(I,J)
        IF ( TSO4 <  0d0 ) THEN
           WRITE(*,*) ' Negative Sulfate emis from hemco at IJ=', I, J
        ENDIF
        IF ( TSO4 == 0d0 ) CYCLE
-
-       !=============================================================
-       ! First calculate emission distribution vertically within PBL
-       !=============================================================
-       ! EFRAC(30) = fraction of total emission splitted for each
-       !             level until reaching PBL top.
-       EFRAC = 0d0
 
        !==============================================================
        ! Partition the total anthro SO4 emissions thru the entire
@@ -1340,8 +1344,6 @@ CONTAINS
              BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
              TEMP    = State_Met%T(I,J,L)
              PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
-
-             pdbug=.false.
 
              CALL SUBGRIDCOAG( NDISTINIT, NDIST, MDIST, BOXVOL,TEMP, &
                                PRES, TSCALE, NDISTFINAL, MADDFINAL,pdbug)

@@ -816,20 +816,25 @@ CONTAINS
       ! AGE SOAP -> SOA
 
 #ifdef TOMAS
-      CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
+      CALL CHECKMN( 0,         0,           0, 
+                    Input_Opt, State_Chm,   State_Grid,                      &
+                    State_Met, State_Diag, 'CHECKMN from chemcarbon',        &
+                    RC                                                      )
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS        )&
+      !$OMP SCHEDULE( DYNAMIC, 8                                            )&
+      !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
-         NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) * (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
-         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
-         BOXMASS  = State_Met%AD(I,J,L)  !kg
+         NEWSOA  = Spc(id_SOAP)%Conc(I,J,L) *                                &
+                   (1.e+0_fp - DEXP(-DTCHEM/SOAP_LIFETIME))
+         BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6_fp !convert from m3 -> cm3
+         BOXMASS = State_Met%AD(I,J,L)               !kg
          TEMPTMS = State_Met%T(I,J,L)
-         PRES    = GET_PCENTER(I,j,L)*100.0 ! in Pa
+         PRES    = GET_PCENTER(I,j,L)*100.0_fp       ! in Pa
          IF ( NEWSOA > 0.0e+0_fp ) THEN
             !sfarina16: SOAP -> size Resolved TOMAS SOA
             CALL SOACOND( NEWSOA, I, J, L, BOXVOL, TEMPTMS, PRES, BOXMASS, &
@@ -842,9 +847,9 @@ CONTAINS
       ENDDO
       !$OMP END PARALLEL DO
 #else
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, NEWSOA )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( L, NEWSOA                                              )
       DO L = 1, State_Grid%NZ
          !NEWSOA used in a different context than above.
          !above is absolute mass, here is a relative decay factor
@@ -5222,20 +5227,25 @@ CONTAINS
    TERP_ORGC = TERP_ORGC(:,:) * AREA(:,:) * DTSRCE
    Ptr2D => NULL()
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS )
+   ! Check mass & number outside parallel loop
+   CALL CHECKMN( 0,         0,          0,         Input_Opt,                &
+                 State_Chm, State_Grid, State_Met, State_Diag,               & 
+                'CHECKMN from emisscarbontomas',  RC                        )
+
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, BOXVOL, TEMPTMS, PRES, BOXMASS                      )&
+   !$OMP COLLAPSE( 2                                                        )
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
-      CALL CHECKMN( I, J, 1, Input_Opt, State_Chm, State_Grid, &
-         State_Met, State_Diag,'CHECKMN from emisscarbontomas', RC)
       IF ( TERP_ORGC(I,J) > 0.d0 ) THEN
-         BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6 !convert from m3 -> cm3
-         BOXMASS  = State_Met%AD(I,J,1)  ! kg
+         BOXVOL  = State_Met%AIRVOL(I,J,1) * 1.e6_fp !convert from m3 -> cm3
+         BOXMASS = State_Met%AD(I,J,1)               ! kg
          TEMPTMS = State_Met%T(I,J,1)
-         PRES    = GET_PCENTER(I,J,1)*100.0 ! in Pa
-         CALL SOACOND( TERP_ORGC(I,J), I, J, 1, BOXVOL, TEMPTMS, PRES, BOXMASS,&
-                       State_Chm, State_Grid, State_Diag, RC )
+         PRES    = GET_PCENTER(I,J,1) * 100.0_fp     ! in Pa
+         CALL SOACOND( TERP_ORGC(I,J), I,          J,          1,            &
+                       BOXVOL,         TEMPTMS,    PRES,       BOXMASS,      &
+                       State_Chm,      State_Grid, State_Diag, RC           )
       END IF
    END DO
    END DO
@@ -5344,9 +5354,10 @@ CONTAINS
       stop
    ENDIF
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, K, F_OF_PBL )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, K, F_OF_PBL                                      )&
+   !$OMP COLLAPSE( 4                                                        )
    DO L = 1, PBL_MAX
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -5356,24 +5367,24 @@ CONTAINS
       F_OF_PBL = State_Met%F_OF_PBL(I,J,L)
 
       ! Hydrophilic ELEMENTAL CARBON
-      Spc(id_ECIL01-1+K)%Conc(I,J,L) = Spc(id_ECIL01-1+K)%Conc(I,J,L) + &
-                                ( F_OF_PBL * BCSRC(I,J,K,1) )
+      Spc(id_ECIL01-1+K)%Conc(I,J,L) = Spc(id_ECIL01-1+K)%Conc(I,J,L)        &
+                                     + ( F_OF_PBL * BCSRC(I,J,K,1) )
 
       ! Hydrophobic ELEMENTAL CARBON
-      Spc(id_ECOB01-1+K)%Conc(I,J,L) = Spc(id_ECOB01-1+K)%Conc(I,J,L) + &
-                                ( F_OF_PBL * BCSRC(I,J,K,2) )
+      Spc(id_ECOB01-1+K)%Conc(I,J,L) = Spc(id_ECOB01-1+K)%Conc(I,J,L)        &
+                                     + ( F_OF_PBL * BCSRC(I,J,K,2) )
 
       ! Hydrophilic ORGANIC CARBON
-      Spc(id_OCIL01-1+K)%Conc(I,J,L) = Spc(id_OCIL01-1+K)%Conc(I,J,L) + &
-                                ( F_OF_PBL * OCSRC(I,J,K,1) )
+      Spc(id_OCIL01-1+K)%Conc(I,J,L) = Spc(id_OCIL01-1+K)%Conc(I,J,L)        &
+                                     + ( F_OF_PBL * OCSRC(I,J,K,1) )
 
       ! Hydrophobic ORGANIC CARBON
-      Spc(id_OCOB01-1+K)%Conc(I,J,L) = Spc(id_OCOB01-1+K)%Conc(I,J,L) + &
-                                ( F_OF_PBL * OCSRC(I,J,K,2) )
+      Spc(id_OCOB01-1+K)%Conc(I,J,L) = Spc(id_OCOB01-1+K)%Conc(I,J,L)        &
+                                     + ( F_OF_PBL * OCSRC(I,J,K,2) )
 
       ! Number corresponding to EC + OC [No.]
-      Spc(id_NK01-1+K)%Conc(I,J,L)   = Spc(id_NK01-1+K)%Conc(I,J,L) + &
-                                ( F_OF_PBL * NUMBSRC(I,J,K) )
+      Spc(id_NK01-1+K)%Conc(I,J,L)   = Spc(id_NK01-1+K)%Conc(I,J,L)          &
+                                     + ( F_OF_PBL * NUMBSRC(I,J,K) )
 
    ENDDO
    ENDDO
