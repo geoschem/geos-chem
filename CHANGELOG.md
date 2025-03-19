@@ -32,7 +32,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
 - Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
 - Commented out debug print statement for TOMAS `H2SO4RATE` variable
-- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, from `REAL*4` to `REAL(fp)`
+- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, from `REAL*4` to `REAL(fp)`, 
+- Appended `_fp` to floating-point constants in `tomas_mod.F90`
+- Changed order of DO loops in TOMAS routine `CHECKMN` from IJL to LJI
 
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
