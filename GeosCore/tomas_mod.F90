@@ -3577,8 +3577,8 @@ CONTAINS
     PDBG = .FALSE.            !For print debugging
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
-    BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
-    BOXMASS  = State_Met%AD(I,J,L) ! in kg
+    BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp ! convert from m3 -> cm3
+    BOXMASS = State_Met%AD(I,J,L)                 ! in kg
     ! Update aerosol water from the current RH
     DO K = 1, IBINS
        CALL EZWATEREQM2( I, J, L, K, State_Met, State_Chm, RC )
@@ -3586,9 +3586,9 @@ CONTAINS
 
 
 #if defined(TOMAS12) || defined(TOMAS15)
-    thresh = 4.0
+    thresh = 4.0_fp
 #else
-    thresh = 1.0
+    thresh = 1.0_fp
 #endif
 
     ! Swap GEOSCHEM variables into aerosol algorithm variables
@@ -3669,7 +3669,7 @@ CONTAINS
              !   WRITE(*,*) 'K, N, MSO4, MH2O: ',K,Nk(k), &
              !        MK(K,SRTSO4),MK(K,SRTH2O)
              !ENDDO
-             IF ( MOXID > 5e+0_fp .and. &
+             IF ( MOXID > 5.0_fp .and. &
                   ( .not. State_Met%InChemGrid(I,J,L) ) ) THEN
                 CALL ERROR_STOP( 'Too few number for condensing mass', &
                                  'AQOXID:1'                           )
@@ -3909,9 +3909,9 @@ CONTAINS
     pdbg = .false.
 
 #if defined (TOMAS12) || defined (TOMAS15)
-    thresh = 1.0
+    thresh = 1.0_fp
 #else
-    thresh = 1.0
+    thresh = 1.0_fp
 #endif
 
     ! Swap GEOSCHEM variables into TOMAS variables
@@ -7859,13 +7859,13 @@ CONTAINS
     !$OMP PRIVATE( Nkd,     Mkd, Gcd, MPNUM,  ERRORSWITCH                   )&
     !$OMP SCHEDULE( DYNAMIC, 8                                              )&
     !$OMP COLLAPSE( 3                                                       )
-    DO I = I1, I2
-    DO J = J1, J2
     DO L = L1, L2
+    DO J = J1, J2
+    DO I = I1, I2
 
        ! Initialize private variables
-       BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
-       BOXMASS     = State_Met%AD(I,J,L)            !kg
+       BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp ! m3 -> cm3
+       BOXMASS     = State_Met%AD(I,J,L)                 ! kg
        Nk          = 0.0_fp
        Nkd         = 0.0_fp
        Mk          = 0.0_fp
@@ -8241,7 +8241,7 @@ CONTAINS
           IF ( PRT ) PRINT *, 'MNFIX [1]: AVG > Xk(ibins+1) at bin',K
           IF ( FIXERROR ) THEN
              !out of bin range - remove some mass
-             MSHIFT = NK(k)* xk(IBINS+1)/ 1.2
+             MSHIFT = NK(k)* xk(IBINS+1)/ 1.2_fp
              DO J= 1, ICOMP
                 MK(K,J) = MK(K,J)* MSHIFT/ (DRYMASS+EPS2)
              ENDDO
@@ -8255,7 +8255,7 @@ CONTAINS
           IF( PRT ) PRINT *,'MNFIX [2]: AVG < Xk(1)'
           IF( FIXERROR ) THEN
              !out of bin range - remove some number
-             NK(K) = DRYMASS/ ( xk(1)* 1.2 )
+             NK(K) = DRYMASS/ ( xk(1)* 1.2_fp )
           ELSE
              ERRORSWITCH = .TRUE.
              print *,'MNFIX(1): AVG < Xk(1) at bin',K
