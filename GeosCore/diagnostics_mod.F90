@@ -1485,6 +1485,13 @@ CONTAINS
        ENDIF
 
        !---------------------------------------------------------------------
+       ! Pressure at level midpoints [hPa]:
+       !---------------------------------------------------------------------
+       IF ( State_Diag%Archive_SatDiagnPMid ) THEN
+          State_Diag%SatDiagnPMid(I,:,:) = State_Met%PMid(I,:,:) * good
+       ENDIF
+
+       !---------------------------------------------------------------------
        ! Tropopause pressure [hPa]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnTROPP ) THEN
