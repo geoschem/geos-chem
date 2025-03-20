@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added `RETURN` statements at the end of each `IF` block in routine `AERODIAG`, to minimize the number of `IF` statements that need to be evauluated
+- Added logical variables in TOMAS routine `AEROPHYS` to determine if diagnostics should be called (to reduce logical comparisons)
 
 ### Changed
 - Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
@@ -14,9 +15,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+- Removed the capability to call TOMAS routine `CHECKMN` for a single grid box; this is inefficient
 
 ## [14.6.0] - 2025-04-18
-### Added
+### Added/n/netscratch/jacob_lab/Lab/ryantosca/tests/code/gcc.tomas/src/GEOS-Chem
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
 - Added met-field dependent dust tuning factors for GCHP C24 resolution in `setCommonRunSettings.sh`.  Others to be added later.
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
@@ -44,7 +46,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
-<<<<<<< HEAD
 - Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
@@ -56,13 +57,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 =======
 - Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
 - Commented out debug print statement for TOMAS `H2SO4RATE` variable
-- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, from `REAL*4` to `REAL(fp)`, 
+- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, plus several others from `REAL*4` to `REAL(fp)`, 
 - Appended `_fp` to floating-point constants in `tomas_mod.F90`
 - Changed order of DO loops in TOMAS routine `CHECKMN` from IJL to LJI
-
-### Removed
-- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
->>>>>>> 5e56c22ac (Changed some TOMAS local variables from REAL*4 to REAL(fp))
+- Split up TOMAS diagnostic routine `AERODIAG` into individual `Diag_*` routines to avoid excessive branching on each (I,J,L) iteration
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge

@@ -180,6 +180,7 @@ function run_gcclassic() {
     subDir=$(get_subdir_name "${1}")
     
     # Remove any leftover files in the run dir
+    rm -rf "${runLog}"
     ./cleanRunDir.sh --no-interactive  >> "${runLog}"
 
     # Run GEOS-Chem Classic

@@ -199,8 +199,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE DO_TOMAS( Input_Opt,  State_Chm, State_Diag, State_Grid, &
-                       State_Met, RC )
+  SUBROUTINE DO_TOMAS( Input_Opt,  State_Chm, State_Diag,                    &
+                       State_Grid, State_Met, RC                            )
 !
 ! !USES:
 !
@@ -257,26 +257,28 @@ CONTAINS
     ENDIF
 
     ! Do TOMAS aerosol microphysics
-    CALL AEROPHYS( Input_Opt, State_Chm, State_Grid, State_Met, &
-                   State_Diag, RC )
+    CALL AEROPHYS( Input_Opt, State_Chm,  State_Grid,                        &
+                   State_Met, State_Diag, RC                                )
 
-    !print *, 'call checkmn in tomas_mod:222'
-    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, State_Diag, 'Before Aerodrydep', RC)
+    !print *, 'call checkmn before aerodrydep'
+    CALL CHECKMN( Input_Opt,   State_Chm,   State_Grid,                      &
+                  State_Met,   State_Diag, 'Before Aerodrydep',              &
+                  MNFIX_ID=17, RC=RC                                        )
 
     ! in kg
 
     ! Do dry deposition
     IF ( Input_Opt%LDRYD ) THEN
-       CALL AERO_DRYDEP( Input_Opt,  State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+       CALL AERO_DRYDEP( Input_Opt,  State_Chm, State_Diag,                  &
+                         State_Grid, State_Met, RC                          )
     ENDIF
 
     ! not in kg
 
-    !print *, 'call checkmn in tomas_mod:229'
-    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                  State_Met, State_Diag, 'Before exiting DO_TOMAS', RC )
+    !print *, 'call checkmn before exiting do_tomas'
+    CALL CHECKMN( Input_Opt,   State_Chm,   State_Grid,                      &
+                  State_Met,   State_Diag, 'Before exiting DO_TOMAS',        &
+                  MNFIX_ID=18, RC=RC                                        )
 
   END SUBROUTINE DO_TOMAS
 !EOC
@@ -412,6 +414,16 @@ CONTAINS
                                   0.7_fp, 0.0_fp, 0.0_fp,  &
                                   0.0_fp, 0.0_fp, 0.0_fp /)
 
+    ! Logicals to determine if diagnostics should be called
+    LOGICAL :: do_diag_h2so4
+    LOGICAL :: do_diag_coag
+    LOGICAL :: do_diag_nucl
+    LOGICAL :: do_diag_nucrate
+    LOGICAL :: do_diag_mnfixezwat1
+    LOGICAL :: do_diag_mnfixezwat2
+    LOGICAL :: do_diag_mnfixh2so4
+    LOGICAL :: do_diag_mnfixcoag
+
     ! Pointers
     TYPE(SpcConc), POINTER :: Spc(:)
 
@@ -466,24 +478,51 @@ CONTAINS
     ! NOTE: This doesn't have to be !$OMP+PRIVATE (bmy, 2/7/20)
     ADT = GET_TS_CHEM()
 
+    !------------------------------------------------------------------------
+    ! Set logical flags to denote if calls to diagnostics need to be made.
+    !------------------------------------------------------------------------
+    do_diag_h2so4       = ( State_Diag%Archive_TomasH2SO4mass          .or.  &
+                            State_Diag%Archive_TomasH2SO4number             )
+
+    do_diag_coag        = ( State_Diag%Archive_TomasCOAGmass           .or.  &
+                            State_Diag%Archive_TomasCOAGnumber              )
+
+    do_diag_nucl        = ( State_Diag%Archive_TomasNUCLmass           .or.  &
+                            State_Diag%Archive_TomasNUCLnumber              )
+
+    do_diag_nucrate     = ( State_Diag%Archive_TomasNUCRATEnumber           )
+
+    do_diag_mnfixezwat1 = ( State_Diag%Archive_TomasMNFIXezwat1mass    .or.  &
+                            State_Diag%Archive_TomasMNFIXezwat1number       )
+
+    do_diag_mnfixezwat2 = ( State_Diag%Archive_TomasMNFIXezwat2mass    .or.  &
+                            State_Diag%Archive_TomasMNFIXezwat2number       )
+
+    do_diag_mnfixh2so4  = ( State_Diag%Archive_TomasMNFIXh2so4mass     .or.  &
+                            State_Diag%Archive_TomasMNFIXh2so4number        )
+
+    do_diag_mnfixcoag   = ( State_Diag%Archive_TomasMNFIXcoagmass      .or.  &
+                            State_Diag%Archive_TomasMNFIXcoagnumber         )
+
+
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     !%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
     !%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !$OMP PARALLEL DO                                                         &
-    !$OMP DEFAULT( SHARED                                                    )&
-    !$OMP PRIVATE( I,          J,        L,        PRES,        TEMPTMS      )&
-    !$OMP PRIVATE( BOXMASS,    RHTOMAS,  BOXVOL,   printneg,    ionrate      )&
-    !$OMP PRIVATE( lev,        weight,   GC,       Gcd,         N            )&
-    !$OMP PRIVATE( NK,         JC,       MK,       H2SO4rate_o, tot_n_1      )&
-    !$OMP PRIVATE( K,          tot_s_1,  MPNUM,    Nkd,         Mkd          )&
-    !$OMP PRIVATE( TOT_NK,     TOT_MK,   TRANSFER, Nkout,       Mkout        )&
-    !$OMP PRIVATE( Gcout,      fn,       fn1,      num_iter,    Nknuc        )&
-    !$OMP PRIVATE( Mknuc,      Nkcond,   Mkcond,   ERRORSWITCH, tot_s_1a     )&
-    !$OMP PRIVATE( tot_n_1a,   ERR_VAR,  ERR_MSG,  ERR_IND,     TRACNUM      )&
-    !$OMP PRIVATE( NH3_TO_NH4, SURF_AREA                                     )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                               )&
-    !$OMP COLLAPSE( 3                                                        )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,          J,        L,        PRES,        TEMPTMS     )&
+    !$OMP PRIVATE( BOXMASS,    RHTOMAS,  BOXVOL,   printneg,    ionrate     )&
+    !$OMP PRIVATE( lev,        weight,   GC,       Gcd,         N           )&
+    !$OMP PRIVATE( NK,         JC,       MK,       H2SO4rate_o, tot_n_1     )&
+    !$OMP PRIVATE( K,          tot_s_1,  MPNUM,    Nkd,         Mkd         )&
+    !$OMP PRIVATE( TOT_NK,     TOT_MK,   TRANSFER, Nkout,       Mkout       )&
+    !$OMP PRIVATE( Gcout,      fn,       fn1,      num_iter,    Nknuc       )&
+    !$OMP PRIVATE( Mknuc,      Nkcond,   Mkcond,   ERRORSWITCH, tot_s_1a    )&
+    !$OMP PRIVATE( tot_n_1a,   ERR_VAR,  ERR_MSG,  ERR_IND,     TRACNUM     )&
+    !$OMP PRIVATE( NH3_TO_NH4, SURF_AREA                                    )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO I = 1, State_Grid%NX
     DO J = 1, State_Grid%NY
     DO L = 1, State_Grid%NZ
@@ -660,11 +699,9 @@ CONTAINS
           CALL ERROR_STOP('AEROPHYS-MNFIX (1)','Enter microphys')
        ENDIF
 
-       MPNUM = 11
-       IF ( State_Diag%Archive_TomasMNFIXezwat1mass .or. &
-            State_Diag%Archive_TomasMNFIXezwat1number )  THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                         State_Grid, State_Diag )
+       ! Diagnostics: Archive TomasMNFIXezwat1{mass,number}
+       IF ( do_diag_mnfixezwat1 ) THEN
+          CALL DiagMNFIXezwat1( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag)
        ENDIF
 
        !IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
@@ -683,7 +720,7 @@ CONTAINS
        enddo
 
        if(TOT_NK .lt. 1.e-10_fp) then
-          if( .NOT. SPINUP(5.0)) then
+          if( .NOT. SPINUP(5.0_fp)) then
              print *,'No aerosol in box ',I,J,L,'-->SKIP'
           endif
           CYCLE
@@ -745,10 +782,10 @@ CONTAINS
              ERR_IND(3) = L
              ERR_IND(4) = 0
 !             IF (SPINUP(14.0) .and. Gcout(jc) /= Gcout(jc) ) THEN
-             IF( SPINUP(14.0) .AND. IT_IS_NAN( Gcout(jc) ) ) THEN
+             IF( SPINUP(14.0_fp) .AND. IT_IS_NAN( Gcout(jc) ) ) THEN
                  Gcout(jc) = 0.0e+0_fp ! reset Nan to zero during spinup, bc 18/12/23
                  print*,'Reset Gcout NaN to zero at ',I,J,L
-             ELSEIF ( SPINUP(14.0) .AND. .not. IT_IS_FINITE( Gcout(jc) ) ) THEN
+             ELSEIF ( SPINUP(14.0_fp) .AND. .not. IT_IS_FINITE( Gcout(jc) ) ) THEN
                  Gcout(jc) = 0.0e+0_fp ! reset Inf to zero during spinup, bc 18/12/23
                  print*,'Reset Gcout Inf to zero at ',I,J,L
              ELSE
@@ -770,17 +807,14 @@ CONTAINS
              ENDDO
           ENDDO
 
-          MPNUM = 3
-          IF ( State_Diag%Archive_TomasNUCLmass .or. &
-               State_Diag%Archive_TomasNUCLnumber )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
+          ! Diagnostics: Archive TomasNUCL{mass,number}
+          IF ( do_diag_nucl ) THEN
+             CALL DiagNUCL( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
           ENDIF
 
-          MPNUM = 7
-          IF ( State_Diag%Archive_TomasNUCRATEnumber) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
+          ! Diagnostics: Archive TomasNUCRATEnumber
+          IF ( do_diag_nucrate ) THEN
+             CALL DiagNUCRATE( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
           ENDIF
 
           IF ( printdebug.and.i==iob .and. j==job .and. l==lob )  THEN
@@ -798,11 +832,9 @@ CONTAINS
           Gc(srtnh4)=Gcout(srtnh4)
           Gc(srtso4)=Gcout(srtso4)
 
-          MPNUM = 1
-          IF ( State_Diag%Archive_TomasNUCLmass .or. &
-               State_Diag%Archive_TomasNUCLnumber )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
+          ! Diagnostics: Archive TomasH2SO4{mass,number}
+          IF ( do_diag_h2so4 ) THEN
+             CALL DiagH2SO4( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
           ENDIF
 
           IF ( printdebug.and.i==iob .and. j==job .and. l==lob ) THEN
@@ -845,18 +877,16 @@ CONTAINS
        CALL MNFIX( Nk, Mk, ERRORSWITCH )
        IF ( ERRORSWITCH ) THEN
           PRINT *,'Aerophys: MNFIX found error at',I,J,L
-          IF( .not. SPINUP(14.0) ) THEN
+          IF( .not. SPINUP(14.0_fp) ) THEN
              CALL ERROR_STOP('AEROPHYS-MNFIX (2)','After cond/nucl')
           ELSE
              PRINT *,'Let error go during spin up'
           ENDIF
        ENDIF
 
-       MPNUM = 14
-       IF ( State_Diag%Archive_TomasMNFIXh2so4mass .or. &
-            State_Diag%Archive_TomasMNFIXh2so4number )  THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                         State_Grid, State_Diag )
+       ! Diagnostics: Archive TomasMNFIXh2so4{mass,number}
+       IF ( do_diag_mnfixh2so4 ) THEN
+          CALL DiagMNFIXh2so4( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag)
        ENDIF
 
        !-----------------------------
@@ -876,11 +906,9 @@ CONTAINS
           !if (i==iob .and. j==job .and. l==lob ) &
           !    CALL DEBUGPRINT( Nk, Mk, I, J, L,'After coagulation' )
 
-          MPNUM = 2
-          IF ( State_Diag%Archive_TomasCOAGmass .or. &
-               State_Diag%Archive_TomasCOAGnumber )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
+          ! Diagnostics: Archive TomasCOAG{mass,number}
+          IF ( do_diag_coag ) THEN
+             CALL DiagCOAG( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
           ENDIF
 
           !Fix any inconsistency after coagulation (win, 4/18/06)
@@ -893,18 +921,17 @@ CONTAINS
 
           IF ( ERRORSWITCH ) THEN
              PRINT *,'MNFIX found error at',I,J,L
-             IF( .not. SPINUP(14.0) ) THEN
+             IF( .not. SPINUP(14.0_fp) ) THEN
                 CALL ERROR_STOP('AEROPHYS-MNFIX (3)', 'After COAGULATION'  )
              ELSE
                 PRINT *,'Let error go during spin up'
              ENDIF
           ENDIF
 
-          MPNUM = 15
-          IF ( State_Diag%Archive_TomasMNFIXcoagmass .or. &
-               State_Diag%Archive_TomasMNFIXcoagnumber )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
+          ! Diagnostics: Archive TomasMNFIXcoag{mass,number}
+          IF ( do_diag_mnfixcoag ) THEN
+             CALL Diag_MNFIXcoag( I,  J,   L,       Nk,         Nkd,        &
+                                  Mk, Mkd, BOXMASS, State_Diag             )
           ENDIF
 
        ENDIF  ! Coagulation
@@ -930,7 +957,7 @@ CONTAINS
        CALL MNFIX(NK,MK,ERRORSWITCH)
        IF ( ERRORSWITCH ) THEN
           PRINT *,'End of Aerophys: MNFIX found error at',I,J,L
-          IF( .not. SPINUP(14.0) ) THEN
+          IF( .not. SPINUP(14.0_fp) ) THEN
              CALL ERROR_STOP('AEROPHYS-MNFIX (4)', 'End of microphysics')
           ELSE
              PRINT *,'Let error go during spin up'
@@ -938,11 +965,9 @@ CONTAINS
        ENDIF
 
        ! Accumulate changes by mnfix to diagnostic (win, 9/8/05)
-       MPNUM = 12
-       IF ( State_Diag%Archive_TomasMNFIXezwat2mass .or. &
-            State_Diag%Archive_TomasMNFIXezwat2number )  THEN
-          CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                         State_Grid, State_Diag )
+       ! Diagnostics: Archive TomasMNFIXezwat2{mass,number}
+       IF ( do_diag_mnfixezwat2 ) THEN
+          CALL DiagMNFIXezwat2( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag)
        ENDIF
 
        ! Swap Nk, Mk, and Gc arrays back to Spc
@@ -1415,7 +1440,7 @@ CONTAINS
        enddo
 
        if( (tmass+mcond)/tnumb  > Xk(ibins) ) then
-          if( .not. SPINUP(10.0) ) then
+          if( .not. SPINUP(10.0_fp) ) then
              print*,'Not enough aerosol for condensation!'
              print*,'  Exiting COND_NUC iteration with '
              print*,time_rem,'sec remaining time'
@@ -1833,7 +1858,7 @@ CONTAINS
           !jrp print*,'mnuc',mnuc
           res = H2SO4rate - CS*gasConc_lo - massnuc
           if (res.lt.0.e+0_fp) then ! any nucleation too high
-             ! if (.not. spinup(14.0)) print*,'nucleation cuttoff'
+             ! if (.not. spinup(14.0_fp)) print*,'nucleation cuttoff'
              ! have nucleation occur and fix mass balance after
              gasConc = gasConc_lo*1.000001
              return
@@ -3379,7 +3404,7 @@ CONTAINS
              !Add a check to check error if mcond is significant (win, 10/2/08)
 
              IF (abs((mcond-(tot_f-tot_i))/mcond).lt.1.e+0_fp .OR. &
-                  spinup(31.0) ) THEN
+                  spinup(31.0_fp) ) THEN
                 !Prior to 10/2/08 (win)   .. original was Jeff's fix
                 !! do correction of mass
                 !ratio = (tot_f-tot_i)/mcond
@@ -3446,7 +3471,7 @@ CONTAINS
        tot_i=tot_i+Mki(k,srtnh4)
        tot_f=tot_f+Mkf(k,srtnh4)
     enddo
-    if (.not. spinup(14.0)) then
+    if (.not. spinup(14.0_fp)) then
        if (abs(tot_f-tot_i)/tot_i.gt.1.0e-8_fp)then
           if ( tot_i > 1.0e-20_fp ) then
              print*,'No N conservation in ezcond'
@@ -3622,12 +3647,11 @@ CONTAINS
                        'Beginning AQOXID after MNFIX' )
     ENDIF
 
-    MPNUM = 13
-    IF ( State_Diag%Archive_TomasMNFIXezwat3mass .or. &
+    ! Diagnostics: Archive TomasMNFIXezwat3{mass,number}
+    IF ( State_Diag%Archive_TomasMNFIXezwat3mass    .or.                     &
          State_Diag%Archive_TomasMNFIXezwat3number ) THEN
-         CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                        State_Grid, State_Diag )
-      ENDIF
+       CALL DiagMNFIXezwat3( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+    ENDIF
 
     CALL STORENM(Nk, Nkd, Mk, Mkd, Gc, Gcd)
 
@@ -3661,7 +3685,7 @@ CONTAINS
           !    (spin-up), then skip and exit
           !  IF current time is after the first 2 weeks, then terminate
           !    with an error message.
-          IF ( .not. SPINUP(14.0) ) THEN
+          IF ( .not. SPINUP(14.0_fp) ) THEN
              !WRITE(*,*) 'Location: ',I,J,L
              !WRITE(*,*) 'Kmin/Nact: ',KMIN,NACT
              !WRITE(*,*) 'MOXID/Mact: ',MOXID,Mact
@@ -3739,7 +3763,7 @@ CONTAINS
     !debug IF ( I == 46 .AND. J == 59 .AND. L == 9) PDBG = .TRUE.
 
     CALL TMCOND( AQTAU, XK, Mko, Nko, Mkf, Nkf, SRTSO4, PDBG, M_OXID )
-    IF(.not.SPINUP(60.) .and.  PDBG ) THEN
+    IF(.not.SPINUP(60.0_fp) .and.  PDBG ) THEN
        write(116,*) 'Error at',i,j,l
     ELSE
        PDBG = .false.
@@ -3755,12 +3779,10 @@ CONTAINS
 
 20  CONTINUE ! Continue here if the process is skipped
 
-    ! Save changes to diagnostic
-    MPNUM = 4
-    IF ( State_Diag%Archive_TomasAQOXmass .or. &
+    ! Diagnostics: Archive TomasAQOX{mass,number}
+    IF ( State_Diag%Archive_TomasAQOXmass     .or.                          &
          State_Diag%Archive_TomasAQOXnumber ) THEN
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                      State_Grid, State_Diag )
+       CALL DiagAQOX( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
     ENDIF
 
     ! Fix any inconsistencies in M/N distribution
@@ -3773,11 +3795,10 @@ CONTAINS
                        'End of AQOXID after MNFIX' )
     ENDIF
 
-    MPNUM = 16
+    ! Diagnostics: Archive TomasMNFIXaqox{mass,number}
     IF ( State_Diag%Archive_TomasMNFIXaqoxmass .or. &
          State_Diag%Archive_TomasMNFIXaqoxnumber )  THEN
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                      State_Grid, State_Diag )
+       CALL DiagMNFIXaqox( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
     ENDIF
 
     ! Swap Nk and Mk arrays back to Spc
@@ -3993,7 +4014,7 @@ CONTAINS
        endif
 
        IF ( ( Mtot + MSOA ) / Ntot > XK(IBINS+1) / thresh ) THEN
-          IF ( .not. SPINUP(14.0) ) THEN
+          IF ( .not. SPINUP(14.0_fp) ) THEN
              WRITE(*,*) 'Location: ',I,J,L
              WRITE(*,*) 'Mtot_&_Ntot: ',Mtot, Ntot
              IF ( MSOA > 5e+0_fp ) THEN
@@ -4065,7 +4086,7 @@ CONTAINS
        IF( PDBG ) THEN
           !print 12, I,J,L
 12        FORMAT( 'Error in SOAcond at ', 3I4 )
-          if( .not. SPINUP(60.) )write(116,*) 'Error in SOACOND at',i,j,l
+          if( .not. SPINUP(60.0_fp) )write(116,*) 'Error in SOACOND at',i,j,l
        ELSE
           PDBG = .false.
        ENDIF
@@ -4078,7 +4099,7 @@ CONTAINS
           ENDDO
        ENDDO
 
-    elseif ( .not. SPINUP(60.0) ) THEN
+    elseif ( .not. SPINUP(60.0_fp) ) THEN
 
           IF ( MSOA > 5e+0_fp ) THEN
              CALL ERROR_STOP('Too few no. for SOAcond','SOACOND:10')
@@ -4101,8 +4122,7 @@ CONTAINS
     MPNUM = 6
     IF ( State_Diag%Archive_TomasSOAmass .or. &
          State_Diag%Archive_TomasSOAnumber ) THEN
-       CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                      State_Grid, State_Diag )
+       CALL DiagSOA( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
     ENDIF
 
     ! Fix any inconsistencies in M/N distribution
@@ -5629,7 +5649,7 @@ CONTAINS
 
           YUC=XU*AMKD(L,CSPECIES)/AMKDRY(L)+YU-XU
           IF (YU .GT. X(ibins+1) ) THEN
-             !IF(.not.SPINUP(60.)) write(116,*) &
+             !IF(.not.SPINUP(60.0_fp)) write(116,*) &
              !     'YU > Xk(30+1) ++++++++++++' !debug (win, 7/17/06)
              YUC=YUC*X(ibins+1)/YU
              YU=X(ibins+1)
@@ -5730,7 +5750,7 @@ CONTAINS
                             if( abs(delt1)/madd(L).gt.1e-6_fp .and. &
                                  madd(L).gt.1e-4_fp)then
                                ! Just print out this for debugging
-                               IF(.not.SPINUP(60.) .and. pdbug ) then
+                               IF(.not.SPINUP(60.0_fp) .and. pdbug ) then
                                   !write(116,*)'CASE1_mass_conserv_fix'
                                   write(116,13) L, madd(L), delt1
 13                                FORMAT('CASE_1 Bin ',I2,' moxid ', &
@@ -5890,7 +5910,7 @@ CONTAINS
                              abs(delt2)/ madd(L) > 15e-2_fp ) then
                             !print *,'TMCOND ERROR: mass condensation', &
                             !  'discrep >15% during aqoxid or SOAcond'
-                            IF(.not.SPINUP(60.))  THEN
+                            IF(.not.SPINUP(60.0_fp))  THEN
 14                             FORMAT('CASE_2 Bin',I2,' moxid',F7.1, &
                                       ' delta',F7.1 )
                                write(116,14) L, madd(L),delt2
@@ -5953,37 +5973,32 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: aerodiag
+! !IROUTINE: DiagNUCL
 !
-! !DESCRIPTION: Subroutine AERODIAG saves changes to the appropriate diagnostic !  arrays (win, 7/23/07)
+! !DESCRIPTION: Archives TomasH2SO4mass and TomasH2SO4number diagnostics.
 !\\
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AERODIAG( PTYPE,   I,          J,         L,                    &
-                       Nk,      Nkd,        Mk,        Mkd,                  &
-                       BOXMASS, State_Grid, State_Diag                      )
+  SUBROUTINE DiagH2SO4( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
 !
 ! !USES:
 !
-    USE ERROR_MOD,      ONLY : IT_IS_NAN
-    USE State_Grid_Mod, ONLY : GrdState
     USE State_Diag_Mod, ONLY : DgnState
     USE TIME_MOD,       ONLY : GET_TS_CHEM
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN) :: PTYPE    ! Number assigned to each dianostic
-    INTEGER ,       INTENT(IN) :: I, J, L  ! Grid box indices
-    REAL(fp),       INTENT(IN) :: Nk(IBINS)
-    REAL(fp),       INTENT(IN) :: Nkd(IBINS)
-    REAL(fp),       INTENT(IN) :: Mk(IBINS, ICOMP)
-    REAL(fp),       INTENT(IN) :: Mkd(IBINS,ICOMP)
-    REAL(fp),       INTENT(IN) :: BOXMASS
-    TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
 !
 ! !INPUT/OUTPUT PARAMETERS:
-    TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -5993,504 +6008,1337 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER               :: K, JS, S
-    REAL*4                :: DTCHEM
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
 
     !========================================================================
-    ! AERODIAG begins here!
+    ! DiagH2SO4 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
+
+    !---------------------------------------------------------------------
+    ! TomasH2SO4mass and TomasH2SO4number
+    !---------------------------------------------------------------------
+    DO K = 1, IBINS
+       State_Diag%TomasH2SO4mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasH2SO4number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasH2SO4mass ) THEN
+             S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasH2SO4mass(I,J,L,K) =                   &
+                State_Diag%TomasH2SO4mass(I,J,L,K) +                   &
+                     (MK(K,JS) - MKD(K,JS)) /  DTCHEM / BOXMASS
+                   ! kg/kg air/sec
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasH2SO4number ) THEN
+          S = State_Diag%Map_TomasH2SO4number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasH2SO4number(I,J,L,K) =                    &
+             State_Diag%TomasH2SO4number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS 
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagH2SO4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagCOAG
+!
+! !DESCRIPTION: Archives TomasCOAGmass and TomasCOAGnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagCOAG( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagCOAG begins here!
     !========================================================================
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
 
     !------------------------------------------------------------------------
-    ! TomasH2SO4mass and TomasH2SO4number
-    !------------------------------------------------------------------------
-    IF ( PTYPE == 1 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasH2SO4mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasH2SO4number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasH2SO4mass ) THEN
-                S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasH2SO4mass(I,J,L,K) =                      &
-                   State_Diag%TomasH2SO4mass(I,J,L,K) +                      &
-                    (MK(K,JS) - MKD(K,JS)) /  DTCHEM / BOXMASS
-                    ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasH2SO4number ) THEN
-             S = State_Diag%Map_TomasH2SO4number%id2slot(K)
-             IF ( S > 0 ) THEN
-                State_Diag%TomasH2SO4number(I,J,L,K) =                       &
-                State_Diag%TomasH2SO4number(I,J,L,K) +                       &
-                  (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                  ! no./kg air/sec
-             ENDIF
-          ENDIF
-       ENDDO
-       RETURN
-    ENDIF
-
-    !------------------------------------------------------------------------
     ! TomasCOAGmass and TomasCOAGnumber
     !------------------------------------------------------------------------
-    IF ( PTYPE == 2 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasCOAGmass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasCOAGnumber(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasCOAGmass ) THEN
-                S = State_Diag%Map_TomasCOAGmass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasCOAGmass(I,J,L,K) =                       &
-                   State_Diag%TomasCOAGmass(I,J,L,K) +                       &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
-             S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasCOAGmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasCOAGnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasCOAGmass ) THEN
+             S = State_Diag%Map_TomasCOAGmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasCOAGnumber(I,J,L,K) =                        &
-                State_Diag%TomasCOAGnumber(I,J,L,K) +                        &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasCOAGmass(I,J,L,K) =                    &
+                State_Diag%TomasCOAGmass(I,J,L,K) +                    &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
+          S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasCOAGnumber(I,J,L,K) =                     &
+             State_Diag%TomasCOAGnumber(I,J,L,K) +                     &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagCOAG
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagNUCL
+!
+! !DESCRIPTION: Archives TomasNUCLmass and TomasNUCLnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagNUCL( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagNUCL begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasNUCLmass and TomasNUCLnumber
     !------------------------------------------------------------------------
-    IF ( PTYPE == 3 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasNUCLmass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasNUCLnumber(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasNUCLmass ) THEN
-                S = State_Diag%Map_TomasNUCLmass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasNUCLmass(I,J,L,K) =                       &
-                   State_Diag%TomasNUCLmass(I,J,L,K) +                       &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-
-          IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
-             S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasNUCLmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasNUCLnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasNUCLmass ) THEN
+             S = State_Diag%Map_TomasNUCLmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasNUCLnumber(I,J,L,K) =                        &
-                State_Diag%TomasNUCLnumber(I,J,L,K) +                        &
-                   (NK(K) - NKD(K)) / DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasNUCLmass(I,J,L,K) =                          &
+                State_Diag%TomasNUCLmass(I,J,L,K) +                          &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+   
+       IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
+          S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasNUCLnumber(I,J,L,K) =                           &
+             State_Diag%TomasNUCLnumber(I,J,L,K) +                           &
+                (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagNUCL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagAQOX
+!
+! !DESCRIPTION: Archives TomasNUCLmass and TomasNUCLnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagAQOX( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagAQOX begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasAQOXmass and TomasAQOXnumber
     !------------------------------------------------------------------------
-    IF ( PTYPE == 4 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasAQOXmass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasAQOXnumber(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasAQOXmass ) THEN
-                S = State_Diag%Map_TomasAQOXmass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasAQOXmass(I,J,L,K) =                       &
-                   State_Diag%TomasAQOXmass(I,J,L,K) +                       &
-                      (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
-             S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasAQOXmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasAQOXnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasAQOXmass ) THEN
+             S = State_Diag%Map_TomasAQOXmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasAQOXnumber(I,J,L,K) =                        &
-                State_Diag%TomasAQOXnumber(I,J,L,K) +                        &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                    ! no./kg air/sec
+                State_Diag%TomasAQOXmass(I,J,L,K) =                          &
+                State_Diag%TomasAQOXmass(I,J,L,K) +                          &
+                   (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                ! kg/kg air/sec
              ENDIF
-          ENDIF 
+          ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
+          S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasAQOXnumber(I,J,L,K) =                           &
+             State_Diag%TomasAQOXnumber(I,J,L,K) +                           &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE DiagAQOX
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIX
+!
+! !DESCRIPTION: Archives TomasMNFIXmass and TomasMNFIXnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIX( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIX begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXmass and TomasMNFIXnumber
     !------------------------------------------------------------------------
-     IF ( PTYPE == 5 ) THEN
-        DO K=1,IBINS
-           State_Diag%TomasMNFIXmass(I,J,L,K)   = 0.0_fp
-           State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.0_fp
-           DO JS = 1, ICOMP-IDIAG
-              IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
-                 S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
-                 IF ( S > 0 ) THEN
-                    State_Diag%TomasMNFIXmass(I,J,L,K) =                     &
-                    State_Diag%TomasMNFIXmass(I,J,L,K) +                     &
-                       (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
-                       ! kg/kg air/sec
-                 ENDIF
-              ENDIF
-           ENDDO
-           IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
-              S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasMNFIXnumber(I,J,L,K) =                      &
-                 State_Diag%TomasMNFIXnumber(I,J,L,K) +                      &
-                    (NK(K) - NKD(K)) / DTCHEM / BOXMASS
-                    ! no./kg air/sec
-              ENDIF
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
+             S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasMNFIXmass(I,J,L,K) =                         &
+                State_Diag%TomasMNFIXmass(I,J,L,K) +                         &
+                   (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                  ! kg/kg air/sec
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
+          S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXnumber(I,J,L,K) =                          &
+             State_Diag%TomasMNFIXnumber(I,J,L,K) +                          &
+                 (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                 ! no./kg air/sec
            ENDIF
-        ENDDO
-        RETURN
-     ENDIF
+        ENDIF
+     ENDDO
+   
+  END SUBROUTINE DiagMNFIX
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagSOA
+!
+! !DESCRIPTION: Archives TomasSOAmass and TomasSOAnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagSOA( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER   :: K, JS, S
+    REAL(fp)  :: DTCHEM
+
+    !========================================================================
+    ! DiagSOA begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasSOAmass and TomasSOAnumber
     !------------------------------------------------------------------------
-     IF ( PTYPE == 6 ) THEN
-        DO K=1,IBINS
-           State_Diag%TomasSOAmass(I,J,L,K)   = 0.0_fp
-           State_Diag%TomasSOAnumber(I,J,L,K) = 0.0_fp
-           DO JS = 1, ICOMP-IDIAG
-              IF ( State_Diag%Archive_TomasSOAmass ) THEN
-                 S = State_Diag%Map_TomasSOAmass%id2slot(K)
-                 IF ( S > 0 ) THEN
-                    State_Diag%TomasSOAmass(I,J,L,K) =                       &
-                    State_Diag%TomasSOAmass(I,J,L,K) +                       &
-                       (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
-                       ! kg/kg air/sec
-              ENDIF
-           ENDIF
-        ENDDO
-        IF ( State_Diag%Archive_TomasSOAnumber ) THEN
-           S = State_Diag%Map_TomasSOAnumber%id2slot(K)
-           IF ( S > 0 ) THEN
-              State_Diag%TomasSOAnumber(I,J,L,K) =                           &
+    DO K = 1, IBINS
+       State_Diag%TomasSOAmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasSOAnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasSOAmass ) THEN
+             S = State_Diag%Map_TomasSOAmass%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasSOAmass(I,J,L,K) =                           &
+                State_Diag%TomasSOAmass(I,J,L,K) +                           &
+                   (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                   ! kg/kg air/sec
+             ENDIF
+          ENDIF
+       ENDDO
+       IF ( State_Diag%Archive_TomasSOAnumber ) THEN
+          S = State_Diag%Map_TomasSOAnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasSOAnumber(I,J,L,K) =                            &
               State_Diag%TomasSOAnumber(I,J,L,K) +                           &
-                 (NK(K) - NKD(K)) / DTCHEM / BOXMASS
-                 ! no./kg air/sec
-              ENDIF
+              (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+              ! no./kg air/sec
            ENDIF
-        ENDDO
-        RETURN
-     ENDIF
+        ENDIF
+     ENDDO
+
+   END SUBROUTINE DiagSOA
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagNUCRATE
+!
+! !DESCRIPTION: Archives TomasNUCRATEnumber diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagNUCRATE( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagNUCRATE begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
-    ! TomasNUCRATEmass and TomasNUCRATEnumber
+    ! TomasNUCRATEnumber
     !------------------------------------------------------------------------
-     IF ( PTYPE == 7 ) THEN
-        DO K=1,IBINS
-           State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.0_fp
-           IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
-              S = State_Diag%Map_TomasNUCRATEnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasNUCRATEnumber(I,J,L,K) =                    &
-                 State_Diag%TomasNUCRATEnumber(I,J,L,K) +                    &
-                    (NK(K) - NKD(K)) / DTCHEM / BOXMASS
-                    ! no./kg air/sec
-                 ! print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &
-                 !                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &
-                 !                       DTCHEM / BOXMASS  ! no./kg air/sec
-              ENDIF
-           ENDIF
-        ENDDO
-        RETURN
-     ENDIF
+    DO K = 1, IBINS
+       State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.0_fp
+       IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
+          S = State_Diag%Map_TomasNUCRATEnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasNUCRATEnumber(I,J,L,K) =                        &
+             State_Diag%TomasNUCRATEnumber(I,J,L,K) +                        &
+                (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                ! no./kg air/sec
+             ! print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &
+             !                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &
+             !                       DTCHEM / BOXMASS  ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagNUCRATE
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXezwat1
+!
+! !DESCRIPTION: Archives TomasMNFIXezwat1mass and TomasMNFIXezwat1number 
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXezwat1( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXezwat1 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXezwat1mass and TomasMNFIXezwat1number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 11 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat1mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXezwat1mass ) THEN
-                S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) +                &
-                     (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                     ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXezwat1number ) THEN
-             S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXezwat1mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXezwat1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat1number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXezwat1number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat1mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXezwat1mass(I,J,L,K) +                   &
+                  (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                  ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXezwat1number ) THEN
+          S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXezwat1number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXezwat1number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXezwat1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXezwat2
+!
+! !DESCRIPTION: Archives TomasMNFIXezwat2mass and TomasMNFIXezwat2number 
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXezwat2( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXezwat2 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXezwat2mass and TomasMNFIXezwat2number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 12 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat2mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXezwat2mass ) THEN
-                S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) +                &
-                      (MK(K,JS) - MKD(K,JS))/  DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXezwat2number ) THEN
-             S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXezwat2mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXezwat2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat2number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXezwat2number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat2mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXezwat2mass(I,J,L,K) +                   &
+                  (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                  ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXezwat2number ) THEN
+          S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXezwat2number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXezwat2number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXezwat2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXezwat3
+!
+! !DESCRIPTION: Archives TomasMNFIXezwat3mass and TomasMNFIXezwat3number 
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXezwat3( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagnMNFIXezwat3 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
-    ! TOMASH2SO4mass and TOMASH2SO4number
+    ! TomasMNFIXezwat1mass and TomasMNFIXezwat1number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 13 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat3mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXezwat3mass ) THEN
-                S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) +                &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXezwat3number ) THEN
-             S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXezwat3mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXezwat3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat3number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXezwat3number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat3mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXezwat3mass(I,J,L,K) +                   &
+                  (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                  ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXezwat3number ) THEN
+          S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXezwat3number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXezwat3number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXezwat3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXh2so4
+!
+! !DESCRIPTION: Archives TomasMNFIXh2so4mass and TomasMNFIXh2so4number
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXh2so4( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXh2so4 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXh2so4mass and TomasMNFIXh2so4number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 14 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXh2so4mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXh2so4mass ) THEN
-                S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) =                 &
-                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) +                 &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXh2so4number ) THEN
-             S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXh2so4mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXh2so4mass ) THEN
+             S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXh2so4number(I,J,L,K) =                  &
-                State_Diag%TomasMNFIXh2so4number(I,J,L,K) +                  &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXh2so4mass(I,J,L,K) =                    &
+                State_Diag%TomasMNFIXh2so4mass(I,J,L,K) +                    &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXh2so4number ) THEN
+          S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXh2so4number(I,J,L,K) =                     &
+             State_Diag%TomasMNFIXh2so4number(I,J,L,K) +                     &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXh2so4
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diag_MNFIXcoag
+!
+! !DESCRIPTION: Archives TomasMNFIXcoagmass and TomasMNFIXcoagnumber 
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diag_MNFIXcoag( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+ 
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXcoag begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXcoagmass and TomasMNFIXcoagnumber
     !------------------------------------------------------------------------
-    IF ( PTYPE == 15 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXcoagmass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXcoagmass ) THEN
-                S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) =                  &
-                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) +                  &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXcoagnumber ) THEN
-             S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXcoagmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXcoagmass ) THEN
+             S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) =                   &
-                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) +                   &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXcoagmass(I,J,L,K) =                     &
+                State_Diag%TomasMNFIXcoagmass(I,J,L,K) +                     &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXcoagnumber ) THEN
+          S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXcoagnumber(I,J,L,K) =                      &
+             State_Diag%TomasMNFIXcoagnumber(I,J,L,K) +                      &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE Diag_MNFIXcoag
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXaqox
+!
+! !DESCRIPTION: Archives TomasMNFIXaqoxmass and TomasMNFIXaqoxnumber
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXaqox( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
 
+    !========================================================================
+    ! DiagMNFIXaqox begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
+   
     !------------------------------------------------------------------------
     ! State_Diag%TomasMNFIXaqoxmass and State_Diag%TomasMNFIXaqoxnumber
     !------------------------------------------------------------------------
-    IF ( PTYPE == 16 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXaqoxmass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXaqoxmass ) THEN
-                S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) =                  &
-                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) +                  &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXaqoxnumber ) THEN
-             S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXaqoxmass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXaqoxmass ) THEN
+             S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) =                   &
-                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) +                   &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXaqoxmass(I,J,L,K) =                    &
+                State_Diag%TomasMNFIXaqoxmass(I,J,L,K) +                    &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXaqoxnumber ) THEN
+          S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) =                     &
+             State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) +                     &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+     
+  END SUBROUTINE DiagMNFIXaqox
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXcheck1
+!
+! !DESCRIPTION: Archives TomasMNFIXcheck1mass and TomasMNFIXcheck1number
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXcheck1( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXcheck1 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXcheck1mass and TomasMNFIXcheck1number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 17 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck1mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXcheck1mass ) THEN
-                S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) +                &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXcheck1number ) THEN
-             S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXcheck1mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXcheck1mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck1number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXcheck1number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXcheck1mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXcheck1mass(I,J,L,K) +                   &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXcheck1number ) THEN
+          S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXcheck1number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXcheck1number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXcheck1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXcheck2
+!
+! !DESCRIPTION: Archives TomasMNFIXcheck2mass and TomasMNFIXcheck2number
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXcheck2( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXcheck2 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
-    ! TomasMNFIXcheck2mass and TomasMNFIXcheck2number
+    ! TomasMNFIXcheck1mass and TomasMNFIXcheck1number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 18 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck2mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXcheck2mass ) THEN
-                S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) +                &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXcheck2number ) THEN
-             S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXcheck2mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXcheck2mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck2number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXcheck2number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no./kg air/sec
+                State_Diag%TomasMNFIXcheck2mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXcheck2mass(I,J,L,K) +                   &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
+       IF ( State_Diag%Archive_TomasMNFIXcheck2number ) THEN
+          S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXcheck2number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXcheck2number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXcheck2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: DiagMNFIXcheck2
+!
+! !DESCRIPTION: Archives TomasMNFIXcheck3mass and TomasMNFIXcheck3number
+!  diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE DiagMNFIXcheck3( I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+    USE TIME_MOD,       ONLY : GET_TS_CHEM
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER ,       INTENT(IN)    :: I, J, L           ! Grid box indices
+    REAL(fp),       INTENT(IN)    :: Nk(IBINS)
+    REAL(fp),       INTENT(IN)    :: Nkd(IBINS)
+    REAL(fp),       INTENT(IN)    :: Mk(IBINS, ICOMP)
+    REAL(fp),       INTENT(IN)    :: Mkd(IBINS,ICOMP)
+    REAL(fp),       INTENT(IN)    :: BOXMASS
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag        ! Diagnostics State
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER  :: K, JS, S
+    REAL(fp) :: DTCHEM
+
+    !========================================================================
+    ! DiagMNFIXcheck3 begins here!
+    !========================================================================
+
+    State_Diag%TomasH2SO4 = 1.0_fp
+    State_Diag%TomasCOAG  = 2.0_fp
+    State_Diag%TomasNUCL  = 3.0_fp
+    State_Diag%TomasAQOX  = 4.0_fp
+    State_Diag%TomasMNFIX = 5.0_fp
+    State_Diag%TomasSOA   = 6.0_fp
+
+    DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
     ! TomasMNFIXcheck3mass and TomasMNFIXcheck3number
     !------------------------------------------------------------------------
-    IF ( PTYPE == 19 ) THEN
-       DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck3mass(I,J,L,K)   = 0.0_fp
-          State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.0_fp
-          DO JS = 1, ICOMP-IDIAG
-             IF ( State_Diag%Archive_TomasMNFIXcheck3mass ) THEN
-                S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
-                IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) =                &
-                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) +                &
-                      ( MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
-                      ! kg/kg air/sec
-                ENDIF
-             ENDIF
-          ENDDO
-          IF ( State_Diag%Archive_TomasMNFIXcheck3number ) THEN
-             S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
+    DO K = 1, IBINS
+       State_Diag%TomasMNFIXcheck3mass(I,J,L,K)   = 0.0_fp
+       State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.0_fp
+       DO JS = 1, ICOMP-IDIAG
+          IF ( State_Diag%Archive_TomasMNFIXcheck3mass ) THEN
+             S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck3number(I,J,L,K) =                 &
-                State_Diag%TomasMNFIXcheck3number(I,J,L,K) +                 &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
-                   ! no/kg air/sec
+                State_Diag%TomasMNFIXcheck3mass(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXcheck3mass(I,J,L,K) +                   &
+                   (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                   ! kg/kg air/sec
              ENDIF
           ENDIF
        ENDDO
-       RETURN
-    ENDIF
-
-  END SUBROUTINE AERODIAG
+       IF ( State_Diag%Archive_TomasMNFIXcheck3number ) THEN
+          S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
+          IF ( S > 0 ) THEN
+             State_Diag%TomasMNFIXcheck3number(I,J,L,K) =                    &
+             State_Diag%TomasMNFIXcheck3number(I,J,L,K) +                    &
+                (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                ! no./kg air/sec
+          ENDIF
+       ENDIF
+    ENDDO
+   
+  END SUBROUTINE DiagMNFIXcheck3
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -7658,15 +8506,17 @@ CONTAINS
     ! Point to the chemical species array
     Spc => State_Chm%Species
 
-    CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, State_Met, &
-                  State_Diag, 'AERO_DIADEN called from DEPVEL', RC )
+    ! Check mass and number for consistency
+    CALL CHECKMN( Input_Opt,   State_Chm,   State_Grid,                      &
+                  State_Met,   State_Diag, 'AERO_DIADEN called from DEPVEL', &
+                  MNFIX_ID=19, RC=RC                                        )
 
-    !$OMP PARALLEL DO                                                      &
-    !$OMP DEFAULT( SHARED                                                 )&
-    !$OMP PRIVATE( I,     J,     BIN,   MSO4,   MNACL,  MECIL             )&
-    !$OMP PRIVATE( MECOB, MOCIL, MOCOB, MDUST,  TRACID, WID,   MH2O       )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                            )&
-    !$OMP COLLAPSE( 3                                                     )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,     J,     BIN,   MSO4,   MNACL,  MECIL               )&
+    !$OMP PRIVATE( MECOB, MOCIL, MOCOB, MDUST,  TRACID, WID,   MH2O         )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO J   = 1, State_Grid%NY
     DO I   = 1, State_Grid%NX
     DO BIN = 1, IBINS
@@ -7752,7 +8602,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: check_mn
+! !IROUTINE: checkmn
 !
 ! !DESCRIPTION: Subroutine CHECKMN use the subroutine MNFIX to check for error
 !  in the aerosol mass and number inconsistencies. (win, 7/24/07)
@@ -7761,9 +8611,8 @@ CONTAINS
 ! !INTERFACE:
 !
 
-  SUBROUTINE CHECKMN( II, JJ, LL, Input_Opt, State_Chm, &
-                      State_Grid, State_Met, State_Diag, &
-                      LOCATION, RC )
+  SUBROUTINE CHECKMN( Input_Opt,  State_Chm, State_Grid, State_Met,          &
+                      State_Diag, LOCATION,  MNFIX_ID,   RC                 )
 !
 ! !USES:
 !
@@ -7779,8 +8628,8 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER                         :: II, JJ, LL
-    CHARACTER(LEN=*), INTENT(IN)    :: LOCATION
+    CHARACTER(LEN=*), INTENT(IN)    :: LOCATION    ! Message to display
+    INTEGER,          INTENT(IN)    :: MNFIX_ID    ! Diagnostic slot
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State object
@@ -7803,7 +8652,6 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER             :: I, J, L
-    INTEGER             :: I1, I2, J1, J2, L1, L2
     INTEGER             :: K, JC, NKID, TRACNUM, MPNUM
     CHARACTER(LEN=255)  :: MSG, LOC ! For species unit check (ewl)
     LOGICAL             :: ERRORSWITCH
@@ -7833,25 +8681,7 @@ CONTAINS
     ! Point to chemical species array [kg]
     Spc       => State_Chm%Species
 
-    ERRORSWITCH = .FALSE.
-
-    ! Check throughout all grid boxes
-    IF ( II == 0 .and. JJ == 0 .and. LL == 0 ) THEN
-       I1 = 1
-       I2 = State_Grid%NX
-       J1 = 1
-       J2 = State_Grid%NY
-       L1 = 1
-       L2 = State_Grid%NZ
-    ELSE ! Check at a single grid
-       I1 = II
-       I2 = II
-       J1 = JJ
-       J2 = JJ
-       L1 = LL
-       L2 = LL
-    ENDIF
-
+    ! Loop over the grid
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
     !$OMP PRIVATE( I,       J,   L,   BOXVOL, BOXMASS,     K                )&
@@ -7859,9 +8689,9 @@ CONTAINS
     !$OMP PRIVATE( Nkd,     Mkd, Gcd, MPNUM,  ERRORSWITCH                   )&
     !$OMP SCHEDULE( DYNAMIC, 8                                              )&
     !$OMP COLLAPSE( 3                                                       )
-    DO L = L1, L2
-    DO J = J1, J2
-    DO I = I1, I2
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
 
        ! Initialize private variables
        BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.0e+6_fp ! m3 -> cm3
@@ -7910,7 +8740,7 @@ CONTAINS
        CALL MNFIX( NK, MK, ERRORSWITCH )
        IF ( ERRORSWITCH ) THEN
           PRINT *, 'CHECKMN is going to terminate at grid',I,J,L
-          !IF( .not. SPINUP(14.0) ) THEN
+          !IF( .not. SPINUP(14.0_fp) ) THEN
           CALL ERROR_STOP( 'MNFIX found error', LOCATION )
           !ELSE
           !   PRINT *,'Let error go during spin up'
@@ -7918,28 +8748,38 @@ CONTAINS
        ENDIF
 
        ! Save the error fixing to diagnostic AERO-FIX
-       IF ( LOCATION .eq.  'Before Aerodrydep') THEN
-          MPNUM = 17
-          IF ( State_Diag%Archive_TomasMNFIXcheck1mass .or. &
-               State_Diag%Archive_TomasMNFIXcheck1number )  THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
-          ENDIF
-       ELSEIF ( LOCATION .eq.  'Before exiting DO_TOMAS') THEN
-          MPNUM = 18
-          IF ( State_Diag%Archive_TomasMNFIXcheck2mass .or. &
-               State_Diag%Archive_TomasMNFIXcheck2number ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
-          ENDIF
-       ELSEIF ( LOCATION .eq. 'AERO_DIADEN called from DEPVEL' ) THEN
-          MPNUM = 19
-          IF ( State_Diag%Archive_TomasMNFIXcheck3mass .or. &
-               State_Diag%Archive_TomasMNFIXcheck3number ) THEN
-             CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                            State_Grid, State_Diag )
-          ENDIF
-       ENDIF
+       ! Use integer comparisons rather than string comparisons,
+       ! which execute much faster. (Bob Y., 19 Mar 2025)
+       SELECT CASE( MNFIX_ID )
+
+          ! Before Aerodrydep
+          CASE( 17 )
+             IF ( State_Diag%Archive_TomasMNFIXcheck1mass     .or.           &
+                  State_Diag%Archive_TomasMNFIXcheck1number ) THEN
+                CALL DiagMNFIXcheck1( I,  J,   L,       Nk,         Nkd,     &
+                                      Mk, Mkd, BOXMASS, State_Diag          )
+             ENDIF
+          
+          !  Before exiting DO_TOMAS
+          CASE ( 18 ) 
+             IF ( State_Diag%Archive_TomasMNFIXcheck2mass     .or.           &
+                  State_Diag%Archive_TomasMNFIXcheck2number ) THEN
+                CALL DiagMNFIXcheck2( I,  J,   L,       Nk,         Nkd,     &
+                                      Mk, Mkd, BOXMASS, State_Diag          )
+             ENDIF
+
+          ! AERO_DIADEN called from DEPVEL
+          CASE( 19 )
+             IF ( State_Diag%Archive_TomasMNFIXcheck3mass     .or.           &
+                  State_Diag%Archive_TomasMNFIXcheck3number ) THEN
+                CALL DiagMNFIXcheck3( I,  J,   L,       Nk,         Nkd,     &
+                                      Mk, Mkd, BOXMASS, State_Diag          )
+             ENDIF
+
+          CASE DEFAULT
+             ! Do nothing
+
+       END SELECT
 
        ! Swap Nk and Mk arrays back to Spc
        DO K = 1, IBINS
@@ -9647,11 +10487,11 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL*4,    INTENT(IN) :: DAYS   ! Spin-up duration (day)
+    REAL(fp), INTENT(IN) :: DAYS   ! Spin-up duration (day)
 !
 ! !RETURN VALUE:
 !
-    LOGICAL               :: VALUE
+    LOGICAL              :: VALUE
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -9661,19 +10501,17 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    REAL*4                 :: TIMENOW, TIMEBEGIN, TIMEINIT, HOURS
+    REAL(fp) :: TIMENOW, TIMEBEGIN, HOURS
 
     !========================================================================
     ! SPINUP begins here!
     !========================================================================
 
-    TIMENOW   = GET_TAU()   ! Current time in the run (Julian time) (hrs)
-    TIMEBEGIN = GET_TAUb()  ! Begin time of this run (hrs)
-    TIMEINIT  = 141000.0_fp !2/1/2001    ! Start time for spin-up (hrs)
-    HOURS = DAYS * 24.0_fp  ! Period allow error to pass (hrs)
+    TIMENOW   = GET_TAU()       ! Current time in the run (Julian time) (hrs)
+    TIMEBEGIN = GET_TAUb()      ! Begin time of this run (hrs)
+    HOURS     = DAYS * 24.0_fp  ! Period allow error to pass (hrs)
 
     ! Criteria to let error go or to terminate the run
-    !IF ( TIMENOW > MIN( TIMEBEGIN, TIMEINIT ) + HOURS  ) THEN
     IF ( TIMENOW > TIMEBEGIN + HOURS  ) THEN
        VALUE = .FALSE.
     ELSE
@@ -9808,6 +10646,9 @@ CONTAINS
     ! NOTE: Removed ELSE blocks for efficiency (Bob Y., 18 Mar 2025) 
     !=================================================================
 
+    ! Initialize
+    VALUE = 0.0_fp
+
     ! Cap RH
     if (rhe .gt. 99.0_fp) rhe = 99.0_fp
     if (rhe .lt. 1.0_fp ) rhe =1.0_fp
@@ -9925,6 +10766,9 @@ CONTAINS
     ! WATEROCIL begins here!
     !=================================================================
 
+    ! Initialize
+    value = 0.0_fp
+
     ! Cap RH
     if (rhe .gt. 99.0_fp) rhe = 99.0_fp
     if (rhe .lt. 1.0_fp ) rhe = 1.0_fp
@@ -10004,6 +10848,9 @@ CONTAINS
     !=================================================================
     ! WATERSO4 begins here!
     !=================================================================
+
+    ! Initialize
+    value = 0.0_fp
 
     ! Cap RH to prevent blowups
     if (rhe .gt. 99.0_fp ) rhe = 99.0_fp
