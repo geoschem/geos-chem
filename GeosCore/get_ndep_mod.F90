@@ -77,7 +77,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOIL_DRYDEP( I, J, L, NN, TDRYFX, State_Chm )
+  SUBROUTINE SOIL_DRYDEP( I, J, NN, TDRYFX, State_Chm )
 !
 ! !USES:
 !
@@ -87,7 +87,6 @@ CONTAINS
 !
     INTEGER,  INTENT(IN)  :: I          ! I
     INTEGER,  INTENT(IN)  :: J          ! J
-    INTEGER,  INTENT(IN)  :: L          ! Level
     INTEGER,  INTENT(IN)  :: NN         ! Dry Dep Tracer #
     REAL(fp), INTENT(IN)  :: TDRYFX     ! Dry dep flux [molec/cm2/s]
 !
@@ -126,7 +125,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE SOIL_WETDEP( I, J, L, NN, TWETFX, State_Chm )
+  SUBROUTINE SOIL_WETDEP( I, J, NN, TWETFX, State_Chm )
 !
 ! !USES:
 !
@@ -136,7 +135,6 @@ CONTAINS
 !
     INTEGER,  INTENT(IN) :: I          ! I
     INTEGER,  INTENT(IN) :: J          ! J
-    INTEGER,  INTENT(IN) :: L          ! Level
     INTEGER,  INTENT(IN) :: NN         ! Wet Dep Tracer #
     REAL(fp), INTENT(IN) :: TWETFX     ! Wet dep flux [kg/s]
 !

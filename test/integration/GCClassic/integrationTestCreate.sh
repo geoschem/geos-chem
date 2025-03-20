@@ -203,7 +203,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "3\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     # 4x5 merra2 fullchem
-    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # Exit after creating a couple of rundirsDirs if $quick is "yes"
     if [[ "X${quick}" == "XYES" ]]; then
@@ -213,31 +213,31 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # 4x5 merra2 fullchem_LuoWd
     dir="gc_4x5_merra2_fullchem_LuoWd"
-    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n${dir}\nn\n" "${log}"
+    create_rundir "1\n1\n1\n1\n1\n${rundirsDir}\n${dir}\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_aciduptake
-    create_rundir "1\n5\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n5\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_APM
-    create_rundir "1\n7\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n7\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_benchmark
-    create_rundir "1\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n2\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_complexSOA
-    create_rundir "1\n3\n1\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n3\n1\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_complexSOA_SVPOA
-    create_rundir "1\n3\n2\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n3\n2\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_marinePOA
-    create_rundir "1\n4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n4\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_RRTMG
-    create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n8\n1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 fullchem_TOMAS15_47L
-    create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n6\n1\n1\n1\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # 4x5 merra2 Hg
     create_rundir "4\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
@@ -272,14 +272,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     #=========================================================================
 
     # 4x5 merra2 fullchem_47L
-    create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n1\n1\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # GCAP 2.0 simulations
     #=========================================================================
 
     # 2x2.5 ModelE2.1 fullchem (scenario SSP2-4.5, option 6)
-    create_rundir "1\n1\n4\n6\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n4\n6\n2\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Nested-grid simulations
@@ -289,7 +289,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     create_rundir "9\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
 
     # 05x0625 merra2 fullchem_47L_na
-    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on
@@ -328,6 +328,35 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Switch back to the present directory
     cd "${thisDir}"
 
+    #=========================================================================
+    # Create rundirs for dry-run tests
+    #==========================================================================
+
+    # Create dryrun directories by direct copy
+    dirs=( "gc_4x5_merra2_aerosol"              \
+           "gc_4x5_merra2_carbon"               \
+	   "gc_4x5_merra2_fullchem"             \
+           "gc_4x5_merra2_fullchem_APM"         \
+           "gc_4x5_merra2_47L_fullchem_TOMAS15" \
+           "gc_4x5_merra2_fullchem_benchmark"   \
+           "gc_4x5_merra2_fullchem_RRTMG"       \
+           "gc_4x5_merra2_Hg"                   \
+           "gc_4x5_merra2_metals"               \
+           "gc_4x5_merra2_tagCO"                \
+           "gc_4x5_merra2_tagO3"                \
+           "gc_4x5_merra2_TransportTracers"       )
+
+    # Navigate to the rundirs folder
+    cd "${rundirsDir}"
+    
+    # Create dryrun directories by direct copy
+    for dir in ${dirs[@]}; do
+	echo "... ${itRoot}/rundirs/${dir}_dryrun"
+	cp -r "${dir}" "${dir}_dryrun"
+    done
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
 
 #=============================================================================

@@ -946,6 +946,9 @@ MODULE State_Diag_Mod
      REAL(f8),           POINTER :: SatDiagnPEdge(:,:,:)
      LOGICAL                     :: Archive_SatDiagnPEdge
 
+     REAL(f8),           POINTER :: SatDiagnPMid(:,:,:)
+     LOGICAL                     :: Archive_SatDiagnPMid
+
      REAL(f8),           POINTER :: SatDiagnTROPP(:,:)
      LOGICAL                     :: Archive_SatDiagnTROPP
 
@@ -2415,6 +2418,9 @@ CONTAINS
 
     State_Diag%SatDiagnPEdge                       => NULL()
     State_Diag%Archive_SatDiagnPEdge               = .FALSE.
+
+    State_Diag%SatDiagnPMid                        => NULL()
+    State_Diag%Archive_SatDiagnPMid                = .FALSE.
 
     State_Diag%SatDiagnTROPP                       => NULL()
     State_Diag%Archive_SatDiagnTROPP               = .FALSE.
@@ -4885,6 +4891,28 @@ CONTAINS
     ENDIF
 
     !------------------------------------------------------------------------
+    ! Satellite diagnostic: Pressure @ midpoint of layer (PMID)
+    !------------------------------------------------------------------------
+    diagId  = 'SatDiagnPMid'
+    CALL Init_and_Register(                                                  &
+         Input_Opt      = Input_Opt,                                         &
+         State_Chm      = State_Chm,                                         &
+         State_Diag     = State_Diag,                                        &
+         State_Grid     = State_Grid,                                        &
+         DiagList       = Diag_List,                                         &
+         TaggedDiagList = TaggedDiag_List,                                   &
+         Ptr2Data       = State_Diag%SatDiagnPMid,                           &
+         archiveData    = State_Diag%Archive_SatDiagnPMid,                   &
+         diagId         = diagId,                                            &
+         RC             = RC                                                )
+
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+
+    !------------------------------------------------------------------------
     ! Satellite diagnostic: Tropopause pressure (TROPP)
     !------------------------------------------------------------------------
     diagId  = 'SatDiagnTROPP'
@@ -5244,6 +5272,7 @@ CONTAINS
          State_Diag%Archive_SatDiagnPBLHeight                           .or. &
          State_Diag%Archive_SatDiagnPBLTop                              .or. &
          State_Diag%Archive_SatDiagnPBLTopL                             .or. &
+         State_Diag%Archive_SatDiagnPMID                                .or. &
          State_Diag%Archive_SatDiagnPRECTOT                             .or. &
          State_Diag%Archive_SatDiagnProd                                .or. &
          State_Diag%Archive_SatDiagnRH                                  .or. &
@@ -12494,7 +12523,7 @@ CONTAINS
         ALLOCATE( State_Diag%BudgetColumnMass( State_Grid%NX,                &
                                                State_Grid%NY,                &
                                                State_Chm%nAdvect,            &
-                                               3                 ), STAT=RC )
+                                               4                 ), STAT=RC )
        CALL GC_CheckVar( 'State_Diag%BudgetColumnMass', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
@@ -13051,6 +13080,11 @@ CONTAINS
 
     CALL Finalize( diagId   = 'SatDiagnPEdge',                             &
                    Ptr2Data = State_Diag%SatDiagnPEdge,                    &
+                   RC       = RC                                            )
+    IF ( RC /= GC_SUCCESS ) RETURN
+
+    CALL Finalize( diagId   = 'SatDiagnPMid',                              &
+                   Ptr2Data = State_Diag%SatDiagnPMid,                     &
                    RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
@@ -14583,12 +14617,7 @@ CONTAINS
        IF ( isRank    ) Rank  = 3
        IF ( isTagged  ) TagId = 'ALL'
        IF ( isSrcType ) SrcType  = KINDVAL_F8
-       !--------------------------------------------------------------------
-       ! NOTE: We will eventually want restart file variables to be written
-       ! to netCDF as REAL*8, but HEMCO cannot yet read this.  For now
-       ! we will keep writing out restart files as REAL*4. (bmy, 8/14/20)
-       IF ( isOutType ) OutType  = KINDVAL_F4
-       !--------------------------------------------------------------------
+       IF ( isOutType ) OutType  = KINDVAL_F8
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SPECIESBC' ) THEN
        IF ( isDesc    ) Desc  = 'Dry mixing ratio of species'
@@ -15205,6 +15234,11 @@ CONTAINS
        IF ( isUnits   ) Units = 'hPa'
        IF ( isRank    ) Rank  = 3
        IF ( isVLoc    ) VLoc  = VLocationEdge
+
+    ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNPMID' ) THEN
+       IF ( isDesc    ) Desc  = 'Pressure at level midpoints'
+       IF ( isUnits   ) Units = 'hPa'
+       IF ( isRank    ) Rank  = 3
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'SATDIAGNTROPP' ) THEN
        IF ( isDesc    ) Desc  = 'Tropopause pressure'
@@ -16501,13 +16535,13 @@ CONTAINS
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMAIRTOOCEAN' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Volatization flux of Hg0 from the ocean to the atmosphere'
+            'Volatization flux of Hg0 from the atmosphere to the ocean'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
     ELSE IF ( TRIM( Name_AllCaps ) == 'FLUXHG0FROMOCEANTOAIR' ) THEN
        IF ( isDesc    ) Desc  = &
-            'Deposition flux of Hg0 from the atmosphere to the ocean'
+            'Deposition flux of Hg0 from the ocean to the atmosphere'
        IF ( isUnits   ) Units = 'kg s-1'
        IF ( isRank    ) Rank  =  2
 
@@ -17161,7 +17195,7 @@ CONTAINS
 
        ! KPP equation reaction rates
        CASE( 'RXN' )
-          WRITE ( Nstr, "(I3.3)" ) D
+          WRITE ( Nstr, "(I4.4)" ) D
           tagName = 'EQ' // TRIM(Nstr)
 
        ! UVFlux requested output fluxes
@@ -18967,7 +19001,7 @@ CONTAINS
     INTEGER                   :: S
 
     ! Strings
-    CHARACTER(LEN=3  )        :: rxnStr
+    CHARACTER(LEN=4  )        :: rxnStr
     CHARACTER(LEN=255)        :: mapName
     CHARACTER(LEN=255)        :: mapName2
     CHARACTER(LEN=255)        :: tagName
@@ -19151,10 +19185,10 @@ CONTAINS
 
           ELSE IF ( isRxnRate ) THEN
 
-             ! RxnRate: the last 3 characters is the index #
+             ! RxnRate: the last 4 characters is the index #
              S      = LEN_TRIM( TagItem%name )
-             rxnStr = TagItem%name(S-2:S)
-             READ( rxnstr, '(I3.3) ' ) index
+             rxnStr = TagItem%name(S-3:S)
+             READ( rxnstr, '(I4.4) ' ) index
              mapData%slot2id(TagItem%index) = index
 
           ELSE IF ( isUvFlx ) THEN

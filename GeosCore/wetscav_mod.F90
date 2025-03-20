@@ -4202,7 +4202,7 @@ CONTAINS
 
        ! Archive wet loss in kg/m2/s
        IF ( LSOILNOX ) THEN
-          CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
+          CALL SOIL_WETDEP ( I, J, N, WETLOSS / DT, State_Chm )
        ENDIF
 
        !---------------------------------------------------------------------
@@ -4761,7 +4761,7 @@ CONTAINS
 
        ! Archive wet loss in kg/m2/s
        IF ( LSOILNOX ) THEN
-          CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
+          CALL SOIL_WETDEP ( I, J, N, WETLOSS / DT, State_Chm )
        ENDIF
 
        !---------------------------------------------------------------------
@@ -5035,7 +5035,7 @@ CONTAINS
 
        ! Archive wet loss in kg/m2/s
        IF ( LSOILNOX ) THEN
-          CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
+          CALL SOIL_WETDEP ( I, J, N, WETLOSS / DT, State_Chm )
        ENDIF
 
        !--------------------------------------------------------------------
@@ -5319,10 +5319,10 @@ CONTAINS
        ENDIF
 
 
-       ! Archive wet loss in kg/m2/s (check source code for this routine - ewl )
-       !IF ( LSOILNOX ) THEN
-       CALL SOIL_WETDEP ( I, J, L, N, WETLOSS / DT, State_Chm )
-       !ENDIF
+       ! Archive wet loss in kg/m2/s
+       IF ( LSOILNOX ) THEN
+          CALL SOIL_WETDEP ( I, J, N, WETLOSS / DT, State_Chm )
+       ENDIF
 
        !--------------------------------------------------------------------
        ! Dirty kludge to prevent wet deposition from removing

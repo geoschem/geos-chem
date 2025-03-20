@@ -105,6 +105,8 @@ def extract_pathnames_from_log(
     data_found = set()
     data_missing = set()
     dryrun_log = args["dryrun_log"]
+    portal = args["portal"]
+    remote = args["config"]["portals"][portal]["remote"]
 
     # Open file (or die with error)
     with open(dryrun_log, "r", encoding="UTF-8") as ifile:
@@ -156,6 +158,14 @@ def extract_pathnames_from_log(
             if "ExtData" in path:
                 index = path.find("ExtData")
                 local_prefix = path[:index]
+                #
+                # Data stored at these portals do not have an Extdata/
+                # folder, so we must add "/ExtData" to the path manually:
+                # - https://geos-chem.s3-us-west-2.amazonaws.com
+                # - https://gcgrid.s3.amazonaws.com/
+                #
+                if ".amazonaws.com" in remote:
+                    local_prefix = f"{local_prefix}/ExtData".replace('//', '/')
                 break
 
         # Exit if the local path does not contain ExtData

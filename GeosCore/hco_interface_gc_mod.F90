@@ -37,8 +37,8 @@ MODULE HCO_Interface_GC_Mod
   USE HCO_Interface_Common
 
   ! Import the HEMCO states and their types from the state container
-  USE HCOX_State_Mod, ONLY : Ext_State
-  USE HCO_State_Mod,  ONLY : HCO_State
+  USE HCOX_State_Mod,   ONLY : Ext_State
+  USE HCO_State_Mod,    ONLY : HCO_State
   USE HCO_State_GC_Mod, ONLY : HcoState, ExtState
 
   IMPLICIT NONE
@@ -46,30 +46,31 @@ MODULE HCO_Interface_GC_Mod
 !
 ! !PUBLIC MEMBER FUNCTIONS:
 !
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
   PUBLIC  :: HCOI_GC_Init
   PUBLIC  :: HCOI_GC_Run
   PUBLIC  :: HCOI_GC_Final
 #endif
 
   PUBLIC  :: HCOI_GC_WriteDiagn
-
   PUBLIC  :: Compute_Sflx_For_Vdiff
+  PUBLIC  :: Set_DryDepVel_Diagnostics
 !
 ! !PRIVATE MEMBER FUNCTIONS:
 !
-#if !defined( MODEL_CESM )
+#ifndef MODEL_CESM
   PRIVATE :: ExtState_InitTargets
   PRIVATE :: ExtState_SetFields
   PRIVATE :: ExtState_UpdateFields
 #endif
+
   PRIVATE :: Get_SzaFact
   PRIVATE :: GridEdge_Set
   PRIVATE :: CheckSettings
   PRIVATE :: SetHcoGrid
   PRIVATE :: SetHcoSpecies
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
   PRIVATE :: Get_Met_Fields
 #endif
 !
@@ -4392,41 +4393,25 @@ CONTAINS
       ! Resolution 0.125x0.15625 uses I1dyn archive (xlwang, 06/2024)
       IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
 
-          ! Get delta pressure per grid box stored in restart file to allow
-          ! mass conservation across consecutive runs.
-          v_name = 'DELPDRY'
-          CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-          IF ( FOUND ) THEN
-             State_Met%DELP_DRY = Ptr3D
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE(6,*) 'Initialize DELP_DRY from restart file'
-             ENDIF
-          ELSE
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-             ENDIF
-          ENDIF
-          Ptr3D => NULL()
+         ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
+         ! and compute avg dry pressure near polar caps
+         CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
+         CALL AvgPole( State_Grid, State_Met%PS1_DRY )
 
-          ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
-          ! and compute avg dry pressure near polar caps
-          CALL Set_Dry_Surface_Pressure( State_Grid, State_Met, 1 )
-          CALL AvgPole( State_Grid, State_Met%PS1_DRY )
+         ! Compute avg moist pressure near polar caps
+         CALL AvgPole( State_Grid, State_Met%PS1_WET )
 
-          ! Compute avg moist pressure near polar caps
-          CALL AvgPole( State_Grid, State_Met%PS1_WET )
+         ! Initialize surface pressures prior to interpolation
+         ! to allow initialization of floating pressures
+         State_Met%PSC2_WET = State_Met%PS1_WET
+         State_Met%PSC2_DRY = State_Met%PS1_DRY
+         CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
-          ! Initialize surface pressures prior to interpolation
-          ! to allow initialization of floating pressures
-          State_Met%PSC2_WET = State_Met%PS1_WET
-          State_Met%PSC2_DRY = State_Met%PS1_DRY
-          CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
-
-          ! Call AIRQNT to compute initial air mass quantities
-          ! Do not update initial tracer concentrations since not read
-          ! from restart file yet (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, update_mixing_ratio=.FALSE. )
+         ! Call AIRQNT to compute initial air mass quantities
+         ! Do not update initial tracer concentrations since not read
+         ! from restart file yet (ewl, 10/28/15)
+         CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                      RC, update_mixing_ratio=.FALSE. )
 
       ENDIF ! not 0.125x0.15625
 
@@ -4463,22 +4448,6 @@ CONTAINS
        IF ( PHASE == 0 ) THEN
           D = GET_FIRST_I1dyn_TIME()
           CALL FlexGrid_Read_I1dyn_1( D(1), D(2), Input_Opt, State_Grid, State_Met )
-
-          ! Get delta pressure per grid box stored in restart file to allow
-          ! mass conservation across consecutive runs.
-          v_name = 'DELPDRY'
-          CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, FOUND=FOUND )
-          IF ( FOUND ) THEN
-             State_Met%DELP_DRY = Ptr3D
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE(6,*) 'Initialize DELP_DRY from restart file'
-             ENDIF
-          ELSE
-             IF ( Input_Opt%amIRoot ) THEN
-                WRITE(6,*) 'DELP_DRY not found in restart, set to zero'
-             ENDIF
-          ENDIF
-          Ptr3D => NULL()
 
           ! Set dry surface pressure (PS1_DRY) from State_Met%PS1_WET
           ! and compute avg dry pressure near polar caps
@@ -4837,12 +4806,15 @@ CONTAINS
         ! (ckeller, 04/01/2014)
         !------------------------------------------------------------------
         IF ( DepSpec ) THEN
-          CALL GetHcoValDep( Input_Opt, State_Grid, NA, I, J, L, found, dep )
-          IF ( found ) THEN
-             dflx(I,J,NA) = dflx(I,J,NA) + ( dep                   &
-                            * State_Chm%Species(NA)%Conc(I,J,1) &
-                            / (AIRMW / ThisSpc%MW_g)  )
-          ENDIF
+           CALL GetHcoValDep( Input_Opt, State_Grid, NA,    I,               &
+                              J,         1,          found, dep             )
+
+           ! Sea-air deposition frequency [1/s] --> flux [mol/mol/s]
+           IF ( found ) THEN
+              dflx(I,J,NA) = dflx(I,J,NA) +                                  &
+                           + ( dep * State_Chm%Species(NA)%Conc(I,J,1)       &
+                                   / ( AIRMW / ThisSpc%MW_g               ) )
+           ENDIF
         ENDIF
       ENDDO ! I
       ENDDO ! J
@@ -4903,7 +4875,6 @@ CONTAINS
                         * State_Chm%Species(N)%Conc(I,J,1)      &
                         /  ( AIRMW / ThisSpc%MW_g )
 
-
           IF ( Input_Opt%ITS_A_MERCURY_SIM .and. ThisSpc%Is_Hg0 ) THEN
 
              ! Hg(0) exchange with the ocean is handled by ocean_mercury_mod
@@ -4923,6 +4894,7 @@ CONTAINS
 
           ! Free species database pointer
           ThisSpc => NULL()
+          
        ENDDO
 
        !=====================================================================
@@ -4956,12 +4928,11 @@ CONTAINS
        !=====================================================================
        ! Defining Satellite Diagnostics
        !=====================================================================
-
        ! Define emission satellite diagnostics
        IF ( State_Diag%Archive_SatDiagnColEmis ) THEN
           DO S = 1, State_Diag%Map_SatDiagnColEmis%nSlots
              N = State_Diag%Map_SatDiagnColEmis%slot2id(S)
-             State_Diag%SatDiagnColEmis(:,:,S) = colEflx(:,:,N)
+             State_Diag%SatDiagnColEmis(I,J,S) = colEflx(I,J,N)
           ENDDO
        ENDIF
 
@@ -4972,7 +4943,7 @@ CONTAINS
        IF ( State_Diag%Archive_SatDiagnSurfFlux ) THEN
           DO S = 1, State_Diag%Map_SatDiagnSurfFlux%nSlots
              N = State_Diag%Map_SatDiagnSurfFlux%slot2id(S)
-             State_Diag%SatDiagnSurfFlux(:,:,S) = State_Chm%SurfaceFlux(:,:,N)
+             State_Diag%SatDiagnSurfFlux(I,J,S) = State_Chm%SurfaceFlux(I,J,N)
           ENDDO
        ENDIF
 
@@ -5016,7 +4987,7 @@ CONTAINS
        ENDIF
 
     ENDDO
-    ENDDO
+    ENDDO 
     !$OMP END PARALLEL DO
 
     !### Uncomment for debug output
@@ -5039,9 +5010,6 @@ CONTAINS
 
        ! Loop over only the drydep species
        ! If drydep is turned off, nDryDep=0 and the loop won't execute
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( ND, N, ThisSpc, MW_kg, tmpFlx, S                      )
        DO ND = 1, State_Chm%nDryDep
 
           ! Get the species ID from the drydep ID
@@ -5088,22 +5056,25 @@ CONTAINS
           !-----------------------------------------------------------------
           IF ( Input_Opt%LSOILNOX ) THEN
              tmpFlx = 0.0_fp
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, tmpFlx                                    )&
+             !$OMP COLLAPSE( 2                                              )
              DO J = 1, State_Grid%NY
              DO I = 1, State_Grid%NX
-                tmpFlx = dflx(I,J,N)                                         &
-                       / MW_kg                                               &
-                       * AVO           * 1.e-4_fp                            &
+                tmpFlx = dflx(I,J,N) / MW_kg * AVO * 1.e-4_fp                &
                        * GET_TS_CONV() / GET_TS_EMIS()
-
-                CALL Soil_DryDep( I, J, 1, N, tmpFlx, State_Chm )
+                CALL Soil_DryDep( I, J, N, tmpFlx, State_Chm )
              ENDDO
              ENDDO
+             !$OMP END PARALLEL DO
           ENDIF
 
           ! Free species database pointer
           ThisSpc => NULL()
+
        ENDDO
-       !$OMP END PARALLEL DO
+
     ENDIF
 
     !=======================================================================
@@ -5142,5 +5113,245 @@ CONTAINS
     IF ( ASSOCIATED( PNOxLoss_HNO3 ) ) DEALLOCATE( PNOxLoss_HNO3 )
 
   END SUBROUTINE Compute_Sflx_For_Vdiff
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Set_DryDepVel_Diagnostics
+!
+! !DESCRIPTION: Adds the sea-air exchange deposition velocity (computed in
+!  the SeaFlux extension) to the dry deposition velocity (computed in
+!  drydep_mod.F90) and archives them in the History diagnostics.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm, State_Diag,   &
+                                        State_Grid, State_Met, RC           )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_Utilities_GC_Mod, ONLY : GetHcoValDep
+    USE HCO_Utilities_GC_Mod, ONLY : InquireHco
+    USE HCO_Utilities_GC_Mod, ONLY : LoadHcoValDep
+    USE Input_Opt_Mod,        ONLY : OptInput
+    USE State_Chm_Mod,        ONLY : ChmState
+    USE State_Chm_Mod,        ONLY : Ind_
+    USE State_Diag_Mod,       ONLY : DgnState
+    USE State_Diag_Mod,       ONLY : DgnMap
+    USE State_Grid_Mod,       ONLY : GrdState
+    USE State_Met_Mod,        ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(IN)    :: Input_Opt   ! Input options
+    TYPE(GrdState),   INTENT(IN)    :: State_Grid  ! Grid State
+    TYPE(MetState),   INTENT(IN)    :: State_Met   ! Meteorology State
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(ChmState),   INTENT(INOUT) :: State_Chm   ! Chemistry State
+    TYPE(DgnState),   INTENT(INOUT) :: State_Diag  ! Diagnostics State
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC          ! Success or failure?
+!
+! !REMARKS:
+!  When using the full PBL mixing option (aka TURBDAY), update DryDepVel
+!  and SatDiagnDryDepVel diagnostics here.
+!
+! !REVISION HISTORY:
+!  18 May 2020 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    LOGICAL            :: DepSpec,   found
+    INTEGER            :: A
+    INTEGER            :: I,         J
+    INTEGER            :: L,         N
+    INTEGER            :: NA,        ND
+    INTEGER            :: pbl_top_l, S
+    REAL(fp)           :: dep,       height
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg,    thisLoc
+
+    ! Arrays
+    REAL(fp)           :: dvel(State_Grid%NX,State_Grid%NY,State_Chm%nAdvect)
+
+    !=======================================================================
+    ! Update_DryDepVel_for_Turbday begins here!
+    !=======================================================================
+
+    ! Success or failure?
+    RC = GC_SUCCESS
+
+    !=======================================================================
+    ! Skip unless the drydep velocity History diagnostics are requested
+    !=======================================================================
+    IF ( State_Diag%Archive_DryDepVel           .or.                        &
+         State_Diag%Archive_SatDiagnDryDepVel   .or.                        &
+         State_Diag%Archive_DryDepVelForALT1  ) THEN
+
+       ! Zero values
+       errMsg  = ''
+       thisLoc = &
+' -> at Set_DryDepVel_Diagnostics (in module GeosCore/hco_interface_gc_mod.F90)'
+       dvel = 0.0_fp
+
+       !=====================================================================
+       ! Get sea-air  frequencies calculated in HEMCO.
+       !
+       ! The loop has been separated to go over N, J, I in order to optimize
+       ! for retrieving regridded data from HEMCO. There is only one regrid
+       ! buffer per field (dep, N) so these must not be intertwined,
+       ! or there will be a large performance penalty.
+       !=====================================================================
+       DO NA = 1, State_Chm%nAdvect
+
+          ! Get the modelId and drydep ID
+          N  = State_Chm%Map_Advect(NA)
+          ND = State_Chm%SpcData(N)%Info%DryDepId
+
+#ifdef MODEL_CESM
+          ! Do not apply for MODEL_CESM as its handled by
+          ! HEMCO-CESM independently
+          DepSpec = .FALSE.
+#else
+          ! Check if there is deposition for this species
+          CALL InquireHco( N, Dep=DepSpec )
+#endif
+
+          ! If the species has a sea-air deposition frequency ...
+          IF ( DepSpec ) THEN
+
+             ! Load the sea-air deposition frequency [1/s] into memory
+             ! outside of a parallel loop.  Failure to load this will
+             ! result in severe performance issues!
+             !   --Haipeng Lin (27 Sep 2020)
+             CALL LoadHcoValDep( Input_Opt, State_Grid, N )
+
+             !$OMP PARALLEL DO                                               &
+             !$OMP DEFAULT( SHARED                                          )&
+             !$OMP PRIVATE( I, J, pbl_top_l, dep, height, found, L          )&
+             !$OMP COLLAPSE( 2                                              )
+             DO J = 1, State_Grid%NY
+             DO I = 1, State_Grid%NX
+
+                ! Zero private loop variables
+                pbl_top_l = 0
+                dep       = 0.0_fp
+                height    = 0.0_fp
+
+                ! Attempt to retrieve the sea-air deposition frequency [1/s]
+                ! computed by the HEMCO SeaFlux extension for this species
+                CALL GetHcoValDep( Input_Opt, State_Grid, N,     I,          &
+                                   J,         1,          found, dep        )
+
+                ! If it was found ...
+                IF ( found ) THEN
+
+                   ! Determine the deposition height ...
+                   IF ( Input_Opt%LNLPBL ) THEN
+
+                      !-------------------------------
+                      ! %%% Non-local PBL mixing %%%
+                      !-------------------------------
+
+                      ! Use the height [m] of grid box (I,J,1)
+                      ! as the deposition height
+                      height = State_Met%BXHEIGHT(I,J,1)
+
+                   ELSE
+
+                      !-------------------------------
+                      ! %%% Full PBL mixing %%%
+                      !-------------------------------
+
+                      ! Determine depositon height [m] as is done in the
+                      ! HEMCO SeaFlux extension module (hcox_seaflux_mod.F90).
+                      pbl_top_l = 1
+                      IF ( Input_Opt%PBL_DRYDEP ) THEN
+                         DO L = State_Grid%NZ, 1, -1
+                            IF ( State_Met%F_OF_PBL(I,J,L) > 0.0_fp ) THEN
+                               pbl_top_l = L
+                               EXIT
+                            ENDIF
+                         ENDDO
+                      ENDIF
+                      height = SUM( State_Met%BXHEIGHT(I,J,1:pbl_top_l) )
+
+                   ENDIF
+
+                   ! Convert deposition frequency [1/s] --> velocity [cm/s]
+                   dvel(I,J,N) = ( dep * height * 100.0_fp )
+
+                ENDIF
+             ENDDO
+             ENDDO
+             !$OMP END PARALLEL DO
+          ENDIF
+       ENDDO
+
+       !=====================================================================
+       ! Add the sea-air dep velocity and the drydep velocity computed
+       ! in drydep_mod.F90 to the appropriate History diagnostics.
+       !=====================================================================
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, ND, N, S, A                                     )&
+       !$OMP COLLAPSE( 3                                                    )
+       DO ND = 1, State_Chm%nDryDep
+       DO J  = 1, State_Grid%NY
+       DO I  = 1, State_Grid%NX
+
+          ! Get the model ID from the drydep ID
+          N = State_Chm%Map_DryDep(ND)
+          IF ( N <= 0 ) CYCLE
+
+          ! Add the drydep velocities [cm/s] computed in drydep_mod.F90
+          ! to the drydep velocities [cm/s] computed by the SeaFlux extension.
+          dvel(I,J,N) = dvel(I,J,N) + State_Chm%DryDepVel(I,J,ND) * 100.0_fp
+
+          ! Dry deposition velocity [cm/s]
+          IF ( State_Diag%Archive_DryDepVel ) THEN
+             S = State_Diag%Map_DryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%DryDepVel(I,J,S) = dvel(I,J,N)
+             ENDIF
+          ENDIF
+
+          ! Satellite diagnostic dry deposition velocity (cm/s):
+          IF ( State_Diag%Archive_SatDiagnDryDepVel ) THEN
+             S = State_Diag%Map_SatDiagnDryDepVel%id2slot(ND)
+             IF ( S > 0 ) THEN
+                State_Diag%SatDiagnDryDepVel(I,J,S) = dvel(I,J,N)
+             ENDIF
+          ENDIF
+
+          ! Dry dep velocity [cm/s] for species at altitude (e.g. 10m)
+          IF ( State_Diag%Archive_DryDepVelForALT1 ) THEN
+             A = State_Chm%SpcData(N)%Info%DryAltID
+             IF ( A > 0 ) THEN
+                State_Diag%DryDepVelForALT1(I,J,A) = dvel(I,J,N)
+             ENDIF
+          ENDIF
+       ENDDO
+       ENDDO
+       ENDDO
+       !$OMP END PARALLEL DO
+
+    ENDIF
+
+  END SUBROUTINE Set_DryDepVel_Diagnostics
 !EOC
 END MODULE Hco_Interface_GC_Mod

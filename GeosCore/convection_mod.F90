@@ -573,12 +573,12 @@ CONTAINS
     SpcInfo      => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
-    PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
+    PFICU    => State_Met%PFICU   (I,J,1:State_Grid%NZ) ! Dwnwd flx of conv
                                                           !  ice precip
-                                                          !  [kg/m2/s]
-    PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
+                                                          !  [kg/m2/s] [down edge]
+    PFLCU    => State_Met%PFLCU   (I,J,1:State_Grid%NZ) ! Dwnwd flux of conv
                                                           !  liquid precip
-                                                          !  [kg/m2/s]
+                                                          !  [kg/m2/s] [down edge]
 
     ! # of levels and # of species
     NLAY     = State_Grid%NZ
@@ -1136,10 +1136,8 @@ CONTAINS
 
              ! Check if...
              ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
-             ! (2) there is re-evaporation happening in grid box (I,J,K)
-             ! (3) there is species to re-evaporate
+             ! (2) there is species to re-evaporate
              IF ( PDOWN(K+1)  > 0 .and. &
-                  REEVAPCN(K) > 0 .and. &
                   T0_SUM      > 0        ) THEN
 
                 ! Compute F_WASHOUT, the fraction of grid box (I,J,L)

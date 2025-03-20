@@ -205,6 +205,7 @@ PROGRAM GEOS_Chem
   INTEGER                  :: ELAPSED_SEC,   NHMSb,       RC
   INTEGER                  :: ELAPSED_TODAY, HOUR,        MINUTE,  SECOND
   INTEGER                  :: id_H2O,        id_CH4,      id_CLOCK
+  INTEGER                  :: previous_units
 
   ! Reals
   REAL(f8)                 :: TAU,           TAUb
@@ -661,7 +662,9 @@ PROGRAM GEOS_Chem
   ENDIF
 
   ! Run HEMCO phase 0 as simplfied phase 1 to get initial met fields
-  ! and restart file fields
+  ! and restart file fields. State_Chm%Species fields are populated in
+  ! this step and set to either values from file or background values
+  ! in mol/mol dry air.
   TimeForEmis = .FALSE.
   CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid,  &
                       State_Met, TimeForEmis, 0,          RC )
@@ -861,13 +864,16 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: a SET_CURRENT_TIME' )
        ENDIF
 
-       !---------------------------------------------------------------------
-       ! %%%%% HISTORY (netCDF diagnostics) %%%%%
-       !
-       ! Certain diagnostics need to be zeroed out at the start each timestep,
-       ! before operations like drydep, wetdep, and convection are executed.
-       !---------------------------------------------------------------------
+       ! Skip diagnostics & unit conversions for dry-run simulations
        IF ( notDryRun ) THEN
+
+          !------------------------------------------------------------------
+          ! %%%%% HISTORY (netCDF diagnostics) %%%%%
+          !
+          ! Certain diagnostics need to be zeroed out at the start
+          ! each timestep, before operations like drydep, wetdep, and
+          ! convection are executed.
+          !------------------------------------------------------------------
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Diagnostics", RC )
           ENDIF
@@ -881,6 +887,22 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_End( "Diagnostics", RC )
           ENDIF
+
+          !------------------------------------------------------------------
+          ! Convert species concentrations from v/v dry to kg/kg dry so that
+          ! the State_Chm%Species(:)%Conc unit is the same for most of the
+          ! dynamic timestep as the unit used in GCHP/GEOS GEOS-Chem Run
+          ! method.  Skip this for dry-run simulations.
+          !------------------------------------------------------------------
+          CALL Convert_Spc_Units(                                            &
+               Input_Opt      = Input_Opt,                                   &
+               State_Chm      = State_Chm,                                   &
+               State_Grid     = State_Grid,                                  &
+               State_Met      = State_Met,                                   &
+               new_units      = KG_SPECIES_PER_KG_DRY_AIR,                   &
+               previous_units = previous_units,                              &
+               RC             = RC                                          )
+
        ENDIF
 
        !=====================================================================
@@ -1097,26 +1119,6 @@ PROGRAM GEOS_Chem
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-          ENDIF
-       ENDIF
-
-       ! Prescribe methane surface concentrations throughout PBL
-       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
-            id_CH4 > 0                     .and.                             &
-            notDryRun                     ) THEN
-
-          IF ( VerboseAndRoot ) THEN
-             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
-          ENDIF
-
-          ! Set CH4 concentrations
-          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                        State_Met, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in call to "SET_CH4"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
        ENDIF
 
@@ -1350,6 +1352,27 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
+       ! Also prescribe methane surface concentrations throughout PBL
+       ! (currently done outside emissions)
+       IF ( Input_Opt%ITS_A_FULLCHEM_SIM   .and.                             &
+            id_CH4 > 0                     .and.                             &
+            notDryRun                     ) THEN
+
+          IF ( VerboseAndRoot ) THEN
+             CALL DEBUG_MSG( '### MAIN: Setting PBL CH4 conc')
+          ENDIF
+
+          ! Set CH4 concentrations
+          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                        State_Met, RC )
+
+          ! Trap potential errors
+          IF ( RC /= GC_SUCCESS ) THEN
+             ErrMsg = 'Error encountered in call to "SET_CH4"!'
+             CALL Error_Stop( ErrMsg, ThisLoc )
+          ENDIF
+       ENDIF
+
        !---------------------------------------------------------------------
        ! Test for convection timestep
        !---------------------------------------------------------------------
@@ -1362,21 +1385,49 @@ PROGRAM GEOS_Chem
              CALL Timer_Start( "Boundary layer mixing", RC )
           ENDIF
 
-          ! Compute the surface flux for the non-local mixing,
-          ! (which means getting emissions & drydep from HEMCO)
-          ! and store it in State_Chm%Surface_Flux
-          IF ( Input_Opt%LTURB .and. Input_Opt%LNLPBL ) THEN
-             CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,             &
-                                          State_Diag, State_Grid,            &
-                                          State_Met,  RC                    )
+          IF ( Input_Opt%LTURB ) THEN
+
+             IF ( Input_Opt%LNLPBL ) THEN
+
+                !------------------------------------------------------------
+                ! %%%%% VDIFF (non-local PBL mixing) %%%%%
+                ! Compute the surface flux for the non-local mixing,
+                ! (which means getting emissions & drydep from HEMCO)
+                ! and store it in State_Chm%Surface_Flux
+                !------------------------------------------------------------
+                CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
+
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                   CALL Error_Stop( errMsg, thisLoc )
+                ENDIF
+
+                IF ( VerboseAndRoot ) THEN
+                   CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+                ENDIF
+
+             ENDIF
+
+             !------------------------------------------------------------
+             ! Update drydep velocities by adding the sea-air deposition
+             ! velocity computed by the HEMCO SeaFlux extension
+             !------------------------------------------------------------
+             CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
+                                             State_Diag, State_Grid,      &
+                                             State_Met,  RC              )
+
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Compute_Sflx_for_Vdiff"!'
+                ErrMsg = &
+                     'Error encountered in "Update_DryDepVel_for_Turbday"!'
                 CALL Error_Stop( errMsg, thisLoc )
              ENDIF
-          ENDIF
 
-          IF ( VerboseAndRoot ) THEN
-             CALL Debug_Msg( '### MAIN: a Compute_Sflx_For_Vdiff' )
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: a Set_DryDepVel_Diagnostics' )
+             ENDIF
+
           ENDIF
 
           ! Note: mixing routine expects tracers in v/v
@@ -1706,6 +1757,34 @@ PROGRAM GEOS_Chem
              CALL Error_Stop( ErrMsg, ThisLoc )
           ENDIF
 
+          ! Turn off diagnostics timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Diagnostics", RC )
+          ENDIF
+
+          !------------------------------------------------------------------
+          ! Set species concentration back to v/v dry air (mol/mol dry air)
+          ! prior to setting restart file arrays. Doing this conversion
+          ! every timestep is required for bit-for-bit reproducibility when
+          ! breaking up runs in time.
+          !------------------------------------------------------------------
+          CALL Convert_Spc_Units(                                            &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Grid = State_Grid,                                      &
+               State_Met  = State_Met,                                       &
+               new_units  = previous_units,                                  &
+               RC         = RC                                              )
+
+          ! Turn diagnostics timer back on
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Diagnostics", RC )
+          ENDIF
+
+          ! Set diagnostics arrays in State_Diag that are in mol/mol
+          CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,   &
+                                        State_Grid, State_Met, RC           )
+
           ! Increment the timestep values by the heartbeat time
           ! This is because we need to write out data with the timestamp
           ! at the end of the heartbeat timestep (i.e. at end of run)
@@ -1744,8 +1823,9 @@ PROGRAM GEOS_Chem
              ENDIF
 
              ! Sample the observations in today's ObsPack file
-             CALL ObsPack_Sample( NYMD, NHMS, Input_Opt,  State_Chm, &
-                                  State_Diag, State_Grid, State_Met, RC )
+             CALL ObsPack_Sample( NYMD,      NHMS,       Input_Opt,          &
+                                  State_Chm, State_Diag, State_Grid,         &
+                                  State_Met, RC                             )
 
              IF ( Input_Opt%useTimers ) THEN
                 CALL Timer_End( "Diagnostics", RC )
