@@ -795,8 +795,11 @@ CONTAINS
 #endif
 
 #ifdef TOMAS
-   CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
-                 State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
+   ! Check mass and number for consistency
+   CALL CHECKMN( Input_Opt,  State_Chm,   State_Grid,                        &
+                 State_Met,  State_Diag, 'CHECKMN from chemcarbon # 1',      &
+                 MNFIX_ID=0, RC=RC                                          )
+
    ! Chemistry (aging) for size-resolved EC and OC (win, 1/25/10)
    IF ( id_ECIL01 > 0 .and. id_ECOB01 > 0 ) THEN
       CALL AGING_CARB( id_ECIL01, id_ECOB01, State_Grid, State_Chm )
@@ -817,10 +820,9 @@ CONTAINS
 
 #ifdef TOMAS
       ! Move call to CHECKMN outside parallel loop (Bob Y., 3/19/25)
-      CALL CHECKMN( 0,         0,           0,                               &
-                    Input_Opt, State_Chm,   State_Grid,                      &
-                    State_Met, State_Diag, 'CHECKMN from chemcarbon',        &
-                    RC                                                      )
+      CALL CHECKMN( Input_Opt,  State_Chm,   State_Grid,                     &
+                    State_Met,  State_Diag, 'CHECKMN from chemcarbon #2',    &
+                    MNFIX_ID=0, RC=RC                                       )
 
       !$OMP PARALLEL DO                                                      &
       !$OMP DEFAULT( SHARED                                                 )&
@@ -5229,9 +5231,9 @@ CONTAINS
    Ptr2D => NULL()
 
    ! Check mass & number outside parallel loop
-   CALL CHECKMN( 0,         0,          0,         Input_Opt,                &
-                 State_Chm, State_Grid, State_Met, State_Diag,               & 
-                'CHECKMN from emisscarbontomas',  RC                        )
+   CALL CHECKMN( Input_Opt,  State_Chm,   State_Grid,                        &
+                 State_Met,  State_Diag, 'CHECKMN from emisscarbontomas',    &
+                 MNFIX_ID=0, RC=RC                                          )
 
    !$OMP PARALLEL DO                                                         &
    !$OMP DEFAULT( SHARED                                                    )&

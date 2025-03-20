@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
 - Added dry-run integration tests for selected simulations
 - Added `RETURN` statements at the end of each `IF` block in routine `AERODIAG`, to minimize the number of `IF` statements that need to be evauluated
+- Added logical variables in TOMAS routine `AEROPHYS` to determine if diagnostics should be called (to reduce logical comparisons)
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -32,12 +33,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
 - Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
 - Commented out debug print statement for TOMAS `H2SO4RATE` variable
-- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, from `REAL*4` to `REAL(fp)`, 
+- Changed TOMAS variables `ADT`, `BOXVOL`, `TEMPTMS`, `PRES`, `BOXMASS`, `SGCTSCALE`, plus several others from `REAL*4` to `REAL(fp)`, 
 - Appended `_fp` to floating-point constants in `tomas_mod.F90`
 - Changed order of DO loops in TOMAS routine `CHECKMN` from IJL to LJI
+- Split up TOMAS diagnostic routine `AERODIAG` into individual `Diag_*` routines to avoid excessive branching on each (I,J,L) iteration
 
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+- Removed the capability to call TOMAS routine `CHECKMN` for a single grid box; this is inefficient
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
