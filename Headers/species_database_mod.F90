@@ -898,7 +898,7 @@ CONTAINS
                 ThisSpc%WD_AerScavEff = MISSING
                 ThisSpc%WD_KcScaleFac = MISSING
                 ThisSpc%WD_RainoutEff = MISSING
-                ThisSpc%WD_Is_DSTbin  = MISSING
+                ThisSpc%WD_Is_DSTbin  = MISSING_BOOL
                 ThisSpc%WD_WashoutRainPara = MISSING
                 ThisSpc%WD_WashoutSnowPara = MISSING
           END SELECT
