@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
 - Removed the capability to call TOMAS routine `CHECKMN` for a single grid box; this is inefficient
+- Removed superfluous `TomasH2SO4`, `TomasCOAG`, `TomasNUCL`, `TomasAQOX`, `TomasMNFIX`, `TomasSOA` diagnostic fields
 
 ## [14.6.0] - 2025-04-18
 ### Added/n/netscratch/jacob_lab/Lab/ryantosca/tests/code/gcc.tomas/src/GEOS-Chem

@@ -1886,13 +1886,13 @@ CONTAINS
     State_Diag%Map_TomasNUCLmass                   => NULL()
     State_Diag%Archive_TomasNUCLmass               = .FALSE.
 
-    State_Diag%TomasNUCLnumber                       => NULL()
-    State_Diag%Map_TomasNUCLnumber                   => NULL()
-    State_Diag%Archive_TomasNUCLnumber               = .FALSE.
+    State_Diag%TomasNUCLnumber                     => NULL()
+    State_Diag%Map_TomasNUCLnumber                 => NULL()
+    State_Diag%Archive_TomasNUCLnumber             = .FALSE.
 
-    State_Diag%TomasNUCRATEnumber                       => NULL()
-    State_Diag%Map_TomasNUCRATEnumber                   => NULL()
-    State_Diag%Archive_TomasNUCRATEnumber               = .FALSE.
+    State_Diag%TomasNUCRATEnumber                  => NULL()
+    State_Diag%Map_TomasNUCRATEnumber              => NULL()
+    State_Diag%Archive_TomasNUCRATEnumber          = .FALSE.
 
     State_Diag%TomasAQOXmass                       => NULL()
     State_Diag%Map_TomasAQOXmass                   => NULL()
@@ -12187,140 +12187,146 @@ CONTAINS
     !========================================================================
     ! Set high-level logicals for diagnostics
     !=======================================================================
-    State_Diag%Archive_Budget =  &
-                           ( State_Diag%Archive_BudgetEmisDryDepFull    .or. &
-                             State_Diag%Archive_BudgetEmisDryDepTrop    .or. &
-                             State_Diag%Archive_BudgetEmisDryDepPBL     .or. &
-                             State_Diag%Archive_BudgetEmisDryDepLevs    .or. &
-                             State_Diag%Archive_BudgetTransportFull     .or. &
-                             State_Diag%Archive_BudgetTransportTrop     .or. &
-                             State_Diag%Archive_BudgetTransportPBL      .or. &
-                             State_Diag%Archive_BudgetTransportLevs     .or. &
-                             State_Diag%Archive_BudgetMixingFull        .or. &
-                             State_Diag%Archive_BudgetMixingTrop        .or. &
-                             State_Diag%Archive_BudgetMixingPBL         .or. &
-                             State_Diag%Archive_BudgetMixingLevs        .or. &
-                             State_Diag%Archive_BudgetConvectionFull    .or. &
-                             State_Diag%Archive_BudgetConvectionTrop    .or. &
-                             State_Diag%Archive_BudgetConvectionPBL     .or. &
-                             State_Diag%Archive_BudgetConvectionLevs    .or. &
-                             State_Diag%Archive_BudgetChemistryFull     .or. &
-                             State_Diag%Archive_BudgetChemistryTrop     .or. &
-                             State_Diag%Archive_BudgetChemistryPBL      .or. &
-                             State_Diag%Archive_BudgetChemistryLevs     .or. &
-                             State_Diag%Archive_BudgetWetDepFull        .or. &
-                             State_Diag%Archive_BudgetWetDepTrop        .or. &
-                             State_Diag%Archive_BudgetWetDepPBL         .or. &
-                             State_Diag%Archive_BudgetWetDepLevs            )
+    State_Diag%Archive_Budget = (                                            & 
+         State_Diag%Archive_BudgetEmisDryDepFull                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepTrop                        .or. &
+         State_Diag%Archive_BudgetEmisDryDepPBL                         .or. &
+         State_Diag%Archive_BudgetEmisDryDepLevs                        .or. &
+         State_Diag%Archive_BudgetTransportFull                         .or. &
+         State_Diag%Archive_BudgetTransportTrop                         .or. &
+         State_Diag%Archive_BudgetTransportPBL                          .or. &
+         State_Diag%Archive_BudgetTransportLevs                         .or. &
+         State_Diag%Archive_BudgetMixingFull                            .or. &
+         State_Diag%Archive_BudgetMixingTrop                            .or. &
+         State_Diag%Archive_BudgetMixingPBL                             .or. &
+         State_Diag%Archive_BudgetMixingLevs                            .or. &
+         State_Diag%Archive_BudgetConvectionFull                        .or. &
+         State_Diag%Archive_BudgetConvectionTrop                        .or. &
+         State_Diag%Archive_BudgetConvectionPBL                         .or. &
+         State_Diag%Archive_BudgetConvectionLevs                        .or. &
+         State_Diag%Archive_BudgetChemistryFull                         .or. &
+         State_Diag%Archive_BudgetChemistryTrop                         .or. &
+         State_Diag%Archive_BudgetChemistryPBL                          .or. &
+         State_Diag%Archive_BudgetChemistryLevs                         .or. &
+         State_Diag%Archive_BudgetWetDepFull                            .or. &
+         State_Diag%Archive_BudgetWetDepTrop                            .or. &
+         State_Diag%Archive_BudgetWetDepPBL                             .or. &
+         State_Diag%Archive_BudgetWetDepLevs                                )
 
-    State_Diag%Archive_AerMass = ( State_Diag%Archive_AerMassASOA       .or. &
-                                   State_Diag%Archive_AerMassBC         .or. &
-                                   State_Diag%Archive_AerMassINDIOL     .or. &
-                                   State_Diag%Archive_AerMassISN1OA     .or. &
-                                   State_Diag%Archive_AerMassLVOCOA     .or. &
-                                   State_Diag%Archive_AerMassNH4        .or. &
-                                   State_Diag%Archive_AerMassNIT        .or. &
-                                   State_Diag%Archive_AerMassOPOA       .or. &
-                                   State_Diag%Archive_AerMassPOA        .or. &
-                                   State_Diag%Archive_AerMassSAL        .or. &
-                                   State_Diag%Archive_AerMassSO4        .or. &
-                                   State_Diag%Archive_AerMassHMS        .or. &  !(jmm, 06/29/18)
-                                   State_Diag%Archive_AerMassSOAGX      .or. &
-                                   State_Diag%Archive_AerMassSOAIE      .or. &
-                                   State_Diag%Archive_AerMassTSOA       .or. &
-                                   State_Diag%Archive_BetaNO            .or. &
-                                   State_Diag%Archive_PM25              .or. &
-                                   State_Diag%Archive_PM10              .or. &
-                                   State_Diag%Archive_TotalOA           .or. &
-                                   State_Diag%Archive_TotalOC           .or. &
-                                   State_Diag%Archive_TotalBiogenicOA       )
+    State_Diag%Archive_AerMass = ( &
+         State_Diag%Archive_AerMassASOA                                 .or. &
+         State_Diag%Archive_AerMassBC                                   .or. &
+         State_Diag%Archive_AerMassINDIOL                               .or. &
+         State_Diag%Archive_AerMassISN1OA                               .or. &
+         State_Diag%Archive_AerMassLVOCOA                               .or. &
+         State_Diag%Archive_AerMassNH4                                  .or. &
+         State_Diag%Archive_AerMassNIT                                  .or. &
+         State_Diag%Archive_AerMassOPOA                                 .or. &
+         State_Diag%Archive_AerMassPOA                                  .or. &
+         State_Diag%Archive_AerMassSAL                                  .or. &
+         State_Diag%Archive_AerMassSO4                                  .or. &
+         State_Diag%Archive_AerMassHMS                                  .or. &
+         State_Diag%Archive_AerMassSOAGX                                .or. &
+         State_Diag%Archive_AerMassSOAIE                                .or. &
+         State_Diag%Archive_AerMassTSOA                                 .or. &
+         State_Diag%Archive_BetaNO                                      .or. &
+         State_Diag%Archive_PM25                                        .or. &
+         State_Diag%Archive_PM10                                        .or. &
+         State_Diag%Archive_TotalOA                                     .or. &
+         State_Diag%Archive_TotalOC                                     .or. &
+         State_Diag%Archive_TotalBiogenicOA                                 )
 
 #ifdef TOMAS
-    State_Diag%Archive_Tomas  = ( State_Diag%Archive_TomasH2SO4mass         .or. &
-                                  State_Diag%Archive_TomasH2SO4number       .or. &
-                                  State_Diag%Archive_TomasCOAGmass          .or. &
-                                  State_Diag%Archive_TomasCOAGnumber        .or. &
-                                  State_Diag%Archive_TomasNUCRATEFN         .or. &
-                                  State_Diag%Archive_TomasNUCLmass          .or. &
-                                  State_Diag%Archive_TomasNUCLnumber        .or. &
-                                  State_Diag%Archive_TomasNUCRATEnumber     .or. &
-                                  State_Diag%Archive_TomasAQOXmass          .or. &
-                                  State_Diag%Archive_TomasAQOXnumber        .or. &
-                                  State_Diag%Archive_TomasMNFIXmass         .or. &
-                                  State_Diag%Archive_TomasMNFIXnumber       .or. &
-                                  State_Diag%Archive_TomasMNFIXh2so4mass    .or. &
-                                  State_Diag%Archive_TomasMNFIXh2so4number  .or. &
-                                  State_Diag%Archive_TomasMNFIXcoagmass     .or. &
-                                  State_Diag%Archive_TomasMNFIXcoagnumber   .or. &
-                                  State_Diag%Archive_TomasMNFIXaqoxmass     .or. &
-                                  State_Diag%Archive_TomasMNFIXaqoxnumber   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat1mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat1number .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat2mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat2number .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat3mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXezwat3number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck1mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck1number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck2mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck2number .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck3mass   .or. &
-                                  State_Diag%Archive_TomasMNFIXcheck3number .or. &
-                                  State_Diag%Archive_TomasSOAmass           .or. &
-                                  State_Diag%Archive_TomasSOAnumber         )
+    State_Diag%Archive_Tomas  = (                                            &
+         State_Diag%Archive_TomasH2SO4mass                              .or. &
+         State_Diag%Archive_TomasH2SO4number                            .or. &
+         State_Diag%Archive_TomasCOAGmass                               .or. &
+         State_Diag%Archive_TomasCOAGnumber                             .or. &
+         State_Diag%Archive_TomasNUCRATEFN                              .or. &
+         State_Diag%Archive_TomasNUCLmass                               .or. &
+         State_Diag%Archive_TomasNUCLnumber                             .or. &
+         State_Diag%Archive_TomasNUCRATEnumber                          .or. &
+         State_Diag%Archive_TomasAQOXmass                               .or. &
+         State_Diag%Archive_TomasAQOXnumber                             .or. &
+         State_Diag%Archive_TomasMNFIXmass                              .or. &
+         State_Diag%Archive_TomasMNFIXnumber                            .or. &
+         State_Diag%Archive_TomasMNFIXh2so4mass                         .or. &
+         State_Diag%Archive_TomasMNFIXh2so4number                       .or. &
+         State_Diag%Archive_TomasMNFIXcoagmass                          .or. &
+         State_Diag%Archive_TomasMNFIXcoagnumber                        .or. &
+         State_Diag%Archive_TomasMNFIXaqoxmass                          .or. &
+         State_Diag%Archive_TomasMNFIXaqoxnumber                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat1mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat1number                      .or. &
+         State_Diag%Archive_TomasMNFIXezwat2mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat2number                      .or. &
+         State_Diag%Archive_TomasMNFIXezwat3mass                        .or. &
+         State_Diag%Archive_TomasMNFIXezwat3number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck1mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck1number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck2mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck2number                      .or. &
+         State_Diag%Archive_TomasMNFIXcheck3mass                        .or. &
+         State_Diag%Archive_TomasMNFIXcheck3number                      .or. &
+         State_Diag%Archive_TomasSOAmass                                .or. &
+         State_Diag%Archive_TomasSOAnumber                                  )
 #endif
+    
+    State_Diag%Archive_AOD  = (                                              &
+         State_Diag%Archive_AODHygWL1                                   .or. &
+         State_Diag%Archive_AODHygWL2                                   .or. &
+         State_Diag%Archive_AODHygWL3                                   .or. &
+         State_Diag%Archive_PDER                                        .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL1                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL2                         .or. &
+         State_Diag%Archive_AODSOAfromAqIsopWL3                         .or. &
+         State_Diag%Archive_AODDust                                     .or. &
+         State_Diag%Archive_AODDustWL1                                  .or. &
+         State_Diag%Archive_AODDustWL2                                  .or. &
+         State_Diag%Archive_AODDustWL3                                      )
 
-    State_Diag%Archive_AOD  = ( State_Diag%Archive_AODHygWL1            .or. &
-                                State_Diag%Archive_AODHygWL2            .or. &
-                                State_Diag%Archive_AODHygWL3            .or. &
-                                State_Diag%Archive_PDER                 .or. & ! H. Zhu, April 05, 2024
-                                State_Diag%Archive_AODSOAfromAqIsopWL1  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL2  .or. &
-                                State_Diag%Archive_AODSOAfromAqIsopWL3  .or. &
-                                State_Diag%Archive_AODDust              .or. &
-                                State_Diag%Archive_AODDustWL1           .or. &
-                                State_Diag%Archive_AODDustWL2           .or. &
-                                State_Diag%Archive_AODDustWL3               )
+    State_Diag%Archive_AODStrat = (                                          &
+         State_Diag%Archive_AODSLAWL1                                   .or. &
+         State_Diag%Archive_AODSLAWL2                                   .or. &
+         State_Diag%Archive_AODSLAWL3                                   .or. &
+         State_Diag%Archive_AODPSCWL1                                   .or. &
+         State_Diag%Archive_AODPSCWL2                                   .or. &
+         State_Diag%Archive_AODPSCWL3                                   .or. &
+         State_Diag%Archive_AerNumDenSLA                                .or. &
+         State_Diag%Archive_AerNumDenPSC                                   )
 
-    State_Diag%Archive_AODStrat = ( State_Diag%Archive_AODSLAWL1        .or. &
-                                    State_Diag%Archive_AODSLAWL2        .or. &
-                                    State_Diag%Archive_AODSLAWL3        .or. &
-                                    State_Diag%Archive_AODPSCWL1        .or. &
-                                    State_Diag%Archive_AODPSCWL2        .or. &
-                                    State_Diag%Archive_AODPSCWL3        .or. &
-                                    State_Diag%Archive_AerNumDenSLA     .or. &
-                                    State_Diag%Archive_AerNumDenPSC        )
+    State_Diag%Archive_ConcAboveSfc = (                                      &
+         State_Diag%Archive_SpeciesConcALT1                            .and. &
+         State_Diag%Archive_DryDepRaALT1                               .and. &
+         State_Diag%Archive_DryDepVelForALT1                                )
 
-    State_Diag%Archive_ConcAboveSfc =                                        &
-                                 ( State_Diag%Archive_SpeciesConcALT1  .and. &
-                                   State_Diag%Archive_DryDepRaALT1     .and. &
-                                   State_Diag%Archive_DryDepVelForALT1      )
+    State_Diag%Archive_KppDiags = (                                          &
+         State_Diag%Archive_KppIntCounts                                .or. &
+         State_Diag%Archive_KppJacCounts                                .or. &
+         State_Diag%Archive_KppTotSteps                                 .or. &
+         State_Diag%Archive_KppAccSteps                                 .or. &
+         State_Diag%Archive_KppRejSteps                                 .or. &
+         State_Diag%Archive_KppLuDecomps                                .or. &
+         State_Diag%Archive_KppSubsts                                   .or. &
+         State_Diag%Archive_KppSmDecomps                                .or. &
+         State_Diag%Archive_KppNegatives                                .or. &
+         State_Diag%Archive_KppNegatives0                               .or. &
+         State_Diag%Archive_KppAutoReducerNVAR                          .or. &
+         State_Diag%Archive_KppAutoReduceThres                          .or. &
+         State_Diag%Archive_KppcNONZERO                                 .or. &
+         State_Diag%Archive_KppTime                                     .or. &
+         State_Diag%Archive_KppDiags                                      )
 
-    State_Diag%Archive_KppDiags = ( State_Diag%Archive_KppIntCounts       .or. &
-                                    State_Diag%Archive_KppJacCounts       .or. &
-                                    State_Diag%Archive_KppTotSteps        .or. &
-                                    State_Diag%Archive_KppAccSteps        .or. &
-                                    State_Diag%Archive_KppRejSteps        .or. &
-                                    State_Diag%Archive_KppLuDecomps       .or. &
-                                    State_Diag%Archive_KppSubsts          .or. &
-                                    State_Diag%Archive_KppSmDecomps       .or. &
-                                    State_Diag%Archive_KppNegatives       .or. &
-                                    State_Diag%Archive_KppNegatives0      .or. &
-                                    State_Diag%Archive_KppAutoReducerNVAR .or. &
-                                    State_Diag%Archive_KppAutoReduceThres .or. &
-                                    State_Diag%Archive_KppcNONZERO        .or. &
-                                    State_Diag%Archive_KppTime            .or. &
-                                    State_Diag%Archive_KppDiags             )
-
-    State_Diag%Archive_RadOptics  = ( State_Diag%Archive_RadAODWL1     .or. &
-                                      State_Diag%Archive_RadAODWL2     .or. &
-                                      State_Diag%Archive_RadAODWL3     .or. &
-                                      State_Diag%Archive_RadSSAWL1     .or. &
-                                      State_Diag%Archive_RadSSAWL2     .or. &
-                                      State_Diag%Archive_RadSSAWL3     .or. &
-                                      State_Diag%Archive_RadAsymWL1    .or. &
-                                      State_Diag%Archive_RadAsymWL2    .or. &
-                                      State_Diag%Archive_RadAsymWL3        )
+    State_Diag%Archive_RadOptics  = (                                        &
+         State_Diag%Archive_RadAODWL1                                   .or. &
+         State_Diag%Archive_RadAODWL2                                   .or. &
+         State_Diag%Archive_RadAODWL3                                   .or. &
+         State_Diag%Archive_RadSSAWL1                                   .or. &
+         State_Diag%Archive_RadSSAWL2                                   .or. &
+         State_Diag%Archive_RadSSAWL3                                   .or. &
+         State_Diag%Archive_RadAsymWL1                                  .or. &
+         State_Diag%Archive_RadAsymWL2                                  .or. &
+         State_Diag%Archive_RadAsymWL3                                      )
 
     State_Diag%Archive_Metrics = (                                           &
          State_Diag%Archive_AirMassColumnFull                           .or. &
@@ -13658,9 +13664,9 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
 !zhaisx
-    CALL Finalize( diagId   = 'PM10',                                        &     
-                   Ptr2Data = State_Diag%PM10,                               &     
-                   RC       = RC                                            )     
+    CALL Finalize( diagId   = 'PM10',                                        &
+                   Ptr2Data = State_Diag%PM10,                               &
+                   RC       = RC                                            )
     IF ( RC /= GC_SUCCESS ) RETURN
 
 ! H. Zhu

@@ -6015,13 +6015,6 @@ CONTAINS
     ! DiagH2SO4 begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !---------------------------------------------------------------------
@@ -6180,13 +6173,6 @@ CONTAINS
     ! DiagNUCL begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6267,13 +6253,6 @@ CONTAINS
     ! DiagAQOX begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6352,13 +6331,6 @@ CONTAINS
     !========================================================================
     ! DiagMNFIX begins here!
     !========================================================================
-
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
@@ -6439,13 +6411,6 @@ CONTAINS
     ! DiagSOA begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6525,13 +6490,6 @@ CONTAINS
     ! DiagNUCRATE begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6602,13 +6560,6 @@ CONTAINS
     !========================================================================
     ! DiagMNFIXezwat1 begins here!
     !========================================================================
-
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
@@ -6690,13 +6641,6 @@ CONTAINS
     ! DiagMNFIXezwat2 begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6776,13 +6720,6 @@ CONTAINS
     !========================================================================
     ! DiagnMNFIXezwat3 begins here!
     !========================================================================
-
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
@@ -6865,13 +6802,6 @@ CONTAINS
     ! DiagMNFIXh2so4 begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -6953,13 +6883,6 @@ CONTAINS
     ! DiagMNFIXcoag begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -7039,13 +6962,6 @@ CONTAINS
     !========================================================================
     ! DiagMNFIXaqox begins here!
     !========================================================================
-
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
    
@@ -7127,13 +7043,6 @@ CONTAINS
     ! DiagMNFIXcheck1 begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -7214,13 +7123,6 @@ CONTAINS
     ! DiagMNFIXcheck2 begins here!
     !========================================================================
 
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
     !------------------------------------------------------------------------
@@ -7300,13 +7202,6 @@ CONTAINS
     !========================================================================
     ! DiagMNFIXcheck3 begins here!
     !========================================================================
-
-    State_Diag%TomasH2SO4 = 1.0_fp
-    State_Diag%TomasCOAG  = 2.0_fp
-    State_Diag%TomasNUCL  = 3.0_fp
-    State_Diag%TomasAQOX  = 4.0_fp
-    State_Diag%TomasMNFIX = 5.0_fp
-    State_Diag%TomasSOA   = 6.0_fp
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec
 
