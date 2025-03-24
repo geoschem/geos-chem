@@ -309,13 +309,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Turn on all collections except RRTMG and Tomas collections (which
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
-    # Also note; there is a floating point error in the UVFlux diagnostic,
-    # so temporarily comment that out.
     sed_ie "s|#'|'|"               "HISTORY.rc"
     sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
     sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
     sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
-    sed_ie "s|'UVFlux'|#'UVFlux'|" "HISTORY.rc"
+
+    # Disable the KppTime diagnostic (time spent in integrator) as
+    # this will vary due to local conditions on the cluster/node
+    sed_ie "s|'KppTime'|#'KppTime'|" "HISTORY.rc"
 
     # Activate the planeflight diagnostic
     cp -r "${pfDat}" .

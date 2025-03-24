@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
 - Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
+- Disabled the `KppTime` diagnostic output the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
@@ -45,12 +46,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
 - Fixed path error `download_data.py` when downloading from `geoschem+http` or `nested+http` portals
 - Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
+- Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
+- Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 - Removed re-evaporation requirement for washout
 - Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 - Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
+- Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
 
 ## [14.5.3] - 2025-03-04
 ### Changed

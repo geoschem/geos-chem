@@ -905,7 +905,6 @@ CONTAINS
     REAL(f4), POINTER     :: ptr1d(:)
 
     ! Strings
-    CHARACTER(LEN=16)     :: stamp
     CHARACTER(LEN=31)     :: varName
     CHARACTER(LEN=255)    :: attVal
     CHARACTER(LEN=255)    :: ThisLoc
@@ -1029,8 +1028,7 @@ CONTAINS
     !=======================================================================
 
     ! History
-    stamp   = SYSTEM_TIMESTAMP()
-    attVal = 'GEOS-Chem simulation at ' // stamp
+    attVal = 'GEOS-Chem simulation'
     CALL NcDef_Glob_Attributes( fId, 'history', TRIM(attVal) )
 
     ! Conventions
