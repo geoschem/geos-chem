@@ -549,22 +549,15 @@ while [ "${valid_res}" -eq 0 ]; do
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
     elif [[ "x${res_num}" == "x3" ]]; then
 	grid_res='05x0625'
+	grid_res_long='0.5x0.625'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
-    elif [[ "x${res_num}" == "x4" ]]; then
-	if [[ "x${met}" == "xmerra2" ]]; then
-	    valid_res=0
-	    printf "Cannot create a MERRA-2 rundir at 0.25 x 0.3125 "
-	    printf "resolution!\nPlease make another selection.\n"
-	fi
+    elif [[ "x${met}" == "xgeosfp" ]] && [[ "x${res_num}" == "x4" ]]; then
 	grid_res='025x03125'
+	grid_res_long='0.25x0.3125'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
-    elif [[ "x${res_num}" == "x5" ]]; then
-	if [[ "x${met}" == "xmerra2" ]]; then
-	    valid_res=0
-	    printf "Cannot create a MERRA-2 rundir at 0.125 x 0.15625 "
-	    printf "resolution!\nPlease make another selection.\n"
-	fi
+    elif [[ "x${met}" == "xgeosfp" ]] && [[ "x${res_num}" == "x5" ]]; then
 	grid_res='0125x015625'
+	grid_res_long='0.125x0.15625'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/0125x015625.txt)\n"
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields_0125'\n"
     else
@@ -580,8 +573,12 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
     printf "  2. Asia\n"
     printf "  3. Europe\n"
     printf "  4. North America\n"
-    printf "  5. Custom\n"
-
+    if [[ "${grid_res}" = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
+	printf "  5. South America\n"
+	printf "  6. Africa\n"
+	printf "  7. Oceania\n"
+	printf "  8. Russia\n"
+    fi
     valid_domain=0
     while [ "${valid_domain}" -eq 0 ]; do
 	read -p "${USER_PROMPT}" domain_num
@@ -589,8 +586,12 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	if [[ ${domain_num} = "1" ]]; then
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
 	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
+	    nested_sim="F"
 	else
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
+	    nested_sim="T"
+
+	    # Asia
 	    if [[ ${domain_num} = "2" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AS'\n"
 		grid_nest="AS"
@@ -601,6 +602,8 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 70.0, 140.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 15.0,  55.0]'\n"
 		fi
+
+	    # Europe
 	    elif [[ ${domain_num} = "3" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='EU'\n"
 	        grid_nest="EU"
@@ -611,9 +614,11 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-15.0,  40.0 ]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 32.75, 61.25]'\n"
 		fi
+
+	    # North America
 	    elif [[ ${domain_num} = "4" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='NA'\n"
-		grid_nest+="NA"
+		grid_nest="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-140.0, -40.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[  10.0,  70.0]'\n"
@@ -621,13 +626,35 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-130.0,  -60.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[   9.75,  60.0]'\n"
 		fi
-	    elif [[ ${domain_num} = "5" ]]; then
-		grid_nest="CU"
-		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='custom'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
-	        printf "\n  -- You will need to manually set longitude and latitude"
-		printf "\n     bounds in the Grid Menu of geoschem_config.yml!\n"
+
+	    # South America (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "5" ]]; then
+		grid_nest="SA"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='SA'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-87.8125, -31.25]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-59.0,     16.0]'\n"
+
+	    # Africa (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "6" ]]; then
+		grid_nest="AF"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AF'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-20.0, 52.8125]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-37.0, 40.0]'\n"
+
+	    # Oceania (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "7" ]]; then
+		grid_nest="OC"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='OC'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[110.0, 180.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-50.0,   5.0]'\n"
+
+	    # Russia (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "8" ]]; then
+		grid_nest="RU"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='RU'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[19.0625, 180.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-59.0,    16.0]'\n"
+
 	    else
   		valid_domain=0
 		printf "Invalid horizontal grid domain option. Try again.\n"
@@ -646,7 +673,6 @@ else
 	RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
     fi
 fi
-
 
 RUNDIR_VARS+="$(cat ${shared_met_settings})\n"   # shared_met_settings needs to be included after RUNDIR_GRID_DIR is defined
 
@@ -954,7 +980,10 @@ cd ${rundir}
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ "x${sim_name}" == "xHg"     ||
+if [[ "x${grid_res}" = "x0125x015625" ]]; then
+    startdate='20230101'
+    enddate='20230201'
+elif [[ "x${sim_name}" == "xHg"   ||
       "x${sim_name}" == "xCH4"    ||
       "x${sim_name}" == "xCO2"    ||
       "x${sim_name}" == "xtagCO"  ||
@@ -1085,10 +1114,10 @@ printf "\n  -- Default frequency and duration of diagnostics are set to monthly"
 printf "\n  -- Modify diagnostic settings in HISTORY.rc and HEMCO_Config.rc\n"
 
 if [[ "x${nested_sim}" == "xT" ]]; then
-    printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
-    printf "\n     by default. To improve run time, you may choose to use cropped"
-    printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
-    printf "\n     to include the region string (e.g. 'AS', 'EU', 'NA').\n"
+    printf "\n  -- Nested-grid simulations use regional high-reoslution met fields"
+    printf "\n     by default. GEOS-Chem may also use a custom domain in which case"
+    printf "\n     global high-resolution met fields or custom cropped met fields"
+    printf "\n     can be used.\n"
 fi
 
 #--------------------------------------------------------------------
@@ -1147,6 +1176,22 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     if [[ "x${sim_extra_option}" != "xnone" ]]; then
 	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
     fi
+fi
+
+# Add nested grid region to met field file path and name to avoid reading
+# global files
+if [[ "x${nested_sim}" == "xT" ]]; then
+
+    if [[ "x${grid_res}" = "x0125x015625" ]]; then
+	hco_met='HEMCO_Config.rc.gmao_metfields_0125'
+	sed_ie "s|GEOS_0.25x0.3125|GEOS_0.25x0.3125_${grid_nest}|" $hco_met
+	sed_ie "s|025x03125.\$NC|025x03125.${grid_nest}.\$NC|" $hco_met
+    else
+	hco_met='HEMCO_Config.rc.gmao_metfields'
+    fi
+    sed_ie "s|GEOS_${grid_res_long}|GEOS_${grid_res_long}_${grid_nest}|" $hco_met
+    sed_ie "s|\$RES|\$RES.${grid_nest}|" $hco_met
+
 fi
 
 #--------------------------------------------------------------------
