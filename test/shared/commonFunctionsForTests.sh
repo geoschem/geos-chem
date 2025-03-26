@@ -238,8 +238,7 @@ function update_config_files() {
     # Replace text in HEMCO_Config.rc
     #------------------------------------------------------------------------
 
-    # For all nested-grid rundirs, add a NA into the entries for met fields
-    # Also update the DiagnFreq for nested or global simulations
+    # Update DiagnFreq for nested or global simulations
     if grep -q "_NA" <<< "${runPath}"; then
         sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc"
     else
@@ -247,26 +246,10 @@ function update_config_files() {
     fi
 
     #------------------------------------------------------------------------
-    # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
-    #------------------------------------------------------------------------
-
-    if [[ -f "${runPath}/HEMCO_Config.rc.gmao_metfields" ]]; then
-        # For all nested-grid rundirs, add a NA into the entries for met fields
-        if grep -q "05x0625" <<< "${runPath}"; then
-            sed_ie "${SED_HEMCO_CONF_N}" \
-           "${runPath}/HEMCO_Config.rc.gmao_metfields"
-        fi
-
-        # Other text replacements
-        sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
-        sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
-    fi
-
-    #------------------------------------------------------------------------
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 
-    if grep -q "05x0625" <<< "${runPath}"; then
+    if grep -q "_NA" <<< "${runPath}"; then
 
 	# For nested-grid fullchem runs, change frequency and duration
 	# to 20 mins to reduce the run time of the whole set of tests.
@@ -698,9 +681,10 @@ function gcc_enable_or_disable_bootstrap() {
 
             if [[ "X${bootStrap}" == "XYES" ]]; then
 		# Set missing species in restarts & BC files to defaults
-		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EFYO" "CYS"
-		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EY"   "CYS"
-		change_time_cycle_flags "${hcoCfg}" "BC_ "  "EFY"  "CYS"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ "   "EFYO" "CYS"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ "   "EY"   "CYS"
+		change_time_cycle_flags "${hcoCfg}" "DELPDRY" "EY"   "CYS"
+		change_time_cycle_flags "${hcoCfg}" "BC_ "    "EFY"  "CYS"
             else
 		# Halt run if species are missing from restarts & BC files
 		change_time_cycle_flags "${hcoCfg}" "SPC_ " "CYS"  "EFYO"
