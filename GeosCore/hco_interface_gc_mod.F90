@@ -316,7 +316,7 @@ CONTAINS
     ! Note: The mere presence of State_Grid_HCO does not mean
     ! that the intermediate grid is necessarily different.
     ! The code path is decided if the intermediate is actually a different grid.
-    IF ( Input_Opt%IMGRID_XSCALE .ne. 1 .or. Input_Opt%IMGRID_XSCALE .ne. 1 ) THEN
+    IF ( Input_Opt%IMGRID_XSCALE /= 1 .or. Input_Opt%IMGRID_XSCALE /= 1 ) THEN
       ! Force .or. .true. to waste CPU cycles in regridding and debug Map_A2A above
       Input_Opt%LIMGRID = .true.
 
@@ -4424,7 +4424,7 @@ CONTAINS
       CALL FlexGrid_Read_I3_2( D(1), D(2), Input_Opt, State_Grid, State_Met )
 
       ! Resolution 0.125x0.15625 use I1dyn archive (xlwang, 06/2024)
-      IF ( TRIM(State_Grid%GridRes) .NE. '0.125x0.15625' ) THEN
+      IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
 
           ! Set dry surface pressure (PS2_DRY) from State_Met%PS2_WET
           ! and compute avg dry pressure near polar caps
