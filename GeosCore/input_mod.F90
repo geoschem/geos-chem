@@ -957,8 +957,8 @@ CONTAINS
     ENDIF
 
     ! Save the delta X and Y values
-    State_Grid%DY = Cast_and_RoundOff( subStrs(1), places=4 )
-    State_Grid%DX = Cast_and_RoundOff( subStrs(2), places=4 )
+    State_Grid%DY = Cast_and_RoundOff( subStrs(1), places=6 )
+    State_Grid%DX = Cast_and_RoundOff( subStrs(2), places=6 )
 
     !------------------------------------------------------------------------
     ! Level range
@@ -984,8 +984,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%XMin = Cast_and_RoundOff( a_str(1), places=4 )
-    State_Grid%XMax = Cast_and_RoundOff( a_str(2), places=4 )
+    State_Grid%XMin = Cast_and_RoundOff( a_str(1), places=6 )
+    State_Grid%XMax = Cast_and_RoundOff( a_str(2), places=6 )
 
     ! Make sure values are in valid rangre
     IF ( State_Grid%XMin >= State_Grid%XMax ) THEN
@@ -1021,8 +1021,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%YMin = Cast_and_RoundOff( a_str(1), places=4 )
-    State_Grid%YMax = Cast_and_RoundOff( a_str(2), places=4 )
+    State_Grid%YMin = Cast_and_RoundOff( a_str(1), places=6 )
+    State_Grid%YMax = Cast_and_RoundOff( a_str(2), places=6 )
 
     ! Make sure values are in valid range
     IF ( State_Grid%YMin >= State_Grid%YMax ) THEN
@@ -4638,6 +4638,8 @@ CONTAINS
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        MAX_DYN = 600
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       MAX_DYN = 300
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
        MAX_DYN = 300
     ELSE
        MAX_DYN = 3600

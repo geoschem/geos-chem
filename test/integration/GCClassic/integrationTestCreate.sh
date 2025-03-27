@@ -285,11 +285,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Nested-grid simulations
     #=========================================================================
 
-    # 05x0625 merra2 CH4_47L_na
-    create_rundir "9\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+    # 0.5x0.625 NA merra2 CH4
+    create_rundir "9\n1\n3\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # 05x0625 merra2 fullchem_47L_na
-    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
+    # 0.25x0.3125 NA geosfp CH4
+    create_rundir "9\n2\ny\n4\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 0.125x0.15625 NA geosfp CH4
+    create_rundir "9\n2\ny\n5\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on

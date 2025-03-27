@@ -1947,9 +1947,25 @@ PROGRAM GEOS_Chem
        !=====================================================================
        IF ( notDryRun ) THEN
           IF ((mod(get_hour(), 3) .eq. 0) .AND. (get_minute() .eq. 0)) THEN
-             CALL Copy_I3_Fields( State_Met )
+             CALL Copy_I3_Fields( State_Met, State_Grid )
              IF ( VerboseAndRoot ) THEN
                 CALL Debug_Msg( '### MAIN: after COPY_I3_FIELDS' )
+             ENDIF
+          ENDIF
+       ENDIF
+
+       !=====================================================================
+       !            ***** C O P Y   I - 1 d y n   F I E L D S *****
+       !
+       ! The I-1 fields at the end of an outer timestep (every 1 hours)
+       ! become the fields at the beginning of the next timestep.
+       ! This update must occur before writing History.
+       !=====================================================================
+       IF ( notDryRun .and. TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+          IF ((mod(get_hour(), 1) .eq. 0) .AND. (get_minute() .eq. 0)) THEN
+             CALL Copy_I1dyn_Fields( State_Met )
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: after COPY_I1dyn_FIELDS' )
              ENDIF
           ENDIF
        ENDIF
