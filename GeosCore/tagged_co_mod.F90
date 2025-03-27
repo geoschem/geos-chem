@@ -231,7 +231,7 @@ CONTAINS
     FMOL_CO   =  State_Chm%SpcData(1)%Info%MW_g * 1.0e-3_fp
 
     ! Factor to convert OH from kg/m3 (from HEMCO) to molec/cm3
-    kgm3_to_mcm3OH = ( AVO / 17.0e-3_fp ) * 1.0e-6_fp
+    kgm3_to_mcm3OH = ( AVO / 17.01e-3_fp ) * 1.0e-6_fp
 
     ! Compute diurnal cycle for OH every day (check for new day inside
     ! subroutine) - jaf 7/10/14
@@ -303,30 +303,30 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Use the NOAA spatially resolved data where available
-    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, &
-                         RC, FOUND=FOUND )
-    IF (.NOT. FOUND ) THEN
-       FOUND = .TRUE.
-       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-       ! https://doi.org/10.5194/gmd-10-2057-2017a
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', SFC_CH4, &
-                            RC, FOUND=FOUND )
-    ENDIF
-    IF (.NOT. FOUND ) THEN
-       FOUND = .TRUE.
-       ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
-       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', SFC_CH4, &
-                            RC, FOUND=FOUND )
-    ENDIF
-    IF (.NOT. FOUND ) THEN
-       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
-                'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
-                'corresponds to your emissions year in HEMCO_Config.rc ' // &
-                '(NOAA GMD for 1978 and later; else CMIP6).'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+!    ! Use the NOAA spatially resolved data where available
+!    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, &
+!                         RC, FOUND=FOUND )
+!    IF (.NOT. FOUND ) THEN
+!       FOUND = .TRUE.
+!       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+!       ! https://doi.org/10.5194/gmd-10-2057-2017a
+!       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', SFC_CH4, &
+!                            RC, FOUND=FOUND )
+!    ENDIF
+!    IF (.NOT. FOUND ) THEN
+!       FOUND = .TRUE.
+!       ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
+!       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', SFC_CH4, &
+!                            RC, FOUND=FOUND )
+!    ENDIF
+!    IF (.NOT. FOUND ) THEN
+!       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
+!                'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
+!                'corresponds to your emissions year in HEMCO_Config.rc ' // &
+!                '(NOAA GMD for 1978 and later; else CMIP6).'
+!       CALL GC_Error( ErrMsg, RC, ThisLoc )
+!       RETURN
+!    ENDIF
 
     ! Evaluate trop P(CO) from CH4 in HEMCO if needed
     IF ( LPCO_CH4 ) THEN
@@ -475,13 +475,10 @@ CONTAINS
           FAC_DIURNAL = 0.0_fp
        ENDIF
 
-       ! Now impose a diurnal cycle on OH.
-       ! This is done in other offline simulations but was
-       ! missing from tagged CO (jaf, 3/12/14)
-       !
-       ! NOTE: HEMCO brings in OH in mol/mol, so we need to also
-       ! apply a conversion to molec/cm3 here. (bmy, 10/12/16)
-       OH_MOLEC_CM3 = ( GLOBAL_OH(I,J,L) * DENS ) * FAC_DIURNAL
+       ! We are using Global_OH from GEOS-Chem v5 for comparison to the carbon
+       ! simulation so convert OH from [kg/m3] to [molec/cm3]
+       ! Also remove application of diurnal scale factor to OH
+       OH_MOLEC_CM3 = GLOBAL_OH(I,J,L) * kgm3_to_mcm3OH
 
        ! Make sure OH is not negative
        OH_MOLEC_CM3 = MAX( OH_MOLEC_CM3, 0e+0_fp )
@@ -946,26 +943,41 @@ CONTAINS
           !  found in KPP/Standard/gckpp_Rates.F90)
           ! new JPL 2006 version (jaf, 3/4/09)
           ! KLO1 = k_0(T) from JPL Data Eval (page 2-1)
-          KLO1   = 5.9e-33_fp * ( 300 / T(I,J,L) )**(1.e+0_fp)
+          KLO1   = 5.9e-33_fp * ( 300.0_fp / T(I,J,L) )**(1.0_fp)
           ! KHI1 = k_inf(T) from JPL Data Eval (page 2-1)
-          KHI1   = 1.1e-12_fp * ( 300 / T(I,J,L) )**(-1.3e+0_fp)
+          KHI1   = 1.1e-12_fp * ( 300.0_fp / T(I,J,L) )**(-1.3_fp)
           XYRAT1 = KLO1 * DENS / KHI1
           BLOG1  = LOG10(XYRAT1)
-          FEXP1  = 1.e+0_fp / ( 1.e+0_fp + BLOG1 * BLOG1 )
+          FEXP1  = 1.0_fp / ( 1.0_fp + BLOG1 * BLOG1 )
           ! KCO1 = k_f([M],T) from JPL Data Eval (page 2-1)
-          KCO1   = KLO1 * DENS * 0.6**FEXP1 / ( 1.e+0_fp + XYRAT1 )
+          KCO1   = KLO1 * DENS * 0.6_fp**FEXP1 / ( 1.0_fp + XYRAT1 )
+
           ! KLO2 = k_0(T) from JPL Data Eval (page 2-1)
-          KLO2   = 1.5e-13_fp * ( 300 / T(I,J,L) )**(0.e+0_fp)
+          KLO2   = 1.5e-13_fp * ( 300.0_fp / T(I,J,L) )**(0.0_fp)
           ! KHI2 = k_inf(T) from JPL Data Eval (page 2-1)
-          KHI2   = 2.1e+09_fp * ( 300 / T(I,J,L) )**(-6.1e+0_fp)
+          KHI2   = 2.1e+09_fp * ( 300.0_fp / T(I,J,L) )**(-6.1_fp)
           XYRAT2 = KLO2 * DENS / KHI2
           BLOG2  = LOG10(XYRAT2)
-          FEXP2  = 1.e+0_fp / ( 1.e+0_fp + BLOG2 * BLOG2 )
+          FEXP2  = 1.0_fp / ( 1.0_fp + BLOG2 * BLOG2 )
           ! KCO2 = k_f^ca([M],T) from JPL Data Eval (page 2-2)
-          KCO2   = KLO2 * 0.6**FEXP2 / ( 1.e+0_fp + XYRAT2 )
+          KCO2   = KLO2 * 0.6_fp**FEXP2 / ( 1.0_fp + XYRAT2 )
 
           ! KRATE is the sum of the two.
           KRATE  = KCO1 + KCO2
+
+!          IF ( I==42 .and. J==43 .and. L==1 ) THEN
+!             Print*, 'Debug GC_OHCO - tagged_co'
+!             Print*, 'KLO1   = ', KLO1
+!             Print*, 'LHI1   = ', KHI1
+!             Print*, 'DENS   = ', DENS
+!             Print*, 'XYRAT1 = ', XYRAT1
+!             Print*, 'BLOG1  = ', BLOG1
+!             Print*, 'FEXP1  = ', FEXP1
+!             Print*, 'KCO1   = ', KCO1
+!             Print*, 'KCO2   = ', KCO2
+!             Print*, 'KRATE  = ', KRATE
+!             Print*, 'OH     = ', OH_MOLEC_CM3  
+!          ENDIF
 
           ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
           ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.

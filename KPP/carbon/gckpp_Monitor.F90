@@ -27,9 +27,9 @@ MODULE gckpp_Monitor
 
 
   CHARACTER(LEN=32), PARAMETER, DIMENSION(17) :: SPC_NAMES = (/ &
-     'CH4                             ','CO                              ','CO2                             ', & ! index 1 - 3
-     'COfromCH4                       ','COfromNMVOC                     ','CO2fromOH                       ', & ! index 4 - 6
-     'LCH4OH                          ','LCH4Cl                          ','LCH4strat                       ', & ! index 7 - 9
+     'CH4                             ','CO                              ','PCOfromCH4                      ', & ! index 1 - 3
+     'PCOfromNMVOC                    ','LCH4byOH                        ','LCH4byCl                        ', & ! index 4 - 6
+     'LCH4inStrat                     ','LCObyOH                         ','LCOinStrat                      ', & ! index 7 - 9
      'PCO                             ','LCO                             ','LCH4                            ', & ! index 10 - 12
      'FixedOH                         ','FixedCl                         ','DummyCH4trop                    ', & ! index 13 - 15
      'DummyCH4strat                   ','DummyNMVOC                      ' /) ! index up to 17
@@ -38,14 +38,14 @@ MODULE gckpp_Monitor
   INTEGER, DIMENSION(1) :: MONITOR
   CHARACTER(LEN=32), DIMENSION(1) :: SMASS
   CHARACTER(LEN=100), PARAMETER, DIMENSION(8) :: EQN_NAMES = (/ &
-     'CH4 + FixedOH --> LCH4OH + LCH4                                                                     ', & ! index 1
-     'CH4 + FixedCl --> LCH4Cl + LCH4                                                                     ', & ! index 2
-     ' DummyCH4trop --> CO + COfromCH4 + PCO                                                              ', & ! index 3
-     ' CO + FixedOH --> CO2 + CO2fromOH + LCO                                                             ', & ! index 4
-     '   DummyNMVOC --> CO + COfromNMVOC + PCO                                                            ', & ! index 5
-     '          CH4 --> LCH4strat + LCH4                                                                  ', & ! index 6
+     'CH4 + FixedOH --> LCH4byOH + LCH4                                                                   ', & ! index 1
+     'CH4 + FixedCl --> LCH4byCl + LCH4                                                                   ', & ! index 2
+     ' DummyCH4trop --> CO + PCOfromCH4 + PCO                                                             ', & ! index 3
+     ' CO + FixedOH --> LCObyOH + LCO                                                                     ', & ! index 4
+     '   DummyNMVOC --> CO + PCOfromNMVOC + PCO                                                           ', & ! index 5
+     '          CH4 --> LCH4inStrat + LCH4                                                                ', & ! index 6
      'DummyCH4strat --> CO + PCO                                                                          ', & ! index 7
-     '           CO --> CO2 + CO2fromOH + LCO                                                             ' /) ! index up to 8
+     '           CO --> LCOinStrat + LCO                                                                  ' /) ! index up to 8
 
   CHARACTER(LEN=32), PARAMETER, DIMENSION(3) :: FAM_NAMES = (/ &
      'PCO                             ','LCO                             ','LCH4                            ' /) ! index up to 3
