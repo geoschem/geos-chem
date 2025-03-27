@@ -135,6 +135,9 @@ HIGHRES:     ${RUNDIR_DATA_ROOT}/GEOS_0.125x0.15625/GEOS_FP_DerivedWinds
 # Native-resolution lightning flash rates constrained to LIS/OTD climatology
 # and convective depth are now prescribed as offline meteorology.
 #                                                    --Lee Murray (16 Jan 2019)
+#
+# These fields are currently not available for 0.125x0.15625 resolution
+# (M. Sulprizio, 27 Mar 2025)
 #==============================================================================
 (((LightNOx
 (((.not.LightningClimatology

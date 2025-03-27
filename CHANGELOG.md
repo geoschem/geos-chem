@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
 - Added dry-run integration tests for selected simulations
 - Added `State_Diag%SatDiagnPMid` and `State_Diag%Archive_SatDiagnPMid` to save pressure at level midpoints to the `SatDiagn` collection
+- Added option to run GEOS-Chem at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -434,10 +435,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated sample restart files for fullchem and TransportTracers simulations to files saved out from the 14.2.0 1-year benchmarks
 
 ## [14.2.1] - 2023-10-10
-### Added
-- Added option to run GEOS-Chem at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
-
-## [Unreleased 14.2.1] - TBD
 ### Added
 - Script `test/difference/diffTest.sh`, checks 2 different integration tests for differences
 - Added GCHP environment file and export/unset env variables in run script for NASA Pleiades cluster

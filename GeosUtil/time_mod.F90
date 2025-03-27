@@ -1689,7 +1689,6 @@ CONTAINS
     !=================================================================
 
     IF ( FIRST ) THEN
-
        !--------------------------------------------------------------
        ! FIRST-TIME ONLY!  Get the proper # of hours until the next
        ! I3 time.  Also works for start times other than 0 GMT.
@@ -1710,17 +1709,12 @@ CONTAINS
        ! Reset first-time flag
        FIRST = .FALSE.
 
-    ELSE
-
-       !--------------------------------------------------------------
-       ! Other than the 1st time: Search 180 mins ahead
-       !--------------------------------------------------------------
-
-       ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
-       ! ahead of time
-       DATE = GET_TIME_AHEAD( 10800 )
-
+       RETURN
     ENDIF
+
+    ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
+    ! ahead of time
+    DATE = GET_TIME_AHEAD( 10800 )
 
   END FUNCTION GET_I3_TIME
 !EOC
@@ -1764,7 +1758,6 @@ CONTAINS
     !=================================================================
 
     IF ( FIRST ) THEN
-
        !--------------------------------------------------------------
        ! FIRST-TIME ONLY!  Get the proper # of hours until the next
        ! I1dyn time.  Also works for start times other than 0 GMT.
@@ -1785,17 +1778,13 @@ CONTAINS
        ! Reset first-time flag
        FIRST = .FALSE.
 
-    ELSE
-
-       !--------------------------------------------------------------
-       ! Other than the 1st time: Search 180 mins ahead
-       !--------------------------------------------------------------
-
-       ! We need to read in the I-1 fields 1h (60 mins, or 3600 secs)
-       ! ahead of time
-       DATE = GET_TIME_AHEAD( 3600 )
-
+       RETURN
     ENDIF
+
+    ! We need to read in the I-1 fields 1h (60 mins, or 3600 secs)
+    ! ahead of time
+    DATE = GET_TIME_AHEAD( 3600 )
+
 
   END FUNCTION GET_I1dyn_TIME
 !EOC
@@ -1828,7 +1817,6 @@ CONTAINS
     INTEGER       :: HH, MM, SS, SECS, OFFSET
 
     IF ( FIRST ) THEN
-
        !--------------------------------------------------------------
        ! FIRST-TIME ONLY!  Get the proper # of hours until the next
        ! BC time.  Also works for start times other than 0 GMT.
@@ -1849,24 +1837,19 @@ CONTAINS
        ! Reset first-time flag
        FIRST = .FALSE.
 
-    ELSE
-
-       !--------------------------------------------------------------
-       ! Other than the 1st time: Use current time
-       !--------------------------------------------------------------
-
-       ! Boundary condition time slices are set to fixed 3-hourly intervals
-       ! starting from 00z, in units of minutes from start. i.e.,
-       ! time = 0, 180, 360, 540, 720, 900, 1080, 1260 ;
-       ! time:units = "minutes since 2019-01-01T00:00:00+00:00" ;
-       !
-       ! The GET_BC_TIME is used to retrieve HHMMSS time slices for use in
-       ! Get_Boundary_Conditions, which performs the calculation
-       !     t_index = ( HHMMSS / 030000 ) + 1
-       ! Thus, HHMMSS must not be offset from the current time. (hplin, 7/27/23)
-       DATE = GET_TIME_AHEAD( 0 )
-
+       RETURN
     ENDIF
+
+    ! Boundary condition time slices are set to fixed 3-hourly intervals
+    ! starting from 00z, in units of minutes from start. i.e.,
+    ! time = 0, 180, 360, 540, 720, 900, 1080, 1260 ;
+    ! time:units = "minutes since 2019-01-01T00:00:00+00:00" ;
+    !
+    ! The GET_BC_TIME is used to retrieve HHMMSS time slices for use in
+    ! Get_Boundary_Conditions, which performs the calculation
+    !     t_index = ( HHMMSS / 030000 ) + 1
+    ! Thus, HHMMSS must not be offset from the current time. (hplin, 7/27/23)
+    DATE = GET_TIME_AHEAD( 0 )
 
   END FUNCTION GET_BC_TIME
 !EOC

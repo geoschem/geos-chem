@@ -1133,7 +1133,7 @@ CONTAINS
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
     !   TSCALE = 0.5_fp*3600.0_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
-    !   TSCALE = 0.25*3600.
+    !   TSCALE = 0.25_fp*3600.0_fp
     !ENDIF
 
     ! Point to species array
