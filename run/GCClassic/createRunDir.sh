@@ -576,8 +576,11 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
     if [[ "${grid_res}" = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	printf "  5. South America\n"
 	printf "  6. Africa\n"
-	printf "  7. Oceania\n"
-	printf "  8. Russia\n"
+    fi
+    if [[ "${grid_res}" = "025x03125" ]]; then
+	printf "  7. Middle East\n"
+	printf "  8. Oceania\n"
+	printf "  9. Russia\n"
     fi
     valid_domain=0
     while [ "${valid_domain}" -eq 0 ]; do
@@ -641,19 +644,26 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-20.0, 52.8125]'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-37.0, 40.0]'\n"
 
-	    # Oceania (0.25 and 0.125 resolutions only)
-	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "7" ]]; then
+	    # Middle East (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "7" ]]; then
+		grid_nest="ME"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='ME'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-20.0, 70.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 12.0, 44.0]'\n"
+
+	    # Oceania (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "8" ]]; then
 		grid_nest="OC"
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='OC'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[110.0, 180.0]'\n"
 	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-50.0,   5.0]'\n"
 
-	    # Russia (0.25 and 0.125 resolutions only)
-	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "8" ]]; then
+	    # Russia (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "9" ]]; then
 		grid_nest="RU"
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='RU'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[19.0625, 180.0]'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-59.0,    16.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[20.0,  180.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[41.0,   83.0]'\n"
 
 	    else
   		valid_domain=0
