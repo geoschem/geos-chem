@@ -92,9 +92,9 @@ CONTAINS
        C(ind_CO)  = Spc(id_CO)%Conc(I,J,L)  * xnumol_CO  / airvol_cm3
     ENDIF
 
-    IF ( id_CO2 > 0 ) THEN
-       C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
-    ENDIF
+!    IF ( id_CO2 > 0 ) THEN
+!       C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
+!    ENDIF
 
     ! Initialize placeholder species to 1 molec/cm3
     C(ind_DummyCH4trop)  = 1.0_dp
@@ -317,9 +317,9 @@ CONTAINS
        Spc(id_CO)%Conc(I,J,L) = C(ind_CO)  * convfac_CO
     ENDIF
 
-    IF ( id_CO2 > 0 ) THEN
-       Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
-    ENDIF
+!    IF ( id_CO2 > 0 ) THEN
+!       Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
+!    ENDIF
 
     ! Free pointer
     Spc => NULL()
@@ -390,90 +390,42 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carbon_get_co2fromoh_flux
+! !IROUTINE: GC_OHCO
 !
-! !DESCRIPTION: Returns the flux of CO2_OH in molec/cm3/s for diagnostics.
+! !DESCRIPTION: Returns the rate of tropospheric loss of CO due to chemical reaction with OH
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carbon_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: flux         ! CO2_OH flux [molec/cm3/s]
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    flux = C(ind_CO2fromOH) / dtChem     ! molec/cm3 --> molec/cm3/s
-
-  END FUNCTION carbon_Get_CO2fromOH_Flux
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: carbon_get_oh_e_flux
-!
-! !DESCRIPTION: Returns the flux of OH_E in molec/cm3/s for diagnostics.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION carbon_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: flux         ! CO2_OH flux [kg/m2/s]
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    flux = C(ind_FixedOH) / dtChem       ! molec/cm3 --> molec/cm3/s
-
-  END FUNCTION carbon_Get_FixedOH_Flux
-
-
-  !==========================================================================
-  ! Rate-law functions
-  !==========================================================================
-
   FUNCTION GC_OHCO() RESULT( k )
-    !
-    ! Tropospheric loss of CO due to chemical rxn w/ OH
-    !
-    !  DECAY RATE
-    !  The decay rate (KRATE) is calculated by:
-    !
-    !     OH + CO -> products (JPL 15-10)
-    !     k = (1 + 0.6Patm) * 1.5E-13
-    !
-    !  KRATE has units of [ molec^2 CO / cm6 / s ]^-1,
-    !  since this is a 2-body reaction.
-    !
-    ! From JPL 2006: "The  reaction between HO and CO to yield
-    ! H + CO2 akes place on a potential energy surface that
-    ! contains the radical HOCO.  The yield of H and CO2 is
-    ! diminished as the pressure rises.  The loss of reactants
-    ! is thus the sum of two processes, an association to yield
-    ! HOCO and the chemical activation process yielding H and
-    ! CO2." So we now need two complicated reactions.
-    !
-    ! GY( A0 = 5.9e-33, B0 = 1.,     A1 = 1.1e-12, B1 = -1.3e0,
-    !     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
-    !
+
+!
+! !REMARKS:
+! Tropospheric loss of CO due to chemical rxn w/ OH
+!
+!  DECAY RATE
+!  The decay rate (KRATE) is calculated by:
+!
+!     OH + CO -> products (JPL 15-10)
+!     k = (1 + 0.6Patm) * 1.5E-13
+!
+!  KRATE has units of [ molec^2 CO / cm6 / s ]^-1,
+!  since this is a 2-body reaction.
+!
+! From JPL 2006: "The  reaction between HO and CO to yield
+! H + CO2 akes place on a potential energy surface that
+! contains the radical HOCO.  The yield of H and CO2 is
+! diminished as the pressure rises.  The loss of reactants
+! is thus the sum of two processes, an association to yield
+! HOCO and the chemical activation process yielding H and
+! CO2." So we now need two complicated reactions.
+!
+! GY( A0 = 5.9e-33, B0 = 1.,     A1 = 1.1e-12, B1 = -1.3e0,
+!     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
     REAL(dp) :: klo1,   klo2,   khi1,  khi2
     REAL(dp) :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(dp) :: fexp2,  kco1,   kco2,  TEMP300, k
@@ -507,5 +459,5 @@ CONTAINS
 !    ENDIF
 
   END FUNCTION GC_OHCO
-
+!EOC
 END MODULE carbon_Funcs

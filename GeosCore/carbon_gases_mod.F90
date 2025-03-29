@@ -908,7 +908,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Global,   ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
+    USE gckpp_Global,   ONLY : SR_MW, HENRY_CR, HENRY_K0
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
@@ -971,27 +971,16 @@ CONTAINS
     id_OCS_adv    = Ind_( 'OCS',   'A' )
     id_OH         = Ind_( 'FixedOH'    )
 
-    !========================================================================
-    ! Save physical parameters from the species_database.yml file into KPP
-    ! arrays located in module gckpp_Global.F90.  These do not vary with
-    ! (I,J,L) location, and so can be defined here in the init phase.
-    !========================================================================
-    DO KppId = 1, State_Chm%nKppSpc + State_Chm%nOmitted
-       N                  = State_Chm%Map_KppSpc(KppId)
-       IF ( N > 0 ) THEN
-          MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
-          SR_MW(KppId)    = SQRT( MW(KppId ) )
-          HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
-          HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
-
-          ! Also define xnumol factors = molec/kg ratios
-          ! These are useful in unit conversions
-          IF ( N == id_CH4 ) xnumol_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO  ) xnumol_CO  = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO2 ) xnumol_CO2 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_OH  ) xnumol_OH  = AVO / ( MW(KppId) * 1.0e-3_fp )
-       ENDIF
-    ENDDO
+    ! Define xnumol factors = molec/kg ratios
+    ! These are useful in unit conversions
+    IF ( id_CH4 > 0 ) &
+       xnumol_CH4 = AVO / ( State_Chm%SpcData(id_CH4)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO  > 0 ) &
+       xnumol_CO  = AVO / ( State_Chm%SpcData(id_CO )%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO2 > 0 ) &
+       xnumol_CO2 = AVO / ( State_Chm%SpcData(id_CO2)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_OH  > 0 ) &
+       xnumol_OH  = AVO / ( State_Chm%SpcData(id_OH )%Info%MW_g * 1.0e-3_fp )
 
     !========================================================================
     ! Initialize variables for COchemistry
