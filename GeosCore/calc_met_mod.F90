@@ -549,7 +549,7 @@ CONTAINS
        State_Met%MAIRDEN(I,J,L) = ADmoist / State_Met%AIRVOL(I,J,L)
 
        !==============================================================
-       !  the various query fields of State_Met
+       ! Define the various query fields of State_Met
        !
        ! NOTE: For convenience, we set State_Met%InPbl in routine
        ! COMPUTE_PBL_HEIGHT (in module GeosCore/pbl_mix_mod.F).
