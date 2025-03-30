@@ -759,7 +759,7 @@ CONTAINS
      
        AP_FULLGRID = AP
        BP_FULLGRID = BP
-!if defined ( MODEL_BCC )
+#if defined ( MODEL_BCC )
     ELSE IF ( State_Grid%NZ == 26 ) THEN
 
        !-----------------------------------------------------------------
@@ -787,7 +787,7 @@ CONTAINS
 
        AP_FULLGRID = AP
        BP_FULLGRID = BP
-!endif
+#endif
     ELSE IF ( State_Grid%NZ == 74 ) THEN
 
        !-----------------------------------------------------------------
