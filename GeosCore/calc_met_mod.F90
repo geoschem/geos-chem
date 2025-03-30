@@ -336,12 +336,16 @@ CONTAINS
        ! Set wet air pressures [hPa]
        ! (lower edge, delta, centroid, and spatially-weighted mean)
        !=============================================================
-
+#if !defined (MODEL_BCC) 
        ! Pressure at bottom edge of grid box [hPa]
        State_Met%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
 
        ! Pressure at top edge of grid box [hPa]
        PEdge_Top = GET_PEDGE(I,J,L+1)
+#endif
+#if defined (MODEL_BCC)
+        PEdge_Top=State_Met%PEDGE(I,J,L+1)
+#endif
 
        ! Pressure at bottom edge of grid box [hPa](level State_Grid%NZ+1 only)
        IF ( L == State_Grid%NZ ) THEN
@@ -355,7 +359,9 @@ CONTAINS
        ! ( PEDGE(L) + PEDGE(L+1) ) / 2. This represents the grid box
        ! mass centroid pressure. Use in the ideal gas law yields
        ! a local air density at the centroid.
+#if !defined (MODEL_BCC) 
        State_Met%PMID(I,J,L) = GET_PCENTER( I, J, L )
+#endif
 
        !=============================================================
        ! Calculate water vapor saturation pressure [hPa]
@@ -483,8 +489,9 @@ CONTAINS
 
        ! Update dry pressure difference as calculated from the
        ! dry surface pressure
+#if !defined (MODEL_BCC) 
        State_Met%DELP_DRY(I,J,L) = GET_DELP_DRY(I,J,L)
-
+#endif
        !==============================================================
        ! Set mass of dry air in grid box [kg]
        !==============================================================
@@ -542,7 +549,7 @@ CONTAINS
        State_Met%MAIRDEN(I,J,L) = ADmoist / State_Met%AIRVOL(I,J,L)
 
        !==============================================================
-       ! Define the various query fields of State_Met
+       !  the various query fields of State_Met
        !
        ! NOTE: For convenience, we set State_Met%InPbl in routine
        ! COMPUTE_PBL_HEIGHT (in module GeosCore/pbl_mix_mod.F).
