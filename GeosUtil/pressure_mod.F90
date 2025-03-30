@@ -230,7 +230,7 @@ CONTAINS
        ! instantaneous pressures
        PFLT_DRY(I,J) = State_Met%PSC2_DRY(I,J)
        PFLT_WET(I,J) = State_Met%PSC2_WET(I,J)
-
+#if !defined( MODEL_BCC )
        ! Check for NaN or Infinities in PFLT_DRY and PFLT_WET
        ERR_LOC = (/ I, J, 0, 0 /)
        ERR_VAR = 'PFLT_DRY'
@@ -239,7 +239,7 @@ CONTAINS
        ERR_VAR = 'PFLT_WET'
        ERR_MSG = 'set_floating_pressures:2'
        CALL CHECK_VALUE( PFLT_WET(I,J), ERR_LOC, ERR_VAR, ERR_MSG )
-
+#endif
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
@@ -559,7 +559,7 @@ CONTAINS
       BP = 0e+0_fp
     END IF
 
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_BCC )
     IF (.NOT. ALLOCATED( EXTERNAL_PEDGE )) THEN
       ALLOCATE( EXTERNAL_PEDGE( State_Grid%NX, State_Grid%NY, &
                                 State_Grid%NZ+1 ), &
@@ -758,6 +758,36 @@ CONTAINS
      
        AP_FULLGRID = AP
        BP_FULLGRID = BP
+
+#if defined( MODEL_BCC )
+    ELSE IF ( State_Grid%NZ == 26 ) THEN
+
+       !-----------------------------------------------------------------
+       ! 26-level BCC grid
+       !-----------------------------------------------------------------
+
+       ! Ap [hPa] for 26 levels (27 edges)
+       AP = (/ 0.000000d+00, 0.000000d+00, 2.521360d+02, 7.084990d+02, &
+               1.334443d+03, 2.084739d+03, 2.908949d+03, 3.752191d+03, &
+               4468.96, 5078.225, 5596.111, 6036.322, &
+               6410.509000, 6728.574000, 6998.933000, 7228.744000, &
+               7424.086000, 7590.131000, 7731.271000, 7851.243000, &
+               6160.587000, 4462.334000, 2983.724000, 1805.201000, &
+               988.241800,  489.520900,  219.406700 /)
+
+
+       ! Bp [unitless] for 26 levels (27 edges)
+       BP = (/ 1.000000d+00, 9.851120d-01, 9.534760d-01, 8.962150d-01, &
+               8.176770d-01, 7.235360d-01, 6.201200d-01, 5.143170d-01, &
+               4.243820d-01, 3.479360d-01, 2.829560d-01, 2.277220d-01, &
+               1.807720d-01, 1.408640d-01, 1.069410d-01, 0.781060d-01, &
+               0.535960d-01, 0.327620d-01, 0.150530d-01, 0.000000d+00, &
+               0.000000d+00, 0.000000d+00, 0.000000d+00, 0.000000d+00, &
+               0.000000d+00, 0.000000d+00, 0.000000d+00 /)
+
+       AP_FULLGRID = AP
+       BP_FULLGRID = BP
+#endif
 
     ELSE IF ( State_Grid%NZ == 74 ) THEN
 
@@ -1108,7 +1138,7 @@ CONTAINS
     IF ( ALLOCATED( BP_FULLGRID ) ) DEALLOCATE( BP_FULLGRID )
     IF ( ALLOCATED( PFLT_DRY    ) ) DEALLOCATE( PFLT_DRY    )
     IF ( ALLOCATED( PFLT_WET    ) ) DEALLOCATE( PFLT_WET    )
-#if defined( ESMF_ ) || defined( MODEL_ )
+#if defined( ESMF_ ) || defined( MODEL_ ) || defined( MODEL_BCC )
     IF ( ALLOCATED( EXTERNAL_PEDGE ) ) DEALLOCATE( EXTERNAL_PEDGE )
 #endif
 
