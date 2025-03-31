@@ -31,7 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
 - Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
 - Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
-- Disabled the `KppTime` diagnostic output the in `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
+- Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
