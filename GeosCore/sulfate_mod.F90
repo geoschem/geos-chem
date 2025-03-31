@@ -2556,8 +2556,8 @@ CONTAINS
     !IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
-#if !defined( MODEL_BCC )
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_BCC ) && !defined( MODEL_CESM )
       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_FINE', &
                        StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
 
@@ -2591,7 +2591,7 @@ CONTAINS
       ENDIF
       Ptr2D => NULL()
 #endif
-#endif
+
     !IF ( FIRST ) THEN
        ! Adjust first flag
     !   FIRST = .FALSE.
