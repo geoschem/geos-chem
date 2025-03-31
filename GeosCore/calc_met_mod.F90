@@ -336,15 +336,14 @@ CONTAINS
        ! Set wet air pressures [hPa]
        ! (lower edge, delta, centroid, and spatially-weighted mean)
        !=============================================================
-#if !defined (MODEL_BCC) 
+#ifdef MODEL_BCC
+       PEdge_Top=State_Met%PEDGE(I,J,L+1)
+#else
        ! Pressure at bottom edge of grid box [hPa]
        State_Met%PEDGE(I,J,L) = GET_PEDGE(I,J,L)
 
        ! Pressure at top edge of grid box [hPa]
        PEdge_Top = GET_PEDGE(I,J,L+1)
-#endif
-#if defined (MODEL_BCC)
-        PEdge_Top=State_Met%PEDGE(I,J,L+1)
 #endif
 
        ! Pressure at bottom edge of grid box [hPa](level State_Grid%NZ+1 only)
