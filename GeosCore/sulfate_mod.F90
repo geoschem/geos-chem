@@ -343,7 +343,7 @@ CONTAINS
     ! TS_EMIS is the emission timestep (in seconds). This is a module
     ! variable, hence define only on first call.
     IF ( FIRSTCHEM ) THEN
-#if defined( MODEL_CESM )
+#if defined( MODEL_CESM ) || defined( MODEL_BCC )
        ! Do not use HEMCO state in CESM
        TS_EMIS = REAL( Input_Opt%TS_EMIS, fp )
 #else
@@ -2556,6 +2556,7 @@ CONTAINS
     !IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
+#if !defined( MODEL_BCC )
 #if !defined( MODEL_CESM )
       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_FINE', &
                        StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
@@ -2590,7 +2591,7 @@ CONTAINS
       ENDIF
       Ptr2D => NULL()
 #endif
-
+#endif
     !IF ( FIRST ) THEN
        ! Adjust first flag
     !   FIRST = .FALSE.
