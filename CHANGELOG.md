@@ -36,7 +36,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
 - Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
 - Changed the minimum KPP version to 3.2.0
-  
+- Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
+
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
@@ -50,12 +51,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
 - Fixed path error `download_data.py` when downloading from `geoschem+http` or `nested+http` portals
 - Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
+- Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
+- Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 - Removed re-evaporation requirement for washout
 - Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 - Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
+- Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
 
 ## [14.5.3] - 2025-03-04
 ### Changed
