@@ -3,9 +3,10 @@
 This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [14.6.0] - 2025-03-31
+
+## [Unreleased] - TBD
 ### Added
-- Added updates for compatibility with BCC.
+- Added updates for compatibility with the Beijing Climate Center model v2.0.
 
 ## [14.5.3] - 2025-03-04
 ### Changed
