@@ -124,10 +124,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_CESM ) && !defined( MODEL_BCC )
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
+
     USE Input_Opt_Mod,     ONLY : OptInput
     USE Species_Mod,       ONLY : SpcConc
     USE State_Chm_Mod,     ONLY : ChmState
@@ -280,12 +282,14 @@ CONTAINS
     ENDIF
 
     IF ( RC /= GC_SUCCESS ) RETURN
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_CESM )  && !defined( MODEL_BCC )
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
     FND = .True.
     RC  = GC_SUCCESS
 #endif
+
 
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
