@@ -6483,6 +6483,8 @@ CONTAINS
     !   SGCTSCALE = 1.0_fp*3600.0_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
     !   SGCTSCALE = 0.50_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+    !   SGCTSCALE = 0.25_fp*3600.0_fp
     !ENDIF
 
 #if defined(TOMAS40)

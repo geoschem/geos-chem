@@ -11,6 +11,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
 - Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
 - Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
+- Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
+- Added dry-run integration tests for selected simulations
+- Added `State_Diag%SatDiagnPMid` and `State_Diag%Archive_SatDiagnPMid` to save pressure at level midpoints to the `SatDiagn` collection
+- Added option to run GCClassic nested-grid simulations at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
+- Added option for South America (SA), Africa (AF), Middle East (ME), Oceania (OC), and Russia (RU) regions to nested-grid simulations in GCClassic's createRunDir.sh
+- Added updates for compatibility with the Beijing Climate Centre Earth System Model
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -21,8 +27,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added precision when registering `State_Met` and `State_Chm` arrays to change output file precision to match precision in the model
 - Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
 - Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
+- Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
+- Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
+- Updated `run/shared/download_data.yml` to use `--no-sign-request` for S3 downloads via anonymous login
+- Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
+- Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
+- Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
+- Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
 - Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
-  
+- Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
+- Changed the minimum KPP version to 3.2.0
+- Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
+- Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
+
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
 - Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
@@ -30,12 +47,26 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
 - Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
 - Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
+- Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
+- Fixed incorrect description metadata for `FluxHg0FromAirToOcean` and `FluxHg0FromOceanToAir` diagnostics
+- Placed call to `Convert_Spc_Units` in `main.F90` within an `IF ( notDryrun )` block to avoid executing unit conversions in dryrun simulations
+- Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
+- Fixed path error `download_data.py` when downloading from `geoschem+http` or `nested+http` portals
+- Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
+- Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
+- Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
 - Fixed the carbon mechanism in KPP to reproduce CH4 simulation chemistry
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 - Removed re-evaporation requirement for washout
-- Remove unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
+- Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
+
+## [14.5.3] - 2025-03-04
+### Changed
+- Changed CESM `HEMCO_Config.rc` to read 3D AEIC emissions every timestep to avoid differences upon restart
 
 ## [14.5.2] - 2025-02-12
 ### Added

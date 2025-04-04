@@ -285,11 +285,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Nested-grid simulations
     #=========================================================================
 
-    # 05x0625 merra2 CH4_47L_na
-    create_rundir "9\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+    # 0.5x0.625 NA merra2 CH4
+    create_rundir "9\n1\n3\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # 05x0625 merra2 fullchem_47L_na
-    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
+    # 0.25x0.3125 NA geosfp CH4
+    create_rundir "9\n2\ny\n4\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
+
+    # 0.125x0.15625 NA geosfp CH4
+    create_rundir "9\n2\ny\n5\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on
@@ -309,13 +312,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Turn on all collections except RRTMG and Tomas collections (which
     # Make sure to activate these in the RRTMG and TOMAS integration tests.
-    # Also note; there is a floating point error in the UVFlux diagnostic,
-    # so temporarily comment that out.
     sed_ie "s|#'|'|"               "HISTORY.rc"
     sed_ie "s|'RRTMG'|#'RRTMG'|"   "HISTORY.rc"
     sed_ie "s|'Tomas'|#'Tomas'|"   "HISTORY.rc"
     sed_ie "s|'DynHeat|#'DynHeat|" "HISTORY.rc"
-    sed_ie "s|'UVFlux'|#'UVFlux'|" "HISTORY.rc"
+
+    # Disable the KppTime diagnostic (time spent in integrator) as
+    # this will vary due to local conditions on the cluster/node
+    sed_ie "s|'KppTime'|#'KppTime'|" "HISTORY.rc"
 
     # Activate the planeflight diagnostic
     cp -r "${pfDat}" .
@@ -328,6 +332,35 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Switch back to the present directory
     cd "${thisDir}"
 
+    #=========================================================================
+    # Create rundirs for dry-run tests
+    #==========================================================================
+
+    # Create dryrun directories by direct copy
+    dirs=( "gc_4x5_merra2_aerosol"              \
+           "gc_4x5_merra2_carbon"               \
+	   "gc_4x5_merra2_fullchem"             \
+           "gc_4x5_merra2_fullchem_APM"         \
+           "gc_4x5_merra2_47L_fullchem_TOMAS15" \
+           "gc_4x5_merra2_fullchem_benchmark"   \
+           "gc_4x5_merra2_fullchem_RRTMG"       \
+           "gc_4x5_merra2_Hg"                   \
+           "gc_4x5_merra2_metals"               \
+           "gc_4x5_merra2_tagCO"                \
+           "gc_4x5_merra2_tagO3"                \
+           "gc_4x5_merra2_TransportTracers"       )
+
+    # Navigate to the rundirs folder
+    cd "${rundirsDir}"
+    
+    # Create dryrun directories by direct copy
+    for dir in ${dirs[@]}; do
+	echo "... ${itRoot}/rundirs/${dir}_dryrun"
+	cp -r "${dir}" "${dir}_dryrun"
+    done
+
+    # Switch back to the present directory
+    cd "${thisDir}"
 fi
 
 #=============================================================================
