@@ -55,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
 - Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
 - Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
+- Restored convection and ConvertBox unit conversion parallelization to how it was prior to 14.4.0 to fix slowness in TOMAS simulations
 
 ### Removed
 - `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
