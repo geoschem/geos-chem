@@ -401,9 +401,9 @@ Mask fractions:              false
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
 (((GFEIv3
-0 GFEI_CH4_OIL  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc  emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  1 5
-0 GFEI_CH4_GAS  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc  emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  2 5
-0 GFEI_CH4_COAL $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc     emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  3 5
+0 GFEI_CH4_OIL  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc  Oil_All 2020/1/1/0 C xy kg/m2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc  Gas_All 2020/1/1/0 C xy kg/m2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc     Coal    2020/1/1/0 C xy kg/m2/s CH4 -  3 5
 )))GFEIv3
 
 #==============================================================================
