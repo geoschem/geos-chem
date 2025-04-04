@@ -63,6 +63,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 - Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 - Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
+- Removed unused diagnostics: `Tomas_H2SO4`, `Tomas_COAG`, `Tomas_NUCL`, `Tomas_AQOX`, `Tomas_MNFIX`, `Tomas_SOA`
 
 ## [14.5.3] - 2025-03-04
 ### Changed

@@ -5984,13 +5984,6 @@ CONTAINS
     ! AERODIAG begins here!
     !=================================================================
 
-    State_Diag%TomasH2SO4 = 1.e+0_fp
-    State_Diag%TomasCOAG  = 2.e+0_fp
-    State_Diag%TomasNUCL  = 3.e+0_fp
-    State_Diag%TomasAQOX  = 4.e+0_fp
-    State_Diag%TomasMNFIX = 5.e+0_fp
-    State_Diag%TomasSOA   = 6.e+0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
 
     IF ( PTYPE == 1 ) THEN
