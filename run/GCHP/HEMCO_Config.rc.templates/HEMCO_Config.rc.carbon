@@ -69,7 +69,7 @@ Mask fractions:              false
     --> Scarpelli_Canada       :       true     # 2018
     --> Scarpelli_Mexico       :       true     # 2015
 # ..... Global Inventories ...........
-    --> GFEIv2                 :       true     # 2019
+    --> GFEIv3                 :       true     # 2020
     --> GRPI                   :       true     # 2022
     --> EDGARv8                :       true     # 2010-2022
     --> QFED2                  :       false    # 2009-2015
@@ -396,15 +396,15 @@ Mask fractions:              false
 )))Scarpelli_Canada
 
 #==============================================================================
-# --- CH4: Global Fuel Exploitation Inventory (GFEI v2, Scarpelli et al., 2021) ---
+# --- CH4: Global Fuel Exploitation Inventory (GFEI v3, Scarpelli et al., 2025) ---
 #
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
-(((GFEIv2
-0 GFEI_CH4_OIL  $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc  emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  1 5
-0 GFEI_CH4_GAS  $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc  emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  2 5
-0 GFEI_CH4_COAL $ROOT/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc     emis_ch4 2019/1/1/0 C xy molec/cm2/s CH4 -  3 5
-)))GFEIv2
+(((GFEIv3
+0 GFEI_CH4_OIL  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc  emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc  emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc     emis_ch4 2020/1/1/0 C xy kg/m2/s CH4 -  3 5
+)))GFEIv3
 
 #==============================================================================
 # --- Global Rice Patty Inventory (GRPI, Zichong Chen et al., 2025) ---

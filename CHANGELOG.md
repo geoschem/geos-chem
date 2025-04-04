@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed the minimum KPP version to 3.2.0
 - Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
+- Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
