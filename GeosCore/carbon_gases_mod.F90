@@ -498,12 +498,6 @@ CONTAINS
           K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
           SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
 
-!          IF ( I==42 .and. J==43 .and. L==1 ) THEN
-!             DEBUGBOX = .true.
-!          ELSE
-!             DEBUGBOX = .false.
-!          ENDIF
-
           ! Convert species to molec/cm3 for the KPP solver
           CALL carbon_ConvertKgtoMolecCm3(                                   &
                I          = I,                                               &

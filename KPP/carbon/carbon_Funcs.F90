@@ -92,9 +92,11 @@ CONTAINS
        C(ind_CO)  = Spc(id_CO)%Conc(I,J,L)  * xnumol_CO  / airvol_cm3
     ENDIF
 
-!    IF ( id_CO2 > 0 ) THEN
-!       C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
-!    ENDIF
+    ! Comment out for now - CO2 chemistry is done explicitly in
+    ! carbon_gases_mod.F90
+    !IF ( id_CO2 > 0 ) THEN
+    !   C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
+    !ENDIF
 
     ! Initialize placeholder species to 1 molec/cm3
     C(ind_DummyCH4trop)  = 1.0_dp
@@ -200,10 +202,6 @@ CONTAINS
        ! k_Trop(2): Rate [1/s] for CO + FixedOH = LCObyOH
        !---------------------------------------------------------------------
        k_Trop(2) = GC_OHCO()
-
-!       IF (DEBUGBOX) THEN
-!          Print*, 'OH     = ', C(ind_FixedOH)
-!       ENDIF
 
        !---------------------------------------------------------------------
        ! k_Trop(3): Rate [molec/cm3/s] for FixedNMVOC   = CO  + PCOfromNMVOC
@@ -317,9 +315,11 @@ CONTAINS
        Spc(id_CO)%Conc(I,J,L) = C(ind_CO)  * convfac_CO
     ENDIF
 
-!    IF ( id_CO2 > 0 ) THEN
-!       Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
-!    ENDIF
+    ! Comment out for now - CO2 chemistry is done explicitly in
+    ! carbon_gases_mod.F90
+    !IF ( id_CO2 > 0 ) THEN
+    !   Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
+    !ENDIF
 
     ! Free pointer
     Spc => NULL()
@@ -444,19 +444,6 @@ CONTAINS
     fexp2  = 1.0_dp / ( 1.0_dp + blog2*blog2 )
     kco2   = klo2 * 0.6_dp**fexp2 / ( 1.0_dp + xyrat2 )
     k      = kco1 + kco2
-
-!    IF (DebugBox) THEN
-!       Print*, 'Debug GC_OHCO - carbon_funcs'
-!       Print*, 'KLO1   = ', KLO1
-!       Print*, 'LHI1   = ', KHI1
-!       Print*, 'DENS   = ', NUMDEN
-!       Print*, 'XYRAT1 = ', XYRAT1
-!       Print*, 'BLOG1  = ', BLOG1
-!       Print*, 'FEXP1  = ', FEXP1
-!       Print*, 'KCO1   = ', KCO1
-!       Print*, 'KCO2   = ', KCO2
-!       Print*, 'KRATE  = ', K
-!    ENDIF
 
   END FUNCTION GC_OHCO
 !EOC

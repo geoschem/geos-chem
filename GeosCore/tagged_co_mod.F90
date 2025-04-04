@@ -303,30 +303,30 @@ CONTAINS
        RETURN
     ENDIF
 
-!    ! Use the NOAA spatially resolved data where available
-!    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, &
-!                         RC, FOUND=FOUND )
-!    IF (.NOT. FOUND ) THEN
-!       FOUND = .TRUE.
-!       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
-!       ! https://doi.org/10.5194/gmd-10-2057-2017a
-!       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', SFC_CH4, &
-!                            RC, FOUND=FOUND )
-!    ENDIF
-!    IF (.NOT. FOUND ) THEN
-!       FOUND = .TRUE.
-!       ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
-!       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', SFC_CH4, &
-!                            RC, FOUND=FOUND )
-!    ENDIF
-!    IF (.NOT. FOUND ) THEN
-!       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
-!                'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
-!                'corresponds to your emissions year in HEMCO_Config.rc ' // &
-!                '(NOAA GMD for 1978 and later; else CMIP6).'
-!       CALL GC_Error( ErrMsg, RC, ThisLoc )
-!       RETURN
-!    ENDIF
+    ! Use the NOAA spatially resolved data where available
+    CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'NOAA_GMD_CH4', SFC_CH4, &
+                         RC, FOUND=FOUND )
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data from Meinshausen et al. 2017, GMD
+       ! https://doi.org/10.5194/gmd-10-2057-2017a
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'CMIP6_Sfc_CH4', SFC_CH4, &
+                            RC, FOUND=FOUND )
+    ENDIF
+    IF (.NOT. FOUND ) THEN
+       FOUND = .TRUE.
+       ! Use the CMIP6 data boundary conditions processed for GCAP 2.0
+       CALL HCO_GC_EvalFld( Input_Opt, State_Grid, 'SfcVMR_CH4', SFC_CH4, &
+                            RC, FOUND=FOUND )
+    ENDIF
+    IF (.NOT. FOUND ) THEN
+       ErrMsg = 'Cannot retrieve data for NOAA_GMD_CH4, CMIP6_Sfc_CH4, or ' // &
+                'SfcVMR_CH4 from HEMCO! Make sure the data source ' // &
+                'corresponds to your emissions year in HEMCO_Config.rc ' // &
+                '(NOAA GMD for 1978 and later; else CMIP6).'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     ! Evaluate trop P(CO) from CH4 in HEMCO if needed
     IF ( LPCO_CH4 ) THEN
@@ -964,20 +964,6 @@ CONTAINS
 
           ! KRATE is the sum of the two.
           KRATE  = KCO1 + KCO2
-
-!          IF ( I==42 .and. J==43 .and. L==1 ) THEN
-!             Print*, 'Debug GC_OHCO - tagged_co'
-!             Print*, 'KLO1   = ', KLO1
-!             Print*, 'LHI1   = ', KHI1
-!             Print*, 'DENS   = ', DENS
-!             Print*, 'XYRAT1 = ', XYRAT1
-!             Print*, 'BLOG1  = ', BLOG1
-!             Print*, 'FEXP1  = ', FEXP1
-!             Print*, 'KCO1   = ', KCO1
-!             Print*, 'KCO2   = ', KCO2
-!             Print*, 'KRATE  = ', KRATE
-!             Print*, 'OH     = ', OH_MOLEC_CM3  
-!          ENDIF
 
           ! CO_OH = Tropospheric loss of CO by OH [molec/cm3]
           ! Now use OH_MOLEC_CM3, which includes a diurnal cycle.
