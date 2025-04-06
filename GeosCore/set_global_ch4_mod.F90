@@ -281,6 +281,12 @@ CONTAINS
     IF(ALLOCATED(CH4_OFFSET)) DEALLOCATE(CH4_OFFSET)
 #endif
 
+    ! Cleanup
+#if defined( MODEL_GEOS )
+    IF(ALLOCATED(GEOS_CH4))   DEALLOCATE(GEOS_CH4)
+    IF(ALLOCATED(CH4_OFFSET)) DEALLOCATE(CH4_OFFSET)
+#endif
+
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error at end of "SET_CH4"!'

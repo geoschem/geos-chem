@@ -184,13 +184,6 @@ GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf
 #
 Use_GMI_O3_PL:        0
 
-# Analysis options 
-ANAPHASE: 2
-Analysis_nSpecies: 0
-Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.CDAS.rc
-Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
-Analysis_Settings_Spec003: GEOSCHEMchem_AnaSettings_SO2.rc
-
 #
 # NOx lightning met inputs
 #
@@ -230,17 +223,18 @@ TurnOffHetRates: 1
 Bry_Cly_Family_Transport: 1
 
 # Skip GCC during replay predictor step
-SkipReplayGCC: 0
+# Set to 0 is running composition DA
+SkipReplayGCC: 1
 
 # 
 # CO production from CO2 photolysis
 #
-CO_production_from_CO2_photolysis: 0
+CO_production_from_CO2_photolysis: 1
 CO2photolysisFile: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/StratChem/SC.J_20_12_79_72_200_45.jpl15.nc4
 
 # 
 # CO2 coupling with GOCART
-# 
+# Setting this to 1 changes the CO2 in GOCART history. Needs to be checked.
 Import_CO2_from_GOCART: 0
 GOCART_CO2_FieldName: GOCART_CO2
 

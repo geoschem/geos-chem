@@ -122,7 +122,6 @@ CONTAINS
 !
   SUBROUTINE Init_State_Grid( Input_Opt, State_Grid, RC )
 !
-! !USES:
 !
     USE Input_Opt_Mod, ONLY : OptInput
 !

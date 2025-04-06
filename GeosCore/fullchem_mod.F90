@@ -145,6 +145,10 @@ CONTAINS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
     USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
+#endif
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,       ONLY : Run_TaggedSpecies
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -200,8 +204,8 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
-    REAL(dp)               :: C_before_integrate(NSPEC)
-    REAL(dp)               :: local_RCONST(NREACT)
+!    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
+!                                     State_Grid%NZ, State_Chm%nAdvect       )
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
@@ -1298,6 +1302,42 @@ CONTAINS
           call cpu_time(TimeEnd)
           State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
        ENDIF
+
+       !=====================================================================
+       ! Check for tagged tracers and adjust those before updating the
+       ! Species arrays
+       !=====================================================================
+#if defined( MODEL_GEOS )
+       CALL Run_TaggedSpecies( I, J, L, C, PRESS, TEMP, State_Chm, RC )
+#endif
+
+       ! Write chemical state to file for the kpp standalone interface
+       ! No external logic needed, this subroutine exits early if the
+       ! chemical state should not be printed (psturm, 03/23/24)
+       CALL KppSa_Write_Samples(                                             &
+            I            = I,                                                &
+            J            = J,                                                &
+            L            = L,                                                &
+            initC        = C_before_integrate,                               &
+            localRCONST  = local_RCONST,                                     &
+            initHvalue   = KPPH_before_integrate,                            &
+            exitHvalue   = RSTATE(Nhexit),                                   &
+            ICNTRL       = ICNTRL,                                           &
+            RCNTRL       = RCNTRL,                                           &
+            State_Grid   = State_Grid,                                       &
+            State_Chm    = State_Chm,                                        &
+            State_Met    = State_Met,                                        &
+            Input_Opt    = Input_Opt,                                        &
+            KPP_TotSteps = ISTATUS(3),                                       &
+            RC           = RC                                               )
+
+       !=====================================================================
+       ! Check for tagged tracers and adjust those before updating the
+       ! Species arrays
+       !=====================================================================
+#if defined( MODEL_GEOS )
+       CALL Run_TaggedSpecies( I, J, L, C, PRESS, TEMP, State_Chm, RC )
+#endif
 
        ! Write chemical state to file for the kpp standalone interface
        ! No external logic needed, this subroutine exits early if the
@@ -2727,6 +2767,9 @@ CONTAINS
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,       ONLY : Init_TaggedSpecies
+#endif
 !
 ! !INPUT PARAMETERS:
 !
@@ -3031,6 +3074,42 @@ CONTAINS
        RETURN
     ENDIF
 
+#ifdef MODEL_GEOS
+    !--------------------------------------------------------------------
+    ! Initialize tagged tracer chemistry
+    !--------------------------------------------------------------------
+    CALL Init_TaggedSpecies( Input_Opt, State_Chm, State_Diag, RC ) 
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_TaggedSpecies"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
+
+    !------------------------------------------------------------------------
+    ! Initialize the KPP standalone interface, which will save model state
+    ! for the grid cells specified in kpp_standalone_interface.yml.
+    ! This is needed for input to the KPP standalone box model.
+    !------------------------------------------------------------------------
+    CALL KppSa_Config( Input_Opt, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "KPP_Standalone"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+#ifdef MODEL_GEOS
+    !--------------------------------------------------------------------
+    ! Initialize tagged tracer chemistry
+    !--------------------------------------------------------------------
+    CALL Init_TaggedSpecies( Input_Opt, State_Chm, State_Diag, RC ) 
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_TaggedSpecies"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+#endif
+
   END SUBROUTINE Init_FullChem
 !EOC
 !------------------------------------------------------------------------------
@@ -3051,6 +3130,10 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE KppSa_Interface_Mod, ONLY : KppSa_Cleanup
+#ifdef MODEL_GEOS
+    USE GEOS_TaggedSpecies,        ONLY : Finalize_TaggedSpecies
+#endif
+
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3103,6 +3186,19 @@ CONTAINS
     ! Deallocate variables from kpp standalone module
     ! psturm, 03/22/2024
     CALL KppSa_Cleanup( RC )
+#ifdef MODEL_GEOS
+    ! Clean up tagged species
+    CALL Finalize_TaggedSpecies( RC )
+#endif 
+
+    ! Deallocate variables from kpp standalone module
+    ! psturm, 03/22/2024
+    CALL KppSa_Cleanup( RC )
+
+#ifdef MODEL_GEOS
+    ! Clean up tagged species
+    CALL Finalize_TaggedSpecies( RC )
+#endif 
 
   END SUBROUTINE Cleanup_FullChem
 !EOC
