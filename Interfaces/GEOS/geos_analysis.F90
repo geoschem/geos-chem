@@ -280,6 +280,7 @@ CONTAINS
   USE State_Grid_Mod,        ONLY : GrdState         ! Meteorology State obj
   USE State_Diag_Mod,        ONLY : DgnState         ! Meteorology State obj
   USE UnitConv_Mod,          ONLY : Convert_Spc_Units
+  USE UnitConv_Mod,          ONLY : KG_SPECIES_PER_KG_TOTAL_AIR 
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -305,7 +306,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     INTEGER                       :: ispec
-    CHARACTER(LEN=63)             :: OrigUnit
+    INTEGER                       :: OrigUnit
     CHARACTER(LEN=255)            :: ErrMsg, ThisLoc 
 
     !=======================================================================
@@ -318,7 +319,8 @@ CONTAINS
 
     ! Convert to total mixing ratio
     CALL Convert_Spc_Units ( Input_Opt, State_Chm, State_Grid, State_Met, &
-                             'kg/kg total', RC, OrigUnit=OrigUnit )
+                             KG_SPECIES_PER_KG_TOTAL_AIR, RC, previous_units=OrigUnit )
+
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Unit conversion error (start)!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )

@@ -145,7 +145,6 @@ CONTAINS
     USE TOMAS_MOD,                ONLY : H2SO4_RATE
     USE TOMAS_MOD,                ONLY : PSO4AQ_RATE
 #endif
-#endif
 #ifdef MODEL_GEOS
     USE GEOS_TaggedSpecies,       ONLY : Run_TaggedSpecies
 #endif
@@ -204,8 +203,8 @@ CONTAINS
     INTEGER                :: ISTATUS(20)
     REAL(dp)               :: RCNTRL (20)
     REAL(dp)               :: RSTATE (20)
-!    REAL(fp)               :: Before(State_Grid%NX, State_Grid%NY,           &
-!                                     State_Grid%NZ, State_Chm%nAdvect       )
+    REAL(dp)               :: C_before_integrate(NSPEC)
+    REAL(dp)               :: local_RCONST(NREACT)
 
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC

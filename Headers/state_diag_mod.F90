@@ -1419,12 +1419,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: PM25ni(:,:,:)     ! PM25 nitrate+ammonium
      LOGICAL                     :: Archive_PM25ni
 
-     REAL(f4),           POINTER :: PM25nit(:,:,:)     ! PM25 nitrates
-     LOGICAL                     :: Archive_PM25nit
-
-     REAL(f4),           POINTER :: PM25nh4(:,:,:)     ! PM25 ammonium
-     LOGICAL                     :: Archive_PM25nh4
-
      REAL(f4),           POINTER :: PM25su(:,:,:)     ! PM25 sulfates
      LOGICAL                     :: Archive_PM25su
 
