@@ -62,10 +62,12 @@ MODULE TIME_MOD
   PUBLIC  :: GET_A1_TIME
   PUBLIC  :: GET_A3_TIME
   PUBLIC  :: GET_I3_TIME
+  PUBLIC  :: GET_I1dyn_TIME
   PUBLIC  :: GET_BC_TIME
   PUBLIC  :: GET_FIRST_A1_TIME
   PUBLIC  :: GET_FIRST_A3_TIME
   PUBLIC  :: GET_FIRST_I3_TIME
+  PUBLIC  :: GET_FIRST_I1dyn_TIME
   PUBLIC  :: GET_FIRST_BC_TIME
   PUBLIC  :: ITS_TIME_FOR_CHEM
   PUBLIC  :: ITS_TIME_FOR_CONV
@@ -78,6 +80,7 @@ MODULE TIME_MOD
   PUBLIC  :: ITS_TIME_FOR_A1
   PUBLIC  :: ITS_TIME_FOR_A3
   PUBLIC  :: ITS_TIME_FOR_I3
+  PUBLIC  :: ITS_TIME_FOR_I1dyn
   PUBLIC  :: ITS_TIME_FOR_BC
   PUBLIC  :: ITS_TIME_FOR_EXIT
   PUBLIC  :: ITS_MIDMONTH
@@ -1686,7 +1689,6 @@ CONTAINS
     !=================================================================
 
     IF ( FIRST ) THEN
-
        !--------------------------------------------------------------
        ! FIRST-TIME ONLY!  Get the proper # of hours until the next
        ! I3 time.  Also works for start times other than 0 GMT.
@@ -1707,19 +1709,84 @@ CONTAINS
        ! Reset first-time flag
        FIRST = .FALSE.
 
-    ELSE
-
-       !--------------------------------------------------------------
-       ! Other than the 1st time: Search 180 mins ahead
-       !--------------------------------------------------------------
-
-       ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
-       ! ahead of time
-       DATE = GET_TIME_AHEAD( 10800 )
-
+       RETURN
     ENDIF
 
+    ! We need to read in the I-3 fields 3h (180 mins, or 10800 secs)
+    ! ahead of time
+    DATE = GET_TIME_AHEAD( 10800 )
+
   END FUNCTION GET_I3_TIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_i1dyn_time
+!
+! !DESCRIPTION: Function GET\_I1dyn\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values that are needed to read in the next instantaneous 1-hour
+!  (I-1) fields.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GET_I1dyn_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+    INTEGER :: DATE(2)   ! YYYYMMDD and HHMMSS values
+!
+! !REMARKS:
+!  Modified for start times other than 0 GMT.
+!
+! !REVISION HISTORY:
+!  15 Jun 2024 - X. Wang - Initial version, for 0.125x0.15625
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    LOGICAL, SAVE :: FIRST = .TRUE.
+    INTEGER       :: HH, MM, SS, SECS, OFFSET
+
+    !=================================================================
+    ! ALL MET FIELDS:
+    !=================================================================
+
+    IF ( FIRST ) THEN
+       !--------------------------------------------------------------
+       ! FIRST-TIME ONLY!  Get the proper # of hours until the next
+       ! I1dyn time.  Also works for start times other than 0 GMT.
+       !--------------------------------------------------------------
+
+       ! Split NHMS into hours, mins, seconds
+       CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+       ! Compute seconds elapsed in the 1-hour interval
+       SECS   = MOD( HH, 1 )*3600 + MM*60 + SS
+
+       ! Compute offset to next I-1 time
+       OFFSET = 3600 - SECS
+
+       ! Get YYYY/MM/DD and hh:mm:ss to next I1dyn time
+       DATE   = GET_TIME_AHEAD( OFFSET )
+
+       ! Reset first-time flag
+       FIRST = .FALSE.
+
+       RETURN
+    ENDIF
+
+    ! We need to read in the I-1 fields 1h (60 mins, or 3600 secs)
+    ! ahead of time
+    DATE = GET_TIME_AHEAD( 3600 )
+
+
+  END FUNCTION GET_I1dyn_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1750,7 +1817,6 @@ CONTAINS
     INTEGER       :: HH, MM, SS, SECS, OFFSET
 
     IF ( FIRST ) THEN
-
        !--------------------------------------------------------------
        ! FIRST-TIME ONLY!  Get the proper # of hours until the next
        ! BC time.  Also works for start times other than 0 GMT.
@@ -1771,24 +1837,19 @@ CONTAINS
        ! Reset first-time flag
        FIRST = .FALSE.
 
-    ELSE
-
-       !--------------------------------------------------------------
-       ! Other than the 1st time: Use current time
-       !--------------------------------------------------------------
-
-       ! Boundary condition time slices are set to fixed 3-hourly intervals
-       ! starting from 00z, in units of minutes from start. i.e.,
-       ! time = 0, 180, 360, 540, 720, 900, 1080, 1260 ;
-       ! time:units = "minutes since 2019-01-01T00:00:00+00:00" ;
-       !
-       ! The GET_BC_TIME is used to retrieve HHMMSS time slices for use in
-       ! Get_Boundary_Conditions, which performs the calculation
-       !     t_index = ( HHMMSS / 030000 ) + 1
-       ! Thus, HHMMSS must not be offset from the current time. (hplin, 7/27/23)
-       DATE = GET_TIME_AHEAD( 0 )
-
+       RETURN
     ENDIF
+
+    ! Boundary condition time slices are set to fixed 3-hourly intervals
+    ! starting from 00z, in units of minutes from start. i.e.,
+    ! time = 0, 180, 360, 540, 720, 900, 1080, 1260 ;
+    ! time:units = "minutes since 2019-01-01T00:00:00+00:00" ;
+    !
+    ! The GET_BC_TIME is used to retrieve HHMMSS time slices for use in
+    ! Get_Boundary_Conditions, which performs the calculation
+    !     t_index = ( HHMMSS / 030000 ) + 1
+    ! Thus, HHMMSS must not be offset from the current time. (hplin, 7/27/23)
+    DATE = GET_TIME_AHEAD( 0 )
 
   END FUNCTION GET_BC_TIME
 !EOC
@@ -1916,6 +1977,54 @@ CONTAINS
     DATE   = GET_TIME_AHEAD( OFFSET )
 
   END FUNCTION GET_FIRST_I3_TIME
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Get_first_i1dyn_time
+!
+! !DESCRIPTION: Function GET\_FIRST\_I1dyn\_TIME returns the correct YYYYMMDD and
+!  HHMMSS values the first time that I-1 fields are read in from disk.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION GET_FIRST_I1dyn_TIME() RESULT( DATE )
+!
+! !RETURN VALUE:
+!
+    INTEGER :: DATE(2)    ! YYYYMMDD, HHMMSS values
+!
+! !REVISION HISTORY:
+!  15 Jun 2024 - X. Wang - Initial version, for 0.125x0.15625
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: HH, MM, SS, SECS, OFFSET
+
+    !==================================================================
+    ! Compute first I-6 time for all met field types
+    !==================================================================
+
+    ! Split NYMS into hours, mins, seconds
+    CALL YMD_EXTRACT( NHMS, HH, MM, SS )
+
+    ! Compute seconds elapsed in the 3-hour interval
+    SECS   = MOD( HH, 1 )*3600 + MM*60 + SS
+
+    ! Compute offset to nearest I-6 time
+    OFFSET = -SECS
+
+    ! Get YYYY/MM/DD and hh:mm:ss to nearest I-6 time
+    DATE   = GET_TIME_AHEAD( OFFSET )
+
+  END FUNCTION GET_FIRST_I1dyn_TIME
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -2365,6 +2474,43 @@ CONTAINS
     FIRST = .FALSE.
 
   END FUNCTION ITS_TIME_FOR_I3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Its_Time_For_i1dyn
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_I1dyn returns TRUE if it is time to read
+!  in I1 (instantaneous 1-hr fields) and FALSE otherwise.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ITS_TIME_FOR_I1dyn() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+    LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  15 Jun 2024 - X. Wang - Initial version, for 0.125x0.15625
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARAIABLES:
+!
+    LOGICAL, SAVE :: FIRST = .TRUE.
+
+    ! We read in I1dyn fields every hours at 00, 01, 02, ... GMT
+    FLAG = ( ( MOD( NHMS, 10000 ) == 0 ) .or. FIRST )
+
+    FIRST = .FALSE.
+
+  END FUNCTION ITS_TIME_FOR_I1dyn
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

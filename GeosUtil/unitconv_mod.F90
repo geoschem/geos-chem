@@ -2260,6 +2260,9 @@ CONTAINS
     !========================================================================
     ! ConvertBox_KgKgDry_to_Kg begins here!
     !========================================================================
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2273,9 +2276,8 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES
     ENDDO
+    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_KgKgDry_to_Kg
 !EOC
@@ -2331,6 +2333,9 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kg_to_KgKgDry begins here!
     !========================================================================
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2344,9 +2349,8 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
     ENDDO
+    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kg_to_KgKgDry
 !EOC
@@ -2399,6 +2403,9 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kgm2_to_Kg begins here!
     !========================================================================
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2412,9 +2419,8 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES
     ENDDO
+    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kgm2_to_Kg
 !EOC
@@ -2468,6 +2474,9 @@ CONTAINS
     !========================================================================
     ! ConvertBox_Kg_to_Kgm2 begins here!
     !========================================================================
+    !$OMP PARALLEL DO           &
+    !$OMP DEFAULT( SHARED     ) &
+    !$OMP PRIVATE( N )
     DO N = 1, State_Chm%nSpecies
 
        ! Convert species concentration units
@@ -2481,9 +2490,8 @@ CONTAINS
        ENDIF
 #endif
 
-       ! Update units metadata
-       State_Chm%Species(N)%Units = KG_SPECIES_PER_M2
     ENDDO
+    !$OMP END PARALLEL DO
 
   END SUBROUTINE ConvertBox_Kg_to_Kgm2
 !EOC

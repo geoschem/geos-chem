@@ -5984,13 +5984,6 @@ CONTAINS
     ! AERODIAG begins here!
     !=================================================================
 
-    State_Diag%TomasH2SO4 = 1.e+0_fp
-    State_Diag%TomasCOAG  = 2.e+0_fp
-    State_Diag%TomasNUCL  = 3.e+0_fp
-    State_Diag%TomasAQOX  = 4.e+0_fp
-    State_Diag%TomasMNFIX = 5.e+0_fp
-    State_Diag%TomasSOA   = 6.e+0_fp
-
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
 
     IF ( PTYPE == 1 ) THEN
@@ -6483,6 +6476,8 @@ CONTAINS
     !   SGCTSCALE = 1.0_fp*3600.0_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
     !   SGCTSCALE = 0.50_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+    !   SGCTSCALE = 0.25_fp*3600.0_fp
     !ENDIF
 
 #if defined(TOMAS40)

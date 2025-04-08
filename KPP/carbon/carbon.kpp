@@ -1,4 +1,4 @@
-#MINVERSION   2.5.0       { Need this version of KPP or later            }
+#MINVERSION   3.2.0       { Need this version of KPP or later            }
 #INTEGRATOR   feuler      { Use Forward Euler integration method         }
 #LANGUAGE     Fortran90   { Generate solver code in Fortran90 ...        }
 #UPPERCASEF90 on          { ... with .F90 suffix (instead of .f90)       }

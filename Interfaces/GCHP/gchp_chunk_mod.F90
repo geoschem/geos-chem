@@ -627,6 +627,7 @@ CONTAINS
     USE HCO_State_GC_Mod,   ONLY : HcoState, ExtState
     USE HCO_Interface_Common, ONLY : SetHcoTime
     USE HCO_Interface_GC_Mod, ONLY : Compute_Sflx_For_Vdiff
+    USE HCO_Interface_GC_Mod, ONLY : Set_DryDepVel_Diagnostics
 
     ! Specialized subroutines
     USE Calc_Met_Mod,       ONLY : AirQnt
@@ -1279,7 +1280,7 @@ CONTAINS
        if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Do turbulence now'
        CALL MAPL_TimerOn( STATE, 'GC_TURB' )
 
-       ! Only do the following for the non-local PBL mixing
+       ! Only do the following for the non-local PBL mixing (VDIFF)
        IF ( Input_Opt%LNLPBL ) THEN
 
           ! Once the initial met fields have been read in, we need to find
@@ -1296,7 +1297,14 @@ CONTAINS
           CALL Compute_Sflx_For_Vdiff( Input_Opt,  State_Chm, State_Diag,    &
                                        State_Grid, State_Met, RC            )
           _ASSERT(RC==GC_SUCCESS, 'Error calling COMPUTE_SFLX_FOR_VDIFF')
+
        ENDIF
+
+       ! Update dry-deposition velocities for full PBL mixing
+       ! by adding the sea-air deposition velocity from HEMCO
+       CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,  State_Diag,   &
+                                       State_Grid, State_Met,  RC           )
+       _ASSERT(RC==GC_SUCCESS, 'Error calling SET_DRYDEPVEL_DIAGNOSTICS')
 
        ! Do mixing and apply tendencies. This will use the dynamic time step,
        ! which is fine since this call will be executed on every time step.

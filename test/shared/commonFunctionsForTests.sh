@@ -35,11 +35,9 @@ SED_CONFIG_6='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 010000\]/'
 SED_CONFIG_7='s/end_date: \[20900801, 000000\]/end_date: \[20900701, 002000\]/'
 SED_CONFIG_N1='s/end_date: \[20190201, 000000\]/end_date: \[20190101, 002000\]/'
 SED_CONFIG_N2='s/end_date: \[20190801, 000000\]/end_date: \[20190701, 002000\]/'
-SED_HEMCO_CONF_1='s/GEOS_0.25x0.3125/GEOS_0.25x0.3125_NA/'
-SED_HEMCO_CONF_2='s/GEOS_0.5x0.625/GEOS_0.5x0.625_NA/'
-SED_HEMCO_CONF_3='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 010000/'
-SED_HEMCO_CONF_4='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 002000/'
-SED_HEMCO_CONF_N='s/\$RES.\$NC/\$RES.NA.\$NC/'
+SED_CONFIG_N3='s/end_date: \[20230201, 000000\]/end_date: \[20230101, 002000\]/'
+SED_HEMCO_CONF_1='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 010000/'
+SED_HEMCO_CONF_2='s/DiagnFreq:                   Monthly/DiagnFreq:                   00000000 002000/'
 SED_HISTORY_RC_1='s/00000... 0..000/00000000 010000/'
 SED_HISTORY_RC_N='s/00000... 0..000/00000000 002000/'
 CMP_PASS_STR='Configure & Build.....PASS'
@@ -221,6 +219,10 @@ function update_config_files() {
     if grep -q "05x0625" <<< "${runPath}"; then
         sed_ie "${SED_CONFIG_N1}" "${runPath}/geoschem_config.yml"
         sed_ie "${SED_CONFIG_N2}" "${runPath}/geoschem_config.yml"
+    elif grep -q "025x03125" <<< "${runPath}"; then
+        sed_ie "${SED_CONFIG_N1}" "${runPath}/geoschem_config.yml"
+    elif grep -q "0125x015625" <<< "${runPath}"; then
+	sed_ie "${SED_CONFIG_N3}" "${runPath}/geoschem_config.yml"
     fi
 
     # Other text replacements
@@ -236,40 +238,18 @@ function update_config_files() {
     # Replace text in HEMCO_Config.rc
     #------------------------------------------------------------------------
 
-    # For all nested-grid rundirs, add a NA into the entries for met fields
-    # Also update the DiagnFreq for nested or global simulations
-    if grep -q "05x0625" <<< "${runPath}"; then
-        sed_ie "${SED_HEMCO_CONF_N}" "${runPath}/HEMCO_Config.rc"
-        sed_ie "${SED_HEMCO_CONF_4}" "${runPath}/HEMCO_Config.rc"
+    # Update DiagnFreq for nested or global simulations
+    if grep -q "_NA" <<< "${runPath}"; then
+        sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc"
     else
-        sed_ie "${SED_HEMCO_CONF_3}" "${runPath}/HEMCO_Config.rc"
-    fi
-
-    # Other text replacements
-    sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc"
-    sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc"
-
-    #------------------------------------------------------------------------
-    # Replace text in HEMCO_Config.rc.gmao_metfields (GCClassic only)
-    #------------------------------------------------------------------------
-
-    if [[ -f "${runPath}/HEMCO_Config.rc.gmao_metfields" ]]; then
-        # For all nested-grid rundirs, add a NA into the entries for met fields
-        if grep -q "05x0625" <<< "${runPath}"; then
-            sed_ie "${SED_HEMCO_CONF_N}" \
-           "${runPath}/HEMCO_Config.rc.gmao_metfields"
-        fi
-
-        # Other text replacements
-        sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
-        sed_ie "${SED_HEMCO_CONF_2}" "${runPath}/HEMCO_Config.rc.gmao_metfields"
+        sed_ie "${SED_HEMCO_CONF_1}" "${runPath}/HEMCO_Config.rc"
     fi
 
     #------------------------------------------------------------------------
     # Replace text in HISTORY.rc
     #------------------------------------------------------------------------
 
-    if grep -q "05x0625" <<< "${runPath}"; then
+    if grep -q "_NA" <<< "${runPath}"; then
 
 	# For nested-grid fullchem runs, change frequency and duration
 	# to 20 mins to reduce the run time of the whole set of tests.
@@ -701,9 +681,10 @@ function gcc_enable_or_disable_bootstrap() {
 
             if [[ "X${bootStrap}" == "XYES" ]]; then
 		# Set missing species in restarts & BC files to defaults
-		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EFYO" "CYS"
-		change_time_cycle_flags "${hcoCfg}" "SPC_ " "EY"   "CYS"
-		change_time_cycle_flags "${hcoCfg}" "BC_ "  "EFY"  "CYS"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ "   "EFYO" "CYS"
+		change_time_cycle_flags "${hcoCfg}" "SPC_ "   "EY"   "CYS"
+		change_time_cycle_flags "${hcoCfg}" "DELPDRY" "EY"   "CYS"
+		change_time_cycle_flags "${hcoCfg}" "BC_ "    "EFY"  "CYS"
             else
 		# Halt run if species are missing from restarts & BC files
 		change_time_cycle_flags "${hcoCfg}" "SPC_ " "CYS"  "EFYO"

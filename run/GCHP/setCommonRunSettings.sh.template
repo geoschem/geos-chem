@@ -209,66 +209,66 @@ RRTMG_Timestep_sec=10800
 #    ONLINE DUST MASS TUNING FACTOR
 #------------------------------------------------------------------
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
-# benchmarking and is resolution-dependent. We recommend using offline dust
-# instead of the online extension for GCHP science runs.
+# benchmarking and is resolution and met-source dependent. We recommend
+# using offline dust instead of the online extension for GCHP science runs.
 
-dustEntry=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
-if [[ ${dustEntry} != "missing" ]]; then
-    dustSetting=(${dustEntry// / })
-    if [[ ${dustSetting[3]} = "on" ]]; then
-        if [[ ${STRETCH_GRID} == 'ON' ]]; then
-            echo "WARNING: Online dust (DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
-        fi
-        if [[ $CS_RES -eq 24 ]]; then
-            Dust_SF=6.0e-4
-        elif [[ $CS_RES -eq 30 ]]; then
-            Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
-        elif [[ $CS_RES -eq 48 ]]; then
-            Dust_SF=5.0416e-4
-        elif [[ $CS_RES -eq 90 ]]; then
-            Dust_SF=4.0e-4
-        elif [[ $CS_RES -eq 180 ]]; then
-            Dust_SF=3.23e-4
-        elif [[ $CS_RES -eq 360 ]]; then
-            Dust_SF=2.35e-4
-        elif [[ $CS_RES -eq 720 ]]; then
-            Dust_SF=2.3e-4
-        else
-            echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
-            exit 1
-        fi
-    fi
+result=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
+if [[ "x${result}" != "xmissing" ]]; then
+    array=(${result// / })
+    dustDead=${array[3]}
 fi
-#------------------------------------------------------------------
-#    ONLINE DUST MASS TUNING FACTOR (for TOMAS)
-#------------------------------------------------------------------
-# Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
-# benchmarking and is resolution-dependent. We recommend using offline dust
-# instead of the online extension for GCHP science runs.
+result=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
+if [[ "x${result}" != "xmissing" ]]; then
+    array=(${result// / })
+    tomasDustDead=${array[3]}
+fi
 
-TomasDustEntry=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
-if [[ ${TomasDustEntry} != "missing" ]]; then
-    TomasDustSetting=(${TomasDustEntry// / })
-    if [[ ${TomasDustSetting[3]} = "on" ]]; then
-        if [[ ${STRETCH_GRID} == 'ON' ]]; then
-            echo "WARNING: Online dust (TOMAS_DustDead) is not recommended for stretched-grid simulation. Consider using OFFLINE_DUST."
-        fi
-        if [[ $CS_RES -eq 24 ]]; then
-            TomasDust_SF=6.0e-4
-        elif [[ $CS_RES -eq 48 ]]; then
-            TomasDust_SF=5.0416e-4
-        elif [[ $CS_RES -eq 90 ]]; then
-            TomasDust_SF=4.0e-4
-        elif [[ $CS_RES -eq 180 ]]; then
-            TomasDust_SF=3.23e-4
-        elif [[ $CS_RES -eq 360 ]]; then
-            TomasDust_SF=2.35e-4
-        elif [[ $CS_RES -eq 720 ]]; then
-            TomasDust_SF=2.3e-4
-        else
-            echo "Dust scale factor not defined for this resolution. Please add the tuning factor you wish to use for the target resolution above."
-            exit 1
-        fi
+if [[ "x${dustDead}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
+    metField=$(grep "met_field:" geoschem_config.yml)
+    metField=${metField/met_field\:/}
+    metField=${metField// /}
+
+    if [[ "x${STRETCH_GRID}" == "xON" ]]; then
+	msg="WARNING: Online dust is not recommended for stretched-grid "
+	msg+="simulations. Consider using OFFLINE_DUST instead."
+	echo "${msg}"
+    fi
+
+    if [[ $CS_RES -eq 24 ]]; then
+	if [[ "x${metField}" == "xMERRA2" ]]; then
+	    Dust_SF=5.4856e-5
+	elif [[ "x${metField}" == "xGEOSFP" ]]; then
+	    Dust_SF=4.6495e-5
+	elif [[ "x${metField}" == "xGEOSIT" ]]; then
+	    Dust_SF=3.7410e-5
+	else
+	    msg="Dust scale factors are currenlty only available for C24. "
+	    msg+="with MERRA-2, GEOSFP, or GEOSIT."
+	    echo "${msg}"
+	    exit 1
+	fi
+    #
+    # NOTE: Met-field dependent mass tuning factors for the grid resolutions
+    # listed below will be added later.  Leave the prior values for now.
+    #
+    elif [[ $CS_RES -eq 30 ]]; then
+	Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
+    elif [[ $CS_RES -eq 48 ]]; then
+        Dust_SF=5.0416e-4
+    elif [[ $CS_RES -eq 90 ]]; then
+        Dust_SF=4.0e-4
+    elif [[ $CS_RES -eq 180 ]]; then
+        Dust_SF=3.23e-4
+    elif [[ $CS_RES -eq 360 ]]; then
+        Dust_SF=2.35e-4
+    elif [[ $CS_RES -eq 720 ]]; then
+        Dust_SF=2.3e-4
+    else
+	msg="Dust scale factor not defined for this resolution. Please add "
+	msg+="the tuning factor you wish to use for the target resolution "
+	msg+="above."
+	echo "${msg}"
+        exit 1
     fi
 fi
 
@@ -677,11 +677,8 @@ replace_val      "AdvCore_Advection" "${ADVCORE_ADVECTION}" GCHP.rc
 print_msg ""
 print_msg "HEMCO settings:"
 print_msg "---------------"
-if [[ ${dustSetting[3]} = "on" ]]; then
+if [[ "x${dustDead}" ==  "xon" || "x${tomasDustDead}" == "xon" ]]; then
     replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
-fi
-if [[ ${TomasDustSetting[3]} = "on" ]]; then
-    replace_val "--> Mass tuning factor" ${TomasDust_SF} HEMCO_Config.rc
 fi
 
 ###  Set initial restart file options

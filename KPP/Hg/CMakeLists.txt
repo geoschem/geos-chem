@@ -1,5 +1,23 @@
 # KPP/Hg/CMakeLists.txt
 
+#----------------------------------------------------------------------------
+# Determine the KPP integrator name and set corresponding variables.
+# This is for informational purposes only.
+#----------------------------------------------------------------------------
+
+# Get integrator name
+EXECUTE_PROCESS(
+  COMMAND grep \#INTEGRATOR ${CMAKE_CURRENT_SOURCE_DIR}/Hg.kpp
+  OUTPUT_VARIABLE RESULT
+)
+separate_arguments(SUBSTRINGS UNIX_COMMAND "${RESULT}")
+list(GET SUBSTRINGS 1 KPP_INTEGRATOR_NAME)
+string(TOLOWER "${KPP_INTEGRATOR_NAME}" KPP_INTEGRATOR_NAME)
+
+# Print result
+gc_pretty_print(SECTION "KPP integrator (read from Hg.kpp)")
+gc_pretty_print(VARIABLE KPP_INTEGRATOR_NAME)
+
 #-----------------------------------------------------------------------------
 # Add libKPP_FirstPass.a
 #-----------------------------------------------------------------------------
