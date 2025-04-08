@@ -430,14 +430,14 @@ CONTAINS
     REAL(dp) :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(dp) :: fexp2,  kco1,   kco2,  TEMP300, k
     !
-    klo1   = 5.9E-33_dp * K300_OVER_TEMP**(1.0_dp)
+    klo1   = 5.9E-33_dp * K300_OVER_TEMP
     khi1   = 1.1E-12_dp * K300_OVER_TEMP**(-1.3_dp)
     xyrat1 = klo1 * NUMDEN / khi1
     blog1  = LOG10( xyrat1 )
     fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
     kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
 
-    klo2   = 1.5E-13_dp * K300_OVER_TEMP**(0.0_dp)
+    klo2   = 1.5E-13_dp
     khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
     xyrat2 = klo2 * NUMDEN / khi2
     blog2  = LOG10( xyrat2 )

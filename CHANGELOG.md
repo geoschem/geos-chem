@@ -58,7 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
 - Modified the carbon mechanism in KPP to separate tropospheric CH4 loss by OH from CO production by CH4 to remove dependency of CH4 and CO on each other and eliminate differences between CH4/tagCO simulations and the carbon simulation
 - Renamed several dummy species in the carbon mechanism for clarity
-- Fixed precision calculations within `co2_mod.F90` and `agged_co_mod.F90` to elimate differences with the carbon simulation
+- Fixed precision calculations within `co2_mod.F90` and `tagged_co_mod.F90` to eliminate differences with the carbon simulation
 
 ### Removed
 - Removed `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
@@ -66,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 - Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 - Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
-- Remove diurnal cycle factor applied to OH in `KPP/carbon/carbon_Funcs.F90` to eliminate differences between CH4 and carbon simulations.
+- Removed diurnal cycle factor applied to OH in `KPP/carbon/carbon_Funcs.F90` to eliminate differences between CH4 and carbon simulations.
 - Removed diurbal cycle factor applied to OH in tagCO simulation for consistency with other carbon species
 - Removed unused functions from `carbon_get_CO2fromOH_flux` and `carbon_get_FixedOH_Flux` from `KPP/carbon/carbon_Funcs.F90`
 
