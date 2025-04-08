@@ -245,6 +245,12 @@ CONTAINS
     !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW      )&
     !$OMP SCHEDULE( DYNAMIC, 8                                            )&
     !$OMP COLLAPSE( 2                                                     )
+#else
+    !$OMP PARALLEL DO                                      &
+    !$OMP DEFAULT( SHARED                                ) &
+    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
+    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
+    !$OMP SCHEDULE( DYNAMIC )
 #endif
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -338,9 +344,7 @@ CONTAINS
 
     ENDDO
     ENDDO
-#ifndef TOMAS
     !$OMP END PARALLEL DO
-#endif
 
     ! Return if Do_Cloud_Convection returned an error
     IF ( RC /= GC_SUCCESS ) THEN
