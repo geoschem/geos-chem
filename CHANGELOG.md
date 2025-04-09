@@ -39,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed the minimum KPP version to 3.2.0
 - Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
+- Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
@@ -56,14 +57,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
 - Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
 - Restored convection and ConvertBox unit conversion parallelization to how it was prior to 14.4.0 to fix slowness in TOMAS simulations
+- Modified the carbon mechanism in KPP to separate tropospheric CH4 loss by OH from CO production by CH4 to remove dependency of CH4 and CO on each other and eliminate differences between CH4/tagCO simulations and the carbon simulation
+- Renamed several dummy species in the carbon mechanism for clarity
+- Fixed precision calculations within `co2_mod.F90` and `tagged_co_mod.F90` to eliminate differences with the carbon simulation
 
 ### Removed
-- `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Removed `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
 - Removed re-evaporation requirement for washout
 - Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
 - Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
 - Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
 - Removed unused diagnostics: `Tomas_H2SO4`, `Tomas_COAG`, `Tomas_NUCL`, `Tomas_AQOX`, `Tomas_MNFIX`, `Tomas_SOA`
+- Removed diurnal cycle factor applied to OH in `KPP/carbon/carbon_Funcs.F90` to eliminate differences between CH4 and carbon simulations.
+- Removed diurbal cycle factor applied to OH in tagCO simulation for consistency with other carbon species
+- Removed unused functions from `carbon_get_CO2fromOH_flux` and `carbon_get_FixedOH_Flux` from `KPP/carbon/carbon_Funcs.F90`
 
 ## [14.5.3] - 2025-03-04
 ### Changed
