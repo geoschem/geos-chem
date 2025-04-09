@@ -190,10 +190,9 @@ CAN_WASTEWATER          kg/m2/s N Y - none none  wastewater_total           ./Hc
 CAN_OTHER               kg/m2/s N Y - none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
 
 # --- GFEI ---
-# Include scaling to convert molecules/cm2/s to kg/m2/s
-GFEI_CH4_OIL  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc
-GFEI_CH4_GAS  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
-GFEI_CH4_COAL kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
+GFEI_CH4_OIL  kg/m2/s N Y - none none Oil_All  ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc
+GFEI_CH4_GAS  kg/m2/s N Y - none none Gas_All  ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc
+GFEI_CH4_COAL kg/m2/s N Y - none none Coal     ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc
 
 # --- GRPI ---
 GRPI_CH4_RICE kg/m2/s N Y F2022-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2025-01/GRPI/GRPI_01x01.nc
