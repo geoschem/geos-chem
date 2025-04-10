@@ -1696,6 +1696,7 @@ CONTAINS
     ! Set diagnostics arrays in State_Diag that are in mol/mol
     CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
          State_Grid, State_Met, RC )
+    _ASSERT(RC==GC_SUCCESS, 'Error calling Set_SpcConc_Diags_VVDry')
 #endif
 
     !=======================================================================
