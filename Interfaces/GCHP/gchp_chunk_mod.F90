@@ -656,6 +656,7 @@ CONTAINS
     USE Diagnostics_Mod,    ONLY : Zero_Diagnostics_StartofTimestep
     USE Diagnostics_Mod,    ONLY : Set_Diagnostics_EndofTimestep
     USE Diagnostics_Mod,    ONLY : Set_AerMass_Diagnostic
+    USE Diagnostics_Mod,    ONLY : Set_SpcConc_Diags_VVDry
 #ifdef ADJOINT
     USE PhysConstants,      ONLY : AIRMW
     USE Diagnostics_Mod,    ONLY :  Set_SpcAdj_Diagnostic
@@ -1680,7 +1681,7 @@ CONTAINS
     if(Input_Opt%AmIRoot.and.NCALLS<10) write(*,*) ' --- Diagnostics done!'
 
     !=======================================================================
-    ! Convert State_Chm%Species units
+    ! Convert State_Chm%Species units back to original units
     !=======================================================================
     CALL Convert_Spc_Units(                                                  &
          Input_Opt  = Input_Opt,                                             &
@@ -1690,6 +1691,12 @@ CONTAINS
          new_units  = previous_units,                                        &
          RC         = RC                                                    )
     _ASSERT(RC==GC_SUCCESS, 'Error calling CONVERT_SPC_UNITS')
+
+#ifndef MODEL_GEOS
+    ! Set diagnostics arrays in State_Diag that are in mol/mol
+    CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,         &
+         State_Grid, State_Met, RC )
+#endif
 
     !=======================================================================
     ! Clean up
