@@ -61,6 +61,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified the carbon mechanism in KPP to separate tropospheric CH4 loss by OH from CO production by CH4 to remove dependency of CH4 and CO on each other and eliminate differences between CH4/tagCO simulations and the carbon simulation
 - Renamed several dummy species in the carbon mechanism for clarity
 - Fixed precision calculations within `co2_mod.F90` and `tagged_co_mod.F90` to eliminate differences with the carbon simulation
+- Fixed simulation date information printed by metrics.py for GCHP
 
 ### Removed
 - Removed `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
