@@ -221,7 +221,7 @@ CONTAINS
     LOGICAL             :: t1,        t2
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
-    INTEGER             :: L_CG,      L_TP,       N,         units
+    INTEGER             :: L_CG,      L_TP,       N
     REAL(fp)            :: PEdge_Top, Esat 
     REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
@@ -689,25 +689,14 @@ CONTAINS
           RETURN
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N )
+       ! NOTE: Vector operations in this case are more efficient
+       ! than the OpenMP parallel loop -- Bob Yantosca, 14 Apr 2025
        DO N = 1, State_Chm%nSpecies
-
-          units = State_Chm%Species(N)%Units
-
-          DO L = 1, State_Grid%NZ
-          DO J = 1, State_Grid%NY
-          DO I = 1, State_Grid%NX
-             State_Chm%Species(N)%Conc(I,J,L) =                              &
-                                   State_Chm%Species(n)%Conc(I,J,L) *        &
-                                   State_Met%DP_DRY_PREV(I,J,L)     /        &
-                                   State_Met%DELP_DRY(I,J,L)
-          ENDDO
-          ENDDO
-          ENDDO
+          State_Chm%Species(N)%Conc = State_Chm%Species(N)%Conc              &
+                                    * State_Met%DP_DRY_PREV                  &
+                                    / State_Met%DELP_DRY
        ENDDO
-       !$OMP END PARALLEL DO
+
     ENDIF
 
   END SUBROUTINE AIRQNT

@@ -74,6 +74,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed diurnal cycle factor applied to OH in `KPP/carbon/carbon_Funcs.F90` to eliminate differences between CH4 and carbon simulations.
 - Removed diurbal cycle factor applied to OH in tagCO simulation for consistency with other carbon species
 - Removed unused functions from `carbon_get_CO2fromOH_flux` and `carbon_get_FixedOH_Flux` from `KPP/carbon/carbon_Funcs.F90`
+- Removed `!$OMP PARALLEL` commands from loop in the `AIRQNT` routine where mixing ratios are updated (this was a hotspot)
 
 ## [14.5.3] - 2025-03-04
 ### Changed
