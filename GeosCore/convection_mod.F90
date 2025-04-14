@@ -234,11 +234,18 @@ CONTAINS
     ! to DO_CLOUD_CONVECTION, to gain computational efficiency
     !=======================================================================
 
-    !$OMP PARALLEL DO                                      &
-    !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
-    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
-    !$OMP SCHEDULE( DYNAMIC )
+#ifndef TOMAS
+    ! NOTE: For some reason, activating this parallel loop causes a
+    ! the ConvertBox_* routines in TOMAS washout to not convert units
+    ! properly.  It seems to go away when we disable this parallel loop.
+    ! Return to look at this issue in the future, but disable it for now.
+    !  -- Bob Yantosca (28 Feb 2024)
+    !$OMP PARALLEL DO                                                      &
+    !$OMP DEFAULT( SHARED                                                 )&
+    !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW      )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                            )&
+    !$OMP COLLAPSE( 2                                                     )
+#endif
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -331,9 +338,11 @@ CONTAINS
 
     ENDDO
     ENDDO
+#ifndef TOMAS
     !$OMP END PARALLEL DO
+#endif
 
-    ! Return if COMPUTE_F returned an error
+    ! Return if Do_Cloud_Convection returned an error
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "Do_Cloud_Convection"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -380,7 +389,7 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-       
+
   END SUBROUTINE DO_CONVECTION
 !EOC
 !------------------------------------------------------------------------------
@@ -517,21 +526,25 @@ CONTAINS
     ! Arrays
     REAL(fp)               :: BMASS    (State_Grid%NZ)
     REAL(fp)               :: PDOWN    (State_Grid%NZ)
+    REAL(fp)               :: REEVAPCN (State_Grid%NZ)
+    REAL(fp)               :: DQRCU    (State_Grid%NZ)
 
     ! Pointers
-    REAL(fp),      POINTER :: BXHEIGHT (:)
-    REAL(fp),      POINTER :: CMFMC    (:)
-    REAL(fp),      POINTER :: DQRCU    (:)
-    REAL(fp),      POINTER :: DTRAIN   (:)
-    REAL(fp),      POINTER :: PFICU    (:)
-    REAL(fp),      POINTER :: PFLCU    (:)
-    REAL(fp),      POINTER :: REEVAPCN (:)
-    REAL(fp),      POINTER :: DELP_DRY (:)
-    REAL(fp),      POINTER :: T        (:)
-    REAL(fp),      POINTER :: H2O2s    (:)
-    REAL(fp),      POINTER :: SO2s     (:)
-    REAL(fp),      POINTER :: Q        (:)
-    TYPE(SpcConc), POINTER :: Spc      (:)
+    REAL(fp),      POINTER :: BXHEIGHT     (:)
+    REAL(fp),      POINTER :: CMFMC        (:)
+    REAL(fp),      POINTER :: DQRCU_MET    (:)
+    REAL(fp),      POINTER :: DTRAIN       (:)
+    REAL(fp),      POINTER :: PFICU        (:)
+    REAL(fp),      POINTER :: PFLCU        (:)
+    REAL(fp),      POINTER :: REEVAPCN_MET (:)
+    REAL(fp),      POINTER :: DELP_DRY     (:)
+    REAL(fp),      POINTER :: DELP         (:)
+    REAL(fp),      POINTER :: T            (:)
+    REAL(fp),      POINTER :: H2O2s        (:)
+    REAL(fp),      POINTER :: SO2s         (:)
+    REAL(fp),      POINTER :: Q            (:)
+    REAL(fp),      POINTER :: PRECCON
+    TYPE(SpcConc), POINTER :: Spc          (:)
     TYPE(Species), POINTER :: SpcInfo
 
     !========================================================================
@@ -544,18 +557,20 @@ CONTAINS
     ThisLoc  = ' -> at Do_Cloud_Convection (in convection_mod.F90)'
 
     ! Point to columns of derived-type object fields
-    BXHEIGHT => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
-    CMFMC    => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
-                                                          ! [kg/m2/s]
-    DQRCU    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
-    DTRAIN   => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
-    REEVAPCN => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
-    DELP_DRY => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
-    T        => State_Met%T       (I,J,:        ) ! Air temperature [K]
-    H2O2s    => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
-    SO2s     => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
-    Spc      => State_Chm%Species              ! Chemical species vector
-    SpcInfo  => NULL()                            ! Species database entry
+    BXHEIGHT     => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
+    CMFMC        => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
+                                                              ! [kg/m2/s] [upper edge]
+    DQRCU_MET    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
+    DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
+    REEVAPCN_MET => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+    DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
+    DELP         => State_Met%DELP    (I,J,:        ) ! Edge P diff [hPa]
+    T            => State_Met%T       (I,J,:        ) ! Air temperature [K]
+    PRECCON      => State_Met%PRECCON (I,J          ) ! Surface precipitation flux [mm/day]
+    H2O2s        => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
+    SO2s         => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
+    Spc          => State_Chm%Species              ! Chemical species vector
+    SpcInfo      => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
     PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
@@ -575,6 +590,9 @@ CONTAINS
     ! Convection timestep [s]
     NDT      = TS_DYN
 
+    ! Is this a Hg simulation?
+    IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
+
     IF ( State_Grid%NZ > 72 .or. &
          Input_Opt%MetField == "MODELE2.1" ) THEN 
        ! Higher vertical resolution runs need shorter convective timestep
@@ -587,6 +605,31 @@ CONTAINS
     NS       = MAX( NS, 1 )             ! Set lower bound to 1
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
+
+    IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+       ! RAS scheme
+       REEVAPCN(:) = REEVAPCN_MET(:)
+       DQRCU(:) = DQRCU_MET(:)
+    ELSE
+       ! GF scheme
+       ! REEVAPCN_MET is cumulative re-evaporation
+       ! DQRCU_MET is net precipitation formation (need to add re-evaporation back)
+       REEVAPCN(NLAY) = REEVAPCN_MET(NLAY)
+       DO K = 2, NLAY-1
+         ! REEVAPCN (kg/kg/s) to REEVAPCN_FLUX (kg/m2/s)
+         ! subtraction between fluxes instead
+          REEVAPCN(K) = (REEVAPCN_MET(K) * DELP(K) &
+                     - REEVAPCN_MET(K+1) * DELP(K+1) ) &
+                     / DELP(K)
+       ENDDO
+       ! Zero DQRCU and some negative REEVAPCN at surface in GF scheme
+       ! Set as zero to avoid cloud base mistakenly at surface level
+       REEVAPCN(1) = 0.0_fp
+       DQRCU(1) = 0.0_fp
+       DO K = 2, NLAY
+          DQRCU(K) = DQRCU_MET(K) + REEVAPCN(K)
+       ENDDO
+    ENDIF
 
     !-----------------------------------------------------------------
     ! Determine location of the cloud base, which is the level where
@@ -607,24 +650,29 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Compute PDOWN and BMASS
     !-----------------------------------------------------------------
-    DO K = 1, NLAY
+    ! PDOWN is the convective precipitation leaving each
+    ! box [cm3 H2O/cm2 air/s]. This accounts for the
+    ! contribution from both liquid & ice precip.
+    ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
+    ! using water and ice densities, respectively.
+    ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
+    IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+       PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
+                +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
+    ELSE
+       PDOWN(NLAY) = DQRCU_MET(NLAY) * DELP(NLAY) * G0_100 * 100e+0_fp
+       DO K = NLAY-1, 1, -1
+          PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K) & 
+                    * DELP(K) * G0_100 * 100e+0_fp
+                    ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
+       ENDDO
+    ENDIF
 
-       ! PDOWN is the convective precipitation leaving each
-       ! box [cm3 H2O/cm2 air/s]. This accounts for the
-       ! contribution from both liquid & ice precip.
-       ! PFLCU and PFICU are converted from kg/m2/s to m3/m2/s
-       ! using water and ice densities, respectively.
-       ! m3/m2/s becomes cm3/cm2/s using a factor of 100.
-       PDOWN(K) = ( ( PFLCU(K) / 1000e+0_fp ) &
-                +   ( PFICU(K) /  917e+0_fp ) ) * 100e+0_fp
-
-       ! BMASS is the dry air mass per unit area for the grid box
-       ! bounded by level K and K+1 [kg/m2]
-       ! BMASS is equivalent to deltaP (dry) * 100 / g
-       ! This is done to keep BMASS in the same units as CMFMC * SDT
-       BMASS(K) = DELP_DRY(K) * G0_100
-
-    ENDDO
+    ! BMASS is the dry air mass per unit area for the grid box
+    ! bounded by level K and K+1 [kg/m2]
+    ! BMASS is equivalent to deltaP (dry) * 100 / g
+    ! This is done to keep BMASS in the same units as CMFMC * SDT
+    BMASS(:) = DELP_DRY(:) * G0_100
 
     !-----------------------------------------------------------------
     ! Compute MB, the mass per unit area of dry air below the cloud
@@ -635,9 +683,6 @@ CONTAINS
     DO K = 1, CLDBASE-1
        MB = MB + BMASS(K)
     ENDDO
-
-    ! Is this a Hg simulation?
-    IS_Hg = Input_Opt%ITS_A_MERCURY_SIM
 
     !========================================================================
     ! (1)  A d v e c t e d   S p e c i e s   L o o p
@@ -1119,15 +1164,38 @@ CONTAINS
 
                 ! Call WASHOUT to compute the fraction of species lost
                 ! to washout in grid box (I,J,K)
-                CALL WASHOUT( I,         J,                         &
-                              K,         IC,         BXHEIGHT(K),   &
-                              T(K),      QDOWN,      SDT,           &
-                              F_WASHOUT, H2O2s(K),   SO2s(K),       &
+                !
+                ! For TOMAS, indicate that we are not calling WASHOUT
+                ! from wet deposition, so that the proper unit conversions
+                ! will be applied. -- Bob Yantosca (11 Apr 2024)
+                CALL WASHOUT(                                                &
+                     ! --- Input ---
+                     I          = I,                                         &
+                     J          = J,                                         &
+                     L          = K,                                         &
+                     N          = IC,                                        &
+                     BXHEIGHT   = BXHEIGHT(K),                               &
+                     TK         = T(K),                                      &
+                     PP         = QDOWN,                                     &
+                     DT         = SDT,                                       &
+                     F          = F_WASHOUT,                                 &
+                     Input_Opt  = Input_Opt,                                 &
+                     State_Grid = State_Grid,                                &
+                     State_Met  = State_Met,                                 &
 #ifdef LUO_WETDEP
-                              pHRain,                               &
+                     pHRain     = pHRain,                                    &
 #endif
-                              WASHFRAC,  AER,        Input_Opt,     &
-                              State_Chm, State_Grid, State_Met,  RC )
+#ifdef TOMAS
+                     fromWetDep = .FALSE.,                                   &
+#endif
+                     ! --- Input/Output ---
+                     State_Chm  = State_Chm,                                 &
+                     H2O2s      = H2O2s(K),                                  &
+                     SO2s       = SO2s(K),                                   &
+                     ! --- Output ---
+                     WASHFRAC   = WASHFRAC,                                  &
+                     KIN        = AER,                                       &
+                     RC         = RC                                        )
 
                 ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
@@ -1342,18 +1410,19 @@ CONTAINS
     !================================================================
 
     ! Nullify pointers
-    NULLIFY( BXHEIGHT )
-    NULLIFY( CMFMC    )
-    NULLIFY( DQRCU    )
-    NULLIFY( DTRAIN   )
-    NULLIFY( PFICU    )
-    NULLIFY( PFLCU    )
-    NULLIFY( REEVAPCN )
-    NULLIFY( DELP_DRY )
-    NULLIFY( T        )
-    NULLIFY( H2O2s    )
-    NULLIFY( SO2s     )
-    NULLIFY( Spc      )
+    NULLIFY( BXHEIGHT     )
+    NULLIFY( CMFMC        )
+    NULLIFY( DQRCU_MET    )
+    NULLIFY( DTRAIN       )
+    NULLIFY( PFICU        )
+    NULLIFY( PFLCU        )
+    NULLIFY( REEVAPCN_MET )
+    NULLIFY( DELP_DRY     )
+    NULLIFY( DELP         )
+    NULLIFY( T            )
+    NULLIFY( H2O2s        )
+    NULLIFY( SO2s         )
+    NULLIFY( Spc          )
 
     ! Set error code to success
     RC                      = GC_SUCCESS

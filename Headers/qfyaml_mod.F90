@@ -2272,7 +2272,8 @@ CONTAINS
 
     ! Take the middle element as pivot
     pivot_ix    = SIZE( list ) / 2
-    pivot_value = list(pivot_ix)%var_name
+    temp        = list(pivot_ix)
+    pivot_value = temp%var_name
 
     DO WHILE ( left < right )
 

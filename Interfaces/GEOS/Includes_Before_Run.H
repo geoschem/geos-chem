@@ -48,11 +48,11 @@
   State_Met%EFLUX      = LHFX                                ! W/m2
   State_Met%FRCLND     = FRLAND                              ! unitless
   State_Met%FRLAND     = FRLAND                              ! unitless
-  State_Met%FRLANDIC   = FRLANDICE                           ! unitless
+  State_Met%FRLANDICE  = FRLANDICE                           ! unitless
   State_Met%FROCEAN    = FROCEAN                             ! unitless
   State_Met%FRLAKE     = FRLAKE                              ! unitless
 !  State_Met%FRSEAICE  = not used 
-  State_Met%FRSNO      = ASNOW                               ! unitless
+  State_Met%FRSNOW     = ASNOW                               ! unitless
   State_Met%GWETTOP    = WET1                                ! unitless
   State_Met%GWETROOT   = WET2                                ! unitless
 !  State_Met%ITY        = ITY                                 ! unitless
@@ -233,7 +233,7 @@
   ENDDO
 
   !=========================================================================
-  ! Pass advected tracers from internal state to GEOS-Chem tracers array
+  ! Pass all tracers from internal state to GEOS-Chem tracers array
   ! Species in internal state are in kg/kg total. GEOS-Chem will convert
   ! them to kg/kg dry internally.
   !=========================================================================
@@ -246,8 +246,8 @@
   State_Chm%Species(Int2Spc(I)%ID)%Conc(:,:,LM:1:-1) = Int2Spc(I)%Internal(:,:,:)
      ENDIF
      !IF ( MAPL_am_I_Root() ) WRITE(*,*) 'Copying from internal: ',I,Int2Spc(I)%ID,MINVAL(Int2Spc(I)%Internal(:,:,:)),MAXVAL(Int2Spc(I)%Internal(:,:,:)),SUM(Int2Spc(I)%Internal(:,:,:))/IM/JM/LM
+     State_Chm%Species(I)%Units = KG_SPECIES_PER_KG_TOTAL_AIR
   ENDDO
-  State_Chm%Spc_Units = KG_SPECIES_PER_KG_TOTAL_AIR
 
   !=========================================================================
   ! Various other archived variables needed in internal state. Eventually,

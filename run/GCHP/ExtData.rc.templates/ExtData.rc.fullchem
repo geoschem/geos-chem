@@ -32,14 +32,22 @@ ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS}
 #==============================================================================
 # --- Fields for lightning emissions (Extension 103) ---
 # These fields are stored in State_Met, along with the other met fields
+# Lines below are commented/uncommented by setCommonRunSettings.sh based
+# on setting in HEMCO_Config.rc.
 #==============================================================================
 #FLASH_DENS 1 N Y F0;013000 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_%y4_%m2.nc4
 #CONV_DEPTH 1 N Y F0;013000 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/%y4/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_%y4_%m2.nc4
 
-# Climatology option (if using make sure two lines below are uncommented and
-# two lines above are commented)
-FLASH_DENS 1 N N F1980-%m2-01T00:00:00 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
-CONV_DEPTH 1 N N F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+# Climatology option
+FLASH_DENS 1 Y Y F1980-%m2-01T00:00:00 none none LDENS ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+CONV_DEPTH 1 Y Y F1980-%m2-01T00:00:00 none none CTH   ./HcoDir/OFFLINE_LIGHTNING/v2020-03/${RUNDIR_METLIGHTNING}/CLIM/FLASH_CTH_${RUNDIR_METLIGHTNING}_${RUNDIR_METLIGHTNING_RES}_${RUNDIR_MET_LCLIM}.ymonmean.nc4
+#
+#==============================================================================
+# --- Fields for soil NOx emissions (Extension 104) ---
+# These fields are stored in State_Met, along with the other met fields
+# Manually uncomment this line is UseSoilTemperature is true in HEMCO config.
+#==============================================================================
+#TSOIL1 1 N Y F0;003000 none none TSOIL1   ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1soil.025x03125.nc
 #
 #==============================================================================
 # --- Fields for RRTMG ---
@@ -1189,6 +1197,22 @@ CEDS_HCOOH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_rco  ./HcoDir/C
 CEDS_HCOOH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_slv  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_HCOOH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_wst  ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
 #
+CEDS_TMB_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_agr  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_ene  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_ind  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_tra  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_rco  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_slv  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_wst  ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+#
+CEDS_OTH_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_agr  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_ene  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_ind  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_tra  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_rco  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_slv  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_wst  ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
+#
 #==============================================================================
 # --- EDGAR v4.3 (EDGARv43) ---
 # EDGARv4.3 is off by default in HEMCO_Config.rc
@@ -1372,6 +1396,22 @@ ORDONEZ_CH2ICL kg/m2/s Y Y F2000-%m2-01T00:00:00 none none CH2ICl ./HcoDir/IODIN
 ORDONEZ_CH2IBR kg/m2/s Y Y F2000-%m2-01T00:00:00 none none CH2IBr ./HcoDir/IODINE/v2020-02/CH2IBr_monthly_emissions_Ordonez_2012_COARDS.nc
 #
 #==============================================================================
+# --- GT_Chlorine ---
+#==============================================================================
+HCL_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_ene   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_ind   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_res   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_wstop ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_BIO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_bbop  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+HCL_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCl_agri  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_ene   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_ind   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_RES  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_res   ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_wstop ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_BIO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_bbop  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+PCL_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none pCl_agri  ./HcoDir/GT_Chlorine/v2024-05/GT_Chlorine_01_01_%y4_V1.0.0.nc
+#
+#==============================================================================
 # --- Ship emissions (SHIP) ---
 #==============================================================================
 CEDS_NO_SHP    kg/m2/s N Y F%y4-%m2-01T00:00:00 none none NO_shp            ./HcoDir/CEDS/v2021-06/%y4/NO-em-anthro_CMIP_CEDS_%y4.nc
@@ -1396,6 +1436,8 @@ CEDS_CH2O_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CH2O_shp          ./Hc
 CEDS_ALD2_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none ALD2_shp          ./HcoDir/CEDS/v2021-06/%y4/ALD2-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_MEK_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none MEK_shp           ./HcoDir/CEDS/v2021-06/%y4/MEK-em-anthro_CMIP_CEDS_%y4.nc
 CEDS_HCOOH_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none HCOOH_shp         ./HcoDir/CEDS/v2021-06/%y4/HCOOH-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_TMB_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none TMB_shp           ./HcoDir/CEDS/v2021-06/%y4/TMB-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_OTH_SHP   kg/m2/s N Y F%y4-%m2-01T00:00:00 none none OTHER_VOC_shp     ./HcoDir/CEDS/v2021-06/%y4/OTHER_VOC-em-anthro_CMIP_CEDS_%y4.nc
 #
 # --- if not ParaNOx ---
 # --- if EMEP_SHIP and not ParaNOx ---
@@ -1781,7 +1823,7 @@ GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4
 #==============================================================================
 # --- Time zones (offset to UTC) ---
 #==============================================================================
-TIMEZONES count N V - none none UTC_OFFSET ./HcoDir/TIMEZONES/v2015-02/timezones_voronoi_1x1.nc
+TIMEZONES count Y V 2017-%m2-01T00:00:00 none none UTC_OFFSET ./HcoDir/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc
 #
 #==============================================================================
 # --- UV albedo (UVALBEDO) ---
@@ -2078,7 +2120,7 @@ GMI_PROD_VRP  v/v/s Y Y F2000-%m2-01T00:00:00 none none prod ./HcoDir/GMI/v2015-
 #==============================================================================
 # --- NOAA GMD monthly mean surface CH4 (GMD_SFC_CH4) ---
 #==============================================================================
-NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2018-01/monthly.gridded.surface.methane.1979-2020.1x1.nc
+NOAA_GMD_CH4 ppbv N Y F%y4-%m2-01T00:00:00 none none SFC_CH4 ./HcoDir/NOAA_GMD/v2023-10/monthly.gridded.surface.methane.1975-2022.1x1.nc
 #
 #==============================================================================
 # --- CMIP6 monthly mean surface CH4 (pre 1970) (CMIP6_SFC_CH4) ---

@@ -91,8 +91,11 @@ MODULE State_Chm_Mod
      !-----------------------------------------------------------------------
      ! Mapping vectors to subset types of species
      !-----------------------------------------------------------------------
+     REAL(f8),          POINTER :: KPP_AbsTol (:      ) ! KPP absolute tolerance
+     REAL(f8),          POINTER :: KPP_RelTol (:      ) ! KPP relative tolerance
      INTEGER,           POINTER :: Map_Advect (:      ) ! Advected species IDs
      INTEGER,           POINTER :: Map_Aero   (:      ) ! Aerosol species IDs
+     INTEGER,           POINTER :: Map_All    (:      ) ! All species IDs
      INTEGER,           POINTER :: Map_DryAlt (:      ) ! Dryalt species IDs
      INTEGER,           POINTER :: Map_DryDep (:      ) ! Drydep species IDs
      INTEGER,           POINTER :: Map_GasSpc (:      ) ! Gas species IDs
@@ -122,8 +125,6 @@ MODULE State_Chm_Mod
      TYPE(SpcConc),     POINTER :: Species (:      )    ! Vector for species
                                                         ! concentrations
                                                         !  [kg/kg dry air]
-     INTEGER                    :: Spc_Units            ! Species units
-
 #ifdef ADJOINT
      REAL(fp),          POINTER :: SpeciesAdj (:,:,:,:) ! Species adjoint variables
      REAL(fp),          POINTER :: CostFuncMask(:,:,:)  ! cost function volume mask
@@ -189,7 +190,7 @@ MODULE State_Chm_Mod
                                                         !  reaction cofactors
 
      !-----------------------------------------------------------------------
-     ! For isoprene SOA via ISORROPIA
+     ! For isoprene SOA via ISORROPIA/HETP
      !-----------------------------------------------------------------------
      REAL(fp),          POINTER :: IsorropAeropH  (:,:,:,:) ! ISORROPIA aero pH
      REAL(fp),          POINTER :: IsorropHplus   (:,:,:,:) ! H+ conc [M]
@@ -474,6 +475,7 @@ CONTAINS
     ! Mapping vectors
     State_Chm%Map_Advect        => NULL()
     State_Chm%Map_Aero          => NULL()
+    State_Chm%Map_All           => NULL()
     State_Chm%Map_DryAlt        => NULL()
     State_Chm%Map_DryDep        => NULL()
     State_Chm%Map_GasSpc        => NULL()
@@ -494,7 +496,6 @@ CONTAINS
     ! Species-based quantities
     State_Chm%SpcData           => NULL()
     State_Chm%Species           => NULL()
-    State_Chm%Spc_Units         =  0
     State_Chm%BoundaryCond      => NULL()
 
 #ifdef ADJOINT
@@ -644,6 +645,10 @@ CONTAINS
     ! Add fields for APM microphysics
     State_Chm%PSO4_SO2APM2      => NULL()
 #endif
+
+    ! KPP integrator quantities
+    State_Chm%KPP_AbsTol        => NULL()
+    State_Chm%KPP_RelTol        => NULL()
 
   END SUBROUTINE Zero_State_Chm
 !EOC
@@ -945,8 +950,9 @@ CONTAINS
     ALLOCATE( State_Chm%Species( State_Chm%nSpecies ), STAT=RC )
     DO N = 1, State_Chm%nSpecies
 #if defined ( MODEL_GCHPCTM )
-       ! Species concentration array pointers will be set to point to MAPL internal state
-       ! every timestep when intstate level values are flipped to match GEOS-Chem standard
+       ! Species concentration array pointers will be set to point
+       ! to MAPL internal state every timestep when internal state level
+       ! values are flipped to match GEOS-Chem standard
        State_Chm%Species(N)%Conc => NULL()
 #else
        ALLOCATE( State_Chm%Species(N)%Conc( State_Grid%NX, &
@@ -954,6 +960,7 @@ CONTAINS
                                             State_Grid%NZ ), STAT=RC )
        State_Chm%Species(N)%Conc = 0.0_f8
 #endif
+       State_Chm%Species(N)%Units = 0
     ENDDO
 
 #ifdef ADJOINT
@@ -2273,7 +2280,7 @@ CONTAINS
     !=======================================================================
     ! Initialize State_Chm quantities pertinent to CH4 simulations
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM .or. Input_Opt%ITS_A_TAGCH4_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
        ! Global OH and Cl from HEMCO input
        chmId = 'BOH'
        CALL Init_and_Register(                                               &
@@ -2479,6 +2486,13 @@ CONTAINS
        State_Chm%Map_Aero = 0
     ENDIF
 
+    IF ( State_Chm%nSpecies > 0 ) THEN
+       ALLOCATE( State_Chm%Map_All( State_Chm%nSpecies ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_All', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_All = 0
+    ENDIF
+
     IF (  State_Chm%nDryAlt > 0 ) THEN
        ALLOCATE( State_Chm%Map_DryAlt( State_Chm%nDryAlt ), STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_DryAlt', 0, RC )
@@ -2517,6 +2531,17 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_KppVar', 0, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_KppVar = 0
+
+       ! 
+       ALLOCATE( State_Chm%KPP_AbsTol( N ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KppAbsTol', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_AbsTol = 0.0_f8
+
+       ALLOCATE( State_Chm%KPP_RelTol( N ), STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KppRelTol', 0, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_RelTol = 0.0_f8
     ENDIF
 
     N = State_Chm%nKppFix + State_Chm%nOmitted
@@ -2613,11 +2638,14 @@ CONTAINS
        ThisSpc => State_Chm%SpcData(N)%Info
 
        !---------------------------------------------------------------------
+       ! Set up the mapping for ALL SPECIES
+       !---------------------------------------------------------------------
+       State_Chm%Map_All(N) = ThisSpc%ModelID
+
+       !---------------------------------------------------------------------
        ! Set up the mapping for ADVECTED SPECIES
        !---------------------------------------------------------------------
        IF ( ThisSpc%Is_Advected ) THEN
-
-          ! Update the mapping vector of advected species
           C                       = ThisSpc%AdvectId
           State_Chm%Map_Advect(C) = ThisSpc%ModelId
        ENDIF
@@ -2672,6 +2700,8 @@ CONTAINS
        IF ( ThisSpc%Is_ActiveChem ) THEN
           C                       = ThisSpc%KppVarId
           State_Chm%Map_KppVar(C) = ThisSpc%ModelId
+          State_Chm%KPP_AbsTol(C) = ThisSpc%KPP_AbsTol
+          State_Chm%KPP_RelTol(C) = ThisSpc%KPP_RelTol
        ENDIF
 
        !---------------------------------------------------------------------
@@ -3077,6 +3107,20 @@ CONTAINS
        State_Chm%Phot => NULL()
     ENDIF
 
+    IF ( ASSOCIATED( State_Chm%KPP_AbsTol ) ) THEN
+       DEALLOCATE( State_Chm%KPP_AbsTol, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KPP_AbsTol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_AbsTol => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%KPP_RelTol ) ) THEN
+       DEALLOCATE( State_Chm%KPP_RelTol, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%KPP_RelTol', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%KPP_RelTol => NULL()
+    ENDIF
+
     IF ( ASSOCIATED( State_Chm%Map_Advect ) ) THEN
        DEALLOCATE( State_Chm%Map_Advect, STAT=RC )
        CALL GC_CheckVar( 'State_Chm%Map_Advect', 2, RC )
@@ -3089,6 +3133,13 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%Map_Aero', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%Map_Aero => NULL()
+    ENDIF
+
+    IF ( ASSOCIATED( State_Chm%Map_All ) ) THEN
+       DEALLOCATE( State_Chm%Map_All, STAT=RC )
+       CALL GC_CheckVar( 'State_Chm%Map_All', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Chm%Map_All => NULL()
     ENDIF
 
     IF ( ASSOCIATED( State_Chm%Map_DryDep ) ) THEN

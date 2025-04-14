@@ -32,12 +32,11 @@
   State_Met%CLDFRC              = CLDFRC                     ! 1
   State_Met%EFLUX               = EFLUX                      ! W m-2
   State_Met%HFLUX               = HFLUX                      ! W/m2
-  State_Met%FRLAND              = FRLAND                     ! 1
+  State_Met%FRLAND              = FRLAND                     ! 1, excludes lake and ice
   State_Met%FROCEAN             = FROCEAN                    ! 1
   State_Met%FRLAKE              = FRLAKE                     ! 1
-  State_Met%FRLANDIC            = FRLANDIC                   ! 1
+  State_Met%FRLANDICE           = FRLANDIC                   ! 1
   State_Met%FRSEAICE            = FRSEAICE                   ! 1
-  State_Met%FRSNO               = FRSNO                      ! 1
   State_Met%QV2M                = QV2M                       ! 1
   State_Met%PHIS                = PHIS / 9.80665d0           ! m
   State_Met%GWETROOT            = GWETROOT                   ! 1
@@ -62,6 +61,14 @@
   State_Met%USTAR               = USTAR                      ! m/s
   State_Met%V10M                = V10M                       ! m/s
   State_Met%Z0                  = Z0                         ! m
+
+  ! The import FRSNO is fraction of land with snow cover. Convert to
+  ! fraction of grid box with snow cover for storage in State_Met
+  DO J = 1, State_Grid%NY
+  DO I = 1, State_Grid%NX
+     State_Met%FRSNOW(I,J) = FRSNO(I,J) * State_Met%FRLAND(I,J)
+  ENDDO
+  ENDDO
 
   ! Get UV albedo for photolysis
   Ptr2d => NULL()
@@ -147,6 +154,10 @@
   ! transport is correctly implemented.
   State_Met%SPHU1               = SPHU1       *1.0d3         ! kg/kg -> g/kg
   State_Met%SPHU2               = SPHU2       *1.0d3         ! kg/kg -> g/kg
+  State_Met%PRECCON             = PRECCON * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECLSC             = PRECLSC * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECANV             = PRECANV * 86400d0          ! kg/m2/s to mm/day
+  State_Met%PRECTOT             = PRECTOT * 86400d0          ! kg/m2/s to mm/day
 
     ! If meteorology vertical index is top down, flip imports coming from ExtData.
   if (meteorology_vertical_index_is_top_down) then

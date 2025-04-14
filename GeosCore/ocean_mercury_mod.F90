@@ -223,10 +223,6 @@ CONTAINS
 ! !USES:
 !
     USE ErrCode_Mod
-#ifdef BPCH_DIAG
-    USE CMN_DIAG_MOD
-    USE TIME_MOD,           ONLY : SET_Hg2_DIAG
-#endif
     USE ERROR_MOD,          ONLY : GEOS_CHEM_STOP, ERROR_STOP
     USE HCO_State_GC_Mod,   ONLY : HcoState
     USE HCO_EmisList_Mod,   ONLY : HCO_GetPtr
@@ -604,7 +600,7 @@ CONTAINS
     IS_OPEN_OCEAN = ( ( State_Met%FROCEAN(I,J) - &
                         State_Met%FRSEAICE(I,J) ) > 0e+0_fpp )
     IS_OPEN_LAND  = ( ( State_Met%FRLAND(I,J)  - &
-                        State_Met%FRSNO(I,J)    ) > 0e+0_fpp )
+                        State_Met%FRSNOW(I,J)    ) > 0e+0_fpp )
 
     IS_MELT = ( State_Met%TS(I,J) >= 276e+0_fpp )
 

@@ -3,10 +3,6 @@
 Name:
 Institution:
 
-### Confirm you have reviewed the following documentation
-
-- [ ] [Contributing guidelines](https://geos-chem.readthedocs.io/en/stable/help-and-reference/CONTRIBUTING.html)
-
 ### Describe the update
 
 Please provide a clear and concise overview of the update.
@@ -19,6 +15,6 @@ Please provide details on how this update will impact model output and include p
 
 If this is a science update, please provide a literature citation.
 
-### Related Github Issue(s)
+### Related Github Issue
 
-Please link to the corresponding Github issue here. If fixing a bug, there should be an issue describing it with steps to reproduce.
+Please link to the corresponding Github issue(s) here. If fixing a bug, there should be an issue describing it with steps to reproduce.

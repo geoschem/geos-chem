@@ -60,7 +60,7 @@ EmisCO2_BiomassBurn   CO2    111   -1   -1   2  kg/m2/s  CO2_biomass_burning_emi
 ###############################################################################
 #####  OCS sources                                                        #####
 ###############################################################################
-EmisOCS_Total         OCS      0   -1   -1   3  kg/m2/s  OCS_emission_flux_from_all_sectors
+EmisOCS_Total         OCS      0   -1   -1   2  kg/m2/s  OCS_emission_flux_from_all_sectors
 EmisOCS_Anthro        OCS      0    1   -1   2  kg/m2/s  OCS_emission_flux_from_anthropogenic
 EmisOCS_Bioburn       OCS      0    2   -1   2  kg/m2/s  OCS_emission_flux_from_biomass_burning
 EmisOCS_MissingOcean  OCS      0    3   -1   2  kg/m2/s  OCS_emission_flux_from_missing_ocean

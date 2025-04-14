@@ -186,7 +186,7 @@ Use_GMI_O3_PL:        0
 
 # Analysis options 
 ANAPHASE: 2
-Analysis_nSpecies: 3
+Analysis_nSpecies: 0
 Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.CDAS.rc
 Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
 Analysis_Settings_Spec003: GEOSCHEMchem_AnaSettings_SO2.rc

@@ -564,7 +564,8 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia/HETP
+    ! after needed in RDAER
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AeroH2O_SNA',  &
        LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
@@ -859,7 +860,8 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
-    ! Sulfur-nitrogen-ammonia water content computed in Isorropia after needed in RDAER
+    ! Sulfur-nitrogen-ammonia water content computed in Isorropia/HETP
+    ! after needed in RDAER
     call MAPL_AddInternalSpec(GC, &
        SHORT_NAME         = 'AeroH2O_SNA',  &
        LONG_NAME          = 'Sulfur-nitrogen-ammonia water content',  &
@@ -1261,9 +1263,10 @@ CONTAINS
     ! Initialize MAPL Generic
     CALL MAPL_GenericInitialize( GC, Import, Export, Clock, __RC__ )
 
-#ifdef ADJOINT
-    CALL MAPL_GenericStateClockAdd( GC, name='--AdjointCheckpoint', __RC__ )
-#endif
+    ! AdjointChekpoint is not defined
+!#ifdef ADJOINT
+!    CALL MAPL_GenericStateClockAdd( GC, name='--AdjointCheckpoint', __RC__ )
+!#endif
 
     ! Get Internal state.
     CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )

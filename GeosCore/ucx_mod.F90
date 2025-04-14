@@ -22,14 +22,6 @@ MODULE UCX_MOD
   USE PhysConstants       ! Physical constants
   USE PRECISION_MOD       ! For GEOS-Chem Precision (fp)
 
-#if defined( MODEL_CESM )
-    USE CAM_PIO_UTILS, ONLY : CAM_PIO_OPENFILE
-    USE IOFILEMOD,     ONLY : GETFIL
-    USE PIO,           ONLY : PIO_CLOSEFILE, PIO_INQ_DIMID, PIO_INQ_DIMLEN
-    USE PIO,           ONLY : PIO_INQ_VARID, PIO_GET_VAR, PIO_NOERR
-    USE PIO,           ONLY : PIO_NOWRITE, FILE_DESC_T
-#endif
-
 #if !defined( EXTERNAL_GRID )
   ! NcdfUtil modules for netCDF I/O
   USE m_netcdf_io_open                    ! netCDF open
@@ -648,12 +640,6 @@ CONTAINS
     REAL(fp), DIMENSION(:,:), ALLOCATABLE :: NOXD2D_IN
     INTEGER                               :: LSTART
 
-#if defined( MODEL_CESM )
-    INTEGER            :: iret
-    INTEGER            :: vid
-    TYPE(FILE_DESC_T)  :: ncid
-#endif
-
     !=================================================================
     ! GET_NOXCOEFF begins here!
     !=================================================================
@@ -761,6 +747,7 @@ CONTAINS
 #else
     USE Cldj_Cmn_Mod,    ONLY : RAA
 #endif
+    USE CMN_SIZE_Mod,    ONLY : NDUST
     USE ErrCode_Mod
     USE ERROR_MOD,       ONLY : IT_IS_NAN,ERROR_STOP
     USE Input_Opt_Mod,   ONLY : OptInput
@@ -808,9 +795,6 @@ CONTAINS
 
     ! Used for old Seinfeld & Pandis slip factor calc
     REAL(fp)               :: sp_Lambda, sp_Num
-
-    ! Parameters
-    REAL(fp), PARAMETER    :: BCDEN = 1000.e+0_fp ! density (kg/m3)
 
     ! Indexing
     INTEGER, PARAMETER     :: IBC  = 1
@@ -924,7 +908,7 @@ CONTAINS
           IF (RUNCALC) THEN
              ! Need to translate for BC radii
              IF ( State_Met%InChemGrid(I,J,L) ) THEN
-                RWET(IBC) = WERADIUS(I,J,L,2)*1.e-2_fp
+                RWET(IBC) = WERADIUS(I,J,L,2+NDUST)*1.e-2_fp
              ELSE
                 ! Use defaults, assume dry (!)
 #ifdef FASTJX
@@ -934,8 +918,7 @@ CONTAINS
 #endif
              ENDIF
 
-             ! Taken from aerosol_mod (MSDENS(2))
-             RHO(IBC) = BCDEN
+             RHO(IBC) = State_Chm%SpcData(id_BCPI)%Info%Density
 
              ! Get aerosol properties
              RWET(ILIQ) = State_Chm%RAD_AER(I,J,L,I_SLA)*1.e-2_fp
@@ -3647,14 +3630,6 @@ CONTAINS
     ! Copy fields from INPUT_OPT
     LACTIVEH2O = Input_Opt%LACTIVEH2O
 
-    ! Check that species concentration units are as expected
-    IF ( State_Chm%Spc_Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
-       MSG = 'Incorrect species units: '                                  // & 
-              TRIM( UNIT_STR(State_Chm%Spc_Units) )
-       LOC = 'UCX_MOD: SET_H2O_TRAC'
-       CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
-    ENDIF
-
     ! Point to GEOS-Chem species array
     Spc => State_Chm%Species
 
@@ -3664,6 +3639,16 @@ CONTAINS
     ! (ckeller, 3/13/17)
     IF ( id_H2O <= 0 ) THEN
        id_H2O = Ind_('H2O')
+    ENDIF
+
+    ! Check that species concentration units are as expected
+    IF ( Spc(id_H2O)%Units /= KG_SPECIES_PER_KG_DRY_AIR ) THEN
+       MSG = 'Incorrect species units: '                                  // &
+              TRIM( UNIT_STR(Spc(id_H2O)%Units) )
+       LOC = 'UCX_MOD: SET_H2O_TRAC'
+       CALL GC_Error( TRIM(MSG), RC, TRIM(LOC) )
+       Spc => NULL()
+       RETURN
     ENDIF
 
     !$OMP PARALLEL DO       &
@@ -3826,6 +3811,9 @@ CONTAINS
     ! UCX_H2SO4PHOT begins here!
     !=================================================================
 
+    ! Initialize
+    PHOTDELTA = 0.0_fp
+
     ! Copy fields from species database
     SO2_MW_G = State_Chm%SpcData(id_SO2)%Info%MW_g ! g/mol
     SO4_MW_G = State_Chm%SpcData(id_SO4)%Info%MW_g ! g/mol
@@ -3904,8 +3892,6 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
 #if defined( MODEL_CESM )
     USE UNITS,              ONLY : freeUnit
-    USE CAM_ABORTUTILS,     ONLY : endrun
-    USE SPMD_UTILS,         ONLY : mpicom, masterprocid, mpi_success, mpi_real8
 #endif
 !
 ! !INPUT PARAMETERS:
@@ -3931,10 +3917,6 @@ CONTAINS
     INTEGER            :: I, AS, IOS
     INTEGER            :: IMON, ITRAC, ILEV
     INTEGER            :: IU_FILE
-#if defined( MODEL_CESM )
-    INTEGER            :: nSize ! Number of elements in State_Chm%NOXCOEFF
-    INTEGER            :: ierr
-#endif
 
     ! Strings
     CHARACTER(LEN=255) :: NOX_FILE
@@ -4058,7 +4040,6 @@ CONTAINS
     State_Chm%NOXCOEFF = 0.0e+0_fp
 
 #if defined( MODEL_CESM )
-    nSize = State_Chm%JJNOXCOEFF * UCX_NLEVS * 6 * 12
     IF ( Input_Opt%amIRoot ) THEN
 #endif
     ! Fill array
@@ -4139,9 +4120,6 @@ CONTAINS
     ENDDO !IMON
 #if defined( MODEL_CESM )
     ENDIF
-
-    CALL MPI_BCAST( State_Chm%NOXCOEFF, nSize, mpi_real8, masterprocid, mpicom, ierr )
-    IF ( ierr /= mpi_success ) CALL endrun(subname//': MPI_BCAST ERROR: NOXCOEFF')
 #endif
 
   END SUBROUTINE NOXCOEFF_INIT

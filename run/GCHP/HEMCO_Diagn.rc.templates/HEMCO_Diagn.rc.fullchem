@@ -38,6 +38,12 @@ EmisACET_Biogenic   ACET   0      4   -1   2   kg/m2/s  ACET_emission_flux_from_
 EmisACET_Ocean      ACET   101    -1  -1   2   kg/m2/s  ACET_emission_flux_from_ocean
 
 ###############################################################################
+#####  ACR emissions                                                      #####
+###############################################################################
+EmisACR_Total       ACR    -1     -1  -1   3   kg/m2/s  ACR_emission_flux_from_all_sectors
+EmisACR_BioBurn     ACR    111    -1  -1   2   kg/m2/s  ACR_emission_flux_from_biomass_burning
+
+###############################################################################
 #####  ACTA emissions                                                     #####
 ###############################################################################
 EmisACTA_Total      ACTA   -1     -1  -1   3   kg/m2/s  ACTA_emission_flux_from_all_sectors
@@ -62,6 +68,13 @@ EmisALK4_Aircraft  ALK4   0      20  -1   3   kg/m2/s  ALK4_emission_flux_from_a
 EmisALK4_Anthro    ALK4   0      1   -1   3   kg/m2/s  ALK4_emission_flux_from_anthropogenic
 EmisALK4_BioBurn   ALK4   111    -1  -1   2   kg/m2/s  ALK4_emission_flux_from_biomass_burning
 EmisALK4_Ship      ALK4   0      10  -1   2   kg/m2/s  ALK4_emission_flux_from_ships
+
+###############################################################################
+#####  ALK6 emissions                                                     #####
+###############################################################################
+EmisALK6_Total     ALK6   -1     -1  -1   3   kg/m2/s  ALK6_emission_flux_from_all_sectors
+EmisALK6_Anthro    ALK6   0      1   -1   3   kg/m2/s  ALK6_emission_flux_from_anthropogenic
+EmisALK6_Ship      ALK6   0      10  -1   2   kg/m2/s  ALK6_emission_flux_from_ships
 
 ###############################################################################
 #####  BCPI and BCPO emissions                                            #####
@@ -118,6 +131,12 @@ EmisC3H8_Aircraft  C3H8   0      20  -1   3   kg/m2/s  C3H8_emission_flux_from_a
 EmisC3H8_Anthro    C3H8   0      1   -1   3   kg/m2/s  C3H8_emission_flux_from_anthropogenic
 EmisC3H8_BioBurn   C3H8   111    -1  -1   2   kg/m2/s  C3H8_emission_flux_from_biomass_burning
 EmisC3H8_Ship      C3H8   0      10  -1   2   kg/m2/s  C3H8_emission_flux_from_ships
+
+###############################################################################
+#####  C4H6 emissions                                                     #####
+###############################################################################
+EmisC4H6_Total     C4H6   -1     -1  -1   3   kg/m2/s  C4H6_emission_flux_from_all_sectors
+EmisC4H6_BioBurn   C4H6   111    -1  -1   2   kg/m2/s  C4H6_emission_flux_from_biomass_burning
 
 ###############################################################################
 #####  CH2Br2 emissions                                                   #####
@@ -232,10 +251,17 @@ EmisGLYX_BioBurn   GLYX   111    -1  -1   2   kg/m2/s  GLYX_emission_flux_from_b
 EmisH2O_Aircraft   H2O    0      20  -1   3   kg/m2/s  H2O_emission_flux_from_aircraft
 
 ###############################################################################
+#####  HCl emissions                                                      #####
+###############################################################################
+EmisHCl_Total      HCl    0      -1  -1   3   kg/m2/s  HCl_emission_flux_from_all_sectors
+EmisHCl_Anthro     HCl    0      1   -1   3   kg/m2/s  HCl_emission_flux_from_anthropogenic
+
+###############################################################################
 #####  HCOOH sources                                                      #####
 ###############################################################################
 EmisHCOOH_Total    HCOOH  -1     -1  -1   3   kg/m2/s  HCOOH_emission_flux_from_all_sectors
 EmisHCOOH_Anthro   HCOOH  0      1   -1   3   kg/m2/s  HCOOH_emission_flux_from_anthropogenic
+EmisHCOOH_BioBurn  HCOOH  111    -1  -1   2   kg/m2/s  HCOOH_emission_flux_from_biomass_burning
 EmisHCOOH_Ship     HCOOH  0      10  -1   2   kg/m2/s  HCOOH_emission_flux_from_ship
 
 ###############################################################################
@@ -291,7 +317,7 @@ EmisMGLY_BioBurn   MGLY   111    -1  -1   2   kg/m2/s  MGLY_emission_flux_from_b
 EmisMOH_Total      MOH    -1     -1  -1   3   kg/m2/s  MOH_emission_flux_from_all_sectors
 EmisMOH_Anthro     MOH    0      1   -1   3   kg/m2/s  MOH_emission_flux_from_anthropogenic
 EmisMOH_BioBurn    MOH    111    -1  -1   2   kg/m2/s  MOH_emission_flux_from_biomass_burning
-EmisMOH_Biogenic   MOH    108    -1  -1   2   kg/m2/s  MOH_emission_flux_from_biogenic_sources
+EmisMOH_Biogenic   MOH    0      4   -1   2   kg/m2/s  MOH_emission_flux_from_biogenic_sources
 EmisMOH_Ocean      MOH    101    -1  -1   2   kg/m2/s  MOH_emission_flux_from_ocean
 EmisMOH_Ship       MOH    0      10  -1   2   kg/m2/s  MOH_emission_flux_from_ships
 
@@ -309,7 +335,7 @@ EmisMTPO_Total     MTPO   -1     -1  -1   3   kg/m2/s  MTPO_emission_flux_from_a
 EmisMTPO_Biogenic  MTPO   0      4   -1   2   kg/m2/s  MTPO_emission_flux_from_biogenic_sources
 
 ###############################################################################
-#####  MVK emissions                                                     #####
+#####  MVK emissions                                                      #####
 ###############################################################################
 EmisMVK_Total     MVK    -1     -1  -1   3   kg/m2/s  MVK_emission_flux_from_all_sectors
 EmisMVK_BioBurn   MVK    111    -1  -1   2   kg/m2/s  MVK_emission_flux_from_biomass_burning
@@ -463,6 +489,12 @@ EmisSOAP_Ship      SOAP   0      10  -1   2   kg/m2/s  SOAP_emission_flux_from_s
 ###############################################################################
 EmisSOAS_Biogenic  SOAS   0      4   -1   2   kg/m2/s  SOAS_emission_flux_from_biogenic_sources
 
+##############################################################################
+#####  STYR emissions                                                     #####
+###############################################################################
+EmisSTYR_Total     STYR   -1     -1  -1   3   kg/m2/s  STYR_emission_flux_from_all_sectors
+EmisSTYR_BioBurn   STYR   111    -1  -1   2   kg/m2/s  STYR_emission_flux_from_biomass_burning
+
 ###############################################################################
 #####  TOLU emissions                                                     #####
 ###############################################################################
@@ -502,6 +534,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 #InvCEDS_ALD2         ALD2   0    1   5   3   kg/m2/s  ALD2_emission_flux_from_CEDS_inventory
 #InvCEDS_ALK4         ALK4   0    1   5   3   kg/m2/s  ALK4_emission_flux_from_CEDS_inventory
+#InvCEDS_ALK6         ALK6   0    1   5   3   kg/m2/s  ALK6_emission_flux_from_CEDS_inventory
 #InvCEDS_BCPI         BCPI   0    1   5   3   kg/m2/s  BCPI_emission_flux_from_CEDS_inventory
 #InvCEDS_BCPO         BCPO   0    1   5   3   kg/m2/s  BCPO_emission_flux_from_CEDS_inventory
 #InvCEDS_BENZ         BENZ   0    1   5   3   kg/m2/s  BENZ_emission_flux_from_CEDS_inventory
@@ -563,6 +596,11 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvORDONEZ_CH2ICl    CH2ICl 0    1   1   2   kg/m2/s  CH2ICl_emission_flux_from_ORDONEZ_IODOCARB_inventory
 #InvORDONEZ_CH2IBr    CH2IBr 0    1   1   2   kg/m2/s  CH2IBr_emission_flux_from_ORDONEZ_IODOCARB_inventory
 #InvORDONEZ_CH3I      CH3I   0    1   1   2   kg/m2/s  CH3I_emission_flux_from_ORDONEZ_IODOCARB_inventory
+
+#=============================
+# GT_Chlorine
+#=============================
+#InvGTChlorine_HCl    HCl    0    1   1   2   kg/m2/s  HCl_emission_flux_from_GT_Chlorine_inventory
 
 #=============================
 # CEDS_SHIP
@@ -713,6 +751,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 # GFED Extension
 #=============================
 #InvGFED_ACET         ACET   111  -1  -1  2   kg/m2/s  ACET_emission_flux_from_GFED_extension
+#InvGFED_ACR          ACR    111  -1  -1  2   kg/m2/s  ACR_emission_flux_from_GFED_extension
 #InvGFED_ACTA         ACTA   111  -1  -1  2   kg/m2/s  ACTA_emission_flux_from_GFED_extension
 #InvGFED_ALD2         ALD2   111  -1  -1  2   kg/m2/s  ALD2_emission_flux_from_GFED_extension
 #InvGFED_ALK4         ALK4   111  -1  -1  2   kg/m2/s  ALK4_emission_flux_from_GFED_extension
@@ -721,13 +760,16 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvGFED_BENZ         BENZ   111  -1  -1  2   kg/m2/s  BENZ_emission_flux_from_GFED_extension
 #InvGFED_C2H6         C2H6   111  -1  -1  2   kg/m2/s  C2H6_emission_flux_from_GFED_extension
 #InvGFED_C3H8         C3H8   111  -1  -1  2   kg/m2/s  C3H8_emission_flux_from_GFED_extension
+#InvGFED_C4H6         C4H6   111  -1  -1  2   kg/m2/s  C4H6_emission_flux_from_GFED_extension
 #InvGFED_CH2O         CH2O   111  -1  -1  2   kg/m2/s  CH2O_emission_flux_from_GFED_extension
 #InvGFED_CO           CO     111  -1  -1  2   kg/m2/s  CO_emission_flux_from_GFED_extension
 #InvGFED_EOH          EOH    111  -1  -1  2   kg/m2/s  EOH_emission_flux_from_GFED_extension
 #InvGFED_FURA         FURA   111  -1  -1  2   kg/m2/s  FURA_emission_flux_from_GFED_extension
 #InvGFED_GLYX         GLYX   111  -1  -1  2   kg/m2/s  GLYX_emission_flux_from_GFED_extension
+#InvGFED_HCOOH        HCOOH  111  -1  -1  2   kg/m2/s  HCOOH_emission_flux_from_GFED_extension
 #InvGFED_ISOP         ISOP   111  -1  -1  2   kg/m2/s  ISOP_emission_flux_from_GFED_extension
 #InvGFED_MEK          MEK    111  -1  -1  2   kg/m2/s  MEK_emission_flux_from_GFED_extension
+#InvGFED_MVK          MVK    111  -1  -1  2   kg/m2/s  MVK_emission_flux_from_GFED_extension
 #InvGFED_MGLY         MGLY   111  -1  -1  2   kg/m2/s  MGLY_emission_flux_from_GFED_extension
 #InvGFED_MOH          MOH    111  -1  -1  2   kg/m2/s  MOH_emission_flux_from_GFED_extension
 #InvGFED_MTPA         MTP    111  -1  -1  2   kg/m2/s  MTPA_emission_flux_from_GFED_extension
@@ -744,6 +786,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvGFED_RCHO         RCHO   111  -1  -1  2   kg/m2/s  RCHO_emission_flux_from_GFED_extension
 #InvGFED_SO2          SO2    111  -1  -1  2   kg/m2/s  SO2_emission_flux_from_GFED_extension
 #InvGFED_SOAP         SOAP   111  -1  -1  2   kg/m2/s  SOAP_emission_flux_from_GFED_extension
+#InvGFED_STYR         STYR   111  -1  -1  2   kg/m2/s  STYR_emission_flux_from_GFED_extension
 #InvGFED_TOLU         TOLU   111  -1  -1  2   kg/m2/s  TOLU_emission_flux_from_GFED_extension
 #InvGFED_XYLE         ACET   111  -1  -1  2   kg/m2/s  XYLE_emission_flux_from_GFED_extension
 

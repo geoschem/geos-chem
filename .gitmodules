@@ -1,0 +1,3 @@
+[submodule "KPP/standalone"]
+	path = KPP/standalone
+	url = https://github.com/geoschem/KPP-Standalone

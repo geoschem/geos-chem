@@ -959,16 +959,8 @@ CONTAINS
     INTEGER          :: AS
 
     ! For values from Input_Opt
-    LOGICAL          :: LFOSSIL
     LOGICAL          :: LCHEMCO2
-    LOGICAL          :: LBIODIURNAL
-    LOGICAL          :: LBIONETCLIM
-    LOGICAL          :: LOCEAN
-    LOGICAL          :: LSHIP
-    LOGICAL          :: LPLANE
-    LOGICAL          :: LFFBKGRD
-    LOGICAL          :: LBIOSPHTAG,  LFOSSILTAG,  LSHIPTAG
-    LOGICAL          :: LPLANETAG
+    LOGICAL          :: LBIOSPHTAG,  LFOSSILTAG
 
     !=================================================================
     ! INIT_CO2 begins here!
@@ -982,18 +974,9 @@ CONTAINS
     IF ( IS_INIT .or. Input_Opt%DryRun ) RETURN
 
     ! Copy values from Input_Opt
-    LFOSSIL     = Input_Opt%LFOSSIL
     LCHEMCO2    = Input_Opt%LCHEMCO2
-    LBIODIURNAL = Input_Opt%LBIODIURNAL
-    LBIONETCLIM = Input_Opt%LBIONETCLIM
-    LOCEAN      = Input_Opt%LOCEAN
-    LSHIP       = Input_Opt%LSHIP
-    LPLANE      = Input_Opt%LPLANE
-    LFFBKGRD    = Input_Opt%LFFBKGRD
     LBIOSPHTAG  = Input_Opt%LBIOSPHTAG
     LFOSSILTAG  = Input_Opt%LFOSSILTAG
-    LSHIPTAG    = Input_Opt%LSHIPTAG
-    LPLANETAG   = Input_Opt%LPLANETAG
 
     ! Array for Fossil Fuel regions
     ALLOCATE( FOSSIL_REGION( State_Grid%NX, State_Grid%NY ), STAT=AS )

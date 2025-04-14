@@ -84,8 +84,8 @@ operations:
 #============================================================================
 
 CO_simulation_options:
-  use_fullchem_PCO_from_CH4: true
-  use_fullchem_PCO_from_NMVOC: true
+  use_archived_PCO_from_CH4: true
+  use_archived_PCO_from_NMVOC: true
 
 #============================================================================
 # Settings for diagnostics (other than HISTORY and HEMCO)
@@ -95,7 +95,7 @@ extra_diagnostics:
   obspack:
     activate: false
     quiet_logfile_output: false
-    input_file: ./obspack_co2_1_OCO2MIP_2018-11-28.YYYYMMDD.nc
+    input_file: ./obspack_input_for_testing.20190701.nc
     output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
     output_species:
       - CO
@@ -105,4 +105,4 @@ extra_diagnostics:
   planeflight:
     activate: false
     flight_track_file: Planeflight.dat.YYYYMMDD
-    output_file: plane.log.YYYYMMDD
+    output_file: ./OutputDir/plane.log.YYYYMMDD

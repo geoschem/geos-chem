@@ -146,6 +146,36 @@ COLLECTIONS: 'Emissions',
                               'EmisCO2_BiomassBurn  ', 'GCHPchem',
 ::
 #==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull         ', 'GCHPchem',
+                              'CH4emission               ', 'GCHPchem',
+                              'CH4massColumnFull         ', 'GCHPchem',
+                              'CH4massColumnTrop         ', 'GCHPchem',
+                              'LossOHbyCH4columnTrop     ', 'GCHPchem',
+                              'LossOHbyMCFcolumnTrop     ', 'GCHPchem',
+                              'OHwgtByAirMassColumnFull  ', 'GCHPchem',
+::
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.format:         'CFIO',
+  SpeciesConc.timestampStart: .true.
+  SpeciesConc.monthly:        1
+  SpeciesConc.frequency:      010000
+  SpeciesConc.duration:       240000
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConcVV_CH4    ', 'GCHPchem',
+                              'SpeciesConcVV_CO     ', 'GCHPchem',
+                              'SpeciesConcVV_CO2    ', 'GCHPchem',
+                              'SpeciesConcVV_OCS    ', 'GCHPchem',
+                              ##'SpeciesConcMND_CH4 ', 'GCHPchem',
+                              ##'SpeciesConcMND_CO  ', 'GCHPchem',
+                              ##'SpeciesConcMND_CO2 ', 'GCHPchem',
+                              ##'SpeciesConcMND_OCS ', 'GCHPchem',
+::
+#==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
 # due to a single component (e.g. chemistry); default = ozone only; add more
 # species as needed to the example below (advected only)
@@ -160,57 +190,46 @@ COLLECTIONS: 'Emissions',
                               'BudgetEmisDryDepTrop_CH4      ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_CH4       ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_CH4 ', 'GCHPchem',
-                              #
                               'BudgetMixingFull_CH4          ', 'GCHPchem',
                               'BudgetMixingTrop_CH4          ', 'GCHPchem',
                               'BudgetMixingPBL_CH4           ', 'GCHPchem',
                               'BudgetMixingLevs1to35_CH4     ', 'GCHPchem',
-                              #
                               'BudgetConvectionFull_CH4      ', 'GCHPchem',
                               'BudgetConvectionTrop_CH4      ', 'GCHPchem',
                               'BudgetConvectionPBL_CH4       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CH4 ', 'GCHPchem',
-			      #
                               'BudgetEmisDryDepFull_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_CO        ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_CO  ', 'GCHPchem',
-                              #
                               'BudgetMixingFull_CO           ', 'GCHPchem',
                               'BudgetMixingTrop_CO           ', 'GCHPchem',
                               'BudgetMixingPBL_CO            ', 'GCHPchem',
                               'BudgetMixingLevs1to35_CO      ', 'GCHPchem',
-                              #
                               'BudgetConvectionFull_CO       ', 'GCHPchem',
                               'BudgetConvectionTrop_CO       ', 'GCHPchem',
                               'BudgetConvectionPBL_CO        ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CO  ', 'GCHPchem',
-			      #
                               'BudgetEmisDryDepFull_CO2      ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_CO2      ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_CO2       ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_CO2 ', 'GCHPchem',
-                              #
                               'BudgetMixingFull_CO2          ', 'GCHPchem',
                               'BudgetMixingTrop_CO2          ', 'GCHPchem',
                               'BudgetMixingPBL_CO2           ', 'GCHPchem',
                               'BudgetMixingLevs1to35_CO2     ', 'GCHPchem',
-                              #
                               'BudgetConvectionFull_CO2      ', 'GCHPchem',
                               'BudgetConvectionTrop_CO2      ', 'GCHPchem',
                               'BudgetConvectionPBL_CO2       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CO2 ', 'GCHPchem',
-                              #
 			      'BudgetEmisDryDepFull_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_OCS       ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_OCS ', 'GCHPchem',
-                              #
                               'BudgetMixingFull_OCS          ', 'GCHPchem',
                               'BudgetMixingTrop_OCS          ', 'GCHPchem',
                               'BudgetMixingPBL_OCS           ', 'GCHPchem',
                               'BudgetMixingLevs1to35_OCS     ', 'GCHPchem',
-                              #
                               'BudgetConvectionFull_OCS      ', 'GCHPchem',
                               'BudgetConvectionTrop_OCS      ', 'GCHPchem',
                               'BudgetConvectionPBL_OCS       ', 'GCHPchem',
@@ -239,10 +258,10 @@ COLLECTIONS: 'Emissions',
   CloudConvFlux.frequency:      010000
   CloudConvFlux.duration:       010000
   CloudConvFlux.mode:           'time-averaged'
-  CloudConvFlux.fields:         'CloudConvFlux_CH4', 'GCHPchem',
-                                'CloudConvFlux_CO ', 'GCHPchem',
-                                'CloudConvFlux_CO2', 'GCHPchem',
-                                'CloudConvFlux_OCS', 'GCHPchem',
+  CloudConvFlux.fields:         'CloudConvFlux_CH4 ', 'GCHPchem',
+                                'CloudConvFlux_CO  ', 'GCHPchem',
+                                'CloudConvFlux_CO2 ', 'GCHPchem',
+                                'CloudConvFlux_OCS ', 'GCHPchem',
 ::
 #==============================================================================
 # Concentrations of OH immediately after exiting the KPP solver
@@ -313,23 +332,6 @@ COLLECTIONS: 'Emissions',
                                  'Met_PFLLSAN ', 'GCHPchem',
 ::
 #==============================================================================
-  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  SpeciesConc.format:         'CFIO',
-  SpeciesConc.timestampStart: .true.
-  SpeciesConc.monthly:        1
-  SpeciesConc.frequency:      010000
-  SpeciesConc.duration:       240000
-  SpeciesConc.mode:           'time-averaged'
-  SpeciesConc.fields:         'SpeciesConcVV_CH4',  'GCHPchem',
-                              'SpeciesConcVV_CO ',  'GCHPchem',
-                              'SpeciesConcVV_CO2',  'GCHPchem',
-                              'SpeciesConcVV_OCS',  'GCHPchem',
-			      'SpeciesConcMND_CH4', 'GCHPchem',
-                              'SpeciesConcMND_CO ', 'GCHPchem',
-                              'SpeciesConcMND_CO2', 'GCHPchem',
-                              'SpeciesConcMND_OCS', 'GCHPchem',
-::
-#==============================================================================
   StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.format:         'CFIO',
   StateMet.timestampStart: .true.
@@ -356,10 +358,10 @@ COLLECTIONS: 'Emissions',
                            'Met_FRCLND     ', 'GCHPchem',
                            'Met_FRLAKE     ', 'GCHPchem',
                            'Met_FRLAND     ', 'GCHPchem',
-                           'Met_FRLANDIC   ', 'GCHPchem',
+                           'Met_FRLANDICE  ', 'GCHPchem',
                            'Met_FROCEAN    ', 'GCHPchem',
                            'Met_FRSEAICE   ', 'GCHPchem',
-                           'Met_FRSNO      ', 'GCHPchem',
+                           'Met_FRSNOW     ', 'GCHPchem',
                            'Met_GWETROOT   ', 'GCHPchem',
                            'Met_GWETTOP    ', 'GCHPchem',
                            'Met_HFLUX      ', 'GCHPchem',
