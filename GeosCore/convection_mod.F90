@@ -527,13 +527,12 @@ CONTAINS
     REAL(fp)               :: BMASS    (State_Grid%NZ)
     REAL(fp)               :: PDOWN    (State_Grid%NZ)
     REAL(fp)               :: REEVAPCN (State_Grid%NZ)
-    REAL(fp)               :: DQRCU    (State_Grid%NZ)
 
     ! Pointers
     REAL(fp),      POINTER :: BXHEIGHT     (:)
     REAL(fp),      POINTER :: CMFMC        (:)
-    REAL(fp),      POINTER :: DQRCU_MET    (:)
     REAL(fp),      POINTER :: DTRAIN       (:)
+    REAL(fp),      POINTER :: DQRCU        (:)
     REAL(fp),      POINTER :: PFICU        (:)
     REAL(fp),      POINTER :: PFLCU        (:)
     REAL(fp),      POINTER :: REEVAPCN_MET (:)
@@ -560,7 +559,7 @@ CONTAINS
     BXHEIGHT     => State_Met%BXHEIGHT(I,J,:        ) ! Box height [m]
     CMFMC        => State_Met%CMFMC   (I,J,2:State_Grid%NZ+1) ! Cloud mass flux
                                                               ! [kg/m2/s] [upper edge]
-    DQRCU_MET    => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
+    DQRCU        => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
     DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
     REEVAPCN_MET => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
     DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
@@ -608,26 +607,20 @@ CONTAINS
 
     IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
        ! RAS scheme
+       ! DQRCU is gross precipitation formation
        REEVAPCN(:) = REEVAPCN_MET(:)
-       DQRCU(:) = DQRCU_MET(:)
     ELSE
        ! GF scheme
        ! REEVAPCN_MET is cumulative re-evaporation
-       ! DQRCU_MET is net precipitation formation (need to add re-evaporation back)
+       ! DQRCU is net precipitation formation
        REEVAPCN(NLAY) = REEVAPCN_MET(NLAY)
-       DO K = 2, NLAY-1
+       DO K = 1, NLAY-1
          ! REEVAPCN (kg/kg/s) to REEVAPCN_FLUX (kg/m2/s)
          ! subtraction between fluxes instead
           REEVAPCN(K) = (REEVAPCN_MET(K) * DELP(K) &
                      - REEVAPCN_MET(K+1) * DELP(K+1) ) &
                      / DELP(K)
-       ENDDO
-       ! Zero DQRCU and some negative REEVAPCN at surface in GF scheme
-       ! Set as zero to avoid cloud base mistakenly at surface level
-       REEVAPCN(1) = 0.0_fp
-       DQRCU(1) = 0.0_fp
-       DO K = 2, NLAY
-          DQRCU(K) = DQRCU_MET(K) + REEVAPCN(K)
+          REEVAPCN(K) = MAX( REEVAPCN(K), 0.0_fp )
        ENDDO
     ENDIF
 
@@ -660,9 +653,9 @@ CONTAINS
        PDOWN(:) = ( ( PFLCU(:) / 1000e+0_fp ) &
                 +   ( PFICU(:) /  917e+0_fp ) ) * 100e+0_fp
     ELSE
-       PDOWN(NLAY) = DQRCU_MET(NLAY) * DELP(NLAY) * G0_100 / 1000e+0_fp * 100e+0_fp
+       PDOWN(NLAY) = DQRCU(NLAY) * DELP(NLAY) * G0_100 / 1000e+0_fp * 100e+0_fp
        DO K = NLAY-1, 1, -1
-          PDOWN(K) = PDOWN(K+1) + DQRCU_MET(K) & 
+          PDOWN(K) = PDOWN(K+1) + DQRCU(K) & 
                     * DELP(K) * G0_100 / 1000e+0_fp * 100e+0_fp
                     ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
                     ! since we no longer have water phase information, assume all liquid water
@@ -1414,7 +1407,7 @@ CONTAINS
     ! Nullify pointers
     NULLIFY( BXHEIGHT     )
     NULLIFY( CMFMC        )
-    NULLIFY( DQRCU_MET    )
+    NULLIFY( DQRCU        )
     NULLIFY( DTRAIN       )
     NULLIFY( PFICU        )
     NULLIFY( PFLCU        )
