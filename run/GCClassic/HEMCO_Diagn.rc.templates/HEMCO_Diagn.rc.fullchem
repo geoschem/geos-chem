@@ -607,6 +607,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 #InvCEDSship_ALD2     ALD2   0    10  5   2   kg/m2/s  ALD2_emission_flux_from_CEDSship_inventory
 #InvCEDSship_ALK4     ALK4   0    10  5   2   kg/m2/s  ALK4_emission_flux_from_CEDSship_inventory
+#InvCEDSship_ALK6     ALK4   0    10  5   2   kg/m2/s  ALK4_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BCPI     BCPI   0    10  5   2   kg/m2/s  BCPI_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BCPO     BCPO   0    10  5   2   kg/m2/s  BCPO_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BENZ     BENZ   0    10  5   2   kg/m2/s  BENZ_emission_flux_from_CEDSship_inventory
