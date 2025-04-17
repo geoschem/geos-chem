@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added option for South America (SA), Africa (AF), Middle East (ME), Oceania (OC), and Russia (RU) regions to nested-grid simulations in GCClassic's createRunDir.sh
 - Added updates for compatibility with the Beijing Climate Centre Earth System Model
 - Added `#InvCEDSshipALK6` (commented out by default) to GCClassic `HEMCO_Diagn.rc.fullchem` template file
+- Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
