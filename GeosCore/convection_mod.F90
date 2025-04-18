@@ -245,6 +245,12 @@ CONTAINS
     !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW      )&
     !$OMP SCHEDULE( DYNAMIC, 8                                            )&
     !$OMP COLLAPSE( 2                                                     )
+#else
+    !$OMP PARALLEL DO                                      &
+    !$OMP DEFAULT( SHARED                                ) &
+    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
+    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
+    !$OMP SCHEDULE( DYNAMIC )
 #endif
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -338,9 +344,7 @@ CONTAINS
 
     ENDDO
     ENDDO
-#ifndef TOMAS
     !$OMP END PARALLEL DO
-#endif
 
     ! Return if Do_Cloud_Convection returned an error
     IF ( RC /= GC_SUCCESS ) THEN
@@ -573,12 +577,12 @@ CONTAINS
     SpcInfo      => NULL()                            ! Species database entry
 
     ! PFICU and PFLCU are on level edges
-    PFICU    => State_Met%PFICU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flx of conv
+    PFICU    => State_Met%PFICU   (I,J,1:State_Grid%NZ) ! Dwnwd flx of conv
                                                           !  ice precip
-                                                          !  [kg/m2/s]
-    PFLCU    => State_Met%PFLCU   (I,J,2:State_Grid%NZ+1) ! Dwnwd flux of conv
+                                                          !  [kg/m2/s] [down edge]
+    PFLCU    => State_Met%PFLCU   (I,J,1:State_Grid%NZ) ! Dwnwd flux of conv
                                                           !  liquid precip
-                                                          !  [kg/m2/s]
+                                                          !  [kg/m2/s] [down edge]
 
     ! # of levels and # of species
     NLAY     = State_Grid%NZ
@@ -1136,10 +1140,8 @@ CONTAINS
 
              ! Check if...
              ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
-             ! (2) there is re-evaporation happening in grid box (I,J,K)
-             ! (3) there is species to re-evaporate
+             ! (2) there is species to re-evaporate
              IF ( PDOWN(K+1)  > 0 .and. &
-                  REEVAPCN(K) > 0 .and. &
                   T0_SUM      > 0        ) THEN
 
                 ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
