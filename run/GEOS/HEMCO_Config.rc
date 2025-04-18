@@ -107,11 +107,16 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Use fertilizer NOx:       true
 105     DustDead          : on    DST1/DST2/DST3/DST4
     --> Mass tuning factor:       2.454e-4 
-####    --> Mass tuning factor:       4.0e-4 
-####    --> Mass tuning factor:       5.0416e-4
-#C48    --> Mass tuning factor:       5.0416e-4
-#C720   --> Mass tuning factor:       2.3e-4
-#C180   --> Mass tuning factor:       3.23e-4
+##################################################################
+# Mass tuning factors are resolution and met-source dependent
+#    --> Mass tuning factor:       3.7410e-5  # C24  GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C30  GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C48  GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C90  GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C180 GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C360 GEOS-IT
+#    --> Mass tuning factor:       X.XXXXe-5  # C720 GEOS-IT
+##################################################################
 107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5

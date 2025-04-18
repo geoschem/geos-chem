@@ -343,7 +343,7 @@ CONTAINS
     ! TS_EMIS is the emission timestep (in seconds). This is a module
     ! variable, hence define only on first call.
     IF ( FIRSTCHEM ) THEN
-#if defined( MODEL_CESM )
+#if defined( MODEL_CESM ) || defined( MODEL_BCC )
        ! Do not use HEMCO state in CESM
        TS_EMIS = REAL( Input_Opt%TS_EMIS, fp )
 #else
@@ -1122,16 +1122,18 @@ CONTAINS
     !AREA3D(:,:,1) = AREA(:,:)
     !AREA3D(:,:,2) = AREA(:,:)
     
-     ! comment out if shut off subgridcoag bc,14/12/23
+    ! comment out if shut off subgridcoag bc,14/12/23
     ! Define subgrid coagulation timescale (win, 10/28/08)
     !IF ( TRIM(State_Grid%GridRes) == '4.0x5.0' ) THEN
     !   TSCALE = 10.0_fp*3600.0_fp  ! 10 hours
     !ELSE IF ( TRIM(State_Grid%GridRes) == '2.0x2.5' ) THEN
        TSCALE = 5.0_fp*3600.0_fp
-    !!ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
     !   TSCALE = 1.0_fp*3600.0_fp
     !ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
     !   TSCALE = 0.5_fp*3600.0_fp
+    !ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+    !   TSCALE = 0.25_fp*3600.0_fp
     !ENDIF
 
     ! Point to species array
@@ -2556,7 +2558,8 @@ CONTAINS
     !IF ( FIRST ) THEN
 
        ! Sea salt density, fine mode
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_BCC ) && !defined( MODEL_CESM )
       CALL HCO_GC_GetDiagn( Input_Opt, State_Grid, 'SEASALT_DENS_FINE', &
                        StopIfNotFound=.FALSE., RC=RC, Ptr2D=Ptr2D )
 

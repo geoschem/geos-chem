@@ -105,7 +105,7 @@ CONTAINS
     !========================================================================
 
     ! Identify a box for debug printout within rate-law functions
-    H%debugBox      = .FALSE.
+    debugBox        = .FALSE.
 
     ! Constants (so that we can use these within KPP)
     H%AVO           = AVO

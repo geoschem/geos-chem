@@ -1,3 +1,4 @@
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
@@ -344,3 +345,4 @@ CONTAINS
   END SUBROUTINE fullchem_AR_SetIntegratorOptions
 !EOC
 END MODULE fullchem_AutoReduceFuncs
+#endif

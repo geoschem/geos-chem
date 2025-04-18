@@ -1,12 +1,14 @@
 # KPP/CMakeLists.txt
 
 #-----------------------------------------------------------------------------
-# Build the fullchem mechanism and the KPP standalone executable
-# if configured with -DMECH=fullchem  (This is the default option)
+# Build the fullchem mechanism if configured with -DMECH=fullchem
+# Also build the KPP-Standalone if configured with -DKPPSA=y
 #-----------------------------------------------------------------------------
 if("${MECH}" STREQUAL fullchem)
   add_subdirectory(fullchem)
-  add_subdirectory(standalone)
+  if(KPPSA)
+    add_subdirectory(standalone)
+  endif()
 endif()
 
 #-----------------------------------------------------------------------------
@@ -17,12 +19,14 @@ if("${MECH}" STREQUAL carbon)
 endif()
 
 #-----------------------------------------------------------------------------
-# Build the custom mechanism and the KPP standalone executable
-# if configured with -DMECH=custom
+# Build the custom mechanism if configured with -DMECH=custom
+# Also build the KPP-Standalone if configured with -DKPPSA=y
 #-----------------------------------------------------------------------------
 if("${MECH}" STREQUAL custom)
   add_subdirectory(custom)
-  add_subdirectory(standalone)
+  if(KPPSA)
+    add_subdirectory(standalone)
+  endif()
 endif()
 
 #-----------------------------------------------------------------------------

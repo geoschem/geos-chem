@@ -293,19 +293,22 @@ def get_start_and_end_dates(ds):
      """
     # Get start and end date of simulation for GCHP or GEOS-Chem Classic
     if "nf" in ds.dims:
-        with open("./CAP.rc", "r") as cap_file:
+        is_gcc = False
+        with open("./setCommonRunSettings.sh", "r") as settings_file:
+            for line in settings_file:
+                if "Run_Duration=" in line:
+                    substrs = (line.rstrip()).split('=')
+                    duration = (substrs[1].replace('"',' ')).lstrip()
+        start = duration # set start to duration to return it from this function
+        with open("./cap_restart", "r") as cap_file:
             for line in cap_file:
-                if "BEG_DATE:" in line:
-                    substrs = (line.rstrip()).split()
-                    start = substrs[1] + " " + substrs[2] + "z"
-                elif "END_DATE:" in line:
-                    substrs = (line.rstrip()).split()
-                    end = substrs[1] + " " + substrs[2] + "z"
+                end = line.rstrip() + "z"
     else:
+        is_gcc = True
         start = ds.attrs["simulation_start_date_and_time"]   # GC-Classic
         end = ds.attrs["simulation_end_date_and_time"]
 
-    return start, end
+    return start, end, is_gcc
 
 
 def print_metrics(ds, is_ch4_sim=False):
@@ -333,7 +336,7 @@ def print_metrics(ds, is_ch4_sim=False):
         ch4_life_full, ch4_life_trop = overall_ch4_lifetimes(ds)
 
     # Get start and end dates of the simulation
-    start, end = get_start_and_end_dates(ds)
+    start, end, is_gcc = get_start_and_end_dates(ds)
 
     # Print results
     print("="*78)
@@ -341,8 +344,11 @@ def print_metrics(ds, is_ch4_sim=False):
         print("GEOS-Chem METHANE SIMULATION METRICS\n")
     else:
         print("GEOS-Chem FULL-CHEMISTRY SIMULATION METRICS\n")
-    print("Simulation start : {}".format(start))
-    print("Simulation end   : {}".format(end))
+    if is_gcc:
+        print("Simulation start    : {}".format(start))
+    else:
+        print("Simulation duration : {}".format(start))
+    print("Simulation end      : {}".format(end))
     print("="*78, "\n")
     msg = "Mass-weighted mean OH concentration    = {:.11f} ".format(mean_oh)
     msg += "x 10^5 molec cm-3\n"

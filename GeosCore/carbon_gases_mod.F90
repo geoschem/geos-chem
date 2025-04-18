@@ -170,9 +170,10 @@ CONTAINS
     ! CO2 production from CO oxidation
     !========================================================================
 
-    ! If CO2 is an advected species but CO is not, use CO2_COPROD field
-    ! from HEMCO. Otherwise compute CO2 production via KPP.
-    IF ( id_CO2_adv > 0 .and. id_CO_adv <= 0 ) THEN
+    ! Use CO2_COPROD field instead of computing CO2 production in KPP
+    ! (the latter slows down the CO2 chemistry and produced differences
+    !  that need to be evaluated by the Carbon Gases Working Group)
+    IF ( id_CO2_adv > 0 ) THEN
 
        IF ( Input_Opt%amIRoot .and. FIRST ) THEN
           WRITE( 6, 100 )
@@ -331,13 +332,13 @@ CONTAINS
     REAL(fp)               :: OHdiurnalFac(State_Grid%NX, State_Grid%NY)
 
     ! Arrays for data read in via HEMCO
-    REAL(fp) :: Global_OH(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: Global_Cl(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: LCH4_by_OH(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: LCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_fr_CH4  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_fr_NMVOC(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: Global_OH(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: Global_Cl(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: LCH4_in_Strat( State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: LCO_in_Strat(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_in_Strat(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_fr_CH4  (  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_fr_NMVOC(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
     !========================================================================
     ! Chem_Carbon_Gases begins here!
@@ -402,17 +403,17 @@ CONTAINS
     ! Read chemical inputs (oxidant fields, concentrations) via HEMCO
     !========================================================================
     CALL ReadChemInputFields(                                                &
-         Input_Opt    = Input_Opt,                                           &
-         State_Grid   = State_Grid,                                          &
-         State_Met    = State_Met,                                           &
-         Global_OH    = Global_OH,                                           &
-         Global_Cl    = Global_Cl,                                           &
-         LCH4_by_OH   = LCH4_by_OH,                                          &
-         LCO_in_Strat = LCO_in_Strat,                                        &
-         PCO_in_Strat = PCO_in_Strat,                                        &
-         PCO_fr_CH4   = PCO_fr_CH4,                                          &
-         PCO_fr_NMVOC = PCO_fr_NMVOC,                                        &
-         RC           = RC                                                  )
+         Input_Opt     = Input_Opt,                                          &
+         State_Grid    = State_Grid,                                         &
+         State_Met     = State_Met,                                          &
+         Global_OH     = Global_OH,                                          &
+         Global_Cl     = Global_Cl,                                          &
+         LCH4_in_Strat = LCH4_in_Strat,                                      &
+         LCO_in_Strat  = LCO_in_Strat,                                       &
+         PCO_in_Strat  = PCO_in_Strat,                                       &
+         PCO_fr_CH4    = PCO_fr_CH4,                                         &
+         PCO_fr_NMVOC  = PCO_fr_NMVOC,                                       &
+         RC            = RC                                                  )
 
     !========================================================================
     ! Compute OH diurnal cycle scaling factor
@@ -523,7 +524,7 @@ CONTAINS
                dtChem           = dtChem,                                    &
                ConcClMnd        = Global_Cl(I,J,L),                          &
                ConcOHmnd        = Global_OH(I,J,L),                          &
-               LCH4_by_OH       = LCH4_by_OH(I,J,L),                         &
+               LCH4_in_Strat    = LCH4_in_Strat(I,J,L),                      &
                LCO_in_Strat     = LCO_in_Strat(I,J,L),                       &
                OHdiurnalFac     = OHdiurnalFac(I,J),                         &
                PCO_in_Strat     = PCO_in_Strat(I,J,L),                       &
@@ -620,13 +621,7 @@ CONTAINS
           ! that we avoid bringing in KPP species indices into this module.
           ! This avoids compile-time dependency errors.
           !=====================================================================
-
-          ! Production of CO2 from CO oxidation [molec/cm3/s]
-          IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-             State_Diag%ProdCO2fromCO(I,J,L) =                               &
-                  carbon_Get_CO2fromOH_Flux( dtChem )
-          ENDIF
-       
+      
           ! Production of CO from CH4
           IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
              State_Diag%ProdCOfromCH4(I,J,L) =                               &
@@ -671,7 +666,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ReadChemInputFields( Input_Opt,    State_Grid,   State_Met,     &
-                                  Global_OH,    Global_Cl,    LCH4_by_OH,    &
+                                  Global_OH,    Global_Cl,    LCH4_in_Strat, &
                                   LCO_in_Strat, PCO_in_Strat, PCO_fr_CH4,    &
                                   PCO_fr_NMVOC, RC                          )
 !
@@ -699,10 +694,10 @@ CONTAINS
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Grid%NZ)  ! Cl conc
-    REAL(fp),       INTENT(OUT) :: LCH4_by_OH(                               &
+    REAL(fp),       INTENT(OUT) :: LCH4_in_Strat(                            &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
-                                    State_Grid%NZ)  ! L(CH4) by OH
+                                    State_Grid%NZ)  ! L(CH4) in strat
     REAL(fp),       INTENT(OUT) :: LCO_in_Strat(                             &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
@@ -748,13 +743,13 @@ CONTAINS
      ' -> at ReadInputChemFields (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Initialize fields to zero
-    Global_OH    = 0.0_fp
-    Global_Cl    = 0.0_fp
-    LCH4_by_OH   = 0.0_fp
-    LCO_in_Strat = 0.0_fp
-    PCO_in_Strat = 0.0_fp
-    PCO_fr_CH4   = 0.0_fp
-    PCO_fr_NMVOC = 0.0_fp
+    Global_OH     = 0.0_fp
+    Global_Cl     = 0.0_fp
+    LCH4_in_Strat = 0.0_fp
+    LCO_in_Strat  = 0.0_fp
+    PCO_in_Strat  = 0.0_fp
+    PCO_fr_CH4    = 0.0_fp
+    PCO_fr_NMVOC  = 0.0_fp
 
     ! Fields only needed if CH4 is an advected species
     IF ( id_CH4_adv > 0 ) THEN
@@ -764,8 +759,8 @@ CONTAINS
        ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
        !------------------------------------------------------------------------
        DgnName = 'CH4_LOSS'
-       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                 &
-                            LCH4_by_OH, RC,         found=found             )
+       CALL HCO_GC_EvalFld( Input_Opt,     State_Grid, DgnName,              &
+                            LCH4_in_Strat, RC,         found=found          )
        IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
           errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -907,7 +902,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Global,   ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
+    USE gckpp_Global,   ONLY : SR_MW, HENRY_CR, HENRY_K0
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
@@ -970,27 +965,16 @@ CONTAINS
     id_OCS_adv    = Ind_( 'OCS',   'A' )
     id_OH         = Ind_( 'FixedOH'    )
 
-    !========================================================================
-    ! Save physical parameters from the species_database.yml file into KPP
-    ! arrays located in module gckpp_Global.F90.  These do not vary with
-    ! (I,J,L) location, and so can be defined here in the init phase.
-    !========================================================================
-    DO KppId = 1, State_Chm%nKppSpc + State_Chm%nOmitted
-       N                  = State_Chm%Map_KppSpc(KppId)
-       IF ( N > 0 ) THEN
-          MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
-          SR_MW(KppId)    = SQRT( MW(KppId ) )
-          HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
-          HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
-
-          ! Also define xnumol factors = molec/kg ratios
-          ! These are useful in unit conversions
-          IF ( N == id_CH4 ) xnumol_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO  ) xnumol_CO  = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO2 ) xnumol_CO2 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_OH  ) xnumol_OH  = AVO / ( MW(KppId) * 1.0e-3_fp )
-       ENDIF
-    ENDDO
+    ! Define xnumol factors = molec/kg ratios
+    ! These are useful in unit conversions
+    IF ( id_CH4 > 0 ) &
+       xnumol_CH4 = AVO / ( State_Chm%SpcData(id_CH4)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO  > 0 ) &
+       xnumol_CO  = AVO / ( State_Chm%SpcData(id_CO )%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO2 > 0 ) &
+       xnumol_CO2 = AVO / ( State_Chm%SpcData(id_CO2)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_OH  > 0 ) &
+       xnumol_OH  = AVO / ( State_Chm%SpcData(id_OH )%Info%MW_g * 1.0e-3_fp )
 
     !========================================================================
     ! Initialize variables for COchemistry

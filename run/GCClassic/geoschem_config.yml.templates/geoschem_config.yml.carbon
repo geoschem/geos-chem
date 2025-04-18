@@ -86,7 +86,7 @@ CH4_simulation_options:
 #============================================================================
 
 CO_simulation_options:
-  use_archived_PCO_from_CH4: false
+  use_archived_PCO_from_CH4: true
   use_archived_PCO_from_NMVOC: true
 
 #============================================================================
@@ -96,7 +96,7 @@ CO_simulation_options:
 CO2_simulation_options:
 
   sources:
-    use_archived_PCO2_from_CO: false
+    use_archived_PCO2_from_CO: true
 
   tagged_species:
     tag_bio_and_ocean_CO2: false

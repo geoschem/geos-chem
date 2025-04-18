@@ -105,6 +105,8 @@ def extract_pathnames_from_log(
     data_found = set()
     data_missing = set()
     dryrun_log = args["dryrun_log"]
+    portal = args["portal"]
+    remote = args["config"]["portals"][portal]["remote"]
 
     # Open file (or die with error)
     with open(dryrun_log, "r", encoding="UTF-8") as ifile:
@@ -156,6 +158,15 @@ def extract_pathnames_from_log(
             if "ExtData" in path:
                 index = path.find("ExtData")
                 local_prefix = path[:index]
+                #
+                # Data stored at these portals do not have an Extdata/
+                # folder, so we must add "/ExtData" to the path manually:
+                # - https://geos-chem.s3-us-west-2.amazonaws.com
+                # - https://gcgrid.s3.amazonaws.com/
+                if "ExtData" not in local_prefix:
+                    if ".amazonaws.com" in remote:
+                        local_prefix = \
+                            f"{local_prefix}/ExtData".replace('//', '/')
                 break
 
         # Exit if the local path does not contain ExtData
@@ -168,6 +179,8 @@ def extract_pathnames_from_log(
         # The "sorted" command will return unique values
         ifile.close()
 
+        # Error check!  If ExtData appears more than once in
+        #if local_prefix.count("ExtData") > 1:
         paths = {
             "comments": comments,
             "found": found,
@@ -634,7 +647,11 @@ def create_download_script(
 
         # Kludge: Create a ExtData/CHEM_INPUTS folder if it
         # does not exist. This will prevent abnormal exits.
-        chem_dir = paths["local_prefix"] + 'ExtData/CHEM_INPUTS'
+        if "ExtData" in paths["local_prefix"]:
+            chem_dir = paths["local_prefix"] + '/CHEM_INPUTS'
+        else:
+            chem_dir = paths["local_prefix"] + '/ExtData/CHEM_INPUTS'
+          
         cmd = f"if [[ ! -d {chem_dir} ]]; then mkdir {chem_dir}; fi"
         print(cmd, file=ofile)
         print(file=ofile)
@@ -680,6 +697,8 @@ def download_the_data(
     create_download_script(paths, args)
 
     #### DEBUG: Uncomment this if you wish to see the download script
+    #### and also comment out the previous 'if args["skip_download"]'
+    #### statement above
     #if args["skip_download"]:
     #    return
 

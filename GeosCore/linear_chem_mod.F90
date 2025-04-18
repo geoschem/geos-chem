@@ -213,7 +213,7 @@ CONTAINS
     LOGICAL            :: LSYNOZ
     LOGICAL            :: LCYCLE
     LOGICAL            :: ISBR2
-#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM ) || defined( MODEL_BCC )
     LOGICAL            :: SKIP
 #endif
 
@@ -245,7 +245,7 @@ CONTAINS
     AD                   => NULL()
     T                    => NULL()
 
-#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM ) || defined( MODEL_BCC )
     ! Skip meso chem if chemistry is over entire vertical domain
     SKIP = .FALSE.
     IF ( State_Grid%MaxChemLev == State_Grid%NZ ) THEN
@@ -692,7 +692,7 @@ CONTAINS
 
     ENDIF
 
-#if defined( MODEL_GEOS ) || defined( MODEL_CESM )
+#if defined( MODEL_GEOS ) || defined( MODEL_CESM ) || defined( MODEL_BCC )
     ! End of SKIP loop
     ENDIF ! SKIP
 #endif

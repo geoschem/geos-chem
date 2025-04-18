@@ -4,7 +4,7 @@
 #SBATCH -N 1
 #SBATCH -t 0-6:00
 #SBATCH -p REQUESTED_PARTITION
-#SBATCH --mem=90000
+#SBATCH --mem=120000
 #SBATCH --mail-type=END
 #BSUB -q REQUESTED_PARTITION
 #BSUB -n 24
@@ -180,12 +180,15 @@ for runDir in *; do
             # Remove any leftover files in the run dir
             ./cleanRunDir.sh --no-interactive >> "${log}" 2>&1
 
+	    # Add --dryrun option for rundirs with ending with "_dryrun"
+	    [[ "${runAbsPath}" =~ "_dryrun" ]] && dr="--dryrun" || dr=""
+
             # Run the code if the executable is present.  Then update the
             # pass/fail counters and write a message to the results log file.
             if [[ "X${site}" == "XCANNON" && "X${SLURM_JOBID}" != "X" ]]; then
-                srun -c ${OMP_NUM_THREADS} ./${exeFile} >> "${log}" 2>&1
+		srun -c ${OMP_NUM_THREADS} ./${exeFile} ${dr} >> "${log}" 2>&1
             else
-                ./${exeFile} >> "${log}" 2>&1
+                ./${exeFile} ${dr} >> "${log}" 2>&1
             fi
 
             # Determine if the job succeeded or failed

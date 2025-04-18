@@ -301,10 +301,12 @@ CONTAINS
 
  pi = 4. * atan(1.)
 
- IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
-    dlon = 2.*pi / float(1152)      !(dan)
- ELSEIF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
-    dlon = 2.*pi / float(576)       !(dan)
+ IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
+    dlon = 2.*pi / float(576)
+ ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+    dlon = 2.*pi / float(1152)
+ ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
+    dlon = 2.*pi / float(2304)
  ENDIF
 
     ! dan for window

@@ -13,7 +13,7 @@ portals:
     short_name: ga
     s3_bucket: True
     remote: s3://geos-chem
-    command: 'aws s3 cp '
+    command: 'aws s3 cp --no-sign-request '
     quote: ""
 
   # GEOS-Chem Input Data portal, download via HTTP/wget
@@ -31,7 +31,7 @@ portals:
     short_name: na
     s3_bucket: True
     remote: s3://gcgrid
-    command: 'aws s3 cp '
+    command: 'aws s3 cp --no-sign-request '
     quote: ""
 
   # GEOS-Chem Nested Input Data portal, download via HTTP/wget

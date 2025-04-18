@@ -636,7 +636,7 @@ COLLECTIONS: 'Metrics',
 #
 # Archives chemical reaction rates from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # Available for the fullchem simulations.
@@ -645,15 +645,15 @@ COLLECTIONS: 'Metrics',
   RxnRates.frequency:  {FREQUENCY}
   RxnRates.duration:   {DURATION}
   RxnRates.mode:       'time-averaged'
-  RxnRates.fields:     'RxnRate_EQ001                           ',
-                       'RxnRate_EQ002                           ',
+  RxnRates.fields:     'RxnRate_EQ0001                           ',
+                       'RxnRate_EQ0002                           ',
 ::
 #==============================================================================
 # %%%%% RxnConst %%%%%
 #
 # Archives chemical reaction rates constants from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # The units of reaction rate constants vary according to the number of reactants
@@ -665,8 +665,8 @@ COLLECTIONS: 'Metrics',
   RxnConst.frequency:  {FREQUENCY}
   RxnConst.duration:   {DURATION}
   RxnConst.mode:       'time-averaged'
-  RxnConst.fields:     'RxnConst_EQ001                          ',
-                       'RxnConst_EQ002                          ',
+  RxnConst.fields:     'RxnConst_EQ0001                          ',
+                       'RxnConst_EQ0002                          ',
 ::
 #==============================================================================
 # %%%%% StateChm %%%%%

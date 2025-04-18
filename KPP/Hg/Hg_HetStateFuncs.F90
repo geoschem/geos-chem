@@ -87,7 +87,7 @@ CONTAINS
     !========================================================================
 
     ! Identify a box for debug printout within rate-law functions
-    H%debugBox     = .FALSE.
+    debugBox       = .FALSE.
 
     ! Identify if this grid box is cloudy
     H%cloudBox     = ( ( State_Met%InTroposphere(I,J,L)              )  .or. &

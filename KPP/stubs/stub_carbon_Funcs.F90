@@ -32,9 +32,9 @@ CONTAINS
     TYPE(ChmState), INTENT(IN) :: State_Chm
   END SUBROUTINE carbon_ConvertKgToMolecCm3
   !
-  SUBROUTINE carbon_ComputeRateConstants(                               &
+  SUBROUTINE carbon_ComputeRateConstants(                                    &
              I,             J,                 L,                            &
-             ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
+             ConcClMnd,     ConcOHMnd,         LCH4_in_Strat,                &
              LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
              PCO_fr_CH4,    PCO_fr_NMVOC_use,  PCO_fr_NMVOC,                 &
              PCO_in_Strat,  dtChem,            State_Chm,                    &
@@ -49,7 +49,7 @@ CONTAINS
     INTEGER,        INTENT(IN) :: I, J, L
     REAL(fp),       INTENT(IN) :: ConcClMnd
     REAL(fp),       INTENT(IN) :: ConcOHmnd
-    REAL(fp),       INTENT(IN) :: LCH4_by_OH
+    REAL(fp),       INTENT(IN) :: LCH4_in_Strat
     REAL(fp),       INTENT(IN) :: LCO_in_Strat
     REAL(fp),       INTENT(IN) :: OHdiurnalFac
     LOGICAL,        INTENT(IN) :: PCO_fr_CH4_use

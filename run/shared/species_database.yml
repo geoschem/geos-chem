@@ -1263,10 +1263,6 @@ CO2se:
   << : *CO2properties
   Background_VV: 1.0e-20
   FullName: Carbon dioxide from ship emissions
-CO2fromOH:
-  << : *CO2properties
-  Background_VV: 1.0e-20
-  FullName: Carbon dioxide loss by OH (carbon mechanism)
 CO_PROP: &COproperties
   Formula: CO
   Is_Advected: true
@@ -1370,14 +1366,6 @@ COus:
   << : *COproperties
   Background_VV: 1.0e-20
   FullName: Anthropogenic + biofuel CO emitted over the USA
-COfromCH4:
-  << : *COproperties
-  Background_VV: 1.0e-20
-  FullName: CO produced from methane oxidation (carbon mechanism)
-COfromNMVOC:
-  << : *COproperties
-  Background_VV: 1.0e-20
-  FullName: CO produced from non-methane VOCs oxidation (carbon mechanism)
 CSL:
   DD_F0: 1.0
   DD_Hstar: 4.2e+2
@@ -1431,14 +1419,14 @@ DSTAL4:
   << : *DST4properties
   FullName: Dust alkalinity, Reff = 4.5 microns
   MW_g: 29.0
-Dummy:
-  FullName: Dummy species (carbon mechanism)
-  Is_Gas: true
-  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
-DummyCH4:
+DummyCH4trop:
   << : *CH4properties
   Background_VV: 1.8e-6
-  FullName: Methane (external input for carbon mechanism)
+  FullName: Dummy species for CH4 reactant (external input for carbon mechanism)
+DummyCH4strat:
+  << : *CH4properties
+  Background_VV: 1.8e-6
+  FullName: Dummy species for CH4 reactant (external input for carbon mechanism)
 DummyNMVOC:
   << : *COproperties
   Background_VV: 1.0e-20
@@ -3073,11 +3061,31 @@ LCH4:
   Is_Gas: true
   MW_g: 16.04
   KPP_AbsTol: 1.0e+25
+LCH4byCl:
+  FullName: Dummy species to track loss of CH4 by Cl (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
+LCH4byOH:
+  FullName: Dummy species to track loss of CH4 by OH (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
+LCH4inStrat:
+  FullName: Dummy species to track loss of CH4 in strat (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0    # Use value of 1.0 to get past checks for missing MW_g
 LCO:
   FullName: Dummy species to track loss rate of CO
   Is_Gas: true
   MW_g: 28.01
   KPP_AbsTol: 1.0e+25
+LCObyOH:
+  FullName: Dummy species to track loss of CO by OH (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
+LCOinStrat:
+  FullName: Dummy species to track loss of CO in strat (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
 LIMAL:
   DD_F0: 1.0
   DD_Hstar: 1.0e+3
@@ -4279,6 +4287,14 @@ PCO:
   Is_Gas: true
   MW_g: 28.01
   KPP_AbsTol: 1.0e+25  
+PCOfromCH4:
+  FullName: Dummy species to track CO produced from methane oxidation (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
+PCOfromNMVOC:
+  FullName: Dummy species to track CO produced from non-methane VOCs oxidation (carbon mechanism)
+  Is_Gas: true
+  MW_g: 1.0
 pFe:
   DD_F0: 0.0
   DD_Hstar: 0.0

@@ -109,25 +109,6 @@ function updateGeosChemConfig() {
     cmd="/\s*\-\s*\<${spc}\>/d"
         sed -i -e "${cmd}" "${file}"
     done
-
-    # If CO2 is in the include list, turn on CO2 production options
-    isItemInList "CO2" "${1}"
-    if [[ $? == 1 ]]; then
-        keys=("use_archived_PCO2_from_CO" )
-        for key in ${keys[@]}; do
-            keyValueUpdate "${key}" "false" "true" "${file}"
-        done
-    fi
-
-    # If CO is in the include list, turn on CO production options
-    isItemInList "CO" "${1}"
-    if [[ $? == 1 ]]; then
-        keys=("use_archived_PCO_from_CH4"      \
-	      "use_archived_PCO_from_NMVOC"   )
-        for key in ${keys[@]}; do
-            keyValueUpdate "${key}" "false" "true" "${file}"
-        done
-    fi
 }
 
 
