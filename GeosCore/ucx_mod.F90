@@ -622,7 +622,6 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER                               :: IOS
     INTEGER                               :: ILEV
     INTEGER                               :: I, J, L, ITRAC
     INTEGER                               :: JJNOX
@@ -630,10 +629,7 @@ CONTAINS
     REAL(fp)                              :: CURRVAL
     INTEGER                               :: VERTCOUNT, AS
     LOGICAL                               :: FOUNDLEV,EXTRAP
-    INTEGER                               :: IU_FILE, fId
-    INTEGER                               :: st3d(3), ct3d(3) ! Start/count
     LOGICAL                               :: ISRATE
-    CHARACTER(LEN=255)                    :: NOX_FILE
     CHARACTER(LEN=255)                    :: TARG_TRAC
     CHARACTER(LEN=255)                    :: DBGMSG
     REAL(fp), DIMENSION(:,:,:), POINTER   :: NOXDATA2D => NULL()

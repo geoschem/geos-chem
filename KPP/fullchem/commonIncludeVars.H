@@ -111,7 +111,6 @@
   
   TYPE, PUBLIC :: HetState
      REAL(dp) :: AVO            ! Avogadro's constant [molec/mol]
-     LOGICAL  :: debugBox       ! Are we in a debugging box?
      LOGICAL  :: natSurface     ! Is there NAT in this box?
      LOGICAL  :: pscBox         ! Are there polar strat clouds?
      LOGICAL  :: stratBox       ! Are we in the stratosphere
@@ -227,3 +226,6 @@
   ! Are we in the tropopshere (1=yes, 0=no)
   REAL(dp) :: TROP
   !$OMP THREADPRIVATE( TROP )
+
+  LOGICAL :: debugBox
+  !$OMP THREADPRIVATE( debugBox )
