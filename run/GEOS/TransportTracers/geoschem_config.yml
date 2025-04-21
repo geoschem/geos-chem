@@ -25,7 +25,7 @@ operations:
     activate: true
 
   convection:
-    activate: true
+    activate: false
 
   dry_deposition:
     activate: true
