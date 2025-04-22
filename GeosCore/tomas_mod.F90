@@ -106,10 +106,10 @@ MODULE TOMAS_MOD
 !
   INTEGER, PARAMETER   :: SRTSO4  = 1
   INTEGER, PARAMETER   :: SRTNACL = 2
-  INTEGER, PARAMETER   :: SRTECIL = 3
-  INTEGER, PARAMETER   :: SRTECOB = 4
-  INTEGER, PARAMETER   :: SRTOCIL = 5
-  INTEGER, PARAMETER   :: SRTOCOB = 6
+  INTEGER, PARAMETER   :: SRTECOB = 3
+  INTEGER, PARAMETER   :: SRTECIL = 4
+  INTEGER, PARAMETER   :: SRTOCOB = 5
+  INTEGER, PARAMETER   :: SRTOCIL = 6
   INTEGER, PARAMETER   :: SRTDUST = 7
   INTEGER, PARAMETER   :: SRTNH4  = 8
   INTEGER, PARAMETER   :: SRTH2O  = 9
@@ -6431,6 +6431,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: filename
     CHARACTER(LEN=255)   :: fname(4)
     CHARACTER(LEN=255)   :: DATA_DIR
+    CHARACTER(LEN=255)   :: MSG, LOC
 
     !=================================================================
     ! INIT_TOMAS begins here!
@@ -6470,7 +6471,7 @@ CONTAINS
                id_OCIL01 + IBINS == id_DUST01) ) THEN
       MSG = 'TOMAS species are not in the expected order!'
       LOC = 'Routine INIT_TOMAS in tomas_mod.F90'
-      ERROR_STOP( MSG, LOC )
+      CALL ERROR_STOP( MSG, LOC )
     ENDIF
 
     ! Now read large TOMAS input files from a common disk directory
