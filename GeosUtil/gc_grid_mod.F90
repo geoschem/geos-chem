@@ -35,7 +35,7 @@ MODULE GC_Grid_Mod
 #endif
   PUBLIC  :: GET_IJ
   PUBLIC  :: SetGridFromCtr
-#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
   PUBLIC  :: SetGridFromCtrEdges
 #endif
 !
@@ -823,7 +823,7 @@ CONTAINS
 
   END SUBROUTINE SetGridFromCtr
 !EOC
-#if defined ( MODEL_WRF ) || defined( MODEL_CESM )
+#if defined ( MODEL_WRF ) || defined( MODEL_CESM ) || defined( MODEL_GISS )
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------

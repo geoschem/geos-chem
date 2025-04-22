@@ -25,7 +25,7 @@ MODULE CALC_MET_MOD
 !
   PUBLIC  :: AVGPOLE
   PUBLIC  :: AIRQNT
-  PUBLIC  :: GET_COSINE_SZA
+  PUBLIC  :: GET_COSINE_SZA  
   PUBLIC  :: GET_OBK
   PUBLIC  :: INTERP
   PUBLIC  :: SET_DRY_SURFACE_PRESSURE
@@ -1222,9 +1222,11 @@ CONTAINS
              ( MINUTE/1440d0 ) + ( SECOND/3600d0 )
     JD     = JULDAY( YEAR, MONTH, DDAY )             ! Current Julian date
 
+#if !defined( MODEL_GISS )    
     ! Compute cosine(SZA) quantities for the current time
     CALL COSSZA( DOY, HOUR, State_Grid, State_Met )
-
+#endif
+    
     ! Compute sum of COSSZA for HEMCO
     CALL Calc_SumCosZa ( State_Grid, State_Met )
 
