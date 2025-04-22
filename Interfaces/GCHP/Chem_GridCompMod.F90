@@ -2566,11 +2566,14 @@ CONTAINS
                    IND = IND_( TRIM(ThisSpc%Name ) )
                    IF ( IND < 0 ) CYCLE
                    ! Get data from internal state and copy to species array
-                   CALL MAPL_GetPointer( INTERNAL, Ptr3D_R8, TRIM(SPFX) //          &
-                        TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
-                        __RC__ )
-                   State_Chm%Species(IND)%Conc(:,:,:) = &
-                                 Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+                   !CALL MAPL_GetPointer( INTERNAL, Ptr3D_R8, TRIM(SPFX) //          &
+                   !     TRIM(ThisSpc%Name), notFoundOK=.TRUE.,     &
+                   !     __RC__ )
+                   !State_Chm%Species(IND)%Conc(:,:,:) = &
+                   !              Ptr3D_R8(:,:,State_Grid%NZ:1:-1)
+                   State_Chm%Species(Int2Spc(N)%ID)%Conc => &
+                      Int2Spc(N)%Internal(:,:,State_Grid%NZ:1:-1)
+                   
                    if ( MAPL_am_I_Root()) WRITE(*,*)                                &
                         'Initialized species from INTERNAL state: ', TRIM(ThisSpc%Name)
 

@@ -341,8 +341,9 @@ CONTAINS
                Label="FD_LON:", default=-999.0d0, RC=STATUS)
           _VERIFY(STATUS)
 
+         IF (Input_Opt%IS_FD_SPOT) THEN
           _ASSERT( FD_LAT .ne. -999.0d0 .and. FD_LON .ne. -999.0d0, 'FD_SPOT requires either IFD and JFD or FD_LAT and FD_LON be set in GCHP.rc')
-
+         ENDIF
 
           dmin = 99999.9
           imin = -1
