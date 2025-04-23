@@ -1331,34 +1331,6 @@ CONTAINS
             RC           = RC                                               )
 
        !=====================================================================
-       ! Check for tagged tracers and adjust those before updating the
-       ! Species arrays
-       !=====================================================================
-#if defined( MODEL_GEOS )
-       CALL Run_TaggedSpecies( I, J, L, C, PRESS, TEMP, State_Chm, RC )
-#endif
-
-       ! Write chemical state to file for the kpp standalone interface
-       ! No external logic needed, this subroutine exits early if the
-       ! chemical state should not be printed (psturm, 03/23/24)
-       CALL KppSa_Write_Samples(                                             &
-            I            = I,                                                &
-            J            = J,                                                &
-            L            = L,                                                &
-            initC        = C_before_integrate,                               &
-            localRCONST  = local_RCONST,                                     &
-            initHvalue   = KPPH_before_integrate,                            &
-            exitHvalue   = RSTATE(Nhexit),                                   &
-            ICNTRL       = ICNTRL,                                           &
-            RCNTRL       = RCNTRL,                                           &
-            State_Grid   = State_Grid,                                       &
-            State_Chm    = State_Chm,                                        &
-            State_Met    = State_Met,                                        &
-            Input_Opt    = Input_Opt,                                        &
-            KPP_TotSteps = ISTATUS(3),                                       &
-            RC           = RC                                               )
-
-       !=====================================================================
        ! Check we have no negative values and copy the concentrations
        ! calculated from the C array back into State_Chm%Species%Conc
        !=====================================================================
@@ -3073,18 +3045,6 @@ CONTAINS
        RETURN
     ENDIF
 
-#ifdef MODEL_GEOS
-    !--------------------------------------------------------------------
-    ! Initialize tagged tracer chemistry
-    !--------------------------------------------------------------------
-    CALL Init_TaggedSpecies( Input_Opt, State_Chm, State_Diag, RC ) 
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Init_TaggedSpecies"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-#endif
-
     !------------------------------------------------------------------------
     ! Initialize the KPP standalone interface, which will save model state
     ! for the grid cells specified in kpp_standalone_interface.yml.
@@ -3181,14 +3141,6 @@ CONTAINS
        CALL GC_CheckVar( 'fullchem_mod.F90:JvCountMon', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
-
-    ! Deallocate variables from kpp standalone module
-    ! psturm, 03/22/2024
-    CALL KppSa_Cleanup( RC )
-#ifdef MODEL_GEOS
-    ! Clean up tagged species
-    CALL Finalize_TaggedSpecies( RC )
-#endif 
 
     ! Deallocate variables from kpp standalone module
     ! psturm, 03/22/2024

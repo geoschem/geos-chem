@@ -1,6 +1,4 @@
-#ifdef MODEL_GEOS
 #include "MAPL_Generic.h"
-#endif
 
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
@@ -18,10 +16,8 @@ MODULE GEOS_Analysis
 !
 ! !USES:
 !
-#ifdef MODEL_GEOS
   USE ESMF     
   USE MAPL_Mod 
-#endif
 
   ! GEOS-Chem
   USE Error_Mod
@@ -110,7 +106,6 @@ MODULE GEOS_Analysis
   ! Main configuration file for analysis options
   CHARACTER(LEN=127), PARAMETER :: AnaConfigFile = './geoschem_analysis.yml'
 
-#ifdef MODEL_GEOS
   ! For GEOS runs, we have the option to read the analysis fields from file
   ! using the MAPL bundle functionalities. This can be advantageous over the
   ! default option that uses HEMCO(/ExtData) in cases where the analysis 
@@ -123,7 +118,6 @@ MODULE GEOS_Analysis
   ! my opinion (cakelle2, 2/24/24). 
   type (ESMF_FieldBundle)                 :: VarBundle
   CHARACTER(LEN=ESMF_MAXSTR)              :: CurrentFile
-#endif
 !
 ! !REVISION HISTORY:
 !  25 May 2022 - C. Keller - initial version (refactored Chem_GridCompMod)
@@ -339,7 +333,6 @@ CONTAINS
     ! Do analysis for all analysis species
     IF ( nAnaSpec > 0 .AND. ASSOCIATED(AnaConfig) ) THEN 
 
-#ifdef MODEL_GEOS
        ! Create VarBundle
        CALL CreateVarBundle_( RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -348,7 +341,6 @@ CONTAINS
           RETURN              
        ENDIF  
        CurrentFile = 'N/A'
-#endif
 
        DO ispec=1,nAnaSpec
           IF ( AnaConfig(ispec)%Active ) THEN
@@ -362,7 +354,6 @@ CONTAINS
           ENDIF
        ENDDO
 
-#ifdef MODEL_GEOS
        ! Destroy VarBundle 
        CALL DestroyVarBundle_( RC )
        IF ( RC /= GC_SUCCESS ) THEN
@@ -370,7 +361,6 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN              
        ENDIF  
-#endif
     ENDIF
 
     ! Convert species back to original unit 
@@ -1135,7 +1125,6 @@ CONTAINS
 !
 ! LOCAL VARIABLES:
 !
-#ifdef MODEL_GEOS
     CHARACTER(LEN=ESMF_MAXSTR) :: ifile_
     CHARACTER(LEN=4)           :: syy
     CHARACTER(LEN=2)           :: smm, sdd, sh, sm
@@ -1263,12 +1252,6 @@ CONTAINS
     RETURN_(ESMF_SUCCESS)
     RC = GC_SUCCESS
 
-    ! Dummy routine for non-GEOS environment
-#else
-    Ptr3D(:,:,:) = 0.0_hp 
-    RC = GC_SUCCESS
-#endif
-
   END SUBROUTINE GetAnaBundle_
 !EOC
 !------------------------------------------------------------------------------
@@ -1389,13 +1372,9 @@ CONTAINS
     AnaConfig(ispec)%SkipPredictor = v_bool
 
     ! Read from bundle (GEOS only)? 
-#ifdef MODEL_GEOS
     key = TRIM(pkey)//"%ReadFromBundle"
     CALL GetKey_( Config, key, RC, vbool=v_bool, vbool_default=.TRUE. )
     IF ( RC /= GC_SUCCESS ) RETURN
-#else
-    v_bool = .FALSE.
-#endif
     AnaConfig(ispec)%ReadFromBundle = v_bool
 
     ! Read analysis time? 
@@ -1930,7 +1909,6 @@ CONTAINS
        
   END SUBROUTINE GetKey_ 
 !EOC
-#ifdef MODEL_GEOS
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Model                            !
 !------------------------------------------------------------------------------
@@ -2032,5 +2010,5 @@ CONTAINS
 
   END SUBROUTINE DestroyVarBundle_ 
 !EOC
-#endif
+
 END MODULE GEOS_Analysis 
