@@ -371,7 +371,7 @@ CONTAINS
     USE State_Grid_Mod,     ONLY : GrdState
     USE State_Met_Mod,      ONLY : MetState
     USE Timers_Mod,         ONLY : Timer_End, Timer_Start
-    USE UnitConv_Mod
+    USE UnitConv_Mod,       ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -517,31 +517,11 @@ CONTAINS
     print*, ' for hour range: ', GET_HOUR(), GET_HOUR()+1
     print*, ' found # AIRS observations: ', NOBS
 
-    ! Halt diagnostics timer (so that unit conv can be timed separately)
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "Diagnostics", RC )
-    ENDIF
-
-    ! Convert species units to [v/v] (mps, 6/12/2020)
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt      = Input_Opt,                                         &
-         State_Chm      = State_Chm,                                         &
-         State_Grid     = State_Grid,                                        &
-         State_Met      = State_Met,                                         &
-         mapping        = State_Chm%Map_Advect,                              &
-         new_units      = MOLES_SPECIES_PER_MOLES_DRY_AIR,                   &
-         previous_units = previous_units,                                    &
-         RC             = RC                                                )
-
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error (kg/kg dry -> v/v dry)'
+    ! Verify that incoming State_Chm%Species units are mol/mol dry air.
+    IF ( .not. Check_Units( State_Chm, MOLES_SPECIES_PER_MOLES_DRY_AIR ) ) THEN
+       ErrMsg = 'Not all species are in "mol/mol dry" units!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
-    ENDIF
-
-    ! Start diagnostics timer again
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
     !! need to update this in order to do i/o with this loop parallel 
@@ -704,33 +684,6 @@ CONTAINS
 
     ENDDO  ! NT
     !!$OMP END PARALLEL DO
-
-    ! Halt diagnostics timer (so that unit conv can be timed separately)
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_End( "Diagnostics", RC )
-    ENDIF
-
-    ! Convert species units back to original unit (mps, 6/12/2020)
-    CALL Convert_Spc_Units(                                                  &
-         Input_Opt  = Input_Opt,                                             &
-         State_Chm  = State_Chm,                                             &
-         State_Grid = State_Grid,                                            &
-         State_Met  = State_Met,                                             &
-         mapping    = State_Chm%Map_Advect,                                  &
-         new_units  = previous_units,                                        &
-         RC         = RC                                                    )
-
-    ! Trap errors
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Unit conversion error'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Start diagnostics timer
-    IF ( Input_Opt%useTimers ) THEN
-       CALL Timer_Start( "Diagnostics", RC )
-    ENDIF
 
 283 FORMAT( I10,2x,I4,2x,I4,2x,F8.3,2x,F8.4,2x,I4,2x,I2,2x,I2,2x,I2, &
             2x,I2,2x,I2,2x,F12.3,2x,E12.6,2x,E12.6,2x,E12.6, &

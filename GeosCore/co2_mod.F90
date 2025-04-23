@@ -112,7 +112,7 @@ MODULE CO2_MOD
 ! !DEFINED PARAMETERS:
 !
   ! FMOL_CO2     - kg CO2 / mole CO2
-  REAL(fp),  PARAMETER   :: FMOL_CO2   = 44e-3_fp
+  REAL(fp),  PARAMETER   :: FMOL_CO2   = 44.01e-3_fp
 
   ! FMOL_C       - kg C   / mole C
   REAL(fp),  PARAMETER   :: FMOL_C     = 12e-3_fp
@@ -262,7 +262,7 @@ CONTAINS
        ! Loop over all grid boxes
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, E_CO2, N )
+       !$OMP PRIVATE( I, J, L, E_CO2)
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
