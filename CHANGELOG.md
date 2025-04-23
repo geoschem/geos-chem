@@ -4,6 +4,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added `RETURN` statements at the end of each `IF` block in routine `AERODIAG`, to minimize the number of `IF` statements that need to be evauluated
+
+### Changed
+- Updated parallel loops in `tomas_mod.F90` and `aero_drydep.F90` for better performance
+- Commented out debug print statement for TOMAS `H2SO4RATE` variable
+
+### Removed
+- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
@@ -41,9 +52,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
 - Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 - Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
-
-### Removed
-- Removed several unit checks in `tomas_mod.F90` and `aero_drydep.F90`; these were impacting performance
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge

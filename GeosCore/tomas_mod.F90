@@ -467,19 +467,20 @@ CONTAINS
     !%%% NOTE: THIS PARALLEL LOOP MAY BE ABLE TO BE REVERSED TO L-J-I
     !%%% WHICH IS MUCH MORE EFFICIENT (bmy, 1/28/14)
     !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    !$OMP PARALLEL DO         &
-    !$OMP DEFAULT( SHARED )   &
-    !$OMP PRIVATE( I, J, L )  &
-    !$OMP PRIVATE( PRES, TEMPTMS, BOXMASS, RHTOMAS, BOXVOL )       &
-    !$OMP PRIVATE( printneg, ionrate, lev, weight, GC, N, NK, JC ) &
-    !$OMP PRIVATE( MK, H2SO4rate_o, tot_n_1, k, tot_s_1, MPNUM )   &
-    !$OMP PRIVATE( Nkd, Mkd, TOT_NK, TOT_MK, TRANSFER )            &
-    !$OMP PRIVATE( Nkout,Mkout,Gcout,fn,fn1 )                      &
-    !$OMP PRIVATE( num_iter,Nknuc,Mknuc,Nkcond )                   &
-    !$OMP PRIVATE( Mkcond, ERRORSWITCH, tot_s_1a, tot_n_1a )       &
-    !$OMP PRIVATE( ERR_VAR, ERR_MSG, ERR_IND )                     &
-    !$OMP PRIVATE( TRACNUM, NH3_TO_NH4, SURF_AREA )                &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                         &
+    !$OMP DEFAULT( SHARED                                                    )&
+    !$OMP PRIVATE( I,          J,        L,        PRES,        TEMPTMS      )&
+    !$OMP PRIVATE( BOXMASS,    RHTOMAS,  BOXVOL,   printneg,    ionrate      )&
+    !$OMP PRIVATE( lev,        weight,   GC,       Gcd,         N            )&
+    !$OMP PRIVATE( NK,         JC,       MK,       H2SO4rate_o, tot_n_1      )&
+    !$OMP PRIVATE( K,          tot_s_1,  MPNUM,    Nkd,         Mkd          )&
+    !$OMP PRIVATE( TOT_NK,     TOT_MK,   TRANSFER, Nkout,       Mkout        )&
+    !$OMP PRIVATE( Gcout,      fn,       fn1,      num_iter,    Nknuc        )&
+    !$OMP PRIVATE( Mknuc,      Nkcond,   Mkcond,   ERRORSWITCH, tot_s_1a     )&
+    !$OMP PRIVATE( tot_n_1a,   ERR_VAR,  ERR_MSG,  ERR_IND,     TRACNUM      )&
+    !$OMP PRIVATE( NH3_TO_NH4, SURF_AREA                                     )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                               )&
+    !$OMP COLLAPSE( 3                                                        )
     DO I = 1, State_Grid%NX
     DO J = 1, State_Grid%NY
     DO L = 1, State_Grid%NZ
@@ -491,15 +492,46 @@ CONTAINS
 
        !if(printdebug) print *,'+++++',I,J,L,'inside Aerophys'
 
-       ! Get info on this grid box
-       PRES    = State_Met%PMID(i,j,l)*100.0 ! in Pa
-       TEMPTMS = State_Met%T(I,J,L)
-       BOXMASS = State_Met%AD(I,J,L)
-       RHTOMAS = State_Met%RH(I,J,L)/ 1.e2
-       IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99
-       BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
-
-       printneg = .FALSE.
+       ! Initialize private loop variables
+       BOXMASS     = State_Met%AD(I,J,L)
+       BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+       ERR_IND     = 0
+       ERR_MSG     = ''
+       ERR_VAR     = 0.0_fp
+       ERRORSWITCH = .FALSE.
+       fn          = 0.0_fp
+       fn1         = 0.0_fp
+       Gc          = 0.0_fp
+       Gcd         = 0.0_fp
+       Gcout       = 0.0_fp
+       H2SO4rate_o = 0.0_fp
+       Mk          = 0.0_fp
+       Mkcond      = 0.0_fp
+       Mkd         = 0.0_fp
+       Mknuc       = 0.0_fp
+       Mkout       = 0.0_fp
+       MPNUM       = 0
+       Nk          = 0.0_fp
+       Nkcond      = 0.0_fp
+       Nkd         = 0.0_fp
+       Nknuc       = 0.0_fp
+       Nkout       = 0.0_fp
+       num_iter    = 0
+       printneg    = .FALSE.
+       PRES        = State_Met%PMID(i,j,l) * 100.0_fp ! in Pa
+       RHTOMAS     = State_Met%RH(I,J,L)   / 100.0_fp
+       IF ( RHTOMAS > 0.99 ) RHTOMAS = 0.99_fp        ! Cap RH at 99%
+       TEMPTMS     = State_Met%T(I,J,L)
+       TOT_MK      = 0.0_fp
+       tot_n_1     = 0.0_fp
+       TOT_NK      = 0.0_fp
+       tot_s_1     = 0.0_fp
+       TRANSFER    = 0.0_fp
+       tot_s_1a    = 0.0_fp
+       tot_n_1a    = 0.0_fp
+       NH3_TO_NH4  = 0.0_fp
+       SURF_AREA   = 0.0_fp
+       weight      = 0.0_fp
 
        ! determine ion rate
        ionrate = 10.0_fp ! set as constant now !!jrp, bc 18/12/23 and comment out below
@@ -543,9 +575,9 @@ CONTAINS
        ! Initialize all condensible gas values to zero
        ! Gc(srtso4) will remain zero until within cond_nuc where the
        ! pseudo steady state H2SO4 concentration will be put in this place.
-       DO JC=1, ICOMP-1
-          Gc(JC) = 0.e+0_fp
-       ENDDO
+       !DO JC=1, ICOMP-1
+       !   Gc(JC) = 0.e+0_fp
+       !ENDDO
 
        ! Swap Spc into Nk, Mk, Gc arrays
        DO N = 1, IBINS
@@ -574,7 +606,7 @@ CONTAINS
 
        ! Give it the pseudo-steady state value instead later (win,9/30/08)
        !GC(SRTSO4) = Spc(id_H2SO4)%Conc(I,J,L)
-       
+
        H2SO4rate_o = H2SO4_RATE(I,J,L)  ! [kg s-1]
        ! Pengfei Liu add 2018/04/18, debug
        IF ( H2SO4rate_o .lt. 0.e0 ) THEN
@@ -583,9 +615,9 @@ CONTAINS
           H2SO4rate_o = 0.e+0_fp
        ENDIF
        !
-       IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
-          Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
-       ENDIF
+       !IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
+       !   Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+       !ENDIF
 
        ! nitrogen and sulfur mass checks
        ! get the total mass of N
@@ -1617,7 +1649,7 @@ CONTAINS
        Kn      = 2.0 * l_ab / Dpk(k)     !S&Pv2 chapter 12 - Kn for Dahneke correction factor
        beta(k) = ( 1.+Kn )  / ( 1.+2.*Kn*(1.+Kn)/alpha(spec) )   !S&P eqn 11.35
     enddo
-    
+
     ! get condensation sink
     CS = 0.e+0_fp
     surf_area = 0.e+0_fp
@@ -1625,7 +1657,7 @@ CONTAINS
        CS = CS + Dpk(k)*Nko(k)*beta(k)
        surf_area = surf_area+Nko(k)*pi*(Dpk(k)*1.0e+6_fp)**2
     enddo
-    !bc 21/01/2022 - check if divide by zero below -added 2 if 
+    !bc 21/01/2022 - check if divide by zero below -added 2 if
     do k=1,ibins
        sinkfrac(k) = 0.e-0_fp
        if (CS > 0.e-0_fp) then
@@ -1637,7 +1669,7 @@ CONTAINS
     if (CS  > 0.e-0_fp) then
        surf_area = surf_area/(dble(boxvol))
     endif
-    
+
     return
 
   end subroutine getcondsink
@@ -3932,7 +3964,7 @@ CONTAINS
 
     ! Fraction to each bin for mass partitioning
     ! Skip this if no absorbing media - bc, 20/01/2022
-    if (MEDTOT > 0.e+0_fp) then  
+    if (MEDTOT > 0.e+0_fp) then
 
        do k = 1,IBINS
           partfrac(k) = MED(K) / MEDTOT ! MSOA (kg SOA) become (kg SOA per
@@ -4054,7 +4086,7 @@ CONTAINS
 
     else
 
-          ! Put a limit on the amount of screen warnings that we get 
+          ! Put a limit on the amount of screen warnings that we get
           ! to keep logfile sizes low (bmy, 9/30/19)
           SOACOND_WARNING_CT = SOACOND_WARNING_CT + 1
           IF ( SOACOND_WARNING_CT < SOACOND_WARNING_MAX ) THEN
@@ -5928,8 +5960,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE AERODIAG( PTYPE, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
-                       State_Grid, State_Diag )
+  SUBROUTINE AERODIAG( PTYPE,   I,          J,         L,                    &
+                       Nk,      Nkd,        Mk,        Mkd,                  &
+                       BOXMASS, State_Grid, State_Diag                      )
 !
 ! !USES:
 !
@@ -5949,7 +5982,7 @@ CONTAINS
     REAL*4,         INTENT(IN) :: BOXMASS
     TYPE(GrdState), INTENT(IN) :: State_Grid ! Grid State object
 !
-! !INPUT/OUTPUT PARAMETERS:   
+! !INPUT/OUTPUT PARAMETERS:
     TYPE(DgnState), INTENT(INOUT) :: State_Diag  ! Diagnostics State object
 !
 ! !REVISION HISTORY:
@@ -5963,404 +5996,497 @@ CONTAINS
     INTEGER               :: K, JS, S
     REAL*4                :: DTCHEM
 
-    !=================================================================
+    !========================================================================
     ! AERODIAG begins here!
-    !=================================================================
+    !========================================================================
 
     DTCHEM = GET_TS_CHEM() ! chemistry time step in sec  
 
+    !------------------------------------------------------------------------
+    ! TomasH2SO4mass and TomasH2SO4number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 1 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasH2SO4mass(I,J,L,K) = 0.e+0_fp
-          State_Diag%TomasH2SO4number(I,J,L,K) = 0.e+0_fp
+          State_Diag%TomasH2SO4mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasH2SO4number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasH2SO4mass ) THEN
                 S = State_Diag%Map_TomasH2SO4mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasH2SO4mass(I,J,L,K) = & 
-                   State_Diag%TomasH2SO4mass(I,J,L,K) + &
-                    (MK(K,JS) - MKD(K,JS)) /  DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasH2SO4mass(I,J,L,K) =                      &
+                   State_Diag%TomasH2SO4mass(I,J,L,K) +                      &
+                    (MK(K,JS) - MKD(K,JS)) /  DTCHEM / BOXMASS
+                    ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasH2SO4number ) THEN
              S = State_Diag%Map_TomasH2SO4number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasH2SO4number(I,J,L,K) = & 
-                State_Diag%TomasH2SO4number(I,J,L,K) + &
-                  (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasH2SO4number(I,J,L,K) =                       &
+                State_Diag%TomasH2SO4number(I,J,L,K) +                       &
+                  (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                  ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
-        IF ( PTYPE == 2 ) THEN
-        DO K=1,IBINS
-            State_Diag%TomasCOAGmass(I,J,L,K) = 0.e+0_fp
-            State_Diag%TomasCOAGnumber(I,J,L,K) = 0.e+0_fp
-        DO JS = 1, ICOMP-IDIAG
-        IF ( State_Diag%Archive_TomasCOAGmass ) THEN
-              S = State_Diag%Map_TomasCOAGmass%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasCOAGmass(I,J,L,K) = &
-                      State_Diag%TomasCOAGmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
-                      DTCHEM / BOXMASS  ! kg/kg air/sec                                                                      
-              ENDIF
-           ENDIF
-        ENDDO
-        IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
-              S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasCOAGnumber(I,J,L,K) = &
-                   State_Diag%TomasCOAGnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
-                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                        
-              ENDIF
-           ENDIF
-        ENDDO
-        ENDIF
+    !------------------------------------------------------------------------
+    ! TomasCOAGmass and TomasCOAGnumber
+    !------------------------------------------------------------------------
+    IF ( PTYPE == 2 ) THEN
+       DO K=1,IBINS
+          State_Diag%TomasCOAGmass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasCOAGnumber(I,J,L,K) = 0.0_fp
+          DO JS = 1, ICOMP-IDIAG
+             IF ( State_Diag%Archive_TomasCOAGmass ) THEN
+                S = State_Diag%Map_TomasCOAGmass%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%TomasCOAGmass(I,J,L,K) =                       &
+                   State_Diag%TomasCOAGmass(I,J,L,K) +                       &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
+                ENDIF
+             ENDIF
+          ENDDO
+          IF ( State_Diag%Archive_TomasCOAGnumber ) THEN
+             S = State_Diag%Map_TomasCOAGnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasCOAGnumber(I,J,L,K) =                        &
+                State_Diag%TomasCOAGnumber(I,J,L,K) +                        &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
+             ENDIF
+          ENDIF
+       ENDDO
+       RETURN
+    ENDIF
 
-        IF ( PTYPE == 3 ) THEN
-        DO K=1,IBINS
-            State_Diag%TomasNUCLmass(I,J,L,K) = 0.e+0_fp
-            State_Diag%TomasNUCLnumber(I,J,L,K) = 0.e+0_fp
-        DO JS = 1, ICOMP-IDIAG
-        IF ( State_Diag%Archive_TomasNUCLmass ) THEN
-              S = State_Diag%Map_TomasNUCLmass%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasNUCLmass(I,J,L,K) = &
-                   State_Diag%TomasNUCLmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
-                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
-              ENDIF
-           ENDIF
-        ENDDO
+    !------------------------------------------------------------------------
+    ! TomasNUCLmass and TomasNUCLnumber
+    !------------------------------------------------------------------------
+    IF ( PTYPE == 3 ) THEN
+       DO K=1,IBINS
+          State_Diag%TomasNUCLmass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasNUCLnumber(I,J,L,K) = 0.0_fp
+          DO JS = 1, ICOMP-IDIAG
+             IF ( State_Diag%Archive_TomasNUCLmass ) THEN
+                S = State_Diag%Map_TomasNUCLmass%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%TomasNUCLmass(I,J,L,K) =                       &
+                   State_Diag%TomasNUCLmass(I,J,L,K) +                       &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
+                ENDIF
+             ENDIF
+          ENDDO
 
-        IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
-              S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                State_Diag%TomasNUCLnumber(I,J,L,K) = &
-                   State_Diag%TomasNUCLnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
-                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
-                              ENDIF
-           ENDIF
-        ENDDO
-        ENDIF
+          IF ( State_Diag%Archive_TomasNUCLnumber ) THEN
+             S = State_Diag%Map_TomasNUCLnumber%id2slot(K)
+             IF ( S > 0 ) THEN
+                State_Diag%TomasNUCLnumber(I,J,L,K) =                        &
+                State_Diag%TomasNUCLnumber(I,J,L,K) +                        &
+                   (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                   ! no./kg air/sec
+             ENDIF
+          ENDIF
+       ENDDO
+       RETURN
+    ENDIF
 
-        IF ( PTYPE == 4 ) THEN
-        DO K=1,IBINS
-            State_Diag%TomasAQOXmass(I,J,L,K) = 0.e+0_fp
-            State_Diag%TomasAQOXnumber(I,J,L,K) = 0.e+0_fp
-        DO JS = 1, ICOMP-IDIAG
-        IF ( State_Diag%Archive_TomasAQOXmass ) THEN
-              S = State_Diag%Map_TomasAQOXmass%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasAQOXmass(I,J,L,K) = &
-                   State_Diag%TomasAQOXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
-                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+    !------------------------------------------------------------------------
+    ! TomasAQOXmass and TomasAQOXnumber
+    !------------------------------------------------------------------------
+    IF ( PTYPE == 4 ) THEN
+       DO K=1,IBINS
+          State_Diag%TomasAQOXmass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasAQOXnumber(I,J,L,K) = 0.0_fp
+          DO JS = 1, ICOMP-IDIAG
+             IF ( State_Diag%Archive_TomasAQOXmass ) THEN
+                S = State_Diag%Map_TomasAQOXmass%id2slot(K)
+                IF ( S > 0 ) THEN
+                   State_Diag%TomasAQOXmass(I,J,L,K) =                       &
+                   State_Diag%TomasAQOXmass(I,J,L,K) +                       &
+                   (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                   ! kg/kg air/sec
               ENDIF
            ENDIF
         ENDDO
         IF ( State_Diag%Archive_TomasAQOXnumber ) THEN
-              S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasAQOXnumber(I,J,L,K) = &
-                   State_Diag%TomasAQOXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
-                          DTCHEM / BOXMASS  ! no./kg air/sec                                                                           \
-                                                                                                                                        
-             ENDIF
+           S = State_Diag%Map_TomasAQOXnumber%id2slot(K)
+           IF ( S > 0 ) THEN
+              State_Diag%TomasAQOXnumber(I,J,L,K) =                          &
+              State_Diag%TomasAQOXnumber(I,J,L,K) +                          &
+                 (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                 ! no./kg air/sec
            ENDIF
         ENDDO
-        ENDIF
+        RETURN
+     ENDIF
 
-        IF ( PTYPE == 5 ) THEN
+    !------------------------------------------------------------------------
+    ! TomasMNFIXmass and TomasMNFIXnumber
+    !------------------------------------------------------------------------
+     IF ( PTYPE == 5 ) THEN
         DO K=1,IBINS
-            State_Diag%TomasMNFIXmass(I,J,L,K) = 0.e+0_fp
-            State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.e+0_fp
-        DO JS = 1, ICOMP-IDIAG
-        IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
-              S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasMNFIXmass(I,J,L,K) = &
-                   State_Diag%TomasMNFIXmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
-                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+           State_Diag%TomasMNFIXmass(I,J,L,K)   = 0.0_fp
+           State_Diag%TomasMNFIXnumber(I,J,L,K) = 0.0_fp
+           DO JS = 1, ICOMP-IDIAG
+              IF ( State_Diag%Archive_TomasMNFIXmass ) THEN
+                 S = State_Diag%Map_TomasMNFIXmass%id2slot(K)
+                 IF ( S > 0 ) THEN
+                    State_Diag%TomasMNFIXmass(I,J,L,K) =                     &
+                    State_Diag%TomasMNFIXmass(I,J,L,K) +                     &
+                       (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                       ! kg/kg air/sec
+                 ENDIF
               ENDIF
-           ENDIF
-        ENDDO
-        IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
+           ENDDO
+           IF ( State_Diag%Archive_TomasMNFIXnumber ) THEN
               S = State_Diag%Map_TomasMNFIXnumber%id2slot(K)
               IF ( S > 0 ) THEN
-                 State_Diag%TomasMNFIXnumber(I,J,L,K) = &
-                   State_Diag%TomasMNFIXnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
-                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
+                 State_Diag%TomasMNFIXnumber(I,J,L,K) =                      &
+                 State_Diag%TomasMNFIXnumber(I,J,L,K) +                      &
+                    (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                    ! no./kg air/sec
               ENDIF
            ENDIF
         ENDDO
-        ENDIF
+        RETURN
+     ENDIF
 
-        IF ( PTYPE == 6 ) THEN
+    !------------------------------------------------------------------------
+    ! TomasSOAmass and TomasSOAnumber
+    !------------------------------------------------------------------------
+     IF ( PTYPE == 6 ) THEN
         DO K=1,IBINS
-            State_Diag%TomasSOAmass(I,J,L,K) = 0.e+0_fp
-            State_Diag%TomasSOAnumber(I,J,L,K) = 0.e+0_fp
-        DO JS = 1, ICOMP-IDIAG
-        IF ( State_Diag%Archive_TomasSOAmass ) THEN
-              S = State_Diag%Map_TomasSOAmass%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasSOAmass(I,J,L,K) = &
-                   State_Diag%TomasSOAmass(I,J,L,K) + (MK(K,JS) - MKD(K,JS))/ &
-                   DTCHEM / BOXMASS  ! kg/kg air/sec                                                                                    
+           State_Diag%TomasSOAmass(I,J,L,K)   = 0.0_fp
+           State_Diag%TomasSOAnumber(I,J,L,K) = 0.0_fp
+           DO JS = 1, ICOMP-IDIAG
+              IF ( State_Diag%Archive_TomasSOAmass ) THEN
+                 S = State_Diag%Map_TomasSOAmass%id2slot(K)
+                 IF ( S > 0 ) THEN
+                    State_Diag%TomasSOAmass(I,J,L,K) =                       &
+                    State_Diag%TomasSOAmass(I,J,L,K) +                       &
+                       (MK(K,JS) - MKD(K,JS)) / DTCHEM / BOXMASS
+                       ! kg/kg air/sec
               ENDIF
            ENDIF
         ENDDO
         IF ( State_Diag%Archive_TomasSOAnumber ) THEN
-              S = State_Diag%Map_TomasSOAnumber%id2slot(K)
-              IF ( S > 0 ) THEN
-                 State_Diag%TomasSOAnumber(I,J,L,K) = &
-                      State_Diag%TomasSOAnumber(I,J,L,K) + (NK(K) - NKD(K))/ &
-                      DTCHEM / BOXMASS  ! no./kg air/sec                                                                                
+           S = State_Diag%Map_TomasSOAnumber%id2slot(K)
+           IF ( S > 0 ) THEN
+              State_Diag%TomasSOAnumber(I,J,L,K) =                           &
+              State_Diag%TomasSOAnumber(I,J,L,K) +                           &
+                 (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                 ! no./kg air/sec
               ENDIF
            ENDIF
         ENDDO
-        ENDIF
+        RETURN
+     ENDIF
 
-        IF ( PTYPE == 7 ) THEN
+    !------------------------------------------------------------------------
+    ! TomasNUCRATEmass and TomasNUCRATEnumber
+    !------------------------------------------------------------------------
+     IF ( PTYPE == 7 ) THEN
         DO K=1,IBINS
-            State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.e+0_fp
-        IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
+           State_Diag%TomasNUCRATEnumber(I,J,L,K) = 0.0_fp
+           IF ( State_Diag%Archive_TomasNUCRATEnumber ) THEN
               S = State_Diag%Map_TomasNUCRATEnumber%id2slot(K)
               IF ( S > 0 ) THEN
-                 State_Diag%TomasNUCRATEnumber(I,J,L,K) = &
-                   State_Diag%TomasNUCRATEnumber(I,J,L,K) + (NK(K) - NKD(K)) / &
-                   DTCHEM / BOXMASS  ! no./kg air/sec                                                                                   
-                 !            print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &                                                  
-                 !                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &                                                               
-                 !                       DTCHEM / BOXMASS  ! no./kg air/sec                                                             
+                 State_Diag%TomasNUCRATEnumber(I,J,L,K) =                    &
+                 State_Diag%TomasNUCRATEnumber(I,J,L,K) +                    &
+                    (NK(K) - NKD(K)) / DTCHEM / BOXMASS
+                    ! no./kg air/sec
+                 ! print*,'Values for nuc',BOXMASS,DTCHEM,NK(K),NKD(K),K, &
+                 !                (NK(K) - NKD(K)),  (NK(K) - NKD(K)) / &
+                 !                       DTCHEM / BOXMASS  ! no./kg air/sec
               ENDIF
            ENDIF
         ENDDO
-        ENDIF
+        RETURN
+     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXezwat1mass and TomasMNFIXezwat1number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 11 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXezwat1mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXezwat1number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXezwat1mass ) THEN
                 S = State_Diag%Map_TomasMNFIXezwat1mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) + &
-                     (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXezwat1mass(I,J,L,K) +                &
+                     (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                     ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXezwat1number ) THEN
              S = State_Diag%Map_TomasMNFIXezwat1number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat1number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXezwat1number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat1number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXezwat1number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXezwat2mass and TomasMNFIXezwat2number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 12 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXezwat2mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXezwat2number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXezwat2mass ) THEN
                 S = State_Diag%Map_TomasMNFIXezwat2mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) + &
-                     (MK(K,JS) - MKD(K,JS))/  DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXezwat2mass(I,J,L,K) +                &
+                      (MK(K,JS) - MKD(K,JS))/  DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXezwat2number ) THEN
              S = State_Diag%Map_TomasMNFIXezwat2number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat2number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXezwat2number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat2number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXezwat2number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TOMASH2SO4mass and TOMASH2SO4number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 13 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXezwat3mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXezwat3number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXezwat3mass ) THEN
                 S = State_Diag%Map_TomasMNFIXezwat3mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXezwat3mass(I,J,L,K) +                &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXezwat3number ) THEN
              S = State_Diag%Map_TomasMNFIXezwat3number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXezwat3number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXezwat3number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXezwat3number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXezwat3number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXh2so4mass and TomasMNFIXh2so4number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 14 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXh2so4mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXh2so4number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXh2so4mass ) THEN
                 S = State_Diag%Map_TomasMNFIXh2so4mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) =                 &
+                   State_Diag%TomasMNFIXh2so4mass(I,J,L,K) +                 &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXh2so4number ) THEN
              S = State_Diag%Map_TomasMNFIXh2so4number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXh2so4number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXh2so4number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXh2so4number(I,J,L,K) =                  &
+                State_Diag%TomasMNFIXh2so4number(I,J,L,K) +                  &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXcoagmass and TomasMNFIXcoagnumber
+    !------------------------------------------------------------------------
     IF ( PTYPE == 15 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXcoagmass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXcoagmass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXcoagmass ) THEN
                 S = State_Diag%Map_TomasMNFIXcoagmass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) =                  &
+                   State_Diag%TomasMNFIXcoagmass(I,J,L,K) +                  &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXcoagnumber ) THEN
              S = State_Diag%Map_TomasMNFIXcoagnumber%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) = & 
-                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXcoagnumber(I,J,L,K) +                   &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! State_Diag%TomasMNFIXaqoxmass and State_Diag%TomasMNFIXaqoxnumber
+    !------------------------------------------------------------------------
     IF ( PTYPE == 16 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXaqoxmass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXaqoxmass ) THEN
                 S = State_Diag%Map_TomasMNFIXaqoxmass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) =                  &
+                   State_Diag%TomasMNFIXaqoxmass(I,J,L,K) +                  &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXaqoxnumber ) THEN
              S = State_Diag%Map_TomasMNFIXaqoxnumber%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) = & 
-                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) =                   &
+                State_Diag%TomasMNFIXaqoxnumber(I,J,L,K) +                   &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXcheck1mass and TomasMNFIXcheck1number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 17 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXcheck1mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXcheck1number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXcheck1mass ) THEN
                 S = State_Diag%Map_TomasMNFIXcheck1mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXcheck1mass(I,J,L,K) +                &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXcheck1number ) THEN
              S = State_Diag%Map_TomasMNFIXcheck1number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck1number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXcheck1number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXcheck1number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXcheck1number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXcheck2mass and TomasMNFIXcheck2number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 18 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXcheck2mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXcheck2number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXcheck2mass ) THEN
                 S = State_Diag%Map_TomasMNFIXcheck2mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) + &
-                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXcheck2mass(I,J,L,K) +                &
+                      (MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXcheck2number ) THEN
              S = State_Diag%Map_TomasMNFIXcheck2number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck2number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXcheck2number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no./kg air/sec
+                State_Diag%TomasMNFIXcheck2number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXcheck2number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no./kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! TomasMNFIXcheck3mass and TomasMNFIXcheck3number
+    !------------------------------------------------------------------------
     IF ( PTYPE == 19 ) THEN
        DO K=1,IBINS
-          State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = 0.e+0_fp  
-          State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.e+0_fp  
+          State_Diag%TomasMNFIXcheck3mass(I,J,L,K)   = 0.0_fp
+          State_Diag%TomasMNFIXcheck3number(I,J,L,K) = 0.0_fp
           DO JS = 1, ICOMP-IDIAG
              IF ( State_Diag%Archive_TomasMNFIXcheck3mass ) THEN
                 S = State_Diag%Map_TomasMNFIXcheck3mass%id2slot(K)
                 IF ( S > 0 ) THEN
-                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) = & 
-                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) + &
-                      ( MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS  ! kg/kg air/sec
+                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) =                &
+                   State_Diag%TomasMNFIXcheck3mass(I,J,L,K) +                &
+                      ( MK(K,JS) - MKD(K,JS))/ DTCHEM / BOXMASS
+                      ! kg/kg air/sec
                 ENDIF
              ENDIF
           ENDDO
           IF ( State_Diag%Archive_TomasMNFIXcheck3number ) THEN
              S = State_Diag%Map_TomasMNFIXcheck3number%id2slot(K)
              IF ( S > 0 ) THEN
-                State_Diag%TomasMNFIXcheck3number(I,J,L,K) = & 
-                State_Diag%TomasMNFIXcheck3number(I,J,L,K) + &
-                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS  ! no/kg air/sec
+                State_Diag%TomasMNFIXcheck3number(I,J,L,K) =                 &
+                State_Diag%TomasMNFIXcheck3number(I,J,L,K) +                 &
+                   (NK(K) - NKD(K))/ DTCHEM / BOXMASS
+                   ! no/kg air/sec
              ENDIF
           ENDIF
        ENDDO
+       RETURN
     ENDIF
 
   END SUBROUTINE AERODIAG
@@ -7513,31 +7639,31 @@ CONTAINS
     ! Point to the chemical species array
     Spc => State_Chm%Species
 
-    ! Initialize mass mixing ratios
-    MSO4  = 0e+0_fp
-    MNACL = 0e+0_fp
-    MH2O  = 0e+0_fp
-    MECIL = 0e+0_fp
-    MECOB = 0e+0_fp
-    MOCIL = 0e+0_fp
-    MOCOB = 0e+0_fp
-    MDUST = 0e+0_fp
-
     CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, State_Met, &
                   State_Diag, 'AERO_DIADEN called from DEPVEL', RC )
 
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( MECIL, MECOB, MOCIL, MOCOB, MDUST ) &
-    !$OMP PRIVATE( BIN, I, J, TRACID, WID, MH2O, MSO4, MNACL ) &
-    !$OMP SCHEDULE( DYNAMIC )
-    DO J = 1, State_Grid%NY
-    DO I = 1, State_Grid%NX
+    !$OMP PARALLEL DO                                                      &
+    !$OMP DEFAULT( SHARED                                                 )&
+    !$OMP PRIVATE( I,     J,     BIN,   MSO4,   MNACL,  MECIL             )&
+    !$OMP PRIVATE( MECOB, MOCIL, MOCOB, MDUST,  TRACID, WID,   MH2O       )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                            )&
+    !$OMP COLLAPSE( 3                                                     )
+    DO J   = 1, State_Grid%NY
+    DO I   = 1, State_Grid%NX
     DO BIN = 1, IBINS
 
+       ! Initialize
+       MSO4   = 0.0_fp
+       MNACL  = 0.0_fp
+       MECIL  = 0.0_fp
+       MECOB  = 0.0_fp
+       MOCIL  = 0.0_fp
+       MOCOB  = 0.0_fp
+       MDUST  = 0.0_fp
        TRACID = id_NK01 + BIN - 1
+       WID    = id_NK01 + (ICOMP - 1)*IBINS - 1 + BIN
+       !(fixed WID to 281-310. dmw 10/3/09)
        !print *,"TRACID=",TRACID,"id_NK01=",id_NK01, "BIN=", BIN
-       WID    = id_NK01 + (ICOMP - 1)*IBINS - 1 + BIN  !(fixed WID to 281-310. dmw 10/3/09)
        !print *, "wid=", WID, "ICOMP=", ICOMP, "IBINS=", IBINS
 
        ! Get the diameter from an external function
@@ -7701,18 +7827,29 @@ CONTAINS
        L2 = LL
     ENDIF
 
-    !$OMP PARALLEL DO        &
-    !$OMP DEFAULT( SHARED )  &
-    !$OMP PRIVATE( I, J, L ) &
-    !$OMP PRIVATE( Nk, Nkd, Mk, Mkd, K, TRACNUM, JC, MPNUM, BOXVOL, BOXMASS ) &
-    !$OMP PRIVATE( GC, GCd, ERRORSWITCH ) &
-    !$OMP SCHEDULE( DYNAMIC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,       J,   L,   BOXVOL, BOXMASS,     K                )&
+    !$OMP PRIVATE( TRACNUM, Nk,  JC,  Mk,     Gc,          XFER             )&
+    !$OMP PRIVATE( Nkd,     Mkd, Gcd, MPNUM.  ERRORSWITCH                   )&
+    !$OMP SCHEDULE( DYNAMIC, 8                                              )&
+    !$OMP COLLAPSE( 3                                                       )
     DO I = I1, I2
     DO J = J1, J2
     DO L = L1, L2
 
-       BOXVOL  = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
-       BOXMASS = State_Met%AD(I,J,L) !kg
+       ! Initialize private variables
+       BOXVOL      = State_Met%AIRVOL(I,J,L) * 1.e6 !convert from m3 -> cm3
+       BOXMASS     = State_Met%AD(I,J,L)            !kg
+       Nk          = 0.0_fp
+       Nkd         = 0.0_fp
+       Mk          = 0.0_fp
+       Mkd         = 0.0_fp
+       Gc          = 0.0_fp
+       Gcd         = 0.0_fp
+       XFER        = 0.0_fp
+       MPNUM       = 0
+       ERRORSWITCH = .FALSE.
 
        ! Swap GEOSCHEM variables into aerosol algorithm variables
        DO K = 1, IBINS
@@ -7729,10 +7866,6 @@ CONTAINS
           ENDDO
           MK(K,SRTH2O) = Spc(id_AW01-1+K)%Conc(I,J,L)
        ENDDO
-
-       DO JC = 1, ICOMP - 1
-          Gc(JC) = 0.0   !sfarina - init Gc so storenm doesn't go NaN on us.
-       END DO
 
        ! Get NH4 mass from the bulk mass and scale to bin with sulfate
        IF ( SRTNH4 > 0 ) THEN
@@ -7761,21 +7894,21 @@ CONTAINS
 
        ! Save the error fixing to diagnostic AERO-FIX
        IF ( LOCATION .eq.  'Before Aerodrydep') THEN
-          MPNUM = 17 
+          MPNUM = 17
           IF ( State_Diag%Archive_TomasMNFIXcheck1mass .or. &
                State_Diag%Archive_TomasMNFIXcheck1number )  THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
           ENDIF
        ELSEIF ( LOCATION .eq.  'Before exiting DO_TOMAS') THEN
-          MPNUM = 18 
+          MPNUM = 18
           IF ( State_Diag%Archive_TomasMNFIXcheck2mass .or. &
                State_Diag%Archive_TomasMNFIXcheck2number ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
                             State_Grid, State_Diag )
           ENDIF
        ELSEIF ( LOCATION .eq. 'AERO_DIADEN called from DEPVEL' ) THEN
-          MPNUM = 19 
+          MPNUM = 19
           IF ( State_Diag%Archive_TomasMNFIXcheck3mass .or. &
                State_Diag%Archive_TomasMNFIXcheck3number ) THEN
              CALL AERODIAG( MPNUM, I, J, L, Nk, Nkd, Mk, Mkd, BOXMASS, &
