@@ -27,6 +27,8 @@ Collections:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
   TT_EDGAR_v43.Seasonal.1x1.nc:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+  TT_GEOSCHEMchem_d5294_geosit_jan18.asm_const_0hr_glo_C180x180x6_slv.2018-01-01T0300Z.nc4:
+      template: /gpfsm/dnb06/projects/p171/dao_ops/archive/d5294_geosit_jan18/diag/Y2018/M01/d5294_geosit_jan18.asm_const_0hr_glo_C180x180x6_slv.2018-01-01T0300Z.nc4
   TT_Olson_2001_Land_Map.025x025.generic.nc:
     template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
   TT_Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
@@ -41,16 +43,16 @@ Samplings:
     update_frequency: PT24H
     update_reference_time: '0'
   TT_sample_2:
-    time_interpolation: 'False'
+    time_interpolation: False
     update_frequency: P1Y
     update_reference_time: '0'
   TT_sample_3:
-    time_interpolation: 'False'
+    time_interpolation: False
     update_frequency: P1M
     update_reference_time: '0'
   TT_sample_4:
     extrapolation: clim
-    time_interpolation: 'False'
+    time_interpolation: False
     update_frequency: P1M
     update_reference_time: '0'
 
@@ -184,6 +186,11 @@ Exports:
     regrid: CONSERVE
     sample: TT_sample_2
     variable: COscalar
+  OCEAN_MASK:
+    collection: TT_GEOSCHEMchem_d5294_geosit_jan18.asm_const_0hr_glo_C180x180x6_slv.2018-01-01T0300Z.nc4
+    regrid: CONSERVE
+    sample: TT_sample_0
+    variable: FROCEAN
   OLSON00:
     collection: TT_Olson_2001_Land_Map.025x025.generic.nc
     regrid: FRACTION;0
