@@ -1605,6 +1605,7 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #==============================================================================
 #GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_SOAP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH3OH kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch3ohfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_NO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_BCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_BCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
