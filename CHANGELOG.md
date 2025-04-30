@@ -4,6 +4,15 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added `#InvCEDSshipALK6` (commented out by default) to GCClassic `HEMCO_Diagn.rc.fullchem` and WRF `HEMCO_Diagn.rc` files
+- Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
+
+### Changed
+- Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
+- Changed `ALD2_PLANTDECAY` emissions category from 3 to 99 so as not to conflict with the anthropogenic transport sector.
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
@@ -17,8 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added option to run GCClassic nested-grid simulations at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
 - Added option for South America (SA), Africa (AF), Middle East (ME), Oceania (OC), and Russia (RU) regions to nested-grid simulations in GCClassic's createRunDir.sh
 - Added updates for compatibility with the Beijing Climate Centre Earth System Model
-- Added `#InvCEDSshipALK6` (commented out by default) to GCClassic `HEMCO_Diagn.rc.fullchem` template file
-- Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
@@ -43,8 +50,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
 - Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 - Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
-- Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
-- Changed `ALD2_PLANTDECAY` emissions category from 3 to 99 so as not to conflict with the anthropogenic transport sector.
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge
