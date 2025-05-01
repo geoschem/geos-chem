@@ -560,6 +560,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvCEDS_SO2          SO2    0    1   5   3   kg/m2/s  SO2_emission_flux_from_CEDS_inventory
 #InvCEDS_SO4          SO4    0    1   5   3   kg/m2/s  SO4_emission_flux_from_CEDS_inventory
 #InvCEDS_SOAP         SOAP   0    1   5   3   kg/m2/s  SOAP_emission_flux_from_CEDS_inventory
+#InvCEDS_TOLU         TMB    0    1   5   3   kg/m2/s  TMB_emission_flux_from_CEDS_inventory
 #InvCEDS_TOLU         TOLU   0    1   5   3   kg/m2/s  TOLU_emission_flux_from_CEDS_inventory
 #InvCEDS_XYLE         XYLE   0    1   5   3   kg/m2/s  XYLE_emission_flux_from_CEDS_inventory
 
@@ -607,6 +608,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 #InvCEDSship_ALD2     ALD2   0    10  5   2   kg/m2/s  ALD2_emission_flux_from_CEDSship_inventory
 #InvCEDSship_ALK4     ALK4   0    10  5   2   kg/m2/s  ALK4_emission_flux_from_CEDSship_inventory
+#InvCEDSship_ALK6     ALK4   0    10  5   2   kg/m2/s  ALK4_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BCPI     BCPI   0    10  5   2   kg/m2/s  BCPI_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BCPO     BCPO   0    10  5   2   kg/m2/s  BCPO_emission_flux_from_CEDSship_inventory
 #InvCEDSship_BENZ     BENZ   0    10  5   2   kg/m2/s  BENZ_emission_flux_from_CEDSship_inventory
@@ -627,6 +629,7 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvCEDSship_SO2      SO2    0    10  5   2   kg/m2/s  SO2_emission_flux_from_CEDSship_inventory
 #InvCEDSship_SO4      SO4    0    10  5   2   kg/m2/s  SO4_emission_flux_from_CEDSship_inventory
 #InvCEDSship_SOAP     SOAP   0    10  5   2   kg/m2/s  SOAP_emission_flux_from_CEDSship_inventory
+#InvCEDSship_TMB      TMB    0    10  5   2   kg/m2/s  TMB_emission_flux_from_CEDSship_inventory
 #InvCEDSship_TOLU     TOLU   0    10  5   2   kg/m2/s  TOLU_emission_flux_from_CEDSship_inventory
 #InvCEDSship_XYLE     XYLE   0    10  5   2   kg/m2/s  XYLE_emission_flux_from_CEDSship_inventory
 

@@ -667,8 +667,8 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- Emissions from decaying plants ---
 #==============================================================================
 (((DECAYING_PLANTS
-0 ALD2_PLANTDECAY $ROOT/ALD2/v2017-03/resp.geos.2x25.nc HET_RESP 1985/1-12/1/0 C xy kgC/m2/s ALD2 85/41 3 1
-0 EOH_PLANTDECAY  -                                     -        -             - -  -        EOH  86/47 3 1
+0 ALD2_PLANTDECAY $ROOT/ALD2/v2017-03/resp.geos.2x25.nc HET_RESP 1985/1-12/1/0 C xy kgC/m2/s ALD2 85/41 99 1
+0 EOH_PLANTDECAY  -                                     -        -             - -  -        EOH  86/47 99 1
 )))DECAYING_PLANTS
 
 #==============================================================================
