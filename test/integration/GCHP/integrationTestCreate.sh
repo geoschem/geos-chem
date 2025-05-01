@@ -242,7 +242,6 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     sed_ie "s|'RRTMG'|#'RRTMG'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'UVFlux'|#'UVFlux'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"
