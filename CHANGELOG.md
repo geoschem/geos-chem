@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
 - Changed `ALD2_PLANTDECAY` emissions category (for GEOS-Chem in NASA-GEOS ESM only) from 3 to 99 to not conflict with the anthropogenic transport sector
 
+### Fixed
+- Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
