@@ -4,10 +4,6 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 ## [Unreleased] - TBD
-### Fixed
-- Fixed outdated path for GFED4 daily fraction
-
-## [Unreleased] - TBD
 ### Added
 - Added `#InvCEDSshipALK6`, `#InvCEDS_TMB`, and `#InvCEDSship_TMB` (commented out by default) to `HEMCO_Diagn*` and GCHP `HISTORY.rc.fullchem` files
 - Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
@@ -18,6 +14,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
+- Fixed outdated path for GFED4 daily fraction
+- Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
 
 ## [14.6.0] - 2025-04-18
 ### Added
