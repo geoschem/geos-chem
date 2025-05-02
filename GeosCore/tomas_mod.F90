@@ -106,10 +106,10 @@ MODULE TOMAS_MOD
 !
   INTEGER, PARAMETER   :: SRTSO4  = 1
   INTEGER, PARAMETER   :: SRTNACL = 2
-  INTEGER, PARAMETER   :: SRTECIL = 3
-  INTEGER, PARAMETER   :: SRTECOB = 4
-  INTEGER, PARAMETER   :: SRTOCIL = 5
-  INTEGER, PARAMETER   :: SRTOCOB = 6
+  INTEGER, PARAMETER   :: SRTECOB = 3
+  INTEGER, PARAMETER   :: SRTECIL = 4
+  INTEGER, PARAMETER   :: SRTOCOB = 5
+  INTEGER, PARAMETER   :: SRTOCIL = 6
   INTEGER, PARAMETER   :: SRTDUST = 7
   INTEGER, PARAMETER   :: SRTNH4  = 8
   INTEGER, PARAMETER   :: SRTH2O  = 9
@@ -6431,6 +6431,7 @@ CONTAINS
     CHARACTER(LEN=255)   :: filename
     CHARACTER(LEN=255)   :: fname(4)
     CHARACTER(LEN=255)   :: DATA_DIR
+    CHARACTER(LEN=255)   :: MSG, LOC
 
     !=================================================================
     ! INIT_TOMAS begins here!
@@ -6451,7 +6452,6 @@ CONTAINS
     id_SO4    = Ind_('SO4'  )
     id_NH3    = Ind_('NH3'  )
     id_NH4    = Ind_('NH4'  )
-    id_SF01   = Ind_('SF01'  )
     id_SS01   = Ind_('SS01'  )
     id_ECIL01 = Ind_('ECIL01')
     id_ECOB01 = Ind_('ECOB01')
@@ -6461,6 +6461,18 @@ CONTAINS
 
     ! Number of size bins
     IBINS = State_Chm%nTomasBins
+
+    ! Check to make sure TOMAS species are in the expected order
+    IF (.NOT. (id_SF01   + IBINS == id_SS01   .AND. &
+               id_SS01   + IBINS == id_ECOB01 .AND. &
+               id_ECOB01 + IBINS == id_ECIL01 .AND. &
+               id_ECIL01 + IBINS == id_OCOB01 .AND. &
+               id_OCOB01 + IBINS == id_OCIL01 .AND. &
+               id_OCIL01 + IBINS == id_DUST01) ) THEN
+      MSG = 'TOMAS species are not in the expected order!'
+      LOC = 'Routine INIT_TOMAS in tomas_mod.F90'
+      CALL ERROR_STOP( MSG, LOC )
+    ENDIF
 
     ! Now read large TOMAS input files from a common disk directory
     ! (bmy, 1/30/14)

@@ -18,6 +18,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
 
+## [Unreleased] - TBD
+### Added
+### Changed
+### Fixed
+- Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
