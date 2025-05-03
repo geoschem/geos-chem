@@ -563,7 +563,6 @@ CONTAINS
     REAL(fp),      POINTER :: H2O2s        (:)
     REAL(fp),      POINTER :: SO2s         (:)
     REAL(fp),      POINTER :: Q            (:)
-    REAL(fp),      POINTER :: PRECCON
     TYPE(SpcConc), POINTER :: Spc          (:)
     TYPE(Species), POINTER :: SpcInfo
 
@@ -582,10 +581,9 @@ CONTAINS
                                                               ! [kg/m2/s] [upper edge]
     DQRCU        => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
     DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
-    REEVAPCN_MET => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
+    REEVAPCN     => State_Met%REEVAPCN(I,J,:        ) ! Evap of precip'ing conv.
     DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
     T            => State_Met%T       (I,J,:        ) ! Air temperature [K]
-    PRECCON      => State_Met%PRECCON (I,J          ) ! Surface precipitation flux [mm/day]
     H2O2s        => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
     SO2s         => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
     Spc          => State_Chm%Species              ! Chemical species vector
@@ -624,10 +622,6 @@ CONTAINS
     NS       = MAX( NS, 1 )             ! Set lower bound to 1
     DNS      = DBLE( NS )               ! Num internal timesteps (real)
     SDT      = DBLE( NDT ) / DBLE( NS ) ! seconds in internal timestep
-
-    ! RAS scheme
-    ! DQRCU is gross precipitation formation
-    REEVAPCN(:) = REEVAPCN_MET(:)
 
     !-----------------------------------------------------------------
     ! Determine location of the cloud base, which is the level where
@@ -1562,7 +1556,6 @@ CONTAINS
     REAL(fp),      POINTER :: H2O2s        (:)
     REAL(fp),      POINTER :: SO2s         (:)
     REAL(fp),      POINTER :: Q            (:)
-    REAL(fp),      POINTER :: PRECCON
     TYPE(SpcConc), POINTER :: Spc          (:)
     TYPE(Species), POINTER :: SpcInfo
 
@@ -1584,7 +1577,6 @@ CONTAINS
     DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
     DELP         => State_Met%DELP    (I,J,:        ) ! Edge P diff [hPa]
     T            => State_Met%T       (I,J,:        ) ! Air temperature [K]
-    PRECCON      => State_Met%PRECCON (I,J          ) ! Surface precipitation flux [mm/day]
     H2O2s        => State_Chm%H2O2AfterChem(I,J,:   ) ! H2O2s from sulfate_mod
     SO2s         => State_Chm%SO2AfterChem (I,J,:   ) ! SO2s from sulfate_mod
     Spc          => State_Chm%Species                 ! Chemical species vector
