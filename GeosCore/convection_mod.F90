@@ -1525,7 +1525,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL                :: AER,         IS_Hg
+    LOGICAL                :: KIN,         IS_Hg
     INTEGER                :: IC,          ISTEP,     K
     INTEGER                :: KTOP,        NC,        NDT
     INTEGER                :: NLAY,        NS,        CLDBASE
@@ -1536,8 +1536,8 @@ CONTAINS
     REAL(fp)               :: QC_PRES,     QC_SCAV,   SDT
     REAL(fp)               :: T0,          T0_SUM,    T1
     REAL(fp)               :: T2,          T3,        T4
-    REAL(fp)               :: TSUM,        LOST,      GAINED
-    REAL(fp)               :: WETLOSS,     MASS_WASH, MASS_NOWASH
+    REAL(fp)               :: TSUM,        GAINED
+    REAL(fp)               :: WETLOSS,     MASS_WASH
     REAL(fp)               :: QDOWN,       DT,        F_WASHOUT
     REAL(fp)               :: K_RAIN,      WASHFRAC,  WET_Hg2
     REAL(fp)               :: WET_HgP
@@ -1625,8 +1625,8 @@ CONTAINS
       ! REEVAPCN (kg/kg/s) to REEVAPCN_FLUX (kg/m2/s)
       ! subtraction between fluxes instead
        REEVAPCN(K) = (REEVAPCN_MET(K) * DELP(K) &
-                  - REEVAPCN_MET(K+1) * DELP(K+1) ) &
-                  / DELP(K)
+                     - REEVAPCN_MET(K+1) * DELP(K+1) ) &
+                     / DELP(K)
        REEVAPCN(K) = MAX( REEVAPCN(K), 0.0_fp )
     ENDDO
 
@@ -1663,6 +1663,7 @@ CONTAINS
                  ! kg/kg wet air/s to kg/m2/s then to cm3 H20/cm2 air/s
                  ! since we no longer have water phase information, assume all liquid water
                  ! use liquid water density 1000e+0_fp
+       PDOWN(K) = MAX( PDOWN(K), 0.0_fp )
     ENDDO
 
     ! BMASS is the dry air mass per unit area for the grid box
@@ -1708,14 +1709,12 @@ CONTAINS
           T0_SUM = 0e+0_fp    ! [kg species/m2/timestep]
 
           !==================================================================
-          ! (3)  C l o u d   U p d r a f t   L o o p
-          ! Only scavenging above cloud base
+          ! (3)  C o n v e c t i v e T r a n s p o r t   L o o p
+          !      (Only do cloud updraft scavenging above cloud base)
           !==================================================================
           DO K = 1, KTOP
 
              ! Initialize
-             ALPHA   = 0e+0_fp
-             ALPHA2  = 0e+0_fp
              CMOUT   = 0e+0_fp
              ENTRN   = 0e+0_fp
              QC_PRES = 0e+0_fp
@@ -1767,8 +1766,8 @@ CONTAINS
                    QC_PRES = QC * ( 1e+0_fp - F(K,NA) )
                    QC_SCAV = QC * F(K,NA)
                 ELSE
-                  QC_PRES = QC
-                  QC_SCAV = 0e+0_fp
+                   QC_PRES = QC
+                   QC_SCAV = 0e+0_fp
                 ENDIF
 
                 !- - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -1893,7 +1892,7 @@ CONTAINS
                 T0_SUM = T0_SUM + T0 * SDT
 
                 !------------------------------------------------------------
-                ! (3.3)  N D 1 4   D i a g n o s t i c
+                ! N D 1 4   D i a g n o s t i c
                 !
                 ! Archive upward mass flux due to wet convection
                 ! [kg/sec] in the box (I,J), for the species IC going out 
@@ -1907,7 +1906,7 @@ CONTAINS
                 ENDIF
 
                 !------------------------------------------------------------
-                ! (3.4)  N D 3 8   D i a g n o s t i c
+                ! N D 3 8   D i a g n o s t i c
                 !
                 ! Archive the loss of soluble species to wet scavenging in
                 ! cloud updrafts [kg/s].  We must divide by DNS, the # of
@@ -1929,7 +1928,7 @@ CONTAINS
              ELSE
 
                 !------------------------------------------------------------
-                ! (3.5)  N o   C l o u d   M a s s   F l u x   B e l o w
+                ! (3.3)  N o   C l o u d   M a s s   F l u x   B e l o w
                 !------------------------------------------------------------
 
                 ! If there is no cloud mass flux coming from below, set
@@ -1963,7 +1962,7 @@ CONTAINS
                    Q(K) = Q(K) + DELQ
 
                    !------------------------------------------------------------
-                   ! (3.3)  N D 1 4   D i a g n o s t i c
+                   ! N D 1 4   D i a g n o s t i c
                    !
                    ! Archive upward mass flux due to wet convection
                    ! [kg/sec] in the box (I,J), for the species IC going out 
@@ -1978,141 +1977,151 @@ CONTAINS
 
                 ENDIF
              ENDIF
-          ENDDO     ! End of loop over levels above cloud base
+          ENDDO     ! End of loop for convective transport
 
           !==================================================================
-          ! (4)  B e l o w   C l o u d   B a s e
+          ! (4)  B e l o w   C l o u d   W a s h o u t   &   R e e v a p
+          ! ( only serves for wet deposition species NW > 0 )
           !==================================================================
-          DO K = CLDBASE-1, 1, -1
 
-             ! Initialize
-             QDOWN       = 0e+0_fp
-             F_WASHOUT   = 0e+0_fp
-             WASHFRAC    = 0e+0_fp
-             ALPHA       = 0e+0_fp
-             ALPHA2      = 0e+0_fp
-             GAINED      = 0e+0_fp
-             WETLOSS     = 0e+0_fp
-             LOST        = 0e+0_fp
-             MASS_WASH   = 0e+0_fp
-             MASS_NOWASH = 0e+0_fp
-             K_RAIN      = 0e+0_fp
+          ! Only for wet deposition species
+          IF ( NW > 0 ) THEN
 
-             ! Check if...
-             ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
-             ! (2) there is re-evaporation happening in grid box (I,J,K)
-             ! (3) there is species to re-evaporate
-             IF ( PDOWN(K+1)  > 0 .and. &
-                  REEVAPCN(K) > 0 .and. &
-                  T0_SUM      > 0        ) THEN
+             ! Begin loop for below cloud
+             DO K = CLDBASE-1, 1, -1
 
-                ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
-                ! experiencing washout. First, convert units of PDOWN, 
-                ! the downward flux of precip leaving grid box (K+1)
-                ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-                ! by dividing by box height in cm
-                QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
+                ! Initialize
+                QDOWN       = 0e+0_fp
+                F_WASHOUT   = 0e+0_fp
+                WASHFRAC    = 0e+0_fp
+                ALPHA       = 0e+0_fp
+                ALPHA2      = 0e+0_fp
+                GAINED      = 0e+0_fp
+                WETLOSS     = 0e+0_fp
+                MASS_WASH   = 0e+0_fp
+                K_RAIN      = 0e+0_fp
 
-                ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
-                ! leaving grid box (K+1).
+                !==================================================================
+                ! (4.1)  W a s h o u t
+                ! Check if there is precip coming through the upper edge of (I,J,K)
+                ! This is the criteria for washout
+                !==================================================================
+                IF ( PDOWN(K+1) > 0 ) THEN
+
+                   ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
+                   ! experiencing washout. First, convert units of PDOWN,
+                   ! the downward flux of precip leaving grid box (K+1)
+                   ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
+                   ! by dividing by box height in cm
+                   QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp )
+
+                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip
+                   ! leaving grid box (K+1).
 #ifdef LUO_WETDEP
-                ! Luo et al scheme: Use COND_WATER_CONTENT = 2e-6 [cm3/cm3]
-                K_RAIN   = LS_K_RAIN( QDOWN, 2.0e-6_fp )
-                F_WASHOUT= CONV_F_PRIME( QDOWN, K_RAIN, SDT )
+                   ! Luo et al scheme: Use COND_WATER_CONTENT = 2e-6 [cm3/cm3]
+                   K_RAIN   = LS_K_RAIN( QDOWN, 2.0e-6_fp )
+                   F_WASHOUT= CONV_F_PRIME( QDOWN, K_RAIN, SDT )
 #else
-                ! Default scheme: Use COND_WATER_CONTENT = 1e-6 [cm3/cm3]
-                ! (which was recommended by Qiaoqiao Wang et al [2014])
-                K_RAIN   = LS_K_RAIN(  QDOWN,         1.0e-6_fp )
-                F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN, 1.0e-6_fp )
+                   ! Default scheme: Use COND_WATER_CONTENT = 1e-6 [cm3/cm3]
+                   ! (which was recommended by Qiaoqiao Wang et al [2014])
+                   K_RAIN   = LS_K_RAIN(  QDOWN,         1.0e-6_fp )
+                   F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN, 1.0e-6_fp )
 #endif
 
-                ! Call WASHOUT to compute the fraction of species lost
-                ! to washout in grid box (I,J,K)
-                !
-                ! For TOMAS, indicate that we are not calling WASHOUT
-                ! from wet deposition, so that the proper unit conversions
-                ! will be applied. -- Bob Yantosca (11 Apr 2024)
-                CALL WASHOUT(                                                &
-                     ! --- Input ---
-                     I          = I,                                         &
-                     J          = J,                                         &
-                     L          = K,                                         &
-                     N          = IC,                                        &
-                     BXHEIGHT   = BXHEIGHT(K),                               &
-                     TK         = T(K),                                      &
-                     PP         = QDOWN,                                     &
-                     DT         = SDT,                                       &
-                     F          = F_WASHOUT,                                 &
-                     Input_Opt  = Input_Opt,                                 &
-                     State_Grid = State_Grid,                                &
-                     State_Met  = State_Met,                                 &
+                   ! Call WASHOUT to compute the fraction of species lost
+                   ! to washout in grid box (I,J,K)
+                   !
+                   ! For TOMAS, indicate that we are not calling WASHOUT
+                   ! from wet deposition, so that the proper unit conversions
+                   ! will be applied. -- Bob Yantosca (11 Apr 2024)
+                   CALL WASHOUT(                                                &
+                        ! --- Input ---
+                        I          = I,                                         &
+                        J          = J,                                         &
+                        L          = K,                                         &
+                        N          = IC,                                        &
+                        BXHEIGHT   = BXHEIGHT(K),                               &
+                        TK         = T(K),                                      &
+                        PP         = QDOWN,                                     &
+                        DT         = SDT,                                       &
+                        F          = F_WASHOUT,                                 &
+                        Input_Opt  = Input_Opt,                                 &
+                        State_Grid = State_Grid,                                &
+                        State_Met  = State_Met,                                 &
 #ifdef LUO_WETDEP
-                     pHRain     = pHRain,                                    &
+                        pHRain     = pHRain,                                    &
 #endif
 #ifdef TOMAS
-                     fromWetDep = .FALSE.,                                   &
+                        fromWetDep = .FALSE.,                                   &
 #endif
-                     ! --- Input/Output ---
-                     State_Chm  = State_Chm,                                 &
-                     H2O2s      = H2O2s(K),                                  &
-                     SO2s       = SO2s(K),                                   &
-                     ! --- Output ---
-                     WASHFRAC   = WASHFRAC,                                  &
-                     KIN        = AER,                                       &
-                     RC         = RC                                        )
+                        ! --- Input/Output ---
+                        State_Chm  = State_Chm,                                 &
+                        H2O2s      = H2O2s(K),                                  &
+                        SO2s       = SO2s(K),                                   &
+                        ! --- Output ---
+                        WASHFRAC   = WASHFRAC,                                  &
+                        KIN        = KIN,                                       &
+                        RC         = RC                                        )
 
-                ! Trap potential errors
-                IF ( RC /= GC_SUCCESS ) THEN
-                   ErrMsg = 'Error encountered in "Washout"!'
-                   CALL GC_Error( ErrMsg, RC, ThisLoc )
-                   RETURN
+                   ! Trap potential errors
+                   IF ( RC /= GC_SUCCESS ) THEN
+                      ErrMsg = 'Error encountered in "Convective Washout"!'
+                      CALL GC_Error( ErrMsg, RC, ThisLoc )
+                      RETURN
+                   ENDIF
+
                 ENDIF
 
-                ! Check if the species is an aerosol or not
-                IF ( AER ) THEN
+                !==================================================================
+                ! (4.2)  R e e v a p o r a t i o n
+                ! Reevaporation differ between kinetic species (Aerosol and HNO3)
+                ! and equilibrium species (Gases), see Jacob 2000
+                !==================================================================
+                IF ( KIN ) THEN
 
                    !---------------------------------------------------------
-                   ! Washout of aerosol species
                    ! This is modeled as a kinetic process
                    !---------------------------------------------------------
 
                    ! Define ALPHA, the fraction of raindrops that
                    ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
-                   ! NOTE:
-                   !   REEVAPCN is in units of [kg/kg/s]
-                   !   Now use BMASS [kg/m2] instead of AD/area to
-                   !   remove area dependency
-                   !   PDOWN is in units of [cm3/cm2/s]
-                   !   Factor of 10 in denom for unit conversion
-                   !     1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                   
+                   ! Criteria for Reevaporation:
+                   ! More precipitation is entering the upper edge 
+                   ! than leaving through the lower edge
+                   IF ( PDOWN(K+1) > TINYNUM .and. &
+                        PDOWN(K+1) > PDOWN(K) ) THEN
 
-                   ! %%%% CASE 1 %%%%
-                   ! Partial re-evaporation. Less precip is leaving
-                   ! the grid box then entered from above (V. Shah, 9/14/15)
-                   IF ( PDOWN(K+1) > PDOWN(K) .AND. &
-                        PDOWN(K)   > TINYNUM        ) THEN
+                      ! %%%% CASE 1 %%%%
+                      ! Partial re-evaporation. Less precip is leaving
+                      ! the grid box then entered from above (V. Shah, 9/14/15)
+                      IF( PDOWN(K) > TINYNUM ) THEN
 
-                      ! Define ALPHA, the fraction of raindrops that
-                      ! re-evaporate when falling from grid box
-                      ! (I,J,L+1) to (I,J,L)
-                      ALPHA = REEVAPCN(K) * DELP(K) * G0_100 &
-                              / ( PDOWN(K+1) * 10e+0_fp  )
+                         ! NOTE:
+                         ! REEVAPCN is in units of [kg/kg/s]
+                         ! (1) Now use DELP(K) * G0_100 to since
+                         ! the mass ratio is relative to wet mass
+                         ! (2) PDOWN is in units of [cm3/cm2/s]
+                         ! Factor of 10 in denom for unit conversion
+                         ! 1000 kg/m3 * 0.01 m/cm = 10 kg/m2/cm
+                         ALPHA = REEVAPCN(K) * DELP(K) * G0_100 &
+                                 / ( PDOWN(K+1) * 10e+0_fp )
 
-                      ! For safety
-                      ALPHA = MIN( ALPHA, 1e+0_fp )
+                         ! For safety
+                         ALPHA = MIN( ALPHA, 1e+0_fp )
 
-                      ! ALPHA2 is the fraction of the rained-out aerosols
-                      ! that gets resuspended in grid box (I,J,L)
-                      ALPHA2  = 0.5e+0_fp * ALPHA
+                         ! ALPHA2 is the fraction of the rained-out aerosols
+                         ! that gets resuspended in grid box (I,J,L)
+                         ALPHA2  = 0.5e+0_fp * ALPHA
 
-                   ENDIF
+                      ! %%%% CASE 2 %%%%
+                      ! Total re-evaporation. Precip entered from above,
+                      ! but no precip is leaving grid box (ALPHA = 2 so
+                      ! that  ALPHA2 = 1) (V. Shah, 9/14/15)
+                      ELSE
+                         ALPHA2 = 1e+0_fp
+                      ENDIF
 
-                   ! %%%% CASE 2 %%%%
-                   ! Total re-evaporation. Precip entered from above,
-                   ! but no precip is leaving grid box (ALPHA = 2 so
-                   ! that  ALPHA2 = 1) (V. Shah, 9/14/15)
-                   IF ( PDOWN(K) < TINYNUM ) THEN
-                      ALPHA2 = 1e+0_fp
                    ENDIF
 
                    ! GAINED is the rained out aerosol coming down from
@@ -2126,32 +2135,12 @@ CONTAINS
                    WETLOSS = ( Q(K) * BMASS(K) + GAINED ) * &
                              WASHFRAC - GAINED
 
-                   ! LOST is the rained out aerosol coming down from
-                   ! grid box (I,J,L+1) that will remain in the liquid
-                   ! phase in grid box (I,J,L) and will NOT re-evaporate
-                   ! [kg/m2/timestep]
-                   LOST    = T0_SUM - GAINED
-
-                   ! Update species concentration (V. Shah, mps, 5/20/15)
-                   ! [kg/kg]
-                   Q(K) = Q(K) - WETLOSS / BMASS(K)
-
-                   ! Update T0_SUM, the total amount of scavenged
-                   ! species that will be passed to the grid box below
-                   ! [kg/m2/timestep]
-                   T0_SUM = T0_SUM + WETLOSS
-
                 ELSE
 
                    !---------------------------------------------------------
                    ! Washout of non-aerosol species
                    ! This is modeled as an equilibrium process
                    !---------------------------------------------------------
-
-                   ! MASS_NOWASH is the amount of non-aerosol species in
-                   ! grid box (I,J,L) that is NOT available for washout.
-                   ! Calculate in units of [kg/kg]
-                   MASS_NOWASH = ( 1e+0_fp - F_WASHOUT ) * Q(K)
 
                    ! MASS_WASH is the total amount of non-aerosol species
                    ! that is available for washout in grid box (I,J,L).
@@ -2168,18 +2157,18 @@ CONTAINS
                    ! [kg species/m2/timestep]
                    WETLOSS     = MASS_WASH * WASHFRAC - T0_SUM
 
-                   ! The species left in grid box (I,J,L) is what was
-                   ! originally in the non-precipitating fraction
-                   ! of the box, plus MASS_WASH, less WETLOSS.
-                   ! [kg/kg]
-                   Q(K) = Q(K) - WETLOSS / BMASS(K)
+                ENDIF ! End if for determing kinetic/equalibrium species
 
-                   ! Update T0_SUM, the total scavenged species
-                   ! that will be passed to the grid box below
-                   ! [kg species/m2/timestep]
-                   T0_SUM      = T0_SUM + WETLOSS
+                ! The species left in grid box (I,J,L) is what was
+                ! originally in the non-precipitating fraction
+                ! of the box, plus MASS_WASH, less WETLOSS.
+                ! [kg/kg]
+                Q(K) = Q(K) - WETLOSS / BMASS(K)
 
-                ENDIF
+                ! Update T0_SUM, the total scavenged species
+                ! that will be passed to the grid box below
+                ! [kg species/m2/timestep]
+                T0_SUM = T0_SUM + WETLOSS
 
                 !------------------------------------------------------------
                 !  N D 3 8   D i a g n o s t i c
@@ -2191,10 +2180,7 @@ CONTAINS
                 ! across all internal timesteps. Note that the units of
                 ! WETLOSS are [kg/m2/timestep].
                 !------------------------------------------------------------
-                !%%% NOTE: SHOULD TEST FOR NW > 0 BUT IF WE DO THAT WE
-                !%%% NO LONGER GET IDENTICAL RESULTS WITH THE REF CODE.
-                !%%% LOOK INTO THIS LATER.  (bmy, 7/7/16)
-                IF ( USE_DIAG38 .and. F(K,NA) > 0.0_fp ) THEN
+                IF ( USE_DIAG38 ) THEN
                    DIAG38(K,NW) = DIAG38(K,NW) + ( WETLOSS * AREA_M2 / NDT )
                 ENDIF
 
@@ -2205,8 +2191,9 @@ CONTAINS
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
-             ENDIF
-          ENDDO     ! End of loop over levels below cloud base
+
+             ENDDO     ! End of loop over levels below cloud base
+         ENDIF     ! End if for NW > 0
 
           !==================================================================
           ! (5)  M e r c u r y   O c e a n   M o d e l   A r c h i v a l
@@ -2264,8 +2251,6 @@ CONTAINS
     NULLIFY( CMFMC        )
     NULLIFY( DQRCU        )
     NULLIFY( DTRAIN       )
-    NULLIFY( PFICU        )
-    NULLIFY( PFLCU        )
     NULLIFY( REEVAPCN_MET )
     NULLIFY( DELP_DRY     )
     NULLIFY( DELP         )
