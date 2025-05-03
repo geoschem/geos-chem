@@ -277,7 +277,7 @@ CONTAINS
        !--------------------------
        ! Do the cloud convection
        !--------------------------
-       IF ( .NOT. Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+       IF ( .NOT. Input_Opt%Grell_Freitas_Convection ) THEN
           CALL DO_RAS_CLOUD_CONVECTION( Input_Opt  = Input_Opt,  &
                                         State_Chm  = State_Chm,  &
                                         State_Diag = State_Diag, &
