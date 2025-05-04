@@ -1549,7 +1549,7 @@ CONTAINS
     REAL(fp),      POINTER :: CMFMC        (:)
     REAL(fp),      POINTER :: DTRAIN       (:)
     REAL(fp),      POINTER :: DQRCU        (:)
-    REAL(fp),      POINTER :: REEVAPCN_MET (:)
+    REAL(fp),      POINTER :: REEVAPCN_CUM (:)
     REAL(fp),      POINTER :: DELP_DRY     (:)
     REAL(fp),      POINTER :: DELP         (:)
     REAL(fp),      POINTER :: T            (:)
@@ -1574,6 +1574,7 @@ CONTAINS
                                                               ! [kg/m2/s] [upper edge]
     DQRCU        => State_Met%DQRCU   (I,J,:        ) ! Precip production rate:
     DTRAIN       => State_Met%DTRAIN  (I,J,:        ) ! Detrainment flux [kg/m2/s]
+    REEVAPCN_CUM => State_Met%REEVAPCN(I,J,:        ) ! Cumulative evap of precip'ing conv.
     DELP_DRY     => State_Met%DELP_DRY(I,J,:        ) ! Edge dry P diff [hPa]
     DELP         => State_Met%DELP    (I,J,:        ) ! Edge P diff [hPa]
     T            => State_Met%T       (I,J,:        ) ! Air temperature [K]
@@ -1610,14 +1611,14 @@ CONTAINS
 
 
     ! GF scheme
-    ! REEVAPCN_MET is cumulative re-evaporation
+    ! REEVAPCN_CUM is cumulative re-evaporation
     ! DQRCU is net precipitation formation
-    REEVAPCN(NLAY) = REEVAPCN_MET(NLAY)
+    REEVAPCN(NLAY) = REEVAPCN_CUM(NLAY)
     DO K = 1, NLAY-1
       ! REEVAPCN (kg/kg/s) to REEVAPCN_FLUX (kg/m2/s)
       ! subtraction between fluxes instead
-       REEVAPCN(K) = (REEVAPCN_MET(K) * DELP(K) &
-                     - REEVAPCN_MET(K+1) * DELP(K+1) ) &
+       REEVAPCN(K) = (REEVAPCN_CUM(K) * DELP(K) &
+                     - REEVAPCN_CUM(K+1) * DELP(K+1) ) &
                      / DELP(K)
        REEVAPCN(K) = MAX( REEVAPCN(K), 0.0_fp )
     ENDDO
@@ -2243,7 +2244,7 @@ CONTAINS
     NULLIFY( CMFMC        )
     NULLIFY( DQRCU        )
     NULLIFY( DTRAIN       )
-    NULLIFY( REEVAPCN_MET )
+    NULLIFY( REEVAPCN_CUM )
     NULLIFY( DELP_DRY     )
     NULLIFY( DELP         )
     NULLIFY( T            )
