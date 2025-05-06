@@ -355,46 +355,41 @@ while [ "${valid_met}" -eq 0 ]; do
 	    fi
 	done
 
-       	# If using raw files ask user to specify meteoerology for advection.
-	if [[ ${met_file_type} = "raw_ll" ]]; then
-	    printf "${thinline}Choose meteorology for advection:${thinline}"
-	    printf "  1. 0.25x0.3125 3-hourly winds\n"
-	    printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
-	    printf "  3. C720 1-hourly mass fluxes\n"
-	    valid_response=0
-	    while [ "${valid_response}" -eq 0 ]; do
-		valid_response=1
-		read -p "${USER_PROMPT}" response
-		if [[ ${response} = "1" ]]; then
-		    adv_flux_src="wind"
-		elif [[ ${response} = "2" ]]; then
-		    adv_flux_src="derived_wind"
-		elif [[ ${response} = "3" ]]; then
-		    adv_flux_src="mass_flux"
-		else
-		    valid_response=0
-		    printf "Invalid option. Try again.\n"
-		fi
-	    done
-	fi
-	    
-	# Set ExtData.rc settings for met data. Different settings based options chosen above.
-	if [[ ${met_file_type} = "raw_ll" ]]; then
-
-	    # config file with advection meteorology
-	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
-		
-	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
-		
-	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
+       	# Ask user to specify meteoerology for advection.
+	printf "${thinline}Choose meteorology for advection:${thinline}"
+	printf "  1. 0.25x0.3125 3-hourly winds\n"
+	printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
+	printf "  3. C720 1-hourly mass fluxes\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		adv_flux_src="wind"
+	    elif [[ ${response} = "2" ]]; then
+		adv_flux_src="derived_wind"
+	    elif [[ ${response} = "3" ]]; then
+		adv_flux_src="mass_flux"
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
 	    fi
-
-	    # config file with everything else
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
+	done
 	    
+	# Set ExtData.rc settings for met data
+	if [[ ${adv_flux_src} = "wind" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
+	    
+	elif [[ ${adv_flux_src} = "derived_wind" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
+	    
+	elif [[ ${adv_flux_src} = "mass_flux" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
+	fi
+
+	# Set ExtData.rc settings for everything else
+	if [[ ${met_file_type} = "raw_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
 	fi
