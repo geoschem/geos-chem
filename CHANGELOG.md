@@ -3,20 +3,24 @@
 This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
 ## [Unreleased] - TBD
 ### Added
 - Added `#InvCEDSshipALK6`, `#InvCEDS_TMB`, and `#InvCEDSship_TMB` (commented out by default) to `HEMCO_Diagn*` and GCHP `HISTORY.rc.fullchem` files
 - Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
 - Added entry for GFAS methanol for ExtData
+- Added `RxnConst` and `RxnRates` History collections to the carbon gases simulation
 
 ### Changed
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
 - Changed `ALD2_PLANTDECAY` emissions category (for GEOS-Chem in NASA-GEOS ESM only) from 3 to 99 to not conflict with the anthropogenic transport sector
+- Abstracted diagnostic code out of `Chem_Carbon_Gases` and into PRIVATE subroutines in `GeosCore/carbon_gases_mod.F90`
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
 
 ## [Unreleased] - TBD
 ### Added
