@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
 - Changed `ALD2_PLANTDECAY` emissions category (for GEOS-Chem in NASA-GEOS ESM only) from 3 to 99 to not conflict with the anthropogenic transport sector
 - Abstracted diagnostic code out of `Chem_Carbon_Gases` and into PRIVATE subroutines in `GeosCore/carbon_gases_mod.F90`
+- Modified logic in `Init_State_Diag` so `KppDiags` diagnostic fields can be registered when using fullchem, Hg, or carbon mechanisms
+- Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
