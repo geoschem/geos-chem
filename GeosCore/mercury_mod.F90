@@ -1145,6 +1145,10 @@ CONTAINS
           ENDIF
        ENDIF
 
+       ! HISTORY: Update KppDiags collection (solver statistics)
+       CALL Hg_UpdateKppDiags( I,      J,         L,           ISTATUS,      &
+                               RSTATE, Input_Opt, State_Diag, .TRUE.        )
+
        !--------------------------------------------------------------------
        ! Try another time if it failed
        !--------------------------------------------------------------------
@@ -1161,6 +1165,11 @@ CONTAINS
           ! Call the Rosenbrock integrator again
           CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
                           RCNTRL, ISTATUS, RSTATE, IERR                     )
+
+          ! HISTORY: Update KppDiags collection (solver statistics),
+          ! adding stats from the 2nd call to those of from the 1st call
+          CALL Hg_UpdateKppDiags( I,      J,         L,           ISTATUS,   &
+                                  RSTATE, Input_Opt, State_Diag, .FALSE.    )
 
           !------------------------------------------------------------------
           ! Exit upon the second failure
@@ -4288,11 +4297,10 @@ CONTAINS
     ! Copy species concentrations into gckpp_Global variables
     !========================================================================
     DO N = 1, NSPEC
-       S = State_Chm%Map_KppSpc(N)
+       S    = State_Chm%Map_KppSpc(N)
+       C(N) = 0.0_f8
        IF ( S > 0 ) THEN
           C(N) = State_Chm%Species(S)%Conc(I,J,L)
-       ELSE
-          C(N) = 0.0_f8
        ENDIF
     ENDDO
 
@@ -4597,5 +4605,117 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE Hg_UpdateRxnDiags
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Hg_UpdateKppDiags
+!
+! !DESCRIPTION: Updates the KppDiags collection arrays, which contain
+!  statistics from the KPP integrator.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Hg_UpdateKppDiags( I,       J,         L,          ISTATUS,    &
+                                RSTATUS, Input_Opt, State_Diag, Zero_First )
+!
+    USE gckpp_Global,     ONLY : C
+    USE gckpp_Precision
+    USE Input_Opt_Mod,    ONLY : OptInput
+    USE State_Diag_Mod,   ONLY : DgnState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    INTEGER,        INTENT(IN)    :: ISTATUS(20)  ! Integrator statistics
+    REAL(dp),       INTENT(IN)    :: RSTATUS(20)  ! Integrator timestep info
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt    ! Input Options object
+    LOGICAL,        INTENT(IN)    :: Zero_First   ! Set arrays to zero first?
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostic State object
+!
+! !REVISION HISTORY:
+!  08 May 2025 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !========================================================================
+    ! Hg_UpdateKppDiags begins here!
+    !========================================================================
+
+    ! Return if none of the KppDiags diagnostic fields are requested
+    IF ( .not. State_Diag%Archive_KppDiags ) RETURN
+
+    ! Check for negative concentrations after first integration
+    IF ( State_Diag%Archive_KppNegatives0 ) THEN
+       IF ( Zero_First ) State_Diag%KppNegatives0(I,J,L) = 0.0_f4
+       State_Diag%KppNegatives0(I,J,L) =                                     &
+       State_Diag%KppNegatives0(I,J,L) + REAL( COUNT( C < 0.0_dp ), KIND=4 )
+    ENDIF
+
+    ! # of integrator calls
+    IF ( State_Diag%Archive_KppIntCounts ) THEN
+       IF ( Zero_First ) State_Diag%KppIntCounts(I,J,L) = 0.0_f4
+       State_Diag%KppIntCounts(I,J,L) =                                      &
+       State_Diag%KppIntCounts(I,J,L) + ISTATUS(1)
+    ENDIF
+
+    ! # of times Jacobian was constructed
+    IF ( State_Diag%Archive_KppJacCounts ) THEN
+       IF ( Zero_First ) State_Diag%KppJacCounts(I,J,L) = 0.0_f4
+       State_Diag%KppJacCounts(I,J,L) =                                      &
+       State_Diag%KppJacCounts(I,J,L) + ISTATUS(2)
+    ENDIF
+
+    ! # of internal timesteps
+    IF ( State_Diag%Archive_KppTotSteps ) THEN
+       IF ( Zero_First ) State_Diag%KppTotSteps(I,J,L) = 0.0_f4
+       State_Diag%KppTotSteps(I,J,L) =                                       &
+       State_Diag%KppTotSteps(I,J,L) + ISTATUS(3)
+    ENDIF
+
+    ! # of accepted internal timesteps
+    IF ( State_Diag%Archive_KppAccSteps ) THEN
+       IF ( Zero_First ) State_Diag%KppAccSteps(I,J,L) = 0.0_f4
+       State_Diag%KppAccSteps(I,J,L) =                                       &
+       State_Diag%KppAccSteps(I,J,L) + ISTATUS(4)
+    ENDIF
+
+    ! # of rejected internal timesteps
+    IF ( State_Diag%Archive_KppRejSteps ) THEN
+       IF ( Zero_First ) State_Diag%KppRejSteps(I,J,L) = 0.0_f4
+       State_Diag%KppRejSteps(I,J,L) =                                       &
+       State_Diag%KppRejSteps(I,J,L) + ISTATUS(5)
+    ENDIF
+
+    ! # of LU-decompositions
+    IF ( State_Diag%Archive_KppLuDecomps ) THEN
+       IF ( Zero_First ) State_Diag%KppLuDecomps(I,J,L) = 0.0_f4
+       State_Diag%KppLuDecomps(I,J,L) =                                      &
+       State_Diag%KppLuDecomps(I,J,L) + ISTATUS(6)
+    ENDIF
+
+    ! # of forward and backwards substitutions
+    IF ( State_Diag%Archive_KppSubsts ) THEN
+       IF ( Zero_First ) State_Diag%KppSubsts(I,J,L) = 0.0_f4
+       State_Diag%KppSubsts(I,J,L) =                                         &
+       State_Diag%KppSubsts(I,J,L) + ISTATUS(7)
+    ENDIF
+
+    ! # of singular-matrix decompositions
+    IF ( State_Diag%Archive_KppSmDecomps ) THEN
+       IF ( Zero_First ) State_Diag%KppSmDecomps(I,J,L) = 0.0_f4
+       State_Diag%KppSmDecomps(I,J,L) =                                      &
+       State_Diag%KppSmDecomps(I,J,L) + ISTATUS(8)
+    ENDIF
+
+  END SUBROUTINE Hg_UpdateKppDiags
 !EOC
 END MODULE Mercury_Mod

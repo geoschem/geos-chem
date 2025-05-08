@@ -10,6 +10,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
 - Added entry for GFAS methanol for ExtData
 - Added `RxnConst` and `RxnRates` History collections to `HISTORY.rc.carbon` and `HISTORY.rc.Hg` template files
+- Added routine `Hg_UpdateKppDiags` to update the `KppDiags` history diagnostic arrays in `mercury_mod.F90`
 
 ### Changed
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both

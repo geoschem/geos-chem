@@ -365,7 +365,7 @@ COLLECTIONS: 'Emissions',
   RxnRates.mode:              'time-averaged'
   RxnRates.fields:            'RxnRate_EQ0001                  ',
                               'RxnRate_EQ0002                  ',
-			      # ... add others as needed ...   
+			      # ... add others as needed ...
 ::
 #==============================================================================
   RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
@@ -376,7 +376,7 @@ COLLECTIONS: 'Emissions',
   RxnConst.mode:              'time-averaged'
   RxnConst.fields:            'RxnConst_EQ0001                ',
                               'RxnConst_EQ0002                ',
-			      # ... add others as needed ...   
+			      # ... add others as needed ...
 ::
 #==============================================================================
   StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
