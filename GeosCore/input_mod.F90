@@ -3317,10 +3317,12 @@ CONTAINS
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
 
-    ! Set whether to reconstruct convective precipitation flux based on
+    ! Set whether to execute different convection subroutines based on
     ! meteorology source and simulation start date. This is important for
-    ! avoiding a bug where convective precipitation met-fields are all zero
-    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    ! correctly handling convection using diagnostics from different
+    ! convection parameterization.
+    ! RAS are MERRA2 and GEOS-FP before June 1, 2020
+    ! Grell-Freitas are GEOS-IT for all years and in GEOS-FP following June 1, 2020.
     !
     ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
     ! is the same as simulation year and (2) the simulation does not
@@ -3333,11 +3335,11 @@ CONTAINS
     !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
     !       up the run in time to avoid this.
     IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSE
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+       Input_Opt%Grell_Freitas_Convection = .FALSE.
     ENDIF
 
     ! Return success
@@ -3351,10 +3353,10 @@ CONTAINS
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
        WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
-            Input_Opt%Reconstruct_Conv_Precip_Flux
+            Input_Opt%Grell_Freitas_Convection
 
        IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
-          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+          IF ( Input_Opt%Grell_Freitas_Convection ) THEN
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
           ELSE
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
