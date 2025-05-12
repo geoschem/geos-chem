@@ -5900,12 +5900,16 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! The following diagnostic quantities are only relevant for:
+    ! The following diagnostic quantities are only relevant for
+    ! simulations using KPP-generated mechanism code, that is:
     !
     ! ALL FULL-CHEMISTRY SIMULATIONS
-    ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
+    ! MERCURY SIMULATION
+    ! CARBON GASES SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .OR. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or.                                   &
+         Input_Opt%ITS_A_MERCURY_SIM  .or.                                   &
+         Input_Opt%ITS_A_CARBON_SIM        ) THEN
 
        !--------------------------------------------------------------------
        ! KPP Reaction Rates
@@ -5979,6 +5983,383 @@ CONTAINS
           RETURN
        ENDIF
 
+       !-------------------------------------------------------------------
+       ! Number of KPP Integrations per grid box
+       !-------------------------------------------------------------------
+       diagID  = 'KppIntCounts'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppIntCounts,                        &
+            archiveData    = State_Diag%Archive_KppIntCounts,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of times KPP updated the Jacobian per grid box
+       !-------------------------------------------------------------------
+       diagID  = 'KppJacCounts'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppJacCounts,                        &
+            archiveData    = State_Diag%Archive_KppJacCounts,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+       !-------------------------------------------------------------------
+       ! Number of KPP total internal integration time steps
+       !-------------------------------------------------------------------
+       diagID  = 'KppTotSteps'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTotSteps,                         &
+            archiveData    = State_Diag%Archive_KppTotSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP accepted internal integration time steps
+       !-------------------------------------------------------------------
+       diagID  = 'KppAccSteps'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAccSteps,                         &
+            archiveData    = State_Diag%Archive_KppAccSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP rejected internal integration time steps
+       !-------------------------------------------------------------------
+       diagID  = 'KppRejSteps'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppRejSteps,                         &
+            archiveData    = State_Diag%Archive_KppRejSteps,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP LU Decompositions
+       !-------------------------------------------------------------------
+       diagID  = 'KppLuDecomps'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppLuDecomps,                        &
+            archiveData    = State_Diag%Archive_KppLuDecomps,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP substitutions (forward and backward)
+       !-------------------------------------------------------------------
+       diagID  = 'KppSubsts'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppSubsts,                           &
+            archiveData    = State_Diag%Archive_KppSubsts,                   &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of KPP singular matrix decompositions
+       !-------------------------------------------------------------------
+       diagID  = 'KppSmDecomps'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppSmDecomps,                        &
+            archiveData    = State_Diag%Archive_KppsmDecomps,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of negative concentrations after KPP integration
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives,                        &
+            archiveData    = State_Diag%Archive_KppNegatives,                &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! Number of negative concentrations after first KPP integration try
+       !-------------------------------------------------------------------
+       diagID  = 'KppNegatives0'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppNegatives0,                       &
+            archiveData    = State_Diag%Archive_KppNegatives0,               &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReducerNVAR'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReducerNVAR,                  &
+            archiveData    = State_Diag%Archive_KppAutoReducerNVAR,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Computed reduction threshold (molec cm-3 s-1)
+       !-------------------------------------------------------------------
+       diagID = 'KppAutoReduceThres'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppAutoReduceThres,                  &
+            archiveData    = State_Diag%Archive_KppAutoReduceThres,          &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! AR only -- Number of nonzero entries in LU decomp (cNONZERO)
+       !-------------------------------------------------------------------
+       diagID = 'KppcNONZERO'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppcNONZERO,                         &
+            archiveData    = State_Diag%Archive_KppcNONZERO,                 &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+       !-------------------------------------------------------------------
+       ! CPU time spent in grid box for KPP
+       !-------------------------------------------------------------------
+       diagID = 'KppTime'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%KppTime,                             &
+            archiveData    = State_Diag%Archive_KppTime,                     &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 17
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'RxnRate'
+             CASE( 2  )
+                diagID = 'SatDiagnRxnRate'
+             CASE( 3  )
+                diagID = 'RxnConst'
+             CASE( 4 )
+                diagID = 'KppIntCounts'
+             CASE( 5 )
+                diagID = 'KppJacCounts'
+             CASE( 6  )
+                diagID = 'KppTotSteps'
+             CASE( 7 )
+                diagID = 'KppAccSteps'
+             CASE( 8 )
+                diagID = 'KppRejSteps'
+             CASE( 9 )
+                diagID = 'KppLuDecomps'
+             CASE( 10 )
+                diagID = 'KppSubsts'
+             CASE( 11 )
+                diagID = 'KppSmDecomps'
+             CASE( 12 )
+                diagID = 'KppNegatives'
+             CASE( 13 )
+                diagID = 'KppNegatives0'
+             CASE( 14 )
+                diagID = 'KppAutoReducerNVAR'
+             CASE( 15 )
+                diagID = 'KppAutoReduceThres'
+             CASE( 16 )
+                diagID = 'KppcNONZERO'
+             CASE( 17 )
+                diagID = 'KppTime'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for full-chemistry, ' // &
+                      'Hg, or carbon gases simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+    ENDIF
+
+    !=======================================================================
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    ! MERCURY SIMULATION
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_MERCURY_SIM ) THEN
+
        !--------------------------------------------------------------------
        ! OH reactivity
        !--------------------------------------------------------------------
@@ -6000,6 +6381,28 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+       !--------------------------------------------------------------------
+       ! Satellite Diagnostic: OH reactivity
+       !--------------------------------------------------------------------
+       diagID  = 'SatDiagnOHreactivity'
+       CALL Init_and_Register(                                               &
+            Input_Opt      = Input_Opt,                                      &
+            State_Chm      = State_Chm,                                      &
+            State_Diag     = State_Diag,                                     &
+            State_Grid     = State_Grid,                                     &
+            DiagList       = Diag_List,                                      &
+            TaggedDiagList = TaggedDiag_List,                                &
+            Ptr2Data       = State_Diag%SatDiagnOHreactivity,                &
+            archiveData    = State_Diag%Archive_SatDiagnOHreactivity,        &
+            diagId         = diagId,                                         &
+            RC             = RC                                             )
+
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
+          CALL GC_Error( errMsg, RC, thisLoc )
+          RETURN
+       ENDIF       
 
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
@@ -6044,28 +6447,6 @@ CONTAINS
           RETURN
        ENDIF
 #endif
-
-       !--------------------------------------------------------------------
-       ! Satellite Diagnostic: OH reactivity
-       !--------------------------------------------------------------------
-       diagID  = 'SatDiagnOHreactivity'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%SatDiagnOHreactivity,                &
-            archiveData    = State_Diag%Archive_SatDiagnOHreactivity,        &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF       
 
        !--------------------------------------------------------------------
        ! J-Values (instantaneous values)
@@ -6364,6 +6745,75 @@ CONTAINS
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
+
+    ELSE
+
+       !-------------------------------------------------------------------
+       ! Halt with an error message if any of the following quantities
+       ! have been requested as diagnostics in simulations other than
+       ! full-chemistry simulations.
+       !
+       ! This will prevent potential errors caused by the quantities
+       ! being requested as diagnostic output when the corresponding
+       ! array has not been allocated.
+       !-------------------------------------------------------------------
+       DO N = 1, 17
+          ! Select the diagnostic ID
+          SELECT CASE( N )
+             CASE( 1  )
+                diagID = 'OHreactivity'
+             CASE( 2  )
+                diagID = 'SatDiagnOHreactivity'
+             CASE( 3 )
+                diagID = 'NOxTau'
+             CASE( 4 )
+                diagID = 'TropNOxTau'
+             CASE( 5  )
+                diagID = 'Jval'
+             CASE( 6  )
+                diagID = 'JvalO3O1D'
+             CASE( 7 )
+                diagID = 'JvalO3O3P'
+             CASE( 8 )
+                diagID = 'SatDiagnJval'
+             CASE( 9 )
+                diagID = 'SatDiagnJvalO3O1D'
+             CASE( 10 )
+                diagID = 'SatDiagnJvalO3O3P'
+             CASE( 11 )
+                diagID = 'JNoon'
+             CASE( 12 )
+                diagID = 'JNoonFrac'
+             CASE( 13 )
+                diagID = 'UvFluxDiffuse'
+             CASE( 14 )
+                diagID = 'UVFluxDirect'
+             CASE( 15 )
+                diagID = 'UVFluxNet'
+             CASE( 16 )
+                diagID = 'OD600'
+             CASE( 17 )
+                diagID = 'TCOD600'
+          END SELECT
+
+          ! Exit if any of the above are in the diagnostic list
+          CALL Check_DiagList( am_I_Root, Diag_List, diagID, Found, RC )
+          IF ( Found ) THEN
+             ErrMsg = TRIM( diagId ) // ' is a requested diagnostic, '    // &
+                      'but this is only appropriate for full-chemistry '  // &
+                      'simulations.'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
+       ENDDO
+    ENDIF
+
+    !=======================================================================
+    ! The following diagnostic quantities are only relevant for:
+    !
+    ! ALL FULL-CHEMISTRY SIMULATIONS
+    !=======================================================================
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! HO2 concentration upon exiting the FlexChem solver
@@ -6740,313 +7190,6 @@ CONTAINS
           RETURN
        ENDIF
 
-       !-------------------------------------------------------------------
-       ! Number of KPP Integrations per grid box
-       !-------------------------------------------------------------------
-       diagID  = 'KppIntCounts'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppIntCounts,                        &
-            archiveData    = State_Diag%Archive_KppIntCounts,                &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of times KPP updated the Jacobian per grid box
-       !-------------------------------------------------------------------
-       diagID  = 'KppJacCounts'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppJacCounts,                        &
-            archiveData    = State_Diag%Archive_KppJacCounts,                &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-       !-------------------------------------------------------------------
-       ! Number of KPP total internal integration time steps
-       !-------------------------------------------------------------------
-       diagID  = 'KppTotSteps'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppTotSteps,                         &
-            archiveData    = State_Diag%Archive_KppTotSteps,                 &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of KPP accepted internal integration time steps
-       !-------------------------------------------------------------------
-       diagID  = 'KppAccSteps'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppAccSteps,                         &
-            archiveData    = State_Diag%Archive_KppAccSteps,                 &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of KPP rejected internal integration time steps
-       !-------------------------------------------------------------------
-       diagID  = 'KppRejSteps'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppRejSteps,                         &
-            archiveData    = State_Diag%Archive_KppRejSteps,                 &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of KPP LU Decompositions
-       !-------------------------------------------------------------------
-       diagID  = 'KppLuDecomps'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppLuDecomps,                        &
-            archiveData    = State_Diag%Archive_KppLuDecomps,                &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of KPP substitutions (forward and backward)
-       !-------------------------------------------------------------------
-       diagID  = 'KppSubsts'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppSubsts,                           &
-            archiveData    = State_Diag%Archive_KppSubsts,                   &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of KPP singular matrix decompositions
-       !-------------------------------------------------------------------
-       diagID  = 'KppSmDecomps'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppSmDecomps,                        &
-            archiveData    = State_Diag%Archive_KppsmDecomps,                &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of negative concentrations after KPP integration 
-       !-------------------------------------------------------------------
-       diagID  = 'KppNegatives'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppNegatives,                        &
-            archiveData    = State_Diag%Archive_KppNegatives,                &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! Number of negative concentrations after first KPP integration try
-       !-------------------------------------------------------------------
-       diagID  = 'KppNegatives0'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppNegatives0,                       &
-            archiveData    = State_Diag%Archive_KppNegatives0,               &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! AR only -- Number of species in reduced mechanism (NVAR - NRMV)
-       !-------------------------------------------------------------------
-       diagID = 'KppAutoReducerNVAR'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppAutoReducerNVAR,                  &
-            archiveData    = State_Diag%Archive_KppAutoReducerNVAR,          &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! AR only -- Computed reduction threshold (molec cm-3 s-1)
-       !-------------------------------------------------------------------
-       diagID = 'KppAutoReduceThres'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppAutoReduceThres,                  &
-            archiveData    = State_Diag%Archive_KppAutoReduceThres,          &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! AR only -- Number of nonzero entries in LU decomp (cNONZERO)
-       !-------------------------------------------------------------------
-       diagID = 'KppcNONZERO'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppcNONZERO,                         &
-            archiveData    = State_Diag%Archive_KppcNONZERO,                 &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       !-------------------------------------------------------------------
-       ! CPU time spent in grid box for KPP
-       !-------------------------------------------------------------------
-       diagID = 'KppTime'
-       CALL Init_and_Register(                                               &
-            Input_Opt      = Input_Opt,                                      &
-            State_Chm      = State_Chm,                                      &
-            State_Diag     = State_Diag,                                     &
-            State_Grid     = State_Grid,                                     &
-            DiagList       = Diag_List,                                      &
-            TaggedDiagList = TaggedDiag_List,                                &
-            Ptr2Data       = State_Diag%KppTime,                             &
-            archiveData    = State_Diag%Archive_KppTime,                     &
-            diagId         = diagId,                                         &
-            RC             = RC                                             )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( diagId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
 #if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
        !--------------------------------------------------------------------
        ! KPP error flag
@@ -7082,91 +7225,46 @@ CONTAINS
        ! being requested as diagnostic output when the corresponding
        ! array has not been allocated.
        !-------------------------------------------------------------------
-       DO N = 1, 41
+       DO N = 1, 18
+
           ! Select the diagnostic ID
           SELECT CASE( N )
              CASE( 1  )
-                diagID = 'RxnRate'
-!             CASE( 2  )
-!                diagID = 'Jval'
-             CASE( 3  )
-                diagID = 'JNoon'
-             CASE( 4  )
-                diagID = 'JNoonFrac'
-             CASE( 5  )
-                diagID = 'UvFluxDiffuse'
-             CASE( 6  )
-                diagID = 'UvFluxDirect'
-             CASE( 7  )
-                diagID = 'UvFluxNet'
-             CASE( 8  )
                 diagID = 'HO2concAfterChem'
-             CASE( 9  )
+             CASE( 2  )
                 diagID = 'O1DconcAfterChem'
-             CASE( 10 )
+             CASE( 3 )
                 diagID = 'O3PconcAfterChem'
-             CASE( 11 )
+             CASE( 4 )
+                diagID = 'CH4pseudoFlux'
+             CASE( 5  )
                 diagID = 'ProdSO4fromHOBrInCloud'
-             CASE( 12 )
+             CASE( 6  )
                 diagID = 'ProdSO4fromSRHOBr'
-             CASE( 13 )
+             CASE( 7 )
                 diagID = 'AerMassASOA'
-             CASE( 14 )
+             CASE( 8 )
                 diagID = 'AerMassINDIOL'
-             CASE( 15 )
+             CASE( 9 )
                 diagID = 'AerMassISN1OA'
-             CASE( 16 )
+             CASE( 10 )
                 diagID = 'AerMassLVOCOA'
-             CASE( 17 )
+             CASE( 11 )
                 diagID = 'AerMassOPOA'
-             CASE( 18 )
+             CASE( 12 )
                 diagID = 'AerMassPOA'
-             CASE( 19 )
+             CASE( 13 )
                 diagID = 'AerMassSOAGX'
-             CASE( 20 )
+             CASE( 14 )
                 diagID = 'AerMassSOAIE'
-             CASE( 21 )
+             CASE( 15 )
                 diagID = 'AerMassTSOA'
-             CASE( 22 )
+             CASE( 16 )
                 diagID = 'BetaNO'
-             CASE( 23 )
+             CASE( 17 )
                 diagID = 'TotalBiogenicOA'
-             CASE( 24 )
-                diagID = 'OHreactivity'
-             CASE( 25 )
-                diagID = 'KppIntCounts'
-             CASE( 26 )
-                diagID = 'KppJacCounts'
-             CASE( 27 )
-                diagID = 'KppTotSteps'
-             CASE( 28 )
-                diagID = 'KppAccSteps'
-             CASE( 29 )
-                diagID = 'KppRejSteps'
-             CASE( 30 )
-                diagID = 'KppLuDecomps'
-             CASE( 31 )
-                diagID = 'KppSubsts'
-             CASE( 32 )
-                diagID = 'KppSmDecomps'
-             CASE( 33 )
-                diagID = 'NOxTau'
-             CASE( 34 )
-                diagID = 'TropNOxTau'
-             CASE( 35 )
-                diagID = 'KppAutoReducerNVAR'
-             CASE( 36 )
-                diagID = 'KppTime'
-             CASE( 37 )
-                diagID = 'KppcNONZERO'
-             CASE( 38 )
-                diagID = 'KppAutoReduceThres'
-             CASE( 39 )
-                diagID = 'RxnConst'
-             CASE( 40 )
-                diagID = 'KppNegatives'
-             CASE( 41 )
-                diagID = 'KppNegatives0'
+             CASE( 18 )
+                diagID = 'KppError'
           END SELECT
 
           ! Exit if any of the above are in the diagnostic list

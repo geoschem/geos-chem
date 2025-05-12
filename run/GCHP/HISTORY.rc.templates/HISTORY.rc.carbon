@@ -62,7 +62,10 @@ COLLECTIONS: 'Emissions',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
+             #'KppDiags',
              #'LevelEdgeDiags',
+             #'RxnConst',
+             #'RxnRates',
              'StateMet',
 ::
 #==============================================================================
@@ -335,6 +338,45 @@ COLLECTIONS: 'Emissions',
                                  'Met_PFILSAN ', 'GCHPchem',
                                  'Met_PFLCU   ', 'GCHPchem',
                                  'Met_PFLLSAN ', 'GCHPchem',
+::
+#==============================================================================
+  KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.format:            'CFIO',
+  KppDiags.monthly:           1
+  KppDiags.frequency:         010000
+  KppDiags.duration:          010000
+  KppDiags.mode:              'time-averaged'
+  KppDiags.fields:            'KppIntCounts                  ',
+                              'KppJacCounts                  ',
+                              'KppTotSteps                   ',
+                              'KppAccSteps                   ',
+                              'KppRejSteps                   ',
+                              'KppLuDecomps                  ',
+                              'KppSubsts                     ',
+                              'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+  RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.format:            'CFIO',
+  RxnRates.monthly:           1
+  RxnRates.frequency:         010000
+  RxnRates.duration:          010000
+  RxnRates.mode:              'time-averaged'
+  RxnRates.fields:            'RxnRate_EQ0001                  ',
+                              'RxnRate_EQ0002                  ',
+			      # ... add others as needed ...
+::
+#==============================================================================
+  RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.format:            'CFIO',
+  RxnConst.monthly:           1
+  RxnConst.frequency:         010000
+  RxnConst.duration:          010000
+  RxnConst.mode:              'time-averaged'
+  RxnConst.fields:            'RxnConst_EQ0001                ',
+                              'RxnConst_EQ0002                ',
+			      # ... add others as needed ...
 ::
 #==============================================================================
   StateMet.template:       '%y4%m2%d2_%h2%n2z.nc4',
