@@ -459,7 +459,7 @@ CONTAINS
        CALL NcRd( State_Diag%ObsPack_Strategy,  fId, TRIM(varName), st1d, ct1d)
     ELSE
        ErrMsg = 'Could not find "CT_sampling_strategy" in file: '         // &
-                TRIM( State_Diag%ObsPack_InFile  )                        // &
+                TRIM( State_Diag%ObsPack_InFile )                         // &
                 '.  Will use hourly sampling by default.'
        CALL GC_Warning( ErrMsg, RC, ThisLoc )
        State_Diag%ObsPack_Strategy = 2
@@ -478,8 +478,13 @@ CONTAINS
     RC = NF90_Inq_Varid( fId, varName, vId )
     RC = NF90_Get_Att( fId, vId, "comment", comment )
     IF ( RC == NF90_NOERR ) THEN
-       N = INDEX( comment, 'midpoint of the averaging interval' )
-       IF ( N > 0 ) Window_Start_Time = .FALSE.
+       N = INDEX( comment, 'middle of the averaging interval' )
+       IF ( N > 0 ) THEN
+          Window_Start_Time = .FALSE.
+       ELSE
+          N = INDEX( comment, 'midpoint of the averaging interval' )
+          IF ( N > 0 ) Window_Start_Time = .FALSE.
+       ENDIF
     ENDIF
 
     ! Assign the values from "time" to the proper tracking array
