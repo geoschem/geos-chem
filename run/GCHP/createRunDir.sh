@@ -728,9 +728,15 @@ RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='010000'\n"
 RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Set default compute resources
-RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
-RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
-RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+if [[ "${met}" == "geosit" && "${adv_flux_src}" == "1hr_mass_flux" ]]; then
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='1'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+else
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+fi
 
 # Set default grid resolution
 if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
