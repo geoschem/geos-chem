@@ -338,8 +338,10 @@ while [ "${valid_met}" -eq 0 ]; do
 
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
-	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
-	printf "  2. 0.25x0.3125 hourly and 3-hourly raw files produced by GEOS\n"
+	printf "  1. 0.25x0.3125 processed files from the GEOS-Chem data archive\n"
+	printf "  2. 0.25x0.3125 raw files that you downloaded from NASA GMAO\n"
+	printf "\nNOTE: Processed files have unused variables removed, are vertically flipped,\n"
+	printf "and are concatenated into daily files. Using them speeds up GCHP runs.\n\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -357,19 +359,19 @@ while [ "${valid_met}" -eq 0 ]; do
 
        	# Ask user to specify meteoerology for advection.
 	printf "${thinline}Choose meteorology for advection:${thinline}"
-	printf "  1. 0.25x0.3125 3-hourly winds\n"
-	printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
-	printf "  3. C720 1-hourly mass fluxes\n"
+	printf "  1. 0.25x0.3125 3-hourly winds (recommended)\n"
+	printf "  2. C720 1-hourly derived winds (recommended for stretched grid)\n"
+	printf "  3. C720 1-hourly mass fluxes (beta)\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
-		adv_flux_src="wind"
+		adv_flux_src="3hr_wind"
 	    elif [[ ${response} = "2" ]]; then
-		adv_flux_src="derived_wind"
+		adv_flux_src="1hr_derived_wind"
 	    elif [[ ${response} = "3" ]]; then
-		adv_flux_src="mass_flux"
+		adv_flux_src="1hr_mass_flux"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
