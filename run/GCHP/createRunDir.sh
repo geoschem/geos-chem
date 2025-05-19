@@ -400,26 +400,30 @@ while [ "${valid_met}" -eq 0 ]; do
 	
  	# Ask user to specify processed or raw files
 	printf "${thinline}Choose meteorology files:${thinline}"
-	printf "  1. Raw C180 (recommended)\n"
-	printf "  2. Raw 0.5x0.625 \n"
-	printf "  3. Pre-processed C180 \n"
-	printf "  4. Pre-processed 0.5x0.625 \n"
+	printf "  1. C180 processed files from the GEOS-Chem data archive (recommended)\n"
+	printf "  2. C180 raw files downloaded from NASA GMAO\n"
+	printf "  3. 0.5x0.625 processed files from the GEOS-Chem data archive\n"
+	printf "  4. 0.5x0.625 raw files downloaded from NASA GMAO\n"
+	printf "\nNOTES:\n"
+	printf " - Processed files have unused variables removed, are vertically flipped,\n"
+	printf "   and are concatenated into daily files. Using them speeds up GCHP runs.\n"
+	printf " - Using input data on a cubed-sphere grid reduces regridding error in GCHP.\n\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
-		met_file_type="raw_cs"
-		met_desc="raw_cs"
-	    elif [[ ${response} = "2" ]]; then
-		met_file_type="raw_ll"
-		met_desc="raw_ll"
-	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_cs"
 		met_desc="processed_cs"
-	    elif [[ ${response} = "4" ]]; then
+	    elif [[ ${response} = "2" ]]; then
+		met_file_type="raw_cs"
+		met_desc="raw_cs"
+	    elif [[ ${response} = "3" ]]; then
 		met_file_type="processed_ll"
 		met_desc="processed_ll"
+	    elif [[ ${response} = "4" ]]; then
+		met_file_type="raw_ll"
+		met_desc="raw_ll"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
