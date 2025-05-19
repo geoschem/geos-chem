@@ -378,18 +378,31 @@ while [ "${valid_met}" -eq 0 ]; do
 	    fi
 	done
 	    
-	# Set ExtData.rc settings for met data
-	if [[ ${adv_flux_src} = "wind" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
+	# Set ExtData.rc settings for met data used for advection
+	if [[ ${adv_flux_src} = "3hr_wind" ]]; then
+	    if [[ ${met_file_type} = "processed_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_PS_SPHU.txt)\n"
+	    elif [[ ${met_file_type} = "raw_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_PS_SPHU.txt)\n"
+	    fi
+
+	elif [[ ${adv_flux_src} = "1hr_derived_wind" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.derived_1hr_c720_wind_PS_SPHU.txt)\n"
 	    
-	elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
-	    
-	elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
+	elif [[ ${adv_flux_src} = "1hr_mass_flux" ]]; then
+	    if [[ ${met_file_type} = "processed_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_1hr_c720_mass_flux_PS_SPHU_C.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_wind.txt)\n"
+	    elif [[ ${met_file_type} = "raw_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_1hr_c720_mass_flux_PS_SPHU_C.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_wind.txt)\n"
+	    fi
+
 	fi
 
-	# Set ExtData.rc settings for everything else
+	# Set ExtData.rc settings for met-fields used in GEOS-Chem
 	if [[ ${met_file_type} = "raw_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
