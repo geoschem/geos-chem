@@ -451,8 +451,8 @@ while [ "${valid_met}" -eq 0 ]; do
 	    adv_flux_src="wind"
 	elif [[ ${met_file_type} = "processed_cs" || ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
-	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
-	    printf "  2. C180 3-hourly winds\n"
+	    printf "  1. C180 1-hourly mass fluxes\n"
+	    printf "  2. C180 3-hourly winds (recommended)\n"
 	    valid_response=0
 	    while [ "${valid_response}" -eq 0 ]; do
 	        valid_response=1
