@@ -593,8 +593,10 @@ CONTAINS
           H2SO4rate_o = 0.e+0_fp
        ENDIF
        !
-       IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
-          Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+       IF ( Input%Opt%Verbose ) THEN
+          IF ( I == 10 .and. J == 10 .and. L == 10 ) THEN
+             Print*, 'Debug TOMAS: H2SO4RATE =', H2SO4rate_o
+          ENDIF
        ENDIF
 
        ! nitrogen and sulfur mass checks
@@ -6528,8 +6530,10 @@ CONTAINS
        ICOMP = ICOMP + 1
        IDIAG = IDIAG + 1
     ENDIF
-    print *, 'In init_TOMAS, ICOMP = ', ICOMP
-    print *, 'In init_TOMAS, IBINS = ', IBINS
+    IF ( Input_Opt%Verbose ) THEN
+       print *, 'In init_TOMAS, ICOMP = ', ICOMP
+       print *, 'In init_TOMAS, IBINS = ', IBINS
+    ENDIF
 
     !=================================================================
     ! Allocate arrays
@@ -6747,9 +6751,11 @@ CONTAINS
     DO J=1,46
     DO I=1,72
        READ( LUN ,'(I5,I5,I5,E10.3)') dum1,dum2,dum3,cosmic_ions(I,J,L)
-       if (I.eq.50.and.J.eq.20.and.L.eq.5)then
-          print*,'ion test',cosmic_ions(I,J,L)
-       endif
+       IF ( Input%Opt%Verbose ) THEN
+          if (I.eq.50.and.J.eq.20.and.L.eq.5)then
+             print*,'ion test',cosmic_ions(I,J,L)
+          endif
+       ENDIF
     ENDDO
     ENDDO
     ENDDO

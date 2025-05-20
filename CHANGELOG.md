@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified logic in `Init_State_Diag` so `KppDiags` diagnostic fields can be registered when using fullchem, Hg, or carbon mechanisms
 - Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
 - Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
+- Wrapped several TOMAS print statements in `IF ( Input_Opt%Verbose )` blocks to avoid excessive printout when using GCHP-TOMAS
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
