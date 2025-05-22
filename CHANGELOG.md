@@ -13,6 +13,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added routine `Hg_UpdateKppDiags` to update the `KppDiags` history diagnostic arrays in `mercury_mod.F90`
 - Added `rrtmg_radiative_transfer_model:aod_wavelength_in_nm` to the GCClassic `geoschem_config.yml.aerosol` template file
 - Added an error trap in routine `Init_Aerosol` to make sure at least 1 AOD wavelength is selected for fullchem or aerosol-only simulations
+- Added operational example run script for GEOS-Chem Classic on NCAR Derecho cluster
 
 ### Changed
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
