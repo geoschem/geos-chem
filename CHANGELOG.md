@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## Unreleased - tbd
+### Removed
+- Removed setting `DELP_DRY` to zero in `hco_utilities_gc_mod.F90` when not found in the restart file to avoid negative concentrations
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
