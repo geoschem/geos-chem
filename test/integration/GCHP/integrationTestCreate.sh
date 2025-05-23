@@ -243,6 +243,10 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
 
+    # Disable the KppTime diagnostic (time spent in integrator) as
+    # this will vary due to local conditions on the cluster/node
+    sed_ie "s|'KppTime|#'KppTime|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+
     # Switch back to the present directory
     cd "${thisDir}"
 fi
