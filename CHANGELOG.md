@@ -33,7 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
 - Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
-- Fixed GCClassic and GCHP integration test scripts so that `KppTime` is commented out in the `fullchem_alldiags` int tests
+- Fixed a bug in GCClassic and GCHP integration test scripts that caused `KppTime` not to be commented out in `fullchem_alldiags` tests
 
 ## [Unreleased] - TBD
 ### Added
