@@ -357,7 +357,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	    fi
 	done
 
-       	# Ask user to specify meteoerology for advection.
+	# Ask user to specify meteorology for advection.
 	printf "${thinline}Choose meteorology for advection:${thinline}"
 	printf "  1. 0.25x0.3125 3-hourly winds (recommended)\n"
 	printf "  2. C720 1-hourly derived winds (recommended for stretched grid)\n"
@@ -486,7 +486,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	    use_discover=n
 	fi
 	
-	# Set text files containing settings for met data. Different settings based options aboves.
+	# Set text files containing settings for met data. Different settings based options above.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_0.5x0.625.txt)\n"
 	
@@ -515,8 +515,8 @@ while [ "${valid_met}" -eq 0 ]; do
 		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_c180.txt)\n"
 		fi
 
-	    elif [[ ${use_discover} = "n" ]]; then
-
+	    else
+		# Not using discover
 		if [[ ${met_file_type} = "raw_ll" ]]; then
 		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_0.5x0.625.txt)\n"
 		else
