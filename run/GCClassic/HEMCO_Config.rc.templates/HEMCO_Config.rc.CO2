@@ -98,7 +98,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> AEIC_SCALE_1990_2019   :       true     # Scale to year in 1990-2019
 # ----- SHIP EMISSIONS --------------------------------------------------------
     --> SHIP                   :       true
-    --> CEDS_SHIP              :       true     # 1750-2014
+    --> CEDS_01x01_SHIP        :       true     # 1980-2019
     --> ICOADS_SHIP            :       false    # 2004
 # ----- NON-EMISSIONS DATA ----------------------------------------------------
     --> CO2_COPROD             :       true     # 2004-2009
@@ -219,10 +219,10 @@ VerboseOnCores:              root       # Accepted values: root all
 0 ICOADS_CO2SE_SHIP  -                                                              -   -             - -  -       CO2se 50 6 1
 )))ICOADS_SHIP
 
-(((CEDS_SHIP
-0 CEDS_CO2_SHP       $ROOT/CEDS/v2021-06/$YYYY/CO2-em-anthro_CMIP_CEDS_$YYYY.nc     CO2_shp  1750-2019/1-12/1/0 C xy kg/m2/s CO2   - 6 1
+(((CEDS_01x01_SHIP
+ 0 CEDS_CO2_SHP  $ROOT/CEDS/v2024-06/$YYYY/CEDS_CO2_0.1x0.1_$YYYY.nc  CO2_shp  1980-2019/1-12/1/0 C xy kg/m2/s CO2 - 6 1
 0 CEDS_CO2SE_SHIP    -                                                              -        -                  - -  -       CO2se - 6 1
-)))CEDS_SHIP
+)))CEDS_01x01_SHIP
 
 )))SHIP
 
