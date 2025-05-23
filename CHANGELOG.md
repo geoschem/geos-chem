@@ -25,21 +25,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
 - Wrapped several TOMAS print statements in `IF ( Input_Opt%Verbose )` blocks to avoid excessive printout when using GCHP-TOMAS
 
-### Removed
-- Removed most entries under the `photolysis` section in `geoschem_config.yml.aerosol` template file, as the aerosol-only simulation doesn't call Cloud-J
-
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
+- Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
 - Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
 - Fixed a bug in GCClassic and GCHP integration test scripts that caused `KppTime` not to be commented out in `fullchem_alldiags` tests
 
-## [Unreleased] - TBD
-### Added
-### Changed
-### Fixed
-- Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
+### Removed
+- Removed most entries under the `photolysis` section in `geoschem_config.yml.aerosol` template file, as the aerosol-only simulation doesn't call Cloud-J
+- Removed setting `DELP_DRY` to zero in `hco_utilities_gc_mod.F90` when not found in the restart file to avoid negative concentrations
 
 ## [14.6.0] - 2025-04-18
 ### Added
