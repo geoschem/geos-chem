@@ -11,6 +11,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added entry for GFAS methanol for ExtData
 - Added `RxnConst` and `RxnRates` History collections to `HISTORY.rc.carbon` and `HISTORY.rc.Hg` template files
 - Added routine `Hg_UpdateKppDiags` to update the `KppDiags` history diagnostic arrays in `mercury_mod.F90`
+- Added options to run GCHP using C720 mass fluxes or derived winds with 0.25x0.3125 processed files for other meteorology
 
 ### Changed
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
@@ -20,12 +21,16 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified logic in `Init_State_Diag` so `KppDiags` diagnostic fields can be registered when using fullchem, Hg, or carbon mechanisms
 - Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
 - Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
+- Changed GCHP recommended GEOS-IT options for meteorology from mass fluxes with raw C180 fields to 3hr winds with processed C180 fields.
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
 - Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+
+### Removed
+- Removed unused run directory creation files for GCHP grid resolutions c24 and c48
 
 ## [Unreleased] - TBD
 ### Added
