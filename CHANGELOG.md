@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added `rrtmg_radiative_transfer_model:aod_wavelength_in_nm` to the GCClassic `geoschem_config.yml.aerosol` template file
 - Added an error trap in routine `Init_Aerosol` to make sure at least 1 AOD wavelength is selected for fullchem or aerosol-only simulations
 - Added operational example run script for GEOS-Chem Classic on NCAR Derecho cluster
+- Added options to run GCHP using C720 mass fluxes or derived winds with 0.25x0.3125 processed files for other meteorology
 
 ### Changed
 - Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
@@ -24,16 +25,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
 - Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
 - Wrapped several TOMAS print statements in `IF ( Input_Opt%Verbose )` blocks to avoid excessive printout when using GCHP-TOMAS
+- Changed GCHP recommended GEOS-IT options for meteorology from mass fluxes with raw C180 fields to 3hr winds with processed C180 fields.
 
 ### Fixed
 - Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
 - Fixed outdated path for GFED4 daily fraction
 - Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+
+### Removed
+- Removed unused run directory creation files for GCHP grid resolutions c24 and c48
 - Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
 - Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
 - Fixed a bug in GCClassic and GCHP integration test scripts that caused `KppTime` not to be commented out in `fullchem_alldiags` tests
-
-### Removed
 - Removed most entries under the `photolysis` section in `geoschem_config.yml.aerosol` template file, as the aerosol-only simulation doesn't call Cloud-J
 - Removed setting `DELP_DRY` to zero in `hco_utilities_gc_mod.F90` when not found in the restart file to avoid negative concentrations
 
