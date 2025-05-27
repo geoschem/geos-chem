@@ -4,6 +4,43 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added `#InvCEDSshipALK6`, `#InvCEDS_TMB`, and `#InvCEDSship_TMB` (commented out by default) to `HEMCO_Diagn*` and GCHP `HISTORY.rc.fullchem` files
+- Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
+- Added entry for GFAS methanol for ExtData
+- Added `RxnConst` and `RxnRates` History collections to `HISTORY.rc.carbon` and `HISTORY.rc.Hg` template files
+- Added routine `Hg_UpdateKppDiags` to update the `KppDiags` history diagnostic arrays in `mercury_mod.F90`
+- Added `rrtmg_radiative_transfer_model:aod_wavelength_in_nm` to the GCClassic `geoschem_config.yml.aerosol` template file
+- Added an error trap in routine `Init_Aerosol` to make sure at least 1 AOD wavelength is selected for fullchem or aerosol-only simulations
+- Added operational example run script for GEOS-Chem Classic on NCAR Derecho cluster
+- Added options to run GCHP using C720 mass fluxes or derived winds with 0.25x0.3125 processed files for other meteorology
+
+### Changed
+- Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
+- Changed `ALD2_PLANTDECAY` emissions category (for GEOS-Chem in NASA-GEOS ESM only) from 3 to 99 to not conflict with the anthropogenic transport sector
+- Abstracted diagnostic code out of `Chem_Carbon_Gases` and into PRIVATE subroutines in `GeosCore/carbon_gases_mod.F90`
+- Abstracted diagnostic code out of `ChemMercury` and into PRIVATE subroutines in `GeosCore/mercury_mod.F90`
+- Modified logic in `Init_State_Diag` so `KppDiags` diagnostic fields can be registered when using fullchem, Hg, or carbon mechanisms
+- Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
+- Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
+- Wrapped several TOMAS print statements in `IF ( Input_Opt%Verbose )` blocks to avoid excessive printout when using GCHP-TOMAS
+- Changed GCHP recommended GEOS-IT options for meteorology from mass fluxes with raw C180 fields to 3hr winds with processed C180 fields.
+
+### Fixed
+- Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
+- Fixed outdated path for GFED4 daily fraction
+- Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+
+### Removed
+- Removed unused run directory creation files for GCHP grid resolutions c24 and c48
+- Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+- Fixed a bug in GCClassic and GCHP integration test scripts that caused `KppTime` not to be commented out in `fullchem_alldiags` tests
+- Removed most entries under the `photolysis` section in `geoschem_config.yml.aerosol` template file, as the aerosol-only simulation doesn't call Cloud-J
+- Removed setting `DELP_DRY` to zero in `hco_utilities_gc_mod.F90` when not found in the restart file to avoid negative concentrations
+
 ## [14.6.0] - 2025-04-18
 ### Added
 - Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
@@ -17,6 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added option to run GCClassic nested-grid simulations at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
 - Added option for South America (SA), Africa (AF), Middle East (ME), Oceania (OC), and Russia (RU) regions to nested-grid simulations in GCClassic's createRunDir.sh
 - Added updates for compatibility with the Beijing Climate Centre Earth System Model
+- Added `run/shared/rtd_species_by_simulation.py` script to generate tables of species for each simulation for ReadtheDocs
 
 ### Changed
 - Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)

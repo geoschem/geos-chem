@@ -1923,9 +1923,6 @@ CONTAINS
               MAXVAL(  State_Met%DELP_DRY ),                  &
               SUM(     State_Met%DELP_DRY )
       ENDIF
-   ELSE
-      State_Met%DELP_DRY = 0.0_fp
-      IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
    ENDIF
 
    ! Nullify pointer

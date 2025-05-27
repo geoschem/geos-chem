@@ -64,22 +64,14 @@ operations:
      use_non_local_pbl: ${RUNDIR_USE_NLPBL}
 
   photolysis:
-    activate: true
-    cloud-j:
-      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2025-01/
-      num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
-      cloud_scheme_flag: 3
-      opt_depth_increase_factor: 1.050
-      min_top_inserted_cloud_OD: 0.005
-      cloud_overlap_correlation: 0.33
-      num_cloud_overlap_blocks: 6
-      sphere_correction: 1
-      num_wavelength_bins: 18
-      use_H2O_UV_absorption: true
     overhead_O3:
       use_online_O3_from_model: false
       use_column_O3_from_met: true
       use_TOMS_SBUV_O3: false
+
+  rrtmg_rad_transfer_model:           # This menu is only used to specify the
+    aod_wavelengths_in_nm:            # AOD wavelength.  RRTMG can only be
+      - 550                           # called from a fullchem simulation.
 
   transport:
     gcclassic_tpcore:                 # GEOS-Chem Classic only
