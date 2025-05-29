@@ -532,9 +532,9 @@ COLLECTIONS: 'Emissions',
   FV3Dynamics.frequency:      010000
   FV3Dynamics.duration:       010000
   FV3Dynamics.mode:           'time-averaged'
-  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
-                              'DryPLE ', 'DYNAMICS',
-                              'PLEadv ', 'DYNAMICS',
+  FV3Dynamics.fields:         'PLE_R4    ', 'DYNAMICS',
+                              'DryPLE_R4 ', 'DYNAMICS',
+                              'PLEadv_R4 ', 'DYNAMICS',
 ::
 #==============================================================================
   GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -544,11 +544,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevEdge.frequency:      010000
   GCHPctmEnvLevEdge.duration:       010000
   GCHPctmEnvLevEdge.mode:           'time-averaged'
-  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
-                                    'PLE0               ', 'GCHPctmEnv',
-                                    'PLE1               ', 'GCHPctmEnv',
-                                    'DryPLE0            ', 'GCHPctmEnv',
-                                    'DryPLE1            ', 'GCHPctmEnv',
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux_R4    ', 'GCHPctmEnv',
+                                    'PLE0_R4               ', 'GCHPctmEnv',
+                                    'PLE1_R4               ', 'GCHPctmEnv',
+                                    'DryPLE0_R4            ', 'GCHPctmEnv',
+                                    'DryPLE1_R4            ', 'GCHPctmEnv',
 ::
 #==============================================================================
   GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -558,11 +558,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevCenter.frequency:      010000
   GCHPctmEnvLevCenter.duration:       010000
   GCHPctmEnvLevCenter.mode:           'time-averaged'
-  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
-                                      'CX       ', 'GCHPctmEnv',
-                                      'CY       ', 'GCHPctmEnv',
-                                      'MFX      ', 'GCHPctmEnv',
-                                      'MFY      ', 'GCHPctmEnv',
+  GCHPctmEnvLevCenter.fields:         'SPHU0_R4    ', 'GCHPctmEnv',
+                                      'CX_R4       ', 'GCHPctmEnv',
+                                      'CY_R4       ', 'GCHPctmEnv',
+                                      'MFX_R4      ', 'GCHPctmEnv',
+                                      'MFY_R4      ', 'GCHPctmEnv',
 ::
 #==============================================================================
   LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
