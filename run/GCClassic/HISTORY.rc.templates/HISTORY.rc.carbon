@@ -34,7 +34,10 @@ COLLECTIONS: 'Restart',
 	     #'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
+	     #'KppDiags',
              #'LevelEdgeDiags',
+	     #'RxnConst',
+	     #'RxnRates',
              #'SatDiagn',
              #'SatDiagnEdge',
              'StateMet',
@@ -116,40 +119,40 @@ COLLECTIONS: 'Restart',
   Budget.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
   Budget.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
   Budget.mode:                'time-averaged'
-  Budget.fields:              'BudgetEmisDryDepFull_?ADV?           ',
-                              'BudgetEmisDryDepTrop_?ADV?           ',
-                              'BudgetEmisDryDepPBL_?ADV?            ',
-                              'BudgetEmisDryDepLevs1to35_?ADV?      ',
-                              'BudgetChemistryFull_?ADV?            ',
-                              'BudgetChemistryTrop_?ADV?            ',
-                              'BudgetChemistryPBL_?ADV?             ',
-                              'BudgetChemistryLevs1to35_?ADV?       ',
-                              'BudgetTransportFull_?ADV?            ',
-                              'BudgetTransportTrop_?ADV?            ',
-                              'BudgetTransportPBL_?ADV?             ',
-                              'BudgetTransportLevs1to35_?ADV?       ',
-                              'BudgetMixingFull_?ADV?               ',
-                              'BudgetMixingTrop_?ADV?               ',
-                              'BudgetMixingPBL_?ADV?                ',
-                              'BudgetMixingLevs1to35_?ADV?          ',
-                              'BudgetConvectionFull_?ADV?           ',
-                              'BudgetConvectionTrop_?ADV?           ',
-                              'BudgetConvectionPBL_?ADV?            ',
-                              'BudgetConvectionLevs1to35_?ADV?      ',
+  Budget.fields:              'BudgetEmisDryDepFull_?ADV?     ',
+                              'BudgetEmisDryDepTrop_?ADV?     ',
+                              'BudgetEmisDryDepPBL_?ADV?      ',
+                              'BudgetEmisDryDepLevs1to35_?ADV?',
+                              'BudgetChemistryFull_?ADV?      ',
+                              'BudgetChemistryTrop_?ADV?      ',
+                              'BudgetChemistryPBL_?ADV?       ',
+                              'BudgetChemistryLevs1to35_?ADV? ',
+                              'BudgetTransportFull_?ADV?      ',
+                              'BudgetTransportTrop_?ADV?      ',
+                              'BudgetTransportPBL_?ADV?       ',
+                              'BudgetTransportLevs1to35_?ADV? ',
+                              'BudgetMixingFull_?ADV?         ',
+                              'BudgetMixingTrop_?ADV?         ',
+                              'BudgetMixingPBL_?ADV?          ',
+                              'BudgetMixingLevs1to35_?ADV?    ',
+                              'BudgetConvectionFull_?ADV?     ',
+                              'BudgetConvectionTrop_?ADV?     ',
+                              'BudgetConvectionPBL_?ADV?      ',
+                              'BudgetConvectionLevs1to35_?ADV?',
 ::
 #==============================================================================
 # %%%%% THE Carbon COLLECTION %%%%%
 #
 # Production and loss fields from the carbon simulation via KPP
 #==============================================================================
-  Carbon.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  Carbon.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
-  Carbon.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
-  Carbon.mode:           'time-averaged'
-  Carbon.fields:         'OHconcAfterChem               ',
-                         'ProdCOfromCH4                 ',
-                         'ProdCOfromNMVOC               ',
-                         'ProdCO2fromCO                 ',
+  Carbon.template:            '%y4%m2%d2_%h2%n2z.nc4',
+  Carbon.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Carbon.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
+  Carbon.mode:                'time-averaged'
+  Carbon.fields:              'OHconcAfterChem                ',
+                              'ProdCOfromCH4                  ',
+                              'ProdCOfromNMVOC                ',
+                              'ProdCO2fromCO                  ',
 ::
 #==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
@@ -170,7 +173,7 @@ COLLECTIONS: 'Restart',
 # Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
 # or OH after the CH4 specialty-simulation chemistry routine.
 #
-# OH:       Available for all full-chemistry simulations and CH4 specialty sim
+# OH: Available for all full-chemistry simulations and carbon/CH4 simulations
 #==============================================================================
   ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
   ConcAfterChem.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -196,6 +199,79 @@ COLLECTIONS: 'Restart',
                               'Met_PFILSAN                   ',
                               'Met_PFLCU                     ',
                               'Met_PFLLSAN                   ',
+::
+#==============================================================================
+# %%%%% THE KppDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver.
+#
+# NOTE: The carbon simulation uses the Forward Euler (feuler) solver, which
+# has no internal timestepping loop.  Therefore many of these diagnostics
+# will have little or no variation across grid boxes.  If using another
+# integrator
+#==============================================================================
+  KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppDiags.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppDiags.mode:              'time-averaged'
+  KppDiags.fields:            'KppIntCounts                  ',
+                              'KppJacCounts                  ',
+                              'KppTotSteps                   ',
+                              'KppAccSteps                   ',
+                              'KppRejSteps                   ',
+                              'KppLuDecomps                  ',
+                              'KppSubsts                     ',
+                              'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of
+# reactants in the reaction.
+#
+# Available for fullchem, carbon, Hg simulations.
+#==============================================================================
+  RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnConst.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnConst.mode:              'time-averaged'
+  RxnConst.fields:            'RxnConst_EQ0001                ',
+                              'RxnConst_EQ0002                ',
+                              'RxnConst_EQ0003                ',
+                              'RxnConst_EQ0004                ',
+                              'RxnConst_EQ0005                ',
+                              'RxnConst_EQ0006                ',
+                              'RxnConst_EQ0007                ',
+                              'RxnConst_EQ0008                ',
+::
+#==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem, carbon, Hg simulations.
+#==============================================================================
+  RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnRates.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnRates.mode:              'time-averaged'
+  RxnRates.fields:            'RxnRate_EQ0001                 ',
+                              'RxnRate_EQ0002                 ',
+                              'RxnRate_EQ0003                 ',
+                              'RxnRate_EQ0004                 ',
+                              'RxnRate_EQ0005                 ',
+                              'RxnRate_EQ0006                 ',
+                              'RxnRate_EQ0007                 ',
+                              'RxnRate_EQ0008                 ',
 ::
 #==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%

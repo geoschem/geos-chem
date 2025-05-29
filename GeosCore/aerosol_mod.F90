@@ -2356,7 +2356,7 @@ CONTAINS
 !
 ! !IROUTINE: init_aerosol
 !
-! !DESCRIPTION: Subroutine INIT\_AEROSOL initializes module variables
+! !DESCRIPTION: Subroutine INIT\_AEROSOL initializes module variables.
 !\\
 !\\
 ! !INTERFACE:
@@ -2397,8 +2397,9 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N, SpcID
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER                :: N, SpcID
+    CHARACTER(LEN=255)     :: ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
 
     TYPE(Species), POINTER :: SpcInfo
     
@@ -2504,6 +2505,22 @@ CONTAINS
        SpcInfo => NULL()
 
     ENDDO
+
+    !------------------------------------------------------------------------
+    ! The fullchem and aerosol simulations need at least one AOD wavelength
+    ! to be selected.  Return with an error if this is not the case.
+    !------------------------------------------------------------------------
+    IF ( Input_Opt%NWVSELECT == 0 ) THEN
+       ErrMsg = 'For fullchem and aerosol-only simulations, you must '    // &
+                'specify the wavelength at which the AOD will be '        // &
+                'calculated.  (For fullchem simulations using RRTMG, '    // &
+                'you may specify up to 3 wavelengths.)  Check the '       // &
+                '"aod_wavelength_in_nm" tag (under the '                  // &
+                '"rrtmg_radiative_transfer_model" section) in your '      // &
+                '"geoschem_config.yml" file.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
     !------------------------------------------------------------------------
     ! Read in AOD data

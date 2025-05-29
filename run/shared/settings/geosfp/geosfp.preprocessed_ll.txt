@@ -3,9 +3,7 @@ RUNDIR_MET_LOWERCASE='geosfp'
 RUNDIR_MET_DIR="${RUNDIR_DATA_ROOT}/GEOS_${RUNDIR_GRID_DIR}/GEOS_FP"
 RUNDIR_MET_DIR_RAW="${RUNDIR_DATA_ROOT}/GEOS_0.25x0.3125/GEOS_FP"
 
-RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTION=0
 RUNDIR_METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN=.false.
-RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA=.false.
 RUNDIR_MET_RES='025x03125'
 RUNDIR_MET_EXT='nc'
 
@@ -23,6 +21,7 @@ RUNDIR_MET_LCLIM='2014-2019'
 RUNDIR_PHOT_CLD_NLEV=34
 
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_WIND}
 ${RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_ADVECTION}
 
 # --- 2D variables, 1-hr averaged ---
@@ -76,14 +75,6 @@ V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025
 
 Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A1.025x03125.nc
 
-# --- Surface pressure, 3-hr instantaneous ---
-PS1 hPa N Y 0        none none PS ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
-PS2 hPa N Y 0;001000 none none PS ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
-
-# --- 3D variables, 3-hr instantaneous ---
-SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
-SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
-
 TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
 TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.I3.025x03125.nc
 
@@ -99,8 +90,6 @@ DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3dy
 OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3dyn.025x03125.nc
 
 RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3dyn.025x03125.nc
-
-UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3dyn.025x03125.nc
 
 DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3mstC.025x03125.nc
 DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3mstC.025x03125.nc

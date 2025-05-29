@@ -1605,6 +1605,7 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #==============================================================================
 #GFAS_CO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_SOAP  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none cofire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
+#GFAS_CH3OH kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none ch3ohfire     ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_NO    kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none noxfire       ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_BCPI  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
 #GFAS_BCPO  kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none bcfire        ./HcoDir/GFAS/v2018-09/%y4/GFAS_%y4%m2.nc
@@ -1808,7 +1809,7 @@ GFED_PEAT kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_PEAT ./HcoDir/GFED4/v2
 GFED_SAVA kgDM/m2/s N Y F%y4-%m2-01T00:00:00 none none DM_SAVA ./HcoDir/GFED4/v2023-03/%y4/GFED4_gen.025x025.%y4%m2.nc
 #
 # --- GFED_daily ---
-GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2015-10/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
+GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v2023-03/%y4/GFED4_dailyfrac_gen.025x025.%y4%m2.nc
 #
 # --- GFED_3hourly ---
 GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc

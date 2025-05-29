@@ -36,7 +36,10 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'DryDep',
              #'LevelEdgeDiags',
+	     #'KppDiags',
              #'ProdLoss',
+	     #'RxnConst',
+	     #'RxnRates',
              #'SatDiagn',
              #'SatDiagnEdge',
              #'StateMet',
@@ -250,6 +253,66 @@ COLLECTIONS: 'Restart',
   ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
   ProdLoss.mode:              'time-averaged'
   ProdLoss.fields:            'Prod_?PRD?                    ',
+::
+#==============================================================================
+# %%%%% THE KppDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver.
+#
+# Available for fullchem, carbon, Hg simulations.
+#==============================================================================
+  KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppDiags.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppDiags.mode:              'time-averaged'
+  KppDiags.fields:            'KppIntCounts                  ',
+                              'KppJacCounts                  ',
+                              'KppTotSteps                   ',
+                              'KppAccSteps                   ',
+                              'KppRejSteps                   ',
+                              'KppLuDecomps                  ',
+                              'KppSubsts                     ',
+                              'KppSmDecomps                  ',
+                              'KppTime                       ',
+::
+#==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of
+# reactants in the reaction.
+#
+# Available for fullchem, carbon, Hg simulations.
+#==============================================================================
+  RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnConst.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnConst.mode:              'time-averaged'
+  RxnConst.fields:            'RxnConst_EQ0001                ',
+                              'RxnConst_EQ0002                ',
+                              # ... add others as needed ...
+::
+#==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem, carbon, Hg simulations.
+#==============================================================================
+  RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnRates.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnRates.mode:              'time-averaged'
+  RxnRates.fields:            'RxnRate_EQ0001                 ',
+                              'RxnRate_EQ0002                 ',
+                              # ... add others as needed ...
 ::
 #==============================================================================
 # %%%%% THE SatDiagn COLLECTION %%%%%

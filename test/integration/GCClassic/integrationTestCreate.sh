@@ -319,7 +319,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     # Disable the KppTime diagnostic (time spent in integrator) as
     # this will vary due to local conditions on the cluster/node
-    sed_ie "s|'KppTime'|#'KppTime'|" "HISTORY.rc"
+    sed_ie "s|'KppTime|#'KppTime|" "HISTORY.rc"
 
     # Activate the planeflight diagnostic
     cp -r "${pfDat}" .
