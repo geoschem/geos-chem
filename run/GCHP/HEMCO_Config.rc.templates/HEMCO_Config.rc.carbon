@@ -1241,21 +1241,6 @@ Mask fractions:              false
 * XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
 
-#==============================================================================
-# --- Quantities needed for the analytical inversion (via IMI) ---
-#==============================================================================
-(((USE_CH4_DATA
-
-#------------------------------------------------------------------------------
-# --- Files needed for analytical inversion ---
-#------------------------------------------------------------------------------
-(((AnalyticalInversion
-* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
-)))AnalyticalInversion
-
-)))USE_CH4_DATA
-
-#==============================================================================
 # --- Chemistry inputs ---
 #==============================================================================
 (((CHEMISTRY_INPUT
@@ -1386,10 +1371,11 @@ ${RUNDIR_CO2_COPROD}
 # --- Scale factors for analytical inversions ---
 #==============================================================================
 (((AnalyticalInversion
+5 SCALE_PERT    ./gridded_pert_scale.nc  scale 2000/1/1/0         C xy 1 1
 
 # Add perturbations to individual state vector element (N) following this format
 # Start scale factor ID at 2000 to avoid conflicts with other SFs/masks
-#200N SCALE_ELEM_000N ./Perturbations.txt - - - xy count 1
+#200N SCALE_ELEM_000N ./StateVector.nc StateVector 2000/1/1/0 C xy 1 1 N
 
 )))AnalyticalInversion
 

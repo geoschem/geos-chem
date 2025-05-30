@@ -52,8 +52,8 @@ GRID_LABELS: #PE24x144-CF
 #==============================================================================
 # Declare collection names and toggle on/off with #
 #==============================================================================
-COLLECTIONS: 'Emissions',
-             'SpeciesConc',
+COLLECTIONS: 'SpeciesConc',
+             'Emissions',
              #'Metrics',
              #'Budget',
              #'Carbon',
