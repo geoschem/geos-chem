@@ -8,6 +8,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)
 - Added MCHgMAP biomass emissions (2010-2020, GFED and FINN) from Dastoor et al. (2025)
+- Added NCAR Derecho operational example environment file `geoschem.intel24.env`
+
+### Changed
+- Updated NCAR Derecho run script to source the `geoschem.intel24.env` environment file
 
 ## [14.6.1] - 2025-05-27
 ### Added
