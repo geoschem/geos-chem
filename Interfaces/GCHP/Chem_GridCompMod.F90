@@ -1636,8 +1636,7 @@ CONTAINS
        DO I = 1, nFlds
 
           ! Get info about this species from the species database
-          N = State_Chm%Map_Advect(I)
-          ThisSpc => State_Chm%SpcData(N)%Info
+          ThisSpc => State_Chm%SpcData(I)%Info
 
           ! Pass tracer name
           Int2Adj(I)%Name = TRIM(ThisSpc%Name)
@@ -3462,13 +3461,14 @@ CONTAINS
        NFD = Input_Opt%NFD
        ! print out the cost function
        WRITE(*,*) ' Computing final cost function'
+
        CFN = 0d0
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           if (State_Chm%CostFuncMask(I,J,L) > 0d0) THEN
-             WRITE (*, 1047) I, J, L, State_Chm%Species(NFD)%conc(I,J,L)
-             CFN = CFN + State_Chm%Species(NFD)%Conc(I,J,L)
+!             WRITE (*, 1047) I, J, L, State_Chm%Species(NFD)%conc(I,J,L)
+!             CFN = CFN + State_Chm%Species(NFD)%Conc(I,J,L)
           endif
        ENDDO
         ENDDO
