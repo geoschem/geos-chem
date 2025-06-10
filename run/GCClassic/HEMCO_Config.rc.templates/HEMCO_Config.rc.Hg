@@ -72,7 +72,10 @@ VerboseOnCores:              root       # Accepted values: root all
     --> WHET                   :       false    # 2010
     --> STREETS                :       false    # 2015
     --> ARTISANAL              :       false    # 1985
-    --> NATURAL                :       true     # 1985
+    --> NATURAL                :       false    # 1985
+    --> MCHgMAP_NATURAL        :       true     # 2010-2020
+    --> MCHgMAP_BB_GFED        :       false    # 2010-2020
+    --> MCHgMAP_BB_FINN        :       true     # 2010-2020
     --> SOILDIST               :       true     # 1985
     --> QFED2                  :       false    # 2000-2020
     --> EDGAR_TOT              :       false    # 1970-2012
@@ -103,8 +106,8 @@ VerboseOnCores:              root       # Accepted values: root all
 #       to maintain agreement with observations. Please see wiki for details
 #       http://wiki.seas.harvard.edu/geos-chem/index.php/Mercury
 # -----------------------------------------------------------------------------
-111     GFED              : on    Hg0
-    --> GFED4             :       true
+111     GFED              : off   Hg0
+    --> GFED4             :       false
     --> GFED_daily        :       false
     --> GFED_3hourly      :       false
     --> Scaling_CO        :       1.05
@@ -439,6 +442,16 @@ VerboseOnCores:              root       # Accepted values: root all
 )))NATURAL
 
 #==============================================================================
+# --- MCHgMAP natural emissions ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_NATURAL
+0 RockWeathering_Hg0 $ROOT/MERCURY/v2025-06/GeogenicEmissions/Hg_geogenic.kgm2s.nc4 Hg_rock_weathering_emission 2010-2020/1/1/0 C xy kg/m2/s Hg0 - 3 1
+0 Volcanic_Hg0       $ROOT/MERCURY/v2025-06/GeogenicEmissions/Hg_geogenic.kgm2s.nc4 Hg_volcanic_emission        2010-2020/1/1/0 C xy kg/m2/s Hg0 - 3 1
+)))MCHgMAP_NATURAL
+
+#==============================================================================
 # --- Soil distribution factor (pointer is imported in mercury_mod.F) ---
 #
 # NOTE: Here we use the 4x5 GEOS-FP file, but users may want to change this
@@ -456,6 +469,26 @@ VerboseOnCores:              root       # Accepted values: root all
 0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
 )))QFED2
 
+#==============================================================================
+# --- MCHgMAP (GFED) biomass burning (90% Hg0,10% HgP) ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_BB_GFED
+0 GFED_Hg0      $ROOT/MERCURY/v2025-06/BioBurn_emissions_GFED4s/$YYYY/Hg_wildfire_monthly_gfed4s_flux_$YYYY$MM.nc4 Hg0 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg0    - 12 1
+0 GFED_HgP      $ROOT/MERCURY/v2025-06/BioBurn_emissions_GFED4s/$YYYY/Hg_wildfire_monthly_gfed4s_flux_$YYYY$MM.nc4 HgP 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg2ClP - 12 1
+)))MCHgMAP_BB_GFED
+
+#==============================================================================
+# --- MCHgMAP (FINN) biomass burning (90% Hg0,10% HgP) ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_BB_FINN
+0 FINN_Hg0      $ROOT/MERCURY/v2025-06/BioBurn_emissions_FINN2p5/$YYYY/Hg_wildfire_monthly_finn_flux_$YYYY$MM.nc Hg0 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg0    - 12 1
+0 FINN_HgP      $ROOT/MERCURY/v2025-06/BioBurn_emissions_FINN2p5/$YYYY/Hg_wildfire_monthly_finn_flux_$YYYY$MM.nc HgP 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg2ClP - 12 1
+)))MCHgMAP_BB_FINN
+
 ###############################################################################
 ### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
 ###
@@ -471,12 +504,12 @@ VerboseOnCores:              root       # Accepted values: root all
 # NOTE: These are the base emissions in kgDM/m2/s.
 #==============================================================================
 (((GFED4
-111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
-111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       1997-2022/1-12/01/0    RF xy kgDM/m2/s * - 1 1
 
 (((GFED_daily
 111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
