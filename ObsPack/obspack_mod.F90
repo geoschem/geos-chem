@@ -527,7 +527,7 @@ CONTAINS
        !-----------------------
        ! Test for valid data
        !-----------------------
-       IF ( State_Diag%ObsPack_Longitude(N) <   - 180.0_f4 .or.              &
+       IF ( State_Diag%ObsPack_Longitude(N) <    -180.0_f4 .or.              &
             State_Diag%ObsPack_Longitude(N) >     180.0_f4 .or.              &
             State_Diag%ObsPack_Latitude(N)  <     -90.0_f4 .or.              &
             State_Diag%ObsPack_Latitude(N)  >      90.0_f4 .or.              &
@@ -605,7 +605,6 @@ CONTAINS
 
              State_Diag%ObsPack_Ival_End(N) =                                &
                   State_Diag%ObsPack_Ival_center(N)    + 1800.0_f8
-
 
           !------------------
           ! 90-minute window
@@ -948,7 +947,7 @@ CONTAINS
     ALLOCATE( aveEnd( nObs ), STAT=RC )
     CALL GC_CheckVar( 'obspack_mod.F90:aveEnd', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    aveEnd = State_Diag%ObsPack_Ival_Start
+    aveEnd = State_Diag%ObsPack_Ival_End
 
     ! Compute averaging interval
     ALLOCATE( aveTime( nObs ), STAT=RC )
@@ -1298,7 +1297,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
-    USE Timers_Mod,     ONLY : Timer_End, Timer_Start
+    USE Timers_Mod,     ONLY : Timer_End,   Timer_Start
     USE UnitConv_Mod,   ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
@@ -1378,7 +1377,7 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Sample the GEOS-CHem data corresponding to this location & time
+    ! Sample the GEOS-Chem data corresponding to this location & time
     !=======================================================================
 
     ! Extract date and time into components

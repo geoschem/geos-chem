@@ -17,6 +17,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Fixed
 - Restored unit convertion for boundary conditions from mol/mol to kg/kg dry air
 
+### Fixed
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+
 ## [14.6.1] - 2025-05-27
 ### Added
 - Added `#InvCEDSshipALK6`, `#InvCEDS_TMB`, and `#InvCEDSship_TMB` (commented out by default) to `HEMCO_Diagn*` and GCHP `HISTORY.rc.fullchem` files
