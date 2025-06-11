@@ -458,10 +458,10 @@ COLLECTIONS: 'SpeciesConc',
   StateMetLevEdge.duration:       010000
   StateMetLevEdge.mode:           'time-averaged'
   StateMetLevEdge.fields:         'Met_CMFMC   ', 'GCHPchem',
-                                 'Met_PEDGE   ', 'GCHPchem',
-                                 'Met_PEDGEDRY', 'GCHPchem',
-                                 'Met_PFICU   ', 'GCHPchem',
-                                 'Met_PFILSAN ', 'GCHPchem',
-                                 'Met_PFLCU   ', 'GCHPchem',
-                                 'Met_PFLLSAN ', 'GCHPchem',
+                                  'Met_PEDGE   ', 'GCHPchem',
+                                  #'Met_PEDGEDRY', 'GCHPchem',
+                                  #'Met_PFICU   ', 'GCHPchem',
+                                  #'Met_PFILSAN ', 'GCHPchem',
+                                  #'Met_PFLCU   ', 'GCHPchem',
+                                  #'Met_PFLLSAN ', 'GCHPchem',
 ::

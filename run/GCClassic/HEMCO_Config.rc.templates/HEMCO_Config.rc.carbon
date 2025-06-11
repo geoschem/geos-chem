@@ -135,7 +135,6 @@ Mask fractions:              false
     --> AnalyticalInversion    :       false
     --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
     --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
-    --> OH_PosteriorSF         :       false    # Apply posterior scale factor  to global OH?
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
@@ -1242,20 +1241,6 @@ Mask fractions:              false
 )))YUAN_MODIS_LAI
 
 #==============================================================================
-# --- Quantities needed for the analytical inversion (via IMI) ---
-#==============================================================================
-(((USE_CH4_DATA
-
-#------------------------------------------------------------------------------
-# --- Files needed for analytical inversion ---
-#------------------------------------------------------------------------------
-(((AnalyticalInversion
-* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
-)))AnalyticalInversion
-
-)))USE_CH4_DATA
-
-#==============================================================================
 # --- Chemistry inputs ---
 #==============================================================================
 (((CHEMISTRY_INPUT
@@ -1268,12 +1253,6 @@ Mask fractions:              false
 
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-
-(((OH_PosteriorSF
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
-)))OH_PosteriorSF
-
-(((.not.OH_PosteriorSF
 * GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
 ))).not.OH_PosteriorSF
 
@@ -1378,18 +1357,15 @@ ${RUNDIR_CO2_COPROD}
 3 EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 1
 )))Emis_PosteriorSF
 
-(((OH_PosteriorSF
-4 OH_SF      Post_SF_OH.nc         SF_OH       2010-2017/1/1/0    C xy 1 1
-)))OH_PosteriorSF
-
 #==============================================================================
 # --- Scale factors for analytical inversions ---
 #==============================================================================
 (((AnalyticalInversion
+4 SCALE_PERT      ./gridded_pert_scale_1.nc          scale    2000/1/1/0 C xy 1 1
 
 # Add perturbations to individual state vector element (N) following this format
 # Start scale factor ID at 2000 to avoid conflicts with other SFs/masks
-#200N SCALE_ELEM_000N ./Perturbations.txt - - - xy count 1
+#200N SCALE_ELEM_000N ./StateVector.nc StateVector 2000/1/1/0 C xy 1 1 N
 
 )))AnalyticalInversion
 
