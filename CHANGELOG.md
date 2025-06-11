@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Fixed logic in `Obspack_Sample` to include observations whose averaging windows span a UTC date boundary
 
 ## [14.6.1] - 2025-05-27
 ### Added

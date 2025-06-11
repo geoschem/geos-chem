@@ -1334,16 +1334,18 @@ CONTAINS
 !
     ! Scalars
     LOGICAL             :: prtLog,  doSample
-    INTEGER             :: I,       J,        L,  N,  R,  S
-    INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
-    REAL(f8)            :: TsStart, TsEnd
+    INTEGER             :: I,       J,        L
+    INTEGER             :: N,       R,        S
+    INTEGER             :: Yr,      Mo,       Da
+    INTEGER             :: Hr,      Mn,       Sc
+    REAL(f8)            :: TsStart, TsEnd,    TsEndPlusTsDyn
 
     ! Strings
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg,  ThisLoc
 
-    !=================================================================
+    !========================================================================
     ! ObsPack_Sample begins here
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC       =  GC_SUCCESS
@@ -1355,9 +1357,9 @@ CONTAINS
     ! because there are no data at this time).
     IF ( .not. State_Diag%Do_ObsPack ) RETURN
 
-    !=======================================================================
+    !========================================================================
     ! Unit conversion
-    !=======================================================================
+    !========================================================================
 
     ! Halt diags timer (so that unit conv can be timed separately)
     IF ( Input_Opt%useTimers ) THEN
@@ -1376,18 +1378,18 @@ CONTAINS
        CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Sample the GEOS-Chem data corresponding to this location & time
-    !=======================================================================
+    !========================================================================
 
     ! Extract date and time into components
     CALL Ymd_Extract( yyyymmdd, Yr, Mo, Da )
     CALL Ymd_Extract( hhmmss,   Hr, Mn, Sc )
 
     ! Compute elapsed seconds since 1970
-    TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
-
-    TsStart = TsEnd - Input_Opt%TS_DYN
+    TsEnd          = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
+    TsStart        = TsEnd - Input_Opt%TS_DYN
+    TsEndPlusTsDyn = TsEnd + Input_Opt%TS_DYN
 
     ! Logfile header
     IF ( prtLog ) THEN
@@ -1406,27 +1408,61 @@ CONTAINS
        !initializing flag for whether sampling should occur at this timestep
        doSample = .false.
 
-       SELECT CASE ( State_Diag%ObsPack_Strategy(N) )
-          CASE ( 0 )
-             ! Skip observation if the sampling strategy says to do so
+       SELECT CASE( State_Diag%ObsPack_Strategy(N) )
+
+          !-------------------------------------------------------------------
+          ! Skip observation if the sampling strategy says to do so
+          !-------------------------------------------------------------------
+          CASE( 0 )
              CYCLE
-          CASE ( 1:3 )
-             ! If the sample covers the entire dynamic timestep, then...
-             IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart .and.                &
-                  State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) doSample = .true.
-          CASE ( 4 )
-             ! If Instantaneous sampling choose the closest timestep
-             IF ( (TsEnd - State_Diag%ObsPack_Ival_Center(N)) <= (Input_Opt%TS_DYN/2.) .and.    &
-                  (State_Diag%ObsPack_Ival_Center(N) - TsEnd) < (Input_Opt%TS_DYN/2.) ) doSample =.true.
+
+          !------------------------------------------------------------------
+          ! Time-averaging sampling strategies:
+          ! 1: 4-hour averaging window
+          ! 2: 1-hour averaging window
+          ! 3: 90-min averaging window
+          !------------------------------------------------------------------
+          CASE( 1:3 )
+
+             ! If the averaging window completely covers the dynamic
+             ! timestep, then take the sample
+             IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart        .and.   &
+                  State_Diag%ObsPack_Ival_End(N)   >= TsEnd        )  THEN
+                doSample = .TRUE.
+
+             ! If the averaging window spans past the end of the UTC date.
+             ! take the sample but truncate the averaging interval accordingly
+             ELSE IF ( State_Diag%ObsPack_Ival_Start(N) > TsStart    .and.   &
+                       State_Diag%ObsPack_Ival_End(N)   > TsEnd      .and.   &
+                       MOD( TsEndPlusTsDyn, 86400.0_fp ) == 0      )  THEN
+                doSample                       = .TRUE.
+                State_Diag%ObsPack_Ival_End(N) = TsEndPlusTsDyn
+
+             ENDIF
+
+          !------------------------------------------------------------------
+          ! Instantaneous sampling strategies
+          ! 4: Choose the closest timestep
+          !------------------------------------------------------------------
+          CASE( 4 )
+             IF ( ( TsEnd - State_Diag%ObsPack_Ival_Center(N)  ) <=          &
+                  ( Input_Opt%TS_DYN / 2.0_fp                  )     .and.   &
+                  ( State_Diag%ObsPack_Ival_Center(N) - TsEnd  ) <           &
+                  ( Input_Opt%TS_DYN / 2.0_fp                  )    ) THEN
+                doSample = .TRUE.
+             ENDIF
+
           CASE DEFAULT
-             ErrMsg = "Sample Strategy not implemented in ObsPack_Sample Subroutine"
+             ErrMsg = &
+              "Sample Strategy not implemented in ObsPack_Sample Subroutine"
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
        END SELECT
 
-
-
-       ! If sampling strategy time-step conditions are met, sample at these times
+       !---------------------------------------------------------------------
+       ! If sampling strategy time-step conditions are met,
+       ! sample at these times
+       !---------------------------------------------------------------------
        IF ( doSample ) THEN
 
           ! Print the observations that are sampled here
@@ -1436,7 +1472,7 @@ CONTAINS
 
           ! Return grid box indices for the chemistry region
           CALL ObsPack_Get_Indices( N, State_Diag, State_Grid, State_Met,    &
-                                    I, J, L, RC )
+                                    I, J,          L,          RC           )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1494,9 +1530,9 @@ CONTAINS
        WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Cleanup and quit
-    !=======================================================================
+    !========================================================================
 
     ! Halt diags timer (so that unit conv can be timed separately)
     IF ( Input_Opt%useTimers ) THEN
