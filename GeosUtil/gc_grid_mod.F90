@@ -449,6 +449,16 @@ CONTAINS
        State_Grid%Area_M2(I,J) = ( State_Grid%DX * PI_180 ) * &
                                    ( Re**2 ) * SIN_DIFF
 
+#ifdef LUO_WETDEP
+       State_Grid%DX_M(I,J) = Re * State_Grid%DX * PI_180 * &
+                              COS(State_Grid%YMid_R(I,J))
+       IF(J==1 .OR. J==State_Grid%NY)THEN
+         State_Grid%DY_M(I,J) = Re * State_Grid%DY*0.5D0 * PI_180
+       ELSE
+         State_Grid%DY_M(I,J) = Re * State_Grid%DY * PI_180
+       ENDIF
+#endif
+
     ENDDO
     ENDDO
 
