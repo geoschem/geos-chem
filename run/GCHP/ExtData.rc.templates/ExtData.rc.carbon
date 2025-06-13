@@ -245,8 +245,12 @@ EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 # CMIP6_BB_CH4 %y4-%m2-01T00:00:00 none none  CH4_shp  ./HcoDir/CMIP6/v2021-01/$GCAP2SCENARIO/$GCAP2SCENARIO_%y4.nc4
 
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+<<<<<<< HEAD
 # Include scaling to convert molecules/cm2/s to kg/m2/s
 JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+=======
+JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 2.66350462E-22  emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+>>>>>>> d6cde9519 (Fix ExtData to use kg/m2/s from molec/cm2/s)
 
 # --- LPJ MERRA2 (East et al., https://doi.org/10.1029/2024GL108494) ---
 LPJ_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none emis_ch4 /n/holylfs06/LABS/jacob_lab2/Lab/dzhang8/LPJ_MERRA2/LPJ_MERRA2_%y4_0.5x0.5.nc
