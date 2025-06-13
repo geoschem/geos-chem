@@ -4,6 +4,14 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
+
+### Changed
+- Updated logic to include ObsPack observations that span UTC date boundaries
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+
 ## [14.6.2] - 2025-06-11
 ### Added
 - Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)

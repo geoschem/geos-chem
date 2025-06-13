@@ -1333,7 +1333,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  doSample
+    LOGICAL             :: prtLog,  doSample, validObs
     INTEGER             :: I,       J,        L
     INTEGER             :: N,       R,        S
     INTEGER             :: Yr,      Mo,       Da
@@ -1406,7 +1406,8 @@ CONTAINS
     DO N = 1, State_Diag%ObsPack_nObs
 
        !initializing flag for whether sampling should occur at this timestep
-       doSample = .false.
+       doSample = .FALSE.
+       validObs = .TRUE.
 
        SELECT CASE( State_Diag%ObsPack_Strategy(N) )
 
@@ -1465,14 +1466,10 @@ CONTAINS
        !---------------------------------------------------------------------
        IF ( doSample ) THEN
 
-          ! Print the observations that are sampled here
-          IF ( prtLog ) THEN
-             WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
-          ENDIF
-
           ! Return grid box indices for the chemistry region
-          CALL ObsPack_Get_Indices( N, State_Diag, State_Grid, State_Met,    &
-                                    I, J,          L,          RC           )
+          CALL ObsPack_Get_Indices( N,         State_Diag, State_Grid,       &
+                                    State_Met, I,          J,                &
+                                    L,         validObs,   RC               )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1481,14 +1478,26 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! If the observation location is not valid (i.e. if it is outside
+          ! of a nested-grid domain) then go to the next observation
+          IF ( .not. validObs ) THEN
+             doSample = .FALSE.
+             CYCLE
+          ENDIF
+
+          ! Print the observations that are sampled here (valid obs only)
+          IF ( prtLog ) THEN
+             WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
+          ENDIF
+
           !------------------------
           ! Update sample counter
           !------------------------
           State_Diag%ObsPack_nSamples(N) = State_Diag%ObsPack_nSamples(N) + 1
 
-          !-----------------------
+          !------------------------
           ! Archive species
-          !-----------------------
+          !------------------------
 
           ! Loop over the # of requested species
           DO R = 1, State_Diag%ObsPack_nSpecies
@@ -1560,8 +1569,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Get_Indices( iObs, State_Diag, State_Grid, State_Met, &
-                                  I, J, L, RC )
+  SUBROUTINE ObsPack_Get_Indices( iObs,      State_Diag, State_Grid,         &
+                                  State_Met, I,          J,                  &
+                                  L,         validObs,   RC                 )
 !
 ! !USES:
 !
@@ -1580,6 +1590,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT) :: I, J, L      ! Lon, lat, level indices
+    LOGICAL,        INTENT(OUT) :: validObs     ! Is obs inside model grid?
     INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
@@ -1594,24 +1605,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: idx, I0, J0
-    REAL(f8)            :: Z
+    ! Scalars
+    INTEGER            :: idx, I0, J0
+    REAL(f8)           :: Z
 
-    !
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !========================================================================
     ! ObsPack_Get_Indices begins here!
     !========================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at ObsPack_Get_Indices (in module ObsPack/obspack_mod.F90'
-
-    !-----------------------------------------------------------------------
+    RC       = GC_SUCCESS
+    validObs = .TRUE.
+    ErrMsg   = ''
+    ThisLoc  = ' -> at ObsPack_Get_Indices (in module ObsPack/obspack_mod.F90'
+    
+    !------------------------------------------------------------------------
     ! Exit with error if the observations have invalid lon/lat/alt values
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%ObsPack_Longitude(iObs) <    -180.0_f8   .or.            &
          State_Diag%ObsPack_Longitude(iObs) >     180.0_f8   .or.            &
          State_Diag%ObsPack_Latitude(iObs)  <     -90.0_f8   .or.            &
@@ -1627,14 +1640,28 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! For nested grids, make sure the observation lies within the grid
+    ! domain.  Otherwise this will result in an out-of-bounds error.
+    !------------------------------------------------------------------------
+    IF ( State_Grid%NestedGrid ) THEN
+       IF ( State_Diag%ObsPack_Longitude(iObs) < State_Grid%XMin   .or.      &
+            State_Diag%ObsPack_Longitude(iObs) > State_Grid%XMax   .or.      &
+            State_Diag%ObsPack_Latitude(iObs)  < State_Grid%YMin   .or.      &
+            State_Diag%ObsPack_Latitude(iObs)  > State_Grid%YMax ) THEN
+          validObs = .FALSE.
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Added correct definitions for I and J based on nested regions
     ! (lds, 8/25/11)
     I0 = State_Grid%XMinOffset
     J0 = State_Grid%YMinOffset
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find I corresponding to the ObsPack longitude value
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     I = INT( ( State_Diag%ObsPack_Longitude(iObs) + 180.0_f8                 &
                                                   - ( I0 * State_Grid%DX ) ) &
                                                   / State_Grid%DX + 1.5d0  )
@@ -1642,18 +1669,18 @@ CONTAINS
     ! Handle date line correctly (bmy, 4/23/04)
     IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find J corresponding to the ObsPack latitude value
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     J = INT( ( State_Diag%ObsPack_Latitude(iObs)  +  90.0_f8                 &
                                                   - ( J0 * State_Grid%DY ) ) &
                                                   / State_Grid%DY + 1.5d0  )
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find L corresponding to the ObsPack altitude value
     ! ObsPack altitude variable defined as MASL, so Z
     ! starts at surface height
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1, State_Grid%NZ
        Z = Z + State_Met%BXHEIGHT(I,J,L)
@@ -1668,13 +1695,14 @@ CONTAINS
 
     Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1,State_Grid%NZ
-       Z=Z+State_Met%BXHEIGHT(I,J,L)
-       WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L),Z
+       Z = Z + State_Met%BXHEIGHT(I,J,L)
+       WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L), Z
     ENDDO
     WRITE( ErrMsg, 100 ) State_Diag%ObsPack_Altitude(iObs), Z,               &
                          State_Diag%ObsPack_Latitude(iObs),                  &
                          State_Diag%ObsPack_Longitude
-100 FORMAT( "Altitude ",f11.4, "m exceeds TOA of ",f11.4,"m at ",f11.4,"N,",f11.4,"E" )
+100 FORMAT( "Altitude ", f11.4, "m exceeds TOA of ", f11.4,                  &
+            "m at ",     f11.4, "N,",                f11.4, "E"             )
 
     CALL GC_Error( ErrMsg, RC, ThisLoc )
 
