@@ -4,6 +4,17 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
+- Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
+
+### Changed
+- Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
+  
+### Removed
+- Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
+
 ## [14.6.2] - 2025-06-11
 ### Added
 - Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)

@@ -1815,7 +1815,7 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 #
 #==============================================================================
-# --- FINN v1.5 biomass burning emissions (Extension 114)
+# --- FINN v2.5 biomass burning emissions (Extension 114)
 # FINN is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
 #
