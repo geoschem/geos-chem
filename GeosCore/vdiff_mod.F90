@@ -1729,6 +1729,7 @@ CONTAINS
     REAL(fp)            :: F_CLD
     REAL(fp)            :: YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK
     REAL(fp)            :: DFKG, uptkrate
+    REAL(fp), PARAMETER :: ROOT_TWO_THIRDS = SQRT(2.D0/3.D0)
 #endif
 
     ! Arrays
@@ -1914,12 +1915,12 @@ CONTAINS
 
       IF(L>State_Met%PBL_TOP_L(I,J))THEN
       State_Met%WUP(I,J,L)=(0.5D0*(kvh(I,J,L)+kvh(I,J,L+1))/30.D0/&
-                            0.516D0)*SQRT(2.D0/3.D0)
+                            0.516D0)*ROOT_TWO_THIRDS
       ELSE
       State_Met%WUP(I,J,L)=(0.5D0*(kvh(I,J,L)+kvh(I,J,L+1))/&
            MAX(30.D0,(1.D0/(1.D0/(0.4D0*SUM(State_Met%BXHEIGHT(I,J,1:L)))+&
                             1.D0/300.D0)))/&
-                            0.516D0)*SQRT(2.D0/3.D0)
+                            0.516D0)*ROOT_TWO_THIRDS
       ENDIF
       State_Met%WUP(I,J,L)=MIN(20.D0,MAX(0.2D0,State_Met%WUP(I,J,L)))
 
