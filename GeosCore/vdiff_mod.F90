@@ -1728,7 +1728,7 @@ CONTAINS
 #ifdef LUO_WETDEP
     REAL(fp)            :: F_CLD
     REAL(fp)            :: YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK
-    REAL(fp)            :: DFKG, uptkrate
+    REAL(fp)            :: log2R, DFKG, uptkrate
     REAL(fp), PARAMETER :: ROOT_TWO_THIRDS = SQRT(2.D0/3.D0)
 #endif
 
@@ -1908,7 +1908,7 @@ CONTAINS
 !$OMP PARALLEL DO DEFAULT( SHARED )      &
 !$OMP PRIVATE( I, J, L, F_CLD ) &
 !$OMP PRIVATE( YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK ) &
-!$OMP PRIVATE( DFKG, uptkrate )
+!$OMP PRIVATE( log2R, DFKG, uptkrate )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -1960,22 +1960,23 @@ CONTAINS
 
           State_Met%RADCD(I,J,L) = max(5.D0,MIN(1000.D0,State_Met%RADCD(I,J,L)))
           State_Met%RADCD(I,J,L) = State_Met%RADCD(I,J,L)*1.D-4
+          log2R = log(State_Met%RADCD(I,J,L)*2.d0)
 
           IF(State_Met%T(I,J,L)<218.15D0)THEN
-            volx34pi_cd = exp(-9.24318d0+0.57189d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                          0.17865d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
-            State_Met%ICESF(I,J,L) = exp(-2.43451d0+1.60639d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                    0.01164d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            volx34pi_cd = exp(-9.24318d0+0.57189d0*log2R-&
+                          0.17865d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.43451d0+1.60639d0*log2R-&
+                    0.01164d0*(log2R*log2R))
           ELSE IF(State_Met%T(I,J,L)<233.15D0)THEN
-            volx34pi_cd = exp(-6.44787d0+1.64429d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                          0.07788d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
-            State_Met%ICESF(I,J,L) = exp(-2.38913d0+1.40166d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                    0.05219d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            volx34pi_cd = exp(-6.44787d0+1.64429d0*log2R-&
+                          0.07788d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.38913d0+1.40166d0*log2R-&
+                    0.05219d0*(log2R*log2R))
           ELSE
-            volx34pi_cd = exp(-6.67252d0+1.36857d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                          0.12293d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
-            State_Met%ICESF(I,J,L) = exp(-2.40314d0+1.29749d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
-                    0.07233d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            volx34pi_cd = exp(-6.67252d0+1.36857d0*log2R-&
+                          0.12293d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.40314d0+1.29749d0*log2R-&
+                    0.07233d0*(log2R*log2R))
           ENDIF
           State_Met%NUMCD(I,J,L) = YCLDICE/volx34pi_cd*1.D-6
 
