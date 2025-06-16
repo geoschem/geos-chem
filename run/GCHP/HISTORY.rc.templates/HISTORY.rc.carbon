@@ -147,11 +147,11 @@ COLLECTIONS: 'Emissions',
                               'EmisCO2_Aviation     ', 'GCHPchem',
                               'EmisCO2_CO2SurfCorr  ', 'GCHPchem',
                               'EmisCO2_BiomassBurn  ', 'GCHPchem',
+                              'EmisOCS_Total        ', 'GCHPchem',
                               'EmisOCS_Anthro       ', 'GCHPchem',
                               'EmisOCS_BiomassBurn  ', 'GCHPchem',
                               'EmisOCS_MissingOcean ', 'GCHPchem',
                               'EmisOCS_Ocean        ', 'GCHPchem',
-                              'EmisOCS_Total        ', 'GCHPchem',
 ::
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
