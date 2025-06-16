@@ -1955,8 +1955,8 @@ CONTAINS
 
         IF(FICE>1.D-6)THEN
           YCLDICE=YCLDICE/FICE
-          State_Met%RADCD(I,J,L) = 0.5d0*53.005d0*(YCLDICE**0.006)*&
-                                   exp(0.013*(State_Met%T(I,J,L)-273.d0))
+          State_Met%RADCD(I,J,L) = 0.5d0*53.005d0*(YCLDICE**0.006d0)*&
+                                   exp(0.013d0*(State_Met%T(I,J,L)-273.d0))
 
           State_Met%RADCD(I,J,L) = max(5.D0,MIN(1000.D0,State_Met%RADCD(I,J,L)))
           State_Met%RADCD(I,J,L) = State_Met%RADCD(I,J,L)*1.D-4
