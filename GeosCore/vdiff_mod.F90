@@ -1962,20 +1962,20 @@ CONTAINS
           State_Met%RADCD(I,J,L) = State_Met%RADCD(I,J,L)*1.D-4
 
           IF(State_Met%T(I,J,L)<218.15D0)THEN
-            volx34pi_cd = exp(-9.24318+0.57189*log(State_Met%RADCD(I,J,L)*2.)-&
-                          0.17865*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
-            State_Met%ICESF(I,J,L) = exp(-2.43451+1.60639*log(State_Met%RADCD(I,J,L)*2.)-&
-                    0.01164*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
+            volx34pi_cd = exp(-9.24318d0+0.57189d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                          0.17865d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            State_Met%ICESF(I,J,L) = exp(-2.43451d0+1.60639d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                    0.01164d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
           ELSE IF(State_Met%T(I,J,L)<233.15D0)THEN
-            volx34pi_cd = exp(-6.44787+1.64429*log(State_Met%RADCD(I,J,L)*2.)-&
-                          0.07788*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
-            State_Met%ICESF(I,J,L) = exp(-2.38913+1.40166*log(State_Met%RADCD(I,J,L)*2.)-&
-                    0.05219*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
+            volx34pi_cd = exp(-6.44787d0+1.64429d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                          0.07788d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            State_Met%ICESF(I,J,L) = exp(-2.38913d0+1.40166d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                    0.05219d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
           ELSE
-            volx34pi_cd = exp(-6.67252+1.36857*log(State_Met%RADCD(I,J,L)*2.)-&
-                          0.12293*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
-            State_Met%ICESF(I,J,L) = exp(-2.40314+1.29749*log(State_Met%RADCD(I,J,L)*2.)-&
-                    0.07233*(log(State_Met%RADCD(I,J,L)*2.)*log(State_Met%RADCD(I,J,L)*2.)))
+            volx34pi_cd = exp(-6.67252d0+1.36857d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                          0.12293d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
+            State_Met%ICESF(I,J,L) = exp(-2.40314d0+1.29749d0*log(State_Met%RADCD(I,J,L)*2.d0)-&
+                    0.07233d0*(log(State_Met%RADCD(I,J,L)*2.d0)*log(State_Met%RADCD(I,J,L)*2.d0)))
           ENDIF
           State_Met%NUMCD(I,J,L) = YCLDICE/volx34pi_cd*1.D-6
 
