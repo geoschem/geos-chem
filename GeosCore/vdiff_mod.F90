@@ -1988,7 +1988,7 @@ CONTAINS
                  SQRT(3.472e-2_f8 + 1.e+0_f8/(SQM*SQM))
 
           uptkrate = State_Met%NUMCD(I,J,L)*State_Met%ICESF(I,J,L)/&
-                    (State_Met%RADCD(I,J,L)/DFKG+2.749064E-4*SQM/(rrate*STK))
+                    (State_Met%RADCD(I,J,L)/DFKG+2.749064D-4*SQM/(rrate*STK))
 
           State_Met%TKICE(I,J,L) = uptkrate*(State_Met%KINC(I,J,L)/&
                    (State_Met%KINC(I,J,L)+(1.D0-State_Met%CLDF(I,J,L))*uptkrate))
