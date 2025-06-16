@@ -158,7 +158,7 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
 #ifdef LUO_WETDEP
      REAL(fp), POINTER :: KINC          (:,:,:) ! Air refreshing rate [s-1]
-     REAL(fp), POINTER :: WUP           (:,:,:) ! TKE v [m/s]
+     REAL(fp), POINTER :: WUP           (:,:,:) ! TKE wind speed [m/s]
      REAL(fp), POINTER :: TKICE         (:,:,:) ! Ice uptake rate [s-1]
      REAL(fp), POINTER :: NUMCD         (:,:,:) ! Cloud Ice Number [cm-3]
      REAL(fp), POINTER :: ICESF         (:,:,:) ! Cloud Ice Surface Area [cm2]
@@ -2077,7 +2077,7 @@ CONTAINS
 
 #ifdef LUO_WETDEP
     !------------------------------------------------------------------------
-    ! KINC [s-1]
+    ! KINC [s-1]: Air refreshing rate
     !------------------------------------------------------------------------
     metId = 'KINC'
     CALL Init_and_Register(                                                  &
@@ -2088,7 +2088,7 @@ CONTAINS
          Ptr2Data   = State_Met%KINC,                                        &
          RC         = RC                                                    )
     !------------------------------------------------------------------------
-    ! WUP [m/s]
+    ! WUP [m/s]: TKE wind speed
     !------------------------------------------------------------------------
     metId = 'WUP'
     CALL Init_and_Register(                                                  &
@@ -2099,7 +2099,7 @@ CONTAINS
          Ptr2Data   = State_Met%WUP,                                         &
          RC         = RC                                                    )
     !------------------------------------------------------------------------
-    ! TKICE [s]
+    ! TKICE [s]: Ice uptake rate
     !------------------------------------------------------------------------
     metId = 'TKICE'
     CALL Init_and_Register(                                                  &
@@ -2110,7 +2110,7 @@ CONTAINS
          Ptr2Data   = State_Met%TKICE,                                       &
          RC         = RC                                                    )
     !------------------------------------------------------------------------
-    ! NUMCD [cm-3]
+    ! NUMCD [cm-3]: Cloud Ice Number
     !------------------------------------------------------------------------
     metId = 'NUMCD'
     CALL Init_and_Register(                                                  &
@@ -2121,7 +2121,7 @@ CONTAINS
          Ptr2Data   = State_Met%NUMCD,                                        &
          RC         = RC                                                    )
     !------------------------------------------------------------------------
-    ! ICESF [cm2]
+    ! ICESF [cm2]: Cloud Ice Surface Area
     !------------------------------------------------------------------------
     metId = 'ICESF'
     CALL Init_and_Register(                                                  &
@@ -2132,7 +2132,7 @@ CONTAINS
          Ptr2Data   = State_Met%ICESF,                                        &
          RC         = RC                                                    )
     !------------------------------------------------------------------------
-    ! RADCD [cm]
+    ! RADCD [cm]: Cloud Ice Radius
     !------------------------------------------------------------------------
     metId = 'RADCD'
     CALL Init_and_Register(                                                  &
@@ -5104,7 +5104,7 @@ CONTAINS
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
        CASE ( 'WUP' )
-          IF ( isDesc  ) Desc  = 'TKE v'
+          IF ( isDesc  ) Desc  = 'TKE wind speed'
           IF ( isUnits ) Units = 'm s-1'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
