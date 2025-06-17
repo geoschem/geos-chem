@@ -456,7 +456,7 @@ EMIS_SF 1 N Y 2000-01-01T00:00:00   none none ScaleFactor gridded_posterior.nc
 #==============================================================================
 # Add perturbations to individual state vector element (N) following this format
 SCALE_PERT       1 N Y 2000-01-01T00:00:00 none none scale       ./gridded_pert_scale_1.nc
-#SCALE_ELEM_200N  1 N Y 2000-01-01T00:00:00 none none StateVector ./StateVector.nc
+#SCALE_ELEM_000N  1 N Y 2000-01-01T00:00:00 none none StateVector ./StateVector.nc
 
 ###############################################################################
 ###
