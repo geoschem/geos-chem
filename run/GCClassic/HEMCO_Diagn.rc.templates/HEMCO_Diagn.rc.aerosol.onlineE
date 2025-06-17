@@ -6,19 +6,15 @@
 # !MODULE: HEMCO_Diagn.rc 
 #
 # !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#  (for aerosol-only simulations with ModelE meteorology).
 #\\
 #\\
 # !REMARKS:
-#  For more information about scheduling HEMCO diagnostics, see:
-#  http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide#Diagnostics
+#  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
 #
-#  For a list of species by inventory, please see:
-#  http://wiki.geos-chem.org/HEMCO_data_directories#Default_GEOS-Chem_emissions_configurations
-#
-#  All diagnostics will now be saved out in units of kg/m2/s.  If necessary, 
-#  you can convert hydrocarbon species to e.g. kg C/m2/s in post-processing.
-#
-#  This file has been customized for the aerosol-only simulation.
+#  NOTES FOR BIOMASS BURNING:
+#  1. For GFED extension,    set ExtNr = 111, Cat = -1, Hier = -1.
+#  2. For offline emissions, set ExtNr = 0,   Cat =  5, Hier = -1
 #
 # !REVISION HISTORY:
 #  13 Feb 2018 - E. Lundgren - Initial version
