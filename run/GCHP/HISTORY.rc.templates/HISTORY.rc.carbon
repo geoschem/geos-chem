@@ -54,7 +54,7 @@ GRID_LABELS: #PE24x144-CF
 #==============================================================================
 COLLECTIONS: 'SpeciesConc',
              'Emissions',
-             #'Metrics',
+             'Metrics',
              #'Budget',
              #'Carbon',
              #'CloudConvFlux',
@@ -178,10 +178,10 @@ COLLECTIONS: 'SpeciesConc',
                               'SpeciesConcVV_CO     ', 'GCHPchem',
                               'SpeciesConcVV_CO2    ', 'GCHPchem',
                               'SpeciesConcVV_OCS    ', 'GCHPchem',
-                              ##'SpeciesConcMND_CH4 ', 'GCHPchem',
-                              ##'SpeciesConcMND_CO  ', 'GCHPchem',
-                              ##'SpeciesConcMND_CO2 ', 'GCHPchem',
-                              ##'SpeciesConcMND_OCS ', 'GCHPchem',
+                              #'SpeciesConcMND_CH4 ', 'GCHPchem',
+                              #'SpeciesConcMND_CO  ', 'GCHPchem',
+                              #'SpeciesConcMND_CO2 ', 'GCHPchem',
+                              #'SpeciesConcMND_OCS ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
