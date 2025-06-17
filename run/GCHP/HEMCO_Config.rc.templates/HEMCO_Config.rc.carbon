@@ -163,11 +163,11 @@ Mask fractions:              false
 (((UseTotalPriorEmis
 
 (((Emis_PosteriorSF
-0 CH4_Emis_Prior ../../prior_run/OutputDir/HEMCO_sa_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 3 1 500
+0 CH4_Emis_Prior ../../prior_run/OutputDir/GEOSChem.Emissions.$YYYY$MM$DD_0000z.nc4 EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 3 1 500
 )))Emis_PosteriorSF
 
 (((.not.Emis_PosteriorSF
-0 CH4_Emis_Prior ../../prior_run/OutputDir/HEMCO_sa_diagnostics.$YYYY$MM$DD0000.nc EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 - 1 500
+0 CH4_Emis_Prior ../../prior_run/OutputDir/GEOSChem.Emissions.$YYYY$MM$DD_0000z.nc4 EmisCH4_Total $YYYY/$MM/$DD/0 C xy kg/m2/s CH4 - 1 500
 ))).not.Emis_PosteriorSF
 
 )))UseTotalPriorEmis

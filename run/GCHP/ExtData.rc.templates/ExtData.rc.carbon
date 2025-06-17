@@ -138,7 +138,7 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 #==============================================================================
 
 # --- UseTotalPriorEmis ---
-CH4_Emis_Prior kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none EmisCH4_Total ../../prior_run/OutputDir/HEMCO_sa_diagnostics.$YYYY$MM$DD0000.nc
+CH4_Emis_Prior kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none EmisCH4_Total ../../prior_run/OutputDir/GEOSChem.Emissions.%y4%m2%d2_0000z.nc4
 
 # --- Gridded GHGI v2 Express Extension (Maasakkers et al., ES&T, 2023) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
