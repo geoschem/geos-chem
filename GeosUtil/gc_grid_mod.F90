@@ -450,13 +450,23 @@ CONTAINS
                                    ( Re**2 ) * SIN_DIFF
 
 #ifdef LUO_WETDEP
-       State_Grid%DX_M(I,J) = Re * State_Grid%DX * PI_180 * &
-                              COS(State_Grid%YMid_R(I,J))
-       IF(J==1 .OR. J==State_Grid%NY)THEN
-         State_Grid%DY_M(I,J) = Re * State_Grid%DY*0.5D0 * PI_180
-       ELSE
-         State_Grid%DY_M(I,J) = Re * State_Grid%DY * PI_180
-       ENDIF
+       State_Grid%DXS_M(I,J) = Re * &
+         ACOS(SIN(State_Grid%YEdge_R(I,J)) * SIN(State_Grid%YEdge_R(I+1,J)) + &
+              COS(State_Grid%YEdge_R(I,J)) * COS(State_Grid%YEdge_R(I+1,J)) * &
+              COS(PI_180 * State_Grid%XEdge(I+1,J) - PI_180 * State_Grid%XEdge(I,J)))
+       State_Grid%DXN_M(I,J) = Re * &
+         ACOS(SIN(State_Grid%YEdge_R(I,J+1)) * SIN(State_Grid%YEdge_R(I+1,J+1)) + &
+              COS(State_Grid%YEdge_R(I,J+1)) * COS(State_Grid%YEdge_R(I+1,J+1)) * &
+              COS(PI_180 * State_Grid%XEdge(I+1,J+1) - PI_180 * State_Grid%XEdge(I,J+1)))
+
+       State_Grid%DYW_M(I,J) = Re * &
+         ACOS(SIN(State_Grid%YEdge_R(I,J)) * SIN(State_Grid%YEdge_R(I,J+1)) + &
+              COS(State_Grid%YEdge_R(I,J)) * COS(State_Grid%YEdge_R(I,J+1)) * &
+              COS(PI_180 * State_Grid%XEdge(I,J+1) - PI_180 * State_Grid%XEdge(I,J)))
+       State_Grid%DYE_M(I,J) = Re * &
+         ACOS(SIN(State_Grid%YEdge_R(I+1,J)) * SIN(State_Grid%YEdge_R(I+1,J+1)) + &
+              COS(State_Grid%YEdge_R(I+1,J)) * COS(State_Grid%YEdge_R(I+1,J+1)) * &
+              COS(PI_180 * State_Grid%XEdge(I+1,J+1) - PI_180 * State_Grid%XEdge(I+1,J)))
 #endif
 
     ENDDO
