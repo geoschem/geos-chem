@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
+- Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
