@@ -1929,9 +1929,10 @@ CONTAINS
       IF(F_CLD>1.D-4)THEN
         State_Met%KINC(I,J,L) = State_Met%WUP(I,J,L)*&
                  (SQRT(F_CLD)*State_Met%BXHEIGHT(I,J,L)*&
-                 (State_Grid%DY_M(I,J)+State_Grid%DX_M(I,J))+&
-                  F_CLD*State_Grid%DX_M(I,J)*State_Grid%DY_M(I,J))/&
-                 (1.D-30+F_CLD*State_Grid%DX_M(I,J)*State_Grid%DY_M(I,J)*&
+                 0.5D0*(State_Grid%DYW_M(I,J)+State_Grid%DYE_M(I,J)+&
+                        State_Grid%DXS_M(I,J)+State_Grid%DXN_M(I,J))+&
+                  F_CLD*State_Grid%Area_M2(I,J))/&
+                 (1.D-30+F_CLD*State_Grid%Area_M2(I,J)*&
                                State_Met%BXHEIGHT(I,J,L))
       ELSE
         State_Met%KINC(I,J,L) = 1.D-30
