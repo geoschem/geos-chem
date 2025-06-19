@@ -89,10 +89,8 @@ MODULE State_Grid_Mod
      REAL(fp),  POINTER :: YSIN       (:,:) ! SIN( lat edges )
      REAL(fp),  POINTER :: Area_M2    (:,:) ! Grid box area [m2]
 #ifdef LUO_WETDEP
-     REAL(fp),  POINTER :: DXS_M       (:,:) ! Grid box width at the southern edge [m]
-     REAL(fp),  POINTER :: DXN_M       (:,:) ! Grid box width at the northern edge [m]
-     REAL(fp),  POINTER :: DYW_M       (:,:) ! Grid box width at the western edge [m]
-     REAL(fp),  POINTER :: DYE_M       (:,:) ! Grid box width at the eastern edge [m]
+     REAL(fp),  POINTER :: DXSN_M       (:,:) ! Grid box width at the southern and northern edges [m]
+     REAL(fp),  POINTER :: DYWE_M       (:,:) ! Grid box width at the western and eastern edges [m]
 #endif
 
 #if defined( MODEL_GEOS )
@@ -211,10 +209,8 @@ CONTAINS
     State_Grid%YSIN         => NULL()
     State_Grid%Area_M2      => NULL()
 #ifdef LUO_WETDEP
-    State_Grid%DXS_M         => NULL()
-    State_Grid%DXN_M         => NULL()
-    State_Grid%DYW_M         => NULL()
-    State_Grid%DYE_M         => NULL()
+    State_Grid%DXSN_M         => NULL()
+    State_Grid%DYWE_M         => NULL()
 #endif
 
 #if defined( MODEL_GEOS )
@@ -319,22 +315,14 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
 #ifdef LUO_WETDEP
-    ALLOCATE( State_Grid%DXS_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DXS_M', 0, RC )
+    ALLOCATE( State_Grid%DXSN_M( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DXSN_M', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DXS_M = 0e+0_fp
-    ALLOCATE( State_Grid%DXN_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DXN_M', 0, RC )
+    State_Grid%DXSN_M = 0e+0_fp
+    ALLOCATE( State_Grid%DYWE_M( State_Grid%NX+1, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DYWE_M', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DXN_M = 0e+0_fp
-    ALLOCATE( State_Grid%DYW_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DYW_M', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DYW_M = 0e+0_fp
-    ALLOCATE( State_Grid%DYE_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
-    CALL GC_CheckVar( 'State_Grid%DYE_M', 0, RC )
-    IF ( RC /= GC_SUCCESS ) RETURN
-    State_Grid%DYE_M = 0e+0_fp
+    State_Grid%DYWE_M = 0e+0_fp
 #endif
 
   END SUBROUTINE Allocate_State_Grid
@@ -460,29 +448,17 @@ CONTAINS
     ENDIF
 
 #ifdef LUO_WETDEP
-    IF ( ASSOCIATED( State_Grid%DXS_M ) ) THEN
-       DEALLOCATE( State_Grid%DXS_M, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DXS_M', 2, RC )
+    IF ( ASSOCIATED( State_Grid%DXSN_M ) ) THEN
+       DEALLOCATE( State_Grid%DXSN_M, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DXSN_M', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DXS_M => NULL()
+       State_Grid%DXSN_M => NULL()
     ENDIF
-    IF ( ASSOCIATED( State_Grid%DXN_M ) ) THEN
-       DEALLOCATE( State_Grid%DXN_M, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DXN_M', 2, RC )
+    IF ( ASSOCIATED( State_Grid%DYWE_M ) ) THEN
+       DEALLOCATE( State_Grid%DYWE_M, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DYWE_M', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DXN_M => NULL()
-    ENDIF
-    IF ( ASSOCIATED( State_Grid%DYW_M ) ) THEN
-       DEALLOCATE( State_Grid%DYW_M, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DYW_M', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DYW_M => NULL()
-    ENDIF
-    IF ( ASSOCIATED( State_Grid%DYE_M ) ) THEN
-       DEALLOCATE( State_Grid%DYE_M, STAT=RC )
-       CALL GC_CheckVar( 'State_Grid%DYE_M', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Grid%DYE_M => NULL()
+       State_Grid%DYWE_M => NULL()
     ENDIF
 #endif
 
