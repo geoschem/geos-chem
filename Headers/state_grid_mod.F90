@@ -89,8 +89,8 @@ MODULE State_Grid_Mod
      REAL(fp),  POINTER :: YSIN       (:,:) ! SIN( lat edges )
      REAL(fp),  POINTER :: Area_M2    (:,:) ! Grid box area [m2]
 #ifdef LUO_WETDEP
-     REAL(fp),  POINTER :: DXSN_M       (:,:) ! Grid box width at the southern and northern edges [m]
-     REAL(fp),  POINTER :: DYWE_M       (:,:) ! Grid box width at the western and eastern edges [m]
+     REAL(fp),  POINTER :: DXSN_M       (:,:) ! Averange grid box width at the southern and northern edges [m]
+     REAL(fp),  POINTER :: DYWE_M       (:,:) ! Averange grid box width at the western and eastern edges [m]
 #endif
 
 #if defined( MODEL_GEOS )
@@ -315,11 +315,11 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
 #ifdef LUO_WETDEP
-    ALLOCATE( State_Grid%DXSN_M( State_Grid%NX, State_Grid%NY+1 ), STAT=RC )
+    ALLOCATE( State_Grid%DXSN_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DXSN_M', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DXSN_M = 0e+0_fp
-    ALLOCATE( State_Grid%DYWE_M( State_Grid%NX+1, State_Grid%NY ), STAT=RC )
+    ALLOCATE( State_Grid%DYWE_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
     CALL GC_CheckVar( 'State_Grid%DYWE_M', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%DYWE_M = 0e+0_fp
