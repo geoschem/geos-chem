@@ -451,34 +451,24 @@ CONTAINS
 
 #ifdef LUO_WETDEP
        State_Grid%DXSN_M(I,J) = Re * &
-         ACOS(SIN(State_Grid%YEdge_R(I,J)) * SIN(State_Grid%YEdge_R(I,J)) + &
-              COS(State_Grid%YEdge_R(I,J)) * COS(State_Grid%YEdge_R(I,J)) * &
-              COS(PI_180 * State_Grid%XEdge(I+1,J) - PI_180 * State_Grid%XEdge(I,J)))
+             ACOS( SIN( State_Grid%YMid(I,J) * PI_180 ) * &
+                   SIN( State_Grid%YMid(I,J) * PI_180 ) + &
+                   COS( State_Grid%YMid(I,J) * PI_180 ) * &
+                   COS( State_Grid%YMid(I,J) * PI_180 ) * &
+                   COS( State_Grid%XEdge(I+1,J) * PI_180 - &
+                        State_Grid%XEdge(I,J) * PI_180))
 
        State_Grid%DYWE_M(I,J) = Re * &
-         ACOS(SIN(State_Grid%YEdge_R(I,J)) * SIN(State_Grid%YEdge_R(I,J+1)) + &
-              COS(State_Grid%YEdge_R(I,J)) * COS(State_Grid%YEdge_R(I,J+1)) * &
-              COS(PI_180 * State_Grid%XEdge(I,J) - PI_180 * State_Grid%XEdge(I,J)))
+             ACOS( SIN( State_Grid%YEdge_R(I,J) ) * &
+                   SIN( State_Grid%YEdge_R(I,J+1) ) + &
+                   COS( State_Grid%YEdge_R(I,J) ) * &
+                   COS( State_Grid%YEdge_R(I,J+1) ) * &
+                   COS( State_Grid%XMid(I,J) * PI_180 - &
+                        State_Grid%XMid(I,J) * PI_180 )))
 #endif
 
     ENDDO
     ENDDO
-
-#ifdef LUO_WETDEP
-    DO I = 1, State_Grid%NX
-      State_Grid%DXSN_M(I,State_Grid%NY+1) = Re * &
-         ACOS(SIN(State_Grid%YEdge_R(I,State_Grid%NY+1)) * SIN(State_Grid%YEdge_R(I,State_Grid%NY+1)) + &
-              COS(State_Grid%YEdge_R(I,State_Grid%NY+1)) * COS(State_Grid%YEdge_R(I,State_Grid%NY+1)) * &
-              COS(PI_180 * State_Grid%XEdge(I+1,State_Grid%NY) - PI_180 * State_Grid%XEdge(I,State_Grid%NY)))
-    ENDDO
-
-    DO J = 1, State_Grid%NY
-       State_Grid%DYWE_M(State_Grid%NX+1,J) = Re * &
-         ACOS(SIN(State_Grid%YEdge_R(State_Grid%NX,J)) * SIN(State_Grid%YEdge_R(State_Grid%NX,J+1)) + &
-              COS(State_Grid%YEdge_R(State_Grid%NX,J)) * COS(State_Grid%YEdge_R(State_Grid%NX,J+1)) * &
-              COS(PI_180 * State_Grid%XEdge(State_Grid%NX+1,J) - PI_180 * State_Grid%XEdge(State_Grid%NX+1,J)))
-    ENDDO
-#endif
 
     ! Return successfully
     RC = GC_SUCCESS
