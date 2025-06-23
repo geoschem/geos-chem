@@ -1725,6 +1725,12 @@ CONTAINS
     ! Scalars
     INTEGER             :: I, J, L, N, NA, nAdvect, EC
     REAL(fp)            :: dtime
+#ifdef LUO_WETDEP
+    REAL(fp)            :: F_CLD
+    REAL(fp)            :: YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK
+    REAL(fp)            :: log2R, DFKG, uptkrate
+    REAL(fp), PARAMETER :: ROOT_TWO_THIRDS = SQRT(2.D0/3.D0)
+#endif
 
     ! Arrays
     REAL(fp), TARGET    :: tpert (State_Grid%NX,State_Grid%NY)
@@ -1897,6 +1903,106 @@ CONTAINS
 
     ! Convert kg/kg -> g/kg
     p_shp    = p_shp * 1.0e+3_fp
+
+#ifdef LUO_WETDEP
+!$OMP PARALLEL DO DEFAULT( SHARED )      &
+!$OMP PRIVATE( I, J, L, F_CLD ) &
+!$OMP PRIVATE( YCLDICE, FICE, YB, volx34pi_cd, rrate, SQM, STK ) &
+!$OMP PRIVATE( log2R, DFKG, uptkrate )
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+
+      IF(L>State_Met%PBL_TOP_L(I,J))THEN
+      State_Met%WUP(I,J,L)=(0.5D0*(kvh(I,J,L)+kvh(I,J,L+1))/30.D0/&
+                            0.516D0)*ROOT_TWO_THIRDS
+      ELSE
+      State_Met%WUP(I,J,L)=(0.5D0*(kvh(I,J,L)+kvh(I,J,L+1))/&
+           MAX(30.D0,(1.D0/(1.D0/(0.4D0*SUM(State_Met%BXHEIGHT(I,J,1:L)))+&
+                            1.D0/300.D0)))/&
+                            0.516D0)*ROOT_TWO_THIRDS
+      ENDIF
+      State_Met%WUP(I,J,L)=MIN(20.D0,MAX(0.2D0,State_Met%WUP(I,J,L)))
+
+      F_CLD = State_Met%CLDF(I,J,L)
+
+      IF(F_CLD>1.D-4)THEN
+        State_Met%KINC(I,J,L) = State_Met%WUP(I,J,L)*&
+                 (SQRT(F_CLD)*State_Met%BXHEIGHT(I,J,L)*&
+                 (State_Grid%DYWE_M(I,J)+State_Grid%DXSN_M(I,J))+&
+                  F_CLD*State_Grid%Area_M2(I,J))/&
+                 (1.D-30+F_CLD*State_Grid%Area_M2(I,J)*&
+                               State_Met%BXHEIGHT(I,J,L))
+      ELSE
+        State_Met%KINC(I,J,L) = 1.D-30
+        F_CLD = 1.D-4
+      ENDIF
+                
+      State_Met%KINC(I,J,L) = MAX(1.D-30,State_Met%KINC(I,J,L))
+
+      State_Met%NUMCD(I,J,L) = 1.D-30
+      State_Met%ICESF(I,J,L) = 1.D-30
+      State_Met%RADCD(I,J,L) = 20.D-4
+      State_Met%TKICE(I,J,L) = 0.D0
+
+      IF(State_Met%T(I,J,L)<237.D0 .AND. State_Met%CLDF(I,J,L)>1.D-6)THEN
+
+      YCLDICE = State_Met%QI(I,J,L)*State_Met%AIRDEN(I,J,L)*1.0D3
+      IF(YCLDICE>1.D-20)THEN
+
+        FICE=State_Met%CLDF(I,J,L)*YCLDICE/&
+        (YCLDICE+State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1.0D3)
+
+        IF(FICE>1.D-6)THEN
+          YCLDICE=YCLDICE/FICE
+          State_Met%RADCD(I,J,L) = 0.5d0*53.005d0*(YCLDICE**0.006d0)*&
+                                   exp(0.013d0*(State_Met%T(I,J,L)-273.d0))
+
+          State_Met%RADCD(I,J,L) = max(5.D0,MIN(1000.D0,State_Met%RADCD(I,J,L)))
+          State_Met%RADCD(I,J,L) = State_Met%RADCD(I,J,L)*1.D-4
+          log2R = log(State_Met%RADCD(I,J,L)*2.d0)
+
+          IF(State_Met%T(I,J,L)<218.15D0)THEN
+            volx34pi_cd = exp(-9.24318d0+0.57189d0*log2R-&
+                          0.17865d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.43451d0+1.60639d0*log2R-&
+                    0.01164d0*(log2R*log2R))
+          ELSE IF(State_Met%T(I,J,L)<233.15D0)THEN
+            volx34pi_cd = exp(-6.44787d0+1.64429d0*log2R-&
+                          0.07788d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.38913d0+1.40166d0*log2R-&
+                    0.05219d0*(log2R*log2R))
+          ELSE
+            volx34pi_cd = exp(-6.67252d0+1.36857d0*log2R-&
+                          0.12293d0*(log2R*log2R))
+            State_Met%ICESF(I,J,L) = exp(-2.40314d0+1.29749d0*log2R-&
+                    0.07233d0*(log2R*log2R))
+          ENDIF
+          State_Met%NUMCD(I,J,L) = YCLDICE/volx34pi_cd*1.D-6
+
+          rrate = 7.0D-3 - 4.D-3*MAX(0.D0,MIN(1.D0,(State_Met%T(I,J,L)-209.5D0)/&
+                 (220.D0-209.5D0)))
+
+          SQM = sqrt(63.D0)
+          STK = sqrt(State_Met%T(I,J,L))
+          DFKG = 9.45e+17_f8/State_Met%AIRNUMDEN(I,J,L) * STK * &
+                 SQRT(3.472e-2_f8 + 1.e+0_f8/(SQM*SQM))
+
+          uptkrate = State_Met%NUMCD(I,J,L)*State_Met%ICESF(I,J,L)/&
+                    (State_Met%RADCD(I,J,L)/DFKG+2.749064D-4*SQM/(rrate*STK))
+
+          State_Met%TKICE(I,J,L) = uptkrate*(State_Met%KINC(I,J,L)/&
+                   (State_Met%KINC(I,J,L)+(1.D0-State_Met%CLDF(I,J,L))*uptkrate))
+
+        ENDIF
+      ENDIF
+      ENDIF
+
+    ENDDO
+    ENDDO
+    ENDDO
+!$OMP END PARALLEL DO
+#endif
 
     ! Nullify pointers
     p_sflx   => NULL()
