@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Sample script for use on the NCAR Derecho Cluster. Edit before running
+# Sample script for use on the NCAR Derecho Cluster. Edit before running.
 
 #PBS -N Project_title (e.g GCClassic run)
 #PBS -A Project_ID
@@ -10,8 +10,11 @@
 #PBS -M user@domain.edu
 #PBS -q main
 #PBS -l walltime=1:30:00
-### Request 128 CPUS for 128 threads and large memory nodes 
+## Request 128 CPUS for 128 threads and large memory nodes
 #PBS -l select=1:ncpus=128:ompthreads=128:mem=230GB
+
+#Load the modules with the environment file before compiling GCClassic
+source gcclassic.intel2024.env
 
 # An optional step, and can be commented out if not using scratch:
 export TMPDIR=/glade/derecho/scratch/$USER/tmp/$PBS_JOBID
@@ -19,7 +22,7 @@ mkdir -p $TMPDIR
 cd "$TMPDIR"
 
 # Copy necessary input files from permanent storage
-cp -r /glade/work/$USER/rundir/*  .
+cp -r /glade/work/$USER/rundirs/gc_4x5_merra2_fullchem/*  .
 
 ### Run OpenMP program
 ulimit -s unlimited
@@ -52,9 +55,9 @@ echo '===> Run ended at' `date` >> $log
 unset log
 
 # Copy necessary output files back (an optional step and can be commented out)
-cp -r ./OutputDir/* /glade/work/$USER/rundir/OutputDir/
-cp -r ./Restarts/* /glade/work/$USER/rundir/Restarts/
-cp -r ./GC.log /glade/work/$USER/rundir/GC.log
+cp -r ./OutputDir/* /glade/work/$USER/rundirs/gc_4x5_merra2_fullchem/OutputDir/
+cp -r ./Restarts/* /glade/work/$USER/rundirs/gc_4x5_merra2_fullchem/Restarts/
+cp -r ./GC.log /glade/work/$USER/rundirs/gc_4x5_merra2_fullchem/GC.log
 
 # Exit normally
 exit 0

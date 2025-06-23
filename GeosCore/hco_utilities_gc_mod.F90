@@ -2446,6 +2446,7 @@ CONTAINS
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=255)   :: MSG                ! message
    CHARACTER(LEN=255)   :: v_name_in_hemco    ! variable name
+   REAL(fp)             :: MW_g               ! species molecular weight
    CHARACTER(LEN=16)    :: STAMP
 
    ! Temporary arrays and pointers
@@ -2506,6 +2507,7 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
+      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
       v_name_in_hemco = 'BC_' // TRIM( SpcInfo%Name )
@@ -2532,8 +2534,9 @@ CONTAINS
             ENDIF
          ENDIF
 
-         ! Copy data from file to State_Chm%BoundaryCond [mol/mol]
-         State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:)
+         ! Copy data from file to State_Chm%BoundaryCond
+         ! and convert from [mol/mol] to [kg/kg dry]
+         State_Chm%BoundaryCond(:,:,:,N) = Ptr3D(:,:,:) * MW_g / AIRMW
 
          ! Debug
          ! Print*, 'BCs found for ', TRIM( SpcInfo%Name ), &
