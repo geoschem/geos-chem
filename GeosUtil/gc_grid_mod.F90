@@ -464,7 +464,7 @@ CONTAINS
                    COS( State_Grid%YEdge_R(I,J) ) * &
                    COS( State_Grid%YEdge_R(I,J+1) ) * &
                    COS( State_Grid%XMid(I,J) * PI_180 - &
-                        State_Grid%XMid(I,J) * PI_180 )))
+                        State_Grid%XMid(I,J) * PI_180 ))
 #endif
 
     ENDDO
