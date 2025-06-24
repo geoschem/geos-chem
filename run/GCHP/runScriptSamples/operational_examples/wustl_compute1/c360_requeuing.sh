@@ -31,7 +31,7 @@ function last_checkpoint_date() {
 }
 
 # Set up runtime environment
-set -x                           # Print executed commands
+#set -x                          # Print executed commands (optional debugging)
 ulimit -c 0                      # coredumpsize
 ulimit -l unlimited              # memorylocked
 ulimit -u 50000                  # maxproc

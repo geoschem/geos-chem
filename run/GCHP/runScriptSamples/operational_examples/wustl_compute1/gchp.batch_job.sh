@@ -49,6 +49,9 @@ source setCommonRunSettings.sh
 source setRestartLink.sh
 source checkRunSettings.sh
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 #################################################################
 #
 # LAUNCH GCHP 
