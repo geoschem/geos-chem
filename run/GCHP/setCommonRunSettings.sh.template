@@ -101,13 +101,13 @@ Diag_Collections=(SpeciesConc    \
                   JValues        \
                   KppDiags       \
                   KppARDiags     \
-                  LevelEdgeDiags \
                   Metrics        \
                   ProdLoss       \
                   RadioNuclide   \
                   RRTMG 	 \
                   StateChm	 \
                   StateMet       \
+                  StateMetLevEdge \
                   StratBM        \
                   Tomas          \
                   Transport	 \

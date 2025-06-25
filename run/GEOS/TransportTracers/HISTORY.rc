@@ -8,10 +8,10 @@ COLLECTIONS: 'Emissions',
              'Budget',
              'CloudConvFlux',
              'DryDep',
-             #'LevelEdgeDiags',
              'RadioNuclide',
              'SpeciesConc',
              'StateMet',
+             'StateMetLevEdge',
              'WetLossConv',
              'WetLossLS',
              #'geosgcm_prog'
@@ -1741,22 +1741,6 @@ PC360x181-DC.LM: 72
                            'DryDepVel_Be10s  ', 'GEOSCHEMCHEM',
 ::
 #==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GEOSCHEMCHEM',
-                            'Met_PEDGE          ', 'GEOSCHEMCHEM',
-                            'Met_PEDGEDRY       ', 'GEOSCHEMCHEM',
-                            'Met_PFICU          ', 'GEOSCHEMCHEM',
-                            'Met_PFILSAN        ', 'GEOSCHEMCHEM',
-                            'Met_PFLCU          ', 'GEOSCHEMCHEM',
-                            'Met_PFLLSAN        ', 'GEOSCHEMCHEM',
-::
-#==============================================================================
   RadioNuclide.template:       '%y4%m2%d2_%h2%n2z.nc4',
   RadioNuclide.format:         'CFIO',
   RadioNuclide.timestampStart: .true.
@@ -1890,6 +1874,22 @@ PC360x181-DC.LM: 72
                             'Met_V              ', 'GEOSCHEMCHEM',
                             'Met_V10M           ', 'GEOSCHEMCHEM',
                             'Met_Z0             ', 'GEOSCHEMCHEM',
+::
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:    'Met_CMFMC          ', 'GEOSCHEMCHEM',
+                             'Met_PEDGE          ', 'GEOSCHEMCHEM',
+                             'Met_PEDGEDRY       ', 'GEOSCHEMCHEM',
+                             'Met_PFICU          ', 'GEOSCHEMCHEM',
+                             'Met_PFILSAN        ', 'GEOSCHEMCHEM',
+                             'Met_PFLCU          ', 'GEOSCHEMCHEM',
+                             'Met_PFLLSAN        ', 'GEOSCHEMCHEM',
 ::
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',

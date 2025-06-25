@@ -58,13 +58,11 @@ COLLECTIONS: 'Emissions',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
-             'LevelEdgeDiags',      
-             'SpeciesConc_avg',
-	     'SpeciesConc_inst',
+             'SpeciesConc',
 	     #'Adjoint',
 	     #'SFEmissions',
-             'StateMet_avg',      
-             'StateMet_inst',      
+             'StateMet',
+             'StateMetLevEdge',
 ::
 #==============================================================================
 # Define collections
@@ -228,23 +226,6 @@ COLLECTIONS: 'Emissions',
                                       'MFY_R4      ', 'GCHPctmEnv',
 ::
 #==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:         'Met_CMFMC          ', 'GCHPchem',
-                                 'Met_PEDGE          ', 'GCHPchem',
-                                 'Met_PEDGEDRY       ', 'GCHPchem',
-                                 'Met_PFICU          ', 'GCHPchem',
-                                 'Met_PFILSAN        ', 'GCHPchem',
-                                 'Met_PFLCU          ', 'GCHPchem',
-                                 'Met_PFLLSAN        ', 'GCHPchem',
-                                 'UpwardsMassFlux    ', 'GCHPctmEnv',
-::
-#==============================================================================
   SpeciesConc_avg.template:       '%y4%m2%d2_%h2%n2z.nc4',
   SpeciesConc_avg.format:         'CFIO',
   SpeciesConc_avg.timestampStart: .true.
@@ -363,4 +344,20 @@ COLLECTIONS: 'Emissions',
                            'Met_V              ', 'GCHPchem',
                            'Met_V10M           ', 'GCHPchem',
                            'Met_Z0             ', 'GCHPchem',
+::
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:         'Met_CMFMC          ', 'GCHPchem',
+                                    'Met_PEDGE          ', 'GCHPchem',
+                                    'Met_PEDGEDRY       ', 'GCHPchem',
+                                    'Met_PFICU          ', 'GCHPchem',
+                                    'Met_PFILSAN        ', 'GCHPchem',
+                                    'Met_PFLCU          ', 'GCHPchem',
+                                    'Met_PFLLSAN        ', 'GCHPchem',
 ::

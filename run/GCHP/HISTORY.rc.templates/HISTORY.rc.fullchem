@@ -74,7 +74,6 @@ COLLECTIONS: @#'DefaultCollection',
              #'Metrics',
              @#'KppDiags',
              @#'KppARDiags',
-             @#'LevelEdgeDiags',
              @#'ProdLoss',
              @##'RRTMG',
              @##'DynHeating',
@@ -83,6 +82,7 @@ COLLECTIONS: @#'DefaultCollection',
              #'SpeciesConc',
              @#'StateChm',
              #'StateMet',
+             @#'StateMetLevEdge',
              @#'StratBM',
              @##'Tomas',
              @#'UVFlux',
@@ -1448,30 +1448,6 @@ COLLECTIONS: @#'DefaultCollection',
                               'OHwgtByAirMassColumnFull    ', 'GCHPchem',
 ::
 #==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
-#
-# Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
-#==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:         'Met_CMFMC                     ', 'GCHPchem',
-                                 'Met_PEDGE                     ', 'GCHPchem',
-                                 'Met_PEDGEDRY                  ', 'GCHPchem',
-                                 'Met_PFICU                     ', 'GCHPchem',
-                                 'Met_PFILSAN                   ', 'GCHPchem',
-                                 'Met_PFLCU                     ', 'GCHPchem',
-                                 'Met_PFLLSAN                   ', 'GCHPchem',
-                                 'UpwardsMassFlux               ', 'GCHPctmEnv',
-
-::
-#==============================================================================
 # %%%%% THE ProdLoss COLLECTION %%%%%
 #
 # Chemical production and loss rates
@@ -2188,7 +2164,7 @@ COLLECTIONS: @#'DefaultCollection',
 #==============================================================================
 # %%%%% The StateMet time-averaged COLLECTION %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+# Fields of the State_Met object (also see the StateMetLevEdge collection)
 #
 # Available for all simulations
 #==============================================================================
@@ -2280,6 +2256,28 @@ COLLECTIONS: @#'DefaultCollection',
                       #'Met_V10M            ', 'GCHPchem',
                       #'Met_Z0              ', 'GCHPchem',
                       #'FracOfTimeInTrop    ', 'GCHPchem',
+::
+#==============================================================================
+# %%%%% THE StateMetLevEdge COLLECTION %%%%%
+#
+# State_Met arrays that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:         'Met_CMFMC                     ', 'GCHPchem',
+                                  'Met_PEDGE                     ', 'GCHPchem',
+                                  'Met_PEDGEDRY                  ', 'GCHPchem',
+                                  'Met_PFICU                     ', 'GCHPchem',
+                                  'Met_PFILSAN                   ', 'GCHPchem',
+                                  'Met_PFLCU                     ', 'GCHPchem',
+                                  'Met_PFLLSAN                   ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE StratBM COLLECTION %%%%%
