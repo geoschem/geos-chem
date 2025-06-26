@@ -1616,8 +1616,10 @@ CONTAINS
 
     !-----------------------------------------------------------------------
     ! Find L corresponding to the ObsPack altitude value
+    ! ObsPack altitude variable defined as MASL, so Z
+    ! starts at surface height
     !-----------------------------------------------------------------------
-    Z = 0.0_f8
+    Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1, State_Grid%NZ
        Z = Z + State_Met%BXHEIGHT(I,J,L)
        IF ( Z >= State_Diag%ObsPack_Altitude(iObs) ) RETURN
@@ -1629,6 +1631,7 @@ CONTAINS
     !WRITE (6,*) 'At I,J =',i,j
     !FLUSH(6)
 
+    Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1,State_Grid%NZ
        Z=Z+State_Met%BXHEIGHT(I,J,L)
        WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L),Z
