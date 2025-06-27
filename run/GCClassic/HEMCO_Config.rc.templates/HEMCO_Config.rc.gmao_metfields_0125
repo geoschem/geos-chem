@@ -141,8 +141,8 @@ HIGHRES:     ${RUNDIR_DATA_ROOT}/GEOS_0.125x0.15625/GEOS_FP_DerivedWinds
 #==============================================================================
 (((LightNOx
 (((.not.LightningClimatology
-* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
-* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/v2020-03/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* FLASH_DENS $ROOT/OFFLINE_LIGHTNING/${RUNDIR_LIGHTNOX_DIR}/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  LDENS 1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
+* CONV_DEPTH $ROOT/OFFLINE_LIGHTNING/${RUNDIR_LIGHTNOX_DIR}/$MET/$YYYY/FLASH_CTH_$MET_0.25x0.3125_$YYYY_$MM.nc4  CTH   1980-2021/1-12/1-31/0-23/+90minute RFY3 xy  1  * -  1 1
 ))).not.LightningClimatology
 
 (((LightningClimatology

@@ -8,6 +8,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
 - Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
+- Added GEOS-IT simulations to use offline emissions generated with GEOS-IT
+- Added meteorology-specific OFFLINE_EMISSION_DIR entries in shared directory for future use and backward compatibility
 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
