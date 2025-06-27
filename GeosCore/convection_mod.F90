@@ -1118,34 +1118,13 @@ CONTAINS
              K_RAIN      = 0e+0_fp
 
              ! Check if...
-             ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
-             ! (2) there is species to re-evaporate
-#ifdef LUO_WETDEP
-             IF ( PDOWN(K+1)  > 0 .and. F_WASHOUT > 0 .and. &
-#else
-             IF ( PDOWN(K+1)  > 0 .and. &
-#endif
-                  T0_SUM      > 0        ) THEN
+             ! there is precip coming into box (I,J,K) from (I,J,K+1)
+             IF ( PDOWN(K+1)  > 0) THEN
 
-                ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
-                ! experiencing washout. First, convert units of PDOWN, 
-                ! the downward flux of precip leaving grid box (K+1)
-                ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-                ! by dividing by box height in cm
+! Only do convective washout for LUO_WETDEP
 #ifdef LUO_WETDEP
+             IF ( F_WASHOUT > 0 ) THEN
                 QDOWN = PDOWN(K+1)
-#else
-                QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
-#endif
-
-                ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
-                ! leaving grid box (K+1).
-#ifndef LUO_WETDEP
-                ! Default scheme: Use COND_WATER_CONTENT = 1e-6 [cm3/cm3]
-                ! (which was recommended by Qiaoqiao Wang et al [2014])
-                K_RAIN   = LS_K_RAIN(  QDOWN,         1.0e-6_fp )
-                F_WASHOUT= LS_F_PRIME( QDOWN, K_RAIN, 1.0e-6_fp )
-#endif
 
                 ! Call WASHOUT to compute the fraction of species lost
                 ! to washout in grid box (I,J,K)
@@ -1188,7 +1167,8 @@ CONTAINS
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
-
+            ENDIF
+#endif
                 ! Check if the species is an aerosol or not
                 IF ( AER ) THEN
 
@@ -2026,35 +2006,16 @@ CONTAINS
                 MASS_WASH   = 0e+0_fp
                 K_RAIN      = 0e+0_fp
 
-                ! Precipitation from upper edge is essential for both washout and reevaporation
-#ifdef LUO_WETDEP
-                IF ( PDOWN(K+1)  > 0 .and. F_WASHOUT > 0 ) THEN
-#else
-                IF ( PDOWN(K+1)  > 0 ) THEN
-#endif
+               ! Precipitation from upper edge is essential for both washout and reevaporation
+               IF ( PDOWN(K+1)  > 0 ) THEN
 
+! Only do convective washout for LUO_WETDEP
+#ifdef LUO_WETDEP
+               IF ( F_WASHOUT > 0 ) THEN
                    !==================================================================
                    ! (4.1)  W a s h o u t
                    !==================================================================
-                   ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
-                   ! experiencing washout. First, convert units of PDOWN,
-                   ! the downward flux of precip leaving grid box (K+1)
-                   ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
-                   ! by dividing by box height in cm
-#ifdef LUO_WETDEP
                    QDOWN = PDOWN(K+1)
-#else
-                   QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
-#endif
-
-#ifndef LUO_WETDEP
-                   ! Compute K_RAIN and F_WASHOUT based on the flux of precip leaving grid box (K+1).
-                   ! Luo et al scheme: Use COND_WATER_CONTENT = 2e-6 [cm3/cm3]
-                   K_RAIN   = LS_K_RAIN( QDOWN, 2.0e-6_fp )
-                   ! F_WASHOUT here is guaranteed to be positive
-                   ! since it is calculated from PDOWN(K+1)
-                   F_WASHOUT= CONV_F_PRIME( QDOWN, K_RAIN, SDT )
-#endif
 
                    ! Call WASHOUT to compute the fraction of species lost
                    ! to washout in grid box (I,J,K)
@@ -2097,7 +2058,8 @@ CONTAINS
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
                    ENDIF
-
+               ENDIF
+#endif
                    !==================================================================
                    ! (4.2)  R e e v a p o r a t i o n
                    ! Reevaporation differ between kinetic species (Aerosol and HNO3)
