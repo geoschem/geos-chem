@@ -510,7 +510,6 @@ CONTAINS
     REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
 #ifdef LUO_WETDEP
     REAL(fp), PARAMETER    :: pHRain = 5.6_fp
-    REAL(fp)               :: F_RAIN
 #endif
 !
 ! !LOCAL VARIABLES:
@@ -535,6 +534,7 @@ CONTAINS
     REAL(fp)               :: QB_NUM,      DELP_DRY_NUM
 #ifdef LUO_WETDEP
     REAL(fp)               :: DECAY_CONST, LOCAL_F_WASHOUT
+    REAL(fp)               :: F_RAIN
 #endif
 
     ! Strings
@@ -1523,6 +1523,7 @@ CONTAINS
     REAL(fp)               :: WET_HgP
 #ifdef LUO_WETDEP
     REAL(fp)               :: DECAY_CONST, LOCAL_F_WASHOUT
+    REAL(fp)               :: F_RAIN
 #endif
 
     ! Strings
