@@ -110,12 +110,12 @@ CONTAINS
     REAL(fp)           :: PEDGE (State_Grid%NZ+1)
     REAL(fp)           :: DIAG14(State_Grid%NZ,State_Chm%nAdvect)
     REAL(fp)           :: DIAG38(State_Grid%NZ,State_Chm%nWetDep)
-    REAL(fp)           :: F     (State_Grid%NZ,State_Chm%nAdvect)
     REAL(fp), TARGET   :: FSOL  (State_Grid%NX,State_Grid%NY,&
                                  State_Grid%NZ,State_Chm%nAdvect)
 
     ! Pointers
-    REAL(fp), POINTER  :: p_FSOL (:,:,:)
+    REAL(fp), POINTER  :: F(:,:)
+    REAL(fp), POINTER  :: p_FSOL(:,:,:)
 
     !========================================================================
     ! DO_CONVECT begins here!
@@ -125,6 +125,7 @@ CONTAINS
     ! Initialize
     !------------------------------------------------------------------------
     RC      = GC_SUCCESS
+    F       => NULL()
     p_FSOL  => NULL()
     ErrMsg  = ''
     ThisLoc = ' -> at Do_Convection (in module GeosCore/convection_mod.F)'
@@ -183,9 +184,9 @@ CONTAINS
     !========================================================================
 
     ! Loop over advected species
-    !$OMP PARALLEL DO                           &
-    !$OMP DEFAULT( SHARED                     ) &
-    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL, S )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( NA, N, p_FSOL, EC, ISOL, S                               )
     DO NA = 1, nAdvect
 
        ! Species ID
@@ -235,24 +236,11 @@ CONTAINS
     ! to DO_CLOUD_CONVECTION, to gain computational efficiency
     !=======================================================================
 
-#ifndef TOMAS
-    ! NOTE: For some reason, activating this parallel loop causes a
-    ! the ConvertBox_* routines in TOMAS washout to not convert units
-    ! properly.  It seems to go away when we disable this parallel loop.
-    ! Return to look at this issue in the future, but disable it for now.
-    !  -- Bob Yantosca (28 Feb 2024)
-    !$OMP PARALLEL DO                                                      &
-    !$OMP DEFAULT( SHARED                                                 )&
-    !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW      )&
-    !$OMP SCHEDULE( DYNAMIC, 8                                            )&
-    !$OMP COLLAPSE( 2                                                     )
-#else
-    !$OMP PARALLEL DO                                      &
-    !$OMP DEFAULT( SHARED                                ) &
-    !$OMP PRIVATE( J,      I,      AREA_M2, L, F,  EC    ) &
-    !$OMP PRIVATE( DIAG14, DIAG38, RC,      N, NA, NW, S ) &
-    !$OMP SCHEDULE( DYNAMIC )
-#endif
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( J, I, EC, AREA_M2, F, DIAG14, DIAG38, S, N, L, NW        )&
+    !$OMP SCHEDULE( GUIDED, 8                                               )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -269,46 +257,45 @@ CONTAINS
 
        ! Grid box surface area [m2]
        AREA_M2 =  State_Grid%Area_M2(I,J)
-
-       ! NOTE: For some reason the code chokes when we try
-       ! to use a pointer, so we'll use a 2D array here.
-       F       =  FSOL(I,J,:,:)
+       
+       ! Soluble fraction
+       F       => FSOL(I,J,:,:)
 
        !--------------------------
        ! Do the cloud convection
        !--------------------------
        IF ( .NOT. Input_Opt%Grell_Freitas_Convection ) THEN
-          CALL DO_RAS_CLOUD_CONVECTION( Input_Opt  = Input_Opt,  &
-                                        State_Chm  = State_Chm,  &
-                                        State_Diag = State_Diag, &
-                                        State_Grid = State_Grid, &
-                                        State_Met  = State_Met,  &
-                                        I          = I,          &
-                                        J          = J,          &
-                                        AREA_M2    = AREA_M2,    &
-                                        F          = F,          &
-                                        TS_DYN     = DT,         &
-                                        USE_DIAG14 = DoConvFlux, &
-                                        DIAG14     = DIAG14,     &
-                                        USE_DIAG38 = DoWetLoss,  &
-                                        DIAG38     = DIAG38,     &
-                                        RC         = EC          )
+          CALL DO_RAS_CLOUD_CONVECTION( Input_Opt  = Input_Opt,              &
+                                        State_Chm  = State_Chm,              &
+                                        State_Diag = State_Diag,             &
+                                        State_Grid = State_Grid,             &
+                                        State_Met  = State_Met,              &
+                                        I          = I,                      &
+                                        J          = J,                      &
+                                        AREA_M2    = AREA_M2,                &
+                                        F          = F,                      &
+                                        TS_DYN     = DT,                     &
+                                        USE_DIAG14 = DoConvFlux,             &
+                                        DIAG14     = DIAG14,                 &
+                                        USE_DIAG38 = DoWetLoss,              &
+                                        DIAG38     = DIAG38,                 &
+                                        RC         = EC                     )
        ELSE
-          CALL DO_GF_CLOUD_CONVECTION( Input_Opt  = Input_Opt,  &
-                                       State_Chm  = State_Chm,  &
-                                       State_Diag = State_Diag, &
-                                       State_Grid = State_Grid, &
-                                       State_Met  = State_Met,  &
-                                       I          = I,          &
-                                       J          = J,          &
-                                       AREA_M2    = AREA_M2,    &
-                                       F          = F,          &
-                                       TS_DYN     = DT,         &
-                                       USE_DIAG14 = DoConvFlux, &
-                                       DIAG14     = DIAG14,     &
-                                       USE_DIAG38 = DoWetLoss,  &
-                                       DIAG38     = DIAG38,     &
-                                       RC         = EC          )
+          CALL DO_GF_CLOUD_CONVECTION( Input_Opt  = Input_Opt,               &
+                                       State_Chm  = State_Chm,               &
+                                       State_Diag = State_Diag,              &
+                                       State_Grid = State_Grid,              &
+                                       State_Met  = State_Met,               &
+                                       I          = I,                       &
+                                       J          = J,                       &
+                                       AREA_M2    = AREA_M2,                 &
+                                       F          = F,                       &
+                                       TS_DYN     = DT,                      &
+                                       USE_DIAG14 = DoConvFlux,              &
+                                       DIAG14     = DIAG14,                  &
+                                       USE_DIAG38 = DoWetLoss,               &
+                                       DIAG38     = DIAG38,                  &
+                                       RC         = EC                      )
        ENDIF
 
        ! Trap potential errors (we can't exit an OpenMP loop)
@@ -360,6 +347,9 @@ CONTAINS
              ENDDO
           ENDDO
        ENDIF
+
+       ! Free pointers
+       F => NULL()
 
     ENDDO
     ENDDO

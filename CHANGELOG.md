@@ -9,13 +9,19 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
 - Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
 - Added operational run scripts for Harvard Cannon with Intel VTune commands
-
+- Added sample environment file for Harvard Cannon with GNU 14.2.0 compilers
+- Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
+- Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
+ 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
+
+### Removed
+- Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
 
 ## [14.6.2] - 2025-06-11
 ### Added
