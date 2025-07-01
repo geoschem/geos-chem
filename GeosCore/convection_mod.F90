@@ -704,6 +704,11 @@ CONTAINS
           ! unit area [kg/m2] (see calculation before loop).
           !-----------------------------------------------------------
 
+          ! If the cloud base happens at level 1 (or if CMFMC is
+          ! negligible, then just set QC to the species concentration
+          ! at the surface level [kg/kg]
+          QC = Q(CLDBASE)
+
           ! We need to make this a nested IF statement so that we don't
           ! get an out-of-bounds error when CLDBASE=1 (bmy, 11/18/10)
           IF ( CLDBASE > 1 ) THEN
@@ -746,27 +751,7 @@ CONTAINS
                 ! Copy QC to all levels of the species array Q
                 ! that are below the cloud base level [kg/kg]
                 Q(1:CLDBASE-1) = QC
-
-             ELSE
-
-                !-----------------------------------------------------
-                ! %%% Negligible cloud mass flux %%%
-                !-----------------------------------------------------
-
-                ! When CMFMC is negligible, then set QC to the species
-                ! concentration at the cloud base level [kg/kg]
-                QC = Q(CLDBASE)
-
              ENDIF
-
-          ELSE
-
-             !-----------------------------------------------------
-             ! If the cloud base happens at level 1, then just
-             ! set QC to the species concentration at the surface
-             ! level [kg/kg]
-             !-----------------------------------------------------
-             QC = Q(CLDBASE)
           ENDIF
 
           !==================================================================
@@ -784,11 +769,8 @@ CONTAINS
 
              ! CMFMC_BELOW is the air mass [kg/m2/s] coming into the
              ! grid box (K) from the box immediately below (K-1).
-             IF ( K == 1 ) THEN
-                CMFMC_BELOW = 0e+0_fp
-             ELSE
-                CMFMC_BELOW = CMFMC(K-1)
-             ENDIF
+             CMFMC_BELOW = 0.0_fp
+             IF ( K > 1 ) CMFMC_BELOW = CMFMC(K-1)
 
              ! If we have a nonzero air mass flux coming from
              ! grid box (K-1) into (K) ...
@@ -899,7 +881,7 @@ CONTAINS
                 ! Prevent div by zero condition
                 IF ( ENTRN >= 0e+0_fp .and. CMOUT > 0e+0_fp ) THEN
                    QC   = ( CMFMC_BELOW * QC_PRES   + &
-                          ENTRN       * Q(K) ) / CMOUT
+                            ENTRN       * Q(K)    ) / CMOUT
                 ENDIF
 
                 !------------------------------------------------------------
@@ -989,7 +971,8 @@ CONTAINS
                 ! Increment the species array [kg/kg]
                 Q(K) = Q(K) + DELQ
 
-                ! Return if we encounter NInf
+#ifdef DEBUG
+                ! Return if we encounter Inf
                 IF ( .not. IT_IS_FINITE( Q(K) ) ) THEN
                    WRITE( 6, 200 )
 200                FORMAT( 'Infinity in DO_RAS_CLOUD_CONVECTION!' )
@@ -1008,7 +991,7 @@ CONTAINS
                    RC = GC_FAILURE
                    RETURN
                 ENDIF
-
+#endif
                 ! Pass T0_SUM in units of [kg species/m2/timestep].
                 ! Converting kg dry air to kg species requires use
                 ! of the molecular weight of air including moisture
@@ -1040,6 +1023,7 @@ CONTAINS
                 IF ( USE_DIAG38 .and. NW > 0 ) THEN
                    DIAG38(K,NW) = DIAG38(K,NW) + ( T0 * AREA_M2 / DNS )
 
+#ifdef DEBUG
                    ! check for infinity (added by hma, 20101117)
                    IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
                       WRITE( ErrMsg, 300 ) K
@@ -1047,8 +1031,8 @@ CONTAINS
                       CALL GC_Error( ErrMsg, RC, ThisLoc )
                       RETURN
                    ENDIF
+#endif
                 ENDIF
-
              ELSE
 
                 !------------------------------------------------------------
@@ -1319,6 +1303,7 @@ CONTAINS
                    DIAG38(K,NW) = DIAG38(K,NW) + ( WETLOSS * AREA_M2 / NDT )
                 ENDIF
 
+#ifdef DEBUG
                 ! check for infinity (added by hma, 20101117)
                 IF ( .not. IT_IS_FINITE( DIAG38(K,NW) ) ) THEN
                    WRITE( ErrMsg, 310 ) K, NW
@@ -1326,6 +1311,7 @@ CONTAINS
                    CALL GC_Error( ErrMsg, RC, ThisLoc )
                    RETURN
                 ENDIF
+#endif
              ENDIF
           ENDDO     ! End of loop over levels below cloud base
 

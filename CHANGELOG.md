@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
 - Optimized loops in `AIRQNT` routine in `calc_met_mod.F90`
+- Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
@@ -24,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
 - Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
+- Removed redundant `ELSE` blocks in `DO_CONVECTION`
 - Removed redundant `units` variable in routine `AIRQNT`
 
 ## [14.6.2] - 2025-06-11
