@@ -16,7 +16,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
-- Optimized loops in `AIRQNT` routine in `calc_met_mod.F90`
+- Optimized parallel loops in `AIRQNT` routine in `GeosCore/calc_met_mod.F90`
+- Optimized parallel loops in `VDIFF` routine in `GeosCore/vdiff_mod.F90`
 - Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
 
 ### Fixed

@@ -279,6 +279,9 @@ CONTAINS
 
     real(fp) :: sum_qp0, sum_qp1        ! Jintai Lin 20180809
 
+    INTEGER           :: L_REVERSE
+    REAL(fp), POINTER :: Conc(:,:,:)
+
     !=================================================================
     ! vdiff begins here!
     !=================================================================
@@ -350,18 +353,31 @@ CONTAINS
     IF (PRESENT(ustar_arg)) ustar = ustar_arg(:,lat)
 
     ! Set initial species concentrations
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED )  &
-!$OMP PRIVATE( M, I, L ) 
+    !$OMP PARALLEL DO                                                         &
+    !$OMP DEFAULT( SHARED                                                    )&
+    !$OMP PRIVATE( M, L, I, Conc, L_REVERSE                                  )
     DO M = 1, nspcmix
-    DO I = 1, plonl
-    DO L = 1, plev
-       qp1(I,L,M) = State_Chm%Species(M)%Conc(I,lat,plev-L+1)
-       qp0(I,L,M) = State_Chm%Species(M)%Conc(I,lat,plev-L+1)
+
+       ! Point to the species concentrations
+       Conc => State_Chm%Species(M)%Conc
+
+       ! Loop over levels (and pull out the computation
+       ! of the level in reverse order, for efficiency)
+       DO L = 1, plev
+          L_REVERSE = plev - L + 1
+
+          ! Tell OpenMP to vectorize this loop
+          !$OMP SIMD
+          DO I = 1, plonl
+             qp1(I,L,M) = Conc(I,lat,L_REVERSE)
+             qp0(I,L,M) = Conc(I,lat,L_REVERSE)
+          ENDDO
+       ENDDO
+
+       ! Free pointer
+       Conc => NULL()
     ENDDO
-    ENDDO
-    ENDDO
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
 ! resume...
 
@@ -736,17 +752,18 @@ CONTAINS
     IF (PRESENT(ustar_arg)) ustar_arg(:,lat) = ustar
 
     ! Set species concentrations
-!$OMP PARALLEL DO        &
-!$OMP DEFAULT( SHARED )  &
-!$OMP PRIVATE( M, I, L ) 
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( M, L, I                                                  )&
+    !$OMP COLLAPSE( 3                                                       )
     DO M = 1, nspcmix
-    DO I = 1, plonl
     DO L = 1, plev
+    DO I = 1, plonl
        State_Chm%Species(M)%Conc(I,lat,L) = qp1(I,plev-L+1,M)
     ENDDO
     ENDDO
     ENDDO
-!$OMP END PARALLEL DO
+    !$OMP END PARALLEL DO
 
   end subroutine vdiff
 !EOC
