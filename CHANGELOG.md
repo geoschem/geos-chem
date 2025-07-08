@@ -3,23 +3,34 @@
 This file documents all notable changes to the GEOS-Chem repository starting in version 14.0.0, including all GEOS-Chem Classic and GCHP run directory updates.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-## [TBD]
-### Added
-- Added operational run script sample for AWS with EFA-enabled
 
 ## [Unreleased] - TBD
 ### Added
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
 - Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
 - Added GEOS-IT simulations to use offline emissions generated with GEOS-IT
-- Added meteorology-specific OFFLINE_EMISSION_DIR entries in shared directory for future use and backward compatibility
+- Added meteorology-specific `OFFLINE_EMISSION_DIR` entries in shared directory for future use and backward compatibility
+- Added operational run script sample for AWS with EFA-enabled
+- Added operational run scripts for Harvard Cannon with Intel VTune commands
+- Added sample environment file for Harvard Cannon with GNU 14.2.0 compilers
+- Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
+- Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
 - Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Optimized parallel loops in `AIRQNT` routine in `GeosCore/calc_met_mod.F90`
+- Optimized parallel loops in `VDIFF` routine in `GeosCore/vdiff_mod.F90`
+- Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
+
+### Removed
+- Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
+- Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
+- Removed redundant `ELSE` blocks in `DO_CONVECTION`
+- Removed redundant `units` variable in routine `AIRQNT`
 
 ## [14.6.2] - 2025-06-11
 ### Added
