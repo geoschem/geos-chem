@@ -2877,7 +2877,8 @@ CONTAINS
     USE Registry_Params_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnMap, DgnState
-    USE UnitConv_Mod,          ONLY : UNIT_STR
+    USE UnitConv_Mod,          ONLY : UNIT_STR, Check_Units
+    USE UnitConv_Mod,          ONLY : MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
 !
@@ -2976,9 +2977,16 @@ CONTAINS
 
        ! If it's the first timestep of the simulation, map SpeciesConc
        ! values to BC diagnostic values to output instantaneous values
-       ! at start of simulation.
+       ! at start of simulation [v/v dry].
        IF ( Container%ElapsedSec .eq. 0.0 .and. &
             TRIM(Container%Name) .eq. 'BoundaryConditions' ) THEN
+
+          ! Verify that incoming State_Chm%Species units are mol/mol dry air.
+          IF ( .not. Check_Units( State_Chm, MOLES_SPECIES_PER_MOLES_DRY_AIR ) ) THEN
+             ErrMsg = 'Not all species are in "mol/mol dry" units!'
+             CALL GC_Error( ErrMsg, RC, ThisLoc )
+             RETURN
+          ENDIF
 
           ! Point to mapping obj specific to species boundary conditions
           mapData => State_Diag%Map_SpeciesBC
