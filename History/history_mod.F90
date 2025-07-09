@@ -2988,8 +2988,7 @@ CONTAINS
           !$OMP PRIVATE( N, S   )
           DO S = 1, mapData%nSlots
              N = mapData%slot2id(S)
-             State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:) &
-                                 * ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+             State_Diag%SpeciesBC(:,:,:,S) = State_Chm%Species(N)%Conc(:,:,:)
           ENDDO
           !$OMP END PARALLEL DO
 
