@@ -628,7 +628,7 @@ CONTAINS
                        Cat       =  CATEGORY_BIOMASS,                        &
                        Hier      = -1,                                       &
                        HcoID     =  id_BCPO,                                 &
-                       SpaceDim  =  3,                                       &
+                       SpaceDim  =  2,                                       &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
@@ -652,7 +652,7 @@ CONTAINS
                        Cat       =  CATEGORY_BIOMASS,                        &
                        Hier      = -1,                                       &
                        HcoID     =  id_OCPO,                                 &
-                       SpaceDim  =  3,                                       &
+                       SpaceDim  =  2,                                       &
                        LevIDx    = -1,                                       &
                        OutUnit   = 'kg/m2/s',                                &
                        COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
