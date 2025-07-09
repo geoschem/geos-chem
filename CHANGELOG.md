@@ -25,6 +25,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
+- Removed extra unit conversion to mol/mol on 0th hour boundary conditions in `History/history_mod.F90`
 
 ### Removed
 - Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
