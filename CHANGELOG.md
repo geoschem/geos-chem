@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added sample environment file for Harvard Cannon with GNU 14.2.0 compilers
 - Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
 - Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
+- Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries
@@ -22,6 +23,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Optimized parallel loops in `AIRQNT` routine in `GeosCore/calc_met_mod.F90`
 - Optimized parallel loops in `VDIFF` routine in `GeosCore/vdiff_mod.F90`
 - Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
+- Collapsed several parallel DO loops in `GeosCore/carbon_mod.F90`
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
