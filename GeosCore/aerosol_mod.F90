@@ -82,8 +82,8 @@ MODULE AEROSOL_MOD
 ! !PRIVATE TYPES:
 !
   ! Add tracer ID flags as module variables (bmy, 6/16/16)
-  INTEGER :: id_BCPI,  id_BCPO,  id_DST1,  id_DST2
-  INTEGER :: id_DST3,  id_DST4,  id_NH4,   id_NIT
+  INTEGER :: id_BCPI,  id_BCPO,  id_NH4,   id_NIT
+  INTEGER :: id_DSTbin1, id_DSTbin2, id_DSTbin3, id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7 ! extend 7 dust bins for deposition (D. Zhang, 28 Jun, 2024)
   INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC
   INTEGER :: id_SO4,   id_SO4s,  id_NITs,  id_NH4s
   INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
@@ -622,19 +622,15 @@ CONTAINS
           ! Lump 1st dust tracer for het chem
           ! Now use dust size distribution scheme to improve PM2.5
           ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
-          SOILDUST(I,J,L,1) = 0.007e+0_fp  * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,2) = 0.0332e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,3) = 0.2487e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,4) = 0.7111e+0_fp * Spc(id_DST1)%Conc(I,J,L) &
-                              / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,1) = Spc(id_DSTbin1)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,2) = Spc(id_DSTbin2)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,3) = Spc(id_DSTbin3)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,4) = Spc(id_DSTbin4)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Other hetchem bins
-          SOILDUST(I,J,L,5) = Spc(id_DST2)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,6) = Spc(id_DST3)%Conc(I,J,L) / AIRVOL(I,J,L)
-          SOILDUST(I,J,L,7) = Spc(id_DST4)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,5) = Spc(id_DSTbin5)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,6) = Spc(id_DSTbin6)%Conc(I,J,L) / AIRVOL(I,J,L)
+          SOILDUST(I,J,L,7) = Spc(id_DSTbin7)%Conc(I,J,L) / AIRVOL(I,J,L)
 
        ENDIF
 
@@ -806,71 +802,94 @@ CONTAINS
           State_Chm%AerMass%SOAGX(I,J,L) = Spc(id_SOAGX)%Conc(I,J,L) * OCFG / AIRVOL(I,J,L)
        ENDIF
 
-       !==============================================================
+       !=====================================================================
        ! P A R T I C U L A T E   M A T T E R
        !
        ! See this GEOS-Chem wiki page for the most up-to-date
        ! definitions of PM2.5 and PM10 used in GEOS-Chem:
        !
        ! http://wiki.geos.chem.org/Particulate_Matter_in_GEOS-Chem
-       !==============================================================
+       !=====================================================================
 
        ! Particulate matter < 2.5um [kg/m3]
-       State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%NH4(I,J,L)        * SIA_GROWTH + &
-                     State_Chm%AerMass%NIT(I,J,L)        * SIA_GROWTH + &
-                     State_Chm%AerMass%SO4(I,J,L)        * SIA_GROWTH + &
-                     State_Chm%AerMass%HMS(I,J,L)        * SIA_GROWTH + &   ! (jmm, 06/30/18)
-                     State_Chm%AerMass%BCPI(I,J,L)                    + &
-                     State_Chm%AerMass%BCPO(I,J,L)                    + &
-                     State_Chm%AerMass%OCPO(I,J,L)                    + &
-                     State_Chm%AerMass%SALA(I,J,L)       * SSA_GROWTH + &
-                     SOILDUST(I,J,L,1)              + &
-                     SOILDUST(I,J,L,2)              + &
-                     SOILDUST(I,J,L,3)              + &
-                     SOILDUST(I,J,L,4)              + &
-                     SOILDUST(I,J,L,5) * 0.3_fp           ! + 30%  of DST2
-       ! OCPI is not present in SVPOA simulation
-       ! OCPO represents all POA intead (factor*POA)
+       State_Chm%AerMass%PM25(I,J,L)                          =              &
+          State_Chm%AerMass%NH4(I,J,L)       * SIA_GROWTH     +              &
+          State_Chm%AerMass%NIT(I,J,L)       * SIA_GROWTH     +              &
+          State_Chm%AerMass%SO4(I,J,L)       * SIA_GROWTH     +              &
+          State_Chm%AerMass%HMS(I,J,L)       * SIA_GROWTH     +              &
+          State_Chm%AerMass%BCPI(I,J,L)                       +              &
+          State_Chm%AerMass%BCPO(I,J,L)                       +              &
+          State_Chm%AerMass%OCPO(I,J,L)                       +              &
+          State_Chm%AerMass%SALA(I,J,L)      * SSA_GROWTH     +              &
+          SOILDUST(I,J,L,1)                                   +              &
+          SOILDUST(I,J,L,2)                                   +              &
+          SOILDUST(I,J,L,3)                                   +              &
+          SOILDUST(I,J,L,4)                  * 0.546_fp
+
+       ! Only add OCPI to PM2.5 if it's a defined species
        IF ( Is_OCPI ) THEN
-          State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + &
-                                          State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH
+          State_Chm%AerMass%PM25(I,J,L)                       =              &
+             State_Chm%AerMass%PM25(I,J,L)                    +              &
+             State_Chm%AerMass%OCPI(I,J,L)   * ORG_GROWTH
        ENDIF
 
+       ! Particulate matter < 10um [kg/m3]
+       State_Chm%AerMass%PM10(I,J,L)                          =              &
+          State_Chm%AerMass%PM25(I,J,L)                       +              &
+          SOILDUST(I,J,L,4)                  * 0.454_fp       +              &
+          SOILDUST(I,J,L,5)                                   +              &
+          SOILDUST(I,J,L,6)                                   +              &
+          SOILDUST(I,J,L,7)                  * 0.156_fp       +              &
+          State_Chm%AerMass%SALC(I,J,L)      * SSA_GROWTH
+
+       !---------------------------------------------------------------------
        ! Include either simple SOA (default) or Complex SOA in
        ! PM2.5 calculation.  In simulations where both Simple SOA and
        ! Complex SOA species are carried (i.e. "benchmark"), then
        ! only the Simple SOA will be added to PM2.5 and PM10, in order
        ! to avoid double-counting. (bmy, 03 Nov 2021)
+       !---------------------------------------------------------------------
        IF ( Is_SimpleSOA ) THEN
-          State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
+          State_Chm%AerMass%PM25(I,J,L)                       =              &
+             State_Chm%AerMass%PM25(I,J,L)                    +              &
+             ( State_Chm%AerMass%SOAS(I,J,L) * ORG_GROWTH )
 
        ELSE IF ( Is_ComplexSOA ) THEN
-          State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L)                 + &
-                        State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH  + &
-                        State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH        ! Includes SOAGX
+          State_Chm%AerMass%PM25(I,J,L)                       =              &
+             State_Chm%AerMass%PM25(I,J,L)                    +              &
+             State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH     +              &
+             State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH     +              &
+             State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH     ! Includes SOAGX
 
           ! Need to add OPOA to PM2.5 for complexSOA_SVPOA simulations
           ! -- Maggie Marvin (15 Jul 2020)
           IF ( Is_OPOA ) THEN
-             State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) + ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
+             State_Chm%AerMass%PM25(I,J,L)                    =              &
+                State_Chm%AerMass%PM25(I,J,L)                 +              &
+                ( State_Chm%AerMass%OPOA(I,J,L) * ORG_GROWTH )
           ENDIF
        ENDIF
 
        ! Particulate matter < 10um [kg/m3]
-       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM25(I,J,L) +                    &   ! PM2.5
-                     SOILDUST(I,J,L,5) * 0.7_fp     + &   ! + 70%  of DST2
-                     SOILDUST(I,J,L,6)              + &   ! + 100% of DST3
-                     SOILDUST(I,J,L,7) * 0.9_fp     + &   ! + 90%  of DST4
-                     State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
+       State_Chm%AerMass%PM10(I,J,L)                          =              &
+          State_Chm%AerMass%PM25(I,J,L)                       +              &
+          SOILDUST(I,J,L,5)                   * 0.7_fp        +              &
+          SOILDUST(I,J,L,6)                                   +              &
+          SOILDUST(I,J,L,7)                   * 0.9_fp        +              &
+          State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
 
+       !---------------------------------------------------------------------
        ! Apply STP correction factor based on ideal gas law
-       State_Chm%AerMass%PM25(I,J,L) = State_Chm%AerMass%PM25(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
-                     ( T(I,J,L)   / 298.0_fp    )
+       !---------------------------------------------------------------------
+       State_Chm%AerMass%PM25(I,J,L)                          =              &
+          State_Chm%AerMass%PM25(I,J,L)                       *              &
+          ( 1013.25_fp / PMID(I,J,L) )                        *              &
+          ( T(I,J,L)   / 298.0_fp    )
 
-       State_Chm%AerMass%PM10(I,J,L) = State_Chm%AerMass%PM10(I,J,L) * ( 1013.25_fp / PMID(I,J,L) ) * &
-                     ( T(I,J,L)   / 298.0_fp    )
-
+       State_Chm%AerMass%PM10(I,J,L)                          =              &
+          State_Chm%AerMass%PM10(I,J,L)                       *              &
+          ( 1013.25_fp / PMID(I,J,L) )                        *              &
+          ( T(I,J,L)   / 298.0_fp    )
 
       !===========================================================
       ! PDER [um] ! (hzhu, 04/05/2024)
@@ -943,8 +962,7 @@ CONTAINS
           State_Diag%PM25du(I,J,L) = ( SOILDUST(I,J,L,1)           &
                                    +   SOILDUST(I,J,L,2)           &
                                    +   SOILDUST(I,J,L,3)           &
-                                   +   SOILDUST(I,J,L,4)           &
-                                   +   SOILDUST(I,J,L,5) * 0.38  ) &
+                                   +   SOILDUST(I,J,L,4) * 0.546 ) & ! (D. Zhang, 02/28/2025)
                                    * ( 1013.25_fp  / PMID(I,J,L) ) &
                                    * ( T(I,J,L)    / 298.0_fp    ) &
                                    * 1.0e+9_fp
@@ -2418,10 +2436,14 @@ CONTAINS
     ! Add tracer ID flags as module variables (bmy, 6/16/16)
     id_BCPI   = Ind_( 'BCPI'   )
     id_BCPO   = Ind_( 'BCPO'   )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
+    ! Add tracer ID for extended dust bins (D. Zhang, Jun 25, 2024)
+    id_DSTbin1   = Ind_( 'DSTbin1'   )
+    id_DSTbin2   = Ind_( 'DSTbin2'   )
+    id_DSTbin3   = Ind_( 'DSTbin3'   )
+    id_DSTbin4   = Ind_( 'DSTbin4'   )
+    id_DSTbin5   = Ind_( 'DSTbin5'   )
+    id_DSTbin6   = Ind_( 'DSTbin6'   )
+    id_DSTbin7   = Ind_( 'DSTbin7'   )
     id_DUST01 = Ind_( 'DUST01' )
     id_NH4    = Ind_( 'NH4'    )
     id_NIT    = Ind_( 'NIT'    )
@@ -2460,7 +2482,7 @@ CONTAINS
     IS_HMS     = ( id_HMS   > 0 )
     IS_NH4     = ( id_NH4   > 0 )
     IS_NIT     = ( id_NIT   > 0 )
-    IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
+    IS_DST     = ( id_DSTbin1  > 0 .AND. id_DSTbin2  > 0 .AND. id_DSTbin3  > 0 .AND. id_DSTbin4  > 0) !(D. Zhang, Jun 28, 2024)
     IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
     IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
     IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )

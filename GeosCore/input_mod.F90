@@ -5023,10 +5023,13 @@ CONTAINS
     I = MAX( Ind_('DUST01','A'), 0 )
 #else
     ! Non-TOMAS simulations: Need all DST1-DST4 species
-    I = MAX( Ind_('DST1','A'), 0 ) + &
-        MAX( Ind_('DST2','A'), 0 ) + &
-        MAX( Ind_('DST3','A'), 0 ) + &
-        MAX( Ind_('DST4','A'), 0 )
+   I = MAX( Ind_('DSTbin1','A'), 0 ) + &
+      MAX( Ind_('DSTbin2','A'), 0 ) + &
+      MAX( Ind_('DSTbin3','A'), 0 ) + &
+      MAX( Ind_('DSTbin4','A'), 0 ) + &
+      MAX( Ind_('DSTbin5','A'), 0 ) + &
+      MAX( Ind_('DSTbin6','A'), 0 ) + &
+      MAX( Ind_('DSTbin7','A'), 0 )
 #endif
 
     IF ( Input_Opt%LDUST ) THEN

@@ -169,11 +169,14 @@ operations:
       - CLOCK
       - CO
       - CSL
-      - DMS
-      - DST1
-      - DST2
-      - DST3
-      - DST4
+      - DMS  
+      - DSTbin1
+      - DSTbin2
+      - DSTbin3
+      - DSTbin4
+      - DSTbin5
+      - DSTbin6
+      - DSTbin7
       - EBZ
       - EOH
       - ETHLN

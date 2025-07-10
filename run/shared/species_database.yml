@@ -81,7 +81,7 @@ APAN:
   Is_WetDep: true
   MW_g: 133.06
   WD_RetFactor: 2.0e-2
-DST1_PROP: &DST1properties
+METALS1_PROP: &METALS1properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -95,7 +95,7 @@ DST1_PROP: &DST1properties
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
   WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST2_PROP: &DST2properties
+METALS2_PROP: &METALS2properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -110,7 +110,7 @@ DST2_PROP: &DST2properties
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
   WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST3_PROP: &DST3properties
+METALS3_PROP: &METALS3properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -125,7 +125,7 @@ DST3_PROP: &DST3properties
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
   WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST4_PROP: &DST4properties
+METALS4_PROP: &METALS4properties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
@@ -1387,37 +1387,180 @@ DMS:
   Is_Advected: true
   Is_Aerosol: true
   MW_g: 62.13
-DST1:
-  << : *DST1properties
-  FullName: Dust aerosol, Reff = 0.7 microns
+DSTbin1_PROP: &DSTbin1properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.51e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+DSTbin2_PROP: &DSTbin2properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.53e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]
+DSTbin3_PROP: &DSTbin3properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 4.02e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+DSTbin4_PROP: &DSTbin4properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 8.18e-7
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+DSTbin5_PROP: &DSTbin5properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 1.491e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+DSTbin6_PROP: &DSTbin6properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 2.417e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+DSTbin7_PROP: &DSTbin7properties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Density: 2650.0
+  Is_Advected: true
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  Radius: 3.721e-6
+  WD_AerScavEff: 1.0
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+  WD_Is_DSTbin: true
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
+DSTbin1:
+  << : *DSTbin1properties
+  FullName: Dust aerosol, Reff = 0.151 microns
   MW_g: 29.0
-DST2:
-  << : *DST2properties
-  FullName: Dust aerosol, Reff = 1.4 microns
+DSTbin2:
+  << : *DSTbin2properties
+  FullName: Dust aerosol, Reff = 0.253 microns
   MW_g: 29.0
-DST3:
-  << : *DST3properties
-  FullName: Dust aerosol, Reff = 2.4 microns
+DSTbin3:
+  << : *DSTbin3properties
+  FullName: Dust aerosol, Reff = 0.402 microns
   MW_g: 29.0
-DST4:
-  << : *DST4properties
-  FullName: Dust aerosol, Reff = 4.5 microns
+DSTbin4:
+  << : *DSTbin4properties
+  FullName: Dust aerosol, Reff = 0.818 microns
   MW_g: 29.0
-DSTAL1:
-  << : *DST1properties
-  FullName: Dust alkalinity, Reff = 0.7 microns
+DSTbin5:
+  << : *DSTbin5properties
+  FullName: Dust aerosol, Reff = 1.491 microns
   MW_g: 29.0
-DSTAL2:
-  << : *DST2properties
-  FullName: Dust alkalinity, Reff = 1.4 microns
+DSTbin6:
+  << : *DSTbin6properties
+  FullName: Dust aerosol, Reff = 2.417 microns
   MW_g: 29.0
-DSTAL3:
-  << : *DST3properties
-  FullName: Dust alkalinity, Reff = 2.4 microns
+DSTbin7:
+  << : *DSTbin7properties
+  FullName: Dust aerosol, Reff = 3.721 microns
   MW_g: 29.0
-DSTAL4:
-  << : *DST4properties
-  FullName: Dust alkalinity, Reff = 4.5 microns
+DSTALbin1:
+  << : *DSTbin1properties
+  FullName: DSTbin1 alkalinity
+  MW_g: 29.0
+DSTALbin2:
+  << : *DSTbin2properties
+  FullName: DSTbin2 alkalinity
+  MW_g: 29.0
+DSTALbin3:
+  << : *DSTbin3properties
+  FullName: DSTbin3 alkalinity
+  MW_g: 29.0
+DSTALbin4:
+  << : *DSTbin4properties
+  FullName: DSTbin4 alkalinity
+  MW_g: 29.0
+DSTALbin5:
+  << : *DSTbin5properties
+  FullName: DSTbin5 alkalinity
+  MW_g: 29.0
+DSTALbin6:
+  << : *DSTbin6properties
+  FullName: DSTbin6 alkalinity
+  MW_g: 29.0
+DSTALbin7:
+  << : *DSTbin7properties
+  FullName: DSTbin7 alkalinity
   MW_g: 29.0
 DummyCH4trop:
   << : *CH4properties
@@ -1562,13 +1705,13 @@ ETP:
   MW_g: 62.08
   WD_RetFactor: 2.0e-2
 FeF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Fe
   Fullname: Iron on dust. Reff = 0.7 microns
   MW_g: 55.84
   WD_CoarseAer: true
 FeF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Fe
   Fullname: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
@@ -3021,23 +3164,23 @@ ITHN:
   MW_g: 197.17
   WD_RetFactor: 2.0e-2
 KF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: K
   Fullname: Potassium on dust. Reff = 0.7 microns
   MW_g: 39.10
   WD_CoarseAer: true
 KF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: K
   Fullname: Potassium on dust, Reff = 1.4 microns
   MW_g: 39.10
 KC3:
-  << : *DST3properties
+  << : *METALS3properties
   Formula: K
   Fullname: Potassium on dust, Reff = 2.4 microns
   MW_g: 39.10
 KC4:
-  << : *DST4properties
+  << : *METALS4properties
   Formula: K
   Fullname: Potassium on dust, Reff = 4.5 microns
   MW_g: 39.10
@@ -3476,23 +3619,23 @@ MENO3:
   Is_Photolysis: true
   MW_g: 77.05
 MgF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Mg
   Fullname: Magnesium on dust. Reff = 0.7 microns
   MW_g: 24.31
   WD_CoarseAer: true
 MgF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Mg
   Fullname: Magnesium on dust, Reff = 1.4 microns
   MW_g: 24.31
 MgC3:
-  << : *DST3properties
+  << : *METALS3properties
   Formula: Mg
   Fullname: Magnesium on dust, Reff = 2.4 microns
   MW_g: 24.31
 MgC4:
-  << : *DST4properties
+  << : *METALS4properties
   Formula: Mg
   Fullname: Magnesium on dust, Reff = 4.5 microns
   MW_g: 24.31
@@ -3511,13 +3654,13 @@ MGLY:
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
 MnF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Mn
   Fullname: Manganese on dust. Reff = 0.7 microns
   MW_g: 54.94
   WD_CoarseAer: true
 MnF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Mn
   Fullname: Manganese on dust, Reff = 1.4 microns
   MW_g: 54.94
@@ -3901,13 +4044,13 @@ NH4:
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NiF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Ni
   Fullname: Nickel on dust. Reff = 0.7 microns
   MW_g: 58.69
   WD_CoarseAer: true
 NiF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Ni
   Fullname: Nickel on dust, Reff = 1.4 microns
   MW_g: 58.69
@@ -3927,27 +4070,39 @@ NIT:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-NITD1:
-  << : *DST1properties
-  FullName: Nitrate on dust, Reff = 0.7 microns
-  MW_g: 29.0
-NITD2:
-  << : *DST2properties
-  FullName: Nitrate on dust, Reff = 1.4 microns
-  MW_g: 29.0
-NITD3:
-  << : *DST3properties
-  FullName: Nitrate on dust, Reff = 2.4 microns
-  MW_g: 29.0
-NITD4:
-  << : *DST4properties
-  FullName: Nitrate on dust, Reff = 4.5 microns
-  MW_g: 29.0
+NITDbin1:
+  << : *DSTbin1properties
+  FullName: Nitrate on DSTbin1
+  MW_g: 62.01
+NITDbin2:
+  << : *DSTbin2properties
+  FullName: Nitrate on DSTbin2
+  MW_g: 62.01
+NITDbin3:
+  << : *DSTbin3properties
+  FullName: Nitrate on DSTbin3
+  MW_g: 62.01
+NITDbin4:
+  << : *DSTbin4properties
+  FullName: Nitrate on DSTbin4
+  MW_g: 62.01
+NITDbin5:
+  << : *DSTbin5properties
+  FullName: Nitrate on DSTbin5
+  MW_g: 62.01
+NITDbin6:
+  << : *DSTbin6properties
+  FullName: Nitrate on DSTbin6
+  MW_g: 62.01
+NITDbin7:
+  << : *DSTbin7properties
+  FullName: Nitrate on DSTbin7
+  MW_g: 62.01
 NITs:
   << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
-  MW_g: 31.4
+  MW_g: 62.01
   WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
@@ -4272,13 +4427,13 @@ Pb210s:
   FullName: Lead-210 isotope stratospheric-source tracer
 # Src_Vert: stratosphere
 PbF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Pb
   Fullname: Lead on dust. Reff = 0.7 microns
   MW_g: 210.0
   WD_CoarseAer: true
 PbF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Pb
   Fullname: Lead on dust, Reff = 1.4 microns
   MW_g: 210.0
@@ -5095,12 +5250,12 @@ SF6:
   Src_Add: true
   Src_Mode: HEMCO
 SiF1:
-  << : *DST1properties
+  << : *METALS1properties
   Fullname: Silicon on dust, Reff = 0.7 microns
   MW_g: 28.09
   WD_CoarseAer: true
 SiF2:
-  << : *DST2properties
+  << : *METALS2properties
   Fullname: Silicon on dust, Reff = 1.4 microns
   MW_g: 28.09
 SO2:
@@ -5150,22 +5305,34 @@ SO4:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-SO4D1:
-  << : *DST1properties
-  FullName: Sulfate on dust, Reff = 0.7 microns
-  MW_g: 29.0
-SO4D2:
-  << : *DST2properties
-  FullName: Sulfate on dust, Reff = 1.4 microns
-  MW_g: 29.0
-SO4D3:
-  << : *DST3properties
-  FullName: Sulfate on dust, Reff = 2.4 microns
-  MW_g: 29.0
-SO4D4:
-  << : *DST4properties
-  FullName: Sulfate on dust, Reff = 4.5 microns
-  MW_g: 29.0
+SO4Dbin1:
+  << : *DSTbin1properties
+  FullName: Sulfate on DSTbin1
+  MW_g: 96.06
+SO4Dbin2:
+  << : *DSTbin2properties
+  FullName: Sulfate on DSTbin2
+  MW_g: 96.06
+SO4Dbin3:
+  << : *DSTbin3properties
+  FullName: Sulfate on DSTbin3
+  MW_g: 96.06
+SO4Dbin4:
+  << : *DSTbin4properties
+  FullName: Sulfate on DSTbin4
+  MW_g: 96.06
+SO4Dbin5:
+  << : *DSTbin5properties
+  FullName: Sulfate on DSTbin5
+  MW_g: 96.06
+SO4Dbin6:
+  << : *DSTbin6properties
+  FullName: Sulfate on DSTbin6
+  MW_g: 96.06
+SO4Dbin7:
+  << : *DSTbin7properties
+  FullName: Sulfate on DSTbin7
+  MW_g: 96.06
 SO4H1:
   Formula: SO4
   FullName: Sulfate produced by HOBr
@@ -5189,7 +5356,7 @@ SO4H4:
 SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
-  MW_g: 31.4
+  MW_g: 96.06
   WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
@@ -5278,13 +5445,13 @@ STYR:
   Is_Gas: true
   MW_g: 104.1491
 TiF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Ti
   Fullname: Titanium on dust, Reff = 0.7 microns
   MW_g: 47.87
   WD_CoarseAer: true
 TiF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Ti
   Fullname: Titanium on dust, Reff = 1.4 microns
   MW_g: 47.87
