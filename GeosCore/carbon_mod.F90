@@ -626,7 +626,7 @@ CONTAINS
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
           ! Tell OpenMP to vectorize this loop
-          !$ OMP SIMD
+          !$OMP SIMD
           DO N = 1, NBCOC
              Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = &
                 Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
@@ -655,7 +655,7 @@ CONTAINS
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
           ! Tell OpenMP to vectorize this loop
-          !$ OMP SIMD
+          !$OMP SIMD
           DO N = 1, NBCOC
              Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)= &
                 Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
