@@ -147,9 +147,18 @@
      REAL(dp) :: frac_HSO3_aq   ! HSO3_aq / ( HSO3_aq + SO3_aq )
      REAL(dp) :: frac_SALACL    ! Frac of SALACL / total fine sea salt
      REAL(dp) :: frac_SO3_aq    ! SO3_aq  / ( HSO3_aq + SO3_aq )
+     REAL(dp) :: FeIII_a 	! FeIII in aerosol water
+     REAL(dp) :: MnII_a 	! MnI in aerosol water	
      REAL(dp) :: fupdateHOBr    ! Correction factor - HOBr
      REAL(dp) :: fupdateHOCl    ! Correction factor - HOCl
      REAL(dp) :: gamma_HO2      ! Uptake probability for HO2  [1]
+     REAL(dp) :: gamma_SO2_TMI  ! Uptake probability for SO2+TMI/O2
+     REAL(dp) :: gamma_SO2_H2O2 ! Uptake probability for SO2+H2O2
+     REAL(dp) :: gamma_SO2_O3   ! Uptake probability for SO2+O3
+     REAL(dp) :: gamma_SO2_NO2  ! Uptake probability for SO2+NO2
+     REAL(dp) :: gamma_SO2_CH2O ! Uptake probability for SO2+CH2O
+     REAL(dp) :: KaqHMS         ! HMS back to CH2O + SO2
+     REAL(dp) :: KaqHMS2        ! HMS to 2SO4 + CH2O
      REAL(dp) :: H2O            ! H2O concentration
      REAL(dp) :: HBr_theta      ! HBr theta for uptake on ice
      REAL(dp) :: HCl_theta      ! HCl theta for uptake on ice
@@ -158,13 +167,19 @@
      REAL(dp) :: H_conc_SSA     ! Liquid phase pH, fine sea salt
      REAL(dp) :: H_conc_SSC     ! Liquid phase pH, coarse sea salt
      REAL(dp) :: H_conc_Sul     ! Liquid phase pH, sulfate
+     REAL(dp) :: HEFF_a         ! HEFF sulfate
      REAL(dp) :: HNO3_theta     ! HNO3 theta for uptake on ice
      REAL(dp) :: HSO3_aq        ! Cloud bisulfite (aka HSO3-) [mol/L]
      REAL(dp) :: SO3_aq         ! Cloud sulfite (aka SO3--) [mol/L]
+     REAL(dp) :: HSO3_aq_a      ! Aerosol bisulfite (aka HSO3-) [mol/L]
+     REAL(dp) :: SO3_aq_a       ! Aerosol sulfite (aka SO3--) [mol/L]
+     REAL(dp) :: SO2_aq_a       ! Aerosol so2  [mol/L]
      REAL(dp) :: HSO3m          ! HSO3-/SO2 ratio [1]
      REAL(dp) :: SO3mm          ! SO3--/SO2 ratio [1]
      REAL(dp) :: TSO3_aq        ! Cloud sulfite + bisulfite [mol/L]
      REAL(dp) :: H_plus         ! Proton activity [1] and H+ conc [M]
+     REAL(dp) :: SO2            ! SO2 conc
+     REAL(dp) :: IONIC          ! Aerosol ionic strength
      REAL(dp) :: KHETI_SLA(11)  ! Probs for PSC uptk rxns on SLA [1]
      REAL(dp) :: HSO4_molal     ! Bisulfate concentration [M]
      REAL(dp) :: NO3_molal      ! Nitrate concentration [M]
@@ -180,6 +195,7 @@
      REAL(dp) :: qLIq           ! Water mixing ratio [kg/kg]
      REAL(dp) :: rIce           ! Ice radius
      REAL(dp) :: rLiq           ! Liquid radius
+     REAL(dp) :: speed          ! Molecular speed for SO2 (cm s-1)
      REAL(dp) :: f_Acid_SSA     ! Fraction of fine sea salt that is acidic
      REAL(dp) :: f_Acid_SSC     ! Fraction of coarse sea salt that is acidic
      REAL(dp) :: f_Alk_SSA      ! Fraction of fine sea salt that is alkaline

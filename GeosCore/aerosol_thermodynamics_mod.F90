@@ -213,7 +213,7 @@ CONTAINS
     REAL(f8)                 :: HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K
     REAL(f8)                 :: HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC
     REAL(f8)                 :: HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg
-    REAL(f8)                 :: HETP_frSO4, HETP_num
+    REAL(f8)                 :: HETP_frSO4, HETP_num, HETP_IONIC
 
     ! Strings
     CHARACTER(LEN=15)        :: SCASI
@@ -275,7 +275,8 @@ CONTAINS
     State_Chm%IsorropNitrate   = 0.0_fp
     State_Chm%IsorropBisulfate = 0.0_fp
     State_Chm%IsorropChloride  = 0.0_fp
-
+    State_Chm%IsorropIONIC     = 0.0_fp
+    State_Chm%IsorropOH        = 0.0_fp
     ! First-time initialization
     IF ( FIRST ) THEN
 
@@ -492,7 +493,7 @@ CONTAINS
     !$OMP PRIVATE( HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K               ) &
     !$OMP PRIVATE( HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC             ) &
     !$OMP PRIVATE( HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg            ) &
-    !$OMP PRIVATE( HETP_frSO4, HETP_num                                    ) &
+    !$OMP PRIVATE( HETP_frSO4, HETP_num,  HETP_IONIC                       ) &
     !$OMP COLLAPSE( 3                                                      ) &
     !$OMP SCHEDULE( DYNAMIC, 8                                             )
     DO L = 1, State_Grid%NZ
@@ -818,6 +819,7 @@ CONTAINS
              ! For safety
              GAS = 0.0d0
              AERLIQ = 0.0d0
+             OTHER  = 0.0d0
              Call MACH_HETP_Main_15Cases( WI(2), WI(3), WI(4), WI(1), WI(5),            &
                                           WI(6), WI(7), WI(8), TEMPI, RHI,              &
                                           HETP_SO4,   HETP_HSO4, HETP_CaSO4, HETP_NH4,  &
@@ -825,7 +827,7 @@ CONTAINS
                                           HETP_HCl,   HETP_Na,   HETP_Ca,    HETP_K,    &
                                           HETP_Mg,    HETP_H,    HETP_OH,    HETP_LWC,  &
                                           HETP_frNa,  HETP_frCa, HETP_frK,   HETP_frMg, &
-                                          HETP_frSO4, HETP_num                          )
+                                          HETP_frSO4, HETP_IONIC, HETP_num              )
              ! Spoof ISORROPIA outputs which are still used
              GAS(1) = HETP_NH3
              GAS(2) = HETP_HNO3
@@ -838,7 +840,8 @@ CONTAINS
              AERLIQ( 5) = HETP_SO4
              AERLIQ( 6) = HETP_HSO4
              AERLIQ( 7) = HETP_NO3
-             AERLIQ( 8) = HETP_LWC
+             AERLIQ( 8) = HETP_LWC 
+             OTHER( 5)  = HETP_IONIC
              ! WT is used below but is identical to WI for a forward case
              WT(:) = WI(:)
 
@@ -983,7 +986,9 @@ CONTAINS
              State_Chm%IsorropSulfate(I,J,L)  = MAX(SULFTEMP, 1e-30_fp)
              State_Chm%IsorropBisulfate(I,J,L)= MAX(BISULTEMP, 1e-30_fp)
              State_Chm%AeroH2O(I,J,L,1+NDUST) = AERLIQ(8) * 18e+0_fp ! mol/m3 -> g/m3
-
+             State_Chm%IsorropIONIC(I,J,L)    = max(OTHER(5), 1e-30_fp) ! mol/m3
+             State_Chm%IsorropOH(I,J,L)       = max(OTHER(4), 1E-30_fp) ! mol/m3
+         
              NUM_SAV = ( Spc(id_NH3 )%Conc(I,J,L)  / 17.0_fp                 &
                      +   Spc(id_NH4 )%Conc(I,J,L)  / 18.0_fp                 &
                      +   Spc(id_SALA)%Conc(I,J,L) * 0.3061_fp / 23.0_fp     )
