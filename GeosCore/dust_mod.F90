@@ -2026,7 +2026,7 @@ CONTAINS
     !=================================================================
 
     !-----------------------------------------------------------------
-    ! DST1 - DST4 species (most fullchem + aerosol simulations)
+    ! DSTbin1 - DSTbin7 species (fullchem + aerosol simulations)
     !
     ! NOTE: We can consider removing DUSTDEN and DUSTREFF from
     ! the Input_Opt object at a later point.  These can be directly
@@ -2041,7 +2041,8 @@ CONTAINS
     id_DSTbin7 =  Ind_('DSTbin7'    )
 
     !-----------------------------------------------------------------
-    ! DSTALbin1 - DSTALbin7 and SO4Dbin1 - SO4Dbin7 species (acid uptake sims only) 
+    ! DSTALbin1 - DSTALbin7 and SO4Dbin1 - SO4Dbin7 species
+    ! (acid uptake simulations only)
     ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
     !-----------------------------------------------------------------
     id_DALbin1 =  Ind_('DSTALbin1'  )

@@ -8,11 +8,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
 - Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
+- Added clarifying comments in `flexgrid_read_met_mod.F90` for `TS` and `T2M` met fields
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
 - Updated `EmisOCS_Bioburn` to `EmisOCS_BiomassBurn` in both GCHP `HEMCO_Diagn.rc.carbon` and `HISTORY.rc.carbon` template files
 - Updated the ESMF version from 8.4.2 to 8.6.1 in sample environment file `gchp.gcc12_openmpi4_cannon_rocky.env`
+- Updated `run/shared/download_data.yml` so that aerosol and fullchem simulations will get the restart file from `GEOSCHEM_RESTARTS/GC_14.7.0`
+- Changed Extension 105 to be `DustL23M` instead of `DustDead` in `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem`
+- Updated `DST1/DST1/DST3/DST4` to `DSTbin1/DSTbin2/.../DSTbin7` in template `HEMCO_Config.rc` files for aerosol & fullchem simulations
+- Updated routine `ExtState_SetFields` in `hco_interface_gc_mod.F90` for readability and clarity
+- Assigned `ExtState%TSKIN` from `State_Met%TS` and `ExtState%T2M` from `State_Met%T2M` in routine `ExtState_SetFields`
+- Renamed `&DST{1,2,3,4}properties` to `&METALS{1,2,3,4}properties` in `run/shared/species_database.yml`
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -20,6 +27,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
+- Removed entries for `DustGinoux` and `DustDead` extensions from `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
 
 ## [14.6.2] - 2025-06-11
 ### Added

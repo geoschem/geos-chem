@@ -141,13 +141,13 @@ METALS4_PROP: &METALS4properties
   WD_RainoutEff: [1.0, 1.0, 0.0]
   WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 AlF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Al
   Fullname: Aluminium on dust Reff = 0.7 microns
   MW_g: 26.98
   WD_CoarseAer: true
 AlF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Al
   Fullname: Aluminium on dust, Reff = 1.4 microns
   MW_g: 26.98
@@ -358,13 +358,13 @@ AROMPN:
   MW_g: 207.1
   WD_RetFactor: 2.0e-2
 AsF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: As
   Fullname: Arsenic on dust Reff = 0.7 microns
   MW_g: 74.92
   WD_CoarseAer: true
 AsF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: As
   Fullname: Arsenic on dust, Reff = 1.4 microns
   MW_g: 74.92
@@ -880,23 +880,23 @@ C96O2H:
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
 CaF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Ca
   Fullname: Calcium on dust Reff = 0.7 microns
   MW_g: 40.08
   WD_CoarseAer: true
 CaF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Ca
   Fullname: Calcium on dust, Reff = 1.4 microns
   MW_g: 40.08
 CaC3:
-  << : *DST3properties
+  << : *METALS3properties
   Formula: Ca
   Fullname: Calcium on dust, Reff = 2.4 microns
   MW_g: 40.08
 CaC4:
-  << : *DST4properties
+  << : *METALS4properties
   Formula: Ca
   Fullname: Calcium on dust, Reff = 4.5 microns
   MW_g: 40.08
@@ -908,13 +908,13 @@ CCl4:
   Is_Photolysis: true
   MW_g: 153.82
 CdF1:
-  << : *DST1properties
+  << : *METALS1properties
   Formula: Cd
   Fullname: Cadmium on dust Reff = 0.7 microns
   MW_g: 112.41
   WD_CoarseAer: true
 CdF2:
-  << : *DST2properties
+  << : *METALS2properties
   Formula: Cd
   Fullname: Cadmium on dust, Reff = 1.4 microns
   MW_g: 112.41

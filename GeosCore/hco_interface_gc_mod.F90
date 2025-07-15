@@ -1081,8 +1081,8 @@ CONTAINS
        IF ( notDryRun ) THEN
           ! Set fields either as pointer targets or else.
           ! Regrid those for ImGrid.
-          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, &
-                                   HcoState,  ExtState,  HMRC )
+          CALL ExtState_SetFields( Input_Opt, State_Chm, State_Grid,         &
+                                   State_Met, HcoState,  ExtState,   HMRC   )
 
           ! Trap potential errors
           IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -1688,7 +1688,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Grid, State_Met, HcoState, ExtState, RC )
+  SUBROUTINE ExtState_SetFields( Input_Opt, State_Chm, State_Grid,           &
+                                 State_Met, HcoState,  ExtState,   RC       )
 !
 ! !USES:
 !
@@ -1703,15 +1704,21 @@ CONTAINS
     USE HCOI_Esmf_Mod,  ONLY : HCO_SetExtState_ESMF
 #endif
 !
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
+!
 ! !INPUT/OUTPUT PARAMETERS:
 !
     TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input options
     TYPE(MetState),   INTENT(INOUT)  :: State_Met  ! Met state
     TYPE(ChmState),   INTENT(INOUT)  :: State_Chm  ! Chemistry state
-    TYPE(GrdState),   INTENT(IN   )  :: State_Grid ! Grid state
     TYPE(HCO_STATE),  POINTER        :: HcoState   ! HEMCO state
     TYPE(EXT_STATE),  POINTER        :: ExtState   ! HEMCO ext. state
-    INTEGER,          INTENT(INOUT)  :: RC         ! Return code
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)    :: RC         ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  23 Oct 2012 - C. Keller    - Initial Version
@@ -1723,32 +1730,32 @@ CONTAINS
 ! LOCAL VARIABLES:
 !
     ! Pointers
-    REAL(hp), POINTER  :: Trgt3D(:,:,:)
+    REAL(hp), POINTER             :: Trgt3D(:,:,:)
 
     ! SAVEd scalars
-    LOGICAL, SAVE      :: FIRST = .TRUE.
+    LOGICAL,                 SAVE :: FIRST       = .TRUE.
 #if defined ( MODEL_WRF )
-    LOGICAL, DIMENSION(1:8), SAVE      :: FIRST_PERID = .TRUE.
+    LOGICAL, DIMENSION(1:8), SAVE :: FIRST_PERID = .TRUE.
 #endif
 
     ! Scalars
-    INTEGER            :: HMRC
+    INTEGER                       :: HMRC
 
     ! Strings
-    CHARACTER(LEN=255) :: ThisLoc
-    CHARACTER(LEN=512) :: ErrMsg
+    CHARACTER(LEN=255)            :: ThisLoc
+    CHARACTER(LEN=512)            :: ErrMsg
 
-    !=======================================================================
+    !========================================================================
     ! ExtState_SetFields begins here
-    !=======================================================================
+    !========================================================================
 
     ! Initialize
-    RC       = GC_SUCCESS
-    HMRC     = HCO_SUCCESS
-    Trgt3d   => NULL()
-    ErrMsg   = ''
-    ThisLoc  = &
-       ' -> at ExtState_SetFields (in module GeosCore/hco_interface_gc_mod.F90)'
+    RC       =  GC_SUCCESS
+    HMRC     =  HCO_SUCCESS
+    Trgt3D   => NULL()
+    ErrMsg   =  ''
+    ThisLoc  =  &
+     ' -> at ExtState_SetFields (in module GeosCore/hco_interface_gc_mod.F90)'
 
     ! If using intermediate grid (MODEL_CLASSIC and LIMGRID), then load data
     ! from the shadow H_* arrays which have been regridded to HEMCO sizes.
@@ -1759,25 +1766,27 @@ CONTAINS
     ! To avoid code duplication, in GEOS-Chem classic data is also loaded
     ! directly from HEMCO met pointers, when possible.
 
-#if defined( MODEL_WRF )
+#ifdef MODEL_WRF
     ! For WRF-GC, the FIRST call needs to be domain-ID specific.
     FIRST = FIRST_PERID( State_Grid%CPU_Subdomain_ID )
 #endif
 
-    !-----------------------------------------------------------------------
+    !========================================================================
     ! Pointers to local module arrays
-    !-----------------------------------------------------------------------
+    !========================================================================
 
-    ! SZAFACT
-#if defined( MODEL_CLASSIC )
+    !------------------------------------------------------------------------
+    ! %%%%% SZAFACT %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
-                       HMRC,     FIRST,            State_Met%SZAFACT )
-#if defined( MODEL_CLASSIC )
+      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS',       &
+                       HMRC,     FIRST,             State_Met%SZAFACT       )
+#ifdef MODEL_CLASSIC
     ELSE
-      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS', &
-                       HMRC,     FIRST,            H_SZAFACT )
+      CALL ExtDat_Set( HcoState, ExtState%SZAFACT, 'SZAFACT_FOR_EMIS',       &
+                       HMRC,     FIRST,             H_SZAFACT               )
     ENDIF
 #endif
 
@@ -1789,16 +1798,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! JNO2
-#if defined( MODEL_CLASSIC )
+    !------------------------------------------------------------------------
+    ! %%%%% JNO2 %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
-                       HMRC,     FIRST,         State_Chm%JNO2 )
-#if defined( MODEL_CLASSIC )
+      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS',             &
+                       HMRC,     FIRST,          State_Chm%JNO2             )
+#ifdef MODEL_CLASSIC
     ELSE
-      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS', &
-                       HMRC,     FIRST,         H_JNO2 )
+      CALL ExtDat_Set( HcoState, ExtState%JNO2, 'JNO2_FOR_EMIS',             &
+                       HMRC,     FIRST,          H_JNO2                     )
     ENDIF
 #endif
 
@@ -1810,16 +1821,18 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! JOH
-#if defined( MODEL_CLASSIC )
+    !------------------------------------------------------------------------
+    ! %%%%% JOH %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
     IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
-                       HMRC,     FIRST,        State_Chm%JOH )
-#if defined( MODEL_CLASSIC )
+      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS',               &
+                       HMRC,     FIRST,         State_Chm%JOH               )
+#ifdef MODEL_CLASSIC
     ELSE
-      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS', &
-                       HMRC,     FIRST,        H_JOH )
+      CALL ExtDat_Set( HcoState, ExtState%JOH, 'JOH_FOR_EMIS',               &
+                       HMRC,     FIRST,         H_JOH                       )
     ENDIF
 #endif
 
@@ -1831,22 +1844,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ----------------------------------------------------------------------
+    !=======================================================================
     ! 2D fields requiring interpolation (for GC-Classic)
-    ! ----------------------------------------------------------------------
+    !=======================================================================
 
-    ! PSC2_WET
-    ! Computed in calc_met_mod
+    !------------------------------------------------------------------------
+    ! %%%%% PSC2_WET (Computed in calc_met_mod) %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%PSC2_WET%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Met%PSC2_WET )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS',   &
+                         HMRC,     FIRST,              State_Met%PSC2_WET   )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS', &
-                         HMRC,     FIRST,             H_PSC2_WET )
+        CALL ExtDat_Set( HcoState, ExtState%PSC2_WET, 'PSC2_WET_FOR_EMIS',   &
+                         HMRC,     FIRST,              H_PSC2_WET           )
       ENDIF
 #endif
     ENDIF
@@ -1859,18 +1873,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! FRCLND
-    ! Computed in olson_landmap_mod
+    !------------------------------------------------------------------------
+    ! %%%%% FRCLND (Computed in olson_landmap_mod) %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%FRCLND%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
-                         HMRC,     FIRST,           State_Met%FRCLND )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS',       &
+                         HMRC,     FIRST,            State_Met%FRCLND       )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS', &
-                         HMRC,     FIRST,           H_FRCLND )
+        CALL ExtDat_Set( HcoState, ExtState%FRCLND, 'FRCLND_FOR_EMIS',       &
+                         HMRC,     FIRST,            H_FRCLND               )
       ENDIF
 #endif
     ENDIF
@@ -1883,18 +1898,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! LAI
-    ! Calculated in modis_lai_mod from XLAI_NATIVE
+    !------------------------------------------------------------------------
+    ! %%%%% LAI (Calculated in modis_lai_mod from XLAI_NATIVE) %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%LAI%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
-                         HMRC,     FIRST,        State_Met%MODISLAI )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS',             &
+                         HMRC,     FIRST,         State_Met%MODISLAI         )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS', &
-                         HMRC,     FIRST,        H_MODISLAI )
+        CALL ExtDat_Set( HcoState, ExtState%LAI, 'LAI_FOR_EMIS',             &
+                         HMRC,     FIRST,         H_MODISLAI                )
       ENDIF
 #endif
     ENDIF
@@ -1907,20 +1923,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! CNV_FRC Convective fractions
-    ! Apparently this is not used anywhere right now? maybe it is a GCHP thing
+    !------------------------------------------------------------------------
+    ! %%%%% CNV_FRC Convective fractions (possibly GEOS ESM only) %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%CNV_FRC%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Met%CNV_FRC,  &
-                         NotFillOk=.TRUE. )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC, 'CNV_FRC_FOR_EMIS',     &
+                         HMRC,     FIRST,             State_Met%CNV_FRC,     &
+                         NotFillOk=.TRUE.                                   )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC,  'CNV_FRC_FOR_EMIS', &
-                         HMRC,     FIRST,             H_CNV_FRC,  &
-                         NotFillOk=.TRUE. )
+        CALL ExtDat_Set( HcoState, ExtState%CNV_FRC, 'CNV_FRC_FOR_EMIS',     &
+                         HMRC,     FIRST,             H_CNV_FRC,             &
+                         NotFillOk=.TRUE.                                   )
       ENDIF
 #endif
     ENDIF
@@ -1933,17 +1950,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Tropopause level
+    !------------------------------------------------------------------------
+    ! %%%%% Tropopause level %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%TropLev%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
-                         HMRC,     FIRST,            State_Met%TropLev )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev',              &
+                         HMRC,     FIRST,             State_Met%TropLev     )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev', &
-                         HMRC,     FIRST,            H_TropLev )
+        CALL ExtDat_Set( HcoState, ExtState%TropLev, 'TropLev',              &
+                         HMRC,     FIRST,             H_TropLev             )
       ENDIF
 #endif
     ENDIF
@@ -1956,21 +1975,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ----------------------------------------------------------------------
+    !=======================================================================
     ! 3D fields requiring interpolation (for GC-Classic)
-    ! ----------------------------------------------------------------------
+    !=======================================================================
 
-    ! TK
+    !------------------------------------------------------------------------
+    ! %%%%% TK %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%TK%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
-                         HMRC,     FIRST,       State_Met%T )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS',               &
+                         HMRC,     FIRST,        State_Met%T                )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS', &
-                         HMRC,     FIRST,       H_T )
+        CALL ExtDat_Set( HcoState, ExtState%TK, 'TK_FOR_EMIS',               &
+                         HMRC,     FIRST,        H_T                        )
       ENDIF
 #endif
     ENDIF
@@ -1983,17 +2004,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Air mass [kg/grid box]
+    !------------------------------------------------------------------------
+    ! %%%%% Air mass [kg/grid box] %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%AIR%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
-                         HMRC,     FIRST,        State_Met%AD )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS',             &
+                         HMRC,     FIRST,         State_Met%AD              )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS', &
-                         HMRC,     FIRST,        H_AD )
+        CALL ExtDat_Set( HcoState, ExtState%AIR, 'AIR_FOR_EMIS',             &
+                         HMRC,     FIRST,         H_AD                      )
       ENDIF
 #endif
     ENDIF
@@ -2006,17 +2029,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! AIRVOL_FOR_EMIS
+    !------------------------------------------------------------------------
+    ! %%%%% AIRVOL_FOR_EMIS %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%AIRVOL%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
-                         HMRC,     FIRST,           State_Met%AIRVOL )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS',       &
+                         HMRC,     FIRST,            State_Met%AIRVOL       )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS', &
-                         HMRC,     FIRST,           H_AIRVOL )
+        CALL ExtDat_Set( HcoState, ExtState%AIRVOL, 'AIRVOL_FOR_EMIS',       &
+                         HMRC,     FIRST,            H_AIRVOL               )
       ENDIF
 #endif
     ENDIF
@@ -2029,17 +2054,19 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Dry air density [kg/m3]
+    !------------------------------------------------------------------------
+    ! %%%%% Dry air density [kg/m3] %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%AIRDEN%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
-                         HMRC,     FIRST,           State_Met%AIRDEN )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN',                &
+                         HMRC,     FIRST,            State_Met%AIRDEN       )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN', &
-                         HMRC,     FIRST,           H_AIRDEN )
+        CALL ExtDat_Set( HcoState, ExtState%AIRDEN, 'AIRDEN',                &
+                         HMRC,     FIRST,            H_AIRDEN               )
       ENDIF
 #endif
     ENDIF
@@ -2052,17 +2079,21 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Frac of PBL
+    !------------------------------------------------------------------------
+    ! %%%%% Fraction of PBL in each grid box %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%FRAC_OF_PBL%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
-                         HMRC,     FIRST,                State_Met%F_OF_PBL )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set(  HcoState,              ExtState%FRAC_OF_PBL,       &
+                         'FRAC_OF_PBL_FOR_EMIS', HMRC,                       &
+                          FIRST,                 State_Met%F_OF_PBL         )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%FRAC_OF_PBL, 'FRAC_OF_PBL_FOR_EMIS', &
-                         HMRC,     FIRST,                H_F_OF_PBL )
+        CALL ExtDat_Set(  HcoState,              ExtState%FRAC_OF_PBL,       &
+                         'FRAC_OF_PBL_FOR_EMIS', HMRC,                       &
+                          FIRST,                 H_F_OF_PBL                 )
       ENDIF
 #endif
     ENDIF
@@ -2075,26 +2106,29 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ----------------------------------------------------------------------
+    !=======================================================================
     ! 2D fields directly readable from HEMCO (for GC-Classic)
     ! 2D fields (for other models)
-    ! ----------------------------------------------------------------------
-
-    ! For MODEL_CLASSIC with the optional HEMCO intermediate grid option,
-    ! the meteorological field pointers point to the HEMCO pointers directly.
-    ! This avoids an extra regridding in the GC -> HEMCO direction.
     !
-    ! For this, simply specify the met field name directly in the FldName arg
-    ! call to ExtDat_Set. This will prompt HEMCO to call HCO_EvalFld directly
-    ! (hplin, 6/2/20)
+    ! For MODEL_CLASSIC with the optional HEMCO intermediate grid option,
+    ! the meteorological field pointers point to the HEMCO pointers
+    ! directly. This avoids an extra regridding in the GC -> HEMCO
+    ! direction.
+    !
+    ! For this, simply specify the met field name directly in the FldName
+    ! arg call to ExtDat_Set. This will prompt HEMCO to call HCO_EvalFld
+    ! directly (hplin, 6/2/20)
+    !=======================================================================
 
-    ! U10M
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% U10M %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M',                        &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M_FOR_EMIS', &
-                     HMRC,     FIRST,         State_Met%U10M )
+    CALL ExtDat_Set( HcoState, ExtState%U10M, 'U10M_FOR_EMIS',               &
+                     HMRC,     FIRST,          State_Met%U10M               )
 #endif
 
     ! Trap potential errors
@@ -2105,13 +2139,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! V10M
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% V10M %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M',                        &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M_FOR_EMIS', &
-                     HMRC,     FIRST,         State_Met%V10M )
+    CALL ExtDat_Set( HcoState, ExtState%V10M, 'V10M_FOR_EMIS',               &
+                     HMRC,     FIRST,          State_Met%V10M               )
 #endif
 
     ! Trap potential errors
@@ -2123,13 +2159,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ALBD
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBEDO', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% ALBD %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBEDO',                      &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBD_FOR_EMIS', &
-                     HMRC,     FIRST,         State_Met%ALBD )
+    CALL ExtDat_Set( HcoState, ExtState%ALBD, 'ALBD_FOR_EMIS',               &
+                     HMRC,     FIRST,          State_Met%ALBD               )
 #endif
 
     ! Trap potential errors
@@ -2140,13 +2178,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! T2M
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% T2M (which is actually stored in State_Met%TS) %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M',                          &
+                     HMRC,     FIRST,         State_Met%TS                  )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M_FOR_EMIS', &
-                     HMRC,     FIRST,        State_Met%TS )
+    CALL ExtDat_Set( HcoState, ExtState%T2M, 'T2M_FOR_EMIS',                 &
+                     HMRC,     FIRST,         State_Met%TS                  )
 #endif
 
     ! Trap potential errors
@@ -2157,13 +2197,16 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! TSKIN
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TS', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% TSKIN (which is actually stored in State_Met%TSKIN) %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN',                      &
+                     HMRC,     FIRST,           State_Met%TSKIN             )
+    print*, '### HMRC TSKIN', HMRC
 #else
-    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN_FOR_EMIS', &
-                     HMRC,     FIRST,          State_Met%TSKIN )
+    CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%TSKIN             )
 #endif
 
     ! Trap potential errors
@@ -2174,13 +2217,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! TSOIL1
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL', &
-                    HMRC,      FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% TSOIL1 %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL',                     &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL1_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%TSOIL1 )
+    CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL1_FOR_EMIS',           &
+                     HMRC,     FIRST,                                       )
 #endif
 
     ! Trap potential errors
@@ -2191,13 +2236,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! GWETROOT
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% GWETROOT %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT',                &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%GWETROOT )
+    CALL ExtDat_Set( HcoState, ExtState%GWETROOT, 'GWETROOT_FOR_EMIS',       &
+                     HMRC,     FIRST,              State_Met%GWETROOT       )
 #endif
 
     ! Trap potential errors
@@ -2208,13 +2255,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! GWETTOP
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% GWETTOP %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP',                  &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP_FOR_EMIS', &
-                     HMRC,     FIRST,            State_Met%GWETTOP )
+    CALL ExtDat_Set( HcoState, ExtState%GWETTOP, 'GWETTOP_FOR_EMIS',         &
+                     HMRC,     FIRST,             State_Met%GWETTOP         )
 #endif
 
     ! Trap potential errors
@@ -2225,13 +2274,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! USTAR
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% USTAR %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR',                      &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR_FOR_EMIS', &
-                     HMRC,     FIRST,          State_Met%USTAR )
+    CALL ExtDat_Set( HcoState, ExtState%USTAR, 'USTAR_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%USTAR             )
 #endif
 
     ! Trap potential errors
@@ -2242,13 +2293,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! Z0
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0M', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% Z0 %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0M',                           &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0_FOR_EMIS', &
-                     HMRC,     FIRST,       State_Met%Z0 )
+    CALL ExtDat_Set( HcoState, ExtState%Z0, 'Z0_FOR_EMIS',                   &
+                     HMRC,     FIRST,        State_Met%Z0                   )
 #endif
 
     ! Trap potential errors
@@ -2259,13 +2312,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! PARDR
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% PARDR %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR',                      &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR_FOR_EMIS', &
-                     HMRC,     FIRST,          State_Met%PARDR )
+    CALL ExtDat_Set( HcoState, ExtState%PARDR, 'PARDR_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%PARDR             )
 #endif
 
     ! Trap potential errors
@@ -2276,13 +2331,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! PARDF
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% PARDF %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF',                      &
+                     HMRC,     FIRST                                        )  
 #else
-    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF_FOR_EMIS', &
-                     HMRC, FIRST,              State_Met%PARDF )
+    CALL ExtDat_Set( HcoState, ExtState%PARDF, 'PARDF_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%PARDF             )
 #endif
 
     ! Trap potential errors
@@ -2293,13 +2350,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! RADSWG
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'SWGDN', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% RADSWG %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'SWGDN',                     &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'RADSWG_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%SWGDN )
+    CALL ExtDat_Set( HcoState, ExtState%RADSWG, 'RADSWG_FOR_EMIS',           &
+                     HMRC,     FIRST,            State_Met%SWGDN            )
 #endif
 
     ! Trap potential errors
@@ -2310,13 +2369,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! CLDFRC
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDTOT', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%%  CLDFRC %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDTOT',                    &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDFRC_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%CLDFRC )
+    CALL ExtDat_Set( HcoState, ExtState%CLDFRC, 'CLDFRC_FOR_EMIS',           &
+                     HMRC,     FIRST,            State_Met%CLDFRC           )
 #endif
 
     ! Trap potential errors
@@ -2327,14 +2388,17 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! %%%%% SNOMAS %%%%%
     ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOMAS', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOMAS',                   &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOWHGT_FOR_EMIS', &
-                     HMRC,     FIRST,            State_Met%SNOMAS )
+    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOWHGT_FOR_EMIS',         &
+                     HMRC,     FIRST,             State_Met%SNOMAS          )
 #endif
 
     ! Trap potential errors
@@ -2345,13 +2409,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! SNOWDP [m]
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% SNODP %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP',                      &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP_FOR_EMIS', &
-                     HMRC,     FIRST,          State_Met%SNODP )
+    CALL ExtDat_Set( HcoState, ExtState%SNODP, 'SNODP_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%SNODP             )
 #endif
 
     ! Trap potential errors
@@ -2362,13 +2428,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! FRLAND
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% FRLAND %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND',                    &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%FRLAND )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAND, 'FRLAND_FOR_EMIS',           &
+                     HMRC,     FIRST,            State_Met%FRLAND           )
 #endif
 
     ! Trap potential errors
@@ -2379,13 +2447,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! FROCEAN
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% FROCEAN %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN',                  &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN_FOR_EMIS', &
-                     HMRC,     FIRST,            State_Met%FROCEAN )
+    CALL ExtDat_Set( HcoState, ExtState%FROCEAN, 'FROCEAN_FOR_EMIS',         &
+                     HMRC,     FIRST,             State_Met%FROCEAN         )
 #endif
 
     ! Trap potential errors
@@ -2396,15 +2466,17 @@ CONTAINS
        RETURN
     ENDIF
 
-! start blowing snow
-    ! FRSEAICE (for blowing snow, huang & jaegle 04/12/20)
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% FRSEAICE %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE',                &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRSEAICE )
+    CALL ExtDat_Set( HcoState, ExtState%FRSEAICE, 'FRSEAICE_FOR_EMIS',       &
+                     HMRC,     FIRST,              State_Met%FRSEAICE       )
 #endif
+
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
@@ -2413,14 +2485,17 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! QV2M (for blowing snow, huang & jaegle 04/12/20)
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% QV2M %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M',                        &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M_FOR_EMIS', &
-                     HMRC,     FIRST,          State_Met%QV2M )
+    CALL ExtDat_Set( HcoState, ExtState%QV2M, 'QV2M_FOR_EMIS',               &
+                     HMRC,     FIRST,          State_Met%QV2M               )
 #endif
+
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
@@ -2428,15 +2503,16 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-! end blowing snow
 
-    ! FRLAKE
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% FRLAKE %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE',                    &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE_FOR_EMIS', &
-                     HMRC,     FIRST,           State_Met%FRLAKE )
+    CALL ExtDat_Set( HcoState, ExtState%FRLAKE, 'FRLAKE_FOR_EMIS',           &
+                     HMRC,     FIRST,            State_Met%FRLAKE           )
 #endif
 
     ! Trap potential errors
@@ -2447,13 +2523,15 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! FRLANDIC
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC', &
-                     HMRC,     FIRST=FIRST )
+    !------------------------------------------------------------------------
+    ! %%%%% FRLANDIC %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC',                &
+                     HMRC,     FIRST                                        )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS', &
-                     HMRC,     FIRST,             State_Met%FRLANDICE )
+    CALL ExtDat_Set( HcoState, ExtState%FRLANDIC, 'FRLANDIC_FOR_EMIS',       &
+                     HMRC,     FIRST,              State_Met%FRLANDICE      )
 #endif
 
     ! Trap potential errors
@@ -2464,18 +2542,22 @@ CONTAINS
        RETURN
     ENDIF
 
-    !-----------------------------------------------------------------------
+    !========================================================================
     ! 3D fields
-    !-----------------------------------------------------------------------
+    !========================================================================
+
+    !------------------------------------------------------------------------
+    ! %%%%% CNV_MFC %%%%%
+    !------------------------------------------------------------------------
 
     ! CNV_MFC
-#if defined( MODEL_CLASSIC )
-    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CMFMC', &
-                     HMRC,      FIRST,            OnLevEdge=.TRUE. )
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CMFMC',                   &
+                     HMRC,      FIRST,             OnLevEdge=.TRUE.         )
 #else
-    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CNV_MFC_FOR_EMIS', &
-                     HMRC,      FIRST,            State_Met%CMFMC,    &
-                     OnLevEdge=.TRUE. )
+    CALL ExtDat_Set( HcoState,  ExtState%CNV_MFC, 'CNV_MFC_FOR_EMIS',        &
+                     HMRC,      FIRST,             State_Met%CMFMC,          &
+                     OnLevEdge=.TRUE.                                       )
 #endif
 
     ! Trap potential errors
@@ -2486,32 +2568,36 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !=======================================================================
     ! Species concentrations
     ! All of these require interpolation on-demand.
-    ! ----------------------------------------------------------------
+    !
+    ! Note: ExtDat_Set points DIRECTLY to the assigned target when
+    ! received through ExtDat%Arr%Val => Trgt. This means that the array
+    ! temporary must be maintained through time in memory. It may be
+    ! particularly taxing for a GC-classic run with intermediate grid
+    ! option, as all of these must be maintained in regridded
+    ! HIGH-RESOLUTION (HEMCO resolution) array temporaries now!
+    ! (hplin, 6/2/20)
+    !=======================================================================
 
-    ! Note: ExtDat_Set points DIRECTLY to the assigned target when received
-    ! through ExtDat%Arr%Val => Trgt. This means that the array temporary
-    ! must be maintained through time in memory. It may be particularly taxing
-    ! for a GC-classic run with intermediate grid option, as all of these must
-    ! be maintained in regridded HIGH-RESOLUTION (HEMCO resolution) array
-    ! temporaries now! (hplin, 6/2/20)
-
+    !------------------------------------------------------------------------
+    ! %%%%% O3 %%%%%
+    !------------------------------------------------------------------------
     IF ( id_O3 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_O3)%Conc
-        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
-                         HMRC,     FIRST,       Trgt3D )
+        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS',         &
+                         HMRC,     FIRST,        Trgt3D                     )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS', &
-                         HMRC,     FIRST,       H_SpcO3 )
+        CALL ExtDat_Set( HcoState, ExtState%O3, 'HEMCO_O3_FOR_EMIS',         &
+                         HMRC,     FIRST,        H_SpcO3                    )
       ENDIF
 #endif
 
@@ -2524,20 +2610,23 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! %%%%% NO2 %%%%%
+    !------------------------------------------------------------------------
     IF ( id_NO2 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_NO2)%Conc
-        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
-                         HMRC,     FIRST,        Trgt3D )
+        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS',       &
+                         HMRC,     FIRST,         Trgt3D                    )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS', &
-                         HMRC,     FIRST,        H_SpcNO2 )
+        CALL ExtDat_Set( HcoState, ExtState%NO2, 'HEMCO_NO2_FOR_EMIS',       &
+                         HMRC,     FIRST,         H_SpcNO2                  )
       ENDIF
 #endif
 
@@ -2550,20 +2639,23 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! %%%%% NO %%%%%
+    !------------------------------------------------------------------------
     IF ( id_NO > 0 ) THEN
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_NO)%Conc
-        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
-                         HMRC,     FIRST,       Trgt3D )
+        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS',         &
+                         HMRC,     FIRST,        Trgt3D                     )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS', &
-                         HMRC,     FIRST,       H_SpcNO )
+        CALL ExtDat_Set( HcoState, ExtState%NO, 'HEMCO_NO_FOR_EMIS',         &
+                         HMRC,     FIRST,        H_SpcNO                    )
       ENDIF
 #endif
 
@@ -2576,20 +2668,23 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! %%%%% HNO3 %%%%%
+    !------------------------------------------------------------------------
     IF ( id_HNO3 > 0 ) THEN
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_HNO3)%Conc
-        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
-                         HMRC,     FIRST,         Trgt3D )
+        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS',     &
+                         HMRC,     FIRST,          Trgt3D                   )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS', &
-                         HMRC,     FIRST,         H_SpcHNO3 )
+        CALL ExtDat_Set( HcoState, ExtState%HNO3, 'HEMCO_HNO3_FOR_EMIS',     &
+                         HMRC,     FIRST,          H_SpcHNO3                )
       ENDIF
 #endif
 
@@ -2602,20 +2697,23 @@ CONTAINS
        ENDIF
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! %%%%% POPG (for POPs simulations) %%%%%
+    !------------------------------------------------------------------------
     IF ( id_POPG > 0 ) THEN
 
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
         Trgt3D => State_Chm%Species(id_POPG)%Conc
-        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
-                         HMRC,     FIRST,         Trgt3D )
+        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS',     &
+                         HMRC,     FIRST,          Trgt3D                   )
 
         Trgt3D => NULL()
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS', &
-                         HMRC,     FIRST,         H_SpcPOPG )
+        CALL ExtDat_Set( HcoState, ExtState%POPG, 'HEMCO_POPG_FOR_EMIS',     &
+                         HMRC,     FIRST,          H_SpcPOPG                )
       ENDIF
 #endif
 
@@ -2628,21 +2726,24 @@ CONTAINS
        ENDIF
     ENDIF
 
-    ! ----------------------------------------------------------------------
+    !=======================================================================
     ! Deposition parameter
-    ! ----------------------------------------------------------------------
+    !=======================================================================
 
-    ! DRY_TOTN
+    !------------------------------------------------------------------------
+    ! %%%%% DRY_TOTN (Dry-deposited N) %%%%%
+    !------------------------------------------------------------------------
     IF ( ExtState%DRY_TOTN%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Chm%DryDepNitrogen )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set(  HcoState,           ExtState%DRY_TOTN,             &
+                         'DRY_TOTN_FOR_EMIS', HMRC,                          &
+                          FIRST,              State_Chm%DryDepNitrogen      )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             H_DRY_TOTN )
+        CALL ExtDat_Set( HcoState, ExtState%DRY_TOTN, 'DRY_TOTN_FOR_EMIS',   &
+                         HMRC,     FIRST,              H_DRY_TOTN           )
       ENDIF
 #endif
     ENDIF
@@ -2655,21 +2756,23 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! WET_TOTN
+    !------------------------------------------------------------------------
+    ! %%%%% WET_TOTN (Wet-deposited N)
+    !------------------------------------------------------------------------
     IF ( ExtState%WET_TOTN%DoUse ) THEN
-#if defined( MODEL_CLASSIC )
+#ifdef MODEL_CLASSIC
       IF ( .not. Input_Opt%LIMGRID ) THEN
 #endif
-        CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             State_Chm%WetDepNitrogen )
-#if defined( MODEL_CLASSIC )
+        CALL ExtDat_Set(  HcoState,           ExtState%WET_TOTN,             &
+                         'WET_TOTN_FOR_EMIS', HMRC,                          &
+                          FIRST,              State_Chm%WetDepNitrogen      )
+#ifdef MODEL_CLASSIC
       ELSE
-        CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS', &
-                         HMRC,     FIRST,             H_WET_TOTN )
+        CALL ExtDat_Set( HcoState, ExtState%WET_TOTN, 'WET_TOTN_FOR_EMIS',   &
+                         HMRC,     FIRST,              H_WET_TOTN           )
       ENDIF
 #endif
     ENDIF
-
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
@@ -2679,27 +2782,28 @@ CONTAINS
        RETURN
     ENDIF
 
-    ! ----------------------------------------------------------------
+    !=======================================================================
     ! Other pointers to be set on first call
-    ! ----------------------------------------------------------------
+    !=======================================================================
     IF ( FIRST ) THEN
        IF ( ExtState%WET_TOTN%DoUse .OR. ExtState%DRY_TOTN%DoUse ) THEN
-          ! Polynomial coefficients for dry deposition, array target in drydep_mod
+          ! Polynomial coefficients for dry deposition,
+          ! array target in drydep_mod
           ExtState%DRYCOEFF => DRYCOEFF
        ENDIF
 
        ExtState%PBL_MAX => HCO_PBL_MAX
     ENDIF
 
-    ! ----------------------------------------------------------------
+#ifdef ESMF_
+    !=======================================================================
     ! ESMF environment: add some additional variables to ExtState.
     ! These values must be defined here and not in the initialization
     ! because it seems like the IMPORT state is not yet properly
     ! defined during initialization.
     ! ckeller, 06/02/17: now call this on every time step. Routine
     ! HCO_SetExtState_ESMF copies the fields to ExtState.
-    ! ----------------------------------------------------------------
-#ifdef ESMF_
+    !=======================================================================
     ! IF ( FIRST ) THEN
     CALL HCO_SetExtState_ESMF ( HcoState, ExtState, RC )
 
@@ -2715,7 +2819,7 @@ CONTAINS
 
     ! Not first call any more
     FIRST  = .FALSE.
-#if defined( MODEL_WRF )
+#ifdef MODEL_WRF
     FIRST_PERID( State_Grid%CPU_Subdomain_ID ) = .FALSE.
 #endif
     Trgt3D => NULL()

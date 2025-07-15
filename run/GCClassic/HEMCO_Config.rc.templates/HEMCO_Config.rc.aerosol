@@ -123,7 +123,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
-#   OFFLINE_DUST        - DustDead or DustGinoux
+#   OFFLINE_DUST        - DustDead or DustGinoux or DustL23M
 #   OFFLINE_BIOGENICVOC - MEGAN
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
@@ -147,9 +147,9 @@ VerboseOnCores:              root       # Accepted values: root all
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
-105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
+
+105     DustL23M               : on    DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
-106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
@@ -188,7 +188,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
-115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
+115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}

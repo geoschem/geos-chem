@@ -458,11 +458,18 @@ CONTAINS
     State_Met%TROPP = Q
 
     ! Read TS
+    ! NOTE: This is now stored in State_Met%TSKIN to denote that it is
+    ! skin temperature.  At one point in the past TS was actgually surface
+    ! temperature but GMAO changed it to skin temperature a while back.
+    ! (Bob Y., 14 Jul 2025)
     v_name = "TS"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TSKIN = Q
 
     ! Read T2M
+    ! NOTE: 2m temperature is used as a proxy for surface temperature,
+    ! so we store it in State_Met%TS, which denotes surface temperature.
+    ! (Bob Y, 14 Jul 2025)
     v_name = "T2M"
     CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
     State_Met%TS = Q

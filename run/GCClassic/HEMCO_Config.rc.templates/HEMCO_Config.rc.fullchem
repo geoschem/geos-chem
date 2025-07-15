@@ -172,9 +172,8 @@ VerboseOnCores:              root       # Accepted values: root all
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> UseSoilTemperature     :       false
     --> Use fertilizer NOx     :       true
-105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
+105     DustL23M               : on    DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
     --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
-106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
@@ -3194,7 +3193,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- Offline dust emissions ---
 #==============================================================================
 (((OFFLINE_DUST
-(((.not.DustDead.or.DustGinoux
+(((.not.DustL23M
 0 EMIS_DSTbin1 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin1 621 3 2
 0 EMIS_DSTbin2 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin2 622 3 2
 0 EMIS_DSTbin3 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin3 623 3 2
@@ -3202,7 +3201,7 @@ VerboseOnCores:              root       # Accepted values: root all
 0 EMIS_DSTbin5 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin5 625 3 2
 0 EMIS_DSTbin6 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin6 626 3 2
 0 EMIS_DSTbin7 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin7 627 3 2
-))).not.DustDead.or.DustGinoux
+))).not.DustL23M
 )))OFFLINE_DUST
 
 #==============================================================================
@@ -3347,15 +3346,6 @@ VerboseOnCores:              root       # Accepted values: root all
 131 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
 131 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
 )))TOMAS_DustDead
-
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
-#==============================================================================
-(((DustGinoux
-106 GINOUX_SAND   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SAND  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_SILT   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SILT  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_CLAY   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  CLAY  1985/1/1/0 C xy unitless * - 1 1
-)))DustGinoux
 
 #==============================================================================
 # --- Sea salt emissions (Extensions 107 and 130)
