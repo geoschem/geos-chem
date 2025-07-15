@@ -60,6 +60,8 @@ MODULE fullchem_RateLawFuncs
 
   ! Critical RH [%] for uptake of GLYX, MGLYX, and GLYC:
   REAL(dp), PRIVATE, PARAMETER :: CRITRH         = 35.0_dp
+  ! Critical RH [%] for uptake of SO2:
+  REAL(dp), PRIVATE, PARAMETER :: CRITRH2        = 50.0_dp
 
   ! Conversion factor from atm to bar
   REAL(dp), PRIVATE, PARAMETER :: CON_ATM_BAR    = 1.0_dp / 1.01325_dp
@@ -1169,6 +1171,157 @@ CONTAINS
     brH2O = g3 / gamma
   END SUBROUTINE Gam_ClNO3_Ice
 
+  FUNCTION HMSDecomp( H ) RESULT(k)
+    ! Computes the reaction rate [1/s] for HMS decomposition
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: k
+    k = H%KaqHMS
+  END FUNCTION HMSDecomp
+
+  FUNCTION HMSOxidation( H ) RESULT(k)
+   ! Computes the reaction rate [1/s] for HMS oxidation
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: k
+    k = H%KaqHMS2
+  END FUNCTION HMSOxidation
+  
+  FUNCTION SO2uptkbyTMIO2( H ) RESULT (k)
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of SO2 and rx with TMI/O2.
+    !
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: srMw, k, k_ex1    ! sqrt(mol wt), rxn rate [1/s]
+    REAL(dp)                   :: gammaKT
+
+    !
+    ! Initialize
+    k       = 0.0_dp
+    gammaKT = 0.0_dp
+    k_ex1   = 0.0_dp
+      
+    srMw = SR_MW(ind_SO2)
+    ! Uptake by tropospheric sulfate
+    IF ( RELHUM >= CRITRH2 ) THEN
+
+       gammaKT = H%gamma_SO2_TMI
+      
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaKT, srMw )
+       k = k_ex1 + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gammaKT, srMw )
+
+    ENDIF
+
+  END FUNCTION SO2uptkbyTMIO2
+
+  FUNCTION SO2uptkbyH2O2( H) RESULT ( k )
+    !
+    ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+  
+    REAL(dp) :: gammaKT, srMw, k_ex1
+
+
+    ! Initialize
+    k    = 0.0_dp
+    gammaKT = 0.0_dp
+    k_ex1   = 0.0_dp
+    
+    srMw = SR_MW(ind_SO2)
+
+    ! Uptake by tropospheric sulfate
+    IF ( RELHUM .ge. CRITRH2 ) THEN
+
+       gammaKT = H%gamma_SO2_H2O2
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaKT, srMw )
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gammaKT, srMw )
+
+       ! Assume H2O2 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_H2O2), C(ind_SO2), k_ex1 )
+      
+    ENDIF
+    
+  END FUNCTION SO2uptkbyH2O2
+
+  FUNCTION SO2uptkbyNO2( H) RESULT ( k )
+    !
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    !
+  
+    REAL(dp) :: gammaKT, srMw, k_ex1
+
+    ! Initialize
+    k    = 0.0_dp
+    gammaKT = 0.0_dp
+    k_ex1 = 0.0_dp
+    
+    srMw        = SR_MW(ind_SO2)
+
+    ! Uptake by tropospheric sulfate
+    IF ( RELHUM >= CRITRH2 ) THEN
+       gammaKT = H%gamma_SO2_NO2
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaKT, srMw )
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gammaKT, srMw )
+       
+       ! Assume NO2 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_NO2), C(ind_SO2), k_ex1 )
+
+    ENDIF
+  END FUNCTION SO2uptkbyNO2
+
+  FUNCTION SO2uptkbyO3( H ) RESULT (k)
+    !
+    ! Computes the reaction rate [1/s] for 1st order uptake of SO2 and rx with O3.
+    !
+    TYPE(HetState), INTENT(IN) :: H                 ! HetChem State
+    REAL(dp)                   :: srMw, k, k_ex1    ! sqrt(mol wt), rxn rate [1/s]
+    REAL(dp)                   :: gammaKT
+    !
+    ! Initialize
+    k       = 0.0_dp
+    gammaKT = 0.0_dp
+    k_ex1   = 0.0_dp
+    
+    srMw = SR_MW(ind_SO2)
+
+    ! Uptake by tropospheric sulfate
+    IF ( RELHUM >= CRITRH2  ) THEN
+  
+       gammaKT = H%gamma_SO2_O3
+
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaKT, srMw )
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gammaKT, srMw )
+
+       ! Assume O3 is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_O3), C(ind_SO2), k_ex1 )
+
+    ENDIF
+
+  END FUNCTION SO2uptkbyO3
+
+  FUNCTION SO2uptkbyCH2O( H) RESULT ( k )
+    !
+    !
+    TYPE(HetState), INTENT(IN) :: H              ! Hetchem State
+    REAL(dp)                   :: k              ! Rxn rate [1/s]
+    REAL(dp) :: gammaKT, srMw, k_ex1
+
+    srMw = SR_MW(ind_SO2)
+    gammaKT = H%gamma_SO2_CH2O
+    IF ( RELHUM >= CRITRH2  ) THEN
+       
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(SUL), H%xRadi(SUL), gammaKT, srMw )
+       k_ex1 = k_ex1 + Ars_L1k( H%xArea(ORC), H%xRadi(ORC), gammaKT, srMw )
+       
+       ! Assume CH2O is limiting, so recompute reaction rate accordingly
+       k = kIIR1Ltd( C(ind_CH2O), C(ind_SO2), k_ex1 )
+    ENDIF
+  END FUNCTION SO2uptkbyCH2O
+  
+!!$  
   FUNCTION ClNO3uptkByH2O( H ) RESULT( k )
     !
     ! Computes the hydrolysis reaction rate [1/s] of ClNO3 + H2O.

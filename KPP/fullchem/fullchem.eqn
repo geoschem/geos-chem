@@ -103,7 +103,8 @@ REFERENCES (alphabetical order)
 * Sherwen2017    : https://doi.org/10.1039/C7FD00026J
 * StClair2016    : https://doi.org/10.1021/acs.jpca.5b065322016
 * Travis2016     : https://doi.org/10.5194/acp-16-13561-2016
-* Travis2024     : https://doi.org/10.5194/egusphere-2024-951
+* Travis2024     : https://doi.org/10.5194/acp-24-9555-2024
+* Travis2025     : https://doi.org/10.1021/acsestair.5c00136
 * Wolfe2012      : https://doi.org/ 10.1039/C2CP40388A, 2012
 * Xie2013        : https://doi.org/10.5194/acp-13-8439-2013
 
@@ -472,6 +473,19 @@ XRO2       = IGNORE; {Peroxy radical from XYLE oxidation}
 PH2SO4     = IGNORE; {SO4 from gas-phase chemistry}
 PSO4AQ     = IGNORE; {SO4 from cloud chemistry}
 ZRO2       = IGNORE; {Lumped RO2 from aromatics}
+PS41       = IGNORE; {TRACKER}
+PS42       = IGNORE; {TRACKER}
+PS43       = IGNORE; {TRACKER}
+PS44       = IGNORE; {TRACKER}
+PS45       = IGNORE; {TRACKER}
+PS46       = IGNORE; {TRACKER}
+PS47       = IGNORE; {TRACKER}
+PS48       = IGNORE; {TRACKER}
+PS49       = IGNORE; {TRACKER}
+PS410      = IGNORE; {TRACKER}
+PS411      = IGNORE; {TRACKER}
+PS412      = IGNORE; {TRACKER}
+PS413      = IGNORE; {TRACKER}
 #DEFFIX
 
 H2         = IGNORE; {H2; Molecular hydrogen}
@@ -493,14 +507,14 @@ HNO3 + SALCAL       = NITs               : K_MT(6);
 //
 // Cloud
 // S(IV) --> S(VI)
-SO2 + H2O2          = SO4                : K_CLD(1);
-SO2 + O3            = SO4                : K_CLD(2);
-SO2 {+O2}           = SO4                : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
+SO2 + H2O2          = SO4 + PS44         : K_CLD(1);
+SO2 + O3            = SO4 + PS45         : K_CLD(2);
+SO2 {+O2}           = SO4 + PS46         : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
 // HMS
-CH2O + SO2          = HMS                : K_CLD(4);        {Sep 2021; Moch2020; MSL}
+CH2O + SO2          = HMS + PS411        : K_CLD(4);        {Sep 2021; Moch2020; MSL}
 HMS                 = SO2 + CH2O         : K_CLD(5);        {Sep 2021; Moch2020; MSL}
-HMS + OH + SO2      = 2SO4 + CH2O + 2PSO4AQ : K_CLD(6);     {Sep 2021; Moch2020; MSL}
+HMS + OH + SO2      = 2SO4 + CH2O + 2PSO4AQ + 2PS47 : K_CLD(6);     {Sep 2021; Moch2020; MSL}
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Gas-phase chemistry reactions                                   %%%%%
@@ -818,7 +832,7 @@ MPN {+M} = MO2 + NO2 :                       GCJPLPR_abcabc(1.05d-02, 4.8d+00, -
 DMS + OH = SO2 + MO2 + CH2O :                GCARR_ac(1.20d-11, -280.0d0);
 DMS + OH = 0.750SO2 + 0.250MSA + MO2 :       GC_DMSOH_acac(8.20d-39, 5376.0d0, 1.05d-5, 3644.0d0);
 DMS + NO3 = SO2 + HNO3 + MO2 + CH2O :        GCARR_ac(1.90d-13, 530.0d0);
-SO2 + OH {+M} = SO4 + HO2 + PH2SO4 :         GCJPLPR_abab(2.90d-31, 4.1d+00, 1.7d-12, -0.2d0, 0.6d0);                          {2023/04/18; JPL 19-5; KHB}
+SO2 + OH {+M} = SO4 + HO2 + PH2SO4 + PS49:   GCJPLPR_abab(2.90d-31, 4.1d+00, 1.7d-12, -0.2d0, 0.6d0);                          {2023/04/18; JPL 19-5; KHB}
 Br + O3 = BrO + O2 :                         GCARR_ac(1.60d-11, -780.0d0);                                                     {2012/06/07; Parrella2012; JPP}
 BrO + HO2 = HOBr + O2 :                      GCARR_ac(4.50d-12, 460.0d0);                                                      {2012/06/07; Parrella2012; JPP}
 Br + HO2 = HBr + O2 :                        GCARR_ac(4.80d-12, -310.0d0);                                                     {2012/06/07; Parrella2012; JPP}
@@ -1792,6 +1806,14 @@ ITHN = IONITA :                VOCuptk1stOrd( SR_MW(ind_ITHN), 5.0E-3_dp, State_
 MCRHNB = IONITA :              VOCuptk1stOrd( SR_MW(ind_MCRHNB), 5.0E-3_dp, State_Het );                    {2019/11/06; Bates2019; KHB}
 MCRHN = IONITA :               VOCuptk1stOrd( SR_MW(ind_MCRHN), 5.0E-3_dp, State_Het );                     {2019/11/06; Bates2019; KHB}
 NPHEN = AONITA :               VOCuptk1stOrd( SR_MW(ind_NPHEN), 1.0E-2_dp, State_Het );                     {2021/09/29; Bates2021b; KHB,MSL}
+SO2 + H2O2  = SO4 + PS41 :     SO2uptkbyH2O2(State_Het);
+SO2 + O3    = SO4 + PS42 :     SO2uptkbyO3(State_Het);
+SO2 {+O2}   = SO4 + PS43 :     SO2uptkbyTMIO2(State_Het);
+SO2 + NO2   = SO4 + PS48 :     SO2uptkbyNO2(State_Het);
+SO2 + CH2O  = HMS + PS410 :    SO2uptkbyCH2O(State_Het);
+HMS         = SO2 + CH2O + PS413  :    HMSDecomp(State_Het);
+HMS + OH + SO2  = 2SO4 + CH2O + 2PS412 :               HMSOxidation(State_Het);
+//
 //
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 // %%%%% Photolysis reactions                                            %%%%%
