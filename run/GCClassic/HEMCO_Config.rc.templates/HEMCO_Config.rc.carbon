@@ -534,8 +534,8 @@ Mask fractions:              false
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((RESERVOIRS
-0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1-12/1/0 C xy kg/m2/s CH4 1500 15 1
-0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1-12/1/0 C xy kg/m2/s CH4 1500 15 1
+0 CH4_RES_DAM $ROOT/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc     CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
+0 CH4_RES_SFC $ROOT/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc CH4emis 2022/1/1/0 C xy kg/m2/s CH4 1500 15 1
 )))RESERVOIRS
 
 #==============================================================================
@@ -1254,8 +1254,6 @@ Mask fractions:              false
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
 * GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
-))).not.OH_PosteriorSF
-
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry] ---
