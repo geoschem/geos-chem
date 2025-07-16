@@ -30,6 +30,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed extra unit conversion to mol/mol on 0th hour boundary conditions in `History/history_mod.F90`
 - Reordered code in `aerosol_mod.F90` and `gc_environment_mod.F90` so that aerosol optics file paths will be printed to the dry-run log file
 - Fixed wrong timestep scaling for GCHP mass flux runs and added dynamically scaling mass flux and courant number based on timestep
+- Corrected GCHP carbon HISTORY.rc entries for KPPdiags, RxnRates, and RxnConst collections
 
 ### Removed
 - Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
