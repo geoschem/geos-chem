@@ -2203,7 +2203,6 @@ CONTAINS
 #ifdef MODEL_CLASSIC
     CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN',                      &
                      HMRC,     FIRST,           State_Met%TSKIN             )
-    print*, '### HMRC TSKIN', HMRC
 #else
     CALL ExtDat_Set( HcoState, ExtState%TSKIN, 'TSKIN_FOR_EMIS',             &
                      HMRC,     FIRST,           State_Met%TSKIN             )
@@ -2541,6 +2540,26 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+
+    !------------------------------------------------------------------------
+    ! %%%%% HFLUX %%%%%
+    !------------------------------------------------------------------------
+#ifdef MODEL_CLASSIC
+    CALL ExtDat_Set( HcoState, ExtState%HFLUX, 'HFLUX',                      &
+                     HMRC,     FIRST                                        )
+#else
+    CALL ExtDat_Set( HcoState, ExtState%HFLUX, 'HFLUX_FOR_EMIS',             &
+                     HMRC,     FIRST,           State_Met%HFLUX             )
+#endif
+
+    ! Trap potential errors
+    IF ( HMRC /= HCO_SUCCESS ) THEN
+       RC     = HMRC
+       ErrMsg = 'Error encountered in "ExtDat_Set( HFLUX_FOR_EMIS )"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
 
     !========================================================================
     ! 3D fields
