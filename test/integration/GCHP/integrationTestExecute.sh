@@ -248,10 +248,13 @@ for runDir in *; do
 		mpirun -n 24 ./${exeFile} >> "${log}" 2>&1
             fi
 
-            # Update pass/failed counts and write to results.log
-            if [[ $? -eq 0 ]]; then
+	    # Determine if pass or fail based on if timer info printed to allPEs.log
+            timerReport=$(grep "MAPL.profiler.*All" allPEs.log || echo "missing")
 
-		# The run passed ...
+            # Update pass/failed counts and write to results.log
+            if [[ "${timerReport}" != "missing" ]]; then
+
+		# TimerReport is not missing. Test passed.
                 let passed++
                 print_to_log "${passMsg}" "${results}"
 
@@ -262,7 +265,7 @@ for runDir in *; do
 		   Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
             else
 
-		# The run failed
+		# TimerReport is missing. Test failed.
                 let failed++
                 print_to_log "${failMsg}" "${results}"
 
