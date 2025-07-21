@@ -4,6 +4,10 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## TBD
+## Fixed
+- Fixed wrong timestep scaling for GCHP mass flux runs and added dynamically scaling mass flux and courant number based on timestep
+
 ## [14.6.2] - 2025-06-11
 ### Added
 - Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)
