@@ -1004,9 +1004,16 @@ CONTAINS
     SSAlk                       => State_Chm%SSAlk(I,J,L,:)
     State_Chm%isCloud(I,J,L)    = 0.0_fp
     State_Chm%pHCloud(I,J,L)    = 0.0_fp
+    State_Chm%HPlusCloud(I,J,L) = 0.0_fp
     State_Chm%QLxpHCloud(I,J,L) = 0.0_fp
     State_Chm%HSO3_aq(I,J,L)    = 1.0e-32_fp
     State_Chm%SO3_aq(I,J,L)     = 1.0e-32_fp
+    State_Chm%HSO3_aq_a(I,J,L)  = 0.0_fp
+    State_Chm%SO3_aq_a(I,J,L)   = 0.0_fp
+    State_Chm%SO2_aq_a(I,J,L)   = 0.0_fp
+    State_Chm%FEIII_A(I,J,L)    = 0.0_fp
+    State_Chm%MNII_A(I,J,L)     = 0.0_fp
+    State_Chm%GammaSO2(I,J,L,:)   = 0.0_dp
     DTCHEM                      = GET_TS_CHEM()  ! Timestep [s]
     IS_FULLCHEM                 = Input_Opt%ITS_A_FULLCHEM_SIM
     IS_OFFLINE                  = ( .not. IS_FULLCHEM )
@@ -1239,6 +1246,7 @@ CONTAINS
 
        ! Store the cloud pH quantities
        State_Chm%isCloud(I,J,L)    =  1.0_fp
+       State_Chm%HplusCloud(I,J,L) = HPLUS
        State_Chm%pHCloud(I,J,L)    = -1.0_fp * log10(HPLUS)
        State_Chm%QLxpHCloud(I,J,L) = State_Chm%pHCloud(I,J,L)             &
             * State_Met%QL(I,J,L)

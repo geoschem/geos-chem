@@ -4781,7 +4781,124 @@ PSO4:
   MW_g: 96.06
   KPP_AbsTol: 1.0e+25  
 PSO4AQ:
-  FullName: SO4 from cloud chemistry
+  FullName: Prod SO4 from cloud chemistry
+  Is_Gas: true
+  MW_g: 96.06
+PS41:
+  << : *SO4properties
+  FullName: Dummy species to track production of SO4 from SO2 + H2O2 (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS42:
+  << : *SO4properties
+  FullName: Dummy species to track production of SO4 from SO2 + O3 (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS43:
+  << : *SO4properties
+  FullName: Dummy species to track production of SO4 from SO2 + O2/TMI (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS44:
+  << : *SO4properties
+  FullName: Dummy species to track production of SO4 from SO2 + H2O2 (cloud)
+  Is_Gas: true
+  MW_g: 96.06
+PS45:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + O3 (cloud)
+  Is_Gas: true
+  MW_g: 96.06
+PS46:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + TMI/O2 (cloud)
+  Is_Gas: true
+  MW_g: 96.06
+PS47:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from HMS oxidation (cloud)
+  Is_Gas: true
+  MW_g: 96.06
+PS48:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + NO2 (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS49:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + OH (gas)
+  Is_Gas: true
+  MW_g: 96.06
+PS410:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + CH2O (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS411:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from SO2 + CH2O (cloud)
+  Is_Gas: true
+  MW_g: 96.06
+PS412:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from HMS oxidation (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PS413:
+  << : *SO4properties
+  FullName: Dummy species to track aer production of SO4 from HMS decomposition (aer)
+  Is_Gas: true
+  MW_g: 96.06
+PPS41:
+  FullName: Dummy species to track production of SO4
+  Is_Gas: true
+  MW_g: 96.06
+PPS42:
+  FullName: Dummy species to track production of SO4
+  Is_Gas: true
+  MW_g: 96.06
+PPS43:
+  FullName: Dummy species to track production of SO4
+  Is_Gas: true
+  MW_g: 96.06
+PPS44:
+  FullName: Dummy species to track production of SO4
+  Is_Gas: true
+  MW_g: 96.06
+PPS45:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS46:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS47:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS48:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS49:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS410:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS411:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS412:
+  FullName: Dummy species to track aer production of SO4 
+  Is_Gas: true
+  MW_g: 96.06
+PPS413:
+  FullName: Dummy species to track aer production of SO4 
   Is_Gas: true
   MW_g: 96.06
 PYAC:
