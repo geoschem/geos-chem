@@ -26,6 +26,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
 - Collapsed several parallel DO loops in `GeosCore/carbon_mod.F90`
 - Changed met guidance in run directory creation to remove beta for GEOS-IT, make GCHP mass fluxes beta, and improve GEOS-FP warning
+- Changed path to carbon, CH4, CO2 simulation restart files to `ExtData/GEOSCHEM_RESTARTS/GC_14.6.3` in `download_data.yml` and the GCHP `createRunDir.sh` script
 
 ### Fixed
 - Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`

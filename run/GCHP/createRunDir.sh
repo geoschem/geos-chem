@@ -705,7 +705,7 @@ elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
-    restart_dir='v2023-01'
+    restart_dir='GC_14.6.3'
     restart_name="${sim_name}"
 fi
 for N in 24 30 48 90 180
