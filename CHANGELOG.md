@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
 - Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
 - Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
+- Added hidden option to read GC-Classic restart file as real8 locally rather than real4 through HEMCO
 
 ### Changed
 - Updated logic to include ObsPack observations that span UTC date boundaries

@@ -1587,6 +1587,13 @@ CONTAINS
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
+
+   ! Netcdf libraries for local read of restart file
+   USE netCDF
+   USE m_netcdf_io_open
+   USE m_netcdf_io_read
+   USE m_netcdf_io_readattr
+   USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !
@@ -1639,6 +1646,28 @@ CONTAINS
    TYPE(SpcConc),    POINTER :: Spc(:)
    TYPE(Species),    POINTER :: SpcInfo
 
+   ! For local read of restart file
+   LOGICAL            :: Use_HEMCO_for_restart_read
+   LOGICAL            :: FileExists          ! Does input file exist?
+   INTEGER            :: fId, ierr, varid
+   CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
+   CHARACTER(LEN=255) :: nc_file             ! netCDF file name
+   CHARACTER(LEN=255) :: nc_path             ! netCDF path name
+   CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+   CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+   CHARACTER(LEN=6)   :: TimeStr
+   CHARACTER(LEN=8)   :: DateStr
+   INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
+   INTEGER            :: st4d(4), ct4d(4)    ! For 4D arrays
+   REAL*8,  TARGET    :: Temp3D_r8(State_Grid%NX,State_Grid%NY,1)
+   REAL*4,  TARGET    :: Temp4D_r4(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,1)
+   REAL*8,  TARGET    :: Temp4D_r8(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,1)
+   REAL*8,  POINTER   :: Ptr3D_r8(:,:,:)
+   REAL*4,  POINTER   :: Ptr4D_r4(:,:,:,:)
+   REAL*8,  POINTER   :: Ptr4D_r8(:,:,:,:)
+
    !=================================================================
    ! READ_GC_RESTART begins here!
    !=================================================================
@@ -1649,6 +1678,9 @@ CONTAINS
    ! Initialize pointers
    Ptr2D       => NULL()
    Ptr3D       => NULL()
+   Ptr3D_r8    => NULL()
+   Ptr4D_r4    => NULL()
+   Ptr4D_r8    => NULL()
    SpcInfo     => NULL()
 
    ! Name of this routine
@@ -1659,6 +1691,29 @@ CONTAINS
 
    ! Set pointer to species concentrations
    Spc => State_Chm%Species
+
+   ! Set how to read restart file. HEMCO will always be used to read the restart file
+   ! unless 'read_restart_as_real8: true' is added to the geoschem_config.yml simulation
+   ! menu of GC-Classic. Doing this is only allowed, i.e. will not stop with an error, if:
+   !    1. Simulation is not nested
+   !    2. Simulation is not Hg
+   !    3. Restart file is same grid resolution as the run resolution
+   !    4. Restart file with simulation start date in filename exists
+   ! This option is useful for testing bit-for-bit reproducibility of the model when
+   ! breaking up a run in time since HEMCO only reads in values as REAL4 while fields
+   ! are saved in the restart file and in the model as REAL8
+   Use_HEMCO_for_restart_read = .NOT. Input_Opt%read_restart_as_real8
+   IF ( .NOT. Use_HEMCO_for_restart_read ) THEN
+      IF ( State_Grid%NestedGrid ) THEN
+         CALL GC_Error( 'Nested grid restart files must be read through HEMCO', RC, Loc )
+         RETURN
+      ENDIF
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+         CALL GC_Error( 'Mercury simulation restart files must be read through HEMCO', RC, Loc )
+         RETURN
+      ENDIF
+      IF ( Input_Opt%amIRoot ) print *, "WARNING: Reading GEOS-Chem restart file as REAL8 locally rather than REAL4 through HEMCO"
+   ENDIF
 
    ! FORMAT strings
 500   FORMAT( a                                                              )
@@ -1674,6 +1729,49 @@ CONTAINS
    ! Write read message to log
    WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
    WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
+
+   ! Setup to read restart file locally
+   IF ( .NOT. Use_HEMCO_for_restart_read ) THEN
+
+      ! Directory and file name
+      nc_dir  = './Restarts/'
+      WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
+      WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+      nc_file = 'GEOSChem.Restart.' // DateStr // '_' // TimeStr(1:4) // 'z.nc4'
+      nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         Msg = 'Restart file: Opening'
+      ELSE
+         Msg = 'Restart file: REQUIRED FILE NOT FOUND'
+      ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%amIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( Msg ), TRIM( nc_path )
+300      FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( Msg, 300 ) TRIM( Msg ), TRIM( nc_path )
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      ! Open file
+      CALL Ncop_Rd( fId, TRIM(nc_path) )
+
+   ENDIF
 
    !=================================================================
    ! Read species concentrations from NetCDF or use default
@@ -1701,9 +1799,33 @@ CONTAINS
       Temp3D = 0.0_fp
       Ptr3D => Temp3D
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name_in_hemco), &
-                          Ptr3D,     RC,         FOUND=FOUND )
+      If ( use_HEMCO_for_restart_read ) THEN
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name_in_hemco), &
+              Ptr3D,     RC,         FOUND=FOUND )
+
+      ELSE
+
+         ! Check if variable in file
+         ierr = NF90_Inq_VarId(fId, TRIM(v_name_in_file), varid)
+         IF (ierr /= NF90_NOERR) THEN
+            FOUND = .FALSE.
+         ELSE
+            ! Read from file
+            Temp4D_r8 = 0.0_fp
+            Ptr4D_r8 => Temp4D_r8
+            st4d   = (/  1,  1,  1,  1 /)
+            ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+            CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+            FOUND = .TRUE.
+
+            ! Read the units attribute
+            a_name = "units"
+            CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+         ENDIF
+
+      ENDIF
 
       ! Check if species data is in file
       IF ( FOUND ) THEN
@@ -1719,25 +1841,18 @@ CONTAINS
       ! levels above the chemistry grid).
       IF ( SpcInfo%Is_InRestart ) THEN
 
-         ! Print the min, max, and sum of each species as it is read from
-         ! the restart file in mol/mol
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ), &
-                            MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D )
+         ! Set the mol/mol mixing ratio from the restart file
+         IF ( use_HEMCO_for_restart_read ) THEN
+            Spc(N)%Conc = Ptr3D
+         ELSE
+            Spc(N)%Conc = Ptr4D_r8(:,:,:,1)
          ENDIF
 
-         !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED  )&
-         !$OMP PRIVATE( I, J, L )&
-         !$OMP COLLAPSE( 3 )
-         DO L = 1, State_Grid%NZ
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            Spc(N)%Conc(I,J,L) = Ptr3D(I,J,L)
-         ENDDO
-         ENDDO
-         ENDDO
-         !$OMP END PARALLEL DO
+         ! Print the min, max, and sum of each species in mol/mol
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ),               &
+                 MINVAL( Spc(N)%Conc ), MAXVAL( Spc(N)%Conc ), SUM ( Spc(N)%Conc )
+         ENDIF
 
       ELSE
 
@@ -1911,22 +2026,37 @@ CONTAINS
    v_name_in_hemco = 'DELPDRY'
    v_name_in_file  = 'Met_DELPDRY'
 
-   ! Get variable from HEMCO and store in local array
-   CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),  &
-        Ptr3D,     RC,         FOUND=FOUND )
+   IF ( use_HEMCO_for_restart_read ) THEN
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),  &
+           Ptr3D,     RC,         FOUND=FOUND )
+   ELSE
+      Temp4D_r8 = 0.0_fp
+      Ptr4D_r8 => Temp4D_r8
+      st4d   = (/  1,  1,  1,  1 /)
+      ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+      CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+      FOUND = .TRUE.
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+   ENDIF
 
    IF ( FOUND ) THEN
-      State_Met%DELP_DRY = Ptr3D
+      IF ( use_HEMCO_for_restart_read ) THEN
+         State_Met%DELP_DRY = Ptr3D
+      ELSE
+         State_Met%DELP_DRY = Ptr4D_r8(:,:,:,1)
+      ENDIF
       IF ( Input_Opt%amIRoot ) THEN
-         WRITE( 6, 510 ) ADJUSTL( v_name_in_file ),           &
-              MINVAL(  State_Met%DELP_DRY ),                  &
-              MAXVAL(  State_Met%DELP_DRY ),                  &
+         WRITE( 6, 510 ) ADJUSTL( v_name_in_file   ),         &
+              MINVAL(  State_Met%DELP_DRY ),               &
+              MAXVAL(  State_Met%DELP_DRY ),               &
               SUM(     State_Met%DELP_DRY )
       ENDIF
    ENDIF
 
    ! Nullify pointer
    Ptr3D => NULL()
+   Ptr4D_r8 => NULL()
 
    !=========================================================================
    ! Get variables for KPP mechanisms (right now just fullchem and Hg)
@@ -1940,13 +2070,27 @@ CONTAINS
       v_name_in_hemco = 'KPP_HVALUE'
       v_name_in_file = 'Chem_KPPHvalue'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr3D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%KPPHvalue = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%KPPHvalue = Ptr3D
+         ELSE
+            State_Chm%KPPHvalue = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file      ),                  &
                             MINVAL(  State_Chm%KPPHvalue ),                  &
@@ -1960,6 +2104,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
    ENDIF
 
@@ -1974,13 +2119,27 @@ CONTAINS
       v_name_in_hemco = 'WETDEP_N'
       v_name_in_file  = 'Chem_WetDepNitrogen'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr2D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1  /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%WetDepNitrogen = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%WetDepNitrogen = Ptr2D
+         ELSE
+            State_Chm%WetDepNitrogen = Ptr3D_r8(:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file           ),             &
                             MINVAL(  State_Chm%WetDepNitrogen ),             &
@@ -1994,20 +2153,35 @@ CONTAINS
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! DRYDEP_N (dry-deposited nitrogen)
       !----------------------------------------------------------------------
       v_name_in_hemco = 'DRYDEP_N'
-      v_name_in_file  = 'Chem_WetDepNitrogen'
+      v_name_in_file  = 'Chem_DryDepNitrogen'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr2D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%DryDepNitrogen = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%DryDepNitrogen = Ptr2D
+         ELSE
+            State_Chm%DryDepNitrogen = Ptr3D_r8(:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file           ),             &
                             MINVAL(  State_Chm%DryDepNitrogen ),             &
@@ -2021,6 +2195,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
    ENDIF
 
@@ -2036,13 +2211,27 @@ CONTAINS
       v_name_in_hemco = 'H2O2_AFTERCHEM'
       v_name_in_file = 'Chem_H2O2AfterChem'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%H2O2AfterChem = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%H2O2AfterChem = Ptr3D
+         ELSE
+            State_Chm%H2O2AfterChem = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file          ),              &
                             MINVAL(  State_Chm%H2O2AfterChem ),              &
@@ -2056,6 +2245,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! SO2_AFTERCHEM
@@ -2063,13 +2253,27 @@ CONTAINS
       v_name_in_hemco = 'SO2_AFTERCHEM'
       v_name_in_file  = 'Chem_SO2AfterChem'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%SO2AfterChem = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%SO2AfterChem = Ptr3D
+         ELSE
+            State_Chm%SO2AfterChem = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file         ),               &
                             MINVAL(  State_Chm%SO2AfterChem ),               &
@@ -2083,6 +2287,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! AeroH2O_SNA
@@ -2090,13 +2295,27 @@ CONTAINS
       v_name_in_hemco = 'AEROH2O_SNA'
       v_name_in_file  = 'Chem_AeroH2OSNA'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D
+         ELSE
+            State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file                   ),     &
                             MINVAL(  State_Chm%AeroH2O(:,:,:,NDUST+1) ),     &
@@ -2110,6 +2329,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! ORVCsesq
@@ -2119,13 +2339,27 @@ CONTAINS
          v_name_in_hemco = 'ORVCSESQ'
          v_name_in_file  = 'Chem_ORVCsesq'
 
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ), &
-                             Ptr3D,     RC,         FOUND=FOUND             )
+         IF ( use_HEMCO_for_restart_read ) THEN
+            CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ), &
+                 Ptr3D,     RC,         FOUND=FOUND             )
+         ELSE
+            Temp4D_r8 = 0.0_fp
+            Ptr4D_r8 => Temp4D_r8
+            st4d   = (/  1,  1,  1,  1 /)
+            ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+            CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+            FOUND = .TRUE.
+            a_name = "units"
+            CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+         ENDIF
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            State_Chm%ORVCsesq(:,:,:) = Ptr3D
+            IF ( use_HEMCO_for_restart_read ) THEN
+               State_Chm%ORVCsesq(:,:,:) = Ptr3D
+            ELSE
+               State_Chm%ORVCsesq(:,:,:) = Ptr4D_r8(:,:,:,1)
+            endif
             IF ( Input_Opt%amIRoot ) THEN
                WRITE( 6, 510 ) ADJUSTL( v_name_in_file            ),     &
                                MINVAL(  State_Chm%ORVCsesq(:,:,:) ),     &
@@ -2139,6 +2373,7 @@ CONTAINS
 
          ! Nullify pointer
          Ptr3D => NULL()
+         Ptr4D_r8 => NULL()
 
       ENDIF
 
@@ -2155,13 +2390,27 @@ CONTAINS
       v_name_in_hemco = 'STATE_PSC'
       v_name_in_file  = 'Chem_StatePSC'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r4 = 0.0_fp
+         Ptr4D_r4 => Temp4D_r4
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r4, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%STATE_PSC = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%STATE_PSC = Ptr3D
+         ELSE
+            State_Chm%STATE_PSC = Ptr4D_r4(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file      ),                  &
                             MINVAL(  State_Chm%STATE_PSC ),                  &
@@ -2191,6 +2440,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! JOH (needed to initialize PARANOx)
@@ -2198,13 +2448,27 @@ CONTAINS
       v_name_in_hemco = 'JOH'
       v_name_in_file  = 'Chem_JOH'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr2D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%JOH = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%JOH = Ptr2D
+         ELSE
+            State_Chm%JOH = Ptr3D_r8(:,:,1)
+         endif
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file ),                       &
                             MINVAL(  State_Chm%JOH ),                        &
@@ -2218,6 +2482,7 @@ CONTAINS
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! JNO2 (needed to initialize PARANOx)
@@ -2225,13 +2490,27 @@ CONTAINS
       v_name_in_hemco = 'JNO2'
       v_name_in_file  = 'Chem_JNO2'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
-                          Ptr2D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%JNO2 = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%JNO2 = Ptr2D
+         ELSE
+            State_Chm%JNO2 = Ptr3D_r8(:,:,1)
+         endif
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 510 ) ADJUSTL( v_name_in_file ),                       &
                             MINVAL(  State_Chm%JNO2 ),                       &
@@ -2244,6 +2523,7 @@ CONTAINS
       ENDIF
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
    ENDIF
 

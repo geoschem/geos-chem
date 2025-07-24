@@ -783,6 +783,34 @@ CONTAINS
     Input_Opt%UseTimers = v_bool
 
     !------------------------------------------------------------------------
+    ! Read restart file as REAL8 not REAL4 (GC-Classic only)
+    !
+    ! If true, then restart file is read as REAL4 through HEMCO. This option
+    ! introduces small differences when breaking up a simulation in time. However,
+    ! this is the only option if the restart file must be regridded or regionally
+    ! subsetted at run-time.
+    !
+    ! If false, then restart file is read as REAL8 through GEOS-Chem, enabling
+    ! bit-for-bit reproducibility when breaking up a run in time. This should
+    ! only be done for global simulations and if the restart file is the same
+    ! grid resolution as the run, e.g. 4x5 restart file for global 4x5 run.
+    !
+    ! If missing in config file then defaults to false and uses HEMCO for read.
+    !
+    ! Note that this is a GC-Classic only setting. GCHP always reads the restart
+    ! file as whatever precision it is within the file.
+    !------------------------------------------------------------------------
+    key    = "simulation%read_restart_as_real8"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%read_restart_as_real8 = v_bool
+
+    !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
     !------------------------------------------------------------------------
     CALL Set_Begin_Time( Input_Opt%NYMDb, Input_Opt%NHMSb, RC  )
@@ -845,6 +873,8 @@ CONTAINS
                         TRIM( Input_Opt%MetField )
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
+       WRITE( 6, 120 ) 'Read restart as real8 (skip HEMCO for restart read): ', &
+                        Input_Opt%read_restart_as_real8
 #endif
     ENDIF
 
