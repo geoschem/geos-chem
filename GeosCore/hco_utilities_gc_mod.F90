@@ -1657,8 +1657,8 @@ CONTAINS
    CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
    CHARACTER(LEN=6)   :: TimeStr
    CHARACTER(LEN=8)   :: DateStr
-   INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays, including time
-   INTEGER            :: st4d(4), ct4d(4)    ! For 4D arrays, including time
+   INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
+   INTEGER            :: st4d(4), ct4d(4)    ! For 4D arrays
    REAL*8,  TARGET    :: Temp3D_r8(State_Grid%NX,State_Grid%NY,1)
    REAL*4,  TARGET    :: Temp4D_r4(State_Grid%NX,State_Grid%NY, &
                                        State_Grid%NZ,1)
@@ -1747,7 +1747,7 @@ CONTAINS
       IF ( FileExists ) THEN
          Msg = 'Restart file: Opening'
       ELSE
-         Msg = 'Rstart file: REQUIRED FILE NOT FOUND'
+         Msg = 'Restart file: REQUIRED FILE NOT FOUND'
       ENDIF
 
       ! Write to stdout for both regular and dry-run simulations
@@ -1820,7 +1820,7 @@ CONTAINS
             CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
             FOUND = .TRUE.
 
-            ! Read the T:units attribute
+            ! Read the units attribute
             a_name = "units"
             CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
          ENDIF
@@ -1842,22 +1842,11 @@ CONTAINS
       IF ( SpcInfo%Is_InRestart ) THEN
 
          ! Set the mol/mol mixing ratio from the restart file
-         !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED  )&
-         !$OMP PRIVATE( I, J, L )&
-         !$OMP COLLAPSE( 3 )
-         DO L = 1, State_Grid%NZ
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            IF ( use_HEMCO_for_restart_read ) THEN
-               Spc(N)%Conc(I,J,L) = Ptr3D(I,J,L)
-            ELSE
-               Spc(N)%Conc(I,J,L) = Ptr4D_r8(I,J,L,1)
-            ENDIF
-         ENDDO
-         ENDDO
-         ENDDO
-         !$OMP END PARALLEL DO
+         IF ( use_HEMCO_for_restart_read ) THEN
+            Spc(N)%Conc = Ptr3D
+         ELSE
+            Spc(N)%Conc = Ptr4D_r8(:,:,:,1)
+         ENDIF
 
          ! Print the min, max, and sum of each species in mol/mol
          IF ( Input_Opt%amIRoot ) THEN
