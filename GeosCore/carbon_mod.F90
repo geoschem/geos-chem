@@ -581,11 +581,11 @@ CONTAINS
                        AutoFill=1,                             &
                        COL=HcoState%Diagn%HcoDiagnIDManual )
 
-
        IF ( FLAG==GC_SUCCESS ) THEN
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( J, I )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( J, I                                               )&
+          !$OMP COLLAPSE( 2                                                 )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              EMITRATE(I,J) = EMITRATE(I,J) + &
@@ -611,9 +611,10 @@ CONTAINS
        DTSRCE = HcoState%TS_EMIS
 
        IDCARBON   = HCO_GetHcoID( 'BCPO',   HcoState )
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                            )&
+       !$OMP COLLAPSE( 3                                                    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -624,6 +625,8 @@ CONTAINS
           ! Get emissions [kg/m2/s] and convert to [kg/box]
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
+          ! Tell OpenMP to vectorize this loop
+          !$OMP SIMD
           DO N = 1, NBCOC
              Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L) = &
                 Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
@@ -637,9 +640,10 @@ CONTAINS
        !$OMP END PARALLEL DO
 
        IDCARBON   = HCO_GetHcoID( 'BCPI',   HcoState )
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                            )&
+       !$OMP COLLAPSE( 3                                                    )
        DO L = 1, State_Grid%NZ
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
@@ -650,6 +654,8 @@ CONTAINS
           ! Get emissions [kg/m2/s] and convert to [kg/box]
           E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
+          ! Tell OpenMP to vectorize this loop
+          !$OMP SIMD
           DO N = 1, NBCOC
              Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)= &
                 Spc(APMIDS%id_BCBIN1+N-1)%Conc(I,J,L)+ &
@@ -690,9 +696,10 @@ CONTAINS
 
        ! Add anthropogenic OCPO diagnostic to EMITRATE (if it's found)
        IF(FLAG==GC_SUCCESS)THEN
-          !$OMP PARALLEL DO       &
-          !$OMP DEFAULT( SHARED ) &
-          !$OMP PRIVATE( J, I )
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( J, I                                               )&
+          !$OMP COLLAPSE( 2                                                 )
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              EMITRATE(I,J) = EMITRATE(I,J) + &
@@ -717,9 +724,10 @@ CONTAINS
       DTSRCE = HcoState%TS_EMIS
 
       IDCARBON   = HCO_GetHcoID( 'OCPO',   HcoState )
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                             )&
+      !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -730,6 +738,8 @@ CONTAINS
          ! Get emissions [kg/m2/s] and convert to [kg/box]
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
+         ! Tell OpenMP to vectorize this loop
+         !$OMP SIMD
          DO N=1,NBCOC
             Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
                Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
@@ -743,9 +753,10 @@ CONTAINS
       !$OMP END PARALLEL DO
 
       IDCARBON   = HCO_GetHcoID( 'OCPI',   HcoState )
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( L, J, I, A_M2, E_CARBON, N                             )&
+      !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -756,6 +767,8 @@ CONTAINS
          ! Get emissions [kg/m2/s] and convert to [kg/box]
          E_CARBON = HcoState%Spc(IDCARBON)%Emis%Val(I,J,L) * A_M2 * DTSRCE
 
+         ! Tell OpenMP to vectorize this loop
+         !$OMP SIMD
          DO N=1,NBCOC
             Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
                Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
@@ -776,12 +789,16 @@ CONTAINS
    ! (sum(Spc(id_BCPO)%conc(:,:,1))+sum(Spc(id_BCPI)%Conc(:,:,1))), conc_sum
 
    IF( ( id_POG1 + id_POA1 ) > 2 )THEN
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, J, I )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( L, J, I, N                                             )&
+      !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
+
+         ! Tell OpenMP to vectorize this looop
+         !$OMP SIMD
          DO N=1,NBCOC
             Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)= &
                Spc(APMIDS%id_OCBIN1+N-1)%Conc(I,J,L)+ &
@@ -819,9 +836,10 @@ CONTAINS
       CALL CHECKMN( 0, 0, 0, Input_Opt, State_Chm, State_Grid, &
                  State_Met, State_Diag,'CHECKMN from chemcarbon', RC)
 
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( I, J, L, NEWSOA, BOXVOL, TEMPTMS, PRES, BOXMASS        )&
+      !$OMP COLLAPSE( 3                                                     )
       DO L = 1, State_Grid%NZ
       DO J = 1, State_Grid%NY
       DO I = 1, State_Grid%NX
@@ -842,9 +860,9 @@ CONTAINS
       ENDDO
       !$OMP END PARALLEL DO
 #else
-      !$OMP PARALLEL DO       &
-      !$OMP DEFAULT( SHARED ) &
-      !$OMP PRIVATE( L, NEWSOA )
+      !$OMP PARALLEL DO                                                      &
+      !$OMP DEFAULT( SHARED                                                 )&
+      !$OMP PRIVATE( L, NEWSOA                                              )
       DO L = 1, State_Grid%NZ
          !NEWSOA used in a different context than above.
          !above is absolute mass, here is a relative decay factor
@@ -989,10 +1007,10 @@ CONTAINS
    ! Hydrophobic(2) --> Hydrophilic(1) ,  k  = 1.0e-5
    ! Both aerosols are dry-deposited,     kd = Dvel/DELZ (sec-1)
    !=================================================================
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW                             )&
+   !$OMP COLLAPSE( 3                                                        )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1107,10 +1125,10 @@ CONTAINS
    RC =  GC_SUCCESS
    TC => State_Chm%Species(spcId)%Conc
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW                                   )&
+   !$OMP COLLAPSE( 3                                                        ) 
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1229,10 +1247,10 @@ CONTAINS
    !    Hydrophobic --> Hydrophilic,  k  = 1.0e-5
    !    Aerosols are dry-deposited,   kd = dry dep freq (sec-1)
    !=================================================================
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, FREQ, RKT, CNEW                             )&
+   !$OMP COLLAPSE( 3                                                        )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
@@ -1344,10 +1362,10 @@ CONTAINS
    RC =  GC_SUCCESS
    TC => State_Chm%Species(spcId)%Conc
 
-   !$OMP PARALLEL DO       &
-   !$OMP DEFAULT( SHARED ) &
-   !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW ) &
-   !$OMP SCHEDULE( DYNAMIC )
+   !$OMP PARALLEL DO                                                         &
+   !$OMP DEFAULT( SHARED                                                    )&
+   !$OMP PRIVATE( I, J, L, TC0, CCV, CNEW                                   )&
+   !$OMP COLLAPSE( 3                                                        )
    DO L = 1, State_Grid%NZ
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX

@@ -135,6 +135,11 @@ CONTAINS
     IF ( RC /= HCO_SUCCESS ) RETURN
 #endif
 
+#ifdef APM
+    CALL Diagn_APM( Input_Opt, HcoState, ExtState, RC )
+    IF ( RC /= HCO_SUCCESS ) RETURN
+#endif
+
     ! Return
     RC = HCO_SUCCESS
 
@@ -420,7 +425,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! %%%%% SO4 from ANTRHO (Category ? or species SO4_ANTH)  %%%%%
+    ! %%%%% SO4 from ANTHRO (Category ? or species SO4_ANTH)  %%%%%
     !-----------------------------------------------------------------
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
@@ -446,7 +451,7 @@ CONTAINS
     ENDIF
 
     !-----------------------------------------------------------------
-    ! %%%%% CO from ANTRHO (Category ? or species CO_ANTH)  %%%%%
+    ! %%%%% CO from ANTHRO (Category ? or species CO_ANTH)  %%%%%
     !-----------------------------------------------------------------
     ExtNr     = 0
     Cat       = CATEGORY_ANTHRO
@@ -510,6 +515,159 @@ CONTAINS
 
   END SUBROUTINE Diagn_TOMAS
 !EOC
+#endif
+#ifdef APM
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Diagn_APM
+!
+! !DESCRIPTION: This creates manual diagnostics that will be used for APM.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Diagn_APM( Input_Opt, HcoState, ExtState, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE HCO_ExtList_Mod, ONLY : GetExtNr
+    USE HCO_State_Mod,   ONLY : HCO_State
+    USE HCO_State_Mod,   ONLY : HCO_GetHcoID
+    USE HCOX_State_Mod,  ONLY : Ext_State
+    USE Input_Opt_Mod,   ONLY : OptInput
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),   INTENT(INOUT)  :: Input_Opt  ! Input opts
+    TYPE(HCO_State),  POINTER        :: HcoState   ! HEMCO state object
+    TYPE(EXT_State),  POINTER        :: ExtState   ! Extensions state object
+    INTEGER,          INTENT(INOUT)  :: RC         ! Failure or success
+!
+! !REVISION HISTORY:
+!  23 Sep 2014 - J. Kodros - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: HcoId, id_BCPO, id_OCPO
+
+    ! Strings
+    CHARACTER(LEN=255) :: MSG
+    CHARACTER(LEN=255) :: LOC = 'DIAGN_APM (hcoi_gc_diagn_mod.F90)'
+
+    !========================================================================
+    ! Diagn_APM begins here!
+    !========================================================================
+
+    ! Initialize
+    RC      = GC_SUCCESS
+    id_BCPO = HCO_GetHcoID( 'BCPO', HcoState )
+    id_OCPO = HCO_GetHcoID( 'OCPO', HcoState )
+
+    !------------------------------------------------------------------------
+    ! Hydrophobic black carbon from ANTHRO EMISSIONS                  
+    !------------------------------------------------------------------------
+    CALL Diagn_Create( HcoState  =  HcoState,                                &
+                       cName     = 'ANTHROPOGENIC_BCPO',                     &
+                       ExtNr     =  0,                                       &
+                       Cat       =  CATEGORY_ANTHRO,                         &
+                       Hier      = -1,                                       &
+                       HcoID     =  id_BCPO,                                 & 
+                       SpaceDim  =  3,                                       &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
+                       AutoFill  =  1,                                       &
+                       RC        =  RC                                      )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining ANTHROPOGENIC_BCPO" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF     
+
+
+    !------------------------------------------------------------------------
+    ! Hydrophobic organic carbon from ANTHRO EMISSIONS         
+    !------------------------------------------------------------------------
+    CALL Diagn_Create( HcoState  =  HcoState,                                &
+                       cName     = 'ANTHROPOGENIC_OCPO',                     &
+                       ExtNr     =  0,                                       &
+                       Cat       =  CATEGORY_ANTHRO,                         &
+                       Hier      = -1,                                       &
+                       HcoID     =  id_OCPO,                                 &
+                       SpaceDim  =  3,                                       &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
+                       AutoFill  =  1,                                       &
+                       RC        =  RC                                       )
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "ANTHROPOGENIC_OCPO" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF 
+
+    !------------------------------------------------------------------------
+    ! Hydrophobic black carbon from BIOMASS EMISSIONS
+    !------------------------------------------------------------------------
+    CALL Diagn_Create( HcoState  =  HcoState,                                &
+                       cName     = 'BIOMASS_BCPO',                           &
+                       ExtNr     =  0,                                       &
+                       Cat       =  CATEGORY_BIOMASS,                        &
+                       Hier      = -1,                                       &
+                       HcoID     =  id_BCPO,                                 &
+                       SpaceDim  =  2,                                       &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
+                       AutoFill  =  1,                                       &
+                       RC        =  RC                                      )
+
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BIOMASS_BCPO" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF 
+
+    !------------------------------------------------------------------------
+    ! Hydrophobic organic carbon from BIOMASS EMISSIONS
+    !------------------------------------------------------------------------
+    CALL Diagn_Create( HcoState  =  HcoState,                                &
+                       cName     = 'BIOMASS_OCPO',                           &
+                       ExtNr     =  0,                                       &
+                       Cat       =  CATEGORY_BIOMASS,                        &
+                       Hier      = -1,                                       &
+                       HcoID     =  id_OCPO,                                 &
+                       SpaceDim  =  2,                                       &
+                       LevIDx    = -1,                                       &
+                       OutUnit   = 'kg/m2/s',                                &
+                       COL       =  HcoState%Diagn%HcoDiagnIDManual,         &
+                       AutoFill  =  1,                                       &
+                       RC        =  RC                                      )
+
+
+    ! Trap potential errors
+    IF ( RC /= HCO_SUCCESS ) THEN
+       Msg = 'Error encountered when defining "BIOMASS_OCPO" diagnostic!'
+       CALL GC_Error( Msg, RC, Loc )
+       RETURN
+    ENDIF 
+
+  END SUBROUTINE Diagn_APM
 #endif
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -783,6 +783,34 @@ CONTAINS
     Input_Opt%UseTimers = v_bool
 
     !------------------------------------------------------------------------
+    ! Read restart file as REAL8 not REAL4 (GC-Classic only)
+    !
+    ! If true, then restart file is read as REAL4 through HEMCO. This option
+    ! introduces small differences when breaking up a simulation in time. However,
+    ! this is the only option if the restart file must be regridded or regionally
+    ! subsetted at run-time.
+    !
+    ! If false, then restart file is read as REAL8 through GEOS-Chem, enabling
+    ! bit-for-bit reproducibility when breaking up a run in time. This should
+    ! only be done for global simulations and if the restart file is the same
+    ! grid resolution as the run, e.g. 4x5 restart file for global 4x5 run.
+    !
+    ! If missing in config file then defaults to false and uses HEMCO for read.
+    !
+    ! Note that this is a GC-Classic only setting. GCHP always reads the restart
+    ! file as whatever precision it is within the file.
+    !------------------------------------------------------------------------
+    key    = "simulation%read_restart_as_real8"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%read_restart_as_real8 = v_bool
+
+    !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
     !------------------------------------------------------------------------
     CALL Set_Begin_Time( Input_Opt%NYMDb, Input_Opt%NHMSb, RC  )
@@ -845,6 +873,8 @@ CONTAINS
                         TRIM( Input_Opt%MetField )
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
+       WRITE( 6, 120 ) 'Read restart as real8 (skip HEMCO for restart read): ', &
+                        Input_Opt%read_restart_as_real8
 #endif
     ENDIF
 
@@ -3297,10 +3327,12 @@ CONTAINS
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
 
-    ! Set whether to reconstruct convective precipitation flux based on
+    ! Set whether to execute different convection subroutines based on
     ! meteorology source and simulation start date. This is important for
-    ! avoiding a bug where convective precipitation met-fields are all zero
-    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    ! correctly handling convection using diagnostics from different
+    ! convection parameterization.
+    ! RAS are MERRA2 and GEOS-FP before June 1, 2020
+    ! Grell-Freitas are GEOS-IT for all years and in GEOS-FP following June 1, 2020.
     !
     ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
     ! is the same as simulation year and (2) the simulation does not
@@ -3313,11 +3345,11 @@ CONTAINS
     !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
     !       up the run in time to avoid this.
     IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSE
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+       Input_Opt%Grell_Freitas_Convection = .FALSE.
     ENDIF
 
     ! Return success
@@ -3330,11 +3362,11 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
-       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
-            Input_Opt%Reconstruct_Conv_Precip_Flux
+       WRITE( 6, 100 ) 'Grell-Freitas convection?   : ', &
+            Input_Opt%Grell_Freitas_Convection
 
        IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
-          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+          IF ( Input_Opt%Grell_Freitas_Convection ) THEN
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
           ELSE
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
