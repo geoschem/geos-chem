@@ -510,6 +510,7 @@ CONTAINS
     REAL(fp), PARAMETER    :: TINYNUM = 1e-14_fp
 #ifdef LUO_WETDEP
     REAL(fp), PARAMETER    :: pHRain = 5.6_fp
+    REAL(fp)               :: F_RAIN
 #endif
 !
 ! !LOCAL VARIABLES:
@@ -1073,6 +1074,21 @@ CONTAINS
              ENDIF
           ENDDO     ! End of loop over levels above cloud base
 
+#ifdef LUO_WETDEP
+          F_WASHOUT = 0e+0_fp
+          DO K = KTOP, CLDBASE, -1
+            IF(PDOWN(K)>1.D-20)THEN
+              IF(DQRCU(K)>1.D-20)THEN
+                K_RAIN = 1.5e-3_fp
+                F_RAIN = CONV_F_PRIME( DQRCU(K), K_RAIN, 1.08e4_fp )
+                F_WASHOUT = MAX(F_WASHOUT, F_RAIN*SDT/1.08e4_fp)
+              ENDIF
+            ELSE
+              F_WASHOUT = 0e+0_fp
+            ENDIF
+          ENDDO
+#endif
+
           !==================================================================
           ! (4)  B e l o w   C l o u d   B a s e
           !==================================================================
@@ -1080,7 +1096,9 @@ CONTAINS
 
              ! Initialize
              QDOWN       = 0e+0_fp
+#ifndef LUO_WETDEP	     
              F_WASHOUT   = 0e+0_fp
+#endif
              WASHFRAC    = 0e+0_fp
              ALPHA       = 0e+0_fp
              ALPHA2      = 0e+0_fp
@@ -1094,7 +1112,11 @@ CONTAINS
              ! Check if...
              ! (1) there is precip coming into box (I,J,K) from (I,J,K+1)
              ! (2) there is species to re-evaporate
+#ifdef LUO_WETDEP
+             IF ( PDOWN(K+1)  > 0 .and. F_WASHOUT> 0 .and. &
+#else
              IF ( PDOWN(K+1)  > 0 .and. &
+#endif	     
                   T0_SUM      > 0        ) THEN
 
                 ! Compute F_WASHOUT, the fraction of grid box (I,J,L)
@@ -1102,15 +1124,15 @@ CONTAINS
                 ! the downward flux of precip leaving grid box (K+1)
                 ! from [cm3 H20/cm2 area/s] to [cm3 H20/cm3 air/s]
                 ! by dividing by box height in cm
+#ifdef LUO_WETDEP
+                QDOWN = PDOWN(K+1)
+#else
                 QDOWN = PDOWN(K+1) / ( BXHEIGHT(K+1) * 100e+0_fp  )
+#endif
 
                 ! Compute K_RAIN and F_WASHOUT based on the flux of precip 
                 ! leaving grid box (K+1).
-#ifdef LUO_WETDEP
-                ! Luo et al scheme: Use COND_WATER_CONTENT = 2e-6 [cm3/cm3]
-                K_RAIN   = LS_K_RAIN( QDOWN, 2.0e-6_fp )
-                F_WASHOUT= CONV_F_PRIME( QDOWN, K_RAIN, SDT )
-#else
+#ifndef LUO_WETDEP
                 ! Default scheme: Use COND_WATER_CONTENT = 1e-6 [cm3/cm3]
                 ! (which was recommended by Qiaoqiao Wang et al [2014])
                 K_RAIN   = LS_K_RAIN(  QDOWN,         1.0e-6_fp )

@@ -13,9 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the carbon simulation.
-#  See The HEMCO User's Guide for file details:
-#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#  See hemco.readthedocs.io for more information.
 #
 # !REVISION HISTORY:
 #  See https://github.com/geoschem/geos-chem for complete history
@@ -101,6 +99,7 @@ Mask fractions:              false
     --> BBIO_SIB3              :       true     # 2006-2010
     --> NET_TERR_EXCH          :       true     # 2000
     --> CO2CORR                :       true     # 2000-2018
+    --> FINNv25                :       false    # 2012-2023  
 # ..... Regional inventories .........
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
@@ -821,6 +820,11 @@ Mask fractions:              false
 (((GFAS
 0 GFAS_CO $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO 75 5 3
 )))GFAS
+
+# --- FINNv2.5 biomass burning ---
+(((FINNv25
+0 FINNv25_CO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_CO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc  fire_modisviirs_CO  2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s CO 75 5 3
+)))FINNv25
 
 # --- BB4MIPs ---
 (((BB4MIPS
