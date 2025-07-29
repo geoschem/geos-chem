@@ -346,15 +346,15 @@ COLLECTIONS: 'Emissions',
   KppDiags.frequency:         010000
   KppDiags.duration:          010000
   KppDiags.mode:              'time-averaged'
-  KppDiags.fields:            'KppIntCounts                  ',
-                              'KppJacCounts                  ',
-                              'KppTotSteps                   ',
-                              'KppAccSteps                   ',
-                              'KppRejSteps                   ',
-                              'KppLuDecomps                  ',
-                              'KppSubsts                     ',
-                              'KppSmDecomps                  ',
-                              'KppTime                       ',
+  KppDiags.fields:            'KppIntCounts ', 'GCHPchem',
+                              'KppJacCounts ', 'GCHPchem',
+                              'KppTotSteps  ', 'GCHPchem',
+                              'KppAccSteps  ', 'GCHPchem',
+                              'KppRejSteps  ', 'GCHPchem',
+                              'KppLuDecomps ', 'GCHPchem',
+                              'KppSubsts    ', 'GCHPchem',
+                              'KppSmDecomps ', 'GCHPchem',
+                              'KppTime      ', 'GCHPchem',
 ::
 #==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
@@ -363,8 +363,8 @@ COLLECTIONS: 'Emissions',
   RxnRates.frequency:         010000
   RxnRates.duration:          010000
   RxnRates.mode:              'time-averaged'
-  RxnRates.fields:            'RxnRate_EQ0001                  ',
-                              'RxnRate_EQ0002                  ',
+  RxnRates.fields:            'RxnRate_EQ0001 ', 'GCHPchem',
+                              'RxnRate_EQ0002 ', 'GCHPchem',
 			      # ... add others as needed ...
 ::
 #==============================================================================
@@ -374,8 +374,8 @@ COLLECTIONS: 'Emissions',
   RxnConst.frequency:         010000
   RxnConst.duration:          010000
   RxnConst.mode:              'time-averaged'
-  RxnConst.fields:            'RxnConst_EQ0001                ',
-                              'RxnConst_EQ0002                ',
+  RxnConst.fields:            'RxnConst_EQ0001 ', 'GCHPchem',
+                              'RxnConst_EQ0002 ', 'GCHPchem',
 			      # ... add others as needed ...
 ::
 #==============================================================================

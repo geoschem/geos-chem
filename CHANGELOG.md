@@ -21,6 +21,43 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 
+## [14.6.3] - 2025-07-28
+### Added
+- Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
+- Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
+- Added GEOS-IT simulations to use offline emissions generated with GEOS-IT
+- Added meteorology-specific `OFFLINE_EMISSION_DIR` entries in shared directory for future use and backward compatibility
+- Added operational run script sample for AWS with EFA-enabled
+- Added operational run scripts for Harvard Cannon with Intel VTune commands
+- Added sample environment file for Harvard Cannon with GNU 14.2.0 compilers
+- Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
+- Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
+- Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
+- Added hidden option to read GC-Classic restart file as real8 locally rather than real4 through HEMCO
+
+### Changed
+- Updated logic to include ObsPack observations that span UTC date boundaries
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Optimized parallel loops in `AIRQNT` routine in `GeosCore/calc_met_mod.F90`
+- Optimized parallel loops in `VDIFF` routine in `GeosCore/vdiff_mod.F90`
+- Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
+- Collapsed several parallel DO loops in `GeosCore/carbon_mod.F90`
+- Changed met guidance in run directory creation to remove beta for GEOS-IT, make GCHP mass fluxes beta, and improve GEOS-FP warning
+- Changed path to carbon, CH4, CO2 simulation restart files to `ExtData/GEOSCHEM_RESTARTS/v2025-07` in `download_data.yml` and the GCHP `createRunDir.sh` script
+
+### Fixed
+- Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
+- Removed extra unit conversion to mol/mol on 0th hour boundary conditions in `History/history_mod.F90`
+- Reordered code in `aerosol_mod.F90` and `gc_environment_mod.F90` so that aerosol optics file paths will be printed to the dry-run log file
+- Fixed wrong mass flux and Courant number import scaling for GCHP runs that read these fields from offline files
+- Corrected GCHP carbon HISTORY.rc entries for KPPdiags, RxnRates, and RxnConst collections
+
+### Removed
+- Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
+- Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
+- Removed redundant `ELSE` blocks in `DO_CONVECTION`
+- Removed redundant `units` variable in routine `AIRQNT`
+
 ## [14.6.2] - 2025-06-11
 ### Added
 - Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)
@@ -33,6 +70,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Fixed
 - Restored unit convertion for boundary conditions from mol/mol to kg/kg dry air
+
+### Fixed
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Fixed logic in `Obspack_Sample` to include observations whose averaging windows span a UTC date boundary
 
 ## [14.6.1] - 2025-05-27
 ### Added
