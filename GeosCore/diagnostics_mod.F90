@@ -362,18 +362,6 @@ CONTAINS
           State_Diag%EmisHg2snowToOcean = 0.0_f4
        ENDIF
 
-      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-       ENDIF
-
        IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
           State_Diag%FluxOCtoDeepOcean = 0.0_f4
        ENDIF
