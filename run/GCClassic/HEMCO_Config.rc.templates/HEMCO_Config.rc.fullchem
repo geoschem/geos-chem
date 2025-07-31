@@ -4430,7 +4430,7 @@ ${RUNDIR_TES_CLIM_N2O}
 # --- GFAS scale factors ---
 #==============================================================================
 (((GFAS
-300 GFAS_EMITL $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc mami 2003-2021/1-12/1-31/0 C xy m 1
+300 GFAS_EMITL $ROOT/GFAS/v2021-09/$YYYY/GFAS_$YYYY$MM_hgts_$RES.nc mami_avg_weight 2003-2021/1-12/1-31/0 C xy m 1
 )))GFAS
 
 #==============================================================================
