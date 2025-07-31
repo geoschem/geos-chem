@@ -140,9 +140,10 @@ MODULE TOMAS_MOD
   REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE30(:)
   REAL(fp), SAVE, ALLOCATABLE   :: ECSCALE100(:)
 
-  INTEGER  :: bin_nuc = 1, tern_nuc = 1  ! Switches for nucleation type.
-  INTEGER  :: act_nuc = 0 ! in BL
-  INTEGER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
+  INTEGER, PARAMETER  :: bin_nuc = 0, tern_nuc = 0  ! Switches for nucleation type.
+  INTEGER, PARAMETER  :: dunn_nuc = 1
+  INTEGER, PARAMETER  :: act_nuc = 0 ! in BL
+  INTEGER, PARAMETER  :: ion_nuc = 0 ! 1 for modgil, 2 for Yu
                           ! (Yu currently broken, JRP 202101)
   INTEGER  :: absall  = 1 ! 1 for soa absorb to all specnapari
                           ! nucleation tuned by factor of 1.0D-5
@@ -462,8 +463,14 @@ CONTAINS
        if(tern_nuc == 1) then
           write(*,*)'  Nucleation: Ternary (Napari ', &
                     'et al. 2002) and Binary (Vehkamaki et al. 2002)'
-       else
+       endif
+       if (bin_nuc == 1) then
           write(*,*)'  Nucleation: Binary (Vehkamaki et al. 2002)'
+       endif
+       
+       if(dunn_nuc == 1) then
+          write(*,*)'  Nucleation: Inorganic nucleation (Dunne ', &
+                    'et al. 2016)'
        endif
 
        firsttime = .false.
@@ -1770,10 +1777,12 @@ CONTAINS
        elseif (bin_nuc.eq.1)then
           max_H2SO4conc=1.0e+11_fp*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp
        else
-          max_H2SO4conc = 1.0e+100_fp
+          !max_H2SO4conc = 1.0e+100_fp
+          max_H2SO4conc = 1.0e+11*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp  ! SamO changed this (was 1.0e+100_fp)
        endif
     else
-       max_H2SO4conc = 1.0e+100_fp
+       !max_H2SO4conc = 1.0e+100_fp
+       max_H2SO4conc = 1.0e+11*boxvol/1000.e+0_fp*98.e+0_fp/6.022e+23_fp  ! SamO Changed this
     endif
 
     ! Checks for when condensation sink is very small
@@ -1940,6 +1949,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     double precision nh3ppt   ! gas phase ammonia in pptv
+    double precision nh3moleccm3 ! gas phase ammonia in molec/cm3
     double precision h2so4    ! gas phase h2so4 in molec cc-1
     double precision gtime    ! time to grow to first size bin [s]
     double precision ltc, ltc1, ltc2 ! coagulation loss rates [s-1]
@@ -1966,6 +1976,11 @@ CONTAINS
     double precision h1,h2,h3,h4,h5,h6
     double precision dum1,dum2,dum3,dum4   ! dummy variables
     double precision rhin,tempin ! rel hum in
+    
+    DOUBLE PRECISION Jbn2, Jtn2, Jbi2, Jti2  ! SamO
+    DOUBLE PRECISION Mair    ! SamO
+    DOUBLE PRECISION TOG_LVOC ! SamO
+    DOUBLE PRECISION fntemp1,fntemp2
 
     real(fp)    mydummy
 !
@@ -1979,10 +1994,15 @@ CONTAINS
     !=================================================================
 
     h2so4 = Gci(srtso4)/boxvol*1000.e+0_fp/98.e+0_fp*6.022e+23_fp
-    nh3ppt = Gci(srtnh4)/17.e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
-             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
+    nh3ppt = Gci(srtnh4)/17.04e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
+             PRES/101325.0_fp*273.0_fp/TEMPTMS ! corrected for pressure (because this should be concentration)
+    
+    nh3moleccm3 = Gci(srtnh4)/boxvol*1000.e+0_fp/17e+0_fp*6.022e+23_fp ! Changed by SamO
 
+    Mair = 2.69E19_fp*273.15_fp/TEMPTMS*PRES/101325.0_fp
     fn = 0.e+0_fp
+    fntemp1 = 0.e+0_fp   !SamO
+    fntemp2 = 0.e+0_fp   !SamO
     rnuc = 0.e+0_fp
 
     !print*,'h2so4',h2so4,'nh3ppt',nh3ppt
@@ -2053,9 +2073,19 @@ CONTAINS
           tempin=dble(TEMPTMS)
           !call YUJIMN(h2so4, rhin, tempin, ionrate, surf_area, &
           !            fn, dum1, rnuc, dum2)
-          fn=0.
-          rnuc=1E-9
+          fn=0._fp
+          rnuc=1E-9_fp
           nflg=.true.
+       
+       elseif (nh3moleccm3.gt.0.1.and.dunn_nuc.eq.1) then
+          tempin=dble(TEMPTMS)
+          call dunne_inorg_nucl(tempin,ionrate,h2so4,nh3moleccm3, &
+               Mair, fntemp2,rnuc,Jbn2,Jtn2,Jbi2,Jti2)
+!          print*,'Jbn2=', Jbn2,'Jtn2=', Jtn2,'Jbi2=', Jbi2,'Jti2=', Jti2
+          fn = fn + fntemp2
+          rnuc=0.85d0 ! [nm]
+          nflg=.true.
+        
        else
           nflg=.false.
        endif
@@ -2732,6 +2762,7 @@ CONTAINS
     double precision dt
     double precision fn       ! nucleation rate of clusters cm-3 s-1
     double precision fn1      ! formation rate of particles to first size bin cm-3 s-1
+    DOUBLE PRECISION fntemp1,fntemp2 !SamO
 
     LOGICAL  PDBG             ! Signal print for debug
     integer lev ! layer of model
@@ -2748,6 +2779,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     double precision nh3ppt   ! gas phase ammonia in pptv
+    double precision nh3moleccm3 ! gas phase ammonia in molec/cm3
     double precision h2so4    ! gas phase h2so4 in molec cc-1
     double precision rnuc     ! critical nucleation radius [nm]
     double precision gtime    ! time to grow to first size bin [s]
@@ -2775,6 +2807,9 @@ CONTAINS
     double precision h1,h2,h3,h4,h5,h6
     double precision dum1,dum2,dum3,dum4   ! dummy variables
     double precision rhin,tempin ! rel hum in
+    
+    DOUBLE PRECISION Jbn2, Jtn2, Jbi2, Jti2  ! SamO
+    DOUBLE PRECISION Mair    ! SamO
 
     LOGICAL ERRORSWITCH
 !
@@ -2789,12 +2824,16 @@ CONTAINS
 
     errorswitch = .false.
 
+    Mair = 2.69E19_fp*273.15_fp/TEMPTMS*PRES/101325.0_fp
     h2so4 = Gci(srtso4)/boxvol*1000.e+0_fp/98.e+0_fp*6.022e+23_fp
-    nh3ppt = Gci(srtnh4)/17.e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
-             PRES/101325.*273./TEMPTMS ! corrected for pressure (because this should be concentration)
+    nh3ppt = Gci(srtnh4)/17.04e+0_fp/(boxmass/29.e+0_fp)*1e+12_fp* &
+             PRES/101325.0_fp*273.0_fp/TEMPTMS ! corrected for pressure (because this should be concentration)
+    nh3moleccm3 = Gci(srtnh4)/boxvol*1000.e+0_fp/17e+0_fp*6.022e+23_fp ! Changed by SamO
 
     fn = 0.e+0_fp
     fn1 = 0.e+0_fp
+    fntemp1 = 0.e+0_fp   !SamO
+    fntemp2 = 0.e+0_fp   !SamO
     rnuc = 0.e+0_fp
     gtime = 0.e+0_fp
     nuc_bin = 1 ! added by Pengfei Liu,initialize  nuc_bin value
@@ -2861,6 +2900,18 @@ CONTAINS
           fn=0.
           rnuc=1E-9
        endif
+
+       if (nh3moleccm3.gt.0.1.and.dunn_nuc.eq.1) then
+          tempin=dble(TEMPTMS)
+          call dunne_inorg_nucl(tempin,ionrate,h2so4,nh3moleccm3, &
+               Mair, fntemp2,rnuc,Jbn2,Jtn2,Jbi2,Jti2)
+!          print*,'Jbn2=', Jbn2,'Jtn2=', Jtn2,'Jbi2=', Jbi2,'Jti2=', Jti2
+          fn = fn + fntemp2
+          rnuc=0.85d0 ! [nm]
+       endif
+
+
+
        if((act_nuc.eq.1).and.(lev.le.7))then
           call bl_nucl(h2so4,fn,rnuc)
        endif
@@ -3011,6 +3062,131 @@ CONTAINS
     RETURN
 
   END SUBROUTINE NUCLEATION
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!     SUBROUTINE dunne_inorg_nucl
+
+!     WRITTEN BY Jeff Pierce, July 2019
+
+!     This subroutine calculates the binary and ternary (neutral and ion-mediated)
+!     nucleation rats from Dunne et al. 2016
+
+!     Dunne et al., Science, DOI: 10.1126/science.aaf2649, 2016
+!
+
+      SUBROUTINE dunne_inorg_nucl(tempi,fioni,cnai,nh3i,Mairi,fn,rnuc, & 
+                                  Jbn,Jtn,Jbi,Jti)
+
+      IMPLICIT NONE
+
+!-----INPUTS------------------------------------------------------------
+
+      double precision tempi                ! temperature of air [Ka]
+      double precision fioni                 ! formation rate of ions [pairs cm-3 s-1[
+      double precision cnai                 ! concentration of gas phase sulfuric acid [molec cm-3]
+      double precision nh3i                 ! concentration of ammonia [molec cm-3]
+      double precision Mairi                 ! concentration of air [molec cm-3]
+
+!-----OUTPUTS-----------------------------------------------------------
+
+      double precision fn                   ! nucleation rate [cm-3 s-1]
+      double precision rnuc                 ! critical cluster radius [nm]
+
+!-----INCLUDE FILES-----------------------------------------------------
+
+!-----ARGUMENT DECLARATIONS---------------------------------------------
+
+!-----VARIABLE DECLARATIONS---------------------------------------------
+
+      double precision temp                 ! temperature of air [K]
+      double precision nh3                  ! concentration of gas phase ammonia [molec cm-3]
+      double precision cna                  ! concentration of gas phase sulfuric acid [molec cm-3]
+      double precision fion, Mair
+      ! Simple temperature dependence (comment out this or complex)
+      !double precision pbn, ubn, vbn, ptn, utn, vtn, pAn, an ! parameters for neutral nuc
+      !double precision pbi, ubi, vbi, pti, uti, vti, pAi, ai ! parameters for ion nuc
+      ! Complex temperature dependence (comment out this or simple)
+      double precision pbn, ubn, vbn, wbn, ptn, utn, vtn, wtn, pAn, an ! parameters for neutral nuc
+      double precision pbi, ubi, vbi, wbi, pti, uti, vti, wti, pAi, ai ! parameters for ion nuc
+      double precision kbn, ktn, kbi, kti ! rate constants for 4 nucleation types
+      double precision ionc ! steady-state ion conc. [cm-3]
+      double precision alpha_ion ! ion recombination coef [cm3/ion/s]
+      double precision ffn, ffi ! intermediat calculation for ternary
+      double precision Jbn, Jtn, Jbi, Jti ! nucleation rates from 4 mechanisms
+      integer i                 ! counter
+
+!-----ADJUSTABLE PARAMETERS---------------------------------------------
+
+      ! Simple temperature dependence (comment out this or complex)
+      !parameter(pbn=3.62, ubn=46.3, vbn=245., ptn=2.82, utn=41.2)
+      !parameter(vtn=252., pAn=6.76, an=1.3d-4)
+      !parameter(pbi=2.73, ubi=24.1, vbi=166., pti=2.86, uti=18.3)
+      !parameter(vti=208., pAi=5.00, ai=5.0d-7)
+      ! Complex temperature dependence (comment out this or simple)
+      parameter(pbn=3.95d0, ubn=9.70d0, vbn=12.6d0, wbn=-0.00707d0, ptn=2.89d0)
+      parameter(utn=182.d0, vtn=1.20d0, wtn=-4.19d0, pAn=8.00d0, an=1.6d-6d0)
+      parameter(pbi=3.37d0, ubi=-11.5d0, vbi=25.5d0, wbi=0.181d0, pti=3.14d0)
+      parameter(uti=-23.8d0, vti=37.0d0, wti=0.227d0, pAi=3.07d0, ai=0.00485d0)
+
+
+!-----CODE--------------------------------------------------------------
+      !nh3i = 1e10  !SamO
+      temp=tempi   !SamO
+      !temp=278.0
+      nh3=nh3i*1d-6 ! I think they want it in units of 1E6 molec cm-3
+      cna=cnai*1d-6
+      !cna=1E7*1E-6  !SamO
+      fion=fioni
+      Mair=Mairi
+      !Mair=2.4116E+019 !SamO
+      !fion = 75.0 !SamO
+
+! CALCULATE ION CONCENTRATION
+      alpha_ion = 6d-8*sqrt(300.0d0/temp) + 6d-26*Mair*(300.0d0/temp)**4.0d0 ! Need Mair in air molec per cm3
+      ionc = sqrt(fion/alpha_ion) ! assume that ion-ion recombination dominates from conversion with svensmakr, need to verify
+
+! CALCULATE k VALUES
+      ! Simple temperature dependence (comment out this or complex)
+      !kbn = exp(ubn - vbn*(temp/1000.))
+      !ktn = exp(utn - vtn*(temp/1000.))
+      !kbi = exp(ubi - vbi*(temp/1000.))
+      !kti = exp(uti - vti*(temp/1000.))
+      ! Complex temperature dependence (comment out this or simple)
+      kbn = exp(ubn - exp(vbn*(temp/1000.0d0 - wbn)))
+      ktn = exp(utn - exp(vtn*(temp/1000.0d0 - wtn)))
+      kbi = exp(ubi - exp(vbi*(temp/1000.0d0 - wbi)))
+      kti = exp(uti - exp(vti*(temp/1000.0d0 - wti)))
+
+
+! CALCULATE f VALUES
+      if (nh3.gt.1d-10)then
+         ffn = nh3*cna**ptn/(an + (cna**ptn)/(nh3**pAn))
+         ffi = nh3*cna**pti/(ai + (cna**pti)/(nh3**pAi))
+      else
+         ffn = 0.0d0
+         ffi = 0.0d0
+      endif
+
+! CALCULATE NUCLEATION RATES
+      Jbn = kbn*cna**pbn
+      Jtn = ktn*ffn
+      Jbi = kbi*ionc*cna**pbi
+      Jti = kti*ionc*ffi
+!      print*,'Jbn=', Jbn,'Jtn=', Jtn,'Jbi=', Jbi,'Jti=', Jti
+
+      fn = Jbn + Jtn + Jbi + Jti ! sum them
+      !print*,'fn=',fn,cna,fion,nh3
+
+      fn = fn*1000.d0 !SamO - added this scalar
+
+!     cluster radius
+      rnuc=0.85d0 ! [nm]
+
+      RETURN
+      END SUBROUTINE dunne_inorg_nucl
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
