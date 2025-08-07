@@ -4,6 +4,9 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unrealeased] - TBD
+### Fixed
+
 ## [Unreleased] - TBD
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
@@ -44,10 +47,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
 - Fixed error where `//` were not being changed to `/` in `download_data.py`
 - Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
+- Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
+- Switched to daily GFED4 instead of monthly GFED4 to avoid inconsistent fire emissions across resolutions
+- Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
+- Deleted entry for `OH_PosteriorSF` in HEMCO_Config.rc since never used
 
 ## [14.6.3] - 2025-07-28
 ### Added
