@@ -157,7 +157,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(66)
+    CHARACTER(LEN=17)           :: tags(67) ! For Is_JacobianTracer (D. Zhang, Aug 6, 2025)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -213,6 +213,7 @@ CONTAINS
              "Henry_K0         ",  &
              "Henry_K0_Luo     ",  &
              "Henry_pKa        ",  &
+             "Is_JacobianTracer",  &
              "Is_Aerosol       ",  &
              "Is_DryAlt        ",  &
              "Is_DryDep        ",  &
@@ -602,6 +603,13 @@ CONTAINS
                 SpcCount%nTracer       = SpcCount%nTracer + 1
                 ThisSpc%TracerId       = SpcCount%nTracer
                 ThisSpc%Is_Tracer      = v_bool
+             ENDIF
+         
+         ELSE IF ( INDEX( key, "%Is_JacobianTracer" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             IF ( v_bool ) THEN
+                ThisSpc%Is_JacobianTracer = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN
