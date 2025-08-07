@@ -5,6 +5,9 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased] - TBD
+### Added
+- Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
+
 ### Fixed
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
 

@@ -2645,8 +2645,8 @@ CONTAINS
                   VALUE=RST, RC=STATUS )
 
              ! Set spc conc to background value if rst skipped or var not there
-             IF ( RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
-                      RST == MAPL_RestartSkipInitial ) THEN
+             IF ( (RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
+                  RST == MAPL_RestartSkipInitial) .AND. (.not. ThisSpc%Is_JacobianTracer) ) THEN
                 DO L = 1, State_Grid%NZ
                 DO J = 1, State_Grid%NY
                 DO I = 1, State_Grid%NX
@@ -2667,6 +2667,17 @@ CONTAINS
                         //' for species '//trim(ThisSpc%Name) 
                 ENDIF
              ENDIF
+
+             ! Do special handling if this is a Jacobian tracer             
+             IF ( ThisSpc%Is_JacobianTracer ) THEN
+                State_Chm%Species(IND)%Conc = State_Chm%Species(IND_('CH4'))%Conc
+                IF ( MAPL_am_I_Root()) THEN
+                   WRITE(*,*)  &
+                        '   INFO: using the initial concentrations of CH4'&
+                        //' for the Jacobian tracer '//trim(ThisSpc%Name) 
+                ENDIF
+             ENDIF
+
              ThisSpc => NULL()
           ENDDO
        ENDIF
