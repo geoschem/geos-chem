@@ -4,9 +4,6 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unrealeased] - TBD
-### Fixed
-
 ## [Unreleased] - TBD
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
@@ -92,6 +89,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
 - Removed redundant `ELSE` blocks in `DO_CONVECTION`
 - Removed redundant `units` variable in routine `AIRQNT`
+=======
+>>>>>>> 6d89543d2 (Fix typo in CHANGELOG)
 
 ## [14.6.2] - 2025-06-11
 ### Added
