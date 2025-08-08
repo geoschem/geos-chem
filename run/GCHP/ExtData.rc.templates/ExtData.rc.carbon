@@ -431,19 +431,8 @@ CO2_WEEKLY  1 D Y F2006-01-%d2T00:00:00 none none weekly_scale_factors  ./HcoDir
 # --- Domestic aviation surface correction factor ---
 AVIATION_SURF_CORR      1       Y  Y F2004-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
 
-#========================================================
-# --- Scale factors for OH ---
-#========================================================
-#OH_pert_factor 1 N Y - none none oh_scale ./gridded_perturbation_oh_scale.nc
-
 #==============================================================================
 # --- Scale factors for posterior run ---
-#
-# Enable emission scale factors by setting the use_emission_scale_factor or
-# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
-# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
-# Entries below are provided for examples only. Add your own here!
 #==============================================================================
 EMIS_SF 1 N Y -   none none ScaleFactor gridded_posterior.nc
 

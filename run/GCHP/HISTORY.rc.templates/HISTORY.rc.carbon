@@ -54,7 +54,7 @@ GRID_LABELS: #PE24x144-CF
 #==============================================================================
 COLLECTIONS: 'SpeciesConc',
              'Emissions',
-             'Metrics',
+             #'Metrics',
              #'Budget',
              #'Carbon',
              #'CloudConvFlux',
