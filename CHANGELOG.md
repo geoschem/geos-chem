@@ -7,9 +7,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Added
 - Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
+- Added operational run scripts for WashU Compute2
 
 ### Changed
-- Updated operational run script sample for WashU compute1
+- Updated operational run script sample for WashU Compute1
 
 ### Fixed
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
