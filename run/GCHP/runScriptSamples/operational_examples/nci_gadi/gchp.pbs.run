@@ -33,6 +33,9 @@ source setRestartLink.sh >> ${log}
 source gchp.env >> ${log}
 source checkRunSettings.sh >> ${log}
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 # Run the code
 mpirun ./gchp >> $log
 
