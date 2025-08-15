@@ -12,6 +12,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Changed
 - Updated operational run script sample for WashU Compute1
 - Update GCHP AWS EFA operational run script examples to avoid crashes over large core counts
+- Updated GFEIv3 files to correct issue in original version
 
 ### Fixed
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
