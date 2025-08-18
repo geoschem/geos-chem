@@ -13,10 +13,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
 - Updated `EmisOCS_Bioburn` to `EmisOCS_BiomassBurn` in both GCHP `HEMCO_Diagn.rc.carbon` and `HISTORY.rc.carbon` template files
 - Updated the ESMF version from 8.4.2 to 8.6.1 in sample environment file `gchp.gcc12_openmpi4_cannon_rocky.env`
+- Removed convective washout for default scheme but keep it for LUO_WETDEP
+- Adapted Luo2023 WetDep for GF convection
+- Updated timestep scaling for convective precipitation areal fraction
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
 - Moved `EmisOCS_Total` to the head of the `EmisOCS` diagnostic entries in the GCHP `HISTORY.rc.carbon` template file
+- Fix precipitation formation rate unit in Luo2023 convective washout
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
