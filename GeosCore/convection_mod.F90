@@ -1630,7 +1630,7 @@ CONTAINS
     F_WASHOUT = 0e+0_fp
     LOCAL_F_WASHOUT = 0e+0_fp
     K_RAIN = 1.5e-3_fp
-    DECAY_CONST = 1 - EXP( -K_RAIN * SDT )
+    DECAY_CONST = 1.0_fp - EXP( -K_RAIN * SDT )
     DO K = KTOP, CLDBASE, -1
        IF ( PDOWN(K) > 1.D-20 ) THEN
           IF ( DQRCU(K) > 1.D-20 ) THEN
