@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed convective washout for default scheme but keep it for LUO_WETDEP
 - Adapted Luo2023 WetDep for GF convection
 - Updated timestep scaling for convective precipitation areal fraction
+- Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
