@@ -2221,10 +2221,10 @@ CONTAINS
     !------------------------------------------------------------------------
 #ifdef MODEL_CLASSIC
     CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL',                     &
-                     HMRC,     FIRST                                        )
+                     HMRC,     FIRST,            State_Met%TSOIL1           )
 #else
     CALL ExtDat_Set( HcoState, ExtState%TSOIL1, 'TSOIL1_FOR_EMIS',           &
-                     HMRC,     FIRST,                                       )
+                     HMRC,     FIRST,            State_Met%TSOIL1           )
 #endif
 
     ! Trap potential errors
