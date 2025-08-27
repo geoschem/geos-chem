@@ -725,8 +725,13 @@ fi
 #-----------------------------------------------------------------
 
 if [[ ${met} = "ModelE2.1" ]]; then
-    # Current scale factors are based on U10 and V10, while the latest implementation of DEAD is using USTAR
+    # Current scale factors are based on U10 and V10, 
+    # while the latest implementation of DEAD is using USTAR
     # May cause 10 times larger dust emissions than properly scaled
+    #
+    # TODO: The dust tuning factors will need to be rescaled
+    # for the ModelE2.1 meteorology, as we are retiring DustDead.
+    # 
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
@@ -756,22 +761,22 @@ else
     RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='4.8632e-5'\n"
 	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8197e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='3.8197e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.6659e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='5.6659e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.5412e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='4.5412e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8656e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='3.8656e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.1132e-5'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='3.1132e-5'\n"
 	else
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='-999.0e0'\n"
 	fi
     else
-	RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+	RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='-999.0e0'\n"
     fi
 fi
 
@@ -1052,7 +1057,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
-	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off '\n"
+	RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
