@@ -147,7 +147,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
-105     DustL23M               : on    DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+105     DustL23M               : on    TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
     --> Tuning factor          :       ${RUNDIR_DUSTL23M_TF}
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
@@ -1816,19 +1816,19 @@ VerboseOnCores:              root       # Accepted values: root all
 101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kgC/m3 ACET 40 1 1
 )))SeaFlux
 
-#==============================================================================
-# --- Dust emissions using DEAD model (Extension 105) ---
-#==============================================================================
-(((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
-)))DustDead
+#===========================================================================
+# --- External fields needed for online DustL23M (Extension 105) ---
+#===========================================================================
+(((DustL23M
+105 L23M_A_bare       $ROOT/DustL23M/v2025-03/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
+105 L23M_A_veg        $ROOT/DustL23M/v2025-03/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
+105 L23M_Csah         $ROOT/DustL23M/v2025-03/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
+105 L23M_LAI          $ROOT/DustL23M/v2025-03/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
+105 L23M_fclay        $ROOT/DustL23M/v2025-03/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
+105 L23M_BD           $ROOT/DustL23M/v2025-03/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
+105 L23M_poros        $ROOT/DustL23M/v2025-03/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
+105 L23M_roughness_r  $ROOT/DustL23M/v2025-03/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
+)))DustL23M
 
 #==============================================================================
 # --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
