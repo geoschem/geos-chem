@@ -1640,18 +1640,18 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #==============================================================================
 # --- Anthropogenic dust emissions (AFCID)---
 #==============================================================================
-PM25FINE_1_bin1 kg/m2/s Y Y 2015-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-PM25FINE_1_bin2 kg/m2/s Y Y 2015-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-PM25FINE_1_bin3 kg/m2/s Y Y 2015-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-PM25FINE_1_bin4 kg/m2/s Y Y 2015-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-PM25FINE_2_bin1 kg/m2/s Y Y 2012-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
-PM25FINE_2_bin2 kg/m2/s Y Y 2012-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
-PM25FINE_2_bin3 kg/m2/s Y Y 2012-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
-PM25FINE_2_bin4 kg/m2/s Y Y 2012-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
-PM25FINE_3_bin1 kg/m2/s Y Y 2013-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
-PM25FINE_3_bin2 kg/m2/s Y Y 2013-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
-PM25FINE_3_bin3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
-PM25FINE_3_bin4 kg/m2/s Y Y 2013-%m2-01T00:00:00 none 0.5 PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_1_bin1 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin2 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin3 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin4 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_2_bin1 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin2 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin3 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin4 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_3_bin1 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin2 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin4 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
 #
 #==============================================================================
 # --- Offline dust emissions (OFFLINE_DUST)---
