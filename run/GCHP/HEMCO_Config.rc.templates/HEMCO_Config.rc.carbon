@@ -74,6 +74,7 @@ Mask fractions:              false
     --> EDGARv8                :       true     # 2010-2022
     --> QFED2                  :       false    # 2009-2015
     --> JPL_WETCHARTS          :       true     # 2009-2017
+    --> LPJ_MERRA2             :       false    # 2018-2023
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
     --> RESERVOIRS             :       true     # 2022
@@ -497,13 +498,23 @@ Mask fractions:              false
 )))QFED2
 
 #==============================================================================
-# --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+# --- JPL WetCHARTs v1.0 wetland emissions ---
 #
+# Reference: Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((JPL_WETCHARTS
 0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
+
+#==============================================================================
+# ---  LPJ MERRA-2 wetland emissions ---
+#
+# Reference: East et al., https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024GL108494
+#==============================================================================
+(((LPJ_MERRA2
+0 LPJ_CH4 $ROOT/CH4/v2025-09/LPJ_MERRA2/LPJ_MERRA2_$YYYY_0.5x0.5.nc emis_ch4 2018-2023/1-12/1/0 C xy kg/m2/s CH4 - 10 2
+)))LPJ_MERRA2
 
 #==============================================================================
 # --- CH4: Geological Seeps ---
