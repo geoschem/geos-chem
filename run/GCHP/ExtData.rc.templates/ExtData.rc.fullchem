@@ -1755,7 +1755,7 @@ SOILNOX_FERT kg/m3 N Y 2000-%m2-%d2T00:00:00 none none FERT ./HcoDir/SOILNOX/v20
 # --- External fields needed for online DustL23M (Extension 105) ---
 #===========================================================================
 L23M_A_bare      1      N Y %y4-01-01T00:00:00   none none LC_bare      ./HcoDir/DustL23M/v2025-03/LandCover/MCD12C1.LC.%y4.0.1.nc4
-L23M_A_veg       1      N Y %y4-01-01T00:00:00   none none LC_veg       ./HcoDir/DustL23M/v2025-03/LandCover/MCD12C1.LC.$y4.0.1.nc4
+L23M_A_veg       1      N Y %y4-01-01T00:00:00   none none LC_veg       ./HcoDir/DustL23M/v2025-03/LandCover/MCD12C1.LC.%y4.0.1.nc4
 L23M_Csah        1      N Y F2000-01-01T00:00:00 none none scale        ./HcoDir/DustL23M/v2025-03/scale/DustL23_scale_025x03125_scaleSAv2.nc4
 L23M_LAI         1      N Y %y4-%m2-01T00:00:00  none none LAI          ./HcoDir/DustL23M/v2025-03/LandCover/XLAI_025x025_%y4_MonMean.nc4
 L23M_fclay       1      N Y F2000-01-01T00:00:00 none none f_clay       ./HcoDir/DustL23M/v2025-03/GSDE/GSDE_clay-sand-silt_0.1.nc4
