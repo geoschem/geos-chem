@@ -80,7 +80,7 @@ Variable SpeciesConcVV_OH matches within the threshold of 1e-07.
 All variables match within the given threshold.
 ```
 
-### Performance: reduces wall time by ~24–41% across platforms and resolutions.
+**Performance: reduces wall time by ~24–41% across platforms and resolutions.**
 > **Setup:** 576 ranks (cores) for C48–C180; 1152 ranks (cores) for C360; GCC + Intel MPI.
 
 | Platform | Resolution | Original Time (s) | HB-SHM Time (s) | Time Saved (s) | Reduction | Speedup |

@@ -1,4 +1,4 @@
-# Hierarchical Load Balancing with MPI Shared Memory for GCHP v14.5.2
+# Hierarchical Load Balancing with MPI Shared Memory for GCHP v14.6.3
 
 ## Summary
 The KPP chemistry solver takes a variable number of sub-steps per column, creating **rank and node imbalance** when columns are pinned to MPI ranks. This repo implemented Hierarchical Balancing with MPI Shared Memory mitigates GCHP load imbalance by:
@@ -60,3 +60,5 @@ time mpirun -np ${N_CORES} --map-by ppr:1:node ./gchp
 ```bash
 time mpirun -np ${N_CORES} -ppn 1 ./gchp
 ```
+
+Note: Without using `--map-by ppr:1:node` or `-ppn 1`, the code still runs correctly but with slightly slower runtime.

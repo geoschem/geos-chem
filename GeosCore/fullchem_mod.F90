@@ -3209,10 +3209,6 @@ CONTAINS
     nistatus = 20
     nrstate = 20
 
-   !  CALL MPI_Comm_split_type(Input_Opt%mpiComm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, shm_comm, ierr)
-   !  CALL MPI_Comm_rank(shm_comm, shm_rank, ierr)
-   !  CALL MPI_Comm_size(shm_comm, shm_size, ierr)
-
   ! MPI shared memory setup
     CALL MPI_Comm_split_type(Input_Opt%mpiComm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, shm_comm, RC)
     IF (RC /= MPI_SUCCESS) THEN
@@ -3231,10 +3227,9 @@ CONTAINS
     ENDIF
   
 
+   ! compute local grid size (#cells)
     NCELL_local = State_Grid%NX * State_Grid%NY * State_Grid%NZ
     NCELL_MAX = NCELL_local
-   !  offset = NCELL_local * shm_rank
-   !  NCELL_total = NCELL_local * shm_size
 
    Allocate(Idx_to_IJL      (3, NCELL_MAX)     , STAT=RC)
    CALL GC_CheckVar( 'fullchem_mod.F90:Idx_to_IJL', 0, RC )
@@ -3267,10 +3262,7 @@ CONTAINS
                      0, shm_comm, ierr)
     IF (shm_rank == 0) DEALLOCATE(prefix, sizes)
     
-    ! From here on:
-    !   * use NCELL_total_node (NOT NCELL_total) in every C_F_POINTER
-    !   * offsets are now strictly increasing and match the layout in the window
-    
+   !  debug print: check sizes of shared arrays
    !  WRITE(6, *) 'shm_rank:', shm_rank, 'shm_size:', shm_size
    !  WRITE(6, *) 'NCELL_local:', NCELL_local, 'NCELL_total:', NCELL_total, 'offset:', offset
 
