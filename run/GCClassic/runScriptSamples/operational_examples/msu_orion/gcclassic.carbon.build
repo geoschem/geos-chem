@@ -1,0 +1,15 @@
+#!/bin/bash
+
+# For MSU Orion cluster
+#SBATCH --time 00:05:00
+#SBATCH --nodes=1 --ntasks-per-node=12
+#SBATCH --mem 3G
+#SBATCH --job-name=gcclassic.build
+
+# Assumes file or symbolic link gcclassic.env is in run directory
+source gcclassic.env
+cd build
+cmake ../CodeDir -DRUNDIR=.. -DMECH=carbon
+make -j
+make install
+cd ..

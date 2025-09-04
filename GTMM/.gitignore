@@ -1,0 +1,14 @@
+*.[oax]
+*.mod
+*.MOD
+*~*
+gtmm
+geos
+geostomas
+geosapm
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk
+core.*

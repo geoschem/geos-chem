@@ -1,0 +1,42 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the Hg simulation.
+#
+# !REVISION HISTORY:
+#  Use the gitk browser to view the Git history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name               Spec ExtNr Cat Hier Dim  OutUnit  LongName
+
+###############################################################################
+#####   Hg0 emissions                                                     #####
+###############################################################################
+EmisHg0_Total      Hg0     -1    -1   -1   2   kg/m2/s  Hg0_emission_flux_from_all_sectors
+EmisHg0_Anthro     Hg0      0     1   -1   2   kg/m2/s  Hg0_emission_flux_from_anthropogenic
+EmisHg0_ASGM       Hg0      0     8   -1   2   kg/m2/s  Hg0_emission_flux_from_ASGM
+EmisHg0_BioBurn    Hg0      111  -1   -1   2   kg/m2/s  Hg0_emission_flux_from_biomass_burning
+EmisHg0_Natural    Hg0      0     3   -1   2   kg/m2/s  Hg0_emission_flux_from_natural_sources
+
+###############################################################################
+#####   Hg2 emissions                                                     #####
+###############################################################################
+# Note ASGM Hg2 emissions are 0, so anthro=total in default configuration
+EmisHgCl2_Anthro   HgCl2    0    -1   -1   2  kg/m2/s  HgCl2_emission_flux_from_anthropogenic
+
+###############################################################################
+#####   HgP emissions                                                     #####
+###############################################################################
+# Note ASGM Hg2 emissions are 0, so anthro=total in default configuration
+EmisHg2ClP_Anthro  Hg2ClP   0    -1   -1   2  kg/m2/s  Hg2ClP_emission_flux_from_anthropogenic
+
+#EOC

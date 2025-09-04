@@ -1,0 +1,239 @@
+#!/usr/bin/perl -w
+
+#EOC
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: getRunInfo
+#
+# !DESCRIPTION: This script extracts information from the geoschem_config.yml
+#  file and prints the result. The input arguments are (1) the location of file
+#  geoschem_config.yml, and (2) the ID of run information to be extracted.
+#  Mapping  between ID and geoschem_config.yml information are is as follows:
+#  0:START, 1:END, 3:STARTDATE, 4:ENDDATE.
+#\\
+#\\
+# !USES:
+#
+require 5.003;                   # Need this version of Perl or newer
+use English;                     # Use English language
+use Carp;                        # Get detailed error messages
+use strict;                      # Use "IMPLICIT NONE" syntax
+#
+# !PUBLIC MEMBER FUNCTIONS
+#  &getRunInfo
+# 
+# !CALLING SEQUENCE:
+#  getRunInfo RUNDIR ID
+#    where RUNDIR is the path location of geoschem_config.yml and ID is the 
+#    ID of the run information to retrieve
+#
+# !REMARKS:
+#  Designed for use with the root-level Makefile in a run directory when
+#  using the unit test or a run directory copied from UnitTest.
+#                                                                             .
+#  ID value   Information returned
+#  -------------------------------------------------------------------
+#  1          Start date & time   (in YYYYMMDDhhmm format           )
+#  2          End   date & time   (in YYYYMMDDhhmm format           )
+#  3          Start date only     (in YYYYMMDD format               )
+#  4          End   date only     (in YYYYMMDD format               )
+#  5          Simulation name
+#  6          RRTMG setting
+#
+# !REVISION HISTORY: 
+#  06 Apr 2015 - E. Lundgren - Initial version
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: getRunInfo
+#
+# !DESCRIPTION: Extracts run information from geoschem_config.yml.
+#\\
+#\\
+# !INTERFACE:
+#
+sub getInfo($$) {
+#
+# !INPUT PARAMETERS:
+#
+  my ( $rundir, $id ) = @_;
+#
+# !CALLING SEQUENCE:
+#  &getInfo( $rundir, $id );
+#
+# !REVISION HISTORY:
+#  06 Apr 2015 - E. Lundgren - Initial version
+#  27 Apr 2015 - M. Sulprizio- Now use YYYYMMDDhhmm format for start/end time
+#  31 Mar 2015 - E. Lundgren - Add special case of soa_svpoa
+#  22 May 2017 - R. Yantosca - For HEMCO standalone, convert YYYY-MM-DD to
+#                              YYYYMMDD and hh:mm:ss to hhmmss
+#  19 Sep 2017 - R. Yantosca - Add options to return start & end time in just
+#                              YYYYMMDD format (e.g. for use in filenames)
+#  05 Nov 2018 - M. Sulprizio- Add options to return start & end time in hhmm
+#                              format for use in filenames
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  # Scalars
+  my $runstr  = ""; 
+  my $line    = "";
+  my $runinfo = "";
+
+  # Arrays
+  my @linestrings   = ();
+  my @dates         = ();
+  my @times         = ();
+  my @runinfoarray  = ();
+
+  # Make sure that an geoschem_config.yml file is found; otherwise print a "";
+  if ( -f "$rundir/geoschem_config.yml" ) {
+  
+    # Get start run time if $id is 1 or 3, end run time if $id is 2 or 4
+    if ( $id == 1 || $id == 2 || $id == 3 || $id == 4 )  {
+        
+      if    ( $id == 1 || $id == 3 ) { $runstr = "start"; }
+      elsif ( $id == 2 || $id == 4 ) { $runstr = "end";   }
+   
+      # Grep for date & time in geoschem_config.yml
+      $line = qx( grep "$runstr.*YYYYMMDD" $rundir/geoschem_config.yml );
+      chomp( $line );
+  
+      # Split by spaces
+      @linestrings = split( ' ', $line );
+  
+      # Place start and end times into YYYYMMDDhhmm format (ID = 1 or 2)
+      # or just YYYYMMDD format (ID = 3 or 4)
+      $runinfo = "$linestrings[4]$linestrings[5]";
+      if    ( $id == 1 || $id == 2 ) { $runinfo = substr( $runinfo, 0, 12 ); } 
+      elsif ( $id == 3 || $id == 4 ) { $runinfo = substr( $runinfo, 0, 8  ); }
+
+    } elsif ( $id == 5 ) {
+
+      # Grep for line in geoschem_config.yml
+      $line = qx( grep "name" $rundir/geoschem_config.yml );
+      chomp( $line );
+
+      # Split by spaces
+      @linestrings = split( ' ', $line );
+      
+      # Extract the simulation name
+      $runinfo = "$linestrings[3]";
+      
+    } elsif ( $id == 6 ) {
+
+      # Grep for line in geoschem_config.yml
+      $line = qx( grep "Turn on RRTMG" $rundir/geoschem_config.yml );
+      chomp( $line );
+
+      # Split by spaces
+      @linestrings = split( ' ', $line );
+
+      # Extract the simulation name
+      $runinfo = "$linestrings[4]";
+
+    } 
+
+  } elsif ( -f "$rundir/HEMCO_sa_Config.rc" ) {
+
+    # Get start run time if $id is 1 or 3, end run time if $id is 2 or 4
+    if ( $id == 1 || $id == 2 || $id == 3 || $id == 4 ) {
+
+      if ( -f "$rundir/HEMCO_sa_Time.rc" ) {
+
+	if ( $id == 1 || $id == 3 ) { $runstr = "START"; }
+	if ( $id == 2 || $id == 4 ) { $runstr = "END";   }
+
+	# Grep for start and date
+	$line = qx( grep "$runstr" $rundir/HEMCO_sa_Time.rc );
+        chomp( $line );
+
+        # Split by spaces
+        @linestrings = split( ' ', $line );
+
+	# Translatet YYYY-MM-DD into YYYYMMDD
+	# and hh:mm:ss to hhmmss
+	@dates = split( '-', $linestrings[1] );
+	@times = split( ':', $linestrings[2] );
+
+        # Return start and end times in YYYYMMDDhhmm format (ID = 1 or 2)
+	# or just YYYYMMDD format (ID = 3 or 4)
+	if ( $id == 1 || $id == 2 ) { 
+ 	  $runinfo = "$dates[0]$dates[1]$dates[2]$times[0]$times[1]";
+        } elsif ( $id == 3 || $id == 4 ) {
+	  $runinfo = "$dates[0]$dates[1]$dates[2]";
+        }
+      }
+
+    } elsif ( $id == 5 ) {
+
+      # Hardcode simulation name; it doesn't matter for HEMCO SA
+      $runinfo = "standard";
+      
+    }
+
+  }
+
+  # Print the result
+  print "$runinfo";
+  
+  return(0)
+}
+#EOP
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !IROUTINE: main
+#
+# !DESCRIPTION: Driver routine for the getRunInfo script.
+#\\
+#\\
+# !INTERFACE:
+#
+sub main() {
+#
+# !CALLING SEQUENCE:
+#  getRunInfo DIR ID
+#
+# !REVISION HISTORY:
+#  07 Apr 2015 - E. Lundgren - Initial version
+#  20 Sep 2017 - R. Yantosca - ID can now be from 0-8
+#  05 Nov 2018 - M. Sulprizio- ID can now be from 0-10
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+#
+# !LOCAL VARIABLES:
+#
+  my $nArgs = scalar( @ARGV );
+  my $msg   = "";
+
+  # Exits with an error message if the ID argument is not within valid range
+  if ( $nArgs >= 0 && $nArgs <= 10 ) {
+    &getInfo( @ARGV ); 
+  } else { 
+    $msg = "getRunInfo: $ARGV[1] is an invalid value for the ID argument!";
+    print "$msg"; 
+    exit(1);    
+  }
+  return ( 0 );
+}
+
+#------------------------------------------------------------------------------
+
+# Call the main program
+main();
+
+# Return normally
+exit(0);
+#EOC

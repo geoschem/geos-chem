@@ -1,0 +1,36 @@
+#MINVERSION   3.2.0       { Need this version of KPP or later          }
+#INTEGRATOR   rosenbrock  { Use Rosenbrock integration method          }
+#LANGUAGE     Fortran90   { Generate solver code in Fortran90 ...      }
+#UPPERCASEF90 on          { ... with .F90 suffix (instead of .f90)     }
+#DRIVER       none        { Do not create gckpp_Main.F90               }
+#HESSIAN      off         { Do not create the Hessian matrix           }
+#MEX          off         { MEX is for Matlab, so skip it              }
+#STOICMAT     off         { Do not create stoichiometric matrix        }
+
+#INCLUDE Hg.eqn           { Chemical reactions for Hg mechanism        }
+
+#FAMILIES                 { Chemical families for prod/loss diagnostic }
+PHg2 : HgBrNO2 + HgBrHO2 + HgBrClO + HgBrBrO + HgBr2 + HgBrOH + HgBrO + HgOHNO2 + HgOHHO2 + HgOHClO + HgOHBrO + HgOHOH + HgOHO + HgClNO2 + HgClHO2 + HgClClO + HgClBrO + HgClBr + HgClOH + HgClO + HgCl2 + Hg2ClP + Hg2ORGP + HgBr + HgOH + HgCl; {gross GOM production}
+PHg0 : Hg0; {gross Hg0 production}
+PHg2Br : HgBrNO2 + HgBrHO2 + HgBrClO + HgBrBrO + HgBr2 + HgBrOH + HgBrO + HgBr; {GOM production from Br}
+PHg2OH : HgOHNO2 + HgOHHO2 + HgOHClO + HgOHBrO + HgOHOH + HgOHO + HgOH; {GOM production from OH}
+PHg2Cl : HgClNO2 + HgClHO2 + HgClClO + HgClBrO + HgClBr + HgClOH + HgClO + HgCl2 + HgCl; {GOM production from Cl}
+
+#INLINE F90_RATES
+  ! All rates are included in Hg_RateLawFuncs.F90, which
+  ! gets referenced directly from subroutine Update_Rconst.
+#ENDINLINE
+
+#INLINE F90_RCONST_USE
+  ! Inline an include file containing rate law definitions, which
+  ! will be inserted directly into subroutine Update_Rconst().
+  ! This is necessary as a workaround for KPP not being able to
+  ! include very large files ( > 200000 chars) directly.
+  !  -- Bob Yantosca (09 Dec 2021)
+  USE Hg_RateLawFuncs
+#ENDINLINE
+
+#INLINE F90_GLOBAL
+! Inline common variables into gckpp_Global.F90
+#include "commonIncludeVars.H"
+#ENDINLINE

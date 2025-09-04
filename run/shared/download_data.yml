@@ -1,0 +1,95 @@
+---
+#
+# Configuration file for the download_data.py script.
+# You should not have to modify this file unless a new data portal
+# comes online, or the default restart files are updated.
+#
+#
+# GEOS-Chem data portals
+portals:
+
+  # GEOS-Chem Input Data portal, download via AWS CLI
+  geoschem+aws:
+    short_name: ga
+    s3_bucket: True
+    remote: s3://geos-chem
+    command: 'aws s3 cp --no-sign-request '
+    quote: ""
+
+  # GEOS-Chem Input Data portal, download via HTTP/wget
+  # NOTE: Use geoschemdata.wustl.edu as a backup
+  geoschem+http:
+    short_name: gh
+    s3_bucket: False
+    remote: https://geos-chem.s3-us-west-2.amazonaws.com
+    #remote: http://geoschemdata.wustl.edu/ExtData
+    command: 'wget -r -np -nH -R "*.html" -N -P @PATH@ '
+    quote: '"'
+
+  # GEOS-Chem Nested Input Data portal, download via AWS CLI
+  nested+aws:
+    short_name: na
+    s3_bucket: True
+    remote: s3://gcgrid
+    command: 'aws s3 cp --no-sign-request '
+    quote: ""
+
+  # GEOS-Chem Nested Input Data portal, download via HTTP/wget
+  nested+http:
+    short_name: nh
+    s3_bucket: False
+    remote: https://gcgrid.s3.amazonaws.com/
+    command: 'aws s3 cp '
+    quote: ""
+
+  # GCAP 2.0 @ U. Rochester data portal, download via HTTP/wget
+  rochester:
+    short_name: ur
+    s3_bucket: False
+    remote: http://atmos.earth.rochester.edu/input/gc/ExtData
+    command: 'wget -r -np -nH -R "*.html" -N --cut-dirs=2 -P @PATH@ '
+    quote: '"'
+
+
+# GEOS-Chem restart file paths
+restarts:
+  root: GEOSCHEM_RESTARTS
+  aerosol:
+    remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  carbon:
+    remote: v2025-07/GEOSChem.Restart.carbon.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4
+  ch4:
+    remote: v2025-07/GEOSChem.Restart.carbon.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4
+  co2:
+    remote: v2025-07/GEOSChem.Restart.carbon.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4
+  fullchem:
+    remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  metals:
+    remote: v2021-06/GEOSChem.Restart.metals.20110101_0000z.nc4
+    local:  GEOSChem.Restart.20110101_0000z.nc4
+  mercury:
+    remote: v2023-12/GEOSChem.Restart.Hg.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4
+  pops:
+    remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  tagco:
+    remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4
+  tago3:
+    remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  tomas15:
+    remote: v2021-12/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  tomas40:
+    remote: v2021-12/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
+    local:  GEOSChem.Restart.20190701_0000z.nc4
+  transporttracers:
+    remote: GC_14.2.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    local:  GEOSChem.Restart.20190101_0000z.nc4

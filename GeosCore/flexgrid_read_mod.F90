@@ -1,0 +1,1900 @@
+#if defined( MODEL_CLASSIC )
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !MODULE: flexgrid_read_mod.F90
+!
+! !DESCRIPTION: Module FLEXGRID\_READ\_MOD contains subroutines for reading the
+!  metfield from disk (in netCDF format).
+!\\
+!\\
+! !INTERFACE:
+!
+MODULE FlexGrid_Read_Mod
+!
+! !USES:
+!
+  USE ERROR_MOD,     ONLY : ERROR_STOP    ! Stop w/ error message
+  USE PhysConstants                       ! Physical constants
+  USE TIME_MOD                            ! Date & time routines
+
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PRIVATE MEMBER FUNCTIONS:
+!
+  PRIVATE :: FlexGrid_Read_A3cld
+  PRIVATE :: FlexGrid_Read_A3dyn
+  PRIVATE :: FlexGrid_Read_A3mstC
+  PRIVATE :: FlexGrid_Read_A3mstE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC  :: FlexGrid_Read_CN
+  PUBLIC  :: FlexGrid_Read_A1
+  PUBLIC  :: FlexGrid_Read_A1dyn
+  PUBLIC  :: FlexGrid_Read_A3
+  PUBLIC  :: FlexGrid_Read_I1dyn_1
+  PUBLIC  :: FlexGrid_Read_I1dyn_2
+  PUBLIC  :: FlexGrid_Read_I3_1
+  PUBLIC  :: FlexGrid_Read_I3_2
+  PUBLIC  :: Copy_I3_Fields
+  PUBLIC  :: Copy_I1dyn_Fields
+!
+! !REMARKS:
+!  Assumes that you have a netCDF library (either v3 or v4) installed on
+!  your system.
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+CONTAINS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_cn
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing constant (CN) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_CN( Input_Opt, State_Grid, State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! State Grid object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+
+    ! Arrays
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY)     ! Temporary data arrray
+
+    ! Read FRLAKE
+    v_name = "FRLAKE"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
+    State_Met%FRLAKE = Q
+
+    ! Read FRLAND (land without lake or ice)
+    v_name = "FRLAND"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
+    State_Met%FRLAND = Q
+
+    ! Read FRLANDIC
+    v_name = "FRLANDIC"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
+    State_Met%FRLANDICE = Q
+
+    ! Read FROCEAN
+    v_name = "FROCEAN"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
+    State_Met%FROCEAN = Q
+
+    ! Read PHIS
+    v_name = "PHIS"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name) )
+    State_Met%PHIS = Q
+
+    ! Echo info
+    stamp = TimeStamp_String( 20110101, 000000 )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all CN     met fields for ', a )
+
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
+    ! Convert PHIS from [m2/s2] to [m]
+    State_Met%PHIS = State_Met%PHIS / g0
+
+  END SUBROUTINE FlexGrid_Read_CN
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a1
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 1-hr time-averaged (A1) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REMARKS:                                                                             .
+!  Special handling for surface precipitation fields:
+!  ---------------------------------------------------------------------------
+!  In GEOS-FP (and in MERRA), the PRECTOT etc. surface precipitation
+!  met fields fields have units of [kg/m2/s].  In all other GEOS
+!  versions, PREACC and PRECON have units of [mm/day].
+!                                                                             .
+!  Therefore, for backwards compatibility with existing code, apply
+!  the following unit conversion to the GEOS-5 PRECTOT and PRECCON
+!  fields:
+!                                                                             .
+!      kg  |    m3    | 86400 s | 1000 mm
+!    ------+----------+---------+--------- = 86400
+!     m2 s |  1000 kg |  day    |   m
+!               ^
+!               |
+!        1 / density of water
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    INTEGER            :: I, J
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Saved scalars
+    INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
+    INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
+
+    ! Arrays
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY) ! Temporary data arrray
+
+    !======================================================================
+    ! Skip if we have already read data for this date & time
+    !======================================================================
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - FLEXGRID A1 met fields for ', a,  &
+               ' have been read already'                  )
+       RETURN
+    ENDIF
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A1 (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 10000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 24 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read ALBEDO
+    v_name = "ALBEDO"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%ALBD = Q
+
+    ! Read CLDTOT
+    v_name = "CLDTOT"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%CLDFRC = Q
+
+    ! Read EFLUX
+    v_name = "EFLUX"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%EFLUX = Q
+
+    !--------------------------------------------------------------------------
+    ! For now, skip reading EVAP. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read EVAP
+    !v_name = "EVAP"
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !State_Met%EVAP = Q
+    !--------------------------------------------------------------------------
+
+    ! Read FRSEAICE
+    v_name = "FRSEAICE"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%FRSEAICE = Q
+
+    ! Read FRSNO
+    v_name = "FRSNO"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+
+    ! The import FRSNO is fraction of land with snow cover. Convert to
+    ! fraction of grid box with snow cover for storage in State_Met.
+    !$OMP PARALLEL DO       &
+    !$OMP DEFAULT( SHARED  )&
+    !$OMP PRIVATE( I, J    )
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       State_Met%FRSNOW(I,J) = Q(I,J) * State_Met%FRLAND(I,J)
+    ENDDO
+    ENDDO
+    !$OMP END PARALLEL DO
+
+    !--------------------------------------------------------------------------
+    ! For now, skip reading GRN. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read GRN
+    !v_name = "GRN"
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !State_Met%GRN = Q
+    !--------------------------------------------------------------------------
+
+    ! Read GWETROOT
+    v_name = "GWETROOT"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%GWETROOT = Q
+
+    ! Read GWETTOP
+    v_name = "GWETTOP"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%GWETTOP = Q
+
+    ! Read HFLUX from file
+    v_name = "HFLUX"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%HFLUX = Q
+
+    ! Read LAI
+    v_name = "LAI"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%LAI = Q
+
+    !-----------------------------------------------------------------------
+    ! Comment this out for now, this field isn't needed (bmy, 2/2/12)
+    !! Read LWTUP
+    !v_name = "LWTUP"
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !State_Met%LWTUP = Q
+    !-----------------------------------------------------------------------
+
+    ! Read PARDF
+    v_name = "PARDF"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PARDF = Q
+
+    ! Read PARDR
+    v_name = "PARDR"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PARDR = Q
+
+    ! Read PBLH
+    v_name = "PBLH"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PBLH = Q
+
+    ! Read PRECANV
+    v_name = "PRECANV"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PRECANV = Q
+
+    ! Read PRECCON
+    v_name = "PRECCON"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PRECCON = Q
+
+    ! Read PRECLSC
+    v_name = "PRECLSC"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PRECLSC = Q
+
+    !--------------------------------------------------------------------------
+    ! For now, skip reading PRECSNO. It's not used in GEOS-Chem. (mps, 9/14/17)
+    !! Read PRECSNO
+    !v_name = "PRECSNO"
+    !CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    !State_Met%PRECSNO = Q
+    !--------------------------------------------------------------------------
+
+    ! Read PRECTOT
+    v_name = "PRECTOT"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%PRECTOT = Q
+
+    ! Read QV2M
+    v_name = "QV2M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%QV2M = Q
+
+    ! Read SEAICE00
+    v_name = "SEAICE00"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE00 = Q
+
+    ! Read SEAICE10
+    v_name = "SEAICE10"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE10 = Q
+
+    ! Read SEAICE20
+    v_name = "SEAICE20"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE20 = Q
+
+    ! Read SEAICE30
+    v_name = "SEAICE30"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE30 = Q
+
+    ! Read SEAICE40
+    v_name = "SEAICE40"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE40 = Q
+
+    ! Read SEAICE50
+    v_name = "SEAICE50"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE50 = Q
+
+    ! Read SEAICE60
+    v_name = "SEAICE60"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE60 = Q
+
+    ! Read SEAICE70
+    v_name = "SEAICE70"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE70 = Q
+
+    ! Read SEAICE80
+    v_name = "SEAICE80"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE80 = Q
+
+    ! Read SEAICE90
+    v_name = "SEAICE90"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SEAICE90 = Q
+
+    ! Read SLP
+    v_name = "SLP"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SLP = Q
+
+    ! Read SNODP
+    v_name = "SNODP"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SNODP = Q
+
+    ! Read SNOMAS
+    v_name = "SNOMAS"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SNOMAS = Q
+
+    ! Read SWGDN
+    v_name = "SWGDN"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%SWGDN  = Q
+
+    ! Read TO3
+    v_name = "TO3"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TO3 = Q
+
+    ! Read TROPPT
+    v_name = "TROPPT"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TROPP = Q
+
+    ! Read TS
+    v_name = "TS"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TSKIN = Q
+
+    ! Read T2M
+    v_name = "T2M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TS = Q
+
+    ! Read U10M
+    v_name = "U10M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%U10M = Q
+
+    ! Read USTAR
+    v_name = "USTAR"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%USTAR = Q
+
+    ! Read V10M
+    v_name = "V10M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%V10M = Q
+
+    ! Read Z0M
+    v_name = "Z0M"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%Z0 = Q
+
+    !======================================================================
+    ! Get fields for soil NOX extension only when needed
+    !======================================================================
+    IF ( Input_Opt%LSOILNOX .and. Input_Opt%UseSoilTemp ) THEN
+
+       ! Read TSOIL1
+       v_name = "TSOIL1"
+       CALL Get_Met_2D(Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index)
+       State_Met%TSOIL1 = Q
+
+    ENDIF
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A1     met fields for ', a )
+
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
+    ! Convert surface precip fields from [kg/m2/s] --> [mm/day]
+    State_Met%PRECANV = State_Met%PRECANV * 86400d0
+    State_Met%PRECCON = State_Met%PRECCON * 86400d0
+    State_Met%PRECLSC = State_Met%PRECLSC * 86400d0
+    State_Met%PRECTOT = State_Met%PRECTOT * 86400d0
+
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2'  ) THEN
+       ! Convert pressure quantities from [Pa] -> [hPa]
+       State_Met%SLP     = State_Met%SLP     * 1e-2_fp
+       State_Met%TROPP   = State_Met%TROPP   * 1e-2_fp
+    ENDIF
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
+  END SUBROUTINE FlexGrid_Read_A1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a1dyn
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 1-hr time-averaged (A1) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A1dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REMARKS:
+!  Special handling for surface precipitation fields:
+!  ---------------------------------------------------------------------------
+!  In GEOS-FP (and in MERRA), the PRECTOT etc. surface precipitation
+!  met fields fields have units of [kg/m2/s].  In all other GEOS
+!  versions, PREACC and PRECON have units of [mm/day].
+!                                                                             .
+!  Therefore, for backwards compatibility with existing code, apply
+!  the following unit conversion to the GEOS-5 PRECTOT and PRECCON
+!  fields:
+!                                                                             .
+!      kg  |    m3    | 86400 s | 1000 mm
+!    ------+----------+---------+--------- = 86400
+!     m2 s |  1000 kg |  day    |   m
+!               ^
+!               |
+!        1 / density of water
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Saved scalars
+    INTEGER, SAVE      :: lastDate = -1      ! Stores last YYYYMMDD value
+    INTEGER, SAVE      :: lastTime = -1      ! Stores last hhmmss value
+
+    ! Arrays
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! Temporary data arrray
+
+    !======================================================================
+    ! Skip if we have already read data for this date & time
+    !======================================================================
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - FLEXGRID A1dyn met fields for ', a,  &
+               ' have been read already'                  )
+       RETURN
+    ENDIF
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A1dyn (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 10000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 24 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read U
+    v_name = "U"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%U = Q
+
+    ! Read V
+    v_name = "V"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%V = Q
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A1dyn  met fields for ', a )
+
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
+  END SUBROUTINE FlexGrid_Read_A1dyn
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a3
+!
+! !DESCRIPTION: Convenience wrapper for the following routines which read
+!  3-hour time averaged data from disk:
+! \begin{itemize}
+! \item FlexGrid\_Read\_A3cld
+! \item FlexGrid\_Read\_A3dyn
+! \item FlexGrid\_Read\_A3mstC
+! \item FlexGrid\_Read\_A3mstE
+! \end{itemize}
+!
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A3( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                               State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    CHARACTER(LEN=16) :: stamp            ! Time and date stamp
+
+    ! Saved scalars
+    INTEGER, SAVE     :: lastDate = -1    ! Stores last YYYYMMDD value
+    INTEGER, SAVE     :: lastTime = -1    ! Stores last hhmmss value
+
+    !======================================================================
+    ! Call individual routines for reading A3 data
+    !======================================================================
+
+    ! Test to see if we have already read this data in
+    IF ( YYYYMMDD == lastDate .and. HHMMSS == lastTime ) THEN
+       stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+       WRITE( 6, 20 ) stamp
+ 20    FORMAT( '     - FLEXGRID A3 met fields for ', a,  &
+               ' have been read already'                  )
+       RETURN
+    ENDIF
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
+    ! Read all the diffeent A3 files
+    CALL FlexGrid_Read_A3cld ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3dyn ( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstC( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+    CALL FlexGrid_Read_A3mstE( YYYYMMDD,   HHMMSS,   Input_Opt, &
+                               State_Grid, State_Met )
+
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
+    ! Save date & time for next iteration
+    lastDate = YYYYMMDD
+    lastTime = HHMMSS
+
+  END SUBROUTINE FlexGrid_Read_A3
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a3cld
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr time-averaged (A3) data (cloud fields).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A3cld( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q(State_Grid%NX,State_Grid%NY,State_Grid%NZ)     ! Temporary data arrray
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A3cld (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read CLOUD
+    v_name = "CLOUD"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%CLDF = Q
+
+    ! Read OPTDEPTH
+    v_name = "OPTDEPTH"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%OPTD = Q
+
+    ! Read QI (and set negative or denormal values to zero)
+    v_name = "QI"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
+#endif
+    State_Met%QI = Q
+
+    ! Read QL (and set negative or denormal values to zero)
+    v_name = "QL"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+#ifdef LUO_WETDEP
+    WHERE( Q < 1.0e-30_f4 )
+       Q = 0.0_f4
+    ENDWHERE
+#endif
+    State_Met%QL = Q
+
+    ! Read TAUCLI
+    v_name = "TAUCLI"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TAUCLI = Q
+
+    ! Read TAUCLW
+    v_name = "TAUCLW"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%TAUCLW = Q
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A3cld  met fields for ', a )
+
+  END SUBROUTINE FlexGrid_Read_A3cld
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a3dyn
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr time-averaged (A3) data (dynamics fields).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A3dyn( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                  State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Met_Mod,      ONLY : MetState
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ  )  ! Temporary data arrray
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A3dyn (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read DTRAIN
+    v_name = "DTRAIN"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%DTRAIN = Q
+
+    ! Read OMEGA
+    v_name = "OMEGA"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%OMEGA = Q
+
+    ! Read RH
+    v_name = "RH"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%RH = Q
+
+    ! 0.125x0.15625 uses A1dyn archive
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+
+        ! Read U
+        v_name = "U"
+        CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+        State_Met%U = Q
+
+        ! Read V
+        v_name = "V"
+        CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+        State_Met%V = Q
+
+    ENDIF
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A3dyn  met fields for ', a )
+
+    !======================================================================
+    ! Unit conversions, diagnostics, cleanup, and quit
+    !======================================================================
+
+    ! Convert RH from [1] to [%]
+    State_Met%RH = State_Met%RH * 100d0
+
+  END SUBROUTINE FlexGrid_Read_A3dyn
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a3mstc
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr time-averaged (A3) data (moist fields,
+!  saved on level centers).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A3mstC( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! State Grid object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q (State_Grid%NX,State_Grid%NY,State_Grid%NZ)    ! Temporary data arrray
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A3mstC (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read DQRCU  from file
+    v_name = "DQRCU"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%DQRCU = Q
+
+    ! Read DQRLSAN
+    v_name = "DQRLSAN"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%DQRLSAN = Q
+
+    ! Read REEVAPCN
+    v_name = "REEVAPCN"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%REEVAPCN = Q
+
+    ! Read  from file
+    v_name = "REEVAPLS"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q, TRIM(v_name), t_index=t_index )
+    State_Met%REEVAPLS = Q
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A3mstC met fields for ', a )
+
+    !======================================================================
+    ! Cleanup and quit
+    !======================================================================
+
+  END SUBROUTINE FlexGrid_Read_A3mstC
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_a3mste
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr time-averaged (A3) data (moist fields,
+!  saved on level edges).
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_A3mstE( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                   State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    INTEGER            :: I, J, L            ! Loop indices
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Qe(State_Grid%NX,State_Grid%NY,State_Grid%NZ+1)
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY                )
+
+    !======================================================================
+    ! Select the proper time slice
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller  = "FlexGrid_Read_A3mstE (flexgrid_read_mod.F90)"
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL ERROR_STOP( errMsg, caller )
+    ENDIF
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Read CMFMC (only in GEOSFP*.nc files)
+    v_name = "CMFMC"
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    State_Met%CMFMC = Qe
+
+    ! Read PFICU
+    v_name = "PFICU"
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    State_Met%PFICU = Qe
+
+    ! Read PFILSAN
+    v_name = "PFILSAN"
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    State_Met%PFILSAN = Qe
+
+    ! Read PFLCU
+    v_name = "PFLCU"
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    State_Met%PFLCU = Qe
+
+    ! Read PLLSAN
+    v_name = "PFLLSAN"
+    CALL Get_Met_3De( Input_Opt, State_Grid, Qe, TRIM(v_name), t_index=t_index )
+    State_Met%PFLLSAN = Qe
+
+    !======================================================================
+    ! Get lightning fields from HEMCO when LightNOx extension is on
+    !======================================================================
+    IF ( Input_Opt%DoLightNOx) THEN
+
+       ! Read FLASH_DENS
+       v_name = "FLASH_DENS"
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name) )
+       State_Met%FLASH_DENS = Q2
+
+       ! Read CONV_DEPTH
+       v_name = "CONV_DEPTH"
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name) )
+       State_Met%CONV_DEPTH = Q2
+
+    ELSE
+
+       ! Print message to log file
+       IF ( Input_Opt%amIRoot) THEN
+          Print*, '    - LightNOX extension is off. Skipping FLASH_DENS' // &
+                  ' and CONV_DEPTH fields in FlexGrid_Read_A3mstE.'
+       ENDIF
+
+    ENDIF
+
+    !=================================================================
+    ! Diagnostics, cleanup and quit
+    !=================================================================
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all A3mstE met fields for ', a )
+
+    ! CLDTOPS = highest location of CMFMC in the column (I,J)
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       State_Met%CLDTOPS(I,J) = 1
+       DO L = State_Grid%NZ, 1, -1
+          IF ( State_Met%CMFMC(I,J,L) > 0d0 ) THEN
+             State_Met%CLDTOPS(I,J) = L + 1
+             EXIT
+          ENDIF
+       ENDDO
+    ENDDO
+    ENDDO
+
+  END SUBROUTINE FlexGrid_Read_A3mstE
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_I3_1
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr instantaneous (I3) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_I3_1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )         ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! 3D temporary data arrray
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller = 'FlexGrid_Read_I3_1 (flexgrid_read_mod.F90)'
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    ! Resolution 0.125x0.15625 uses I1dyn archive for PS, SPHU (xlwang, 06/2024)
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+
+       !-------------------------------------------------
+       ! Read 2D data
+       !-------------------------------------------------
+
+       ! Read PS
+       v_name = "PS"
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
+       State_Met%PS1_WET = Q2
+
+       !-------------------------------------------------
+       ! Read 3D data
+       !-------------------------------------------------
+
+       !----------------------------------------------------------------
+       ! Prior to 2/3/12:
+       ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
+       !! Read PV
+       !v_name = "PV"
+       !CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+       !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
+       !State_Met%PV = Q3
+       !----------------------------------------------------------------
+
+       ! Read SPHU
+       v_name = "SPHU"
+       CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+       State_Met%SPHU1 = Q3
+
+    ENDIF
+
+    ! Read T
+    v_name = "TMPU"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    State_Met%TMPU1 = Q3
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all I3     met fields for ', a )
+
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+
+    ! Resolution 0.125x0.15625 uses I1dyn archive for PS, SPHU (xlwang, 06/2024)
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+
+        WHERE ( State_Met%SPHU1 < 0d0 )
+
+           ! NOTE: Now set negative Q to a small positive #
+           ! instead of zero, so as not to blow up logarithms
+           State_Met%SPHU1 = 1d-32
+
+        ELSEWHERE
+
+           ! Convert GEOS-FP specific humidity from [kg/kg] to [g/kg]
+           State_Met%SPHU1 = State_Met%SPHU1 * 1000d0
+
+        ENDWHERE
+
+        IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+             TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+             TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
+           ! Convert PS1_WET from [Pa] to [hPa]
+           State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+        ENDIF
+
+        ! Initialize State_Met%SPHU to State_Met%SPHU1.  After all future MET
+        ! field reads (flexgrid_read_i3_2) we will interpolate State_Met%SPHU
+        ! from the values of State_Met vars SPHU1 and SPHU2.
+        State_Met%SPHU = State_Met%SPHU1
+
+    ENDIF
+
+    ! Initialize State_Met%T to State_Met%TMPU1.  After all future MET
+    ! field reads (flexgrid_read_i3_2) we will interpolate State_Met%T
+    ! from the values of State_Met vars TMPU1 and TMPU2.
+    State_Met%T = State_Met%TMPU1
+
+  END SUBROUTINE FlexGrid_Read_I3_1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_I3_2
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 3-hr instantaneous (I3) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_I3_2( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index                  ! Time index
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )         ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! 3D temporary data arrray
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller = 'FlexGrid_Read_I3_2 (flexgrid_read_mod.F90)'
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 030000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 8 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 8!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    ! Resolution 0.125x0.15625 uses I1dyn archive  for PS, SPHU (xlwang, 06/2024)
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+
+       !-------------------------------------------------
+       ! Read 2D data
+       !-------------------------------------------------
+
+       ! Read PS
+       IF ( HHMMSS == 000000 ) THEN
+          v_name = "PS_NEXTDAY"
+       ELSE
+          v_name = "PS"
+       ENDIF
+       CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
+       State_Met%PS2_WET = Q2
+
+       !-------------------------------------------------
+       ! Read 3D data
+       !-------------------------------------------------
+
+       !----------------------------------------------------------------
+       ! Prior to 2/3/12:
+       ! For now, skip reading Potential Vorticity (bmy, 2/3/12)
+       !! Read PV
+       !IF ( HHMMSS == 000000 ) THEN
+       !   v_name = "PV_NEXTDAY"
+       !ELSE
+       !   v_name = "PV"
+       !ENDIF
+       !CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+       !!Q3 = ABS(1.0e6*Q3) ! PV to PVU
+       !State_Met%PV = Q3
+       !----------------------------------------------------------------
+
+       ! Read SPHU
+       IF ( HHMMSS == 000000 ) THEN
+          v_name = "SPHU_NEXTDAY"
+       ELSE
+          v_name = "SPHU"
+       ENDIF
+       CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+       State_Met%SPHU2 = Q3
+
+    ENDIF
+
+    !-------------------------------------------------
+    ! Read 3D data
+    !-------------------------------------------------
+
+    ! Read T
+    IF ( HHMMSS == 000000 ) THEN
+       v_name = "TMPU_NEXTDAY"
+    ELSE
+       v_name = "TMPU"
+    ENDIF
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    State_Met%TMPU2 = Q3
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all I3     met fields for ', a )
+
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    ! Resolution 0.125x0.15625 uses I1dyn archive for PS, SPHU (xlwang, 06/2024)
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+
+        WHERE ( State_Met%SPHU2 < 0d0 )
+
+           ! NOTE: Now set negative Q to a small positive #
+           ! instead of zero, so as not to blow up logarithms
+           State_Met%SPHU2 = 1d-32
+
+        ELSEWHERE
+
+           ! Convert specific humidity from [kg/kg] to [g/kg]
+           State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
+
+        ENDWHERE
+
+        IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+             TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+             TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
+           ! Convert PS2_WET from [Pa] to [hPa]
+           State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+        ENDIF
+
+    ENDIF
+
+  END SUBROUTINE FlexGrid_Read_I3_2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: copy_i3_fields
+!
+! !DESCRIPTION: Subroutine COPY\_I3\_FIELDS copies the I-3 fields at the
+!  end of a 3-hr timestep.  The I-3 fields at the end of a given 3-hr timestep
+!  become the fields at the beginning of the next 3-hr timestep.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE COPY_I3_FIELDS( State_Met, State_Grid )
+!
+! !USES:
+!
+      USE State_Met_Mod,        ONLY : MetState
+      USE State_Grid_Mod,       ONLY : GrdState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  13 Apr 2004 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+    ! Resolution 0.125x0.15625 uses I1dyn archive for PS, SPHU (xlwang, 06/2024)
+    IF ( TRIM(State_Grid%GridRes) /= '0.125x0.15625' ) THEN
+      State_Met%PS1_WET = State_Met%PS2_WET ! I3 surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I3 surface pressure    [hPa]
+      State_Met%SPHU1   = State_Met%SPHU2   ! I3 specific humidity   [g/kg]
+    ENDIF
+
+    State_Met%TMPU1     = State_Met%TMPU2   ! I3 temperature         [K]
+
+
+      END SUBROUTINE COPY_I3_FIELDS
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_I1dyn_1
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 1-hr instantaneous (I1dyn) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_I1dyn_1( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                    State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index            ! Time index
+    CHARACTER(LEN=16)  :: stamp              ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name             ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg             ! Error message
+    CHARACTER(LEN=255) :: caller             ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )         ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! 3D temporary data arrray
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller = 'FlexGrid_Read_I1dyn_1 (flexgrid_read_mod.F90)'
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 10000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 24 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    !-------------------------------------------------
+    ! Read 2D data
+    !-------------------------------------------------
+
+    ! Read PS
+    v_name = "PS"
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
+    State_Met%PS1_WET = Q2
+
+    !-------------------------------------------------
+    ! Read 3D data
+    !-------------------------------------------------
+
+    ! Read SPHU
+    v_name = "SPHU"
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    State_Met%SPHU1 = Q3
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all I1dyn     met fields for ', a )
+
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    WHERE ( State_Met%SPHU1 < 0d0 )
+
+       ! NOTE: Now set negative Q to a small positive #
+       ! instead of zero, so as not to blow up logarithms
+       State_Met%SPHU1 = 1d-32
+
+    ELSEWHERE
+
+       ! Convert GEOS-FP specific humidity from [kg/kg] to [g/kg]
+       State_Met%SPHU1 = State_Met%SPHU1 * 1000d0
+
+    ENDWHERE
+
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
+       ! Convert PS1_WET from [Pa] to [hPa]
+       State_Met%PS1_WET = State_Met%PS1_WET * 1e-2_fp
+    ENDIF
+
+    ! Initialize State_Met%SPHU to State_Met%SPHU1.  After all future MET
+    ! field reads (flexgrid_read_I1dyn_2) we will interpolate State_Met%SPHU
+    ! from the values of State_Met vars SPHU1 and SPHU2.
+    State_Met%SPHU = State_Met%SPHU1
+
+  END SUBROUTINE FlexGrid_Read_I1dyn_1
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: FlexGrid_Read_I1dyn_2
+!
+! !DESCRIPTION: Routine to read variables and attributes from a NetCDF
+!  met fields file containing 1-hr instantaneous (I1dyn) data.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE FlexGrid_Read_I1dyn_2( YYYYMMDD, HHMMSS, Input_Opt, State_Grid, &
+                                 State_Met )
+!
+! !USES:
+!
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
+    USE Get_Met_Mod
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: YYYYMMDD   ! GMT date in YYYY/MM/DD format
+    INTEGER,        INTENT(IN)    :: HHMMSS     ! GMT time in hh:mm:ss   format
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt  ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met  ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  30 Jan 2012 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: t_index                  ! Time index
+    CHARACTER(LEN=16)  :: stamp                    ! Time and date stamp
+    CHARACTER(LEN=255) :: v_name                   ! netCDF variable name
+    CHARACTER(LEN=255) :: errMsg                   ! Error message
+    CHARACTER(LEN=255) :: caller                   ! Name of this routine
+
+    ! Arrays
+    REAL*4             :: Q2(State_Grid%NX,State_Grid%NY      )         ! 2D temporary data arrray
+    REAL*4             :: Q3(State_Grid%NX,State_Grid%NY,State_Grid%NZ) ! 3D temporary data arrray
+
+    !======================================================================
+    ! Get met fields from HEMCO
+    !======================================================================
+
+    ! Name of this routine (for error printout)
+    caller = 'FlexGrid_Read_I1dyn_2 (flexgrid_read_mod.F90)'
+
+    ! Find the proper time-slice to read from disk
+    t_index = ( HHMMSS / 10000 ) + 1
+
+    ! Stop w/ error if the time index is invalid
+    IF ( t_index < 1 .or. t_index > 24 ) THEN
+       WRITE( errMsg, 100 ) t_index
+ 100   FORMAT( 'Time_index value ', i5, ' must be in the range 1 to 24!' )
+       CALL Error_Stop( errMsg, caller )
+    ENDIF
+
+    !-------------------------------------------------
+    ! Read 2D data
+    !-------------------------------------------------
+
+    ! Read PS
+    IF ( HHMMSS == 000000 ) THEN
+       v_name = "PS_NEXTDAY"
+    ELSE
+       v_name = "PS"
+    ENDIF
+    CALL Get_Met_2D( Input_Opt, State_Grid, Q2, TRIM(v_name), t_index=t_index )
+    State_Met%PS2_WET = Q2
+
+    !-------------------------------------------------
+    ! Read 3D data
+    !-------------------------------------------------
+
+    ! Read SPHU
+    IF ( HHMMSS == 000000 ) THEN
+       v_name = "SPHU_NEXTDAY"
+    ELSE
+       v_name = "SPHU"
+    ENDIF
+    CALL Get_Met_3D( Input_Opt, State_Grid, Q3, TRIM(v_name), t_index=t_index )
+    State_Met%SPHU2 = Q3
+
+    ! Echo info
+    stamp = TimeStamp_String( YYYYMMDD, HHMMSS )
+    WRITE( 6, 10 ) stamp
+ 10 FORMAT( '     - Found all I1dyn     met fields for ', a )
+
+    !-------------------------------------------------
+    ! Unit conversions & special handling
+    !-------------------------------------------------
+    WHERE ( State_Met%SPHU2 < 0d0 )
+
+       ! NOTE: Now set negative Q to a small positive #
+       ! instead of zero, so as not to blow up logarithms
+       State_Met%SPHU2 = 1d-32
+
+    ELSEWHERE
+
+       ! Convert specific humidity from [kg/kg] to [g/kg]
+       State_Met%SPHU2 = State_Met%SPHU2 * 1000d0
+
+    ENDWHERE
+
+    IF ( TRIM(Input_Opt%MetField) == 'MERRA2'    .or. &
+         TRIM(Input_Opt%MetField) == 'MODELE2.1' .or. & 
+         TRIM(Input_Opt%MetField) == 'MODELE2.2' ) THEN
+       ! Convert PS2_WET from [Pa] to [hPa]
+       State_Met%PS2_WET = State_Met%PS2_WET * 1e-2_fp
+    ENDIF
+
+  END SUBROUTINE FlexGrid_Read_I1dyn_2
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: copy_I1dyn_fields
+!
+! !DESCRIPTION: Subroutine COPY\_I1dyn\_FIELDS copies the I-1 fields at the
+!  end of a 1-hr timestep.  The I-1 fields at the end of a given 1-hr timestep
+!  become the fields at the beginning of the next 1-hr timestep.
+!\\
+!\\
+! !INTERFACE:
+!
+      SUBROUTINE COPY_I1dyn_FIELDS( State_Met )
+!
+! !USES:
+!
+      USE State_Met_Mod,        ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+      TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !REVISION HISTORY:
+!  13 Apr 2004 - R. Yantosca - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+      State_Met%PS1_WET = State_Met%PS2_WET ! I1dyn surface pressure    [hPa]
+      State_Met%PS1_DRY = State_Met%PS2_DRY ! I1dyn surface pressure    [hPa]
+      State_Met%SPHU1   = State_Met%SPHU2   ! I1dyn specific humidity   [g/kg]
+
+      END SUBROUTINE COPY_I1dyn_FIELDS
+!EOC
+END MODULE FlexGrid_Read_Mod
+#endif

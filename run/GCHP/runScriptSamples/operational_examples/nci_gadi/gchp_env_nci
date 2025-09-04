@@ -1,0 +1,10 @@
+module load intel-compiler/2020.3.304
+module load intel-mkl/2020.3.304
+module load netcdf/4.7.4
+module load esmf/8.0.1
+module load cmake/3.18.2
+module load hdf5/1.10.5
+module load openmpi/4.0.3
+
+echo "cmake command flags:"
+echo "  -DCMAKE_PREFIX_PATH=\"/apps/netcdf/4.7.4/lib/Intel/;/apps/netcdf/4.7.4/include/Intel/;/apps/openmpi/4.0.3/lib/Intel/;/apps/openmpi/4.0.3/include/Intel/\" -DRUNDIR=/scratch/m19/jaf574/GCHP.v13/runs.GCHP/run.gchp.v13.0.0-rc.merra2.standard -DOMP=OFF -DCMAKE_EXE_LINKER_FLAGS=\"-lmpi_cxx -lmkl_core -lmkl_intel_lp64 -lmkl_intel_thread -liomp5\""

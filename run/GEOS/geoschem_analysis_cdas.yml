@@ -1,0 +1,97 @@
+### geoschem_analysis.yml
+
+#============================================================================
+# General settings 
+#============================================================================
+general:
+  runphase: 2 
+  nspecies: 3
+
+#============================================================================
+# List of used analysis species 
+#============================================================================
+species:
+  Spc001:
+    SpeciesName: O3
+    Active: true
+    AnalysisFreq: 6
+    AnalysisHour: 0
+    AnalysisMinute: 0
+    ForwardLooking: false
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileVarName: ozone
+    FileVarUnit: ppmv
+    DryFlag: 0 
+    IsIncrement: true 
+    InStrat: true 
+    InTrop: true
+    IAU: true
+    AnaL1: 1
+    AnaL2: 1
+    AnaL3: 72
+    AnaL4: 72
+    AnaFraction: 1.0
+    MaxChangeStrat: -1.0
+    MaxChangeTrop:  -1.0
+    HasSpec2: 0
+    ErrorMode: 1
+
+  Spc002:
+    SpeciesName: NO2
+    Active: true
+    AnalysisFreq: 6
+    AnalysisHour: 0
+    AnalysisMinute: 0
+    ForwardLooking: false
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileVarName: NO2 
+    FileVarUnit: v/v 
+    DryFlag: 1
+    IsIncrement: true
+    InStrat: true 
+    InTrop: true
+    IAU: true
+    AnaL1: 1
+    AnaL2: 1
+    AnaL3: 72
+    AnaL4: 72
+    AnaFraction: 1.0
+    MaxChangeStrat: -1.0 
+    MaxChangeTrop:  -1.0
+    MaxRatioStrat: 10.0
+    MinRatioStrat:  0.1
+    MaxRatioTrop: 10.0
+    MinRatioTrop:  0.1
+    MinConc: 1.0e-32
+    HasSpec2: 0
+    ErrorMode: 1
+
+  Spc003:
+    SpeciesName: SO2
+    Active: true
+    AnalysisFreq: 6
+    AnalysisHour: 0
+    AnalysisMinute: 0
+    ForwardLooking: false 
+    FileTemplate: >>>EXPID<<<.inc.eta.%y4%m2%d2_%h200z.nc4
+    FileVarName: SO2g
+    FileVarUnit: v/v 
+    DryFlag: 1
+    IsIncrement: true
+    InStrat: true 
+    InTrop: true
+    IAU: true
+    AnaL1: 1
+    AnaL2: 1
+    AnaL3: 72
+    AnaL4: 72
+    AnaFraction: 1.0
+    MaxChangeStrat: -1.0 
+    MaxChangeTrop:  -1.0
+    MaxRatioStrat: 10.0
+    MinRatioStrat:  0.1
+    MaxRatioTrop: 10.0
+    MinRatioTrop:  0.1
+    MinConc: 1.0e-32
+    HasSpec2: 0
+    ErrorMode: 1

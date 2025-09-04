@@ -1,0 +1,203 @@
+#!/bin/bash
+set -e
+
+function show_usage_and_error_out() {
+   usage=$(cat << EOF
+Usage: ./listInputDataFiles STARTDATE ENDDATE [--wget-urls|--globus-batch] [-h|--help]
+Print a list of the input files for a GCHP simulation.
+
+By default, the realpath to the files is printed. If --wget-urls or --globus-list are specified, 
+the download list for wget or Globus is printed instead.
+
+Note that this command requires your current working directory is a run directory with ExtData.rc.
+
+Required arguments:
+   STARTDATE       The start date of the simulation. Format: "YYYYMMDD".
+   ENDDATE         The end date of the simulation.   Format: "YYYYMMDD".
+
+Optional arguments:
+   --wget-urls     Print the urls to the files. Compatible with wget -i
+   --globus-batch  Print Globus transfer list. Compatible with globus --batch
+   -h  --help      Print this commands usage (this message).
+
+Examples:
+   ./listInputDataFiles 20190101 20190601                  Print files for 2019-01-01 to 2019-06-01
+   ./listInputDataFiles 20190101 20190601 --wget-urls      Print download urls for wget -i
+   ./listInputDataFiles 20190101 20190601 --globus-batch   Print transfer list for globus --batch
+
+Detailed example (wget):
+   Navigate to your run directory:
+      $ cd /path/to/your/rundirectory
+   Run listInputDataFiles and redirect the output to a file:
+      $ ./utils/listInputDataFiles 20190101 20190601 --wget-urls > downloads.txt
+   Navigate to your ExtData (the top-level of ExtData):
+      $ cd /path/to/your/ExtData
+   Download files listed in downloads.txt:
+      $ wget -i downloads.txt -cxnH --cut-dirs=1
+EOF
+)
+   echo "$usage" >&2
+   exit 1
+}
+
+if [[ "$*" == *-h* || "$*" == *--help* ]]; then
+   show_usage_and_error_out
+fi
+
+THIS_SCRIPTS_DIRECTORY=$(realpath $(dirname "$0"))
+
+# Require two arguments
+if [ "$#" -lt 2 ]; then
+    echo -e "error: $0 requires at least two arguments\n" >&2
+    show_usage_and_error_out
+fi
+
+# Set start and end date
+START_DATE=$1
+END_DATE=$2
+
+# Check that dates are valid
+if ! date -d "$START_DATE" &> /dev/null ; then
+    echo -e "error: Invalid start date: $1\n" >&2
+    show_usage_and_error_out
+fi
+if ! date -d "$END_DATE" &> /dev/null ; then
+    echo -e "error: Invalid start date: $2\n" >&2
+    show_usage_and_error_out
+fi
+
+
+AWK_SCRIPT_PARSE_EXTDATA=$(cat << 'EOF'
+BEGIN {PRIMARY_EXPORT_SECTION=0}
+/PrimaryExports%%/{PRIMARY_EXPORT_SECTION=1}
+/^[^#]/ { 
+    if (PRIMARY_EXPORT_SECTION) {
+        print $9
+    }   
+}
+/^%%/{PRIMARY_EXPORT_SECTION=0}
+EOF
+)
+
+
+AWK_SCRIPT_EXPAND_EXTDATA_FILES=$(cat << 'EOF'
+function print_filled_file_template(template, date_str) {
+    year=substr(date_str,1,4)
+    month=substr(date_str,5,2)
+    day=substr(date_str,7,2)
+    gsub("%d2", day, template)
+    gsub("%m2", month, template)
+    gsub("%y4", year, template)
+    print template
+}
+
+{ 
+    # Determine highest frequency token
+    if ($1~/%d2/) {
+        freq="1 day"
+    } else if ($1~/%m2/) {
+        freq="1 month"
+    } else if ($1~/%y4/) {
+        freq="1 year"
+    } else {
+        freq="None"
+    }
+
+    # Print file with all tokens
+    if (freq == "None") {
+        print $1
+    } else {
+        # Left bracketing time
+        cmd=sprintf("date -d \"%s-%s\" \"+%%Y%%m%%d\"", START_DATE, freq)
+        if (!(cmd | getline one_before_date)) {
+            exit 1
+        }
+        close(cmd)
+        print_filled_file_template($1, one_before_date)
+
+        # Print for each between START AND END
+        date=START_DATE
+        while (date < END_DATE) {
+            print_filled_file_template($1, date)
+            
+            cmd=sprintf("date -d \"%s+%s\" \"+%%Y%%m%%d\"", date, freq)
+            if (!(cmd | getline date)) {
+                exit 1
+            }
+            close(cmd)
+        }
+
+        # Right bracketing time
+        print_filled_file_template($1, date)
+    }
+}
+EOF
+)
+
+
+EXTDATA=$(awk "$AWK_SCRIPT_PARSE_EXTDATA" ExtData.rc)
+
+# Fill %y4 for climatological data
+clim_data=$(awk '{if($6~/C/) print $3}' HEMCO_Config.rc | sed -n 's#$ROOT/##p' | grep '$YYYY' | grep -o '^[^/][^/]*/[^/][^/]*' | sort | uniq)
+for clim_dataset in $clim_data; do
+   # Skip clim_dataset if there aren't any matching files in ExtData.rc
+   echo "$EXTDATA" | grep -- $clim_dataset > /dev/null || continue
+
+   echo "HEMCO/$clim_dataset is a climatology (see: http://geoschemdata.wustl.edu/ExtData/HEMCO/$clim_dataset)" >&2
+   read -p "-> Select climatology year (leave blank to use simulation period): " CLIM_YEAR
+   CLIM_YEAR=${CLIM_YEAR:-%y4}
+   clim_dataset_regexpr=$(echo "$clim_dataset" | sed "s#/#\\\\/#g")
+   EXTDATA=$(echo "$EXTDATA" | sed "/$clim_dataset_regexpr/s#%y4#$CLIM_YEAR#g")
+done
+
+# Add extra templates to be expanded
+EXTDATA=$(printf "%s\n%s" "$EXTDATA" "$(cat $THIS_SCRIPTS_DIRECTORY/extra_templates.txt)")
+
+# Parse and expand ExtData.rc files
+file_list=$(echo "$EXTDATA" | sort | uniq | awk -v START_DATE=$START_DATE -v END_DATE=$END_DATE "$AWK_SCRIPT_EXPAND_EXTDATA_FILES")
+
+function relpath_to_abspath() {
+   xargs readlink -m
+}
+
+function abspath_to_url() {
+   GEOSFP_PATH="GEOS_0\.25x0\.3125/GEOS_FP"
+   MERRA2_PATH="GEOS_0\.5x0\.625/MERRA2"
+   HEMCO_PATH="HEMCO"
+   CHEMINPUTS_PATH="CHEM_INPUTS"
+
+   sed -e "s#.*\($GEOSFP_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" \
+       -e "s#.*\($MERRA2_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" \
+       -e "s#.*\($HEMCO_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g"  \
+       -e "s#.*\($CHEMINPUTS_PATH\)#http://geoschemdata.wustl.edu/ExtData/\1#g" 
+}
+
+function extra_static_files() {
+   HEMCO_PATH="HEMCO"
+   GCDATA_PREFIX=$(echo "$1" | sed -n "s/\(.*\)$HEMCO_PATH.*/\1/p" | head -1)
+   sed "s#^#$GCDATA_PREFIX#g" $THIS_SCRIPTS_DIRECTORY/extra_static_files.txt
+}
+
+function abspath_to_globus_list() {
+   GEOSFP_PATH="GEOS_0\.25x0\.3125/GEOS_FP"
+   MERRA2_PATH="GEOS_0\.5x0\.625/MERRA2"
+   HEMCO_PATH="HEMCO"
+   CHEMINPUTS_PATH="CHEM_INPUTS"
+   ccvm_abspath=$(echo "$1" | sed   -e "s#.*\($GEOSFP_PATH\)#/ExtData/\1#g" \
+                                    -e "s#.*\($MERRA2_PATH\)#/ExtData/\1#g" \
+                                    -e "s#.*\($HEMCO_PATH\)#/ExtData/\1#g"  \
+                                    -e "s#.*\($CHEMINPUTS_PATH\)#/ExtData/\1#g")
+   paste <(echo "$ccvm_abspath") <(echo "$1")
+}
+
+abspath_file_list=$(echo "$file_list" | relpath_to_abspath)
+extra_files_list=$(extra_static_files "$abspath_file_list")
+abspath_file_list=$(printf "%s\n%s\n" "$abspath_file_list" "$extra_files_list")
+
+if [[ "$*" == *--wget-urls* ]]; then
+   echo "$abspath_file_list" | abspath_to_url
+elif [[ "$*" == *--globus-batch* ]]; then
+   abspath_to_globus_list "$abspath_file_list"
+else
+   echo "$abspath_file_list"
+fi

@@ -1,0 +1,36 @@
+#------------------------------------------------------------------------------
+#                  GEOS-Chem Global Chemical Transport Model                  !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Diagn.rc 
+#
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+#\\
+#\\
+# !REMARKS:
+#  Customized for the POPs simulation.
+#
+# !REVISION HISTORY:
+#  13 Mar 2019 - M. Sulprizio- Initial version
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+# Name                Spec         ExtNr Cat Hier Dim OutUnit    LongName
+EmisPOPG              POPG_${RUNDIR_POP_SPC}     1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPG
+EmisPOPPOCPO          POPPOCPO_${RUNDIR_POP_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPOCPO
+EmisPOPPBCPO          POPPBCPO_${RUNDIR_POP_SPC} 1002  -1  -1   2   kg/m2/s    Primary_emission_of_POPPBCPO
+EmisPOPGfromSoil      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_soil
+EmisPOPGfromLake      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_lakes
+EmisPOPGfromLeaf      -1           1002  -1  -1   2   kg/m2/s    Secondary_emission_of_POPG_from_leaves
+FluxPOPGfromSoilToAir -1           1002  -1  -1   2   ng/m2/day  Secondary_(positive)_flux_of_POPG_from_soils_to_air
+FluxPOPGfromAirToSoil -1           1002  -1  -1   2   ng/m2/day  Secondary_(negative)_flux_of_POPG_from_air_to_soils
+FluxPOPGfromLakeToAir -1           1002  -1  -1   2   ng/m2/day  Secondary_(positive)_flux_of_POPG_from_lakes_to_air
+FluxPOPGfromAirToLake -1           1002  -1  -1   2   ng/m2/day  Secondary_(negative)_flux_of_POPG_from_air_to_lakes
+FluxPOPGfromLeafToAir -1           1002  -1  -1   2   ng/m2/day  Secondary_(positive)_flux_of_POPG_from_leaves_to_air 
+FluxPOPGfromAirtoLeaf -1           1002  -1  -1   2   ng/m2/day  Secondary_(negative)_flux_of_POPG_from_air_to_leaves
+FugacitySoilToAir     -1           1002  -1  -1   2   1          Fugacity_ratio_soil_to_air
+FugacityLakeToAir     -1           1002  -1  -1   2   1          Fugacity_ratio_soil_to_air
+FugacityLeafToAir     -1           1002  -1  -1   2   1          Fugacity_ratio__to_air
+
+#EOC

@@ -1,0 +1,1 @@
+./HcoDir/VOLCANO/v2019-08/%y4/%m2/so2_volcanic_emissions_Carns.%y4%m2%d2.rc

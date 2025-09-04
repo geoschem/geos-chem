@@ -1,0 +1,1357 @@
+###############################################################################
+###  HISTORY.rc file for GEOS-Chem full chemistry simulations               ###
+###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
+###############################################################################
+
+#============================================================================
+# EXPID allows you to specify the beginning of the file path corresponding
+# to each diagnostic collection.  For example:
+#
+#   EXPID: ./GEOSChem
+#      Will create netCDF files whose names begin "GEOSChem",
+#      in this run directory.
+#
+#   EXPID: ./OutputDir/GEOSChem
+#      Will create netCDF files whose names begin with "GEOSChem"
+#      in the OutputDir sub-folder of this run directory.
+#
+#============================================================================
+EXPID:  ./OutputDir/GEOSChem
+
+#==============================================================================
+# %%%%% COLLECTION NAME DECLARATIONS %%%%%
+#
+# To enable a collection, remove the "#" character in front of its name. The
+# Restart collection should always be turned on.
+#
+# NOTE: These are the "default" collections for GEOS-Chem, but you can create
+# your own customized diagnostic collections as well.
+#==============================================================================
+COLLECTIONS: 'Restart',
+             'Metrics',
+             'SpeciesConc',
+             #'AdvFluxVert',
+             #'AerosolMass',
+             #'Aerosols',
+             ##'Budget',
+             ##'CloudConvFlux',
+             ##'ConcAboveSfc',
+             ##'ConcAfterChem',
+             #'DryDep',
+             #'JValues',
+             ##'KppDiags',
+             ##'KppARDiags',
+             ##'LevelEdgeDiags',
+             ##'ProdLoss',
+             ##'RRTMG',
+             ##'RxnRates',
+             ##'RxnConst',
+             ##'SatDiagn',
+             ##'SatDiagnEdge',
+             ##'StateChm',
+             #'StateMet',
+             ##'StratBM',
+             ##'Tomas',
+             ##'UVFlux',
+             ##'WetLossConv',
+             ##'WetLossLS',
+             ##'BoundaryConditions',
+::
+###############################################################################
+### The rest of this file consists of collection definitions.               ###
+### Above collections whose declarations are commented out will be ignored. ###
+### Make sure that each collection definition, as well as the list of       ###
+### collections above, ends with a double-colon ("::").                     ###
+###############################################################################
+
+#==============================================================================
+# %%%%% THE Restart COLLECTION %%%%%
+#
+# GEOS-Chem restart file fields
+#
+# Available for all simulations
+#==============================================================================
+  Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
+  Restart.frequency:          ${RUNDIR_HIST_INST_FREQ}
+  Restart.duration:           ${RUNDIR_HIST_INST_DUR}
+  Restart.mode:               'instantaneous'
+  Restart.fields:             'SpeciesRst_?ALL?               ',
+                              'Chem_AeroH2OSNA                ',
+                              'Chem_ORVCsesq                  ',
+                              'Chem_H2O2AfterChem             ',
+                              'Chem_JOH                       ',
+                              'Chem_JNO2                      ',
+                              'Chem_SO2AfterChem              ',
+                              'Chem_DryDepNitrogen            ',
+                              'Chem_WetDepNitrogen            ',
+                              'Chem_KPPHvalue                 ',
+                              'Chem_StatePSC                  ',
+                              'Met_DELPDRY                    ',
+                              'Met_BXHEIGHT                   ',
+                              'Met_TropLev                    ',
+::
+#==============================================================================
+# %%%%% THE Metrics COLLECTION %%%%%
+#
+# Diagnostics for chemistry metrics such as global mean OH concentration,
+# MCF lifetime, and CH4 lifetime.
+#
+# This diagnostic collection should always be left on.
+# Use the run-directory script ./metrics_fullchem.py to print results.
+#
+# Available for full-chemistry and CH4 simulations only.
+#==============================================================================
+  Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  Metrics.frequency:          'End',
+  Metrics.duration:           'End',
+  Metrics.mode:               'time-averaged'
+  Metrics.fields:             'AirMassColumnFull             ',
+                              'LossOHbyCH4columnTrop         ',
+                              'LossOHbyMCFcolumnTrop         ',
+                              'OHwgtByAirMassColumnFull      ',
+::
+#==============================================================================
+# %%%%% THE SpeciesConc COLLECTION %%%%%
+#
+# GEOS-Chem species concentrations (default = all species)
+#
+# Available for all simulations
+#
+# Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
+#                                    SpeciesConcMND [molec/cm3]
+#==============================================================================
+  SpeciesConc.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  SpeciesConc.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  SpeciesConc.mode:           'time-averaged'
+  SpeciesConc.fields:         'SpeciesConcVV_?ALL?           ',
+                              ##'SpeciesConcMND_?ALL?          ',
+::
+#==============================================================================
+# %%%%% THE AdvFluxVert COLLECTION %%%%%
+#
+# GEOS-Chem vertical mass flux of species in kg/s (default = O3 only)
+#
+# Available for all simulations
+#==============================================================================
+  AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  AdvFluxVert.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  AdvFluxVert.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  AdvFluxVert.mode:           'time-averaged'
+  AdvFluxVert.fields:         'AdvFluxVert_O3                 ',
+::
+#==============================================================================
+# %%%%% THE AerosolMass COLLECTION %%%%%
+#
+# Aerosol and PM2.5 mass
+#
+# Available for full-chemistry and aerosol-only simulations
+#==============================================================================
+  AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  AerosolMass.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  AerosolMass.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  AerosolMass.mode:           'time-averaged'
+  AerosolMass.fields:         'AerMassASOA                  ',
+                              'AerMassBC                    ',
+                              'AerMassHMS                   ',
+                              'AerMassINDIOL                ',
+                              'AerMassLVOCOA                ',
+                              'AerMassNH4                   ',
+                              'AerMassNIT                   ',
+                              'AerMassOPOA                  ',
+                              'AerMassPOA                   ',
+                              'AerMassSAL                   ',
+                              'AerMassSO4                   ',
+                              'AerMassSOAGX                 ',
+                              'AerMassSOAIE                 ',
+                              'AerMassTSOA                  ',
+                              'BetaNO                       ',
+                              'PM25                         ',
+                              'PM10                         ',
+                              'TotalBiogenicOA              ',
+                              'TotalOA                      ',
+                              'TotalOC                      ',
+::
+#==============================================================================
+# %%%%% The Aerosols COLLECTION %%%%%
+#
+# Aerosol optical depth, surface area, number density, and hygroscopic growth
+#
+# Available for full-chemistry or aerosol-only simulations
+#==============================================================================
+  Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  Aerosols.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Aerosols.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  Aerosols.mode:              'time-averaged'
+  Aerosols.fields:            'AODDust                       ',
+                              'AODDustWL1_?DUSTBIN?          ',
+                              'AODHygWL1_?HYG?               ',
+                              'AODSOAfromAqIsopreneWL1       ',
+                              'AODStratLiquidAerWL1          ',
+                              'AODPolarStratCloudWL1         ',
+                              'AerHygroscopicGrowth_?HYG?    ',
+                              'AerNumDensityStratLiquid      ',
+                              'AerNumDensityStratParticulate ',
+                              'AerAqueousVolume              ',
+                              'AerSurfAreaDust               ',
+                              'AerSurfAreaHyg_?HYG?          ',
+                              'AerSurfAreaStratLiquid        ',
+                              'AerSurfAreaPolarStratCloud    ',
+                              'Chem_AeroAreaMDUST1           ',
+                              'Chem_AeroAreaMDUST2           ',
+                              'Chem_AeroAreaMDUST3           ',
+                              'Chem_AeroAreaMDUST4           ',
+                              'Chem_AeroAreaMDUST5           ',
+                              'Chem_AeroAreaMDUST6           ',
+                              'Chem_AeroAreaMDUST7           ',
+                              'Chem_AeroAreaSULF             ',
+                              'Chem_AeroAreaBC               ',
+                              'Chem_AeroAreaOC               ',
+                              'Chem_AeroAreaSSA              ',
+                              'Chem_AeroAreaSSC              ',
+                              #'Chem_AeroAreaBGSULF           ',
+                              #'Chem_AeroAreaICEI             ',
+                              'Chem_AeroRadiMDUST1           ',
+                              'Chem_AeroRadiMDUST2           ',
+                              'Chem_AeroRadiMDUST3           ',
+                              'Chem_AeroRadiMDUST4           ',
+                              'Chem_AeroRadiMDUST5           ',
+                              'Chem_AeroRadiMDUST6           ',
+                              'Chem_AeroRadiMDUST7           ',
+                              'Chem_AeroRadiSULF             ',
+                              'Chem_AeroRadiBC               ',
+                              'Chem_AeroRadiOC               ',
+                              'Chem_AeroRadiSSA              ',
+                              'Chem_AeroRadiSSC              ',
+                              #'Chem_AeroRadiBGSULF           ',
+                              #'Chem_AeroRadiICEI             ',
+                              'Chem_WetAeroAreaMDUST1        ',
+                              'Chem_WetAeroAreaMDUST2        ',
+                              'Chem_WetAeroAreaMDUST3        ',
+                              'Chem_WetAeroAreaMDUST4        ',
+                              'Chem_WetAeroAreaMDUST5        ',
+                              'Chem_WetAeroAreaMDUST6        ',
+                              'Chem_WetAeroAreaMDUST7        ',
+                              'Chem_WetAeroAreaSULF          ',
+                              'Chem_WetAeroAreaBC            ',
+                              'Chem_WetAeroAreaOC            ',
+                              'Chem_WetAeroAreaSSA           ',
+                              'Chem_WetAeroAreaSSC           ',
+                              #'Chem_WetAeroAreaBGSULF        ',
+                              #'Chem_WetAeroAreaICEI          ',
+                              'Chem_WetAeroRadiMDUST1        ',
+                              'Chem_WetAeroRadiMDUST2        ',
+                              'Chem_WetAeroRadiMDUST3        ',
+                              'Chem_WetAeroRadiMDUST4        ',
+                              'Chem_WetAeroRadiMDUST5        ',
+                              'Chem_WetAeroRadiMDUST6        ',
+                              'Chem_WetAeroRadiMDUST7        ',
+                              'Chem_WetAeroRadiSULF          ',
+                              'Chem_WetAeroRadiBC            ',
+                              'Chem_WetAeroRadiOC            ',
+                              'Chem_WetAeroRadiSSA           ',
+                              'Chem_WetAeroRadiSSC           ',
+                              #'Chem_WetAeroRadiBGSULF        ',
+                              #'Chem_WetAeroRadiICEI          ',
+                              #'Chem_StatePSC                 ',
+                              #'Chem_KhetiSLAN2O5H2O          ',
+                              #'Chem_KhetiSLAN2O5HCl          ',
+                              #'Chem_KhetiSLAClNO3H2O         ',
+                              #'Chem_KhetiSLAClNO3HCl         ',
+                              #'Chem_KhetiSLAClNO3HBr         ',
+                              #'Chem_KhetiSLABrNO3H2O         ',
+                              #'Chem_KhetiSLABrNO3HCl         ',
+                              #'Chem_KhetiSLAHOClHCl          ',
+                              #'Chem_KhetiSLAHOClHBr          ',
+                              #'Chem_KhetiSLAHOBrHCl          ',
+                              #'Chem_KhetiSLAHOBrHBr          ',
+::
+#==============================================================================
+# %%%%% THE Budget COLLECTION %%%%%
+#
+# GEOS-Chem budget diagnostics defined as species kg/s in the column
+# (full, troposphere, or PBL) due to a single component (e.g. chemistry)
+# (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  Budget.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
+  Budget.mode:         'time-averaged'
+  Budget.fields:       'BudgetEmisDryDepFull_?ADV?           ',
+                       'BudgetEmisDryDepTrop_?ADV?           ',
+                       'BudgetEmisDryDepPBL_?ADV?            ',
+                       'BudgetEmisDryDepLevs1to35_?ADV?      ',
+                       'BudgetChemistryFull_?ADV?            ',
+                       'BudgetChemistryTrop_?ADV?            ',
+                       'BudgetChemistryPBL_?ADV?             ',
+                       'BudgetChemistryLevs1to35_?ADV?       ',
+                       'BudgetTransportFull_?ADV?            ',
+                       'BudgetTransportTrop_?ADV?            ',
+                       'BudgetTransportPBL_?ADV?             ',
+                       'BudgetTransportLevs1to35_?ADV?       ',
+                       'BudgetMixingFull_?ADV?               ',
+                       'BudgetMixingTrop_?ADV?               ',
+                       'BudgetMixingPBL_?ADV?                ',
+                       'BudgetMixingLevs1to35_?ADV?          ',
+                       'BudgetConvectionFull_?ADV?           ',
+                       'BudgetConvectionTrop_?ADV?           ',
+                       'BudgetConvectionPBL_?ADV?            ',
+                       'BudgetConvectionLevs1to35_?ADV?      ',
+                       'BudgetWetDepFull_?WET?               ',
+                       'BudgetWetDepTrop_?WET?               ',
+                       'BudgetWetDepPBL_?WET?                ',
+                       'BudgetWetDepLevs1to35_?WET?          ',
+::
+#==============================================================================
+# %%%%% THE CloudConvFlux COLLECTION %%%%%
+#
+# Cloud convective flux (default = advected species)
+#
+# Available for all simulations
+#==============================================================================
+  CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  CloudConvFlux.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
+  CloudConvFlux.mode:         'time-averaged'
+  CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
+::
+#==============================================================================
+# %%%%% THE ConcAboveSfc COLLECTION %%%%%
+#
+# Concentrations of O3 and HNO3 at a user-specified altitude above
+# the surface, such as 10m.  Set the desired output altitude in meters
+# in the deposition settings in geoschem_config.yml.
+#
+# NOTES:
+# (1) This collection requires dry deposition to be turned on.
+# (2) All of the fields in the collection must be turned on.
+# (3) This collection is best used with mode "instantaneous".
+#==============================================================================
+  ConcAboveSfc.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  ConcAboveSfc.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ConcAboveSfc.duration:      ${RUNDIR_HIST_TIME_AVG_DUR}
+  ConcAboveSfc.mode:          'instantaneous'
+  ConcAboveSfc.fields:        'DryDepRaALT1                  ',
+                              'DryDepVelForALT1_?DRYALT?     ',
+                              'SpeciesConcALT1_?DRYALT?      ',
+::
+#==============================================================================
+# %%%%% THE ConcAfterChem COLLECTION %%%%%
+#
+# Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
+# or OH after the CH4 specialty-simulation chemistry routine.
+#
+# OH:       Available for all full-chemistry simulations and CH4 specialty sim
+# HO2:      Available for all full-chemistry simulations
+# O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
+#==============================================================================
+  ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
+  ConcAfterChem.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ConcAfterChem.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
+  ConcAfterChem.mode:         'time-averaged'
+  ConcAfterChem.fields:       'OHconcAfterChem               ',
+                              'HO2concAfterChem              ',
+                              'O1DconcAfterChem              ',
+                              'O3PconcAfterChem              ',
+::
+#==============================================================================
+# %%%%% THE DryDep COLLECTION %%%%%
+#
+# Dry depositon fluxes and velocities (for all dry-depositing species)
+#
+# Available for all simuations that have dry-depositing species
+#==============================================================================
+  DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
+  DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
+  DryDep.duration:            ${RUNDIR_HIST_TIME_AVG_DUR}
+  DryDep.mode:                'time-averaged'
+  DryDep.fields:              'DryDep_?DRY?                  ',
+                              'DryDepVel_?DRY?               ',
+                              ##'DryDepChm_?DRY?              ',
+                              ##'DryDepMix_?DRY?              ',
+::
+#==============================================================================
+# %%%%% THE JValues COLLECTION %%%%%
+#
+# Photolysis rates (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  JValues.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
+  JValues.duration:           ${RUNDIR_HIST_TIME_AVG_DUR}
+  JValues.mode:               'time-averaged'
+  JValues.fields:             'Jval_?PHO?                    ',
+                              'JvalO3O1D                     ',
+                              'JvalO3O3P                     ',
+::
+#==============================================================================
+# %%%%% THE UVFlux COLLECTION %%%%%
+#
+# UV fluxes (from the photolysis module)
+#
+# Available for all full-chemistry simulations with photolysis
+#==============================================================================
+  UVFlux.template:           '%y4%m2%d2_%h2%n2z.nc4',
+  UVFlux.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
+  UVFlux.duration:           ${RUNDIR_HIST_TIME_AVG_DUR}
+  UVFlux.mode:               'time-averaged'
+  UVFlux.fields:             'UVFluxDiffuse_?UVFLX?         ',
+                             'UVFluxDirect_?UVFLX?          ',
+                             'UVFluxNet_?UVFLX?             ',
+::
+#==============================================================================
+# %%%%% THE KppDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver.
+#
+# Available for full-chemistry simulations (all variations)
+#==============================================================================
+  KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppDiags.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppDiags.mode:              'time-averaged'
+  KppDiags.fields:            'KppIntCounts                  ',
+                              'KppJacCounts                  ',
+                              'KppTotSteps                   ',
+                              'KppAccSteps                   ',
+                              'KppRejSteps                   ',
+                              'KppLuDecomps                  ',
+                              'KppSubsts                     ',
+                              'KppSmDecomps                  ',
+                              'KppTime                       ',
+                              #'KppNegatives                  ',
+                              #'KppNegatives0                 ',
+::
+#==============================================================================
+# %%%%% THE KppARDiags COLLECTION %%%%%
+#
+# Diagnostics from the KPP solver when auto-reduction solver is used.
+#
+# Available for full-chemistry simulations only if auto-reduce is enabled.
+#==============================================================================
+  KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  KppARDiags.frequency:       ${RUNDIR_HIST_TIME_AVG_FREQ}
+  KppARDiags.duration:        ${RUNDIR_HIST_TIME_AVG_DUR}
+  KppARDiags.mode:            'time-averaged'
+  KppARDiags.fields:          'KppAutoReducerNVAR            ',
+                              'KppAutoReduceThres            ',
+                              'KppcNONZERO                   ',
+::
+#==============================================================================
+# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
+#
+# Diagnostics that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
+  LevelEdgeDiags.mode:        'time-averaged'
+  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
+                              'Met_PEDGE                     ',
+                              'Met_PEDGEDRY                  ',
+                              'Met_PFICU                     ',
+                              'Met_PFILSAN                   ',
+                              'Met_PFLCU                     ',
+                              'Met_PFLLSAN                   ',
+::
+#==============================================================================
+# %%%%% THE ProdLoss COLLECTION %%%%%
+#
+# Chemical production and loss rates
+#
+# Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
+#==============================================================================
+  ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  ProdLoss.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  ProdLoss.mode:              'time-averaged'
+  ProdLoss.fields:            'Prod_?PRD?                    ',
+                              'ProdBCPIfromBCPO              ',
+                              'ProdOCPIfromOCPO              ',
+                              'ProdHMSfromSO2andHCHOinCloud  ',
+                              'ProdSO2andHCHOfromHMSinCloud  ',
+                              'ProdSO4fromHMSinCloud         ',
+                              'ProdSO4fromH2O2inCloud        ',
+                              'ProdSO4fromO2inCloudMetal     ',
+                              'ProdSO4fromO3inCloud          ',
+                              'ProdSO4fromO3inSeaSalt        ',
+                              'ProdSO4fromHOBrInCloud        ',
+                              'ProdSO4fromSRO3               ',
+                              'ProdSO4fromSRHObr             ',
+                              'ProdSO4fromO3s                ',
+                              'Loss_?LOS?                    ',
+                              'LossHNO3onSeaSalt             ',
+                              'ProdCOfromCH4                 ',
+                              'ProdCOfromNMVOC               ',
+::
+#==============================================================================
+# %%%%% THE RRTMG COLLECTION %%%%%
+#
+# Outputs for different species from the RRTMG radiative transfer model:
+# (See http://wiki.geos-chem.org/Coupling_GEOS-Chem_with_RRTMG)
+#
+#    0=BA (Baseline    )  1=O3 (Ozone          )   2=ME (Methane   )
+#    3=SU (Sulfate     )  4=NI (Nitrate        )   5=AM (Ammonium  )
+#    6=BC (Black carbon)  7=OA (Organic aerosol)   8=SS (Sea Salt  )
+#    9=DU (Mineral dust) 10=PM (All part. matter) 12=ST (Strat aer., UCX only)
+#
+# NOTES:
+# (1) Only request diagnostics you need to reduce the overall run time.
+# (2) The ?RRTMG? wildcard includes all output except ST (strat aerosols).
+#     However, if ST is included explicitly for one diagnostic then it
+#     will be included for all others that use the wildcard.
+# (3) Only enable ST if running with UCX.
+# (4) Optics diagnostics have a reduced set of output species (no BASE, O3, ME)
+#==============================================================================
+  RRTMG.template:             '%y4%m2%d2_%h2%n2z.nc4',
+  RRTMG.frequency:            ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RRTMG.duration:             ${RUNDIR_HIST_TIME_AVG_DUR}
+  RRTMG.mode:                 'time-averaged'
+  RRTMG.fields:               'RadClrSkyLWSurf_BASE   ',
+                              'RadClrSkyLWSurf_O3     ',
+                              'RadClrSkyLWSurf_ME     ',
+                              'RadClrSkyLWSurf_SU     ',
+                              'RadClrSkyLWSurf_NI     ',
+                              'RadClrSkyLWSurf_AM     ',
+                              'RadClrSkyLWSurf_BC     ',
+                              'RadClrSkyLWSurf_OA     ',
+                              'RadClrSkyLWSurf_SS     ',
+                              'RadClrSkyLWSurf_DU     ',
+                              'RadClrSkyLWSurf_PM     ',
+                              #'RadClrSkyLWSurf_ST     ',
+                              'RadAllSkyLWSurf_?RRTMG?',
+                              'RadClrSkySWSurf_?RRTMG?',
+                              'RadAllSkySWSurf_?RRTMG?',
+                              'RadClrSkyLWTOA_?RRTMG? ',
+                              'RadAllSkyLWTOA_?RRTMG? ',
+                              'RadClrSkySWTOA_?RRTMG? ',
+                              'RadAllSkySWTOA_?RRTMG? ',
+                              'RadAODWL1_SU          ',
+                              'RadAODWL1_NI          ',
+                              'RadAODWL1_AM          ',
+                              'RadAODWL1_BC          ',
+                              'RadAODWL1_OA          ',
+                              'RadAODWL1_SS          ',
+                              'RadAODWL1_DU          ',
+                              'RadAODWL1_PM          ',
+                              #'RadAODWL1_ST          ',
+                              'RadSSAWL1_SU          ',
+                              'RadSSAWL1_NI          ',
+                              'RadSSAWL1_AM          ',
+                              'RadSSAWL1_BC          ',
+                              'RadSSAWL1_OA          ',
+                              'RadSSAWL1_SS          ',
+                              'RadSSAWL1_DU          ',
+                              'RadSSAWL1_PM          ',
+                              #'RadSSAWL1_ST          ',
+                              'RadAsymWL1_SU         ',
+                              'RadAsymWL1_NI         ',
+                              'RadAsymWL1_AM         ',
+                              'RadAsymWL1_BC         ',
+                              'RadAsymWL1_OA         ',
+                              'RadAsymWL1_SS         ',
+                              'RadAsymWL1_DU         ',
+                              'RadAsymWL1_PM         ',
+                              #'RadAsymWL1_ST         ',
+::
+#==============================================================================
+# %%%%% THE RxnRates COLLECTION %%%%%
+#
+# Archives chemical reaction rates from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnRates.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnRates.duration:   ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnRates.mode:       'time-averaged'
+  RxnRates.fields:     'RxnRate_EQ0001                           ',
+                       'RxnRate_EQ0002                           ',
+::
+#==============================================================================
+# %%%%% THE RxnConst COLLECTION %%%%%
+#
+# Archives chemical reaction rates constants from the KPP solver.
+# It is best to list individual reactions to avoid using too much memory.
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
+# index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
+#
+# The units of reaction rate constants vary according to the number of reactants
+# in the reaction.
+#
+# Available for the fullchem simulations.
+#==============================================================================
+  RxnConst.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  RxnConst.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
+  RxnConst.duration:   ${RUNDIR_HIST_TIME_AVG_DUR}
+  RxnConst.mode:       'time-averaged'
+  RxnConst.fields:     'RxnConst_EQ0001                          ',
+                       'RxnConst_EQ0002                          ',
+::
+#==============================================================================
+# %%%%% THE SatDiagn COLLECTION %%%%%
+#
+# GEOS-Chem data during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagn.format:            'CFIO',
+  SatDiagn.frequency:         00000001 000000
+  SatDiagn.duration:          00000100 000000
+  SatDiagn.hrrange:           11.98 15.02
+  SatDiagn.mode:              'time-averaged'
+  SatDiagn.fields:            'SatDiagnConc_ISOP              ',
+                              'SatDiagnConc_CH2O              ',
+                              'SatDiagnConc_MVK               ',
+                              'SatDiagnConc_MACR              ',
+                              'SatDiagnConc_MOH               ',
+                              'SatDiagnConc_CO                ',
+                              'SatDiagnConc_NO                ',
+                              'SatDiagnConc_NO2               ',
+                              'SatDiagnConc_NO3               ',
+                              'SatDiagnConc_O3                ',
+                              'SatDiagnConc_HO2               ',
+                              'SatDiagnOH                     ',
+                              'SatDiagnRH                     ',
+                              'SatDiagnAirDen                 ',
+                              'SatDiagnBoxHeight              ',
+                              'SatDiagnTROPP                  ',
+                              'SatDiagnPBLHeight              ',
+                              'SatDiagnPBLTop                 ',
+                              'SatDiagnTAir                   ',
+                              'SatDiagnGWETROOT               ',
+                              'SatDiagnGWETTOP                ',
+                              'SatDiagnPARDR                  ',
+                              'SatDiagnPARDF                  ',
+                              'SatDiagnPRECTOT                ',
+                              'SatDiagnSLP                    ',
+                              'SatDiagnSPHU                   ',
+                              'SatDiagnTS                     ',
+                              'SatDiagnPBLTOPL                ',
+                              'SatDiagnPMID                   ',
+                              'SatDiagnMODISLAI               ',
+                              'SatDiagnWetLossLS_CH2O         ',
+                              'SatDiagnWetLossConv_CH2O       ',
+                              'SatDiagnJval_CH2O              ',
+                              'SatDiagnJval_NO2               ',
+                              'SatDiagnJval_NO3               ',
+                              'SatDiagnJval_O3                ',
+                              'SatDiagnJvalO3O1D              ',
+                              'SatDiagnJvalO3O3P              ',
+                              'SatDiagnDryDep_CH2O            ',
+                              'SatDiagnDryDep_NO2             ',
+                              'SatDiagnDryDep_O3              ',
+                              'SatDiagnDryDepVel_CH2O         ',
+                              'SatDiagnDryDepVel_NO2          ',
+                              'SatDiagnDryDepVel_O3           ',
+                              'SatDiagnOHreactivity           ',
+                              'SatDiagnColEmis_ISOP           ',
+                              'SatDiagnSurfFlux_ISOP          ',
+                              'SatDiagnColEmis_CH2O           ',
+                              'SatDiagnSurfFlux_CH2O          ',
+                              'SatDiagnColEmis_NO             ',
+                              'SatDiagnSurfFlux_NO            ',
+                              'SatDiagnProd_?PRD?             ',
+                              'SatDiagnLoss_?LOS?             ',
+                              'SatDiagnRxnRate_EQ0385         ',
+                              'SatDiagnRxnRate_EQ0386         ',
+                              'SatDiagnRxnRate_EQ0387         ',
+                              'SatDiagnRxnRate_EQ0388         ',
+::
+#==============================================================================
+# %%%%% THE SatDiagnEdge COLLECTION %%%%%
+#
+# GEOS-Chem data (on level edges) during satellite overpass
+#
+# Available for all simulations
+#==============================================================================
+  SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
+  SatDiagnEdge.format:        'CFIO',
+  SatDiagnEdge.frequency:     00000001 000000
+  SatDiagnEdge.duration:      00000100 000000
+  SatDiagnEdge.hrrange:       11.98 15.02
+  SatDiagnEdge.mode:          'time-averaged'
+  SatDiagnEdge.fields:        'SatDiagnPEDGE                   ',
+::
+#==============================================================================
+# %%%%% THE StateChm COLLECTION %%%%%
+#
+# Fields of the State_Chm object (see also Aerosols collection)
+#
+# Available for full-chemistry and aerosols-only simulations
+#==============================================================================
+  StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  StateChm.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateChm.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  StateChm.mode:              'time-averaged'
+  StateChm.fields:            'Chem_IsorropAeropHAccum       ',
+                              'Chem_IsorropAeropHCoarse      ',
+                              'Chem_IsorropHplusAccum        ',
+                              'Chem_IsorropHplusCoarse       ',
+                              'Chem_IsorropAeroH2OAccum      ',
+                              'Chem_IsorropAeroH2OCoarse     ',
+                              'Chem_IsorropSulfate           ',
+                              'Chem_IsorropNitrateAccum      ',
+                              'Chem_IsorropNitrateCoarse     ',
+                              'Chem_IsorropChlorideAccum     ',
+                              'Chem_IsorropChlorideCoarse    ',
+                              'Chem_IsorropBisulfate         ',
+                              'Chem_pHCloud                  ',
+                              'Chem_isCloud                  ',
+                              'Chem_SSAlkAccumMode           ',
+                              'Chem_SSAlkCoarseMode          ',
+                              'Chem_HSO3AQ                   ',
+                              'Chem_SO3AQ                    ',
+                              'Chem_fupdateHOBr              ',
+                              'Chem_GammaN2O5overall         ',
+                              'Chem_GammaN2O5fine            ',
+                              'Chem_YieldClNO2fine           ',
+::
+#==============================================================================
+# %%%%% The StateMet COLLECTION %%%%%
+#
+# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+#
+# Available for all simulations
+#==============================================================================
+  StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
+  StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMet.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
+  StateMet.mode:              'time-averaged'
+  StateMet.fields:            'Met_AD                        ',
+                              'Met_AIRDEN                    ',
+                              'Met_AIRVOL                    ',
+                              'Met_ALBD                      ',
+                              'Met_AVGW                      ',
+                              'Met_BXHEIGHT                  ',
+                              'Met_ChemGridLev               ',
+                              'Met_CLDF                      ',
+                              'Met_CLDFRC                    ',
+                              'Met_CLDTOPS                   ',
+                              'Met_CONVDEPTH                 ',
+                              'Met_DELP                      ',
+                              'Met_DELPDRY                   ',
+                              'Met_DQRCU                     ',
+                              'Met_DQRLSAN                   ',
+                              'Met_DTRAIN                    ',
+                              'Met_EFLUX                     ',
+                              'Met_FLASHDENS                 ',
+                              'Met_FRCLND                    ',
+                              'Met_FRLAKE                    ',
+                              'Met_FRLAND                    ',
+                              'Met_FRLANDICE                 ',
+                              'Met_FROCEAN                   ',
+                              'Met_FRSEAICE                  ',
+                              'Met_FRSNOW                    ',
+                              'Met_GWETROOT                  ',
+                              'Met_GWETTOP                   ',
+                              'Met_HFLUX                     ',
+                              'Met_LAI                       ',
+                              'Met_PARDR                     ',
+                              'Met_PARDF                     ',
+                              'Met_PBLTOPL                   ',
+                              'Met_PBLH                      ',
+                              'Met_PHIS                      ',
+                              'Met_PMID                      ',
+                              'Met_PMIDDRY                   ',
+                              'Met_PRECANV                   ',
+                              'Met_PRECCON                   ',
+                              'Met_PRECLSC                   ',
+                              'Met_PRECTOT                   ',
+                              'Met_PS1DRY                    ',
+                              'Met_PS1WET                    ',
+                              'Met_PS2DRY                    ',
+                              'Met_PS2WET                    ',
+                              'Met_PSC2WET                   ',
+                              'Met_PSC2DRY                   ',
+                              'Met_QI                        ',
+                              'Met_QL                        ',
+                              'Met_OMEGA                     ',
+                              'Met_OPTD                      ',
+                              'Met_REEVAPCN                  ',
+                              'Met_REEVAPLS                  ',
+                              'Met_SLP                       ',
+                              'Met_SNODP                     ',
+                              'Met_SNOMAS                    ',
+                              'Met_SPHU                      ',
+                              'Met_SPHU1                     ',
+                              'Met_SPHU2                     ',
+                              'Met_SUNCOS                    ',
+                              'Met_SUNCOSmid                 ',
+                              'Met_SWGDN                     ',
+                              'Met_T                         ',
+                              'Met_TAUCLI                    ',
+                              'Met_TAUCLW                    ',
+                              'Met_THETA                     ',
+                              'Met_TMPU1                     ',
+                              'Met_TMPU2                     ',
+                              'Met_TO3                       ',
+                              'Met_TropHt                    ',
+                              'Met_TropLev                   ',
+                              'Met_TropP                     ',
+                              'Met_TS                        ',
+                              'Met_TSKIN                     ',
+                              'Met_TV                        ',
+                              'Met_U                         ',
+                              'Met_U10M                      ',
+                              'Met_USTAR                     ',
+                              'Met_UVALBEDO                  ',
+                              'Met_V                         ',
+                              'Met_V10M                      ',
+                              'Met_Z0                        ',
+                              'FracOfTimeInTrop              ',
+::
+#==============================================================================
+# %%%%% THE StratBM COLLECTION %%%%%
+#
+# Fields needed for GEOS-Chem 10-year stratospheric benchmarks
+#
+# Available for full-chemistry simulations
+#==============================================================================
+  StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StratBM.frequency:      00000000 010000
+  StratBM.duration:       00000001 000000
+  StratBM.mode:           'time-averaged'
+  StratBM.fields:         'SpeciesConcVV_NO2                 ',
+                          'SpeciesConcVV_O3                  ',
+                          'SpeciesConcVV_ClO                 ',
+                          'Met_PSC2WET                       ',
+                          'Met_BXHEIGHT                      ',
+                          'Met_AIRDEN                        ',
+                          'Met_AD                            ',
+::
+#==============================================================================
+# %%%%% THE Tomas Microphysics Rate COLLECTION %%%%%
+#
+# Tomas microphysics rates
+#
+# Available for full-chemistry and aerosol-only simulations
+#==============================================================================
+  Tomas.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  Tomas.format:         'CFIO',
+  Tomas.timestampStart: .true.
+  Tomas.monthly:        0
+  Tomas.frequency:      00000100 000000
+  Tomas.duration:       00000100 000000
+  Tomas.mode:           'time-averaged'
+  Tomas.fields:         'TomasH2SO4mass_bin01     ',
+                        'TomasH2SO4mass_bin02     ',
+                        'TomasH2SO4mass_bin03     ',
+                        'TomasH2SO4mass_bin04     ',
+                        'TomasH2SO4mass_bin05     ',
+                        'TomasH2SO4mass_bin06     ',
+                        'TomasH2SO4mass_bin07     ',
+                        'TomasH2SO4mass_bin08     ',
+                        'TomasH2SO4mass_bin09     ',
+                        'TomasH2SO4mass_bin10     ',
+                        'TomasH2SO4mass_bin11     ',
+                        'TomasH2SO4mass_bin12     ',
+                        'TomasH2SO4mass_bin13     ',
+                        'TomasH2SO4mass_bin14     ',
+                        'TomasH2SO4mass_bin15     ',
+                        'TomasH2SO4number_bin01     ',
+                        'TomasH2SO4number_bin02     ',
+                        'TomasH2SO4number_bin03     ',
+                        'TomasH2SO4number_bin04     ',
+                        'TomasH2SO4number_bin05     ',
+                        'TomasH2SO4number_bin06     ',
+                        'TomasH2SO4number_bin07     ',
+                        'TomasH2SO4number_bin08     ',
+                        'TomasH2SO4number_bin09     ',
+                        'TomasH2SO4number_bin10     ',
+                        'TomasH2SO4number_bin11     ',
+                        'TomasH2SO4number_bin12     ',
+                        'TomasH2SO4number_bin13     ',
+                        'TomasH2SO4number_bin14     ',
+                        'TomasH2SO4number_bin15     ',
+                        'TomasCOAGmass_bin01     ',
+                        'TomasCOAGmass_bin02     ',
+                        'TomasCOAGmass_bin03     ',
+                        'TomasCOAGmass_bin04     ',
+                        'TomasCOAGmass_bin05     ',
+                        'TomasCOAGmass_bin06     ',
+                        'TomasCOAGmass_bin07     ',
+                        'TomasCOAGmass_bin08     ',
+                        'TomasCOAGmass_bin09     ',
+                        'TomasCOAGmass_bin10     ',
+                        'TomasCOAGmass_bin11     ',
+                        'TomasCOAGmass_bin12     ',
+                        'TomasCOAGmass_bin13     ',
+                        'TomasCOAGmass_bin14     ',
+                        'TomasCOAGmass_bin15     ',
+                        'TomasCOAGnumber_bin01     ',
+                        'TomasCOAGnumber_bin02     ',
+                        'TomasCOAGnumber_bin03     ',
+                        'TomasCOAGnumber_bin04     ',
+                        'TomasCOAGnumber_bin05     ',
+                        'TomasCOAGnumber_bin06     ',
+                        'TomasCOAGnumber_bin07     ',
+                        'TomasCOAGnumber_bin08     ',
+                        'TomasCOAGnumber_bin09     ',
+                        'TomasCOAGnumber_bin10     ',
+                        'TomasCOAGnumber_bin11     ',
+                        'TomasCOAGnumber_bin12     ',
+                        'TomasCOAGnumber_bin13     ',
+                        'TomasCOAGnumber_bin14     ',
+                        'TomasCOAGnumber_bin15     ',
+                        'TomasNUCRATEFN          ',
+                        'TomasNUCLmass_bin01     ',
+                        'TomasNUCLmass_bin02     ',
+                        'TomasNUCLmass_bin03     ',
+                        'TomasNUCLmass_bin04     ',
+                        'TomasNUCLmass_bin05     ',
+                        'TomasNUCLmass_bin06     ',
+                        'TomasNUCLmass_bin07     ',
+                        'TomasNUCLmass_bin08     ',
+                        'TomasNUCLmass_bin09     ',
+                        'TomasNUCLmass_bin10     ',
+                        'TomasNUCLmass_bin11     ',
+                        'TomasNUCLmass_bin12     ',
+                        'TomasNUCLmass_bin13     ',
+                        'TomasNUCLmass_bin14     ',
+                        'TomasNUCLmass_bin15     ',
+                        'TomasNUCLnumber_bin01     ',
+                        'TomasNUCLnumber_bin02     ',
+                        'TomasNUCLnumber_bin03     ',
+                        'TomasNUCLnumber_bin04     ',
+                        'TomasNUCLnumber_bin05     ',
+                        'TomasNUCLnumber_bin06     ',
+                        'TomasNUCLnumber_bin07     ',
+                        'TomasNUCLnumber_bin08     ',
+                        'TomasNUCLnumber_bin09     ',
+                        'TomasNUCLnumber_bin10     ',
+                        'TomasNUCLnumber_bin11     ',
+                        'TomasNUCLnumber_bin12     ',
+                        'TomasNUCLnumber_bin13     ',
+                        'TomasNUCLnumber_bin14     ',
+                        'TomasNUCLnumber_bin15     ',
+                        'TomasNUCRATEnumber_bin01     ',
+                        'TomasNUCRATEnumber_bin02     ',
+                        'TomasNUCRATEnumber_bin03     ',
+                        'TomasNUCRATEnumber_bin04     ',
+                        'TomasNUCRATEnumber_bin05     ',
+                        'TomasNUCRATEnumber_bin06     ',
+                        'TomasNUCRATEnumber_bin07     ',
+                        'TomasNUCRATEnumber_bin08     ',
+                        'TomasNUCRATEnumber_bin09     ',
+                        'TomasNUCRATEnumber_bin10     ',
+                        'TomasNUCRATEnumber_bin11     ',
+                        'TomasNUCRATEnumber_bin12     ',
+                        'TomasNUCRATEnumber_bin13     ',
+                        'TomasNUCRATEnumber_bin14     ',
+                        'TomasNUCRATEnumber_bin15     ',
+                        'TomasAQOXmass_bin01     ',
+                        'TomasAQOXmass_bin02     ',
+                        'TomasAQOXmass_bin03     ',
+                        'TomasAQOXmass_bin04     ',
+                        'TomasAQOXmass_bin05     ',
+                        'TomasAQOXmass_bin06     ',
+                        'TomasAQOXmass_bin07     ',
+                        'TomasAQOXmass_bin08     ',
+                        'TomasAQOXmass_bin09     ',
+                        'TomasAQOXmass_bin10     ',
+                        'TomasAQOXmass_bin11     ',
+                        'TomasAQOXmass_bin12     ',
+                        'TomasAQOXmass_bin13     ',
+                        'TomasAQOXmass_bin14     ',
+                        'TomasAQOXmass_bin15     ',
+                        'TomasAQOXnumber_bin01     ',
+                        'TomasAQOXnumber_bin02     ',
+                        'TomasAQOXnumber_bin03     ',
+                        'TomasAQOXnumber_bin04     ',
+                        'TomasAQOXnumber_bin05     ',
+                        'TomasAQOXnumber_bin06     ',
+                        'TomasAQOXnumber_bin07     ',
+                        'TomasAQOXnumber_bin08     ',
+                        'TomasAQOXnumber_bin09     ',
+                        'TomasAQOXnumber_bin10     ',
+                        'TomasAQOXnumber_bin11     ',
+                        'TomasAQOXnumber_bin12     ',
+                        'TomasAQOXnumber_bin13     ',
+                        'TomasAQOXnumber_bin14     ',
+                        'TomasAQOXnumber_bin15     ',
+                        'TomasMNFIXmass_bin01     ',
+                        'TomasMNFIXmass_bin02     ',
+                        'TomasMNFIXmass_bin03     ',
+                        'TomasMNFIXmass_bin04     ',
+                        'TomasMNFIXmass_bin05     ',
+                        'TomasMNFIXmass_bin06     ',
+                        'TomasMNFIXmass_bin07     ',
+                        'TomasMNFIXmass_bin08     ',
+                        'TomasMNFIXmass_bin09     ',
+                        'TomasMNFIXmass_bin10     ',
+                        'TomasMNFIXmass_bin11     ',
+                        'TomasMNFIXmass_bin12     ',
+                        'TomasMNFIXmass_bin13     ',
+                        'TomasMNFIXmass_bin14     ',
+                        'TomasMNFIXmass_bin15     ',
+                        'TomasMNFIXnumber_bin01     ',
+                        'TomasMNFIXnumber_bin02     ',
+                        'TomasMNFIXnumber_bin03     ',
+                        'TomasMNFIXnumber_bin04     ',
+                        'TomasMNFIXnumber_bin05     ',
+                        'TomasMNFIXnumber_bin06     ',
+                        'TomasMNFIXnumber_bin07     ',
+                        'TomasMNFIXnumber_bin08     ',
+                        'TomasMNFIXnumber_bin09     ',
+                        'TomasMNFIXnumber_bin10     ',
+                        'TomasMNFIXnumber_bin11     ',
+                        'TomasMNFIXnumber_bin12     ',
+                        'TomasMNFIXnumber_bin13     ',
+                        'TomasMNFIXnumber_bin14     ',
+                        'TomasMNFIXnumber_bin15     ',
+                        'TomasMNFIXh2so4mass_bin01     ',
+                        'TomasMNFIXh2so4mass_bin02     ',
+                        'TomasMNFIXh2so4mass_bin03     ',
+                        'TomasMNFIXh2so4mass_bin04     ',
+                        'TomasMNFIXh2so4mass_bin05     ',
+                        'TomasMNFIXh2so4mass_bin06     ',
+                        'TomasMNFIXh2so4mass_bin07     ',
+                        'TomasMNFIXh2so4mass_bin08     ',
+                        'TomasMNFIXh2so4mass_bin09     ',
+                        'TomasMNFIXh2so4mass_bin10     ',
+                        'TomasMNFIXh2so4mass_bin11     ',
+                        'TomasMNFIXh2so4mass_bin12     ',
+                        'TomasMNFIXh2so4mass_bin13     ',
+                        'TomasMNFIXh2so4mass_bin14     ',
+                        'TomasMNFIXh2so4mass_bin15     ',
+                        'TomasMNFIXh2so4number_bin01     ',
+                        'TomasMNFIXh2so4number_bin02     ',
+                        'TomasMNFIXh2so4number_bin03     ',
+                        'TomasMNFIXh2so4number_bin04     ',
+                        'TomasMNFIXh2so4number_bin05     ',
+                        'TomasMNFIXh2so4number_bin06     ',
+                        'TomasMNFIXh2so4number_bin07     ',
+                        'TomasMNFIXh2so4number_bin08     ',
+                        'TomasMNFIXh2so4number_bin09     ',
+                        'TomasMNFIXh2so4number_bin10     ',
+                        'TomasMNFIXh2so4number_bin11     ',
+                        'TomasMNFIXh2so4number_bin12     ',
+                        'TomasMNFIXh2so4number_bin13     ',
+                        'TomasMNFIXh2so4number_bin14     ',
+                        'TomasMNFIXh2so4number_bin15     ',
+                        'TomasMNFIXcoagmass_bin01     ',
+                        'TomasMNFIXcoagmass_bin02     ',
+                        'TomasMNFIXcoagmass_bin03     ',
+                        'TomasMNFIXcoagmass_bin04     ',
+                        'TomasMNFIXcoagmass_bin05     ',
+                        'TomasMNFIXcoagmass_bin06     ',
+                        'TomasMNFIXcoagmass_bin07     ',
+                        'TomasMNFIXcoagmass_bin08     ',
+                        'TomasMNFIXcoagmass_bin09     ',
+                        'TomasMNFIXcoagmass_bin10     ',
+                        'TomasMNFIXcoagmass_bin11     ',
+                        'TomasMNFIXcoagmass_bin12     ',
+                        'TomasMNFIXcoagmass_bin13     ',
+                        'TomasMNFIXcoagmass_bin14     ',
+                        'TomasMNFIXcoagmass_bin15     ',
+                        'TomasMNFIXcoagnumber_bin01     ',
+                        'TomasMNFIXcoagnumber_bin02     ',
+                        'TomasMNFIXcoagnumber_bin03     ',
+                        'TomasMNFIXcoagnumber_bin04     ',
+                        'TomasMNFIXcoagnumber_bin05     ',
+                        'TomasMNFIXcoagnumber_bin06     ',
+                        'TomasMNFIXcoagnumber_bin07     ',
+                        'TomasMNFIXcoagnumber_bin08     ',
+                        'TomasMNFIXcoagnumber_bin09     ',
+                        'TomasMNFIXcoagnumber_bin10     ',
+                        'TomasMNFIXcoagnumber_bin11     ',
+                        'TomasMNFIXcoagnumber_bin12     ',
+                        'TomasMNFIXcoagnumber_bin13     ',
+                        'TomasMNFIXcoagnumber_bin14     ',
+                        'TomasMNFIXcoagnumber_bin15     ',
+                        'TomasMNFIXaqoxmass_bin01     ',
+                        'TomasMNFIXaqoxmass_bin02     ',
+                        'TomasMNFIXaqoxmass_bin03     ',
+                        'TomasMNFIXaqoxmass_bin04     ',
+                        'TomasMNFIXaqoxmass_bin05     ',
+                        'TomasMNFIXaqoxmass_bin06     ',
+                        'TomasMNFIXaqoxmass_bin07     ',
+                        'TomasMNFIXaqoxmass_bin08     ',
+                        'TomasMNFIXaqoxmass_bin09     ',
+                        'TomasMNFIXaqoxmass_bin10     ',
+                        'TomasMNFIXaqoxmass_bin11     ',
+                        'TomasMNFIXaqoxmass_bin12     ',
+                        'TomasMNFIXaqoxmass_bin13     ',
+                        'TomasMNFIXaqoxmass_bin14     ',
+                        'TomasMNFIXaqoxmass_bin15     ',
+                        'TomasMNFIXaqoxnumber_bin01     ',
+                        'TomasMNFIXaqoxnumber_bin02     ',
+                        'TomasMNFIXaqoxnumber_bin03     ',
+                        'TomasMNFIXaqoxnumber_bin04     ',
+                        'TomasMNFIXaqoxnumber_bin05     ',
+                        'TomasMNFIXaqoxnumber_bin06     ',
+                        'TomasMNFIXaqoxnumber_bin07     ',
+                        'TomasMNFIXaqoxnumber_bin08     ',
+                        'TomasMNFIXaqoxnumber_bin09     ',
+                        'TomasMNFIXaqoxnumber_bin10     ',
+                        'TomasMNFIXaqoxnumber_bin11     ',
+                        'TomasMNFIXaqoxnumber_bin12     ',
+                        'TomasMNFIXaqoxnumber_bin13     ',
+                        'TomasMNFIXaqoxnumber_bin14     ',
+                        'TomasMNFIXaqoxnumber_bin15     ',
+                        'TomasMNFIXezwat1mass_bin01     ',
+                        'TomasMNFIXezwat1mass_bin02     ',
+                        'TomasMNFIXezwat1mass_bin03     ',
+                        'TomasMNFIXezwat1mass_bin04     ',
+                        'TomasMNFIXezwat1mass_bin05     ',
+                        'TomasMNFIXezwat1mass_bin06     ',
+                        'TomasMNFIXezwat1mass_bin07     ',
+                        'TomasMNFIXezwat1mass_bin08     ',
+                        'TomasMNFIXezwat1mass_bin09     ',
+                        'TomasMNFIXezwat1mass_bin10     ',
+                        'TomasMNFIXezwat1mass_bin11     ',
+                        'TomasMNFIXezwat1mass_bin12     ',
+                        'TomasMNFIXezwat1mass_bin13     ',
+                        'TomasMNFIXezwat1mass_bin14     ',
+                        'TomasMNFIXezwat1mass_bin15     ',
+                        'TomasMNFIXezwat1number_bin01     ',
+                        'TomasMNFIXezwat1number_bin02     ',
+                        'TomasMNFIXezwat1number_bin03     ',
+                        'TomasMNFIXezwat1number_bin04     ',
+                        'TomasMNFIXezwat1number_bin05     ',
+                        'TomasMNFIXezwat1number_bin06     ',
+                        'TomasMNFIXezwat1number_bin07     ',
+                        'TomasMNFIXezwat1number_bin08     ',
+                        'TomasMNFIXezwat1number_bin09     ',
+                        'TomasMNFIXezwat1number_bin10     ',
+                        'TomasMNFIXezwat1number_bin11     ',
+                        'TomasMNFIXezwat1number_bin12     ',
+                        'TomasMNFIXezwat1number_bin13     ',
+                        'TomasMNFIXezwat1number_bin14     ',
+                        'TomasMNFIXezwat1number_bin15     ',
+                        'TomasMNFIXezwat2mass_bin01     ',
+                        'TomasMNFIXezwat2mass_bin02     ',
+                        'TomasMNFIXezwat2mass_bin03     ',
+                        'TomasMNFIXezwat2mass_bin04     ',
+                        'TomasMNFIXezwat2mass_bin05     ',
+                        'TomasMNFIXezwat2mass_bin06     ',
+                        'TomasMNFIXezwat2mass_bin07     ',
+                        'TomasMNFIXezwat2mass_bin08     ',
+                        'TomasMNFIXezwat2mass_bin09     ',
+                        'TomasMNFIXezwat2mass_bin10     ',
+                        'TomasMNFIXezwat2mass_bin11     ',
+                        'TomasMNFIXezwat2mass_bin12     ',
+                        'TomasMNFIXezwat2mass_bin13     ',
+                        'TomasMNFIXezwat2mass_bin14     ',
+                        'TomasMNFIXezwat2mass_bin15     ',
+                        'TomasMNFIXezwat2number_bin01     ',
+                        'TomasMNFIXezwat2number_bin02     ',
+                        'TomasMNFIXezwat2number_bin03     ',
+                        'TomasMNFIXezwat2number_bin04     ',
+                        'TomasMNFIXezwat2number_bin05     ',
+                        'TomasMNFIXezwat2number_bin06     ',
+                        'TomasMNFIXezwat2number_bin07     ',
+                        'TomasMNFIXezwat2number_bin08     ',
+                        'TomasMNFIXezwat2number_bin09     ',
+                        'TomasMNFIXezwat2number_bin10     ',
+                        'TomasMNFIXezwat2number_bin11     ',
+                        'TomasMNFIXezwat2number_bin12     ',
+                        'TomasMNFIXezwat2number_bin13     ',
+                        'TomasMNFIXezwat2number_bin14     ',
+                        'TomasMNFIXezwat2number_bin15     ',
+                        'TomasMNFIXezwat3mass_bin01     ',
+                        'TomasMNFIXezwat3mass_bin02     ',
+                        'TomasMNFIXezwat3mass_bin03     ',
+                        'TomasMNFIXezwat3mass_bin04     ',
+                        'TomasMNFIXezwat3mass_bin05     ',
+                        'TomasMNFIXezwat3mass_bin06     ',
+                        'TomasMNFIXezwat3mass_bin07     ',
+                        'TomasMNFIXezwat3mass_bin08     ',
+                        'TomasMNFIXezwat3mass_bin09     ',
+                        'TomasMNFIXezwat3mass_bin10     ',
+                        'TomasMNFIXezwat3mass_bin11     ',
+                        'TomasMNFIXezwat3mass_bin12     ',
+                        'TomasMNFIXezwat3mass_bin13     ',
+                        'TomasMNFIXezwat3mass_bin14     ',
+                        'TomasMNFIXezwat3mass_bin15     ',
+                        'TomasMNFIXezwat3number_bin01     ',
+                        'TomasMNFIXezwat3number_bin02     ',
+                        'TomasMNFIXezwat3number_bin03     ',
+                        'TomasMNFIXezwat3number_bin04     ',
+                        'TomasMNFIXezwat3number_bin05     ',
+                        'TomasMNFIXezwat3number_bin06     ',
+                        'TomasMNFIXezwat3number_bin07     ',
+                        'TomasMNFIXezwat3number_bin08     ',
+                        'TomasMNFIXezwat3number_bin09     ',
+                        'TomasMNFIXezwat3number_bin10     ',
+                        'TomasMNFIXezwat3number_bin11     ',
+                        'TomasMNFIXezwat3number_bin12     ',
+                        'TomasMNFIXezwat3number_bin13     ',
+                        'TomasMNFIXezwat3number_bin14     ',
+                        'TomasMNFIXezwat3number_bin15     ',
+                        'TomasMNFIXcheck1mass_bin01     ',
+                        'TomasMNFIXcheck1mass_bin02     ',
+                        'TomasMNFIXcheck1mass_bin03     ',
+                        'TomasMNFIXcheck1mass_bin04     ',
+                        'TomasMNFIXcheck1mass_bin05     ',
+                        'TomasMNFIXcheck1mass_bin06     ',
+                        'TomasMNFIXcheck1mass_bin07     ',
+                        'TomasMNFIXcheck1mass_bin08     ',
+                        'TomasMNFIXcheck1mass_bin09     ',
+                        'TomasMNFIXcheck1mass_bin10     ',
+                        'TomasMNFIXcheck1mass_bin11     ',
+                        'TomasMNFIXcheck1mass_bin12     ',
+                        'TomasMNFIXcheck1mass_bin13     ',
+                        'TomasMNFIXcheck1mass_bin14     ',
+                        'TomasMNFIXcheck1mass_bin15     ',
+                        'TomasMNFIXcheck1number_bin01     ',
+                        'TomasMNFIXcheck1number_bin02     ',
+                        'TomasMNFIXcheck1number_bin03     ',
+                        'TomasMNFIXcheck1number_bin04     ',
+                        'TomasMNFIXcheck1number_bin05     ',
+                        'TomasMNFIXcheck1number_bin06     ',
+                        'TomasMNFIXcheck1number_bin07     ',
+                        'TomasMNFIXcheck1number_bin08     ',
+                        'TomasMNFIXcheck1number_bin09     ',
+                        'TomasMNFIXcheck1number_bin10     ',
+                        'TomasMNFIXcheck1number_bin11     ',
+                        'TomasMNFIXcheck1number_bin12     ',
+                        'TomasMNFIXcheck1number_bin13     ',
+                        'TomasMNFIXcheck1number_bin14     ',
+                        'TomasMNFIXcheck1number_bin15     ',
+                        'TomasMNFIXcheck2mass_bin01     ',
+                        'TomasMNFIXcheck2mass_bin02     ',
+                        'TomasMNFIXcheck2mass_bin03     ',
+                        'TomasMNFIXcheck2mass_bin04     ',
+                        'TomasMNFIXcheck2mass_bin05     ',
+                        'TomasMNFIXcheck2mass_bin06     ',
+                        'TomasMNFIXcheck2mass_bin07     ',
+                        'TomasMNFIXcheck2mass_bin08     ',
+                        'TomasMNFIXcheck2mass_bin09     ',
+                        'TomasMNFIXcheck2mass_bin10     ',
+                        'TomasMNFIXcheck2mass_bin11     ',
+                        'TomasMNFIXcheck2mass_bin12     ',
+                        'TomasMNFIXcheck2mass_bin13     ',
+                        'TomasMNFIXcheck2mass_bin14     ',
+                        'TomasMNFIXcheck2mass_bin15     ',
+                        'TomasMNFIXcheck2number_bin01     ',
+                        'TomasMNFIXcheck2number_bin02     ',
+                        'TomasMNFIXcheck2number_bin03     ',
+                        'TomasMNFIXcheck2number_bin04     ',
+                        'TomasMNFIXcheck2number_bin05     ',
+                        'TomasMNFIXcheck2number_bin06     ',
+                        'TomasMNFIXcheck2number_bin07     ',
+                        'TomasMNFIXcheck2number_bin08     ',
+                        'TomasMNFIXcheck2number_bin09     ',
+                        'TomasMNFIXcheck2number_bin10     ',
+                        'TomasMNFIXcheck2number_bin11     ',
+                        'TomasMNFIXcheck2number_bin12     ',
+                        'TomasMNFIXcheck2number_bin13     ',
+                        'TomasMNFIXcheck2number_bin14     ',
+                        'TomasMNFIXcheck2number_bin15     ',
+                        'TomasMNFIXcheck3mass_bin01     ',
+                        'TomasMNFIXcheck3mass_bin02     ',
+                        'TomasMNFIXcheck3mass_bin03     ',
+                        'TomasMNFIXcheck3mass_bin04     ',
+                        'TomasMNFIXcheck3mass_bin05     ',
+                        'TomasMNFIXcheck3mass_bin06     ',
+                        'TomasMNFIXcheck3mass_bin07     ',
+                        'TomasMNFIXcheck3mass_bin08     ',
+                        'TomasMNFIXcheck3mass_bin09     ',
+                        'TomasMNFIXcheck3mass_bin10     ',
+                        'TomasMNFIXcheck3mass_bin11     ',
+                        'TomasMNFIXcheck3mass_bin12     ',
+                        'TomasMNFIXcheck3mass_bin13     ',
+                        'TomasMNFIXcheck3mass_bin14     ',
+                        'TomasMNFIXcheck3mass_bin15     ',
+                        'TomasMNFIXcheck3number_bin01     ',
+                        'TomasMNFIXcheck3number_bin02     ',
+                        'TomasMNFIXcheck3number_bin03     ',
+                        'TomasMNFIXcheck3number_bin04     ',
+                        'TomasMNFIXcheck3number_bin05     ',
+                        'TomasMNFIXcheck3number_bin06     ',
+                        'TomasMNFIXcheck3number_bin07     ',
+                        'TomasMNFIXcheck3number_bin08     ',
+                        'TomasMNFIXcheck3number_bin09     ',
+                        'TomasMNFIXcheck3number_bin10     ',
+                        'TomasMNFIXcheck3number_bin11     ',
+                        'TomasMNFIXcheck3number_bin12     ',
+                        'TomasMNFIXcheck3number_bin13     ',
+                        'TomasMNFIXcheck3number_bin14     ',
+                        'TomasMNFIXcheck3number_bin15     ',
+                        'TomasSOAmass_bin01     ',
+                        'TomasSOAmass_bin02     ',
+                        'TomasSOAmass_bin03     ',
+                        'TomasSOAmass_bin04     ',
+                        'TomasSOAmass_bin05     ',
+                        'TomasSOAmass_bin06     ',
+                        'TomasSOAmass_bin07     ',
+                        'TomasSOAmass_bin08     ',
+                        'TomasSOAmass_bin09     ',
+                        'TomasSOAmass_bin10     ',
+                        'TomasSOAmass_bin11     ',
+                        'TomasSOAmass_bin12     ',
+                        'TomasSOAmass_bin13     ',
+                        'TomasSOAmass_bin14     ',
+                        'TomasSOAmass_bin15     ',
+                        'TomasSOAnumber_bin01     ',
+                        'TomasSOAnumber_bin02     ',
+                        'TomasSOAnumber_bin03     ',
+                        'TomasSOAnumber_bin04     ',
+                        'TomasSOAnumber_bin05     ',
+                        'TomasSOAnumber_bin06     ',
+                        'TomasSOAnumber_bin07     ',
+                        'TomasSOAnumber_bin08     ',
+                        'TomasSOAnumber_bin09     ',
+                        'TomasSOAnumber_bin10     ',
+                        'TomasSOAnumber_bin11     ',
+                        'TomasSOAnumber_bin12     ',
+                        'TomasSOAnumber_bin13     ',
+                        'TomasSOAnumber_bin14     ',
+                        'TomasSOAnumber_bin15     ',
+::
+#==============================================================================
+# %%%%% THE WetLossConv COLLECTION %%%%%
+#
+# Loss of soluble species in convective updrafts
+#
+# Available for all simulations that have soluble species
+#==============================================================================
+  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossConv.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
+  WetLossConv.mode:           'time-averaged'
+  WetLossConv.fields:         'WetLossConv_?WET?             ',
+                              'WetLossConvFrac_?WET?         ',
+::
+#==============================================================================
+# %%%%% THE WetLossLS COLLECTION %%%%%
+#
+# Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
+#
+# Available for all simulations that have soluble species
+#==============================================================================
+# Loss due to rainout and washout (per deposited species)
+  WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
+  WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
+  WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
+  WetLossLS.mode:             'time-averaged'
+  WetLossLS.fields:           'WetLossLS_?WET?               ',
+::
+#==============================================================================
+# %%%%% THE BoundaryConditions COLLECTION %%%%%
+#
+# GEOS-Chem boundary conditions for use in nested grid simulations
+#
+# Available for all simulations
+#
+# NOTE: Do not change the BoundaryConditions.frequency setting below,
+# because GEOS-Chem nested-grid simulations expect to read boundary
+# condition data at 3 hour intervals.
+#==============================================================================
+  BoundaryConditions.template:   '%y4%m2%d2_%h2%n2z.nc4',
+  BoundaryConditions.frequency:  00000000 030000
+  BoundaryConditions.duration:   00000001 000000
+  BoundaryConditions.mode:       'instantaneous'
+  BoundaryConditions.fields:     'SpeciesBC_?ADV?             ',
+::

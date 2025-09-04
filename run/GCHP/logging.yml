@@ -1,0 +1,111 @@
+schema_version: 1
+
+###############################      
+locks:
+   mpi:
+      class: MpiLock
+      comm:  MPI_COMM_WORLD
+
+###############################      
+formatters:
+   legacy:
+      class: Formatter
+      format:  '%(message)a'
+
+   basic:
+      class: Formatter
+      format:  '%(short_name)a15~: %(level_name)a~: %(message)a'
+
+   mpi:
+      class: MpiFormatter
+      format:  '%(mpi_rank)i4.4~: %(name)~: %(level_name)a~: %(message)a'
+      comm: MPI_COMM_WORLD
+
+   column:
+      class: Formatter
+      format: '(%(i)i3.3,%(j)i3.3): %(level_name)'
+
+
+
+###############################      
+handlers:
+
+   console:
+      class: streamhandler
+#      formatter: legacy
+      formatter: basic
+      unit: OUTPUT_UNIT
+      level: INFO
+      
+   warnings:
+      class:  FileHandler
+      filename: warnings_and_errors.log
+      lock: mpi
+      level: WARNING
+      formatter: basic
+
+   errors:
+      class:  StreamHandler
+      formatter: basic
+      unit: ERROR_UNIT
+      level: ERROR
+
+   mpi_shared:
+      class: FileHandler
+      filename: allPEs.log
+      formatter: mpi
+      comm: MPI_COMM_WORLD
+      lock: mpi
+      rank_keyword: rank
+      level: DEBUG
+
+   mpi_debug:
+      class: MpiFileHandler
+      formatter: basic
+      filename:  debug_%(rank)i3.3~.log
+      comm: MPI_COMM_WORLD      
+      rank_prefix: rank
+      level: DEBUG
+
+###############################      
+root:
+   handlers: [warnings,errors,console]
+   level: WARNING
+   root_level: WARNING
+
+###############################      
+loggers:
+
+   errors:
+       handlers: [errors]
+       level: ERROR
+
+   CAP:
+       level: WARNING
+       root_level: INFO
+       
+   MAPL:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: WARNING
+       
+   CAP.EXTDATA:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: WARNING
+       propagate: false
+   
+   GCHPctmEnv:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: INFO
+
+   GCHP:
+       handlers: [mpi_shared]
+       level: WARNING
+       root_level: INFO
+
+       
+  # Note: When enabling another logger, make sure
+  #       indentation matches that of the above 
+  #       loggers!

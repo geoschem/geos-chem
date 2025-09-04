@@ -1,0 +1,38 @@
+#MINVERSION   3.2.0                  { Need this version of KPP or later     }
+#INTEGRATOR   rosenbrock_autoreduce  { Use Rosenbrock integration method     }
+#AUTOREDUCE   on                     { ...w/ autoreduce enabled but optional }
+#LANGUAGE     Fortran90              { Generate solver code in Fortran90 ... }
+#UPPERCASEF90 on                     { ...w/ .F90 suffix (instead of .f90)   }
+#DRIVER       none                   { Do not create gckpp_Main.F90          }
+#HESSIAN      off                    { Do not create the Hessian matrix      }
+#MEX          off                    { MEX is for Matlab, so skip it         }
+#STOICMAT     off                    { Do not create stoichiometric matrix   }
+
+#INCLUDE custom.eqn       { Chemical reactions for fullchem mechanism  }
+
+#FAMILIES                 { Chemical families for prod/loss diagnostic }
+POx : O3 + NO2 + 2NO3 + PAN + PPN + MPAN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + MVKN + MCRHN + MCRHNB + PROPNN + R4N2 + PRN1 + PRPN + R4N1 + HONIT + MONITS + MONITU + OLND + OLNN + IHN1 + IHN2 + IHN3 + IHN4 + INPB + INPD + ICN + 2IDN + ITCN + ITHN + ISOPNOO1 + ISOPNOO2 + INO2B + INO2D + INA + IDHNBOO + IDHNDOO1 + IDHNDOO2 + IHPNBOO + IHPNDOO + ICNOO + 2IDNOO + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + O + O1D + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4 + NIT + NITs;
+LOx : O3 + NO2 + 2NO3 + PAN + PPN + MPAN + HNO4 + 3N2O5 + HNO3 + BrO + HOBr + BrNO2 + 2BrNO3 + MPN + ETHLN + MVKN + MCRHN + MCRHNB + PROPNN + R4N2 + PRN1 + PRPN + R4N1 + HONIT + MONITS + MONITU + OLND + OLNN + IHN1 + IHN2 + IHN3 + IHN4 + INPB + INPD + ICN + 2IDN + ITCN + ITHN + ISOPNOO1 + ISOPNOO2 + INO2B + INO2D + INA + IDHNBOO + IDHNDOO1 + IDHNDOO2 + IHPNBOO + IHPNDOO + ICNOO + 2IDNOO + MACRNO2 + ClO + HOCl + ClNO2 + 2ClNO3 + 2Cl2O2 + 2OClO + O + O1D + IO + HOI + IONO + 2IONO2 + 2OIO + 2I2O2 + 3I2O3 + 4I2O4 + NIT + NITs;
+PCO : CO;
+LCO : CO;
+PSO4 : SO4;
+LCH4 : CH4;
+PH2O2 : H2O2;
+
+#INLINE F90_RATES
+  ! All rates are included in fullchem_RateLawFuncs.F90, which
+  ! gets referenced directly from subroutine Update_Rconst.
+#ENDINLINE
+
+#INLINE F90_RCONST_USE
+  ! Inline an include file containing rate law definitions, which
+  ! will be inserted directly into subroutine Update_Rconst().
+  ! This is necessary as a workaround for KPP not being able to
+  ! include very large files ( > 200000 chars) directly.
+  !  -- Bob Yantosca (11 Jun 2021)
+  USE fullchem_RateLawFuncs
+#ENDINLINE
+
+#INLINE F90_GLOBAL
+#include "commonIncludeVars.H"
+#ENDINLINE

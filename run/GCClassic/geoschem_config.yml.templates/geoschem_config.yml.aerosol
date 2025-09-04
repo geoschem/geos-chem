@@ -1,0 +1,157 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the aerosols-only mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ${RUNDIR_SIM_NAME}
+  start_date: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
+  end_date: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
+  root_data_dir: ${RUNDIR_DATA_ROOT}
+  met_field: ${RUNDIR_MET}
+  species_database_file: ./species_database.yml
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
+  use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+
+#============================================================================
+# Grid settings
+#============================================================================
+grid:
+  resolution: ${RUNDIR_GRID_RES_LONG}
+  number_of_levels: ${RUNDIR_GRID_NLEV}
+  longitude:
+    range: ${RUNDIR_GRID_LON_RANGE}
+    center_at_180: ${RUNDIR_CENTER_LON_180}
+  latitude:
+    range: ${RUNDIR_GRID_LAT_RANGE}
+    half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
+  nested_grid_simulation:
+    activate: ${RUNDIR_GRID_NESTED_SIM}
+    buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
+
+#============================================================================
+# Timesteps settings
+#============================================================================
+timesteps:
+  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
+  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true
+    diag_alt_above_sfc_in_m: 10
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
+
+  photolysis:
+    overhead_O3:
+      use_online_O3_from_model: false
+      use_column_O3_from_met: true
+      use_TOMS_SBUV_O3: false
+
+  rrtmg_rad_transfer_model:           # This menu is only used to specify the
+    aod_wavelengths_in_nm:            # AOD wavelength.  RRTMG can only be
+      - 550                           # called from a fullchem simulation.
+
+  transport:
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
+    transported_species:
+      - BCPI
+      - BCPO
+      - DMS
+      - DST1
+      - DST2
+      - DST3
+      - DST4
+      - H2O2
+      - MSA
+      - NH3
+      - NH4
+      - NIT
+      - NITs
+      - OCPI
+      - OCPO
+      - pFe
+      - SALA
+      - SALAAL
+      - SALACL
+      - SALC
+      - SALCAL
+      - SALCCL
+      - SO2
+      - SO4
+      - SO4s
+      - SOAP
+      - SOAS
+
+  wet_deposition:
+    activate: true
+
+#============================================================================
+# Settings for GEOS-Chem aerosols
+#============================================================================
+aerosols:
+
+  optics:
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2025-03/
+
+  carbon:
+    activate: true
+    brown_carbon: false
+    enhance_black_carbon_absorption:
+      activate: true
+      hydrophilic: 1.5
+      hydrophobic: 1.0
+
+  dust:
+    activate: true
+
+  sea_salt:
+    activate: true
+    SALA_radius_bin_in_um: [0.01, 0.5]
+    SALC_radius_bin_in_um: [0.5,  8.0]
+
+  sulfate:
+    activate: true
+    metal_cat_SO2_oxidation: true
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_input_for_testing.20190701.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - BCPI
+      
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: ./OutputDir/plane.log.YYYYMMDD

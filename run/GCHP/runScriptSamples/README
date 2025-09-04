@@ -1,0 +1,23 @@
+# Example Run Scripts
+
+This folder contains:
+
+(1) template file 'gchp.batch_job.sh' to adapt for submitting GCHP batch
+    jobs for various schedulers (PBS, LSF, and SLURM)
+
+(2) template file 'gchp.local.sh' to adapt for running GCHP on the command line
+
+(3) subdirectory 'operational_examples' containing job scripts and
+    environment files used regularly on specific systems.
+
+If you are running GCHP on a system in 'operational_examples' then you can
+copy and adapt a job script from that folder. If you are running on a
+different system then you should copy and adapt one of the template files.
+
+If you have a working run script on a system with several GCHP users please
+consider submitting it to the GEOS-Chem Support Team for inclusion in
+'operational_examples' in a future version. This will make it easier for
+users on your system to get started with GCHP. To get started, create
+a GEOS-Chem GitHub issue at:
+https://github.com/geoschem/geos-chem/issues/
+

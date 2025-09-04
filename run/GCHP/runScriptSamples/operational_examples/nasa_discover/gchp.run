@@ -1,0 +1,78 @@
+#!/bin/bash
+
+# For NASA discover cluster. Edit before run.
+#SBATCH --time 00:30:00
+#SBATCH --nodes=1 --ntasks-per-node=24
+#SBATCH --mem=60G
+#SBATCH --job-name=gchp.run
+#SBATCH --constraint=mil
+#SBATCH --account=s____
+##SBATCH --exclusive
+##SBATCH --qos=debug
+##SBATCH --qos=chmdev
+
+# If a subsequent command fails, treat it as fatal (don't continue)
+set -e
+
+# For remainder of script, echo commands to the job's log file
+#set -x
+
+# Unlimit resources to prevent OS killing GCHP due to resource usage/
+# Alternatively you can put this in your environment file.
+ulimit -c 0                  # coredumpsize
+ulimit -l unlimited          # memorylocked
+ulimit -u 50000              # maxproc
+ulimit -v unlimited          # vmemoryuse
+ulimit -s unlimited          # stacksize
+
+source gchp.env
+
+# Print loaded modules
+module list     
+
+# Define log name to include simulation start date
+start_str=$(sed 's/ /_/g' cap_restart)
+log=gchp.${start_str:0:13}z.log
+
+# Update config files, set restart symlink, and do sanity checks
+source setCommonRunSettings.sh > ${log}
+source setRestartLink.sh >> ${log}
+source checkRunSettings.sh >> ${log}
+
+# Run GCHP and evenly distribute tasks across nodes                                                                               NX=$( grep NX GCHP.rc | awk '{print $2}' )
+NY=$( grep NY GCHP.rc | awk '{print $2}' )
+coreCount=$(( ${NX} * ${NY} ))
+planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
+if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
+        ${planeCount}=$(( ${planeCount} + 1 ))
+fi
+
+mpirun -np ${coreCount} ./gchp >> ${log}
+
+# If new start time in cap_restart is okay, rename restart file
+# and update restart symlink
+new_start_str=$(sed 's/ /_/g' cap_restart)
+if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
+   echo "ERROR: GCHP failed to run to completion. Check the log file for more information."
+   exit 1
+else
+    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+    mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
+    source setRestartLink.sh
+fi
+
+# Rename mid-run checkpoint files, if any. Discard file if time corresponds
+# to run start time since duplicate with initial restart file.
+chkpnts=$(ls Restarts)
+for chkpnt in ${chkpnts}
+do
+    if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
+       chkpnt_time=${chkpnt:27:13}
+       if [[ "${chkpnt_time}" = "${start_str:0:13}" ]]; then
+          rm ./Restarts/${chkpnt}
+       else
+          new_chkpnt=./Restarts/GEOSChem.Restart.${chkpnt_time}z.c${N}.nc4
+          mv ./Restarts/${chkpnt} ${new_chkpnt}
+       fi
+    fi
+done

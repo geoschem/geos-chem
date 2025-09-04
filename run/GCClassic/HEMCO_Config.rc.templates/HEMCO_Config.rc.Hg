@@ -1,0 +1,927 @@
+#------------------------------------------------------------------------------
+#                  Harmonized Emissions Component (HEMCO)                     !
+#------------------------------------------------------------------------------
+#BOP
+#
+# !MODULE: HEMCO_Config.rc
+#
+# !DESCRIPTION: Contains configuration information for HEMCO. Define the
+#  emissions inventories and corresponding file paths here. Entire
+#  configuration files can be inserted into this configuration file with
+#  an '>>>include' statement, e.g. '>>>include HEMCO\_Config\_test.rc'
+#  The settings of include-files will be ignored.
+#\\
+#\\
+# !REMARKS:
+#  This file has been customized for the Hg simulation.
+#  See The HEMCO User's Guide for file details:
+#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#
+# !REVISION HISTORY:
+#  See https://github.com/geoschem/geos-chem for complete history
+#EOP
+#------------------------------------------------------------------------------
+#BOC
+###############################################################################
+### BEGIN SECTION SETTINGS
+###############################################################################
+
+ROOT:                        ${RUNDIR_DATA_ROOT}/HEMCO
+GCAPSCENARIO:                ${RUNDIR_GCAP2_SCENARIO}
+GCAPVERTRES:                 ${RUNDIR_GCAP2_VERTRES}
+Logfile:                     *
+DiagnFile:                   HEMCO_Diagn.rc
+DiagnPrefix:                 ./OutputDir/HEMCO_diagnostics
+DiagnFreq:                   Monthly
+Wildcard:                    *
+Separator:                   /
+Unit tolerance:              1
+Negative values:             0
+Only unitless scale factors: false
+Verbose:                     false
+VerboseOnCores:              root       # Accepted values: root all
+
+### END SECTION SETTINGS ###
+
+###############################################################################
+### BEGIN SECTION EXTENSION SWITCHES
+###############################################################################
+# ExtNr ExtName                on/off  Species  Years avail.
+0       Base                   : on    *
+# ----- MAIN SWITCHES ---------------------------------------------------------
+    --> EMISSIONS              :       true
+    --> METEOROLOGY            :       true     ${RUNDIR_MET_AVAIL}
+    --> CHEMISTRY_INPUT        :       true
+# ----- RESTART FIELDS --------------------------------------------------------
+    --> GC_RESTART             :       true
+# ----- NESTED GRID FIELDS ----------------------------------------------------
+    --> GC_BCs                 :       ${RUNDIR_USE_BCs}
+# ----- REGIONAL INVENTORIES --------------------------------------------------
+    --> MACFARLANE             :       true     # 2000-2019
+    --> ZHAOZHANG              :       false    # 2010
+    --> CHAKRABORTY            :       false    # 2010
+    --> EMISS_CONTROLS         :       false    # 2010
+# ----- GLOBAL INVENTORIES ----------------------------------------------------
+    --> AMAP_COMB              :       false    # 2010
+    --> AMAP_INDS              :       false    # 2010
+    --> AMAP_INTW              :       false    # 2010
+    --> GMA_ASGM               :       true     # 2015
+    --> GMA_POWERGEN           :       true     # 2015
+    --> GMA_INDS               :       true     # 2015
+    --> GMA_INTW               :       true     # 2015
+    --> WHET                   :       false    # 2010
+    --> STREETS                :       false    # 2015
+    --> ARTISANAL              :       false    # 1985
+    --> NATURAL                :       false    # 1985
+    --> MCHgMAP_NATURAL        :       true     # 2010-2020
+    --> MCHgMAP_BB_GFED        :       false    # 2010-2020
+    --> MCHgMAP_BB_FINN        :       true     # 2010-2020
+    --> SOILDIST               :       true     # 1985
+    --> QFED2                  :       false    # 2000-2020
+    --> EDGAR_TOT              :       false    # 1970-2012
+    --> EDGAR_CEM              :       false    # 1970-2012
+    --> EDGAR_CHLOR            :       false    # 1970-2012
+    --> EDGAR_COMB_A           :       false    # 1970-2012
+    --> EDGAR_COMB_B           :       false    # 1970-2012
+    --> EDGAR_GLASS            :       false    # 1970-2012
+    --> EDGAR_GOLDA            :       false    # 1970-2012
+    --> EDGAR_GOLDB            :       false    # 1970-2012
+    --> EDGAR_IRO              :       false    # 1970-2012
+    --> EDGAR_NFEOTH           :       false    # 1970-2012
+    --> EDGAR_SHIP             :       false    # 1970-2012
+    --> EDGAR_TRO              :       false    # 1970-2012
+    --> EDGAR_WASTE            :       false    # 1970-2012
+# ----- NON-EMISSIONS DATA ----------------------------------------------------
+    --> OXIDANT_FIELDS         :       true     # 2010-2019
+    --> OCEAN_Hg               :       true     # 1985,2003,2009
+    --> TOMS_SBUV_O3           :       true     # 1971-2010
+    --> LHALOGENCHEM           :       true
+    --> LHGAQCHEM              :       true
+    --> LOHO3CHEM              :       false
+    --> LRED_INPLUME           :       false
+    --> OLSON_LANDMAP          :       true     # 1985
+    --> YUAN_MODIS_LAI         :       true     # 2000-2020
+# -----------------------------------------------------------------------------
+# NOTE: Changing these options will require a change in reduction rate in order
+#       to maintain agreement with observations. Please see wiki for details
+#       http://wiki.seas.harvard.edu/geos-chem/index.php/Mercury
+# -----------------------------------------------------------------------------
+111     GFED              : off   Hg0
+    --> GFED4             :       false
+    --> GFED_daily        :       false
+    --> GFED_3hourly      :       false
+    --> Scaling_CO        :       1.05
+    --> Scaling_NAP       :       2.75e-4
+    --> hydrophilic BC    :       0.2
+    --> hydrophilic OC    :       0.5
+    --> fraction POG1     :       0.49
+114     FINN              : off   Hg0
+    --> FINN_daily        :       false
+    --> Scaling_CO        :       1.0
+    --> hydrophilic BC    :       0.2
+    --> hydrophilic OC    :       0.5
+    --> Scaling_Hg0       :       7.16e-7
+
+### END SECTION EXTENSION SWITCHES ###
+
+###############################################################################
+### BEGIN SECTION BASE EMISSIONS
+###############################################################################
+
+# ExtNr Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Species ScalIDs Cat Hier
+
+(((EMISSIONS
+
+#==============================================================================
+# NOTE: HgP emissions must be added as Hg2 emissions under the Species column
+#==============================================================================
+
+#==============================================================================
+# --- GMA 2018 emissions ---
+#
+#  NOTES:
+#  - HgP emissions are added to Hg2 emissions!
+#  - Hg2 and HgP emissions are 0 everywhere for ASGM source and are not read
+#==============================================================================
+(((GMA_ASGM
+0 GMA_ASGM_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_asgm 2015/1/1/0 C xy kg/m2/s Hg0    - 8 1
+#0 GMA_ASGM_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_asgm 2015/1/1/0 C xy *       HgCl2  - 8 1
+#0 GMA_ASGM_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_asgm 2015/1/1/0 C xy *       Hg2ClP - 8 1
+)))GMA_ASGM
+
+(((GMA_INDS
+0 GMA_IND_HG0      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_inds 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_IND_HG2      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_inds 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_IND_HGP      $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_inds 2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_INDS
+
+(((GMA_INTW
+0 GMA_INTW_HG0     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_intw 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_INTW_HG2     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_intw 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_INTW_HGP     $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_intw 2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_INTW
+
+(((GMA_POWERGEN
+0 GMA_POWERGEN_HG0 $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_0_pg   2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 GMA_POWERGEN_HG2 $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_2_pg   2015/1/1/0 C xy *       HgCl2  - 1 1
+0 GMA_POWERGEN_HGP $ROOT/MERCURY/v2022-10/GMA_emissions_Hg.0.25x0.25.2015.nc emi_hg_p_pg   2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))GMA_POWERGEN
+
+#==============================================================================
+# --- AMAP/UNEP emissions ---
+#==============================================================================
+(((AMAP_COMB
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
+)))AMAP_COMB
+
+(((AMAP_INDS
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
+)))AMAP_INDS
+
+(((AMAP_INTW
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
+)))AMAP_INTW
+
+#==============================================================================
+# --- MacFarlane et al. 2022 Australian emissions                ---
+#==============================================================================
+
+(((MACFARLANE
+0 AUS_BLKCOAL_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_BLKCOAL_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BLKCOAL_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/BlackCoalEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BRNCOAL_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_BRNCOAL_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_BRNCOAL_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/BrownCoalEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CEMENT_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CEMENT_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CEMENT_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/CementEmissions_kgm2s.nc                  HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CHLOR_HG0      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CHLOR_HG2      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CHLOR_HGP      $ROOT/MERCURY/v2025-01/MACFARLANE/ChlorAlkaliEmissions_kgm2s.nc             HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_COPPER_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_COPPER_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_COPPER_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/CopperEmissions_kgm2s.nc                  HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CREM_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_CREM_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_CREM_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/CremationEmissions_kgm2s.nc               HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_FERROUS_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_FERROUS_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_FERROUS_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/FerrousMetalEmissions_kgm2s.nc            HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_GOLD_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_GOLD_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_GOLD_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/GoldEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_LEAD_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_LEAD_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_LEAD_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/LeadEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OILREF_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_OILREF_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OILREF_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/OilRefiningEmissions_kgm2s.nc             HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OTHIND_HG0     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_OTHIND_HG2     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_OTHIND_HGP     $ROOT/MERCURY/v2025-01/MACFARLANE/OtherIndustryEmissions_kgm2s.nc           HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_NONFERROUS_HG0 $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_NONFERROUS_HG2 $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_NONFERROUS_HGP $ROOT/MERCURY/v2025-01/MACFARLANE/NonFerrousMetalEmissions_kgm2s.nc         HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_REFPETR_HG0    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_REFPETR_HG2    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_REFPETR_HGP    $ROOT/MERCURY/v2025-01/MACFARLANE/RefinedPetroleumProductEmissions_kgm2s.nc HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_WASTE_HG0      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_WASTE_HG2      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_WASTE_HGP      $ROOT/MERCURY/v2025-01/MACFARLANE/WasteEmissions_kgm2s.nc                   HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_ZINC_HG0       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    Hg0 2000-2019/1/1/0 C xy kg/m2/s Hg0      1010 1 3
+0 AUS_ZINC_HG2       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    Hg2 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+0 AUS_ZINC_HGP       $ROOT/MERCURY/v2025-01/MACFARLANE/ZincEmissions_kgm2s.nc                    HgP 2000-2019/1/1/0 C xy kg/m2/s HGCL2 13/1010 1 3
+)))MACFARLANE
+
+#==============================================================================
+# --- Yanxu Zhang et al. 2015 and Zhao et al. 2015 China emissions totals ---
+#==============================================================================
+
+(((ZHAOZHANG
+
+(((AMAP_COMB
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    3/1006 1 3
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  4/1006 1 3
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
+)))AMAP_COMB
+
+(((AMAP_INDS
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0   3/1006 1 3
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2 4/1006 1 3
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
+)))AMAP_INDS
+
+(((AMAP_INTW
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    3/1006 1 3
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  4/1006 1 3
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 5/1006 1 3
+)))AMAP_INTW
+
+)))ZHAOZHANG
+
+#==============================================================================
+# --- Chakraborty et al. 2013 India emissions totals ---
+#==============================================================================
+
+(((CHAKRABORTY
+
+(((AMAP_COMB
+0 AMAP_COMB_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_COMB_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
+)))AMAP_COMB
+
+(((AMAP_INDS
+0 AMAP_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
+)))AMAP_INDS
+
+(((AMAP_INTW
+0 AMAP_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    6/1007 1 3
+0 AMAP_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc Hg2 2010/1/1/0 C xy *       HgCl2  7/1007 1 3
+0 AMAP_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc HgP 2010/1/1/0 C xy *       Hg2ClP 8/1007 1 3
+)))AMAP_INTW
+
+)))CHAKRABORTY
+
+#==============================================================================
+# WHET emissions inventory
+#==============================================================================
+
+(((WHET
+0 WHET_HG0 $ROOT/MERCURY/v2018-04/WHET_Hg0.geos.1x1.2010_final.nc Hg0 2010/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 WHET_HG2 $ROOT/MERCURY/v2018-04/WHET_Hg2.geos.1x1.2010_final.nc Hg2 2010/1/1/0 C xy *       HgCl2  - 1 1
+0 WHET_HGP $ROOT/MERCURY/v2018-04/WHET_HgP.geos.1x1.2010_final.nc HgP 2010/1/1/0 C xy *       Hg2ClP - 1 1
+)))WHET
+
+#==============================================================================
+# Streets et al. 2019 emissions inventory
+#==============================================================================
+
+(((STREETS
+0 STREETS_HG0 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg0 2015/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 STREETS_HG2 $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc Hg2 2015/1/1/0 C xy *       HgCl2  - 1 1
+0 STREETS_HGP $ROOT/MERCURY/v2021-09/Streets/Streets2019_Hg.nc HgP 2015/1/1/0 C xy *       Hg2ClP - 1 1
+)))STREETS
+
+#==============================================================================
+# EDGAR emissions inventory
+# Either use total (all sectors) or individual sectors, but not both
+#==============================================================================
+
+(((EDGAR_TOT
+0 EDGAR_TOT_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_TOT_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_TOT_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_totals_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+)))EDGAR_TOT
+
+(((EDGAR_CEM
+0 EDGAR_CEM_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_CEM_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_CEM_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_cement_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+)))EDGAR_CEM
+
+(((EDGAR_CHLOR
+0 EDGAR_CHLOR_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0   - 1 1
+0 EDGAR_CHLOR_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_chlor_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2 - 1 1
+)))EDGAR_CHLOR
+
+(((EDGAR_COMB_A
+0 EDGAR_COMB_A_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_COMB_A_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_COMB_A_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_power_ind_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+)))EDGAR_COMB_A
+
+(((EDGAR_COMB_B
+0 EDGAR_COMB_B_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy kg/m2/s Hg0    - 1 1
+0 EDGAR_COMB_B_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy *       HgCl2  - 1 1
+0 EDGAR_COMB_B_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_comb_res_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy *       Hg2ClP - 1 1
+)))EDGAR_COMB_B
+
+(((EDGAR_GLASS
+0 EDGAR_GLASS_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_GLASS_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_GLASS_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_glass_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_GLASS
+
+(((EDGAR_GOLDA
+0 EDGAR_GOLDA_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_A_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0 - 1 1
+)))EDGAR_GOLDA
+
+(((EDGAR_GOLDB
+0 EDGAR_GOLDB_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_GOLDB_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_GOLDB_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_gold_L_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_GOLDB
+
+(((EDGAR_IRO
+0 EDGAR_IRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_IRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_IRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_Iro_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_IRO
+
+(((EDGAR_NFEOTH
+0 EDGAR_NFEOTH_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_NFEOTH_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_NFEOTH_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_nfe_oth_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_NFEOTH
+
+(((EDGAR_SHIP
+0 EDGAR_SHIP_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_SHIP_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_SHIP_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_shipping_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_SHIP
+
+(((EDGAR_TRO
+0 EDGAR_TRO_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_TRO_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_TRO_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_tro_roa_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_TRO
+
+(((EDGAR_WASTE
+0 EDGAR_WASTE_HG0 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_g 1970-2012/1/1/0 C xy * Hg0    - 1 1
+0 EDGAR_WASTE_HG2 $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_d 1970-2012/1/1/0 C xy * HgCl2  - 1 1
+0 EDGAR_WASTE_HGP $ROOT/MERCURY/v2020-07/EDGAR/$YYYY/EDGAR_waste_$YYYY_Hg.nc emi_hg_p 1970-2012/1/1/0 C xy * Hg2ClP - 1 1
+)))EDGAR_WASTE
+
+#==============================================================================
+# --- Emissions Controls for Coal Fired Power Plants  ---
+# Only applies to US, Canada, EU, and China
+# NOTE: Should only be used with the AMAP/UNEP 2010 emissions (AMAP_COMB,
+#       AMAP_INDS, AMAP_CONT set to true)
+# See Yanxu Zhang et al. 2016 for details
+#==============================================================================
+
+(((EMISS_CONTROLS
+0 NPRI2011_HG0 $ROOT/MERCURY/v2014-09/NPRI2011/Hg0.NPRI_2011_def_spec.025x03125.nc Hg0 2011/1/1/0 C xy kg/m2/s Hg0    10/1008 1 2
+0 NPRI2011_HG2 $ROOT/MERCURY/v2014-09/NPRI2011/Hg2.NPRI_2011_def_spec.025x03125.nc Hg2 2011/1/1/0 C xy *       HgCl2  9/1008  1 2
+0 NPRI2011_HGP $ROOT/MERCURY/v2014-09/NPRI2011/HgP.NPRI_2011_def_spec.025x03125.nc HgP 2011/1/1/0 C xy *       Hg2ClP 1008    1 2
+0 EU_CONT_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    11/1009 1 3
+0 EU_INDS_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1009    1 3
+0 EU_INTW_HG0  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1009    1 3
+0 EU_CONT_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  9/1009  1 3
+0 EU_INDS_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1009    1 3
+0 EU_INTW_HG2  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1009    1 3
+0 EU_COMB_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 EU_INTW_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 EU_INDS_HGP  $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1009    1 3
+0 CHN_CONT_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    12/1006 1 4
+0 CHN_INDS_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1006    1 4
+0 CHN_INTW_HG0 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1006    1 4
+0 CHN_CONT_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  9/1006  1 4
+0 CHN_INDS_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1006    1 4
+0 CHN_INTW_HG2 $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               Hg2 2010/1/1/0 C xy *       HgCl2  1006    1 4
+0 CHN_COMB_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_comb.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 CHN_INDS_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_inds.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 CHN_INTW_HGP $ROOT/MERCURY/v2014-09/AMAP/AMAP_intw.0.5x0.5.2010.nc               HgP 2010/1/1/0 C xy *       Hg2ClP 1006    1 4
+0 NEI2011_HG0  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg0.geos5.05x0666.nc      Hg0 2010/1/1/0 C xy kg/m2/s Hg0    1005    1 5
+0 NEI2011_HG2  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_Hg2.geos5.05x0666.nc      Hg2 2010/1/1/0 C xy *       HgCl2  1005    1 5
+0 NEI2011_HGP  $ROOT/MERCURY/v2014-09/NEI2011/US_NEI2011_HgP.geos5.05x0666.nc      HgP 2010/1/1/0 C xy *       Hg2ClP 1005    1 5
+)))EMISS_CONTROLS
+
+#==============================================================================
+# --- Artisanal mining ---
+#==============================================================================
+(((ARTISANAL
+0 ARTISANAL_HG0 $ROOT/MERCURY/v2014-09/ARTISANAL/artisanal.geos.4x5.nc Hg0 1985/1/1/0 C xy kg/m2/s Hg0 1 8 1
+)))ARTISANAL
+
+#==============================================================================
+# --- Natural emissions ---
+#==============================================================================
+(((NATURAL
+0 NATURAL_HG0 $ROOT/MERCURY/v2014-09/NATURAL/newnatural.geos.4x5.nc Hg0 1985/1/1/0 C xy kg/m2/s Hg0 2 3 1
+)))NATURAL
+
+#==============================================================================
+# --- MCHgMAP natural emissions ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_NATURAL
+0 RockWeathering_Hg0 $ROOT/MERCURY/v2025-06/GeogenicEmissions/Hg_geogenic.kgm2s.nc4 Hg_rock_weathering_emission 2010-2020/1/1/0 C xy kg/m2/s Hg0 - 3 1
+0 Volcanic_Hg0       $ROOT/MERCURY/v2025-06/GeogenicEmissions/Hg_geogenic.kgm2s.nc4 Hg_volcanic_emission        2010-2020/1/1/0 C xy kg/m2/s Hg0 - 3 1
+)))MCHgMAP_NATURAL
+
+#==============================================================================
+# --- Soil distribution factor (pointer is imported in mercury_mod.F) ---
+#
+# NOTE: Here we use the 4x5 GEOS-FP file, but users may want to change this
+# for other met fields and resolutions.
+#==============================================================================
+(((SOILDIST
+0 HG0_SOILDIST $ROOT/MERCURY/v2014-09/SOIL/soilHg.presentday.v11-01.geosfp.4x5.nc HG0_DIST 1985/1/1/0 C xy unitless * - 1 1
+)))SOILDIST
+
+#==============================================================================
+# --- QFED2 biomass burning ---
+#==============================================================================
+(((QFED2
+0 QFED_Hg_PBL    $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=1:PBL     kg/m2/s Hg0  54/75/311 5 2
+0 QFED_Hg_FT     $ROOT/QFED/v2018-07/$YYYY/$MM/qfed2.emis_co.006.$YYYY$MM$DD.nc4   biomass 2000-2022/1-12/1-31/0/+12hour EFY xyL=PBL:5500m kg/m2/s Hg0  54/75/312 5 2
+)))QFED2
+
+#==============================================================================
+# --- MCHgMAP (GFED) biomass burning (90% Hg0,10% HgP) ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_BB_GFED
+0 GFED_Hg0      $ROOT/MERCURY/v2025-06/BioBurn_emissions_GFED4s/$YYYY/Hg_wildfire_monthly_gfed4s_flux_$YYYY$MM.nc4 Hg0 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg0    - 12 1
+0 GFED_HgP      $ROOT/MERCURY/v2025-06/BioBurn_emissions_GFED4s/$YYYY/Hg_wildfire_monthly_gfed4s_flux_$YYYY$MM.nc4 HgP 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg2ClP - 12 1
+)))MCHgMAP_BB_GFED
+
+#==============================================================================
+# --- MCHgMAP (FINN) biomass burning (90% Hg0,10% HgP) ---
+#     Dastoor et al. 2025
+#     https://doi.org/10.5194/gmd-18-2747-2025
+#==============================================================================
+(((MCHgMAP_BB_FINN
+0 FINN_Hg0      $ROOT/MERCURY/v2025-06/BioBurn_emissions_FINN2p5/$YYYY/Hg_wildfire_monthly_finn_flux_$YYYY$MM.nc Hg0 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg0    - 12 1
+0 FINN_HgP      $ROOT/MERCURY/v2025-06/BioBurn_emissions_FINN2p5/$YYYY/Hg_wildfire_monthly_finn_flux_$YYYY$MM.nc HgP 2010-2020/1-12/1-31/0 C xy kg/m2/s Hg2ClP - 12 1
+)))MCHgMAP_BB_FINN
+
+###############################################################################
+### EXTENSION DATA (subsection of BASE EMISSIONS SECTION)
+###
+### These fields are needed by the extensions listed above. The assigned ExtNr
+### must match the ExtNr entry in section 'Extension switches'. These fields
+### are only read if the extension is enabled.  The fields are imported by the
+### extensions by field name.  The name given here must match the name used
+### in the extension's source code.
+###############################################################################
+
+#==============================================================================
+# --- GFED biomass burning emissions (Extension 111)
+# NOTE: These are the base emissions in kgDM/m2/s.
+#==============================================================================
+(((GFED4
+111 GFED_TEMP       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_TEMP       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_AGRI       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_AGRI       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_DEFO       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_DEFO       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_BORF       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_BORF       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_PEAT       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_PEAT       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+111 GFED_SAVA       $ROOT/GFED4/v2023-03/$YYYY/GFED4_gen.025x025.$YYYY$MM.nc  DM_SAVA       2010-2023/1-12/01/0    RF xy kgDM/m2/s * - 1 1
+
+(((GFED_daily
+111 GFED_FRAC_DAY   $ROOT/GFED4/v2023-03/$YYYY/GFED4_dailyfrac_gen.025x025.$YYYY$MM.nc GFED_FRACDAY 2010-2023/1-12/1-31/0  RF xy 1 * - 1 1
+)))GFED_daily
+
+(((GFED_3hourly
+111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
+)))GFED_3hourly
+)))GFED4
+
+#==============================================================================
+# --- FINN v1.5 biomass burning emissions (Extension 114)
+#==============================================================================
+(((.not.FINN_daily
+114 FINN_VEGTYP1       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP2       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP3       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP4       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP5       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_VEGTYP9       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+))).not.FINN_daily
+
+(((FINN_daily
+114 FINN_DAILY_VEGTYP1 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP2 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP3 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP4 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP5 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+114 FINN_DAILY_VEGTYP9 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
+)))FINN_daily
+
+)))EMISSIONS
+
+###############################################################################
+### NON-EMISSIONS DATA (subsection of BASE EMISSIONS SECTION)
+###
+### Non-emissions data. The following fields are read through HEMCO but do
+### not contain emissions data. The extension number is set to wildcard
+### character denoting that these fields will not be considered for emission
+### calculation. A given entry is only read if the assigned species name is
+### an HEMCO species.
+###############################################################################
+
+#==============================================================================
+# --- Time zones (offset to UTC) ---
+#==============================================================================
+* TIMEZONES $ROOT/TIMEZONES/v2024-02/timezones_vohra_2017_0.1x0.1.nc UTC_OFFSET 2017/1-12/1/0 C xy count * - 1 1
+
+#==============================================================================
+# --- Meteorology fields ---
+#==============================================================================
+(((METEOROLOGY
+
+>>>include ${RUNDIR_MET_FIELD_CONFIG}
+
+)))METEOROLOGY
+
+#==============================================================================
+# --- GEOS-Chem restart file ---
+#==============================================================================
+(((GC_RESTART
+* SPC_                 ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesRst_?ALL?       $YYYY/$MM/$DD/$HH EFYO xyz 1 * - 1 1
+* DELPDRY              ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Met_DELPDRY            $YYYY/$MM/$DD/$HH EY   xyz 1 * - 1 1
+* OCEAN_Hg0            ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_OceanHg0          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* OCEAN_Hg2            ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_OceanHg2          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* OCEAN_HgP            ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_OceanHgP          $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* SNOW_HG_OCEAN        ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_SnowHgOcean       $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* SNOW_HG_LAND         ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_SnowHgLand        $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* SNOW_HG_OCEAN_STORED ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_SnowHgOceanStored $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+* SNOW_HG_LAND_STORED  ./Restarts/GEOSChem.Restart.$YYYY$MM$DD_$HH$MNz.nc4 Chem_SnowHgLandStored  $YYYY/$MM/$DD/$HH EY   xy  1 * - 1 1
+)))GC_RESTART
+
+#==============================================================================
+# --- GEOS-Chem boundary condition file ---
+#==============================================================================
+(((GC_BCs
+* BC_  $ROOT/SAMPLE_BCs/v2019-05/tropchem/GEOSChem.BoundaryConditions.$YYYY$MM$DD_$HH$MNz.nc4 SpeciesBC_?ADV?  1900-2100/1-12/1-31/* EFY xyz 1 * - 1 1
+)))GC_BCs
+
+(((CHEMISTRY_INPUT
+
+#==============================================================================
+# --- Oxidant fields (from GEOS-Chem 10-yr benchmark output) ---
+#==============================================================================
+(((OXIDANT_FIELDS
+
+# --- Oxidant fields [molec/cm3], for 2010-2019 ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_Br}
+${RUNDIR_Hg_GLOBAL_BrO}
+${RUNDIR_Hg_GLOBAL_CH4}
+${RUNDIR_Hg_GLOBAL_Cl}
+${RUNDIR_Hg_GLOBAL_ClO}
+${RUNDIR_Hg_GLOBAL_CO}
+${RUNDIR_Hg_GLOBAL_HO2}
+${RUNDIR_Hg_GLOBAL_NO}
+${RUNDIR_Hg_GLOBAL_NO2}
+${RUNDIR_Hg_GLOBAL_O3}
+${RUNDIR_Hg_GLOBAL_OH}
+
+# --- Aerosol optical depths [unitless], for 2010-2019 ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_AOD_BC}     
+${RUNDIR_Hg_GLOBAL_AOD_BGSULF} 
+${RUNDIR_Hg_GLOBAL_AOD_DST1}   
+${RUNDIR_Hg_GLOBAL_AOD_DST2}   
+${RUNDIR_Hg_GLOBAL_AOD_DST3}   
+${RUNDIR_Hg_GLOBAL_AOD_DST4}   
+${RUNDIR_Hg_GLOBAL_AOD_DST5}   
+${RUNDIR_Hg_GLOBAL_AOD_DST6}   
+${RUNDIR_Hg_GLOBAL_AOD_DST7}  
+${RUNDIR_Hg_GLOBAL_AOD_ICEI}   
+${RUNDIR_Hg_GLOBAL_AOD_OC}     
+${RUNDIR_Hg_GLOBAL_AOD_SO4}
+${RUNDIR_Hg_GLOBAL_AOD_SSA}    
+${RUNDIR_Hg_GLOBAL_AOD_SSC}    
+
+# --- Aerosol areas [cm2/cm3], for 2010-2019 ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_AREA_BC}     
+${RUNDIR_Hg_GLOBAL_AREA_BGSULF} 
+${RUNDIR_Hg_GLOBAL_AREA_DST1}   
+${RUNDIR_Hg_GLOBAL_AREA_DST2}   
+${RUNDIR_Hg_GLOBAL_AREA_DST3}   
+${RUNDIR_Hg_GLOBAL_AREA_DST4}   
+${RUNDIR_Hg_GLOBAL_AREA_DST5}   
+${RUNDIR_Hg_GLOBAL_AREA_DST6}   
+${RUNDIR_Hg_GLOBAL_AREA_DST7}  
+${RUNDIR_Hg_GLOBAL_AREA_ICEI}   
+${RUNDIR_Hg_GLOBAL_AREA_OC}     
+${RUNDIR_Hg_GLOBAL_AREA_SO4}
+${RUNDIR_Hg_GLOBAL_AREA_SSA}    
+${RUNDIR_Hg_GLOBAL_AREA_SSC}   
+
+# --- Aerosol radii [cm], for 2010-2019 ---
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_RADI_BC}     
+${RUNDIR_Hg_GLOBAL_RADI_BGSULF} 
+${RUNDIR_Hg_GLOBAL_RADI_DST1}   
+${RUNDIR_Hg_GLOBAL_RADI_DST2}   
+${RUNDIR_Hg_GLOBAL_RADI_DST3}   
+${RUNDIR_Hg_GLOBAL_RADI_DST4}   
+${RUNDIR_Hg_GLOBAL_RADI_DST5}   
+${RUNDIR_Hg_GLOBAL_RADI_DST6}   
+${RUNDIR_Hg_GLOBAL_RADI_DST7}  
+${RUNDIR_Hg_GLOBAL_RADI_ICEI}   
+${RUNDIR_Hg_GLOBAL_RADI_OC}     
+${RUNDIR_Hg_GLOBAL_RADI_SO4}
+${RUNDIR_Hg_GLOBAL_RADI_SSA}    
+${RUNDIR_Hg_GLOBAL_RADI_SSC}
+
+# --- Other fields ---
+# fOA and RH (2016) and ocean_conc (2007) are unitless; PM25 (2016) is in [ug/m3]
+# Consider supplying other years as necessary
+${RUNDIR_Hg_GLOBAL_fOA}
+${RUNDIR_Hg_GLOBAL_OCEAN}
+${RUNDIR_Hg_GLOBAL_PM25}
+${RUNDIR_Hg_GLOBAL_RH}
+)))OXIDANT_FIELDS
+
+#==============================================================================
+# --- Data for the ocean mercury module ---
+#==============================================================================
+(((OCEAN_Hg
+* OCEAN_CHLA    $ROOT/CHLA/v2014-07/Chl_2003.geos.1x1.nc               CHLA    2003/1-12/1/0 C xy kg/m3 * - 1 1
+* OCEAN_CHLA_A  $ROOT/MERCURY/v2014-09/OCEAN/CHL_ocn_2009.geos.2x25.nc CHLO_A  2009/1-12/1/0 C xy 1     * - 1 1
+* OCEAN_EKMAN_V $ROOT/MERCURY/v2014-09/OCEAN/ekman_upvel.geos.2x25.nc  EKMAN_V 1985/1-12/1/0 C xy m/s   * - 1 1
+* OCEAN_MLD     $ROOT/MERCURY/v2014-09/OCEAN/MLD_DReqDT.geos.2x25.nc   MLD     1985/1-12/1/0 C xy m     * - 1 1
+* OCEAN_NPP     $ROOT/MERCURY/v2014-09/OCEAN/NPP_2003.geos.2x25.nc     NPP     2003/1-12/1/0 C xy kg/m2 * - 1 1
+* OCEAN_NPP_A   $ROOT/MERCURY/v2014-09/OCEAN/NPP_ocn_2009.geos.2x25.nc NPP_A   2009/1-12/1/0 C xy 1     * - 1 1
+* OCEAN_dMLD1   $ROOT/MERCURY/v2014-09/OCEAN/dMLD1_DreqDT.geos.2x25.nc dMLD1   1985/1-12/1/0 C xy cm/s  * - 1 1
+* OCEAN_dMLD2   $ROOT/MERCURY/v2014-09/OCEAN/dMLD2_DreqDT.geos.2x25.nc dMLD2   1985/1-12/1/0 C xy cm/s  * - 1 1
+)))OCEAN_Hg
+
+#==============================================================================
+# --- TOMS/SBUV overhead ozone columns ---
+#==============================================================================
+(((TOMS_SBUV_O3
+* TOMS_O3_COL $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_$YYYY.geos.1x1.nc       TOMS     1971-2010/1-12/1/0 C xy dobsons * - 1 1
+* TOMS_O3_PD  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_presentday.geos.2x25.nc TOMS_PD  1985/1-12/1/0      C xy dobsons * - 1 1
+* TOMS_O3_LT  $ROOT/TOMS_SBUV/v2015-03/TOMS_O3col_longterm.geos.2x25.nc   TOMS_LT  1985/1-12/1/0      C xy dobsons * - 1 1
+)))TOMS_SBUV_O3
+
+)))CHEMISTRY_INPUT
+
+#==============================================================================
+# --- Olson land map masks ---
+#==============================================================================
+(((OLSON_LANDMAP
+* LANDTYPE00 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE00 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE01 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE01 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE02 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE02 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE03 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE03 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE04 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE04 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE05 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE05 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE06 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE06 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE07 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE07 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE08 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE08 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE09 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE09 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE10 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE10 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE11 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE11 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE12 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE12 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE13 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE13 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE14 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE14 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE15 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE15 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE16 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE16 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE17 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE17 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE18 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE18 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE19 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE19 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE20 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE20 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE21 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE21 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE22 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE22 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE23 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE23 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE24 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE24 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE25 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE25 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE26 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE26 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE27 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE27 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE28 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE28 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE29 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE29 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE30 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE30 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE31 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE31 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE32 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE32 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE33 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE33 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE34 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE34 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE35 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE35 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE36 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE36 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE37 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE37 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE38 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE38 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE39 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE39 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE40 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE40 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE41 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE41 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE42 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE42 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE43 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE43 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE44 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE44 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE45 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE45 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE46 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE46 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE47 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE47 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE48 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE48 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE49 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE49 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE50 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE50 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE51 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE51 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE52 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE52 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE53 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE53 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE54 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE54 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE55 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE55 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE56 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE56 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE57 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE57 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE58 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE58 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE59 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE59 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE60 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE60 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE61 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE61 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE62 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE62 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE63 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE63 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE64 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE64 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE65 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE65 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE66 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE66 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE67 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE67 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE68 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE68 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE69 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE69 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE70 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE70 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE71 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE71 1985/1/1/0 C xy 1 * - 1 1
+* LANDTYPE72 $ROOT/OLSON_MAP/v2019-02/Olson_2001_Land_Type_Masks.025x025.generic.nc LANDTYPE72 1985/1/1/0 C xy 1 * - 1 1
+)))OLSON_LANDMAP
+
+#==============================================================================
+# --- Yuan processed MODIS leaf area index data ---
+#
+# Source: Yuan et al 2011, doi:10.1016/j.rse.2011.01.001
+#         http://globalchange.bnu.edu.cn/research/lai
+#
+# NOTES:
+# (1) LAI data corresponding to each Olson land type is stored in
+#      separate netCDF variables (XLAI00, XLAI01, ... XLAI72).
+#      The "XLAI" denotes that the files are prepared in this way.
+# (2) Units are "cm2 leaf/cm2 grid box".
+# (3) Data is timestamped every 8 days, starting from the 2nd of the month.
+#==============================================================================
+(((YUAN_MODIS_LAI
+* XLAI00 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI00 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI01 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI01 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI02 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI02 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI03 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI03 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI04 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI04 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI05 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI05 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI06 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI06 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI07 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI07 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI08 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI08 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI09 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI09 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI10 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI10 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI11 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI11 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI12 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI12 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI13 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI13 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI14 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI14 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI15 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI15 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI16 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI16 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI17 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI17 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI18 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI18 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI19 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI19 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI20 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI20 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI21 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI21 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI22 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI22 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI23 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI23 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI24 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI24 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI25 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI25 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI26 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI26 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI27 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI27 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI28 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI28 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI29 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI29 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI30 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI30 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI31 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI31 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI32 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI32 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI33 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI33 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI34 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI34 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI35 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI35 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI36 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI36 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI37 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI37 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI38 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI38 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI39 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI39 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI40 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI40 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI41 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI41 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI42 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI42 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI43 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI43 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI44 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI44 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI45 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI45 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI46 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI46 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI47 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI47 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI48 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI48 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI49 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI49 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI50 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI50 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI51 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI51 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI52 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI52 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI53 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI53 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI54 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI54 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI55 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI55 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI56 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI56 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI57 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI57 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI58 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI58 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI59 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI59 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI60 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI60 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI61 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI61 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI62 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI62 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI63 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI63 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI64 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI64 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI65 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI65 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI66 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI66 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI67 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI67 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI68 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI68 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI69 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI69 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI70 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI70 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI71 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI71 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+* XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
+)))YUAN_MODIS_LAI
+
+### END SECTION BASE EMISSIONS ###
+
+###############################################################################
+### BEGIN SECTION SCALE FACTORS
+###############################################################################
+
+# ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper
+
+# --- Scale factors for anthropogenic, artisinal, and soil emissions ---
+1  ARTISANALSCALE 0.75    - - - xy 1 1
+2  SOILSCALE      0.5     - - - xy 1 1
+3  ZHANGZHAO_0    1.120   - - - xy 1 1
+4  ZHANGZHAO_2    2.467   - - - xy 1 1
+5  ZHANGZHAO_P    0.557   - - - xy 1 1
+6  CHAKRABORTY_0  1.401   - - - xy 1 1
+7  CHAKRABORTY_2  2.120   - - - xy 1 1
+8  CHAKRABORTY_P  2.856   - - - xy 1 1
+9  EMISSCONT_2    0.5     - - - xy 1 1
+10 NPRI_CONT_0    1.343   - - - xy 1 1
+11 EU_CONT_0      1.396   - - - xy 1 1
+12 CHN_CONT_0     1.400   - - - xy 1 1
+13 HgCl2_to_Hg    0.7403  - - - xy 1 1
+54 COtoHg0_BB     7.16e-7 - - - xy 1 1
+
+#==============================================================================
+# --- QFED2 diurnal scale factors ---
+#
+# Fire diurnal scaling factors (% per hour) from WRAP Report to Project
+# No. 178-6, July 2005
+#==============================================================================
+75 QFED2_TOD 0.1392/0.1392/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.1368/0.48/0.96/1.68/2.4/3.12/3.84/4.08/2.88/1.68/0.96/0.1368/0.1368/0.1368/0.1368/0.1368 - - - xy unitless 1
+
+#==============================================================================
+# --- QFED vertical partitioning ---
+# Following Fischer et al. (2014) and Travis et al. (2016), emit 35% of QFED
+# emissions above the PBL.
+#==============================================================================
+311 QFED_PBL_FRAC 0.65 - - - xy 1 1
+312 QFED_FT_FRAC  0.35 - - - xy 1 1
+
+### END SECTION SCALE FACTORS ###
+
+###############################################################################
+### BEGIN SECTION MASKS
+###############################################################################
+
+# ScalID Name sourceFile sourceVar sourceTime C/R/E SrcDim SrcUnit Oper Lon1/Lat1/Lon2/Lat2
+
+#==============================================================================
+# Country/region masks
+#==============================================================================
+1005 USA_MASK       $ROOT/MASKS/v2014-07/USA_mask.geos.1x1.nc         MASK 1985/1/1/0 C xy 1 1 -140/10/-40/70
+1006 CHINA_MASK     $ROOT/MASKS/v2014-07/China_mask.generic.1x1.nc    MASK 1985/1/1/0 C xy 1 1 70/15/125/50
+1007 INDIA_MASK     $ROOT/MASKS/v2014-07/India_mask.generic.1x1.nc    MASK 1985/1/1/0 C xy 1 1 65/5/100/35
+1008 CANADA_MASK    $ROOT/MASKS/v2014-07/Canada_mask.gen.1x1.nc       MASK 2000/1/1/0 C xy 1 1 -130/45/-50/85
+1009 EUROPE_MASK    $ROOT/MASKS/v2014-07/EU_mask.generic.1x1.nc       MASK 1985/1/1/0 C xy 1 1 20/35/50/80
+1010 AUSTRALIA_MASK $ROOT/MASKS/v2025-01/AU_mask.generic.0.25x0.25.nc MASK 1985/1/1/0 C xy 1 1 110/-45/155/-10
+
+### END SECTION MASKS ###
+
+### END OF HEMCO INPUT FILE ###
+#EOC

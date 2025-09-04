@@ -1,0 +1,14 @@
+*.[oax]
+*.mod
+*.MOD
+*~*
+geos
+geostomas
+geosapm
+*.pp.*
+*.pdb
+*.inst.*
+*.continue.*
+*.ppk
+core.*
+gc_classic_version.H

@@ -1,0 +1,603 @@
+Collections:
+  TT_AnnualScalar.geos.1x1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/AnnualScalar/v2014-07/AnnualScalar.geos.1x1.nc
+  TT_CO-em-anthro_CMIP_CEDS_%y4.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+  TT_Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/Yuan_XLAI/v2019-03/Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+  TT_EDGAR_v42_SF6_IPCC_2.generic.01x01.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/SF6/v2019-01/EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+  TT_EDGAR_v43.CO.ENG.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.ENG.0.1x0.1.nc
+  TT_EDGAR_v43.CO.FFF.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.FFF.0.1x0.1.nc
+  TT_EDGAR_v43.CO.IND.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.IND.0.1x0.1.nc
+  TT_EDGAR_v43.CO.POW.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.POW.0.1x0.1.nc
+  TT_EDGAR_v43.CO.PPA.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.PPA.0.1x0.1.nc
+  TT_EDGAR_v43.CO.RCO.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.RCO.0.1x0.1.nc
+  TT_EDGAR_v43.CO.SWD.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.SWD.0.1x0.1.nc
+  TT_EDGAR_v43.CO.TNG.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TNG.0.1x0.1.nc
+  TT_EDGAR_v43.CO.TRO.0.1x0.1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.CO.TRO.0.1x0.1.nc
+  TT_EDGAR_v43.Seasonal.1x1.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/EDGARv43/v2016-11/EDGAR_v43.Seasonal.1x1.nc
+  TT_Olson_2001_Land_Map.025x025.generic.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/Olson_Land_Map_201203/Olson_2001_Land_Map.025x025.generic.nc
+  TT_Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc:
+    template: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/ZHANG_Rn222/v2021-11/Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+  TT_timezones_esmf.2x25.nc:
+    template: /discover/nobackup/cakelle2/data/timezones_esmf.2x25.nc
+
+Samplings:
+  TT_sample_0:
+    extrapolation: persist_closest
+  TT_sample_1:
+    update_frequency: PT24H
+    update_reference_time: '0'
+  TT_sample_2:
+    time_interpolation: 'False'
+    update_frequency: P1Y
+    update_reference_time: '0'
+  TT_sample_3:
+    time_interpolation: 'False'
+    update_frequency: P1M
+    update_reference_time: '0'
+  TT_sample_4:
+    extrapolation: clim
+    time_interpolation: 'False'
+    update_frequency: P1M
+    update_reference_time: '0'
+
+Exports:
+  AGR:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: AGR
+  AWB:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: AWB
+  CEDS_CO_25_AGR:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_agr
+  CEDS_CO_25_ENE:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_ene
+  CEDS_CO_25_IND:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_ind
+  CEDS_CO_25_RCO:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_rco
+  CEDS_CO_25_SHP:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_shp
+  CEDS_CO_25_SLV:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_slv
+  CEDS_CO_25_TRA:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_tra
+  CEDS_CO_25_WST:
+    collection: TT_CO-em-anthro_CMIP_CEDS_%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: CO_wst
+  CONV_DEPTH:
+    collection: /dev/null
+  EDGAR_CO_25_ENG:
+    collection: TT_EDGAR_v43.CO.ENG.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_FFF:
+    collection: TT_EDGAR_v43.CO.FFF.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_IND:
+    collection: TT_EDGAR_v43.CO.IND.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_POW:
+    collection: TT_EDGAR_v43.CO.POW.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_PPA:
+    collection: TT_EDGAR_v43.CO.PPA.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_RCO:
+    collection: TT_EDGAR_v43.CO.RCO.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_SWD:
+    collection: TT_EDGAR_v43.CO.SWD.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_TNG:
+    collection: TT_EDGAR_v43.CO.TNG.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_CO_25_TRO:
+    collection: TT_EDGAR_v43.CO.TRO.0.1x0.1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_co
+  EDGAR_SF6:
+    collection: TT_EDGAR_v42_SF6_IPCC_2.generic.01x01.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: emi_sf6
+  ENG:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: ENG
+  FFF:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: FFF
+  FLASH_DENS:
+    collection: /dev/null
+  IND:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: IND
+  LIQFUEL_2008_2010:
+    collection: TT_AnnualScalar.geos.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: COscalar
+  LIQFUEL_THISYR:
+    collection: TT_AnnualScalar.geos.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_2
+    variable: COscalar
+  OLSON00:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;0
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON01:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;1
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON02:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;2
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON03:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;3
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON04:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;4
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON05:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;5
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON06:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;6
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON07:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;7
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON08:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;8
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON09:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;9
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON10:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;10
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON11:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;11
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON12:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;12
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON13:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;13
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON14:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;14
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON15:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;15
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON16:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;16
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON17:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;17
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON18:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;18
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON19:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;19
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON20:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;20
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON21:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;21
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON22:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;22
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON23:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;23
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON24:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;24
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON25:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;25
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON26:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;26
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON27:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;27
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON28:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;28
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON29:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;29
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON30:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;30
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON31:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;31
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON32:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;32
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON33:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;33
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON34:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;34
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON35:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;35
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON36:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;36
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON37:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;37
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON38:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;38
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON39:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;39
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON40:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;40
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON41:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;41
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON42:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;42
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON43:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;43
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON44:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;44
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON45:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;45
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON46:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;46
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON47:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;47
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON48:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;48
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON49:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;49
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON50:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;50
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON51:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;51
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON52:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;52
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON53:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;53
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON54:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;54
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON55:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;55
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON56:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;56
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON57:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;57
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON58:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;58
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON59:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;59
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON60:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;60
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON61:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;61
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON62:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;62
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON63:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;63
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON64:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;64
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON65:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;65
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON66:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;66
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON67:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;67
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON68:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;68
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON69:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;69
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON70:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;70
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON71:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;71
+    sample: TT_sample_0
+    variable: OLSON
+  OLSON72:
+    collection: TT_Olson_2001_Land_Map.025x025.generic.nc
+    regrid: FRACTION;72
+    sample: TT_sample_0
+    variable: OLSON
+  POW:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: POW
+  PPA:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: PPA
+  RCO:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: RCO
+  SOL:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: SOL
+  SWD:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: SWD
+  TIMEZONES:
+    collection: TT_timezones_esmf.2x25.nc
+    regrid: VOTE
+    sample: TT_sample_0
+    variable: UTC_OFFSET
+  TNG:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: TNG
+  TRO:
+    collection: TT_EDGAR_v43.Seasonal.1x1.nc
+    regrid: CONSERVE
+    sample: TT_sample_4
+    variable: TRO
+  XLAIMULTI:
+    collection: TT_Condensed_Yuan_proc_MODIS_XLAI.025x025.%y4.nc
+    regrid: CONSERVE
+    sample: TT_sample_1
+    variable: XLAIMULTI
+  ZHANG_Rn222_EMIS:
+    collection: TT_Rn222_Emis_Zhang_Liu_et_al_05x05_mass.nc
+    regrid: CONSERVE
+    sample: TT_sample_3
+    variable: rnemis
+
+

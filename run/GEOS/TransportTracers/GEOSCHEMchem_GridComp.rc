@@ -1,0 +1,237 @@
+#------------------------------------------------------------------------------
+!             GEOS-Chem Global Chemical Transport Model                       !
+#------------------------------------------------------------------------------
+#
+# !DESCRIPTION: Resource file for the GEOSCHEMchem Gridded Component.
+#
+# !REVISION HISTORY:
+#  06 Oct 2009 - P. Le Sager - Initial
+#  06 Dec 2009 - da Silva    - Converted from NAMELIST to ESMF Config
+#  13 Apr 2010 - R. Yantosca - Added dimension info and tracer names
+#  07 Nov 2012 - R. Yantosca - Added placeholder fields for input.geos
+#  26 Feb 2013 - R. Yantosca - Added MAX_DEP for Input_Opt
+#  19 Mar 2013 - R. Yantosca - Added LINOZ fields for Input_Opt
+#  19 Mar 2013 - R. Yantosca - MAX_TRCS should be 53, not 54
+#  01 Aug 2014 - M. Long-sca - MAX_TRCS & MAX_DIAG set to 130 & 80, resp.
+#  07 Jun 2018 - C.Keller/K.E.Knowland - Change LLSTRAT from 59 to 40, add Calc_VUD_online
+#------------------------------------------------------------------------------
+
+#
+# %%% Start date/time                %%%
+# %%% Used by ut_GEOSCHEM in sandbox %%%
+#
+UTC_START_DATE:       20050701
+UTC_START_TIME:       000000
+
+#
+# %%% End date/time                  %%%
+# %%% Used by ut_GEOSCHEM in sandbox %%%
+#
+UTC_END_DATE:         20050702
+UTC_END_TIME:         000000
+
+#
+# %%% Timesteps [sec] %%%
+#
+DYNAMICS_TIMESTEP:    1800
+CHEMISTRY_TIMESTEP:   1800
+
+#
+# %%% Placeholder fields for Input_Opt object %%%
+#
+MAX_DIAG:             80
+MAX_TRCS:             130
+MAX_MEMB:             15
+MAX_FAMS:             20
+MAX_DEP:              55
+LINOZ_NFIELDS:         7
+LINOZ_NLAT            18
+LINOZ_NLEVELS:        25
+LINOZ_NMONTHS:        12
+
+# Maximum level used for chemistry. If not extending to the top of the atmosphere,
+# production and loss rates from an offline GMI simulation will be applied to the 
+# remaining levels (based on GEOS-Chem's linearized stratospheric chemistry scheme). 
+# It is recommended to do full chemistry over the entire column, so that LLSTRAT = LM.
+# This is the default.
+#LLSTRAT:              72
+
+#
+# FAST-JX options:
+# LLFASTJX are the number of levels used for FAST-JX. The default value for a simulation
+# on 72 model levels is 601, and 1201 if running on 132 model levels. 
+# FJX_EXTRAL_ITERMAX (defaults: 1 and 5 for 72 and 132 model levels, respectively) and 
+# FJX_EXTRAL_ERR (default = 1) are fine tuning parameter that can be used
+# to get more control over the FAST-JX calculations. Increase FJX_EXTRAL_ITERMAX if 
+# you encounter problems with FAST-JX, e.g. at 132 model levels.
+#LLFASTJX:             601 
+#FJX_EXTRAL_ITERMAX:   1 
+#FJX_EXTRAL_ERR:       1
+
+#
+# %%% Run phases (1 or 2. 2 recommended) %%% 
+#
+RUN_PHASES:        2
+
+#
+# %%% Stop if KPP integration fails (default: 1) %%% 
+#
+KPP_STOP_IF_FAIL:  0
+
+
+#
+# %%% HEMCO configuration file %%%
+#
+HEMCO_CONFIG:         HEMCO_Config.rc
+
+#
+# %%% Log file names for redirecting stdout %%%
+#
+STDOUT_LOGFILE:       PET%%%%%.GEOSCHEMchem.log
+STDOUT_LOGLUN:        6
+
+#
+# %%% Initialize all concentrations to zero? ###
+#
+INIT_ZERO:            0
+
+#
+# %%% Use archived convection fields? %%% 
+#
+ARCHIVED_CONV:        0
+
+# %%% Use MOIST module for convective transport (including washout)
+# Make species friendly to moist? If turned on, convection must be turned off in in geoschem_config.yml
+Species_friendly_to_moist: 0
+# Turn off washout for SO2?
+TurnOff_SO2_washout: 1
+# Calculate CLDLIQ and CLDICE online based on current conditions (use default GEOS-Chem parameterization otherwise)?
+Online_CLDLIQ: 1
+# Use online vertical updraft velocity or use default GEOS-Chem parameterization? 
+Online_VUD: 1
+
+# Use GAAS on GEOS-Chem aerosols? 
+Species_friendly_to_GAAS: 0
+
+#
+# %%% Tuning parameter to reduce washout efficiency 
+# %%% of convective large-scale precip.
+# %%% Use at own risk: the effects of setting this 
+# %%% parameter to a value between 0.0 and 1.0 are 
+# %%% untested! 
+#
+### cakelle2, 20180828: bug fix, changed from -999.0 to 1.0 
+Convective_precip_correction: 1.0
+
+#
+# %%% Cap polar tropopause at 200hPa (default=yes)? %%% 
+#
+Cap_polar_tropopause: 0
+
+#
+# %%% Ozonopause value in ppb. If set to <= 0.0, the 
+# %%% GEOS-5 tropopause will be used (default) 
+#
+Use_ozonopause: -999.0
+
+#
+# %%% Prescribe stratospheric H2O
+#
+Prescribe_strat_H2O: 1
+
+# %%% Settings for excluding species from being transported
+Reduce_transport_species: 0
+Transport_blacklist: CFC115,CFC114,N2O,CFC12,H1301,CFC113,CFC11,CCl4,H2O,H2402,H1211,HCFC142b,HCFC22,HCFC141b,CH3CCl3,CH3Br,CH3Cl,HCFC123
+
+#
+# %%% Include short-lived species in internal restart file?
+#
+Shortlived_species_in_restart: 0
+
+##
+# %%% Read initial conditions from external file
+# %%% instead of internal state
+#
+INIT_SPC_FROM_FILE: 0
+INIT_SPC_FILE: /discover/nobackup/cakelle2/GCC_Restarts/v13.1.0-beta.1/GEOSChem.Restart.20190801_0000z.edit.incHEMCO.nc4
+ONLY_SHORTLIVED_SPECIES: 0
+UNIFORM_IF_MISSING: 1.0e-12
+DATA_IS_IN_PPBV: 1
+ONLY_ON_FIRST_STEP: 1
+DATA_ON_GEOS_LEVELS: 1
+DO_NOT_OVERWRITE_ABOVE_LEVEL: 59
+
+USE_GMI_MESO: 0
+GMI_TEMPLATE: /discover/nobackup/cakelle2/data/GMI/gmi.clim.%spc.geos5.2x25.esmf.nc
+
+#
+# %%% Use GMI P/L for O3 (default=no)? %%%
+#
+Use_GMI_O3_PL:        0
+
+# Analysis options 
+ANAPHASE: 2
+Analysis_nSpecies: 2
+Analysis_Settings_Spec001: GEOSCHEMchem_AnaSettings_O3.rc
+Analysis_Settings_Spec002: GEOSCHEMchem_AnaSettings_NO2.rc
+
+#
+# NOx lightning met inputs
+#
+# Input source for flash rates: If set to 'LFR' or 'LFR_GCC', the corresponding MOIST export is used. If set to any other
+# name, will search for that name in the import state. For instance, set it to 'LFR_OFFLINE' and then define an import via
+# ExtData to use LFR values from a file. Default is LFR_GCC. All values expected in [flashes km-2 s-1].
+# Scale factors can be defined to adjust the imported LFR field for the southern extratropics (<23S), tropics (23S-23N), and
+# the northern extratropics (>23N). In addition, a global scale factor can be set to rescale the overall LFR.
+# These factors can be used to better match the expected global annual average flash rate of 46 flashes s-1, and a distribution
+# of ~65% in the tropics and ~23% in the N extratropics.
+#
+LIGHTNING_FLASH_RATE_SOURCE: LFR_GCC
+LFR_SCALING_SOUTHERN_TROP:   2.0
+LFR_SCALING_NORTHERN_TROP:   1.1
+LFR_SCALING_TROPICS:         0.4
+LFR_SCALING_GLOBAL:          2.0
+
+#
+# Input source for convective height: If set to 'CNV_MFC', will compute the convective height from convective mass fluxes
+# (default). If set to 'BYNCY', will compute it from the buoyancy and convective fraction. For all other cases, will look
+# for the field in import and use that as is. For instance, set it to 'CCTH_OFFLINE' and define an import via ExtData to
+# use values from an external file. If read from file, the values must be in [m].
+#
+LIGHTNING_CONVECTIVE_TOP_SOURCE: CNV_MFC
+#
+
+# Turn off heterogenous reactions in stratosphere?
+# If true, the following heterogeneous reactions are disabled (in the stratosphere):
+# ClNO3(g) + HBr(l,s) --> BrCl + HNO3
+# BrNO3(g) + HCl(l,s) --> BrCl + HNO3
+# HOCl(g) + HBr(l,s) --> BrCl + H2O
+TurnOffHetRates: 1
+
+#
+# Enable Bry and Cly family transport
+#
+Bry_Cly_Family_Transport: 0
+
+#
+# CO production from CO2 photolysis
+#
+CO_production_from_CO2_photolysis: 0
+CO2photolysisFile: /discover/nobackup/projects/gmao/share/dasilva/fvInput/ExtData/chemistry/GEOSCHEMchem/v0.0.0/CHEM_INPUTS/StratChem/SC.J_20_12_79_72_200_45.jpl15.nc4
+
+#
+# CO2 coupling with GOCART
+#
+Import_CO2_from_GOCART: 0
+GOCART_CO2_FieldName: GOCART_CO2
+
+#
+# Set CO mesosphere upper boundary to external field 
+#
+Set_CO_Mesosphere: 0
+CO_Mesosphere_FieldName: CO_CMAM
+
+#
+# To set CH4 boundary condition from GEOS 
+# Note: if set to 1, need to make sure that an import named 'GEOS_CH4' is set in ExtData.
+CH4_from_GEOS: 0

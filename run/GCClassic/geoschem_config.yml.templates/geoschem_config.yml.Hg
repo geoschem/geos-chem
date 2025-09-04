@@ -1,0 +1,164 @@
+---
+### geoschem_config.yml: GEOS-Chem Runtime configuration options.
+### Customized for simulations using the KPP "Hg" mechanism.
+###
+### NOTE: Add quotes around nitrogen oxide ('NO'), because YAML
+### parsers will confuse this with a negative "no" value.
+
+#============================================================================
+# Simulation settings
+#============================================================================
+simulation:
+  name: ${RUNDIR_SIM_NAME}
+  start_date: [${RUNDIR_SIM_START_DATE}, ${RUNDIR_SIM_START_TIME}]
+  end_date: [${RUNDIR_SIM_END_DATE}, ${RUNDIR_SIM_END_TIME}]
+  root_data_dir: ${RUNDIR_DATA_ROOT}
+  met_field: ${RUNDIR_MET}
+  species_database_file: ./species_database.yml
+  species_metadata_output_file: OutputDir/geoschem_species_metadata.yml
+  verbose:
+    activate: false
+    on_cores: root       # Allowed values: root all
+  use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+
+#============================================================================
+# Grid settings
+#============================================================================
+grid:
+  resolution: ${RUNDIR_GRID_RES_LONG}
+  number_of_levels: ${RUNDIR_GRID_NLEV}
+  longitude:
+    range: ${RUNDIR_GRID_LON_RANGE}
+    center_at_180: ${RUNDIR_CENTER_LON_180}
+  latitude:
+    range: ${RUNDIR_GRID_LAT_RANGE}
+    half_size_polar_boxes: ${RUNDIR_GRID_HALF_POLAR}
+  nested_grid_simulation:
+    activate: ${RUNDIR_GRID_NESTED_SIM}
+    buffer_zone_NSEW: ${RUNDIR_GRID_BUFFER_ZONE}
+
+#============================================================================
+# Timesteps settings
+#============================================================================
+timesteps:
+  transport_timestep_in_s: ${RUNDIR_TRANSPORT_TS}
+  chemistry_timestep_in_s: ${RUNDIR_CHEMISTRY_TS}
+
+#============================================================================
+# Settings for GEOS-Chem operations
+#============================================================================
+operations:
+
+  chemistry:
+    activate: true
+
+  convection:
+    activate: true
+
+  dry_deposition:
+    activate: true
+    diag_alt_above_sfc_in_m: 10
+
+  pbl_mixing:
+     activate: true
+     use_non_local_pbl: ${RUNDIR_USE_NLPBL}
+
+  photolysis:
+    activate: true
+    cloud-j:
+      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2025-01-Hg/
+      num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
+      cloud_scheme_flag: 3
+      opt_depth_increase_factor: 1.050
+      min_top_inserted_cloud_OD: 0.005
+      cloud_overlap_correlation: 0.33
+      num_cloud_overlap_blocks: 6
+      sphere_correction: 1
+      num_wavelength_bins: 18
+      use_H2O_UV_absorption: true
+    fast-jx:
+      fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2024-05-Hg/
+    overhead_O3:
+      use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
+      use_column_O3_from_met: true
+      use_TOMS_SBUV_O3: false
+
+  transport:
+    gcclassic_tpcore:                 # GEOS-Chem Classic only
+      activate: true                  # GEOS-Chem Classic only
+      fill_negative_values: true      # GEOS-Chem Classic only
+      iord_jord_kord: [3, 3, 7]       # GEOS-Chem Classic only
+    transported_species:
+      -  Hg0
+      -  HgBr
+      -  HgBrNO2
+      -  HgBrHO2
+      -  HgBrBrO
+      -  HgBrClO
+      -  HgBrOH
+      -  HgBr2
+      -  HgCl
+      -  HgClNO2
+      -  HgClHO2
+      -  HgClClO
+      -  HgClBrO
+      -  HgClBr
+      -  HgClOH
+      -  HgOH
+      -  HgOHNO2
+      -  HgOHHO2
+      -  HgOHClO
+      -  HgOHBrO
+      -  HgOHOH
+      -  HgCl2
+      -  Hg2ClP
+      -  Hg2ORGP
+      -  Hg2STRP
+
+  wet_deposition:
+    activate: true
+    
+#============================================================================
+# Settings for GEOS-Chem aerosols
+#============================================================================
+aerosols:
+
+  optics:
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2025-03/
+
+#============================================================================
+# Settings specific to the Hg simulation
+#============================================================================
+Hg_simulation_options:
+
+  sources:
+    use_dynamic_ocean_Hg: false
+    use_preindustrial_Hg: false
+    use_arctic_river_Hg: true
+
+  chemistry:
+    tie_HgIIaq_reduction_to_UVB: true
+
+  # NOTE: GTMM is currently, we look to the Hg & POPs community
+  # to take the lead in restoring it. (bmy, 04 Apr 2022)
+  GTMM_soil_model:
+    activate: false
+    restart_file: N/A
+
+#============================================================================
+# Settings for diagnostics (other than HISTORY and HEMCO)
+#============================================================================
+extra_diagnostics:
+
+  obspack:
+    activate: false
+    quiet_logfile_output: false
+    input_file: ./obspack_input_for_testing.20190701.nc
+    output_file: ./OutputDir/GEOSChem.ObsPack.YYYYMMDD_hhmmz.nc4
+    output_species:
+      - Hg0
+
+  planeflight:
+    activate: false
+    flight_track_file: Planeflight.dat.YYYYMMDD
+    output_file: ./OutputDir/plane.log.YYYYMMDD
