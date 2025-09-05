@@ -2242,7 +2242,7 @@ CONTAINS
     INTEGER                      :: trcID, RST
     REAL                         :: COEFF
     CHARACTER(LEN=ESMF_MAXSTR)   :: trcNAME,hcoNAME
-    TYPE(ESMF_Field      )       :: trcFIELD
+    TYPE(ESMF_Field      )       :: trcFIELD, intField
     TYPE(ESMF_FieldBundle)       :: trcBUNDLE
     REAL              , POINTER  :: fPtrArray(:,:,:)
     REAL(ESMF_KIND_R8), POINTER  :: fPtrVal, fPtr1D(:)
@@ -2614,17 +2614,20 @@ CONTAINS
       ENDIF
 #endif
 
-      !=======================================================================
-      ! On first call, populate State_Chm%Species(N)%Conc with background
-      ! values if the species is missing from the restart file and missing
-      ! species are allowed.
-      !=======================================================================
+       !=======================================================================
+       ! Rest of MODEL_GCHPCTM section below if first call only
+       !=======================================================================
 #ifdef ADJOINT
        IF ( FIRST .or. Input_Opt%IS_ADJOINT) THEN
 #else
        IF ( FIRST ) THEN
 #endif
 
+          !=======================================================================
+          ! On first call only, populate State_Chm%Species(N)%Conc with background
+          ! values if the species is missing from the restart file and missing
+          ! species are allowed.
+          !=======================================================================
           ! Get Generic State
           call MAPL_GetObjectFromGC ( GC, STATE, RC=STATUS)
           _VERIFY(STATUS)
@@ -2669,13 +2672,11 @@ CONTAINS
              ENDIF
              ThisSpc => NULL()
           ENDDO
-       ENDIF
 
-       !=======================================================================
-       ! On first call, initialize certain State_Chm and State_Met arrays from
-       ! imports if they are found (ewl, 12/13/18)
-       !=======================================================================
-       IF ( FIRST ) THEN
+          !=======================================================================
+          ! On first call only, initialize certain State_Chm and State_Met arrays
+          ! from imports if they are found (ewl, 12/13/18)
+          !=======================================================================
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%H2O2AfterChem) ) THEN
              State_Chm%H2O2AfterChem = Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
@@ -2740,9 +2741,9 @@ CONTAINS
           Ptr2D_R8 => NULL()
 
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) ) THEN
-             State_Met%DELP_DRY(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
+          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DP_DRY_PREV) ) THEN
+             State_Met%DP_DRY_PREV(:,:,1:State_Grid%NZ) =       &
+                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
           Ptr3d_R8 => NULL()
 
@@ -2765,7 +2766,115 @@ CONTAINS
              State_Met%TropLev = Ptr2d_R8
           ENDIF
           Ptr2d_R8 => NULL()
-       ENDIF
+
+          !=======================================================================
+          ! On first call only, scale mixing ratios for species in the restart
+          ! file if DELP_DRY is present and differs from current meteorology. This
+          ! enables mass conservation between the restart file and the first
+          ! timestep if the meteorology differs.
+          !=======================================================================
+          ! Determine if DELP_DRY found in restart file
+          CALL ESMF_StateGet( INTERNAL, 'DELP_DRY', intFIELD, RC=RC )
+          CALL ESMF_AttributeGet( intFIELD, NAME="RESTART", &
+               VALUE=DELP_DRY_RST, RC=STATUS )
+
+          IF ( DELP_DRY_RST == MAPL_RestartBootstrap ) THEN
+
+             ! Print warning if DELP_DRY not in restart file since species mass cannot be conserved
+             WRITE (6,*) 'WARNING: Species mass cannot be computed from restart file concentrations '
+             WRITE (6,*) 'because Met_DELPDRY was not found in the restart file. Species '
+             WRITE (6,*) 'concentrations [mol/mol] in the restart file will be used in the first'
+             WRITE (6,*) 'timestep. No scaling will be done to conserve restart file mass.'
+
+          ELSE
+
+             ! Print mass based on restart file mixing ratio and meteorology
+             IF ( Input_Opt%amIRoot ) THEN
+                SpcMass = 0.d0
+                SpcMassPtr => SpcMass
+                DO N = 1, State_Chm%nSpecies
+                   DO L = 1, State_Grid%NZ
+                   DO J = 1, State_Grid%NY
+                   DO I = 1, State_Grid%NX
+                      AirMass = State_Met%DP_DRY_PREV(I,J,L) * G0_100  &
+                           * State_Met%AREA_M2(I,J)
+                      SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
+                           / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+                   ENDDO
+                   ENDDO
+                   ENDDO
+                   WRITE(6,300) N, TRIM( State_Chm%SpcData(N)%Info%Name ), SUM( SpcMassPtr )
+                ENDDO
+                SpcMassPtr => NULL()
+             ENDIF
+
+             ! Update mixing ratios if found and it differs from current meteorology
+             IF ( ABS(SUM(State_Met%DP_DRY_PREV) - SUM(State_Met%DELP_DRY)) > 1d-14 ) THEN
+
+                ! Print warning that species concentrations in restart will be scaled for mass conservation
+                WRITE (6,*) 'WARNING: Layer delta pressures found in the restart file differ from current '
+                WRITE (6,*) 'meteorology. All species concentrations will be scaled by the ratio of '
+                WRITE (6,*) 'restart file delta pressure to input meteorology delta pressure in order '
+                WRITE (6,*) 'to conserve species mass in the restart file. If you wish to avoid this '
+                WRITE (6,*) 'behavior then rerun using a restart file without Met_DELPDRY'
+
+                ! Loop over all species
+                DO N = 1, State_Chm%nSpecies
+
+                   ! Is this a valid species?
+                   ThisSpc => State_Chm%SpcData(N)%Info
+                   IF ( TRIM(ThisSpc%Name) == '' ) CYCLE
+                   IND = IND_( TRIM(ThisSpc%Name ) )
+                   IF ( IND < 0 ) CYCLE
+
+                   ! Determine if species was present in the restart file
+                   CALL ESMF_StateGet( INTERNAL, TRIM(SPFX) // TRIM(ThisSpc%Name),  &
+                        trcFIELD, RC=RC )
+                   CALL ESMF_AttributeGet( trcFIELD, NAME="RESTART",                &
+                        VALUE=SPC_RST, RC=STATUS )
+
+                   ! If restart was found then scale mixing ratio by delta
+                   ! pressure in restart file divided by current met. Do not scale if
+                   ! not found since mixing ratio already set to background value.
+                   IF ( SPC_RST /= MAPL_RestartBootstrap ) THEN
+                      DO L = 1, State_Grid%NZ
+                      DO J = 1, State_Grid%NY
+                      DO I = 1, State_Grid%NX
+                         State_Chm%Species(IND)%Conc(I,J,L) =    &
+                              State_Chm%Species(IND)%Conc(I,J,L) &
+                              * State_Met%DP_DRY_PREV(I,J,L)     &
+                              / State_Met%DELP_DRY(I,J,L)
+                      ENDDO
+                      ENDDO
+                      ENDDO
+                   ENDIF
+                   ThisSpc => NULL()
+                ENDDO
+
+                ! Print mass again as sanity check
+                IF ( Input_Opt%amIRoot ) THEN
+                   SpcMass = 0.d0
+                   SpcMassPtr => SpcMass
+                   DO N = 1, State_Chm%nSpecies
+                      DO L = 1, State_Grid%NZ
+                         DO J = 1, State_Grid%NY
+                            DO I = 1, State_Grid%NX
+                               AirMass = State_Met%DELP_DRY(I,J,L) * G0_100  &
+                                    * State_Met%AREA_M2(I,J)
+                               SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
+                                    / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+                            ENDDO
+                         ENDDO
+                      ENDDO
+                      WRITE(6,300) N, TRIM( State_Chm%SpcData(N)%Info%Name ), SUM( SpcMassPtr )
+                   ENDDO
+                   SpcMassPtr => NULL()
+                ENDIF
+
+             ENDIF  ! end if delp_dry diffs from first timestep met
+          ENDIF     ! end if delp_dry in restart
+
+       ENDIF        ! end if first call
 #endif
 
 #if defined( MODEL_GEOS )
@@ -3165,7 +3274,7 @@ CONTAINS
 
        CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', &
                              notFoundOK=.TRUE., __RC__ )
-       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) &
+       IF (ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%TSTRAT_ADJ) &
            .AND. ASSOCIATED(State_Chm%TStrat_Adj) ) THEN
           Ptr3d_R8(:,:,State_Grid%NZ:1:-1) =  &
                     State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ)
@@ -3284,6 +3393,7 @@ CONTAINS
 200 FORMAT( '### ',                                           / &
             '### ', a, '  |  Execution on PET # ',      i5.5, / &
             '###' )
+300 FORMAT( '   Species ', i3, ', ', a9, ': Global mass = ', es15.9 )
 
   END SUBROUTINE Run_
 !EOC
