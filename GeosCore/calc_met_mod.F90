@@ -271,8 +271,8 @@ CONTAINS
     ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
     Dt_Sec   = Get_Ts_Dyn()
 
-    ! Shadow variable for mixing ratio update
-    UpdtMR = .TRUE.
+    ! Shadow variable for mixing ratio update. Default is false.
+    UpdtMR = .FALSE.
     IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
     ! Pre-compute local solar time = UTC + Lon/15
@@ -679,6 +679,10 @@ CONTAINS
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
     IF ( UpdtMR ) THEN
+
+       ! Do not update mixing ratio if delta pressure did not change
+       IF ( ABS(SUM(State_Met%DP_DRY_PREV )  &
+            - SUM(State_Met%DELP_DRY  ) ) < 1d-14 ) CONTINUE
 
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
