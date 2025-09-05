@@ -1728,7 +1728,7 @@ CONTAINS
 520   FORMAT( a21, ': not found in GEOS-Chem restart file, setting to zero'  )
 530   FORMAT( '   Species ', i3, ', ', a9, ': Min = ', es15.9, ', Max = ', es15.9, '  Sum = ',es15.9 )
 540   FORMAT( '   Species ', i3, ', ', a9, ': not found in restart, setting to background = ', es15.9)
-550   FORMAT( '   Species ', i3, ', ', a9, ': Global mass = ', es15.9 )
+550   FORMAT( '                           Global mass = ', es15.9 )
 
    !=================================================================
    ! Open GEOS-Chem restart file
@@ -1941,7 +1941,7 @@ CONTAINS
                      ENDDO
                   ENDDO
                ENDDO
-               WRITE(6,550) N, TRIM( State_Chm%SpcData(N)%Info%Name ), SUM( SpcMassPtr )
+               WRITE(6,550) SUM( SpcMassPtr )
                SpcMassPtr => NULL()
             ENDIF
 
