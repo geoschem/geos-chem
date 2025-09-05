@@ -949,25 +949,18 @@ CONTAINS
     CALL SET_FLOATING_PRESSURES( State_Grid, State_Met, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
-    ! Define airmass and related quantities
-#if defined( MODEL_GEOS )
-    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-#else
-    ! Scale mixing ratio with changing met only if FV advection is off.
-    ! Only do this the first timestep if DELP_DRY found in restart.
-    IF ( FIRST .and. .not. Input_Opt%LTRAN ) THEN
-       CALL MAPL_Get ( STATE, INTERNAL_ESMF_STATE=INTSTATE, __RC__ )
-       CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', IntField, RC=STATUS )
-       _VERIFY(STATUS)
-       CALL ESMF_AttributeGet( IntField, NAME="RESTART", VALUE=RST, RC=STATUS )
-       _VERIFY(STATUS)
-       IF ( .not. ( RST == MAPL_RestartBootstrap .OR. &
-                    RST == MAPL_RestartSkipInitial ) ) scaleMR = .TRUE.
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
-       scaleMR = .TRUE.
+    ! Compute updated airmass quantities at each grid box
+#if defined( MODEL_GCHPCTM )
+    IF ( Input_Opt%LTRAN ) THEN
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
     ELSE
-       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC, scaleMR )
+       ! If advection is off then update species mixing ratios here rather
+       ! than advection to conserve species mass when meteorology changes
+       CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+            RC, Update_Mixing_Ratio=.TRUE. )
     ENDIF
+#else
+    CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 #endif
 
     ! Initialize/reset wetdep after air quantities computed
