@@ -1844,7 +1844,7 @@ CONTAINS
 
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
-110 FORMAT( 'Min, max, and sum of each species in restart file [mol/mol]:' )
+110 FORMAT( 'Min, max, and sum of each species in restart file [mol/mol], plus global mass if delta pressure found in file:' )
 
    ! Loop over species
    DO N = 1, State_Chm%nSpecies
@@ -1919,31 +1919,29 @@ CONTAINS
          ENDIF
 
          ! If DELP_DRY was found in the restart file:
-         !    1. If verbose, compute and print species global mass in file
+         !    1. Compute and print species global mass in file
          !    2. Update mixing ratio to conserve mass if file delta pressure
          !       differs from current meteorology
          IF ( FOUND_DELP_DRY ) THEN
 
-            ! Print mass based on restart file mixing ratio and meteorology
-            IF ( Input_Opt%Verbose ) THEN
-               SpcMass = 0.d0
-               SpcMassPtr => SpcMass
-               !$OMP PARALLEL DO       &
-               !$OMP DEFAULT( SHARED ) &
-               !$OMP PRIVATE( I, J, L )
-               DO L = 1, State_Grid%NZ
-                  DO J = 1, State_Grid%NY
-                     DO I = 1, State_Grid%NX
-                        AirMass = State_Met%DP_DRY_PREV(I,J,L) * G0_100  &
-                             * State_Met%AREA_M2(I,J)
-                        SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
-                             / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
-                     ENDDO
-                  ENDDO
-               ENDDO
-               WRITE(6,550) SUM( SpcMassPtr )
-               SpcMassPtr => NULL()
-            ENDIF
+            ! Also print mass based on restart file mixing ratio and meteorology
+            SpcMass = 0.d0
+            SpcMassPtr => SpcMass
+            !$OMP PARALLEL DO       &
+            !$OMP DEFAULT( SHARED ) &
+            !$OMP PRIVATE( I, J, L )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               AirMass = State_Met%DP_DRY_PREV(I,J,L) * G0_100  &
+                    * State_Met%AREA_M2(I,J)
+               SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
+                    / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+            ENDDO
+            ENDDO
+            ENDDO
+            WRITE(6,550) SUM( SpcMassPtr )
+            SpcMassPtr => NULL()
 
             ! Update mixing ratio to conserve mass if current pressure different
             ! from restart file pressure
