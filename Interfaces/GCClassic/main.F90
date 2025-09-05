@@ -1029,26 +1029,25 @@ PROGRAM GEOS_Chem
           CALL Interp( NSECb,     ELAPSED_TODAY, N_DYN, &
                        Input_Opt, State_Grid,    State_Met )
 
-          ! If we are not doing transport, then make sure that
-          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
-          ! Now also includes PSC2_DRY (ewl, 5/4/16)
-          IF ( .not. Input_Opt%LTRAN ) THEN
+          ! Compute updated airmass quantities at each grid box.
+          IF ( Input_Opt%LTRAN ) THEN
+             ! No need to update mixing ratios if advection is on
+             ! since floating pressure will not change until advection
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+          ELSE
+             ! If advection is off then (1) update the floating pressures now
+             ! (PFLT_DRY/WET) to the time-interpolated met pressures computed
+             ! in INTERP (PSC2_DRY/WET), and (2) update species mixing ratios
+             ! for new floating pressures to conserve species mass.
              CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Set_Floating_Pressures"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
+
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                  RC, Update_Mixing_Ratio=.TRUE. )
           ENDIF
-
-          ! Compute updated airmass quantities at each grid box
-          ! and update tracer concentration to conserve tracer mass
-          ! (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, Update_Mixing_Ratio=.TRUE. )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "AirQnt"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
