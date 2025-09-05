@@ -86,6 +86,7 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
+#ifdef MODEL_GCHP
   ! For load balancing
    INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
    REAL(KIND=fp), POINTER :: cost_1D(:)
@@ -128,7 +129,7 @@ MODULE FullChem_Mod
 
    INTEGER, POINTER               :: next_cell_index        ! Fortran scalar
    INTEGER :: NCELL_MAX, NCELL_TOTAL
-   
+#endif   
 
 CONTAINS
 !EOC
@@ -546,6 +547,7 @@ CONTAINS
     ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
+#ifdef MODEL_GCHP
     ! For load balancing
     NCELL_local = offset
 
@@ -561,7 +563,8 @@ CONTAINS
     ISTATUS_1D(:,offset+1:offset+NCELL_MAX)   = 0
     RSTATE_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
     cell_status(offset+1:offset+NCELL_MAX)    = 1
-   
+#endif   
+
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -3193,6 +3196,7 @@ CONTAINS
        RETURN
     ENDIF
 
+#ifdef MODEL_GCHP
    !setup shared mamory
    ! Initialize window handles
     win_cost_1D = MPI_WIN_NULL
@@ -3227,7 +3231,6 @@ CONTAINS
     ENDIF
   
 
-   ! compute local grid size (#cells)
     NCELL_local = State_Grid%NX * State_Grid%NY * State_Grid%NZ
     NCELL_MAX = NCELL_local
 
@@ -3262,7 +3265,8 @@ CONTAINS
                      0, shm_comm, ierr)
     IF (shm_rank == 0) DEALLOCATE(prefix, sizes)
     
-   !  debug print: check sizes of shared arrays
+
+   ! debug print: check shared memory size
    !  WRITE(6, *) 'shm_rank:', shm_rank, 'shm_size:', shm_size
    !  WRITE(6, *) 'NCELL_local:', NCELL_local, 'NCELL_total:', NCELL_total, 'offset:', offset
 
@@ -3499,7 +3503,8 @@ CONTAINS
      CALL GC_Error('next_cell_index not associated', RC, ThisLoc)
      RETURN
   END IF
-  
+
+#endif  
   
   END SUBROUTINE Init_FullChem
 !EOC
@@ -3574,6 +3579,7 @@ CONTAINS
     ! psturm, 03/22/2024
     CALL KppSa_Cleanup( RC )
 
+#ifdef MODEL_GCHP
     ! Arrays for load balancing
     If ( ASSOCIATED( cost_1D ) ) Then
       NULLIFY(cost_1D)
@@ -3656,6 +3662,8 @@ CONTAINS
    IF (shm_comm /= MPI_COMM_NULL) THEN
       CALL MPI_Comm_free(shm_comm, ierr)
    END IF
+
+#endif
    
   END SUBROUTINE Cleanup_FullChem
 !EOC

@@ -1,64 +1,41 @@
-# Hierarchical Load Balancing with MPI Shared Memory for GCHP v14.6.3
+[![Release](https://img.shields.io/github/v/release/geoschem/geos-chem?label=Latest%20Release)](http://wiki.geos-chem.org/GEOS-Chem_versions)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1343546.svg)](https://doi.org/10.5281/zenodo.1343546)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/geoschem/geos-chem/blob/master/LICENSE.txt)
 
-## Summary
-The KPP chemistry solver takes a variable number of sub-steps per column, creating **rank and node imbalance** when columns are pinned to MPI ranks. This repo implemented Hierarchical Balancing with MPI Shared Memory mitigates GCHP load imbalance by:
-1) **Round-robin rank-node mapping** to decorrelate node loads, and  
-2) **Intra-node shared-memory pooling** so ranks on a node dynamically share column work **during chemistry**.
+## Description
 
-The pipeline is **Decouple - Compute - Remap**: pack per-column KPP state into node-wide 1-D arrays; integrate from a node-local work pool via an atomic counter; restore canonical ownership before transport (ESMF/MAPL semantics preserved). In our tests we see **~25–35%** walltime reductions for 7-day simulation with different resolutions.
+This repository contains the __GEOS-Chem science codebase__.  Included in this repository are:
 
----
+  * The source code for GEOS-Chem science routines;
+  * Scripts to create GEOS-Chem run directories;
+  * Template configuration files that specify run-time options;
+  * Scripts to run GEOS-Chem tests;
+  * Driver routines (e.g. `main.F90`) that enable GEOS-Chem to be run in several different implementations (as GEOS-Chem "Classic", as GCHP, etc.)
 
-## Prerequisites (same as stock GCHP)
-- A working GCHP environment per the [official requirements](https://gchp.readthedocs.io/en/stable/getting-started/requirements.html).
+### Version 12.9.3 and prior
 
----
+GEOS-Chem 12.9.3 was the last version in which this "Science Codebase" repository was used in a standalone manner.
 
-## Integrate into your GCHP 
+### Version 13.0.0 and later
 
-### Point the submodule to this branch
-From your **GCHP repo root**:
-```bash
-# Make sure the submodule exists locally
-git submodule update --init --recursive
+GEOS-Chem 13.0.0 and later versions use this "Science Codebase" repository as a  submodule within the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) repositories.
 
-# Point the geos-chem submodule at this repo
-git submodule set-url geos-chem https://github.com/Jordan-Sun/geos-chem.git
-git submodule sync
-git submodule update --init --remote
+Releases for GEOS-Chem 13.0.0 and later versions will be issued at the [GCClassic](https://github.com/geoschem/GCClassic) and [GCHP](https://github.com/geoschem/GCHP) Github repositories. We will also tag and release the corresponding versions at this repository for the sake of completeness.
 
-# Check out the feature branch inside the submodule
-cd src/GCHP_GridComp/GEOSChem_GridComp/geos-chem
-git fetch --all
-git switch shared_memory
-cd -    # back to GCHP root
+## User Manuals
 
----
+Each implementation of GEOS-Chem has its own manual page.  For more information, please see:
 
-## Build (unchanged)
-Build GCHP as usual:
-```bash
-mkdir -p build && cd build
-cmake .. -DRUNDIR="/path/to/your/run"
-make -j
-```
-Use standard compiler/MPI stack (e.g., Intel MPI or Open MPI).
+* __GEOS-Chem "Classic":__ [https://geos-chem.readthedocs.io](https://geos-chem.readthedocs.io)
 
----
+* __GCHP:__ [https://gchp.readthedocs.io](https://gchp.readthedocs.io)
 
-## Run 
-Map ranks to nodes in a round-robin fashion:
-- **Open MPI:** `--map-by ppr:1:node`
-- **Intel MPI:** `-ppn 1`
-### Open MPI
+* __WRF-GC:__ [http://wrf.geos-chem.org](http:/wrf.geos-chem.org)
 
-```bash
-time mpirun -np ${N_CORES} --map-by ppr:1:node ./gchp
-```
+* __Other documentation:__ [View related documentation @ Read TheDocs](https://geos-chem.readthedocs.io/en/latest/geos-chem-shared-docs/supplemental-guides/related-docs.html)
 
-### Intel MPI
-```bash
-time mpirun -np ${N_CORES} -ppn 1 ./gchp
-```
+## About GEOS-Chem
 
-Note: Without using `--map-by ppr:1:node` or `-ppn 1`, the code still runs correctly but with slightly slower runtime.
+GEOS-Chem is a global 3-D model of atmospheric chemistry driven by meteorological input from the Goddard Earth Observing System (GEOS) of the [NASA Global Modeling and Assimilation Office](http://gmao.gsfc.nasa.gov/). It is applied by [research groups around the world](http://geos-chem.org/people.html) to a wide range of atmospheric composition problems. Scientific direction of the model is provided by the international [GEOS-Chem Steering Committee](http://geos-chem.org/steering-committee.html) and by [User Working Groups](http://geos-chem.org/working-groups.html). The model is managed by the [GEOS-Chem Support Team](http://geos-chem.org/support-team.html), based at Harvard University and Washington University with support from the US NASA Earth Science Division, the Canadian National and Engineering Research Council, and the Nanjing University of Information Sciences and Technology.
+
+GEOS-Chem is a grass-roots open-access model owned by its [users](http://geos-chem.org/people.html), and ownership implies some responsibilities as listed in our [welcome page for new users](http://geos-chem.org/welcome.html).
