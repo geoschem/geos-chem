@@ -49,6 +49,7 @@ PROGRAM GEOS_Chem
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
+  USE Print_Mod             ! For verbose printing
   USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
   USE State_Chm_Mod         ! Derived type for Chemistry State object
   USE State_Diag_Mod        ! Derived type for Diagnostics State object
@@ -866,6 +867,12 @@ PROGRAM GEOS_Chem
 
        ! Skip diagnostics & unit conversions for dry-run simulations
        IF ( notDryRun ) THEN
+
+          ! If verbose, print global mass per species at start of timestep
+          IF ( VerboseAndRoot ) THEN
+             CALL Print_Species_Global_Mass('', Input_Opt, &
+                  State_Chm, State_Met, State_Grid, RC )
+          ENDIF
 
           !------------------------------------------------------------------
           ! %%%%% HISTORY (netCDF diagnostics) %%%%%
