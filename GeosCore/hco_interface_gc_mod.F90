@@ -4408,10 +4408,7 @@ CONTAINS
          CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
          ! Call AIRQNT to compute initial air mass quantities
-         ! Do not update initial tracer concentrations since not read
-         ! from restart file yet (ewl, 10/28/15)
-         CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      RC, update_mixing_ratio=.FALSE. )
+         CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
       ENDIF ! not 0.125x0.15625
 
@@ -4464,10 +4461,7 @@ CONTAINS
           CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
           ! Call AIRQNT to compute initial air mass quantities
-          ! Do not update initial tracer concentrations since not read
-          ! from restart file yet (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, update_mixing_ratio=.FALSE. )
+          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
        ENDIF
 

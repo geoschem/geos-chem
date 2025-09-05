@@ -271,8 +271,8 @@ CONTAINS
     ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
     Dt_Sec   = Get_Ts_Dyn()
 
-    ! Shadow variable for mixing ratio update
-    UpdtMR = .TRUE.
+    ! Shadow variable for mixing ratio update. Default is false.
+    UpdtMR = .FALSE.
     IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
     ! Pre-compute local solar time = UTC + Lon/15
