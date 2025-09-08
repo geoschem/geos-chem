@@ -8,6 +8,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
 - Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
+- Added subroutine Print_Species_Global_Mass to print_mod for use by GC-Classic
+- Added log print of species global mass at start of each timestep if verbose is true
+- Added print of global mass computed from restart file values if delta pressure present in restart file
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -18,12 +21,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapted Luo2023 WetDep for GF convection
 - Updated timestep scaling for convective precipitation areal fraction
 - Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
+- Changed optional argument Update_Mixing_Ratio in subroutine Airqnt to False by default
+- Change GC-Classic call to Airqnt to only update mixing ratios if advection is turned off
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
 - Moved `EmisOCS_Total` to the head of the `EmisOCS` diagnostic entries in the GCHP `HISTORY.rc.carbon` template file
 - Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
 - Fixed precipitation formation rate unit in Luo2023 convective washout
+- Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
