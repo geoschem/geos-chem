@@ -337,6 +337,8 @@ CONTAINS
     ! Below I guess we are making the assumption that we wont have LWC and ALWC at the same time in one grid box?
     ! Are the aerosols scavenged before this occurs?  Are we double counting?
     !krt, for aerosols
+    
+    Mn_d_a             = 0e+0_dp
     IF (ALWC > 0e+0_dp) THEN
        ! Units: ng/m3 * (g/ng) / (g/mol) / (m3 H2O / m3 air) * (m3/L)
        ! max possible dissolved Mn
@@ -347,11 +349,10 @@ CONTAINS
        ! can't have more dissolved Mn than available in gas phase
        Mn_d_a = MIN(Mn_d_a, MnII_max) ! can't have more dissolved Mn than available in gas phase
        
-    ELSE
-       Mn_d_a             = 0e+0_dp
     ENDIF
           
     ! Solubility of Fe is 10% for anthropogenic, and 1% for dust
+    Fe_d_a     = 0e+0_fp
     IF ( ALWC > 0e+0_fp ) THEN
        Fe_d_ant_a = Fe_ant * 1e-9_fp / &
             State_Chm%SpcData(id_pFe)%Info%MW_g / &
@@ -376,8 +377,6 @@ CONTAINS
 
        Fe_d_a = KspFeOH3/(hydroxide**3.0_fp)
        Fe_d_a = MIN(Fe_d_a, FeIII_Max)
-    ELSE
-       Fe_d_a     = 0e+0_fp
     ENDIF
     
     ! Assume that dissolved Mn is in Mn(II) oxidation state all of
@@ -435,7 +434,7 @@ CONTAINS
 
     ! Get Henry's law parameters
     ! No idea why this is not working so hard coding...
-    K0   = 1.22! HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
+    K0   = 1.22_dp! HENRY_K0(ind_SO2)!SpcInfo%Henry_K0
     CR   = 3100.0_dp!HENRY_CR(ind_SO2)!SpcInfo%Henry_CR
     pKa = 1.81_dp
     D_aSO2 = 1.32e-5_dp
@@ -471,9 +470,9 @@ CONTAINS
     kchemH2O2 =(kH2O2*Hplus_a*HSO3aq_a)/(1.0_dp+13.0_dp*Hplus_a)
 
     ! IONIC strength impact (Cai et al., 2024)
-    A = 0.509
-    B = 0.17
-    Beta = 0.18
+    A = 0.509_dp
+    B = 0.17_dp
+    Beta = 0.18_dp
     ff = 10.0_dp**(-(2.0_dp*A*sqrt(IONIC_eMAX))/(1+B*sqrt(IONIC_eMAX)) + 2.0_dp*Beta*IONIC_eMAX)
     kchemH2O2 = kchemH2O2 * ff
 

@@ -151,12 +151,12 @@
      REAL(dp) :: MnII_a 	! MnI in aerosol water	
      REAL(dp) :: fupdateHOBr    ! Correction factor - HOBr
      REAL(dp) :: fupdateHOCl    ! Correction factor - HOCl
-     REAL(dp) :: gamma_HO2      ! Uptake probability for HO2  [1]
-     REAL(dp) :: gamma_SO2_TMI  ! Uptake probability for SO2+TMI/O2
-     REAL(dp) :: gamma_SO2_H2O2 ! Uptake probability for SO2+H2O2
-     REAL(dp) :: gamma_SO2_O3   ! Uptake probability for SO2+O3
-     REAL(dp) :: gamma_SO2_NO2  ! Uptake probability for SO2+NO2
-     REAL(dp) :: gamma_SO2_CH2O ! Uptake probability for SO2+CH2O
+     REAL(dp) :: gamma_HO2      ! Sticking coefficient for HO2  [1]
+     REAL(dp) :: gamma_SO2_TMI  ! Sticking coefficient for SO2+TMI/O2
+     REAL(dp) :: gamma_SO2_H2O2 ! Sticking coefficient for SO2+H2O2
+     REAL(dp) :: gamma_SO2_O3   ! Sticking coefficient for SO2+O3
+     REAL(dp) :: gamma_SO2_NO2  ! Sticking coefficient for SO2+NO2
+     REAL(dp) :: gamma_SO2_CH2O ! Sticking coefficient for SO2+CH2O
      REAL(dp) :: KaqHMS         ! HMS back to CH2O + SO2
      REAL(dp) :: KaqHMS2        ! HMS to 2SO4 + CH2O
      REAL(dp) :: H2O            ! H2O concentration
