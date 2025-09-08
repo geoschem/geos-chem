@@ -18,8 +18,10 @@ MODULE FullChem_Mod
   USE Precision_Mod
 
 #ifdef MODEL_GCHP
+#ifdef MPI_LOAD_BALANCE
   USE MPI
   USE, INTRINSIC :: ISO_C_BINDING
+#endif
 #endif
 
   IMPLICIT NONE
@@ -89,7 +91,7 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
-#ifdef MODEL_GCHP
+#ifdef MPI_LOAD_BALANCE
   ! For load balancing
    INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
    REAL(KIND=fp), POINTER :: cost_1D(:)
@@ -160,7 +162,7 @@ CONTAINS
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetIntegratorOptions
-#endif    
+#endif
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
@@ -282,7 +284,6 @@ CONTAINS
     REAL(dp)               :: ScaleCESMLossRate
 #endif
 
-
     ! Grid box integration time diagnostic
     REAL(fp)               :: TimeStart, TimeEnd
 
@@ -294,7 +295,7 @@ CONTAINS
     ! Defines the slot in which the H-value from the KPP integrator is stored
     ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
     ! Define this locally in order to break a compile-time dependency.
-    !   -- Bob Yantosca (05 May 2022)
+    !  -- Bob Yantosca (05 May 2022)
     INTEGER,     PARAMETER :: Nhnew = 3
 
     ! Add Nhexit, the last timestep length -- Obin Sturm (30 April 2024)
@@ -304,8 +305,10 @@ CONTAINS
     INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
    
 #ifdef MODEL_GCHP
+#ifdef MPI_LOAD_BALANCE
     INTEGER :: origin_val, fetched_value
     INTEGER(KIND=MPI_ADDRESS_KIND) :: disp
+#endif
 #endif
    
 
@@ -313,7 +316,6 @@ CONTAINS
     ! Do_FullChem begins here!
     ! NOTE: FlexChem timer is started in DO_CHEMISTRY (the calling routine)
     !========================================================================
-
 
     ! Initialize
     RC         =  GC_SUCCESS
@@ -393,7 +395,6 @@ CONTAINS
        TROPv_NOx_tau(:,:)  = 0.0_f4
     ENDIF
 #endif
-
 
     !========================================================================
     ! Zero out certain species
@@ -553,6 +554,7 @@ CONTAINS
     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
 #ifdef MODEL_GCHP
+#ifdef MPI_LOAD_BALANCE
     ! For load balancing
     NCELL_local = offset
 
@@ -568,6 +570,7 @@ CONTAINS
     ISTATUS_1D(:,offset+1:offset+NCELL_MAX)   = 0
     RSTATE_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
     cell_status(offset+1:offset+NCELL_MAX)    = 1
+#endif
 #endif   
 
     !=======================================================================
@@ -4243,6 +4246,7 @@ CONTAINS
     ENDIF
 
 #ifdef MODEL_GCHP
+#ifdef MPI_LOAD_BALANCE
    !setup shared mamory
    ! Initialize window handles
     win_cost_1D = MPI_WIN_NULL
@@ -4550,6 +4554,7 @@ CONTAINS
      RETURN
   END IF
 
+#endif  
 #endif  
   
   END SUBROUTINE Init_FullChem
