@@ -1799,7 +1799,7 @@ CONTAINS
       st4d   = (/  1,  1,  1,  1 /)
       ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
       CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
-      FOUND = .TRUE.
+      FOUND_DELP_DRY = .TRUE.
       a_name = "units"
       CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
    ENDIF
@@ -1927,9 +1927,10 @@ CONTAINS
             ! Also print mass based on restart file mixing ratio and meteorology
             SpcMass = 0.d0
             SpcMassPtr => SpcMass
-            !$OMP PARALLEL DO       &
-            !$OMP DEFAULT( SHARED ) &
-            !$OMP PRIVATE( I, J, L )
+            !$OMP PARALLEL DO        &
+            !$OMP DEFAULT( SHARED  ) &
+            !$OMP PRIVATE( I, J, L ) &
+            !$OMP COLLAPSE( 3 )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
@@ -1947,16 +1948,17 @@ CONTAINS
             ! from restart file pressure
             IF ( update_mixing_ratio ) THEN
                ! Update concentrations
-               !$OMP PARALLEL DO       &
-               !$OMP DEFAULT( SHARED ) &
-               !$OMP PRIVATE( I, J, L )
+               !$OMP PARALLEL DO        &
+               !$OMP DEFAULT( SHARED  ) &
+               !$OMP PRIVATE( I, J, L ) &
+               !$OMP COLLAPSE( 3 )
                DO L = 1, State_Grid%NZ
-                  DO J = 1, State_Grid%NY
-                     DO I = 1, State_Grid%NX
-                        Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L)   &
-                             * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)
-                     ENDDO
-                  ENDDO
+               DO J = 1, State_Grid%NY
+               DO I = 1, State_Grid%NX
+                  Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L)   &
+                       * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)
+               ENDDO
+               ENDDO
                ENDDO
             ENDIF
 
