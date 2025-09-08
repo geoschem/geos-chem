@@ -1703,15 +1703,15 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 
-    !=======================================================================
-    ! Return gracefully if integration failed 2x anywhere
-    ! (as we cannot break out of a parallel DO loop!)
-    !=======================================================================
-    IF ( Failed2x ) THEN
-       ErrMsg = 'KPP failed to converge after 2 iterations!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
+   !  !=======================================================================
+   !  ! Return gracefully if integration failed 2x anywhere
+   !  ! (as we cannot break out of a parallel DO loop!)
+   !  !=======================================================================
+   !  IF ( Failed2x ) THEN
+   !     ErrMsg = 'KPP failed to converge after 2 iterations!'
+   !     CALL GC_Error( ErrMsg, RC, ThisLoc )
+   !     RETURN
+   !  ENDIF
 
 #else
 
@@ -2750,6 +2750,16 @@ CONTAINS
     ENDDO
     !$OMP END PARALLEL DO
 #endif
+
+    !=======================================================================
+    ! Return gracefully if integration failed 2x anywhere
+    ! (as we cannot break out of a parallel DO loop!)
+    !=======================================================================
+    IF ( Failed2x ) THEN
+       ErrMsg = 'KPP failed to converge after 2 iterations!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_TropNOxTau ) THEN
