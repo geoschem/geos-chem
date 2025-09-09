@@ -17,11 +17,9 @@ MODULE FullChem_Mod
 !
   USE Precision_Mod
 
-#ifdef MODEL_GCHP
-#ifdef MPI_LOAD_BALANCE
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
   USE MPI
   USE, INTRINSIC :: ISO_C_BINDING
-#endif
 #endif
 
   IMPLICIT NONE
@@ -91,7 +89,7 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
-#ifdef MPI_LOAD_BALANCE
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
   ! For load balancing
    INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
    REAL(KIND=fp), POINTER :: cost_1D(:)
@@ -304,11 +302,9 @@ CONTAINS
     ! Suppress printing out KPP error messages after this many errors occur
     INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
    
-#ifdef MODEL_GCHP
-#ifdef MPI_LOAD_BALANCE
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     INTEGER :: origin_val, fetched_value
     INTEGER(KIND=MPI_ADDRESS_KIND) :: disp
-#endif
 #endif
    
 
@@ -553,8 +549,7 @@ CONTAINS
     ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
-#ifdef MODEL_GCHP
-#ifdef MPI_LOAD_BALANCE
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     ! For load balancing
     NCELL_local = offset
 
@@ -571,7 +566,6 @@ CONTAINS
     RSTATE_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
     cell_status(offset+1:offset+NCELL_MAX)    = 1
 #endif
-#endif   
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -602,16 +596,13 @@ CONTAINS
      ENDIF
 #endif
 
-#ifdef MODEL_GCHP
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     !========================================================================
-    ! MAIN LOOP: Compute reaction rates and call chemical solver
+    ! Main Loop with MPI Load Balance: 
+    ! Compute reaction rates and call chemical solver
     !
-    ! Variables not listed here are held THREADPRIVATE in gckpp_Global.F90
-    ! !$OMP COLLAPSE(3) vectorizes the loop and !$OMP DYNAMIC(24) sends
-    ! 24 boxes at a time to each core... then when that core is finished,
-    ! it gets another chunk of 24 boxes.  This should lead to better
-    ! load balancing, and will spread the sunrise/sunset boxes across
-    ! more cores.
+    ! This section is compiled and used ONLY when both MODEL_GCHP and
+    ! MPI_LOAD_BALANCE are defined.
     !========================================================================
     !$OMP PARALLEL DO                                                        &
     !$OMP DEFAULT( SHARED                                                   )&
@@ -1702,16 +1693,6 @@ CONTAINS
     ENDDO
     ENDDO
     !$OMP END PARALLEL DO
-
-   !  !=======================================================================
-   !  ! Return gracefully if integration failed 2x anywhere
-   !  ! (as we cannot break out of a parallel DO loop!)
-   !  !=======================================================================
-   !  IF ( Failed2x ) THEN
-   !     ErrMsg = 'KPP failed to converge after 2 iterations!'
-   !     CALL GC_Error( ErrMsg, RC, ThisLoc )
-   !     RETURN
-   !  ENDIF
 
 #else
 
@@ -3968,11 +3949,10 @@ CONTAINS
     ! Dynamic line buffer allocated after reading in the maximum line length from the first line of the file
     CHARACTER(LEN=:),  ALLOCATABLE :: line
 
-#ifdef MODEL_GCHP
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     INTEGER :: NCELL_local, i
     INTEGER(KIND=MPI_ADDRESS_KIND) :: win_size
     INTEGER :: disp
-   !  INTEGER, POINTER :: next_cell_index_loc
     INTEGER, ALLOCATABLE :: sizes(:)
     INTEGER, ALLOCATABLE :: prefix(:)
 #endif
@@ -4255,8 +4235,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#ifdef MODEL_GCHP
-#ifdef MPI_LOAD_BALANCE
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
    !setup shared mamory
    ! Initialize window handles
     win_cost_1D = MPI_WIN_NULL
@@ -4564,8 +4543,7 @@ CONTAINS
      RETURN
   END IF
 
-#endif  
-#endif  
+#endif   
   
   END SUBROUTINE Init_FullChem
 !EOC
@@ -4640,7 +4618,7 @@ CONTAINS
     ! psturm, 03/22/2024
     CALL KppSa_Cleanup( RC )
 
-#ifdef MODEL_GCHP
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     ! Arrays for load balancing
     If ( ASSOCIATED( cost_1D ) ) Then
       NULLIFY(cost_1D)
