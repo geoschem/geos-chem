@@ -1927,9 +1927,9 @@ CONTAINS
             ! Also print mass based on restart file mixing ratio and meteorology
             SpcMass = 0.d0
             SpcMassPtr => SpcMass
-            !$OMP PARALLEL DO        &
-            !$OMP DEFAULT( SHARED  ) &
-            !$OMP PRIVATE( I, J, L ) &
+            !$OMP PARALLEL DO                 &
+            !$OMP DEFAULT( SHARED           ) &
+            !$OMP PRIVATE( I, J, L, AirMass ) &
             !$OMP COLLAPSE( 3 )
             DO L = 1, State_Grid%NZ
             DO J = 1, State_Grid%NY
@@ -1941,6 +1941,7 @@ CONTAINS
             ENDDO
             ENDDO
             ENDDO
+            !$OMP END PARALLEL DO
             WRITE(6,550) SUM( SpcMassPtr )
             SpcMassPtr => NULL()
 
@@ -1960,6 +1961,7 @@ CONTAINS
                ENDDO
                ENDDO
                ENDDO
+               !$OMP END PARALLEL DO
             ENDIF
 
          ENDIF
