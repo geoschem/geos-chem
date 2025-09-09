@@ -8,6 +8,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
 - Added operational run scripts for WashU Compute2
+- Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
 
 ### Changed
 - Updated operational run script sample for WashU Compute1
