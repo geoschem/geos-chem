@@ -668,11 +668,11 @@ update_dyn_freq SPHU2 ExtData.rc
 update_dyn_freq TMPU2 ExtData.rc
 if [[ ${MassFlux_Entry} != "missing" ]]; then
     # Mass flux scaling
-    mf_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450 * ${input_res} / ${CS_RES}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
+    mf_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
     sed -i -e "0,/MFXC/ s/\(none\)[[:space:]].*\(MFXC\)/\1 ${mf_scaling} \2/" ExtData.rc
 
     # Courant number scaling
-    cn_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450 / ${input_res} * ${CS_RES}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
+    cn_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450 * ${CS_RES} * ${CS_RES} / ${input_res} / ${input_res}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
     sed -i -e "0,/CX/ s/\(none\)[[:space:]].*\(CX\)/\1 ${cn_scaling} \2/" ExtData.rc
 
     # Print if verbose

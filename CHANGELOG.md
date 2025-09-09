@@ -21,8 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Adapted Luo2023 WetDep for GF convection
 - Updated timestep scaling for convective precipitation areal fraction
 - Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
-- Changed optional argument Update_Mixing_Ratio in subroutine Airqnt to False by default
-- Change GC-Classic call to Airqnt to only update mixing ratios if advection is turned off
+- Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
+- Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
+- Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
