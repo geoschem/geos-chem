@@ -138,7 +138,7 @@ Mask fractions:              false
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
-    --> GFED_daily             :       false
+    --> GFED_daily             :       true
     --> GFED_3hourly           :       false
     --> Scaling_CO             :       1.05
 
