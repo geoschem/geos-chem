@@ -1925,12 +1925,12 @@ CONTAINS
        ! file at startup (see above).
        State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
 
-      !  ! Save cpu time spent for bulk of KPP-related routines for 
-      !  ! History archival (hplin, 11/8/21)
-      !  IF ( State_Diag%Archive_KppTime ) THEN
-      !    call cpu_time(TimeEnd)
-      !    State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
-      !  ENDIF
+       ! Save cpu time spent for bulk of KPP-related routines for 
+       ! History archival (hplin, 11/8/21)
+       IF ( State_Diag%Archive_KppTime ) THEN
+         call cpu_time(TimeEnd)
+         State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
+       ENDIF
 
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
@@ -2260,6 +2260,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_TropNOxTau ) THEN
@@ -2400,7 +2401,6 @@ CONTAINS
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
-#endif
   END SUBROUTINE Do_FullChem
 !EOC
 #ifdef TOMAS
