@@ -2400,7 +2400,7 @@ CONTAINS
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
-
+#endif
   END SUBROUTINE Do_FullChem
 !EOC
 #ifdef TOMAS
