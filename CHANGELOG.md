@@ -17,10 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `EmisOCS_Bioburn` to `EmisOCS_BiomassBurn` in both GCHP `HEMCO_Diagn.rc.carbon` and `HISTORY.rc.carbon` template files
 - Updated the ESMF version from 8.4.2 to 8.6.1 in sample environment file `gchp.gcc12_openmpi4_cannon_rocky.env`
 - Changed call to `Accept_External_Date_Time` to also pass the seconds value, in order to prevent a WRF-GC bug
-- Removed convective washout for default scheme but keep it for LUO_WETDEP
 - Adapted Luo2023 WetDep for GF convection
-- Updated timestep scaling for convective precipitation areal fraction
-- Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
 - Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
 - Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
 - Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
@@ -29,7 +26,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
 - Moved `EmisOCS_Total` to the head of the `EmisOCS` diagnostic entries in the GCHP `HISTORY.rc.carbon` template file
 - Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
-- Fixed precipitation formation rate unit in Luo2023 convective washout
 - Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
 
 ### Removed
