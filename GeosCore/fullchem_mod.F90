@@ -19,8 +19,6 @@ MODULE FullChem_Mod
 
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
   USE MPI
-  ! Note: I think we can remove ISO_C_BINDING since we are no longer linking to our custom C timer.
-  USE, INTRINSIC :: ISO_C_BINDING
 #endif
 
   IMPLICIT NONE
@@ -93,8 +91,6 @@ MODULE FullChem_Mod
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
   ! For load balancing
    INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
-   ! Note: we are not using cost_1D heuristic, so we should be able to remove it.
-   REAL(KIND=fp), POINTER :: cost_1D(:)
    REAL(KIND=fp), POINTER :: C_1D(:,:)
    REAL(KIND=fp), POINTER :: RCONST_1D(:,:)
    INTEGER, POINTER       :: ICNTRL_1D(:,:)
@@ -110,12 +106,11 @@ MODULE FullChem_Mod
    INTEGER :: disp, ierr
 
    ! Shared memory window handles
-   INTEGER :: win_cost_1D, win_C_1D, win_RCONST_1D
+   INTEGER :: win_C_1D, win_RCONST_1D
    INTEGER :: win_ICNTRL_1D, win_RCNTRL_1D, win_ISTATUS_1D
    INTEGER :: win_RSTATE_1D, win_next_cell_index, win_cell_status
 
    ! flat pointers returned by MPI (INTEGER addresses)
-   INTEGER(KIND=MPI_ADDRESS_KIND) :: cost_1D_flat_int
    INTEGER(KIND=MPI_ADDRESS_KIND) :: C_1D_flat_int
    INTEGER(KIND=MPI_ADDRESS_KIND) :: RCONST_1D_flat_int
    INTEGER(KIND=MPI_ADDRESS_KIND) :: ICNTRL_1D_flat_int
@@ -126,7 +121,7 @@ MODULE FullChem_Mod
    INTEGER(KIND=MPI_ADDRESS_KIND) :: next_cell_index_int   ! scalar
 
    !Temporary C_PTRs (needed for TRANSFER to C_F_POINTER)
-   TYPE(C_PTR) :: cost_1D_flat_ptr,   C_1D_flat_ptr
+   TYPE(C_PTR) :: C_1D_flat_ptr
    TYPE(C_PTR) :: RCONST_1D_flat_ptr, ICNTRL_1D_flat_ptr
    TYPE(C_PTR) :: RCNTRL_1D_flat_ptr, ISTATUS_1D_flat_ptr
    TYPE(C_PTR) :: RSTATE_1D_flat_ptr, cell_status_flat_ptr
@@ -559,7 +554,6 @@ CONTAINS
     IJL_to_Idx   = 0
     Idx_to_IJL   = 0
 
-    cost_1D(offset+1:offset+NCELL_MAX)        = 0.0_fp
     C_1D(:,offset+1:offset+NCELL_MAX)         = 0.0_fp
     RCONST_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
     ICNTRL_1D(:,offset+1:offset+NCELL_MAX)    = 0
@@ -1113,16 +1107,6 @@ CONTAINS
 
        IJL_to_Idx(I,J,L) = NCELL_local !map to shared memory
        cell_status(NCELL_local) = cell_status(NCELL_local) - 1
-
-       ! Heuristic: if cos(SZA) is around 0, we are at the terminator
-       ! Only works if cos(SZA) is still calculated in darkness
-       ! Question: I don't think we are using this heuristic at all, should we remove this segment of code instead?
-       ! We could also remove the cost_1D array.
-       If (Abs(State_Met%SUNCOSmid(I,J)) .lt. 0.3e+0_fp) Then
-           cost_1D(NCELL_local) = 2.0e+0_fp
-       Else
-           cost_1D(NCELL_local) = 1.0e+0_fp
-       END IF
 #else
        !=====================================================================
        ! Integrate the box forwards
@@ -1674,7 +1658,6 @@ CONTAINS
 
    ! flush processor caches for every window 
    ! Start access epochs for all shared-memory windows
-   CALL MPI_Win_lock_all(0, win_cost_1D, RC)
    CALL MPI_Win_lock_all(0, win_C_1D, RC)
    CALL MPI_Win_lock_all(0, win_RCONST_1D, RC)
    CALL MPI_Win_lock_all(0, win_ICNTRL_1D, RC)
@@ -1685,7 +1668,6 @@ CONTAINS
    CALL MPI_Win_lock_all(0, win_next_cell_index, RC)
    
    ! Ensure memory visibility of written shared-memory data
-   CALL MPI_Win_sync(win_cost_1D,        RC)
    CALL MPI_Win_sync(win_C_1D,           RC)
    CALL MPI_Win_sync(win_RCONST_1D,      RC)
    CALL MPI_Win_sync(win_ICNTRL_1D,      RC)
@@ -1696,7 +1678,6 @@ CONTAINS
    CALL MPI_Win_sync(win_next_cell_index,RC)
    
    ! End access epochs
-   CALL MPI_Win_unlock_all(win_cost_1D, RC)
    CALL MPI_Win_unlock_all(win_C_1D, RC)
    CALL MPI_Win_unlock_all(win_RCONST_1D, RC)
    CALL MPI_Win_unlock_all(win_ICNTRL_1D, RC)
@@ -3460,14 +3441,11 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    ! Note: since we are no longer reading in an assignment, we could eliminate nIntervals, lineLength, AssignmentDir, AssignmentPath, and line.
     ! Scalars
-    INTEGER            :: KppId,    N,       nIntervals, lineLength
+    INTEGER            :: KppId,    N
 
     ! Strings
-    CHARACTER(LEN=255) :: ErrMsg,   ThisLoc,    AssignmentDir,    AssignmentPath
-    ! Dynamic line buffer allocated after reading in the maximum line length from the first line of the file
-    CHARACTER(LEN=:),  ALLOCATABLE :: line
+    CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     INTEGER :: NCELL_local, i
@@ -3758,7 +3736,6 @@ CONTAINS
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
    !setup shared mamory
    ! Initialize window handles
-    win_cost_1D = MPI_WIN_NULL
     win_C_1D = MPI_WIN_NULL
     win_RCONST_1D = MPI_WIN_NULL
     win_ICNTRL_1D = MPI_WIN_NULL
@@ -3834,31 +3811,6 @@ CONTAINS
 
     
 ! Allocate shared memory windows
-  disp = SIZEOF(cost_1D(1))
-  IF (shm_rank == 0) THEN 
-      win_size = INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
-  ELSE
-      win_size = 0
-  END IF
-  
-  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, cost_1D_flat_int, win_cost_1D, RC)
-  IF (RC /= MPI_SUCCESS) THEN
-      CALL GC_Error('MPI_Win_allocate_shared failed for cost_1D', RC, ThisLoc)
-      RETURN
-  ENDIF
-  CALL MPI_Win_shared_query(win_cost_1D, 0, win_size, disp, cost_1D_flat_int, RC)
-  IF (RC /= MPI_SUCCESS) THEN
-      CALL GC_Error('MPI_Win_shared_query failed for cost_1D', RC, ThisLoc)
-      RETURN
-  ENDIF
-  cost_1D_flat_ptr = TRANSFER(cost_1D_flat_int, cost_1D_flat_ptr)
-  CALL C_F_POINTER(cost_1D_flat_ptr, cost_1D, [NCELL_total])  
-  IF (.NOT. ASSOCIATED(cost_1D)) THEN
-   CALL GC_Error('cost_1D is not associated after C_F_POINTER', RC, ThisLoc)
-   RETURN
-  ENDIF
-
-  
   disp = SIZEOF(C_1D(1,1))
   IF (shm_rank == 0) THEN
       win_size = INT(NSPEC, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
@@ -4140,10 +4092,6 @@ CONTAINS
 
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     ! Arrays for load balancing
-    If ( ASSOCIATED( cost_1D ) ) Then
-      NULLIFY(cost_1D)
-    ENDIF
-
     If ( ASSOCIATED( C_1D ) ) Then
       NULLIFY(C_1D)
     ENDIF
@@ -4181,10 +4129,6 @@ CONTAINS
        CALL GC_CheckVar( 'fullchem_mod.F90:Idx_to_IJL', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
     ENDIF
-
-    IF (win_cost_1D /= MPI_Win_NULL) THEN
-      CALL MPI_Win_free(win_cost_1D, ierr)
-   END IF
    
    IF (win_C_1D /= MPI_Win_NULL) THEN
       CALL MPI_Win_free(win_C_1D, ierr)
