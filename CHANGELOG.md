@@ -34,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
+- Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 
 ## [14.6.3] - 2025-07-28
 ### Added
