@@ -51,7 +51,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
-- Deleted entry for `OH_PosteriorSF` in HEMCO_Config.rc since never used
+- Removed `OH_PosteriorSF` entry in  is never used in IMI and thus deleted
 
 ## [14.6.3] - 2025-07-28
 ### Added
@@ -89,8 +89,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
 - Removed redundant `ELSE` blocks in `DO_CONVECTION`
 - Removed redundant `units` variable in routine `AIRQNT`
-=======
->>>>>>> 6d89543d2 (Fix typo in CHANGELOG)
 
 ## [14.6.2] - 2025-06-11
 ### Added
