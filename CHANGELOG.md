@@ -31,6 +31,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
 - Fixed precipitation formation rate unit in Luo2023 convective washout
 - Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
+- Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
