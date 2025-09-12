@@ -190,9 +190,9 @@ CAN_WASTEWATER          kg/m2/s N Y - none none  wastewater_total           ./Hc
 CAN_OTHER               kg/m2/s N Y - none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
 
 # --- GFEI ---
-GFEI_CH4_OIL  kg/m2/s N Y - none none Oil_All  ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc
-GFEI_CH4_GAS  kg/m2/s N Y - none none Gas_All  ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc
-GFEI_CH4_COAL kg/m2/s N Y - none none Coal     ./HcoDir/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc
+GFEI_CH4_OIL  kg/m2/s N Y - none none Oil_All  ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc
+GFEI_CH4_GAS  kg/m2/s N Y - none none Gas_All  ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc
+GFEI_CH4_COAL kg/m2/s N Y - none none Coal     ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc
 
 # --- GRPI ---
 GRPI_CH4_RICE kg/m2/s N Y F2022-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2025-01/GRPI/GRPI_01x01.nc
@@ -244,6 +244,9 @@ EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
 JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+
+# --- LPJ MERRA2 (East et al., https://doi.org/10.1029/2024GL108494) ---
+LPJ_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none emis_ch4 /n/holylfs06/LABS/jacob_lab2/Lab/dzhang8/LPJ_MERRA2/LPJ_MERRA2_%y4_0.5x0.5.nc
 
 # --- Geological seeps ---
 CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc

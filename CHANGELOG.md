@@ -11,6 +11,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added subroutine Print_Species_Global_Mass to print_mod for use by GC-Classic
 - Added log print of species global mass at start of each timestep if verbose is true
 - Added print of global mass computed from restart file values if delta pressure present in restart file
+- Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
+- Added operational run scripts for WashU Compute2
+- Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -24,6 +27,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
 - Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
 - Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
+- Updated operational run script sample for WashU Compute1
+- Update GCHP AWS EFA operational run script examples to avoid crashes over large core counts
+- Updated GFEIv3 files to correct issue in original version
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -32,6 +38,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed precipitation formation rate unit in Luo2023 convective washout
 - Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
 - Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT
+- Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
