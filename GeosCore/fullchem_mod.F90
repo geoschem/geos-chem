@@ -19,6 +19,7 @@ MODULE FullChem_Mod
 
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
   USE MPI
+  USE, INTRINSIC :: ISO_C_BINDING
 #endif
 
   IMPLICIT NONE
