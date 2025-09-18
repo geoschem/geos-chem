@@ -434,6 +434,15 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    call MAPL_AddImportSpec(GC, &
+       SHORT_NAME         = 'AREA',  &
+       LONG_NAME          = 'Grid horizontal area',  &
+       UNITS              = 'm2', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+
 #ifdef RRTMG
     If (Read_Dyn_Heating) Then
        call MAPL_AddImportSpec(GC, &
@@ -2528,7 +2537,10 @@ CONTAINS
 #endif
 
        ! Pass grid area [m2] obtained from dynamics component to State_Grid
-       State_Grid%Area_M2 = AREA
+       CALL MAPL_GetPointer( IMPORT, Ptr2d_R8, 'AREA', __RC__ )
+       State_Grid%Area_M2 = Ptr2d_R8
+       Ptr2d_R8 => NULL()
+
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! KLUDGE (mps, 5/23/19):
        ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks, which
