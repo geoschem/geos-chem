@@ -24,6 +24,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
 - Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
 - Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
+- Updated `download_data.py` for compatibility with 0.125 x 0.15625 grids plus all pre-defined nested-grids
+- Restructured `download_data.py` to avoid several instances of repeated code
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -31,8 +33,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
 - Fixed precipitation formation rate unit in Luo2023 convective washout
 - Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
-- Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT
-
+- Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT`
+- Fixed error where `//` were not being changed to `/` in `download_data.py`
+  
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 
