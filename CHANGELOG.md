@@ -8,12 +8,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
 - Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
-- Added subroutine Print_Species_Global_Mass to print_mod for use by GC-Classic
+- Added subroutine `Print_Species_Global_Mass` to print_mod for use by GC-Classic
 - Added log print of species global mass at start of each timestep if verbose is true
 - Added print of global mass computed from restart file values if delta pressure present in restart file
 - Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
 - Added operational run scripts for WashU Compute2
 - Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
+- Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
