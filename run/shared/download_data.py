@@ -246,12 +246,14 @@ def get_grid_suffix(resolution):
         "4.0x5.0": "4x5",
         "2.0x2.5": "2x25",
         "0.5x0.625": "05x0625",
-        "0.25x0.3125": "025x03125"
+        "0.25x0.3125": "025x03125",
+        "0.125x0.15625": "0125x015625"
     }
     for (key, value) in mapping.items():
         if key in resolution:
             return value
-    return "0125x015625"
+
+    raise ValueError(f"{resolution} is an invalid grid resolution!")
 
 
 def get_nest_suffix(lon_range):
@@ -507,7 +509,6 @@ def create_download_script(paths, args):
                 # ------------------------------------------------------
                 write_linked_gmi_file_to_script(path, "PMN", "IPMN")
 
-
             elif "gmi.clim.NPMN.geos5.2x25.nc" in path:
 
                 # ------------------------------------------------------
@@ -587,8 +588,8 @@ def download_the_data(args):
     write_unique_paths(paths, args["dryrun_log"] + ".unique")
 
     # Exit without downloading if skip-download flag was specified
-    #if args["skip_download"]:
-    #    return
+    if args["skip_download"]:
+        return
 
     # Print a message
     if len(args["portal"]) > 0:
