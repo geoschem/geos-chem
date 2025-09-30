@@ -1820,14 +1820,14 @@ VerboseOnCores:              root       # Accepted values: root all
 # --- External fields needed for online DustL23M (Extension 105) ---
 #===========================================================================
 (((DustL23M
-105 L23M_A_bare       $ROOT/DustL23M/v2025-03/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
-105 L23M_A_veg        $ROOT/DustL23M/v2025-03/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
-105 L23M_Csah         $ROOT/DustL23M/v2025-03/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
-105 L23M_LAI          $ROOT/DustL23M/v2025-03/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
-105 L23M_fclay        $ROOT/DustL23M/v2025-03/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
-105 L23M_BD           $ROOT/DustL23M/v2025-03/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
-105 L23M_poros        $ROOT/DustL23M/v2025-03/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
-105 L23M_roughness_r  $ROOT/DustL23M/v2025-03/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
+105 L23M_A_bare       $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
+105 L23M_A_veg        $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
+105 L23M_Csah         $ROOT/DustL23M/v2025-07/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
+105 L23M_LAI          $ROOT/DustL23M/v2025-07/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
+105 L23M_fclay        $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
+105 L23M_BD           $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
+105 L23M_poros        $ROOT/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
+105 L23M_roughness_r  $ROOT/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
 )))DustL23M
 
 #==============================================================================
