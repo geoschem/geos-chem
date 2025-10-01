@@ -46,7 +46,7 @@ EmisDMS_Ocean      DMS    101    -1  -1   2   kg/m2/s  DMS_emission_flux_from_oc
 ###############################################################################
 #####  Dust emissions                                                     ##### 
 ###############################################################################
-EmisDST_Total         TDST      -1     -1  -1   2   kg/m2/s  Total_dust_emission_flux_from_all_sectors
+EmisDST_Total         TDST      -1     -1  -1   2   kg/m2/s  Total_dust_emission_flux_from_natural_sources
 EmisDSTbin1_Total     DSTbin1   -1     -1  -1   2   kg/m2/s  DSTbin1_emission_flux_from_all_sectors
 EmisDSTbin1_Anthro    DSTbin1   0      1   -1   2   kg/m2/s  DSTbin1_emission_flux_from_anthropogenic
 EmisDSTbin1_Natural   DSTbin1   0      3   -1   2   kg/m2/s  DSTbin1_emission_flux_from_natural_sources
