@@ -211,11 +211,10 @@ RRTMG_Timestep_sec=10800
 # Mass tuning factor is used in the HEMCO DustDead extenstion for GEOS-Chem
 # benchmarking and is resolution and met-source dependent. We recommend
 # using offline dust instead of the online extension for GCHP science runs.
-
-result=$(grep "105.*DustDead" HEMCO_Config.rc || echo "missing")
+result=$(grep "105.*DustL23M" HEMCO_Config.rc || echo "missing")
 if [[ "x${result}" != "xmissing" ]]; then
     array=(${result// / })
-    dustDead=${array[3]}
+    dustL23M=${array[3]}
 fi
 result=$(grep "131.*TOMAS_DustDead" HEMCO_Config.rc || echo "missing")
 if [[ "x${result}" != "xmissing" ]]; then
@@ -223,7 +222,7 @@ if [[ "x${result}" != "xmissing" ]]; then
     tomasDustDead=${array[3]}
 fi
 
-if [[ "x${dustDead}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
+if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
     metField=$(grep "met_field:" geoschem_config.yml)
     metField=${metField/met_field\:/}
     metField=${metField// /}
@@ -234,15 +233,16 @@ if [[ "x${dustDead}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
 	echo "${msg}"
     fi
 
+    # NOTE: Use placeholder values until tuning can be done
     if [[ $CS_RES -eq 24 ]]; then
 	if [[ "x${metField}" == "xMERRA2" ]]; then
-	    Dust_SF=5.4856e-5
+	    Dust_SF=2.832e-3
 	elif [[ "x${metField}" == "xGEOSFP" ]]; then
-	    Dust_SF=4.6495e-5
+	    Dust_SF=2.832e-3
 	elif [[ "x${metField}" == "xGEOSIT" ]]; then
-	    Dust_SF=3.7410e-5
+	    Dust_SF=2.832e-3
 	else
-	    msg="Dust scale factors are currenlty only available for C24. "
+	    msg="Dust scale factors are currently only available for C24. "
 	    msg+="with MERRA-2, GEOSFP, or GEOSIT."
 	    echo "${msg}"
 	    exit 1
@@ -252,17 +252,17 @@ if [[ "x${dustDead}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
     # listed below will be added later.  Leave the prior values for now.
     #
     elif [[ $CS_RES -eq 30 ]]; then
-	Dust_SF=5.76e-4 # approximated as linear interpolation between 24 and 48. use for testing only!
+	Dust_SF=2.832e-3
     elif [[ $CS_RES -eq 48 ]]; then
-        Dust_SF=5.0416e-4
+        Dust_SF=2.832e-3
     elif [[ $CS_RES -eq 90 ]]; then
-        Dust_SF=4.0e-4
+        Dust_SF=2.832e-3
     elif [[ $CS_RES -eq 180 ]]; then
-        Dust_SF=3.23e-4
+        Dust_SF=2.832e-3
     elif [[ $CS_RES -eq 360 ]]; then
-        Dust_SF=2.35e-4
+        Dust_SF=2.832e-3
     elif [[ $CS_RES -eq 720 ]]; then
-        Dust_SF=2.3e-4
+        Dust_SF=2.832e-3
     else
 	msg="Dust scale factor not defined for this resolution. Please add "
 	msg+="the tuning factor you wish to use for the target resolution "
@@ -677,8 +677,8 @@ replace_val      "AdvCore_Advection" "${ADVCORE_ADVECTION}" GCHP.rc
 print_msg ""
 print_msg "HEMCO settings:"
 print_msg "---------------"
-if [[ "x${dustDead}" ==  "xon" || "x${tomasDustDead}" == "xon" ]]; then
-    replace_val "--> Mass tuning factor" ${Dust_SF} HEMCO_Config.rc
+if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
+    replace_val "--> Mass tuning factor" "${Dust_SF}" HEMCO_Config.rc
 fi
 
 ###  Set initial restart file options
