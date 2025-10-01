@@ -5444,6 +5444,12 @@ STYR:
   Is_Advected: true
   Is_Gas: true
   MW_g: 104.1491
+TDST:
+  FullName: Total dust aerosol
+  MW_g: 29.0
+  Density: 2500.0
+  Is_Advected: true
+  Is_Aerosol: true
 TiF1:
   << : *METALS1properties
   Formula: Ti
