@@ -481,6 +481,22 @@ CONTAINS
 #endif
 
 !
+! !EXPORT STATE:
+!
+    ! Export delta pressure from internal state for first timestep
+    ! pressure scaling before advection, to conserve mass in
+    ! restart file. Use name DELPDRY to not conflict with name
+    ! DELP_DRY used in restart file and internal state.
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DELPDRY',                       &
+       LONG_NAME          = 'Delta dry pressure across box', &
+       UNITS              = 'hPa',                &
+       PRECISION          = ESMF_KIND_R8,         &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+!
 ! !INTERNAL STATE:
 !
 #if defined( MODEL_GEOS )
