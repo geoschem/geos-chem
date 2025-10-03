@@ -1237,6 +1237,8 @@ CONTAINS
     INTEGER                      :: N, trcID
     TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_int(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_exp(:,:,:) => NULL()
 #endif
 
     ! Internal run alarms
@@ -1690,6 +1692,18 @@ CONTAINS
 
        ENDDO
     ENDIF
+#endif
+
+#ifdef MODEL_GCHPCTM
+    ! Set delta pressure export to interal state variable DELP_DRY.
+    ! This is used in the first timestep in FV3, before advection, to
+    ! adjust species v/v for conservation of restart file mass, if
+    ! delta pressure present in the restart file.
+    call MAPL_GetPointer ( Export, Ptr3d_exp, 'DELPDRY', ALLOC=.TRUE., __RC__ )
+    CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', GcFld, RC=STATUS )
+    CALL ESMF_FieldGet( GcFld, 0, Ptr3D, __RC__ )
+       Ptr3d_exp = Ptr3d * 100.d0
+       Ptr3d => NULL()
 #endif
 
     !=======================================================================
