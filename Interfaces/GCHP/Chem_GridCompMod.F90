@@ -1923,7 +1923,6 @@ CONTAINS
     ! Initialize carbon coupling / CO production from CO2 photolysis (if used) 
     CALL GEOS_CarbonInit( GC, GeosCF, State_Chm, State_Grid, __RC__ ) 
 
-    !=======================================================================
     ! All done
     !=======================================================================
 #endif
@@ -2713,8 +2712,11 @@ CONTAINS
        ENDIF
 
        !=======================================================================
-       ! On first call, initialize certain State_Chm and State_Met arrays from
-       ! imports if they are found (ewl, 12/13/18)
+       ! On first call, initialize certain State_Chm arrays from
+       ! internal state (restart file) if they are found. Do not initialize
+       ! from met-fields in restart file that were added for post-processing.
+       ! Do not add delta pressure since used for mass conservation scaling
+       ! in FV3 prior advection which comes before GEOS-Chem.
        !=======================================================================
        IF ( FIRST ) THEN
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ )
@@ -2780,32 +2782,12 @@ CONTAINS
           ENDIF
           Ptr2D_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) ) THEN
-             State_Met%DELP_DRY(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d_R8 => NULL()
-
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%BXHEIGHT) ) THEN
-             State_Met%BXHEIGHT(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d_R8 => NULL()
-
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%TStrat_Adj) ) THEN
              State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ) =       &
                                   Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
-
           Ptr3d_R8 => NULL()
-          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev) ) THEN
-             State_Met%TropLev = Ptr2d_R8
-          ENDIF
-          Ptr2d_R8 => NULL()
        ENDIF
 #endif
 
@@ -3122,7 +3104,9 @@ CONTAINS
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
 
        ! Update non-species dynamic internal state arrays post-run
-       ! every timestep, except for area which can be set first run only
+       ! every timestep, except for area which can be set first run only.
+       ! Some of the fields are for post-processing but need to be updated
+       ! mid-run for inclusion in mid-run checkpoint files.
        CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
                              notFoundOK=.TRUE., __RC__ )
        IF (ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen)) THEN
