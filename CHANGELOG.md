@@ -43,6 +43,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT`
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
 - Fixed error where `//` were not being changed to `/` in `download_data.py`
+- Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
