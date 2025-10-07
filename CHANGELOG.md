@@ -15,6 +15,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added operational run scripts for WashU Compute2
 - Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
 - Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
+- Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -33,6 +34,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated GFEIv3 files to correct issue in original version
 - Updated `download_data.py` for compatibility with 0.125 x 0.15625 grids plus all pre-defined nested-grids
 - Restructured `download_data.py` to avoid several instances of repeated code
+- Commented out met-fields PEDGEDRY, PFICU, PFILSAN, PFLCU, and PFLLSAN by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -45,13 +47,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed error where `//` were not being changed to `/` in `download_data.py`
 - Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
 - Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
-- Switched to daily GFED4 instead of monthly GFED4 to avoid inconsistent fire emissions across resolutions
 - Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
-- Removed `OH_PosteriorSF` entry in  is never used in IMI and thus deleted
+- Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 
 ## [14.6.3] - 2025-07-28
 ### Added
