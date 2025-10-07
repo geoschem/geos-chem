@@ -120,9 +120,6 @@ function set_common_settings() {
 	    # Change time cycle flag to allow missing species
 	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
 
-	    # Remove the first comment character on diagnostics
-            sed_ie "s|#'|'|"     HISTORY.rc
-
 	    # Make sure that GC-Classic benchmark simulations read the
 	    # restart file via GEOS-Chem and not HEMCO.  This will ensure
 	    # mass conservation when the run is broken up into several
@@ -149,7 +146,10 @@ function set_common_settings() {
 	# Turn @ into # characters for the benchmark simulation,
 	# which should cause MAPL to skip reading these lines.
 	# This is a workaround for a "input file to long" MAPL error.
-	sed_ie 's|@|#|'                                HISTORY.rc
+	sed_ie 's|@|#|'                               HISTORY.rc
+
+	# Remove the first comment character on diagnostics
+        sed_ie "s|#'|'|"                              HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
