@@ -41,6 +41,10 @@ USE_TOTAL_AIR_PRESSURE_IN_ADVECTION: ${RUNDIR_USE_TOTAL_AIR_PRESSURE_IN_ADVECTIO
 #-----------------------------------------------------------------------
 CORRECT_MASS_FLUX_FOR_HUMIDITY: 1
 
+# Print mass time series in advection (0=false, 1=true)
+#-----------------------------------------------------------------------
+PRINT_MASS_IN_ADVECTION: 0
+
 # Use when running a perturbation
 # scenario with RRTMG's FDH or SEFDH
 # options. Set to 0 to CALCULATE dynamical

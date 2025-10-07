@@ -15,6 +15,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added operational run scripts for WashU Compute2
 - Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
 - Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
+- Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
+- Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -48,6 +50,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
+- Removed GCHP initialization of State_Met fields TropLev, BxHeight, and DELP_DRY from restart file values since over-written with values of current meteorology
 
 ## [14.6.3] - 2025-07-28
 ### Added
