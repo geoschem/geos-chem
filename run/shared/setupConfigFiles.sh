@@ -136,6 +136,11 @@ function set_common_settings() {
 
 	# Remove the first comment character on diagnostics
         sed_ie "s|#'|'|"                               HISTORY.rc
+
+	# Make sure that benchmark simulations read the restart file via
+	# GEOS-Chem and not HEMCO.  This will ensure mass conservation
+	# when the run is broken up into several stages.
+	replace_colon_sep_val "read_restart_as_real8" "true" geoschem_config.yml
     fi
 
     #------------------------------------------------------------------------

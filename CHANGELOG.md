@@ -33,6 +33,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated GFEIv3 files to correct issue in original version
 - Updated `download_data.py` for compatibility with 0.125 x 0.15625 grids plus all pre-defined nested-grids
 - Restructured `download_data.py` to avoid several instances of repeated code
+- Changed `read_restart_as_real8` from `false` to `true` in `geoschem_config.yml` for GC-Classic benchmark simulations
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
