@@ -137,6 +137,9 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 # %%%%% CH4 emissions %%%%%
 #==============================================================================
 
+# --- UseTotalPriorEmis ---
+#CH4_Emis_Prior kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none EmisCH4_Total ../../prior_run/OutputDir/GEOSChem.Emissions.%y4%m2%d2_0000z.nc4
+
 # --- Gridded GHGI v2 Express Extension (Maasakkers et al., ES&T, 2023) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
 GHGI_EE_OIL_EXPLORATION   kg/m2/s N Y F%y4-01-01T00:00:00 none 2.66350462E-22 emi_ch4_1B2a_Petroleum_Systems_Exploration   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
@@ -220,8 +223,8 @@ EDGAR8_CH4_CHE                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_IRO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_IRO_flx.nc             
 
 # --- EDGAR v7 livestock ---
-EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
-EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-01-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-01-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
 
 ## Comment out to avoid double counting with GFED
 ##EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
@@ -243,7 +246,7 @@ EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
-JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+JPLW_CH4  kg/m2/s Y Y F2010-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
 
 # --- LPJ MERRA2 (East et al., https://doi.org/10.1029/2024GL108494) ---
 LPJ_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none emis_ch4 /n/holylfs06/LABS/jacob_lab2/Lab/dzhang8/LPJ_MERRA2/LPJ_MERRA2_%y4_0.5x0.5.nc
@@ -427,6 +430,23 @@ CO2_WEEKLY  1 D Y F2006-01-%d2T00:00:00 none none weekly_scale_factors  ./HcoDir
 
 # --- Domestic aviation surface correction factor ---
 AVIATION_SURF_CORR      1       Y  Y F2004-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
+
+#========================================================
+# --- Scale factors for OH ---
+#========================================================
+#OH_pert_factor 1 N Y - none none oh_scale ./gridded_perturbation_oh_scale.nc
+
+#==============================================================================
+# --- Scale factors for posterior run ---
+#==============================================================================
+#EMIS_SF 1 N Y -   none none ScaleFactor gridded_posterior.nc
+
+#==============================================================================
+# --- Scale factors for analytical inversions ---
+#==============================================================================
+# Add perturbations to individual state vector element (N) following this format
+#SCALE_PERT       1 N Y 2000-01-01T00:00:00 none none scale       ./gridded_pert_scale_1.nc
+#SCALE_ELEM_000N  1 N Y 2000-01-01T00:00:00 none none StateVector ./StateVector.nc
 
 ###############################################################################
 ###

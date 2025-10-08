@@ -17,6 +17,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
 - Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
+- Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -38,6 +39,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed `read_restart_as_real8` from `false` to `true` in `geoschem_config.yml` for GC-Classic benchmark simulations
 - Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
+- Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -49,11 +51,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
 - Fixed error where `//` were not being changed to `/` in `download_data.py`
 - Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
+- Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
+- Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
-- Removed GCHP initialization of State_Met fields TropLev, BxHeight, and DELP_DRY from restart file values since over-written with values of current meteorology
+- Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
+- Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 
 ## [14.6.3] - 2025-07-28
 ### Added
