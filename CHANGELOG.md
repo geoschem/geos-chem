@@ -37,6 +37,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Restructured `download_data.py` to avoid several instances of repeated code
 - Changed `read_restart_as_real8` from `false` to `true` in `geoschem_config.yml` for GC-Classic benchmark simulations
 - Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
+- Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
