@@ -20,9 +20,33 @@ MODULE carbon_Funcs
   USE gckpp_Global
   USE Precision_Mod,   ONLY : fp
   USE rateLawUtilFuncs
-!EOP
-!------------------------------------------------------------------------------
-!BOC
+
+  IMPLICIT NONE
+  PRIVATE
+!
+! !PUBLIC MEMBER FUNCTIONS:
+!
+  PUBLIC :: carbon_ConvertKgToMolecCm3
+  PUBLIC :: carbon_ComputeRateConstants
+  PUBLIC :: carbon_ConvertMolecCm3ToKg
+  PUBLIC :: carbon_InitCarbonKPPFuncs
+  PUBLIC :: carbon_CleanupCarbonKPPFuncs
+  PUBLIC :: carbon_Get_COfromCH4_Flux
+  PUBLIC :: carbon_Get_COfromNMVOC_Flux
+  PUBLIC :: GC_OHCO
+!
+! !PUBLIC TYPES:
+!
+  ! Species ID flags
+  INTEGER  :: id_CH4
+  INTEGER  :: id_CO
+  INTEGER  :: id_CO2
+
+  ! Kg species / molec species
+  REAL(fp) :: xnumol_CH4
+  REAL(fp) :: xnumol_CO
+  REAL(fp) :: xnumol_CO2
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -38,10 +62,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ConvertKgToMolecCm3(                                &
-             I,         J,          L,          id_CH4,     id_CO2,          &
-             id_CO,     xnumol_CH4, xnumol_CO,  xnumol_CO2, State_Chm,       &
-             State_Met                                                      )
+  SUBROUTINE carbon_ConvertKgToMolecCm3( I, J, L, State_Chm, State_Met )
 !
 ! !USES:
 !
@@ -52,12 +73,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN) :: I, J, L     ! Grid box indices
-    INTEGER,        INTENT(IN) :: id_CH4      ! Species index for CH4
-    INTEGER,        INTENT(IN) :: id_CO       ! Species index for CO
-    INTEGER,        INTENT(IN) :: id_CO2      ! Species index for CO2
-    REAL(fp),       INTENT(IN) :: xnumol_CH4  ! kg CH4 / molec CH4
-    REAL(fp),       INTENT(IN) :: xnumol_CO   ! kg CO  / molec CO
-    REAL(fp),       INTENT(IN) :: xnumol_CO2  ! kg CO2 / molec CO2
     TYPE(ChmState), INTENT(IN) :: State_Chm   ! Chemistry State object
     TYPE(MetState), INTENT(IN) :: State_Met   ! Meterorology State object
 !EOP
@@ -67,6 +82,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    INTEGER                :: N
     REAL(fp)               :: airvol_cm3
 
     ! Pointers
@@ -180,7 +196,7 @@ CONTAINS
        ! Grid box (I,J.L) is in the troposphere
        !=====================================================================
 
-       ! Set toggle that we are in the tropopshere
+       ! Set toggle that we are in the troposphere
        ! (used for CH4 + FixedCl = Dummy reaction)
        trop = 1.0_dp
 
@@ -258,10 +274,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ConvertMolecCm3ToKg(                                     &
-             I,         J,          L,          id_CH4,                      &
-             id_CO,     id_CO2,     xnumol_CH4, xnumol_CO2,                  &
-             xnumol_CO,  State_Chm, State_Met                               )
+  SUBROUTINE carbon_ConvertMolecCm3ToKg( I, J, L, State_Chm, State_Met )
 !
 ! !USES:
 !
@@ -272,12 +285,6 @@ CONTAINS
 ! !INPUT PARAMETERS:
 !
     INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
-    INTEGER,        INTENT(IN)    :: id_CH4       ! Species index for CH4
-    INTEGER,        INTENT(IN)    :: id_CO        ! Species index for CO
-    INTEGER,        INTENT(IN)    :: id_CO2       ! Species index for CO2
-    REAL(fp),       INTENT(IN)    :: xnumol_CH4   ! kg CH4 / molec CH4
-    REAL(fp),       INTENT(IN)    :: xnumol_CO    ! kg CO  / molec CO
-    REAL(fp),       INTENT(IN)    :: xnumol_CO2   ! kg CO2 / molec CO2
     TYPE(MetState), INTENT(IN)    :: State_Met    ! Meterorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
@@ -290,6 +297,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
+    INTEGER                :: N
     REAL(fp)               :: airvol_cm3, convfac_CO
 
     ! Pointers
@@ -351,7 +359,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromCH4_Flux
 !EOC
@@ -381,7 +389,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromNMVOC_Flux
 !EOC
@@ -446,5 +454,109 @@ CONTAINS
     k      = kco1 + kco2
 
   END FUNCTION GC_OHCO
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carbon_InitCarbonKPPFuncs
+!
+! !DESCRIPTION: Stores species indices and kg/molecule in module variables
+!  for fast lookup.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE carbon_InitCarbonKPPFuncs( kgmolec_CH4, kgmolec_CO, kgmolec_CO2, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Chm_Mod,  ONLY : Ind_
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN)  :: kgmolec_CH4   ! kg CH4 / molec CH4
+    REAL(fp), INTENT(IN)  :: kgmolec_CO    ! kg CO  / molec CO
+    REAL(fp), INTENT(IN)  :: kgmolec_CO2   ! kg CO2 / molec CO2
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N
+
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc, spcName
+    CHARACTER(LEN=4)   :: N_char
+
+    !=================================================================
+    ! carbon_InitCarbonKPPFuncs begins here!
+    !=================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+    ErrMsg   = ''
+    ThisLoc  = &
+       ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon_CH4Jacobian/carbon_InitCarbonKPPFuncs.F90'
+
+    ! Define flags for species ID's
+    id_CH4      = Ind_('CH4')
+    id_CO       = Ind_('CO2')
+    id_CO2      = Ind_('CO' )
+
+    ! Set kg species / molec species
+    xnumol_CH4  = kgmolec_CH4
+    xnumol_CO   = kgmolec_CO
+    xnumol_CO2  = kgmolec_CO2
+
+  END SUBROUTINE carbon_InitCarbonKPPFuncs
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carbon_CleanupCarbonKPPFuncs
+!
+! !DESCRIPTION: Deallocates module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE carbon_CleanupCarbonKPPFuncs( RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! carbon_CleanupCarbonKPPFuncs begins here!
+    !=================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+
+  END SUBROUTINE carbon_CleanupCarbonKPPFuncs
 !EOC
 END MODULE carbon_Funcs

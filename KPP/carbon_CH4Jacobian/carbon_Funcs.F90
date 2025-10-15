@@ -30,6 +30,7 @@ MODULE carbon_Funcs
   PUBLIC :: carbon_ComputeRateConstants
   PUBLIC :: carbon_ConvertMolecCm3ToKg
   PUBLIC :: carbon_InitCarbonKPPFuncs
+  PUBLIC :: carbon_CleanupCarbonKPPFuncs
   PUBLIC :: carbon_Get_COfromCH4_Flux
   PUBLIC :: carbon_Get_COfromNMVOC_Flux
   PUBLIC :: GC_OHCO
@@ -41,16 +42,15 @@ MODULE carbon_Funcs
   INTEGER  :: id_CO
   INTEGER  :: id_CO2
 
-  ! Potential Jacobian CH4 tracers
-  ! Store an array of ids, as well as total number of ids
+  ! Jacobian CH4 tracers
   INTEGER, POINTER :: JacobianIDs(:)
   INTEGER          :: numJacobianTracers
-  
+
   ! Kg species / molec species
   REAL(fp) :: xnumol_CH4
   REAL(fp) :: xnumol_CO
   REAL(fp) :: xnumol_CO2
-  
+
 CONTAINS
 !EOC
 !------------------------------------------------------------------------------
@@ -346,7 +346,7 @@ CONTAINS
           Spc(JacobianIDs(N))%Conc(I,J,L) = C(JacobianIDs(N)) * airvol_cm3 / xnumol_CH4
        ENDDO
     ENDIF
-       
+
     ! Free pointer
     Spc => NULL()
 
@@ -486,8 +486,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_InitCarbonKPPFuncs( kgmolec_CH4, kgmolec_CO, kgmolec_CO2, &
-       num_Jtracers, RC )
+  SUBROUTINE carbon_InitCarbonKPPFuncs( kgmolec_CH4, kgmolec_CO, kgmolec_CO2, RC )
 !
 ! !USES:
 !
@@ -496,14 +495,13 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp),       INTENT(IN)  :: kgmolec_CH4   ! kg CH4 / molec CH4
-    REAL(fp),       INTENT(IN)  :: kgmolec_CO    ! kg CO  / molec CO
-    REAL(fp),       INTENT(IN)  :: kgmolec_CO2   ! kg CO2 / molec CO2
-    INTEGER,        INTENT(IN)  :: num_Jtracers  ! number of Jacobian tracers
+    REAL(fp), INTENT(IN)  :: kgmolec_CH4   ! kg CH4 / molec CH4
+    REAL(fp), INTENT(IN)  :: kgmolec_CO    ! kg CO  / molec CO
+    REAL(fp), INTENT(IN)  :: kgmolec_CO2   ! kg CO2 / molec CO2
 !
-! !INPUT/OUTPUT PARAMETERS:
+! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure?
+    INTEGER,  INTENT(OUT) :: RC            ! Success or failure?
 !
 ! !REVISION HISTORY:
 !  See https://github.com/geoschem/geos-chem for complete history
@@ -529,7 +527,7 @@ CONTAINS
     ErrMsg   = ''
     ThisLoc  = &
        ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon_CH4Jacobian/carbon_InitCarbonKPPFuncs.F90'
-    numJacobianTracers = 5 !num_Jtracers
+    numJacobianTracers = num_Jtracers
 
     ! Allocate Jacobian tracer mapping array and assign ids
     IF ( numJacobianTracers > 0 ) THEN
@@ -538,11 +536,10 @@ CONTAINS
           errMsg = 'Error allocating Jacobian tracer ID mapping array!'
           CALL GC_Error( errMsg, RC, thisLoc )
        ENDIF
-       DO N = 1, 5 !numJacobianTracers
+       DO N = 1, numJacobianTracers
           write( N_char, '(I4.4)' ) N
           spcName = 'CH4_jac' // TRIM(N_char) 
           JacobianIDs(N) = Ind_(TRIM(spcName))
-          print *, "ewl: initializing carbon_funcs for Jacobian ", N, ", species name, ", trim(spcName), ", which has species id ", JacobianIDs(N)
        ENDDO
     ENDIF
 
@@ -555,7 +552,49 @@ CONTAINS
     xnumol_CH4  = kgmolec_CH4
     xnumol_CO   = kgmolec_CO
     xnumol_CO2  = kgmolec_CO2
-    
+
   END SUBROUTINE carbon_InitCarbonKPPFuncs
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carbon_CleanupCarbonKPPFuncs
+!
+! !DESCRIPTION: Deallocates module arrays.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE carbon_CleanupCarbonKPPFuncs( RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,  INTENT(OUT) :: RC            ! Success or failure?
+!
+! !REVISION HISTORY:
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !=================================================================
+    ! carbon_CleanupCarbonKPPFuncs begins here!
+    !=================================================================
+
+    ! Initialize
+    RC       = GC_SUCCESS
+
+    IF ( ALLOCATED( JacobianIDs ) ) THEN
+       DEALLOCATE( JacobianIDs, STAT=RC )
+       CALL GC_CharVar( 'carbon_Funcs.F90:JacobianIDs', 1, RC )
+    ENDIF
+
+  END SUBROUTINE carbon_CleanupCarbonKPPFuncs
 !EOC
 END MODULE carbon_Funcs
