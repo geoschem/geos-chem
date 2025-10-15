@@ -257,16 +257,6 @@ SUBROUTINE Shuffle_user2kpp ( V_USER, V )
   V(28) = V_USER(29)
   V(29) = V_USER(30)
   V(30) = V_USER(31)
-  V(31) = V_USER(32)
-  V(32) = V_USER(33)
-  V(33) = V_USER(34)
-  V(34) = V_USER(35)
-  V(35) = V_USER(36)
-  V(36) = V_USER(37)
-  V(37) = V_USER(38)
-  V(38) = V_USER(39)
-  V(39) = V_USER(40)
-  V(40) = V_USER(41)
 
 END SUBROUTINE Shuffle_user2kpp
 
@@ -320,16 +310,6 @@ SUBROUTINE Shuffle_kpp2user ( V, V_USER )
   V_USER(29) = V(28)
   V_USER(30) = V(29)
   V_USER(31) = V(30)
-  V_USER(32) = V(31)
-  V_USER(33) = V(32)
-  V_USER(34) = V(33)
-  V_USER(35) = V(34)
-  V_USER(36) = V(35)
-  V_USER(37) = V(36)
-  V_USER(38) = V(37)
-  V_USER(39) = V(38)
-  V_USER(40) = V(39)
-  V_USER(41) = V(40)
 
 END SUBROUTINE Shuffle_kpp2user
 
@@ -377,7 +357,7 @@ SUBROUTINE Get_OHreactivity ( CC, RR, OHreact )
 ! OHreact - OH reactivity [s-1]
   REAL(kind=dp) :: OHreact
 
-  OHreact = 
+  OHreact = 0.0_dp
 
 END SUBROUTINE Get_OHreactivity
 ! End of Get_OHreactivity subroutine
