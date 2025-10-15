@@ -40,6 +40,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
+- Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -53,6 +54,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
 - Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
 - Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
+- Fixed typos in ind_ variable names in `KPP/carbon/carbon_Funcs.F90`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
