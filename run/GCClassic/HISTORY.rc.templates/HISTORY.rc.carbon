@@ -1,4 +1,4 @@
-b###############################################################################
+###############################################################################
 ###  HISTORY.rc file for GEOS-Chem carbon simulation                   ###
 ###  Contact: GEOS-Chem Support Team (geos-chem-support@g.harvard.edu)      ###
 ###############################################################################
@@ -31,12 +31,12 @@ COLLECTIONS: 'Restart',
              'Metrics',
              'SpeciesConc',
              #'Budget',
-	     #'Carbon',
+             'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
-	     #'KppDiags',
-	     #'RxnConst',
-	     #'RxnRates',
+             #'KppDiags',
+             #'RxnConst',
+             #'RxnRates',
              #'SatDiagn',
              #'SatDiagnEdge',
              'StateMet',
