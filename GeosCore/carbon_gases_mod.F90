@@ -890,7 +890,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: KppId,  N, numJacobianTracers
+    INTEGER            :: KppId,  N
 
     ! Strings
     CHARACTER(LEN=255) :: errMsg
@@ -938,13 +938,7 @@ CONTAINS
     ! Initialize module variables in carbon_Funcs (in KPP)
     !========================================================================
     IF ( (id_CH4 > 0) .OR. (id_CO > 0) ) THEN
-       numJacobianTracers = 5 ! ewl todo: get this from geoschem_config.yml, Input_Opt
-       IF ( numJacobianTracers > 0 ) THEN
-          CALL carbon_InitCarbonKPPFuncs( xnumol_CH4, xnumol_CO, xnumol_CO2, &
-               numJacobianTracers, RC )
-       ELSE
-          CALL carbon_InitCarbonKPPFuncs( xnumol_CH4, xnumol_CO, xnumol_CO2, RC )
-       ENDIF
+       CALL carbon_InitCarbonKPPFuncs( xnumol_CH4, xnumol_CO, xnumol_CO2, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Cannot initialize module variables in carbon_InitCarbonChem'
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -1001,9 +995,7 @@ CONTAINS
        CALL GC_CheckVar( 'carbon_gases_mod.F90:sumOfCosSza', 2, RC )
     ENDIF
 
-    IF ( (id_CH4 > 0) .AND. (numJacobianTracers > 0) ) THEN
-       CALL carbon_CleanupCarbonKPPFuncs( RC )
-    ENDIF
+    CALL carbon_CleanupCarbonKPPFuncs( RC )
 
   END SUBROUTINE Cleanup_Carbon_Gases
 !EOC
