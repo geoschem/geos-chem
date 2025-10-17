@@ -508,7 +508,7 @@ CONTAINS
     RC       = GC_SUCCESS
     ErrMsg   = ''
     ThisLoc  = &
-       ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon_CH4Jacobian/carbon_InitCarbonKPPFuncs.F90'
+       ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon/carbon_InitCarbonKPPFuncs.F90'
 
     ! Define flags for species ID's
     id_CH4      = Ind_('CH4')
