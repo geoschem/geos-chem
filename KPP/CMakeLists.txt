@@ -19,13 +19,6 @@ if("${MECH}" STREQUAL carbon)
 endif()
 
 #-----------------------------------------------------------------------------
-# Build the carbon mechanism if configured with -DMECH=carbon_CH4Jacobian
-#-----------------------------------------------------------------------------
-if("${MECH}" STREQUAL carbon_CH4Jacobian)
-  add_subdirectory(carbon_CH4Jacobian)
-endif()
-
-#-----------------------------------------------------------------------------
 # Build the custom mechanism if configured with -DMECH=custom
 # Also build the KPP-Standalone if configured with -DKPPSA=y
 #-----------------------------------------------------------------------------

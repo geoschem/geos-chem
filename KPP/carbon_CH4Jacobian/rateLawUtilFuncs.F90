@@ -1,1 +1,0 @@
-../fullchem/rateLawUtilFuncs.F90
