@@ -42,6 +42,12 @@ MODULE carbon_Funcs
   INTEGER  :: id_CO
   INTEGER  :: id_CO2
 
+#ifdef JACOBIAN_RUN
+  ! Jacobian CH4 tracers
+  INTEGER              :: numJacobianTracers
+  INTEGER, ALLOCATABLE :: JacobianIDs(:)
+#endif
+
   ! Kg species / molec species
   REAL(fp) :: xnumol_CH4
   REAL(fp) :: xnumol_CO
@@ -113,6 +119,15 @@ CONTAINS
     !IF ( id_CO2 > 0 ) THEN
     !   C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
     !ENDIF
+
+#ifdef JACOBIAN_RUN
+    ! Do the same for Jacobian CH4 tracers, if any
+    IF ( numJacobianTracers > 0 ) THEN
+       DO N = 1, numJacobianTracers
+          C(JacobianIDs(N)) = Spc(JacobianIDs(N))%Conc(I,J,L) * xnumol_CH4 / airvol_cm3
+       ENDDO
+    ENDIF
+#endif
 
     ! Initialize placeholder species to 1 molec/cm3
     C(ind_DummyCH4trop)  = 1.0_dp
@@ -329,6 +344,15 @@ CONTAINS
     !   Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
     !ENDIF
 
+#ifdef JACOBIAN_RUN
+    ! Do the same for Jacobian CH4 tracers, if any
+    IF ( numJacobianTracers > 0 ) THEN
+       DO N = 1, numJacobianTracers
+          Spc(JacobianIDs(N))%Conc(I,J,L) = C(JacobianIDs(N)) * airvol_cm3 / xnumol_CH4
+       ENDDO
+    ENDIF
+#endif
+
     ! Free pointer
     Spc => NULL()
 
@@ -510,6 +534,34 @@ CONTAINS
     ThisLoc  = &
        ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon/carbon_InitCarbonKPPFuncs.F90'
 
+#ifdef JACOBIAN_RUN
+    ! Get number of Jacobian tracers, if any
+    numJacobianTracers = 0
+    DO N = 1, 999 ! Set max to very high number < 1000
+       write( N_char, '(I4.4)' ) N
+       spcName = 'CH4_jac' // TRIM(N_char)
+       IF ( Ind_(TRIM(spcName)) > 0 ) THEN
+          numJacobianTracers = N
+       ELSE
+          EXIT
+       ENDIF
+    ENDDO
+
+    ! Allocate Jacobian tracer mapping array and assign ids
+    IF ( numJacobianTracers > 0 ) THEN
+       ALLOCATE( JacobianIDs(numJacobianTracers), STAT=RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          errMsg = 'Error allocating Jacobian tracer ID mapping array!'
+          CALL GC_Error( errMsg, RC, thisLoc )
+       ENDIF
+       DO N = 1, numJacobianTracers
+          write( N_char, '(I4.4)' ) N
+          spcName = 'CH4_jac' // TRIM(N_char)
+          JacobianIDs(N) = Ind_(TRIM(spcName))
+       ENDDO
+    ENDIF
+#endif
+
     ! Define flags for species ID's
     id_CH4      = Ind_('CH4')
     id_CO       = Ind_('CO2')
@@ -556,6 +608,13 @@ CONTAINS
 
     ! Initialize
     RC       = GC_SUCCESS
+
+#ifdef JACOBIAN_RUN
+    IF ( ALLOCATED( JacobianIDs ) ) THEN
+       DEALLOCATE( JacobianIDs, STAT=RC )
+       CALL GC_CheckVar( 'carbon_Funcs.F90:JacobianIDs', 1, RC )
+    ENDIF
+#endif
 
   END SUBROUTINE carbon_CleanupCarbonKPPFuncs
 !EOC
