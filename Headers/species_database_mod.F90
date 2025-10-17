@@ -130,10 +130,13 @@ CONTAINS
     LOGICAL                     :: no_luo
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
+    LOGICAL                     :: addSpc
+#ifdef JACOBIAN_RUN
+    LOGICAL                     :: isJacobian
+#endif
     INTEGER                     :: v_int
     INTEGER                     :: nSpecies
-    INTEGER                     :: N
-    INTEGER                     :: S
+    INTEGER                     :: I, N, S
     REAL(f4)                    :: v_real
     REAL(f4)                    :: dd_dvzaersnow_luo
     REAL(f4)                    :: henry_cr_luo
@@ -143,7 +146,8 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=17)           :: tag
-    CHARACTER(LEN=31)           :: spc
+    CHARACTER(LEN=31)           :: modelSpcName
+    CHARACTER(LEN=31)           :: dbSpcName
     CHARACTER(LEN=255)          :: v_str
     CHARACTER(LEN=255)          :: key
     CHARACTER(LEN=255)          :: thisLoc
@@ -157,7 +161,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=17)           :: tags(67) ! For Is_JacobianTracer (D. Zhang, Aug 6, 2025)
+    CHARACTER(LEN=17)           :: tags(66)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -213,7 +217,6 @@ CONTAINS
              "Henry_K0         ",  &
              "Henry_K0_Luo     ",  &
              "Henry_pKa        ",  &
-             "Is_JacobianTracer",  &
              "Is_Aerosol       ",  &
              "Is_DryAlt        ",  &
              "Is_DryDep        ",  &
@@ -305,35 +308,69 @@ CONTAINS
     ! Loop over the number of species
     DO S = 1, nSpecies
 
-       ! Species name
-       spc = species_names(S)
+       ! Species name. Name in model and name of species in specied database
+       ! are allowed to differ if mapping is added below.
+       modelSpcName = species_names(S)
+       dbSpcName    = species_names(S)
+
+#ifdef JACOBIAN_RUN
+       ! Special name handling for Jacobian tracers. Assume format is
+       ! {SPC}_jac0001, {SPC}_jac0002, etc. (8 character suffix)
+       isJacobian = .FALSE.
+       IF ( INDEX( modelSpcName,'_jac' ) > 0 ) THEN
+          dbSpcName = modelSpcName(1:LEN(trim(modelSpcName))-8)
+          write(*,*) "WARNING: Species ", trim(modelSpcName),        &
+               " will use species database properties for entry ", TRIM(dbSpcName)
+          isJacobian = .TRUE.
+       ENDIF
+#endif
+
+       ! Determine whether this species has already been read from the
+       ! species database. If yes, then get the values rather than
+       ! add and get. This enables reusing species database entries
+       ! for other species.
+       addSpc = .TRUE.
+       N = S - SpcCount%nOmitted
+       IF ( N > 1 ) THEN
+          DO I = 1, N - 1
+             IF ( TRIM(SpcData(I)%Info%Name) == TRIM(dbSpcName) ) THEN
+                AddSpc = .FALSE.
+                EXIT
+             ENDIF
+          ENDDO
+       ENDIF
 
        !--------------------------------------------------------------------
        ! If the species is a "dummy" species (i.e. used for bookkeeping in
        ! KPP rxns), then flag it as such and skip to the next species
        !--------------------------------------------------------------------
        v_bool = MISSING_BOOL
-       key    =  TRIM( spc ) // "%Is_Omitted"
-       CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+       key    =  TRIM( dbSpcName) // "%Is_Omitted"
+       IF ( TRIM(dbSpcName) == TRIM(modelSpcName) ) THEN
+          CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+       ELSE
+          CALL QFYAML_Get( yml, key, v_bool, RC )
+       ENDIF
        IF ( v_bool ) THEN
           SpcCount%nOmitted = SpcCount%nOmitted + 1
           CYCLE
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Look up this species in the database, and assign its name to the
-       ! modelId field.  Subtract # of omitted species from the modelId.
+       ! Get pointer to species info and prepare to fill with species
+       ! database info. Update number of species by subtracting updated
+       ! SpcCount%nOmitted and use that as current species modelID.
        !--------------------------------------------------------------------
-       N                 =  S - SpcCount%nOmitted
-       ThisSpc           => SpcData(N)%Info
+       N =  S - SpcCount%nOmitted
+       ThisSpc => SpcData(N)%Info
        ThisSpc%ModelId   =  N
-       ThisSpc%Name      =  TRIM( spc )
+       ThisSpc%Name      =  TRIM( modelSpcName )
        SpcCount%nRealSpc =  SpcCount%nRealSpc + 1
 
        !--------------------------------------------------------------------
        ! Set the Is_Advected tag (check against Input_Opt%AdvecSpc list)
        !-------------------------------------------------------------------
-       v_bool = ANY( Input_Opt%AdvectSpc_Name == spc )
+       v_bool = ANY( Input_Opt%AdvectSpc_Name == modelSpcName )
        IF ( v_bool ) THEN
           SpcCount%nAdvect    = SpcCount%nAdvect + 1
           ThisSpc%AdvectId    = SpcCount%nAdvect
@@ -370,6 +407,11 @@ CONTAINS
                                  ThisSpc%KppFixId <= 0                      )
        ThisSpc%Is_FixedChem  = ( ThisSpc%KppFixId >  0                      )
 
+#ifdef JACOBIAN_RUN
+       ! Is this a Jacobian species?
+       ThisSpc%Is_JacobianTracer = isJacobian
+#endif
+
        !--------------------------------------------------------------------
        ! Initialize found flags
        !-------------------------------------------------------------------
@@ -400,7 +442,7 @@ CONTAINS
           v_str    = MISSING_STR
 
           ! Create search key for each variable
-          key = TRIM( spc ) // '%' // TRIM( tags(N) )
+          key = TRIM( dbSpcName) // '%' // TRIM( tags(N) )
 
           ! Set a flag if "Luo" is not found in the key
           no_luo = ( INDEX( key, "Luo" ) <= 0 )
@@ -411,27 +453,47 @@ CONTAINS
           ! for the roundoff algorithm.
           IF ( INDEX( key, "%Background_VV" ) > 0 ) THEN
              v_real = MISSING_VV
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%BackgroundVV = DBLE( v_real )   ! Don't round off
 
           ELSE IF ( INDEX( key, "%DD_AeroDryDep" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_AeroDryDep = v_bool
 
           ELSE IF ( INDEX( key, "%DD_DustDryDep" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DustDryDep = v_bool
 
           ELSE IF ( INDEX( key, "%DD_DvzAerSnow" ) >  0  .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DvzAerSnow = Cast_and_RoundOff( v_real, 2 )
 
           ELSE IF ( INDEX( key, "%DD_DvzAerSnow_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              dd_dvzaersnow_luo = Cast_and_RoundOff( v_real, 2 )
              IF ( dd_dvzaersnow_luo /= MISSING_REAL ) THEN
@@ -439,13 +501,21 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%DD_DvzMinVal" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_2, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_DvzMinVal(1) = Cast_and_RoundOff( a_real_2(1), 2 )
              ThisSpc%DD_DvzMinVal(2) = Cast_and_RoundOff( a_real_2(2), 2 )
 
           ELSE IF ( INDEX( key, "%DD_DvzMinVal_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_2, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_2, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              dd_dvzminval_luo(1) = Cast_and_RoundOff( a_real_2(1), 2 )
              dd_dvzminval_luo(2) = Cast_and_RoundOff( a_real_2(2), 2 )
@@ -454,42 +524,74 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%DD_F0" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_F0 = DBLE( v_real )          ! Don't round off
 
           ELSE IF ( INDEX( key, "%DD_Hstar" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_Hstar = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%DD_KOA" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%DD_KOA = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Density" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Density = Cast_and_RoundOff( v_real, 2 )
 
           ELSE IF ( INDEX( key, "%Formula" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Formula = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%FullName" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%FullName = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Henry_CR" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Henry_CR = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Henry_CR_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              henry_cr_luo = DBLE( v_real )           ! Don't round off
              IF ( henry_cr_luo /= MISSING_REAL ) THEN
@@ -497,12 +599,20 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Henry_K0" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Henry_K0 = DBLE( v_real )       ! Don't round off
 
           ELSE IF ( INDEX( key, "%Henry_K0_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              henry_k0_luo = DBLE( v_real )           ! Don't round off
              IF ( henry_k0_luo /= MISSING_REAL ) THEN
@@ -510,7 +620,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Aerosol" ) > 0  ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nAeroSpc  = SpcCount%nAeroSpc + 1
@@ -519,7 +633,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_DryAlt" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nDryAlt  = SpcCount%nDryAlt + 1
@@ -528,7 +646,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_DryDep" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool .AND. ThisSpc%Is_Advected ) THEN
                 SpcCount%nDryDep  = SpcCount%nDryDep + 1
@@ -537,7 +659,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_HygroGrowth" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHygGrth      = SpcCount%nHygGrth + 1
@@ -546,7 +672,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Gas" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nGasSpc = SpcCount%nGasSpc + 1
@@ -555,7 +685,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Hg0" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg0  = SpcCount%nHg0 + 1
@@ -563,7 +697,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Hg2" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHg2  = SpcCount%nHg2 + 1
@@ -571,7 +709,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_HgP" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nHgP  = SpcCount%nHgP + 1
@@ -579,7 +721,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Photolysis" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nPhotol      = SpcCount%nPhotol + 1
@@ -588,7 +734,11 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_RadioNuclide" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nRadNucl       = SpcCount%nRadNucl + 1
@@ -597,23 +747,24 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_Tracer" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nTracer       = SpcCount%nTracer + 1
                 ThisSpc%TracerId       = SpcCount%nTracer
                 ThisSpc%Is_Tracer      = v_bool
              ENDIF
-         
-         ELSE IF ( INDEX( key, "%Is_JacobianTracer" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
-             IF ( RC /= GC_SUCCESS ) GOTO 999
-             IF ( v_bool ) THEN
-                ThisSpc%Is_JacobianTracer = v_bool
-             ENDIF
 
           ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              IF ( v_bool ) THEN
                 SpcCount%nWetDep  = SpcCount%nWetDep + 1
@@ -622,133 +773,233 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%KPP_AbsTol" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%KPP_AbsTol = Cast_and_RoundOff( v_str, -1 )
 
           ELSE IF ( INDEX( key, "%KPP_RelTol" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%KPP_RelTol = Cast_and_RoundOff( v_str, -1 )
 
           ELSE IF ( INDEX( key, "%MP_SizeResAer" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%MP_SizeResAer = v_bool
 
           ELSE IF ( INDEX( key, "%MP_SizeResNum" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%MP_SizeResNum = v_bool
 
           ELSE IF ( INDEX( key, "%MW_g" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%MW_g = Cast_and_RoundOff( v_real, 2 )
 
           ELSE IF ( INDEX( key, "%Radius" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Radius = DBLE( v_real )         ! Don't round off
 
           ELSE IF ( INDEX( key, "%Snk_Horiz" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Horiz = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Snk_Lats" ) > 0 ) THEN
              a_str = MISSING_STR
-             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, TRIM( key ), a_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_LatMin = Cast_and_RoundOff( a_str(1), 4 )
              ThisSpc%Snk_LatMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Snk_Mode" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Mode = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Snk_Period" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Period = DBLE( v_real )
 
           ELSE IF ( INDEX( key, "%Snk_Value" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Value = DBLE( v_real )
 
           ELSE IF ( INDEX( key, "%Snk_Vert" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Snk_Vert = TRIM( v_str )
  
           ELSE IF ( INDEX( key, "%Src_Add" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Add = v_bool
 
           ELSE IF ( INDEX( key, "%Src_Horiz" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Horiz = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Src_Lats" ) > 0 ) THEN
              a_str = MISSING_STR
-             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, TRIM( key ), a_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_LatMin = Cast_and_RoundOff( a_str(1), 4 )
              ThisSpc%Src_LatMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Src_Mode" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Mode = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Src_Pressures" ) > 0 ) THEN
              a_str = MISSING_STR
-             CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, TRIM( key ), a_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, TRIM( key ), a_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_PresMin = Cast_and_RoundOff( a_str(1), 4 )
              ThisSpc%Src_PresMax = Cast_and_RoundOff( a_str(2), 4 )
 
           ELSE IF ( INDEX( key, "%Src_Units" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Units = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Src_Value" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Value = DBLE( v_real )
 
           ELSE IF ( INDEX( key, "%Src_Vert" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Src_Vert = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%Units" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_str, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_str, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%Units = TRIM( v_str )
 
           ELSE IF ( INDEX( key, "%WD_AerScavEff" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_AerScavEff = Cast_and_RoundOff( v_real, 2 )
 
           ELSE IF ( INDEX( key, "%WD_CoarseAer" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_CoarseAer = v_bool
 
           ELSE IF ( INDEX( key, "%WD_ConvFacI2G" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_ConvFacI2G = DBLE( v_real )  ! Don't round off
 
           ELSE IF ( INDEX( key, "%WD_ConvFacI2G_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_convfaci2g_luo = DBLE( v_real )      ! Don't round off
              IF ( wd_convfaci2g_luo /= MISSING_REAL ) THEN
@@ -756,14 +1007,22 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%WD_KcScaleFac" ) > 0  .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_3, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_KcScaleFac(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              ThisSpc%WD_KcScaleFac(2) = Cast_and_RoundOff( a_real_3(2), 2 )
              ThisSpc%WD_KcScaleFac(3) = Cast_and_RoundOff( a_real_3(3), 2 )
 
           ELSE IF ( INDEX( key, "%WD_KcScaleFac_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_3, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_kcscalefac_luo(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              wd_kcscalefac_luo(2) = Cast_and_RoundOff( a_real_3(2), 2 )
@@ -773,40 +1032,68 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%WD_Is_H2SO4" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_H2SO4 = v_bool
 
           ELSE IF ( INDEX( key, "%WD_Is_HNO3" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_HNO3 = v_bool
 
           ELSE IF ( INDEX( key, "%WD_Is_SO2" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_Is_SO2 = v_bool
 
           ELSE IF ( INDEX( key, "%WD_LiqAndGas" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_LiqAndGas = v_bool
 
           ELSE IF ( INDEX( key, "%WD_LiqAndGas_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_bool, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_liqandgas_luo = v_bool
              found_wd_liqandgas_luo = wd_liqandgas_luo
 
           ELSE IF ( INDEX( key, "%WD_RainoutEff" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_3, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_RainoutEff(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              ThisSpc%WD_RainoutEff(2) = Cast_and_RoundOff( a_real_3(2), 2 )
              ThisSpc%WD_RainoutEff(3) = Cast_and_RoundOff( a_real_3(3), 2 )
 
           ELSE IF ( INDEX( key, "%WD_RainoutEff_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, a_real_3, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, a_real_3, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_rainouteff_luo(1) = Cast_and_RoundOff( a_real_3(1), 2 )
              wd_rainouteff_luo(2) = Cast_and_RoundOff( a_real_3(2), 2 )
@@ -816,12 +1103,20 @@ CONTAINS
              ENDIF
 
           ELSE IF ( INDEX( key, "%WD_RetFactor" ) > 0 .and. no_luo ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              ThisSpc%WD_RetFactor = Cast_and_RoundOff( v_real, 2 )
 
           ELSE IF ( INDEX( key, "%WD_RetFactor_Luo" ) > 0 ) THEN
-             CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             IF ( addSpc ) THEN
+                CALL QFYAML_Add_Get( yml, key, v_real, "", RC )
+             ELSE
+                CALL QFYAML_Get( yml, key, v_real, RC )
+             ENDIF
              IF ( RC /= GC_SUCCESS ) GOTO 999
              wd_retfactor_luo = Cast_and_RoundOff( v_real, 2 )
              IF ( wd_retfactor_luo /= MISSING_REAL ) THEN
@@ -842,7 +1137,7 @@ CONTAINS
        ! Is_Gas and Is_Aero tags cannot both be TRUE at the same time
        IF ( ThisSpc%Is_Gas .and. ThisSpc%Is_Aerosol ) THEN
           errMsg = "Is_Gas and Is_Aerosol are both TRUE for species "     // &
-                   TRIM( spc ) // "!"
+                   TRIM( dbSpcName) // "!"
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
@@ -859,7 +1154,7 @@ CONTAINS
              ThisSpc%Is_Gas = .TRUE.
           ELSE
              errMsg = "Is_Gas and Is_Aerosol are both FALSE for species " // &
-                      TRIM( spc ) // "!This species may not be included " // &
+                      TRIM( dbSpcName) // "!This species may not be included " // &
                       "in species_database.yml. Please check that file."
              CALL GC_Error( errMsg, RC, thisLoc )
              RETURN
@@ -868,7 +1163,7 @@ CONTAINS
 
        ! Make sure the molecular weight is not a missing value
        IF ( ThisSpc%MW_g == MISSING_REAL ) THEN
-          errMsg = 'MW_g for species ' // TRIM( spc ) // ' is undefined!'
+          errMsg = 'MW_g for species ' // TRIM( dbSpcName) // ' is undefined!'
           CALL GC_Error( errMsg, RC, thisLoc )
           RETURN
        ENDIF
@@ -876,7 +1171,7 @@ CONTAINS
        ! If the species is a gas, set all aerosol fields to missing values
        IF ( ThisSpc%Is_Gas ) THEN
 
-          SELECT CASE( TRIM( spc ) )
+          SELECT CASE( TRIM( dbSpcName) )
              CASE( 'H2SO4' )
                 ! H2SO4 are gases that wetdep like aerosols,
                 ! so keep both all gas and aerosol properties.
