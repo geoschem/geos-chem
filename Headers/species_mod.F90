@@ -118,9 +118,11 @@ MODULE Species_Mod
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
      LOGICAL            :: Is_RadioNuclide  ! Is it a radionuclide species?
      LOGICAL            :: Is_Tracer        ! Is it a transport tracer?
-     LOGICAL            :: Is_JacobianTracer  ! Is it a Jacobian tracer?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
+#ifdef JACOBIAN
+     LOGICAL            :: Is_JacobianTracer  ! Is it a Jacobian tracer?
+#endif
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
@@ -403,7 +405,6 @@ CONTAINS
     Spc%Is_Photolysis   = MISSING_BOOL
     Spc%Is_RadioNuclide = MISSING_BOOL
     Spc%Is_Tracer       = MISSING_BOOL
-    Spc%Is_JacobianTracer = MISSING_BOOL
     Spc%Is_WetDep       = MISSING_BOOL
     Spc%Src_Add         = MISSING_BOOL
     Spc%MP_SizeResAer   = MISSING_BOOL
@@ -413,6 +414,9 @@ CONTAINS
     Spc%WD_Is_HNO3      = MISSING_BOOL
     Spc%WD_Is_SO2       = MISSING_BOOL
     Spc%WD_LiqAndGas    = MISSING_BOOL
+#ifdef JACOBIAN
+    Spc%Is_JacobianTracer = MISSING_BOOL
+#endif
 
     ! Integers
     Spc%AdvectId        = MISSING_INT
@@ -734,13 +738,15 @@ CONTAINS
 
        ENDIF
        
+#ifdef JACOBIAN
        !--------------------------------------------------------------------
        ! Is the species a Jacobian Tracer (for IMI)?
        !--------------------------------------------------------------------
        IF ( ThisSpc%Is_JacobianTracer ) THEN
           WRITE( 6, 130 )    "Is_JacobianTracer ",  ThisSpc%Is_JacobianTracer
        ENDIF
-       
+#endif
+
        !--------------------------------------------------------------------
        ! Is the species a mercury species?
        !--------------------------------------------------------------------

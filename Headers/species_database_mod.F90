@@ -131,7 +131,7 @@ CONTAINS
     LOGICAL                     :: v_bool
     LOGICAL                     :: wd_liqandgas_luo
     LOGICAL                     :: addSpc
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
     LOGICAL                     :: isJacobian
 #endif
     INTEGER                     :: v_int
@@ -313,7 +313,7 @@ CONTAINS
        modelSpcName = species_names(S)
        dbSpcName    = species_names(S)
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
        ! Special name handling for Jacobian tracers. Assume format is
        ! {SPC}_jac0001, {SPC}_jac0002, etc. (8 character suffix)
        isJacobian = .FALSE.
@@ -407,7 +407,7 @@ CONTAINS
                                  ThisSpc%KppFixId <= 0                      )
        ThisSpc%Is_FixedChem  = ( ThisSpc%KppFixId >  0                      )
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
        ! Is this a Jacobian species?
        ThisSpc%Is_JacobianTracer = isJacobian
 #endif
