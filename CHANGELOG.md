@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
+- Added routines `Lookup_Grid` and `Register_State_Grid` to `Headers/state_grid_mod.F90`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -40,6 +41,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
+- Moved coordinate variables for GC-Classic History netCDF files from `GeosUtil/grid_registry_mod.F90` to the `State_Grid` object
+- Changed several `State_Grid` fields from `fp` to `f8` precision. (In practice both are `REAL*8` but this makes it more explicit.)
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -59,6 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
+- Removed `GeosUtil/grid_registry_mod.F90`.
 
 ## [14.6.3] - 2025-07-28
 ### Added

@@ -824,7 +824,12 @@ PROGRAM GEOS_Chem
 
        ! Write collections (such as BoundaryConditions) that need
        ! to be defined at the start of the run
-       CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
+       CALL History_Write(                                                   &
+            Input_Opt  = Input_Opt,                                          &
+            State_Chm  = State_Chm,                                          &
+            State_Diag = State_Diag,                                         &
+            State_Grid = State_Grid,                                         &
+            RC         = RC                                                 )
 
        ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
@@ -1986,7 +1991,12 @@ PROGRAM GEOS_Chem
 
           ! Write HISTORY ITEMS in each diagnostic collection to disk
           ! (or skip writing if it is not the proper output time.
-          CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
+          CALL History_Write(                                                &
+               Input_Opt  = Input_Opt,                                       &
+               State_Chm  = State_Chm,                                       &
+               State_Diag = State_Diag,                                      &
+               State_Grid = State_Grid,                                      &
+               RC         = RC                                              )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN

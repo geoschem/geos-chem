@@ -674,6 +674,8 @@ CONTAINS
              state = 'MET'
           ELSEIF ( nameAllCaps(1:5) == 'CHEM_' ) THEN
              state = 'CHEM'
+          ELSEIF ( nameAllCaps(1:5) == 'GRID_' ) THEN
+             state = 'GRID'
 #ifdef ESMF_
           ! HEMCO diagnostics are included in HISTORY.rc in GCHP/GEOS only.
           ! Prefix for HEMCO diagnostics in HEMCO_Diagn.rc must be one of the

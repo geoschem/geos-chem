@@ -503,12 +503,16 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER :: L
+    ! Scalars
+    INTEGER            :: L
 
+    ! Arrays
+    REAL(fp)           :: a132_loc(133), b132_loc(133)
+    REAL(fp)           :: a91_loc(92),   b91_loc(92)
+
+    ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc, nLev
 
-    REAL(fp) :: a132_loc(133), b132_loc(133)
-    REAL(fp) :: a91_loc(92),   b91_loc(92)
 
     !=================================================================
     ! INIT_PRESSURE begins here!
@@ -516,6 +520,7 @@ CONTAINS
 
     ! Initialize
     RC      = GC_SUCCESS
+    ErrMsg  = ''
     ThisLoc = ' -> at Init_Pressure (in GeosUtil/pressure_mod.F90)'
 
     IF (.NOT. ALLOCATED( PFLT_DRY )) THEN
