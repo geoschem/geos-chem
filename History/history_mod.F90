@@ -121,11 +121,11 @@ CONTAINS
 !
     TYPE(OptInput),   INTENT(IN)    :: Input_Opt    ! Input Option object
     TYPE(ChmState),   INTENT(IN)    :: State_Chm    ! Chemistry State object
-    TYPE(GrdState),   INTENT(IN)    :: State_Grid   ! Grid State object
     TYPE(MetState),   INTENT(IN)    :: State_Met    ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
+    TYPE(GrdState),   INTENT(INOUT) :: State_Grid   ! Grid State object
     TYPE(DgnState),   INTENT(INOUT) :: State_Diag   ! Diagnostics State object
 !
 ! !OUTPUT PARAMETERS:
@@ -133,8 +133,8 @@ CONTAINS
     INTEGER,          INTENT(OUT)   :: RC           ! Success or failure
 !
 ! !REMARKS:
-!  Calls internal routines History_ReadCollectionNames and
-!  History_ReadCollectionData
+!  Calls internal routines History_ReadCollectionNames,
+!  History_ReadCollectionData, and History_InitCoordVars
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -186,7 +186,103 @@ CONTAINS
        RETURN
     ENDIF
 
+    !=======================================================================
+    ! Finally, initialize the netCDF coordinate variables,
+    ! which are stored as fields of the State_Grid object.
+    !=======================================================================
+    CALL History_InitCoordVars( State_Grid )
+
   END SUBROUTINE History_Init
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: History_InitCoordVars
+!
+! !DESCRIPTION: Initializes coordinate variables that will be written to
+!  netCDF files.  These are contained as fields in the State_Grid object.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE History_InitCoordVars( State_Grid )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE Pressure_Mod,   ONLY : Get_Ap, Get_Bp
+    USE State_Grid_Mod, ONLY : GrdState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(GrdState),  INTENT(INOUT) :: State_Grid   ! Grid State object
+!
+! !REMARKS:
+!  These fields are allocated, registered, and deallocated in
+!  Headers/state_grid_mod.F90, but need to be populated with values here.
+!  This is because these fields rely on the Ap and Bp hybrid grid
+!  parameters (from GeosUtil/pressure_mod.F90), which aren't allocated
+!  until after state_grid_mod.F90 is initialized.
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: I, J, L
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg
+    CHARACTER(LEN=255) :: thisLoc
+
+    !======================================================================
+    ! Compute the coordinate arrays for GC-Classic History diagnostics
+    ! (These are also used for WRF-GC)
+    !======================================================================
+
+    ! Area, reference pressure, time
+    State_Grid%Area           = State_Grid%Area_M2  ! m2
+    State_Grid%P0             = 1000.0_f8           ! hPa
+    State_Grid%Time           = 0.0
+
+    ! Latitude coordinates
+    DO J = 1, State_Grid%NY+1
+       State_Grid%LatE(J)     = State_Grid%YEdge(1,J)
+    ENDDO
+    DO J = 1, State_Grid%NY
+       State_Grid%Lat(J)      = State_Grid%YMid(1,J)
+       State_Grid%LatBnd(1,J) = State_Grid%LatE(J)
+       State_Grid%LatBnd(2,J) = State_Grid%LatE(J+1)
+    ENDDO
+
+    ! Longitude coordinates
+    DO I = 1, State_Grid%NX+1
+       State_Grid%LonE(I)     = State_Grid%XEdge(I,1)
+    ENDDO
+    DO I = 1, State_Grid%NX
+       State_Grid%Lon(I)      = State_Grid%XMid(I,1)
+       State_Grid%LonBnd(1,I) = State_Grid%LonE(I)
+       State_Grid%LonBnd(2,I) = State_Grid%LonE(I+1)
+    ENDDO
+
+    ! Level coordinates
+    DO L = 1, State_Grid%NZ+1
+       State_Grid%HyAi(L)     = Get_Ap(L)
+       State_Grid%HyBi(L)     = Get_Bp(L)
+       State_Grid%ILev(L)     = ( State_Grid%HyAi(L) / State_Grid%P0 )       &
+                              + State_Grid%HyBi(L)
+    ENDDO
+    DO L = 1, State_Grid%NZ
+       State_Grid%HyAm(L)     = ( Get_Ap( L ) + Get_Ap( L+1 ) ) * 0.5_f8
+       State_Grid%HyBm(L)     = ( Get_Bp( L ) + Get_Bp( L+1 ) ) * 0.5_f8
+       State_Grid%Lev(L)      = ( State_Grid%HyAm(L) / State_Grid%P0 )       &
+                              + State_Grid%HyBm(L)
+    ENDDO
+
+  END SUBROUTINE History_InitCoordVars
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !
@@ -1688,6 +1784,7 @@ CONTAINS
                             Input_Opt    = Input_Opt,                        &
                             State_Chm    = State_Chm,                        &
                             State_Diag   = State_Diag,                       &
+                            State_Grid   = State_Grid,                       &
                             State_Met    = State_Met,                        &
                             Collection   = Container,                        &
                             CollectionId = C,                                &
@@ -1725,6 +1822,7 @@ CONTAINS
                 CALL History_AddItemToCollection(                            &
                          Input_Opt    = Input_Opt,                           &
                          State_Chm    = State_Chm,                           &
+                         State_Grid   = State_Grid,                          &
                          State_Diag   = State_Diag,                          &
                          State_Met    = State_Met,                           &
                          Collection   = Container,                           &
@@ -1909,8 +2007,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_AddItemToCollection( Input_Opt,                         &
-                                          State_Chm,    State_Diag,          &
+  SUBROUTINE History_AddItemToCollection( Input_Opt,    State_Chm,           &
+                                          State_Diag,   State_Grid,          &
                                           State_Met,    Collection,          &
                                           CollectionId, ItemName,            &
                                           ItemCount,    SubsetInd,           &
@@ -1929,7 +2027,9 @@ CONTAINS
     USE Registry_Mod,          ONLY : Registry_Lookup
     USE State_Chm_Mod
     USE State_Diag_Mod
+    USE State_Grid_Mod
     USE State_Met_Mod
+
 !
 ! !INPUT PARAMETERS:
 !
@@ -1937,6 +2037,7 @@ CONTAINS
     TYPE(OptInput),      INTENT(IN)  :: Input_Opt      ! Input Options State
     TYPE(ChmState),      INTENT(IN)  :: State_Chm      ! Chemistry State
     TYPE(DgnState),      INTENT(IN)  :: State_Diag     ! Diagnostic State
+    TYPE(GrdState),      INTENT(IN)  :: State_Grid     ! Diagnostic State
     TYPE(MetState),      INTENT(IN)  :: State_Met      ! Meteorology State
     INTEGER,             INTENT(IN)  :: CollectionID   ! Collection ID number
     CHARACTER(LEN=255),  INTENT(IN)  :: ItemName       ! Name of HISTORY ITEM
@@ -1985,6 +2086,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=4  )           :: StateMetUC
     CHARACTER(LEN=5  )           :: StateChmUC
+    CHARACTER(LEN=5  )           :: StateGrdUC
     CHARACTER(LEN=255)           :: ItemNameUC
     CHARACTER(LEN=255)           :: Description
     CHARACTER(LEN=255)           :: ThisLoc
@@ -2026,8 +2128,9 @@ CONTAINS
     ThisLoc        =  &
          ' -> History_AddItemToCollection (in History/history_mod.F90)'
     ItemNameUC     = To_UpperCase( ItemName )
-    StateMetUC     = State_Met%State // '_'   ! State_Met%State is uppercase
-    StateChmUC     = State_Chm%State // '_'   ! State_Chm%State is uppercase
+    StateChmUC     = State_Chm%State  // '_'   ! State_Chm%State is uppercase
+    StateGrdUC     = State_Grid%State // '_'   ! State_Grd%State is uppercase
+    StateMetUC     = State_Met%State  // '_'   ! State_Met%State is uppercase
 
     ! Free pointers
     Ptr0d    => NULL()
@@ -2087,6 +2190,37 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not locate ' // TRIM( ItemName )  // &
                    ' chemistry state registry.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
+
+    ELSE IF ( ItemNameUC(1:5) == StateGrdUC ) THEN
+
+       !--------------------------------------------------------------------
+       ! Grid State
+       !--------------------------------------------------------------------
+       CALL Registry_Lookup( am_I_Root      = Input_Opt%amIRoot,             &
+                             Registry       = State_Grid%Registry,           &
+                             RegDict        = State_Grid%RegDict,            &
+                             State          = State_Grid%State,              &
+                             Variable       = ItemName,                      &
+                             Description    = Description,                   &
+                             Dimensions     = Dimensions,                    &
+                             Source_KindVal = Source_KindVal,                &
+                             Output_KindVal = Output_KindVal,                &
+                             Rank           = Rank,                          &
+                             Units          = Units,                         &
+                             OnLevelEdges   = OnLevelEdges,                  &
+                             Ptr0d_8        = Ptr0d_8,                       &
+                             Ptr1d_8        = Ptr1d_8,                       &
+                             Ptr2d_8        = Ptr2d_8,                       &
+                             Ptr2d_4        = Ptr2d_4,                       &
+                             RC             = RC                            )
+
+       ! Trap potential not found error
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Could not locate ' // TRIM( ItemName )  // &
+                   ' meteorology state registry.'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
@@ -2859,7 +2993,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE History_Write( Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE History_Write( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -2877,6 +3011,7 @@ CONTAINS
     USE Registry_Params_Mod
     USE State_Chm_Mod,         ONLY : ChmState
     USE State_Diag_Mod,        ONLY : DgnMap, DgnState
+    USE State_Grid_Mod,        ONLY : GrdState
     USE UnitConv_Mod,          ONLY : UNIT_STR, Check_Units
     USE UnitConv_Mod,          ONLY : MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
@@ -2884,7 +3019,8 @@ CONTAINS
 !
     TYPE(OptInput),   INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(ChmState),   INTENT(IN)  :: State_Chm   ! Chemistry State object
-    TYPE(DgnState),   INTENT(IN)  :: State_Diag  ! Diagnsotics State object
+    TYPE(DgnState),   INTENT(IN)  :: State_Diag  ! Diagnostics State object
+    TYPE(GrdState),   INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -3041,6 +3177,7 @@ CONTAINS
           ! the index variable data to the file.
           !-----------------------------------------------------------------
           CALL History_Netcdf_Define( Input_Opt  = Input_Opt,                &
+                                      State_Grid = State_Grid,               &
                                       Container  = Container,                &
                                       RC         = RC                       )
 
