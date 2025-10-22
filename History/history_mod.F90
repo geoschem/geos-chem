@@ -579,7 +579,6 @@ CONTAINS
     USE Charpak_Mod
     USE DiagList_Mod,          ONLY : CollList, Search_CollList
     USE ErrCode_Mod
-    USE Grid_Registry_Mod,     ONLY : Lookup_Grid
     USE HistContainer_Mod
     USE HistItem_Mod
     USE History_Util_Mod
@@ -590,7 +589,7 @@ CONTAINS
     USE Species_Mod,           ONLY : Species
     USE State_Chm_Mod
     USE State_Diag_Mod
-    USE State_Grid_Mod,        ONLY : GrdState
+    USE State_Grid_Mod,        ONLY : GrdState, Lookup_Grid
     USE State_Met_Mod
 !
 ! !INPUT PARAMETERS:
