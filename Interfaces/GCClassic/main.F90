@@ -50,7 +50,6 @@ PROGRAM GEOS_Chem
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
   USE Print_Mod             ! For verbose printing
-  USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
   USE State_Chm_Mod         ! Derived type for Chemistry State object
   USE State_Diag_Mod        ! Derived type for Diagnostics State object
   USE State_Grid_Mod        ! Derived type for Grid State object
@@ -580,18 +579,6 @@ PROGRAM GEOS_Chem
      ENDIF
   ENDIF
 #endif
-
-  !--------------------------------------------------------------------------
-  ! Register the horizontal and vertical grid information so that
-  ! the History component can use it for netCDF metadata
-  !--------------------------------------------------------------------------
-  IF ( notDryRun ) THEN
-     CALL Init_Grid_Registry( Input_Opt, State_Grid, RC )
-     IF ( RC /= GC_SUCCESS ) THEN
-        ErrMsg = 'Error encountered in "Init_Grid_Registry"!'
-        CALL Error_Stop( ErrMsg, ThisLoc )
-     ENDIF
-  ENDIF
 
   !--------------------------------------------------------------------------
   ! Added to read input file for Linoz O3

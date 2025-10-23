@@ -25,7 +25,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE ERROR_MOD,               ONLY : DEBUG_MSG
   USE FullChem_MOD,            ONLY : Cleanup_FullChem
   USE GLOBAL_Br_MOD,           ONLY : CLEANUP_GLOBAL_Br
-  USE Grid_Registry_Mod,       ONLY : Cleanup_Grid_Registry
   USE History_Mod,             ONLY : History_Cleanup
   USE Input_Opt_Mod,           ONLY : OptInput
   USE AEROSOL_THERMODYNAMICS_MOD, ONLY : CLEANUP_ATE
@@ -143,13 +142,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   CALL Cleanup_Carbon_Gases( RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Cleanup_Carbon_Gases"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
-
-  CALL Cleanup_Grid_Registry( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Grid_Registry"!'
      CALL GC_Error( ErrMsg, RC, ThisLoc )
      RETURN
   ENDIF

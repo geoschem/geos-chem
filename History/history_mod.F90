@@ -777,10 +777,11 @@ CONTAINS
        !====================================================================
 
        ! Lookup latitude centers
-       CALL Lookup_Grid( Input_Opt = Input_Opt,  &
-                         Variable  = 'GRID_LAT', &
-                         Ptr1d_8   = Grid_Lat,   &
-                         RC        = RC )
+       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
+                         State_Grid = State_Grid,                            &
+                         Variable   = 'GRID_LAT',                            &
+                         Ptr1d_8    = Grid_Lat,                              &
+                         RC         = RC                                    )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to latitudes (aka GRID_LAT)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -788,10 +789,11 @@ CONTAINS
        ENDIF
 
        ! Lookup latitude edges
-       CALL Lookup_Grid( Input_Opt = Input_Opt,   &
-                         Variable  = 'GRID_LATE', &
-                         Ptr1d_8   = Grid_LatE,   &
-                         RC        = RC )
+       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
+                         State_Grid = State_Grid,                            &
+                         Variable   = 'GRID_LATE',                           &
+                         Ptr1d_8    = Grid_LatE,                             &
+                         RC         = RC                                    )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to latitude edges (aka GRID_LATE)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -799,10 +801,11 @@ CONTAINS
        ENDIF
 
        ! Lookup longitude centers
-       CALL Lookup_Grid( Input_Opt = Input_Opt,  &
-                         Variable  = 'GRID_LON', &
-                         Ptr1d_8   = Grid_Lon,   &
-                         RC        = RC )
+       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
+                         State_Grid = State_Grid,                            &
+                         Variable   = 'GRID_LON',                            &
+                         Ptr1d_8    = Grid_Lon,                              &
+                         RC         = RC                                    )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to longitudes (aka GRID_LON)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc)
@@ -810,10 +813,11 @@ CONTAINS
        ENDIF
 
        ! Lookup longitude edges
-       CALL Lookup_Grid( Input_Opt = Input_Opt,   &
-                         Variable  = 'GRID_LONE', &
-                         Ptr1d_8   = Grid_LonE,   &
-                         RC        = RC )
+       CALL Lookup_Grid( Input_Opt  = Input_Opt,                             &
+                         State_Grid = State_Grid,                            &
+                         Variable   = 'GRID_LONE',                           &
+                         Ptr1d_8    = Grid_LonE,                             &
+                         RC         = RC                                    )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Could not get pointer to longitude edges (aka GRID_LONE)!'
           CALL GC_Error( ErrMsg, RC, ThisLoc)
