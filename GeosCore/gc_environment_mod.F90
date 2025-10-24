@@ -298,11 +298,11 @@ CONTAINS
 !
     USE ErrCode_Mod
 #if !(defined( EXTERNAL_GRID ) || defined( EXTERNAL_FORCING ))
-    USE GC_Grid_Mod,        ONLY : Compute_Grid
+    USE GC_Grid_Mod,    ONLY : Compute_Grid
 #endif
-    USE Input_Opt_Mod,      ONLY : OptInput
-    USE State_Grid_Mod,     ONLY : Allocate_State_Grid
-    USE State_Grid_Mod,     ONLY : GrdState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Grid_Mod, ONLY : Allocate_State_Grid, Register_State_Grid
+    USE State_Grid_Mod, ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
@@ -354,7 +354,7 @@ CONTAINS
     ! Allocate State_Grid arrays
     CALL Allocate_State_Grid( Input_Opt, State_Grid, RC )
     IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in "Compute_Grid"!'
+       ErrMsg = 'Error encountered in "Allocate_State_Grid"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
@@ -369,6 +369,14 @@ CONTAINS
        RETURN
     ENDIF
 #endif
+
+    ! Register State_Grid arrays
+    CALL Register_State_Grid( Input_Opt, State_Grid, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Register_State_Grid"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
 
   END SUBROUTINE GC_Init_Grid
 !EOC

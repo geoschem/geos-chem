@@ -29,6 +29,9 @@ source checkRunSettings.sh 2>&1 | tee ${log}
 # Run GCHP with # processors specified in config file setCommonRunSettings.sh
 nCores=$( grep -oP 'TOTAL_CORES=\s*\K\d+' setCommonRunSettings.sh )
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 #--------------------------------------------------
 # Edit this line to run GCHP on your system
 #--------------------------------------------------

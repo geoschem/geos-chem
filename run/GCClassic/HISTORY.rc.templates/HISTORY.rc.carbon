@@ -35,12 +35,12 @@ COLLECTIONS: 'Restart',
              #'CloudConvFlux',
              #'ConcAfterChem',
 	     #'KppDiags',
-             #'LevelEdgeDiags',
 	     #'RxnConst',
 	     #'RxnRates',
              #'SatDiagn',
              #'SatDiagnEdge',
              'StateMet',
+             'StateMetLevEdge',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -104,7 +104,7 @@ COLLECTIONS: 'Restart',
   SpeciesConc.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
   SpeciesConc.mode:           'time-averaged'
   SpeciesConc.fields:         'SpeciesConcVV_?ADV?           ',
-                              ##'SpeciesConcMND_?ADV?          ',
+                              #'SpeciesConcMND_?ADV?          ',
 ::
 #==============================================================================
 # %%%%% THE Budget COLLECTION %%%%%
@@ -180,25 +180,6 @@ COLLECTIONS: 'Restart',
   ConcAfterChem.duration:     ${RUNDIR_HIST_TIME_AVG_DUR}
   ConcAfterChem.mode:         'time-averaged'
   ConcAfterChem.fields:       'OHconcAfterChem               ',
-::
-#==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
-#
-# Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
-#==============================================================================
-  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
-  LevelEdgeDiags.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
-  LevelEdgeDiags.mode:        'time-averaged'
-  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
-                              'Met_PEDGE                     ',
-                              'Met_PEDGEDRY                  ',
-                              'Met_PFICU                     ',
-                              'Met_PFILSAN                   ',
-                              'Met_PFLCU                     ',
-                              'Met_PFLLSAN                   ',
 ::
 #==============================================================================
 # %%%%% THE KppDiags COLLECTION %%%%%
@@ -321,7 +302,7 @@ COLLECTIONS: 'Restart',
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+# Fields of the State_Met object (also see the StateMetLevEdge collection)
 #
 # Available for all simulations
 #==============================================================================
@@ -407,6 +388,25 @@ COLLECTIONS: 'Restart',
                               'Met_V                         ',
                               'Met_V10M                      ',
                               'Met_Z0                        ',
+::
+#==============================================================================
+# %%%%% THE StateMetLevEdge COLLECTION %%%%%
+#
+# Diagnostics that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
+  StateMetLevEdge.duration:    ${RUNDIR_HIST_TIME_AVG_DUR}
+  StateMetLevEdge.mode:        'time-averaged'
+  StateMetLevEdge.fields:      'Met_CMFMC                     ',
+                               'Met_PEDGE                     ',
+                               #'Met_PEDGEDRY                  ',
+                               #'Met_PFICU                     ',
+                               #'Met_PFILSAN                   ',
+                               #'Met_PFLCU                     ',
+                               #'Met_PFLLSAN                   ',
 ::
 #==============================================================================
 # %%%%% THE BoundaryConditions COLLECTION %%%%%

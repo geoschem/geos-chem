@@ -55,6 +55,10 @@ planeCount=$(( ${coreCount} / ${SLURM_NNODES} ))
 if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
     planeCount=$(( ${planeCount} + 1 ))
 fi
+
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 time srun -n ${coreCount} -N ${SLURM_NNODES} -m plane=${planeCount} --mpi=pmix ./gchp >> ${log}
 
 # Rename mid-run checkpoint files, if any. Discard file if time corresponds
