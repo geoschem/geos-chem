@@ -847,7 +847,7 @@ CONTAINS
          Registry       = State_Grid%Registry,                               &
          State          = State_Grid%State,                                  &
          Variable       = 'HYBM',                                            &
-         Description    = 'hybrid A coefficient at layer midpoints',         &
+         Description    = 'hybrid B coefficient at layer midpoints',         &
          Units          = '1',                                               &
          Output_KindVal = KINDVAL_F8,                                        &
          DimNames       = 'z',                                               &
@@ -967,7 +967,7 @@ CONTAINS
     IF ( RC /= GC_SUCCESS ) RETURN
 
     !---------------------------
-    ! State_Grid%LatBnd
+    ! State_Grid%LonBnd
     !---------------------------
     CALL Registry_AddField(                                                  &
          Input_Opt      = Input_Opt,                                         &
@@ -975,7 +975,7 @@ CONTAINS
          State          = State_Grid%State,                                  &
          Variable       = 'LONBND',                                          &
          Description    = 'Longitude bounds (CF-compliant)',                 &
-         Units          = 'degrees_north',                                   &
+         Units          = 'degrees_east',                                    &
          Output_KindVal = KINDVAL_F8,                                        &
          DimNames       = 'bx',                                              &
          Data2d_8       = State_Grid%LonBnd,                                 &
