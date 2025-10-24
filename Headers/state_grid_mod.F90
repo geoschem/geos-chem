@@ -287,8 +287,6 @@ CONTAINS
     State_Grid%DYWE_M                => NULL()
 #endif
 
-
-
    END SUBROUTINE Init_State_Grid
 !EOC
 !------------------------------------------------------------------------------
@@ -541,6 +539,9 @@ CONTAINS
 
     !========================================================================
     ! Register general grid fields
+    !
+    ! NOTE The GlobalXEdge, GlobalXMid, GlobalYEdge, and GlobalYGrid fields
+    ! are allocated in GC_Grid_Mod, which only gets called for GC-CLassic.
     !========================================================================
 
     !---------------------------
@@ -561,6 +562,7 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%Area_M2', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
 
+#if !defined( MODEL_GCHPCTM ) && !defined( MODEL_GEOS )
     !---------------------------
     ! State_Grid%GlobalXEdge
     !---------------------------
@@ -632,6 +634,7 @@ CONTAINS
 
     CALL GC_CheckVar( 'State_Grid%GlobalYMid', 1, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
+#endif
 
     !---------------------------
     ! State_Grid%XEdge
