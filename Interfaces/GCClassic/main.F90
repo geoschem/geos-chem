@@ -509,8 +509,8 @@ PROGRAM GEOS_Chem
   ! This removes the init calls from the run-stage, which cannot
   ! happen when connecting GEOS-Chem to external ESMs.
   !--------------------------------------------------------------------------
-  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm, &
-                      State_Diag, State_Grid, RC )
+  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm,                     &
+                      State_Diag, State_Grid, State_Met, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "GC_Init_Extra"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -720,7 +720,8 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
        Input_Opt%ITS_AN_AEROSOL_SIM .or. &
        Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-     CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+     CALL Init_Photolysis( Input_Opt,  State_Grid, State_Chm,                &
+                           State_Diag, State_Met,  RC                       )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )

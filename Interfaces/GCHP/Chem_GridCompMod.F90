@@ -1495,12 +1495,6 @@ CONTAINS
     State_Grid%XMaxOffset  = State_Grid%NX ! X offset from global grid
     State_Grid%YMinOffset  = 1             ! Y offset from global grid
     State_Grid%YMaxOffset  = State_Grid%NY ! Y offset from global grid
-    State_Grid%MaxTropLev  = 40            ! # trop. levels
-#if defined( MODEL_GEOS )
-    State_Grid%MaxStratLev = value_LLSTRAT ! # strat. levels
-#else
-    State_Grid%MaxStratLev = 59            ! # strat. levels
-#endif
 
     ! Call the GCHP initialize routine
     CALL GCHP_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run

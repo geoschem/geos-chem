@@ -1979,7 +1979,7 @@ CONTAINS
 
             ! For non-advected species at levels above chemistry grid,
             ! use a small number for background
-            IF ( L > State_Grid%MaxChemLev .and. &
+            IF ( L > State_Met%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
                Spc(N)%Conc(I,J,L) = SMALL_NUM

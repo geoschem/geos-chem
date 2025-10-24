@@ -55,7 +55,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PHOTOLYSIS( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+  SUBROUTINE INIT_PHOTOLYSIS( Input_Opt,  State_Grid, State_Chm,             &
+                              State_Diag, State_Met,  RC                    )
 !
 ! !USES:
 !
@@ -71,6 +72,7 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
     USE State_Diag_Mod, ONLY : DgnState
     USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 #ifdef FASTJX
     USE Fjx_Interface_Mod,  ONLY : Init_FastJX
 #else
@@ -82,6 +84,7 @@ CONTAINS
     TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
     TYPE(DgnState), INTENT(IN)    :: State_Diag  ! Diagnostics State object
+    TYPE(MetState), INTENT(IN)    :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -152,7 +155,8 @@ CONTAINS
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN
        ENDIF
-       CALL Init_CloudJ( Input_Opt, State_Grid, State_Diag, State_Chm, RC )
+       CALL Init_CloudJ( Input_Opt, State_Grid, State_Diag,                  &
+                         State_Chm, State_Met,  RC                          )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_CloudJ"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

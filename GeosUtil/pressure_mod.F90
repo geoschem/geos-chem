@@ -476,7 +476,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_PRESSURE( Input_Opt, State_Grid, RC )
+  SUBROUTINE INIT_PRESSURE( Input_Opt, State_Grid, State_Met, RC )
 !
 ! !USES:
 !
@@ -484,15 +484,20 @@ CONTAINS
     USE ERROR_MOD,      ONLY : ALLOC_ERR
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
-    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
+    TYPE(OptInput), INTENT(IN)    :: Input_Opt   ! Input Options object
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT) :: RC          ! Success or failure
+    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
 !
 ! !REVISION HISTORY:
 !  27 Aug 2002 - D. Abbot, S. Wu, & R. Yantosca - Initial version
@@ -1095,6 +1100,17 @@ CONTAINS
 
     ENDIF
 
+    !=======================================================================
+    ! Compute the maximum vertical level in the chemistry grid.
+    ! This corresponds to the 1 hPa level
+    !=======================================================================
+    CALL Init_MaxChemLev( State_Grid, State_Met, RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       ErrMsg = 'Error encountered in "Init_MaxChemLev"!'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
 #if ( !defined( ESMF_ ) && !defined( MODEL_ ) ) || defined( MODEL_GEOS )
     ! Echo info to std output (skip if interfacing with external models)
     IF ( Input_Opt%amIRoot .and. ( .not. Input_Opt%DryRun ) ) THEN
@@ -1267,6 +1283,63 @@ CONTAINS
     RC             = GC_SUCCESS
 
   END SUBROUTINE Accept_External_ApBp
-!EOC
 #endif
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Init_MaxChemLev
+!
+! !DESCRIPTION: Computes the maximum level at which chemsitry will be
+!  performed. This corresponds to the 1 hPa level.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Init_MaxChemLev( State_Grid, State_Met, RC )
+!
+! !USES:
+!
+    USE ErrCode_Mod
+    USE State_Grid_Mod, ONLY : GrdState
+    USE State_Met_Mod,  ONLY : MetState
+!
+! !INPUT PARAMETERS:
+!
+    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(MetState), INTENT(INOUT) :: State_Met   ! Meteorology State object
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,        INTENT(OUT)   :: RC          ! Success/failure
+!
+! !REVISION HISTORY:
+!  07 Sep 2017 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    INTEGER :: L
+
+    ! State_Met%MaxStratLev is the 1 hPa level
+    ! State_Met%MaxChemLev is set to State_Chm%MaxStratLev by default
+    ! (but this could be defined differently if desired)
+    DO L = State_Grid%NZ+1, 1, -1
+       IF ( Get_Ap(L) > 1.0 ) THEN
+          State_Met%MaxStratLev = L
+          State_Met%MaxChemLev  = L
+          EXIT
+       ENDIF
+    ENDDO
+
+  END SUBROUTINE Init_MaxChemLev
+!EOC
 END MODULE PRESSURE_MOD

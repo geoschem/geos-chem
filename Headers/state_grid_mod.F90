@@ -67,9 +67,6 @@ MODULE State_Grid_Mod
      INTEGER            :: GlobalNX    ! NX on the global grid
      INTEGER            :: GlobalNY    ! NY on the global grid
      INTEGER            :: NativeNZ    ! NZ on the native-resolution grid
-     INTEGER            :: MaxChemLev  ! Max # levels in chemistry grid
-     INTEGER            :: MaxStratLev ! Max # levels below strat
-     INTEGER            :: MaxTropLev  ! Max # levels below trop
      INTEGER            :: XMinOffset  ! X offset from global grid
      INTEGER            :: XMaxOffset  ! X offset from global grid
      INTEGER            :: YMinOffset  ! Y offset from global grid
@@ -185,9 +182,6 @@ CONTAINS
     State_Grid%GlobalNX     = 0
     State_Grid%GlobalNY     = 0
     State_Grid%NativeNZ     = 0
-    State_Grid%MaxChemLev   = 0
-    State_Grid%MaxStratLev  = 0
-    State_Grid%MaxTropLev   = 0
     State_Grid%XMinOffset   = 0
     State_Grid%XMaxOffset   = 0
     State_Grid%YMinOffset   = 0

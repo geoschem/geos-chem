@@ -1855,7 +1855,7 @@ CONTAINS
                 !  Hygroscopic growth of Sea Salt (accum)   [unitless]
                 !  Hygroscopic growth of Sea Salt (coarse)  [unitless]
                 IF ( State_Diag%Archive_AerHygGrowth .AND. &
-                     L <= State_Grid%MaxChemLev      .AND. &
+                     L <= State_Met%MaxChemLev       .AND. &
                      ODSWITCH.EQ.1 ) THEN
                    S = State_Diag%Map_AerHygGrowth%id2slot(NA)
                    IF ( S > 0 ) THEN
