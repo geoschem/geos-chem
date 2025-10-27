@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
+- Added statement to zero the `State_Diag%DryDepChm` array in routine `Zero_Diagnostics_StartOfTimestep`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -57,12 +58,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed typos in ind_ variable names in `KPP/carbon/carbon_Funcs.F90`
 - Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
 - Fixed bug in ObsPack to include instantaneously-sampled data whose  timestamps are within 1/2 of a model timestep of the end of the day 
+- Fixed indexing error in routine `Grav_Settling` in module `GeosCore/sulfate_mod.F90`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
+- Removed code to zero `State_Diag%DryDepChm` and `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
 
 ## [14.6.3] - 2025-07-28
 ### Added

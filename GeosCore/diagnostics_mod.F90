@@ -347,7 +347,9 @@ CONTAINS
     ThisLoc = &
     ' -> at Zero_Diagnostics_StartofTimestep (in GeosCore/diagnostics_mod.F90)'
 
+    !---------------------
     ! Mercury simulation
+    !---------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
        IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
@@ -368,13 +370,20 @@ CONTAINS
 
     ENDIF
 
+    !---------------------
     ! Dry deposition
+    !---------------------
     IF ( Input_Opt%LDRYD ) THEN
-       ! Initialize the DryDepMix diagnostic array for the History Component.
-       ! This will prevent leftover values from being carried over to this
-       ! timestep. (For example, if on the last iteration, the PBL height
-       ! was higher than it is now, then we will have stored drydep fluxes
-       ! up to that height, so we need to zero these out.)
+
+       ! Initialize the DryDepMix and DryDepChm diagnostic arrays for the
+       ! History diagnostics.  This will prevent leftover values from being
+       ! carried over to this timestep. (For example, if on the last
+       ! iteration, the PBL height was higher than it is now, then we will
+       ! have stored drydep fluxes up to that height, so we need to zero
+       ! these out.)
+       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
+          State_Diag%DryDepChm = 0.0_f4
+       ENDIF
        IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
           State_Diag%DryDepMix = 0.0_f4
        ENDIF

@@ -4603,6 +4603,10 @@ CONTAINS
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
+    !
+    ! NOTE: The State_Chm%DryDepChm and State_Chm%DryDepMix are zeroed
+    ! in routine "Zero_Diagnostics_StartOfTimestep", so we have removed
+    ! the code to zero them again here. (@yantosca, 27 Oct 2025)
     !=======================================================================
 
     ! Initialize
@@ -4614,14 +4618,8 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
     ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
-
     PNOXLoss_HNO3 => NULL()
     PNOxLoss_O3   => NULL()
-
-    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
-    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
 
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]

@@ -1827,7 +1827,7 @@ CONTAINS
           ! Drydep flux in chemistry only
           S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
           IF ( S > 0 ) THEN
-             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+             State_Diag%DryDepChm(I,J,S) = FLUX
           ENDIF
        ENDIF
 
