@@ -20,7 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 - Added `State_Met%MaxChemLev` and `State_Met%MaxStratLev` integer fields
 - Added `Init_MaxChemLev` routine in `GeosUtil/pressure_mod.F90`, called from routine `Init_Pressure`
-- Added `State_Met` argument to routines `Init_CloudJ`, `Init_Photolysis`, `Set_Clim_Profiles`, `GC_Init_Extra`, `Init_Pressure`, `Init_Mercury`, `Init_Sulfate`
+- Added `State_Met` argument to routines `Init_CloudJ`, `Init_Photolysis`, `Set_Clim_Profiles`, `GC_Init_Extra`, `Init_Pressure`, `Init_Mercury`, `Init_Sulfate`, and `Set_Prof_FJX`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -69,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Removed `State_Grid%MaxChemLev`, `State_Grid%MaxStratLev`, and `State_Grid%MaxTropLev` fields
+- Removed `State_Grid` argument from `Set_Prof_FJX` routine
 
 ## [14.6.3] - 2025-07-28
 ### Added
