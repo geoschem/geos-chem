@@ -502,8 +502,8 @@ CONTAINS
 #endif
 
     ! Initialize other GEOS-Chem modules
-    CALL GC_Init_Extra( HistoryConfig%DiagList, Input_Opt,    &
-                        State_Chm, State_Diag, State_Grid, RC )
+    CALL GC_Init_Extra( HistoryConfig%DiagList, Input_Opt,  State_Chm,       &
+                        State_Diag,             State_Grid, State_Met, RC   )
     _ASSERT(RC==GC_SUCCESS, 'Error calling GC_Init_Extra')
 
 
@@ -523,7 +523,8 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM .or. &
          Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-       CALL Init_Photolysis ( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+       CALL Init_Photolysis( Input_Opt,  State_Grid, State_Chm,              &
+                             State_Diag, State_Met,  RC                     )
        _ASSERT(RC==GC_SUCCESS, 'Error calling Init_Photolysis')
     ENDIF
 
@@ -918,6 +919,7 @@ CONTAINS
                                     value_DAYOFYR  = dayOfYr,    &
                                     value_HOUR     = hour,       &
                                     value_MINUTE   = minute,     &
+                                    value_SECOND   = second,     &
                                     value_HELAPSED = hElapsed,   &
                                     value_UTC      = utc,        &
                                     RC             = RC         )

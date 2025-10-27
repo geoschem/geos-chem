@@ -49,6 +49,7 @@ PROGRAM GEOS_Chem
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
+  USE Print_Mod             ! For verbose printing
   USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
   USE State_Chm_Mod         ! Derived type for Chemistry State object
   USE State_Diag_Mod        ! Derived type for Diagnostics State object
@@ -508,8 +509,8 @@ PROGRAM GEOS_Chem
   ! This removes the init calls from the run-stage, which cannot
   ! happen when connecting GEOS-Chem to external ESMs.
   !--------------------------------------------------------------------------
-  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm, &
-                      State_Diag, State_Grid, RC )
+  CALL GC_Init_Extra( Diag_List,  Input_Opt,  State_Chm,                     &
+                      State_Diag, State_Grid, State_Met, RC )
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "GC_Init_Extra"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -719,7 +720,8 @@ PROGRAM GEOS_Chem
   IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. &
        Input_Opt%ITS_AN_AEROSOL_SIM .or. &
        Input_Opt%ITS_A_MERCURY_SIM  ) THEN
-     CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+     CALL Init_Photolysis( Input_Opt,  State_Grid, State_Chm,                &
+                           State_Diag, State_Met,  RC                       )
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Photolysis"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -866,6 +868,12 @@ PROGRAM GEOS_Chem
 
        ! Skip diagnostics & unit conversions for dry-run simulations
        IF ( notDryRun ) THEN
+
+          ! If verbose, print global mass per species at start of timestep
+          IF ( VerboseAndRoot ) THEN
+             CALL Print_Species_Global_Mass('', Input_Opt, &
+                  State_Chm, State_Met, State_Grid, RC )
+          ENDIF
 
           !------------------------------------------------------------------
           ! %%%%% HISTORY (netCDF diagnostics) %%%%%
@@ -1029,26 +1037,25 @@ PROGRAM GEOS_Chem
           CALL Interp( NSECb,     ELAPSED_TODAY, N_DYN, &
                        Input_Opt, State_Grid,    State_Met )
 
-          ! If we are not doing transport, then make sure that
-          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
-          ! Now also includes PSC2_DRY (ewl, 5/4/16)
-          IF ( .not. Input_Opt%LTRAN ) THEN
+          ! Compute updated airmass quantities at each grid box.
+          IF ( Input_Opt%LTRAN ) THEN
+             ! No need to update mixing ratios if advection is on
+             ! since floating pressure will not change until advection
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+          ELSE
+             ! If advection is off then (1) update the floating pressures now
+             ! (PFLT_DRY/WET) to the time-interpolated met pressures computed
+             ! in INTERP (PSC2_DRY/WET), and (2) update species mixing ratios
+             ! for new floating pressures to conserve species mass.
              CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Set_Floating_Pressures"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
+
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                  RC, Update_Mixing_Ratio=.TRUE. )
           ENDIF
-
-          ! Compute updated airmass quantities at each grid box
-          ! and update tracer concentration to conserve tracer mass
-          ! (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, Update_Mixing_Ratio=.TRUE. )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "AirQnt"!'
              CALL Error_Stop( ErrMsg, ThisLoc )

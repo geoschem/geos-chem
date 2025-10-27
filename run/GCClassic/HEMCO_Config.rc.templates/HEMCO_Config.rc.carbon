@@ -13,9 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  This file has been customized for the carbon simulation.
-#  See The HEMCO User's Guide for file details:
-#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#  See hemco.readthedocs.io for more information.
 #
 # !REVISION HISTORY:
 #  See https://github.com/geoschem/geos-chem for complete history
@@ -73,7 +71,8 @@ Mask fractions:              false
     --> GRPI                   :       true     # 2022
     --> EDGARv8                :       true     # 2010-2022
     --> QFED2                  :       false    # 2009-2015
-    --> JPL_WETCHARTS          :       true     # 2009-2017
+    --> JPL_WETCHARTS          :       true     # 2010
+    --> LPJ_MERRA2             :       false    # 2018-2023
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
     --> RESERVOIRS             :       true     # 2022
@@ -101,6 +100,7 @@ Mask fractions:              false
     --> BBIO_SIB3              :       true     # 2006-2010
     --> NET_TERR_EXCH          :       true     # 2000
     --> CO2CORR                :       true     # 2000-2018
+    --> FINNv25                :       false    # 2012-2023  
 # ..... Regional inventories .........
     --> APEI                   :       false    # 1989-2014
     --> NEI2016_MONMEAN        :       false    # 2002-2020
@@ -135,7 +135,6 @@ Mask fractions:              false
     --> AnalyticalInversion    :       false
     --> UseTotalPriorEmis      :       false    # Skips global/regional inventories
     --> Emis_PosteriorSF       :       false    # Apply posterior scale factors to total emis?
-    --> OH_PosteriorSF         :       false    # Apply posterior scale factor  to global OH?
 # -----------------------------------------------------------------------------
 111     GFED                   : on    CH4/CO/CO2
     --> GFED4                  :       true
@@ -401,9 +400,9 @@ Mask fractions:              false
 # This inventory will replace EDGAR (oil, gas, & coal)
 #==============================================================================
 (((GFEIv3
-0 GFEI_CH4_OIL  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc  Oil_All 2020/1/1/0 C xy kg/m2/s CH4 -  1 5
-0 GFEI_CH4_GAS  $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc  Gas_All 2020/1/1/0 C xy kg/m2/s CH4 -  2 5
-0 GFEI_CH4_COAL $ROOT/CH4/v2025-04/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc     Coal    2020/1/1/0 C xy kg/m2/s CH4 -  3 5
+0 GFEI_CH4_OIL  $ROOT/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc  Oil_All 2020/1/1/0 C xy kg/m2/s CH4 -  1 5
+0 GFEI_CH4_GAS  $ROOT/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc  Gas_All 2020/1/1/0 C xy kg/m2/s CH4 -  2 5
+0 GFEI_CH4_COAL $ROOT/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc     Coal    2020/1/1/0 C xy kg/m2/s CH4 -  3 5
 )))GFEIv3
 
 #==============================================================================
@@ -497,13 +496,23 @@ Mask fractions:              false
 )))QFED2
 
 #==============================================================================
-# --- CH4: JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
+# --- JPL WetCHARTs v1.0 wetland emissions ---
 #
+# Reference: Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502
 # Use updated files (v2024-01); these are COARDS-compliant.
 #==============================================================================
 (((JPL_WETCHARTS
-0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010-2019/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
+0 JPLW_CH4  $ROOT/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc emi_ch4 2010/1-12/1/0 C xy molec/cm2/s CH4 - 10 1
 )))JPL_WETCHARTS
+
+#==============================================================================
+# ---  LPJ MERRA-2 wetland emissions ---
+#
+# Reference: East et al., https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024GL108494
+#==============================================================================
+(((LPJ_MERRA2
+0 LPJ_CH4 $ROOT/CH4/v2025-09/LPJ_MERRA2/LPJ_MERRA2_$YYYY_0.5x0.5.nc emis_ch4 2018-2023/1-12/1/0 C xy kg/m2/s CH4 - 10 2
+)))LPJ_MERRA2
 
 #==============================================================================
 # --- CH4: Geological Seeps ---
@@ -821,6 +830,11 @@ Mask fractions:              false
 (((GFAS
 0 GFAS_CO $ROOT/GFAS/v2018-09/$YYYY/GFAS_$YYYY$MM.nc cofire 2003-2021/1-12/1-31/0 C xyL=1:scal300 kg/m2/s CO 75 5 3
 )))GFAS
+
+# --- FINNv2.5 biomass burning ---
+(((FINNv25
+0 FINNv25_CO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_CO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc  fire_modisviirs_CO  2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s CO 75 5 3
+)))FINNv25
 
 # --- BB4MIPs ---
 (((BB4MIPS
@@ -1227,20 +1241,6 @@ Mask fractions:              false
 )))YUAN_MODIS_LAI
 
 #==============================================================================
-# --- Quantities needed for the analytical inversion (via IMI) ---
-#==============================================================================
-(((USE_CH4_DATA
-
-#------------------------------------------------------------------------------
-# --- Files needed for analytical inversion ---
-#------------------------------------------------------------------------------
-(((AnalyticalInversion
-* CH4_STATE_VECTOR StateVector.nc StateVector 2009/1/1/0 C xy 1 * - 1 1 
-)))AnalyticalInversion
-
-)))USE_CH4_DATA
-
-#==============================================================================
 # --- Chemistry inputs ---
 #==============================================================================
 (((CHEMISTRY_INPUT
@@ -1253,15 +1253,7 @@ Mask fractions:              false
 
 # --- OH from GEOS-Chem v5-07 [kg/m3], needed for CH4/IMI ---
 (((GLOBAL_OH_GCv5
-
-(((OH_PosteriorSF
-* GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2/4 1 1
-)))OH_PosteriorSF
-
-(((.not.OH_PosteriorSF
 * GLOBAL_OH  $ROOT/OH/v2022-11/v5-07-08/OH_3Dglobal.geos5.72L.4x5.nc OH  1985/1-12/1/0 C xyz kg/m3 * 2 1 1
-))).not.OH_PosteriorSF
-
 )))GLOBAL_OH_GCv5
 
 # --- OH from the last 10-yr benchmark [mol/mol dry] ---
@@ -1363,18 +1355,15 @@ ${RUNDIR_CO2_COPROD}
 3 EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 1
 )))Emis_PosteriorSF
 
-(((OH_PosteriorSF
-4 OH_SF      Post_SF_OH.nc         SF_OH       2010-2017/1/1/0    C xy 1 1
-)))OH_PosteriorSF
-
 #==============================================================================
 # --- Scale factors for analytical inversions ---
 #==============================================================================
 (((AnalyticalInversion
+4 SCALE_PERT      ./gridded_pert_scale_1.nc          scale    2000/1/1/0 C xy 1 1
 
 # Add perturbations to individual state vector element (N) following this format
-# Start scale factor ID at 2000 to avoid conflicts with other SFs/masks
-#200N SCALE_ELEM_000N ./Perturbations.txt - - - xy count 1
+# Start scale factor ID at 3000 to avoid conflicts with other SFs/masks
+#300N SCALE_ELEM_000N ./StateVector.nc StateVector 2000/1/1/0 C xy 1 1 N
 
 )))AnalyticalInversion
 

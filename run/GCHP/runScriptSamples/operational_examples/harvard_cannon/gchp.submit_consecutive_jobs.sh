@@ -14,7 +14,7 @@ fi
 
 # Sanity check number of runs, start date, and duration per run
 echo "Submitting ${numRuns} jobs"
-echo "Duration:  $(grep "DURATION=" setCommonRunSettings.sh | cut -c 14- | xargs)"
+echo "Duration:  $(grep "Run_Duration=" setCommonRunSettings.sh | cut -c 14- | xargs)"
 echo "Start:     $(cat cap_restart)"
 
 # Submit first job   

@@ -67,9 +67,6 @@ MODULE State_Grid_Mod
      INTEGER            :: GlobalNX    ! NX on the global grid
      INTEGER            :: GlobalNY    ! NY on the global grid
      INTEGER            :: NativeNZ    ! NZ on the native-resolution grid
-     INTEGER            :: MaxChemLev  ! Max # levels in chemistry grid
-     INTEGER            :: MaxStratLev ! Max # levels below strat
-     INTEGER            :: MaxTropLev  ! Max # levels below trop
      INTEGER            :: XMinOffset  ! X offset from global grid
      INTEGER            :: XMaxOffset  ! X offset from global grid
      INTEGER            :: YMinOffset  ! Y offset from global grid
@@ -88,6 +85,10 @@ MODULE State_Grid_Mod
      REAL(fp),  POINTER :: YEdge_R    (:,:) ! Lat edges   [radians]
      REAL(fp),  POINTER :: YSIN       (:,:) ! SIN( lat edges )
      REAL(fp),  POINTER :: Area_M2    (:,:) ! Grid box area [m2]
+#ifdef LUO_WETDEP
+     REAL(fp),  POINTER :: DXSN_M       (:,:) ! Averange grid box width at the southern and northern edges [m]
+     REAL(fp),  POINTER :: DYWE_M       (:,:) ! Averange grid box width at the western and eastern edges [m]
+#endif
 
 #if defined( MODEL_GEOS )
      ! Are we in the predictor step?
@@ -181,9 +182,6 @@ CONTAINS
     State_Grid%GlobalNX     = 0
     State_Grid%GlobalNY     = 0
     State_Grid%NativeNZ     = 0
-    State_Grid%MaxChemLev   = 0
-    State_Grid%MaxStratLev  = 0
-    State_Grid%MaxTropLev   = 0
     State_Grid%XMinOffset   = 0
     State_Grid%XMaxOffset   = 0
     State_Grid%YMinOffset   = 0
@@ -204,6 +202,10 @@ CONTAINS
     State_Grid%YEdge_R      => NULL()
     State_Grid%YSIN         => NULL()
     State_Grid%Area_M2      => NULL()
+#ifdef LUO_WETDEP
+    State_Grid%DXSN_M         => NULL()
+    State_Grid%DYWE_M         => NULL()
+#endif
 
 #if defined( MODEL_GEOS )
     State_Grid%PredictorIsActive = .FALSE.
@@ -306,6 +308,16 @@ CONTAINS
     CALL GC_CheckVar( 'State_Grid%Area_M2', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
     State_Grid%Area_M2 = 0e+0_fp
+#ifdef LUO_WETDEP
+    ALLOCATE( State_Grid%DXSN_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DXSN_M', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%DXSN_M = 0e+0_fp
+    ALLOCATE( State_Grid%DYWE_M( State_Grid%NX, State_Grid%NY ), STAT=RC )
+    CALL GC_CheckVar( 'State_Grid%DYWE_M', 0, RC )
+    IF ( RC /= GC_SUCCESS ) RETURN
+    State_Grid%DYWE_M = 0e+0_fp
+#endif
 
   END SUBROUTINE Allocate_State_Grid
 !EOC
@@ -428,6 +440,21 @@ CONTAINS
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Grid%Area_M2 => NULL()
     ENDIF
+
+#ifdef LUO_WETDEP
+    IF ( ASSOCIATED( State_Grid%DXSN_M ) ) THEN
+       DEALLOCATE( State_Grid%DXSN_M, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DXSN_M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%DXSN_M => NULL()
+    ENDIF
+    IF ( ASSOCIATED( State_Grid%DYWE_M ) ) THEN
+       DEALLOCATE( State_Grid%DYWE_M, STAT=RC )
+       CALL GC_CheckVar( 'State_Grid%DYWE_M', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Grid%DYWE_M => NULL()
+    ENDIF
+#endif
 
   END SUBROUTINE Cleanup_State_Grid
 !EOC

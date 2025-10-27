@@ -305,11 +305,11 @@
              ENDDO
 
              ! We know the boundary condition at the model top
-             L     = State_Grid%MaxChemLev
+             L     = State_Met%MaxChemLev
              DELZ  = BXHEIGHT(I,J,L)           ![=] meter
              TC(L) = TC(L) / ( 1.d0 + DTCHEM * VTS(L) / DELZ )
 
-             DO L = State_Grid%MaxChemLev-1, 1, -1
+             DO L = State_Met%MaxChemLev-1, 1, -1
                 DELZ  = BXHEIGHT(I,J,L)
                 DELZ1 = BXHEIGHT(I,J,L+1)
                 TC(L) = 1.d0 / &
@@ -364,7 +364,7 @@
     !$OMP SCHEDULE( DYNAMIC )
     DO I = 1, State_Grid%NX
     DO J = 1, State_Grid%NY
-    DO L = 1, State_Grid%MaxChemLev
+    DO L = 1, State_Met%MaxChemLev
 
        ! Initialize for safety's sake
        AREA_CM2 = 0d0

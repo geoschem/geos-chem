@@ -362,18 +362,6 @@ CONTAINS
           State_Diag%EmisHg2snowToOcean = 0.0_f4
        ENDIF
 
-      IF ( State_Diag%Archive_FluxHg0fromAirToOcean ) THEN
-          State_Diag%FluxHg0fromAirToOcean = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg0fromOceantoAir ) THEN
-          State_Diag%FluxHg0fromOceanToAir = 0.0_f4
-       ENDIF
-
-       IF ( State_Diag%Archive_FluxHg2HgPfromAirToOcean ) THEN
-          State_Diag%FluxHg2HgPfromAirToOcean = 0.0_f4
-       ENDIF
-
        IF ( State_Diag%Archive_FluxOCtoDeepOcean ) THEN
           State_Diag%FluxOCtoDeepOcean = 0.0_f4
        ENDIF
@@ -1448,9 +1436,9 @@ CONTAINS
        ! SatDiagnOH: OH concentration [molec/cm3]:
        !---------------------------------------------------------------------
        IF ( State_Diag%Archive_SatDiagnOH ) THEN
-          State_Diag%SatDiagnOH(I,:,1:State_Grid%MaxChemLev) =               &
-               ( Spc(id_OH)%Conc(I,:,1:State_Grid%MaxChemLev) * good  *      &
-               State_Met%AIRDEN(I,:,1:State_Grid%MaxChemLev)  * AVO ) /      &
+          State_Diag%SatDiagnOH(I,:,1:State_Met%MaxChemLev) =               &
+               ( Spc(id_OH)%Conc(I,:,1:State_Met%MaxChemLev) * good  *      &
+               State_Met%AIRDEN(I,:,1:State_Met%MaxChemLev)  * AVO ) /      &
                ( State_Chm%SpcData(id_OH)%Info%MW_g ) / 1.0e+3_fp
        ENDIF
 

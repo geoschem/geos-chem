@@ -1819,7 +1819,7 @@ CONTAINS
    !$OMP PRIVATE( VALUE,    UPPER,     LOWER,  MNEW,  TOL                   )&
    !$OMP PRIVATE( ORG_AER,  ORG_GAS,   KOM,    MPOC                         )&
    !$OMP PRIVATE( KRO2NO,   KRO2HO2,   JSV                                  )
-   DO L = 1, State_Grid%MaxChemLev
+   DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
 
@@ -2303,8 +2303,8 @@ CONTAINS
                               GLOB_AM0_POA(IIDEBUG,JJDEBUG,2,1,2,2), &
                               GLOB_AM0_POA(IIDEBUG,JJDEBUG,10,1,2,2)
 
-         print*, 'POA to trop', SUM(Spc(id_POA1)%Conc(:,:,1:State_Grid%MaxChemLev))+ &
-                                SUM(Spc(id_POA2)%Conc(:,:,1:State_Grid%MaxChemLev))
+         print*, 'POA to trop', SUM(Spc(id_POA1)%Conc(:,:,1:State_Met%MaxChemLev))+ &
+                                SUM(Spc(id_POA2)%Conc(:,:,1:State_Met%MaxChemLev))
       ENDIF ! OPOA (hotp 8/24/09)
 
    ENDIF
@@ -5846,7 +5846,7 @@ CONTAINS
 
       ! Get O3 [v/v] for this gridbox & month
       ! O3 is defined only in the chemistry grid
-      IF ( L <= State_Grid%MaxChemLev ) THEN
+      IF ( L <= State_Met%MaxChemLev ) THEN
 
          ! O3 from HEMCO is in mol/mol, convert to molec/cm3
          O3_MOLEC_CM3 = OFFLINE_O3(I,J,L) * State_Met%AIRNUMDEN(I,J,L)
@@ -6589,7 +6589,7 @@ CONTAINS
    !$OMP PARALLEL DO       &
    !$OMP DEFAULT( SHARED ) &
    !$OMP PRIVATE( NOX, JHC, JSV, I, J, L )
-   DO L = 1, State_Grid%MaxChemLev
+   DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
 
@@ -6731,7 +6731,7 @@ CONTAINS
    !$OMP PRIVATE( NOX,         JHC,        JSV,    IPR ) &
    !$OMP PRIVATE( TEMPDELTA,   TEMPSOAG,   MBDIFF      ) &
    !$OMP PRIVATE( I, J, L                              )
-   DO L = 1, State_Grid%MaxChemLev
+   DO L = 1, State_Met%MaxChemLev
    DO J = 1, State_Grid%NY
    DO I = 1, State_Grid%NX
 

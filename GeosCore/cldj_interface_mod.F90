@@ -54,7 +54,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE INIT_CLOUDJ( Input_Opt, State_Grid, State_Diag, State_Chm, RC )
+  SUBROUTINE INIT_CLOUDJ( Input_Opt, State_Grid, State_Diag,                 &
+                          State_Chm, State_Met,  RC                         )
 !
 ! !USES:
 !
@@ -68,13 +69,14 @@ CONTAINS
     USE State_Chm_Mod,  ONLY : ChmState
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Diag_Mod, ONLY : DgnState
-
+    USE State_Met_Mod,  ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)     :: Input_Opt   ! Input Options object
     TYPE(GrdState), INTENT(IN)     :: State_Grid  ! Grid State object
     TYPE(DgnState), INTENT(IN)     :: State_Diag  ! Diagnostics State object
+    TYPE(MetState), INTENT(IN)     :: State_Met   ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -171,8 +173,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Run_CloudJ( Input_Opt, State_Chm, State_Diag, &
-                         State_Grid, State_Met, RC )
+  SUBROUTINE Run_CloudJ( Input_Opt,  State_Chm, State_Diag,                  &
+                         State_Grid, State_Met, RC                          )
 !
 ! !USES:
 !
@@ -491,10 +493,11 @@ CONTAINS
        O3_CTM(1:MaxLev) = State_Chm%Species(id_O3)%Conc(I,J,1:MaxLev)
 
        ! Compute climatology. This subroutine is analogous to Cloud-J ACLIM_FJX.
-       CALL Set_Clim_Profiles (I,          J,        MONTH,    DAY,      &
-                               T_CTM,      P_CTM,    O3_CTM,             &
-                               T_CLIM,     O3_CLIM,  Z_CLIM,   AIR_CLIM, &
-                               Input_Opt,  State_Grid, State_Chm )
+       CALL Set_Clim_Profiles( I,          J,         MONTH,                 &
+                               DAY,        T_CTM,     P_CTM,                 &
+                               O3_CTM,     T_CLIM,    O3_CLIM,               &
+                               Z_CLIM,     AIR_CLIM,  Input_Opt,             &
+                               State_Grid, State_Chm, State_Met             )
 
        !-----------------------------------------------------------------
        ! Clouds and humidity
@@ -953,7 +956,7 @@ CONTAINS
        !-----------------------------------------------------------------
        ! Fill GEOS-Chem array ZPJ with J-values
        !-----------------------------------------------------------------
-       DO L=1,State_Grid%MaxChemLev
+       DO L=1,State_Met%MaxChemLev
           DO K=1,State_Chm%Phot%nPhotRxns
              IF (JIND(K).gt.0) THEN
                 State_Chm%Phot%ZPJ(L,K,I,J) = VALJXX(L,JIND(K))*JFACTA(K)
@@ -964,8 +967,8 @@ CONTAINS
        ENDDO
 
        ! Set J-rates outside the chemgrid to zero
-       IF (State_Grid%MaxChemLev.lt.L_) THEN
-          DO L=State_Grid%MaxChemLev+1,L_
+       IF (State_Met%MaxChemLev.lt.L_) THEN
+          DO L=State_Met%MaxChemLev+1,L_
              DO K=1,State_Chm%Phot%nPhotRxns
                 State_Chm%Phot%ZPJ(L,K,I,J) = 0.e+0_fp
              ENDDO
@@ -1069,10 +1072,11 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Set_Clim_Profiles( ILON,       ILAT,       MONTH,   DAY,       &
-                                T_CTM,      P_CTM,      O3_CTM,             &
-                                T_CLIM,     O3_CLIM,    Z_CLIM,  AIR_CLIM,  &
-                                Input_Opt,  State_Grid, State_Chm )
+  SUBROUTINE Set_Clim_Profiles( ILON,       ILAT,       MONTH,               &
+                                DAY,        T_CTM,      P_CTM,               &
+                                O3_CTM,     T_CLIM,     O3_CLIM,             &
+                                Z_CLIM,     AIR_CLIM,   Input_Opt,           &
+                                State_Grid, State_Chm,  State_Met           )
 !
 ! !USES:
 !
@@ -1081,26 +1085,28 @@ CONTAINS
     USE PhysConstants,   ONLY : AIRMW, AVO, g0, BOLTZ
     USE State_Grid_Mod,  ONLY : GrdState
     USE State_Chm_Mod,   ONLY : ChmState
+    USE State_Met_Mod,   ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
-    INTEGER,        INTENT(IN) :: ILON              ! Longitude index
-    INTEGER,        INTENT(IN) :: ILAT              ! Latitude index
-    INTEGER,        INTENT(IN) :: MONTH             ! Month
-    INTEGER,        INTENT(IN) :: DAY               ! Day *of month*
-    REAL(fp),       INTENT(IN) :: T_CTM(L1_)        ! CTM temperatures (K)
-    REAL(fp),       INTENT(IN) :: P_CTM(L1_+1)      ! CTM edge pressures (hPa)
-    REAL(fp),       INTENT(IN) :: O3_CTM(L1_)       ! CTM ozone (molec/cm3)
-    TYPE(OptInput), INTENT(IN) :: Input_Opt         ! Input Options object
-    TYPE(GrdState), INTENT(IN) :: State_Grid        ! Grid State object
-    TYPE(ChmState), INTENT(IN) :: State_Chm         ! Chemistry State object
+    INTEGER,        INTENT(IN) :: ILON            ! Longitude index
+    INTEGER,        INTENT(IN) :: ILAT            ! Latitude index
+    INTEGER,        INTENT(IN) :: MONTH           ! Month
+    INTEGER,        INTENT(IN) :: DAY             ! Day *of month*
+    REAL(fp),       INTENT(IN) :: T_CTM(L1_)      ! CTM temperatures (K)
+    REAL(fp),       INTENT(IN) :: P_CTM(L1_+1)    ! CTM edge pressures (hPa)
+    REAL(fp),       INTENT(IN) :: O3_CTM(L1_)     ! CTM ozone (molec/cm3)
+    TYPE(OptInput), INTENT(IN) :: Input_Opt       ! Input Options object
+    TYPE(GrdState), INTENT(IN) :: State_Grid      ! Grid State object
+    TYPE(ChmState), INTENT(IN) :: State_Chm       ! Chemistry State object
+    TYPE(MetState), INTENT(IN) :: State_Met       ! Meteorology State object
 !
 ! !OUTPUT VARIABLES:
 !
-    REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)       ! Clim. temperatures (K)
-    REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)     ! Edge altitudes (cm)
-    REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)      ! O3 column depth (#/cm2)
-    REAL(fp), INTENT(OUT)      :: AIR_CLIM(L1_)     ! O3 column depth (#/cm2)
+    REAL(fp), INTENT(OUT)      :: T_CLIM(L1_)     ! Clim. temperatures (K)
+    REAL(fp), INTENT(OUT)      :: Z_CLIM(L1_+1)   ! Edge altitudes (cm)
+    REAL(fp), INTENT(OUT)      :: O3_CLIM(L1_)    ! O3 column depth (#/cm2)
+    REAL(fp), INTENT(OUT)      :: AIR_CLIM(L1_)   ! O3 column depth (#/cm2)
 !
 ! !REMARKS:
 !
@@ -1208,7 +1214,7 @@ CONTAINS
        ! Use online O3 values in the chemistry grid if selected; otherwise use
        ! O3 values from the met fields or TOMS/SBUV
        IF ( ( Input_opt%Use_Online_O3 )             &
-            .AND. ( L <= State_Grid%MaxChemLev )    &
+            .AND. ( L <= State_Met%MaxChemLev )    &
             .AND. ( O3_CTM(L) > 0e+0_fp ) ) THEN
 
           ! Convert from molec/cm3 to molec/cm2

@@ -2814,7 +2814,7 @@ CONTAINS
        !======================================================================
        ! Proceed only if gridbox is below the stratopause
        !======================================================================
-       IF ( L > State_Grid%MaxStratLev ) CYCLE
+       IF ( L > State_Met%MaxStratLev ) CYCLE
 
        !----------------------------------------------------------------------
        ! Copy values into THREADPRIVATE variables in gckpp_Global.F90
@@ -3499,7 +3499,8 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mercury( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+  SUBROUTINE Init_Mercury( Input_Opt,  State_Grid, State_Chm,                &
+                           State_Diag, State_Met,  RC                       )
 !
 ! !USES:
 !
@@ -3514,11 +3515,13 @@ CONTAINS
     USE State_Chm_Mod,      ONLY : ChmState
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
+    USE State_Met_Mod,      ONLY : MetState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)    :: Input_Opt     ! Input Options object
     TYPE(GrdState), INTENT(IN)    :: State_Grid    ! Grid State object
+    TYPE(MetState), INTENT(IN)    :: State_Met     ! Meteorology State object
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
@@ -3900,7 +3903,8 @@ CONTAINS
     !========================================================================
     ! Initialize photolysis
     !========================================================================
-    CALL Init_Photolysis( Input_Opt, State_Grid, State_Chm, State_Diag, RC )
+    CALL Init_Photolysis( Input_Opt,  State_Grid, State_Chm,                 &
+                          State_Diag, State_Met,  RC                        )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Init_Photolysis"!'
        CALL GC_Error( errMsg, RC, thisLoc )

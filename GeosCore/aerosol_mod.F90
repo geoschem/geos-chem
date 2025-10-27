@@ -295,14 +295,14 @@ CONTAINS
 
        ! Set OM/OC using spatially and seasonally varying data from
        ! Philip et al. (2014)
-       State_Chm%AerMass%OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA
-       State_chm%AerMass%OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+       State_Chm%AerMass%OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA and OCPO
+       State_chm%AerMass%OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA and OCPI
 
     ELSE
 
        ! Use default global mean OM/OC recommended by the Aerosols WG
-       State_Chm%AerMass%OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA
-       State_chm%AerMass%OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
+       State_Chm%AerMass%OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA and OCPO
+       State_chm%AerMass%OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA and OCPI
 
     ENDIF
 
@@ -506,14 +506,16 @@ CONTAINS
           State_Chm%AerMass%BCPO(I,J,L) = Spc(id_BCPO)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Hydrophobic OC [kg/m3]
-          ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4)
+          ! Based on censensus from Aerosol WG, OM/OC ratio  is
+          ! 1.4 for POA1/2 in ComplexSOA_SVPOA and OCPO in SimpleSOA
+          ! 2.1 for OPOA1/2 in ComplexSOA_SVPOA and OCPI in SimpleSOA
           IF ( IS_POA ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = ( Spc(id_POA1)%Conc(I,J,L)     &
                              + Spc(id_POA2)%Conc(I,J,L) ) &
                            * State_Chm%AerMass%OCFPOA(I,J) / AIRVOL(I,J,L)
           ELSE IF ( IS_OCPO ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = Spc(id_OCPO)%Conc(I,J,L) &
-                           * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
+                           * State_chm%AerMass%OCFPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Hydrophilic OC [kg/m3]
@@ -1853,7 +1855,7 @@ CONTAINS
                 !  Hygroscopic growth of Sea Salt (accum)   [unitless]
                 !  Hygroscopic growth of Sea Salt (coarse)  [unitless]
                 IF ( State_Diag%Archive_AerHygGrowth .AND. &
-                     L <= State_Grid%MaxChemLev      .AND. &
+                     L <= State_Met%MaxChemLev       .AND. &
                      ODSWITCH.EQ.1 ) THEN
                    S = State_Diag%Map_AerHygGrowth%id2slot(NA)
                    IF ( S > 0 ) THEN

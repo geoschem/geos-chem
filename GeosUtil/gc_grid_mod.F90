@@ -116,46 +116,26 @@ CONTAINS
     ! Vertical Grid
     !======================================================================
 
-    ! Both GEOS-FP and MERRA-2 have native vertical resolution of 72 levels
-    State_Grid%NativeNZ = 72
-
-    ! Hardcode maximum number of levels below tropopause and stratopause
-    IF ( State_Grid%NZ == 47 ) THEN
-       State_Grid%MaxTropLev  = 38
-       State_Grid%MaxStratLev = 44
-    ELSE IF ( State_Grid%NZ == 72 ) THEN
-       State_Grid%MaxTropLev  = 40
-       State_Grid%MaxStratLev = 59
-    ELSE IF ( State_Grid%NZ == 40 ) THEN
-       State_Grid%NativeNZ = 40
-       State_Grid%MaxTropLev  = 28
-       State_Grid%MaxStratLev = 40
-    ELSE IF ( State_Grid%NZ == 74 ) THEN
-       State_Grid%NativeNZ = 102
-       State_Grid%MaxTropLev  = 60
-       State_Grid%MaxStratLev = 72
-    ELSE IF ( State_Grid%NZ == 102 ) THEN
-       State_Grid%NativeNZ = 102
-       State_Grid%MaxTropLev  = 60
-       State_Grid%MaxStratLev = 91
-    ELSE
-       ErrMsg = 'State_Grid%GridRes = ' // Trim( State_Grid%GridRes)// &
-                ' does not have MaxTropLev and MaxStratLev defined.'// &
-                ' Please add these definitions in gc_grid_mod.F90.'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
-    ENDIF
-
-    ! Set maximum number of levels in the chemistry grid
-    State_Grid%MaxChemLev  = State_Grid%MaxStratLev
-
     ! Set a flag to denote if this is a GMAO met field
-    ! (which has half-sized polar grid boxes)
+    ! and also determine the native vertical resolution
     SELECT CASE( TRIM( Input_Opt%MetField ) )
-       CASE( 'MERRA2', 'GEOSFP' )
-          is_GMAO = .TRUE.
+
+       ! GMAO met fields
+       CASE( 'GEOSFP', 'GEOSIT', 'MERRA2' )
+          is_GMAO             = .TRUE.
+          State_Grid%NativeNZ = 72
+
+       CASE( 'ModelE2.1' )
+          is_GMAO             = .FALSE.
+          State_Grid%NativeNZ = 102
+
        CASE DEFAULT
-          is_GMAO = .FALSE.
+          ErrMsg = 'Met field ' // TRIM( Input_Opt%MetField ) // ' does ' // &
+                   'not have State_Grid%NativeNZ defined.  Please add '   // &
+                   'this definition in GeosUtil/gc_grid_mod.F90.'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+
     END SELECT
 
     !======================================================================
@@ -448,6 +428,24 @@ CONTAINS
        ! Grid box surface areas [m2]
        State_Grid%Area_M2(I,J) = ( State_Grid%DX * PI_180 ) * &
                                    ( Re**2 ) * SIN_DIFF
+
+#ifdef LUO_WETDEP
+       State_Grid%DXSN_M(I,J) = Re *                                         &
+             ACOS( SIN( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   SIN( State_Grid%YMid(I,J)    * PI_180 ) +                 &
+                   COS( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   COS( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   COS( State_Grid%XEdge(I+1,J) * PI_180   -                 &
+                        State_Grid%XEdge(I,J)   * PI_180) )
+
+       State_Grid%DYWE_M(I,J) = Re *                                         &
+             ACOS( SIN( State_Grid%YEdge_R(I,J  ) ) *                        &
+                   SIN( State_Grid%YEdge_R(I,J+1) ) +                        &
+                   COS( State_Grid%YEdge_R(I,J  ) ) *                        &
+                   COS( State_Grid%YEdge_R(I,J+1) ) *                        &
+                   COS( State_Grid%XMid(I,J)        * PI_180 -               &
+                        State_Grid%XMid(I,J)        * PI_180 ) )
+#endif
 
     ENDDO
     ENDDO

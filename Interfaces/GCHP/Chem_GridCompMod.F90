@@ -434,6 +434,15 @@ CONTAINS
                                                       RC=STATUS  )
     _VERIFY(STATUS)
 
+    call MAPL_AddImportSpec(GC, &
+       SHORT_NAME         = 'AREA',  &
+       LONG_NAME          = 'Grid horizontal area',  &
+       UNITS              = 'm2', &
+       DIMS               = MAPL_DimsHorzOnly,    &
+       PRECISION          = ESMF_KIND_R8, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
+
 #ifdef RRTMG
     If (Read_Dyn_Heating) Then
        call MAPL_AddImportSpec(GC, &
@@ -480,6 +489,22 @@ CONTAINS
     Endif
 #endif
 
+!
+! !EXPORT STATE:
+!
+    ! Export delta pressure from internal state for first timestep
+    ! pressure scaling before advection, to conserve mass in
+    ! restart file. Use name DELPDRY to not conflict with name
+    ! DELP_DRY used in restart file and internal state.
+    call MAPL_AddExportSpec(GC, &
+       SHORT_NAME         = 'DELPDRY',                       &
+       LONG_NAME          = 'Delta dry pressure across box', &
+       UNITS              = 'hPa',                &
+       PRECISION          = ESMF_KIND_R8,         &
+       DIMS               = MAPL_DimsHorzVert,    &
+       VLOCATION          = MAPL_VLocationCenter, &
+       RC=STATUS  )
+    _VERIFY(STATUS)
 !
 ! !INTERNAL STATE:
 !
@@ -1221,6 +1246,8 @@ CONTAINS
     INTEGER                      :: N, trcID
     TYPE(MAPL_MetaComp), POINTER :: STATE => NULL()
     REAL(ESMF_KIND_R8), POINTER  :: Ptr3D(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_int(:,:,:) => NULL()
+    REAL(ESMF_KIND_R8), POINTER  :: Ptr3D_exp(:,:,:) => NULL()
 #endif
 
     ! Internal run alarms
@@ -1468,12 +1495,6 @@ CONTAINS
     State_Grid%XMaxOffset  = State_Grid%NX ! X offset from global grid
     State_Grid%YMinOffset  = 1             ! Y offset from global grid
     State_Grid%YMaxOffset  = State_Grid%NY ! Y offset from global grid
-    State_Grid%MaxTropLev  = 40            ! # trop. levels
-#if defined( MODEL_GEOS )
-    State_Grid%MaxStratLev = value_LLSTRAT ! # strat. levels
-#else
-    State_Grid%MaxStratLev = 59            ! # strat. levels
-#endif
 
     ! Call the GCHP initialize routine
     CALL GCHP_Chunk_Init( nymdB     = nymdB,      & ! YYYYMMDD @ start of run
@@ -1674,6 +1695,18 @@ CONTAINS
 
        ENDDO
     ENDIF
+#endif
+
+#ifdef MODEL_GCHPCTM
+    ! Set delta pressure export to interal state variable DELP_DRY.
+    ! This is used in the first timestep in FV3, before advection, to
+    ! adjust species v/v for conservation of restart file mass, if
+    ! delta pressure present in the restart file.
+    call MAPL_GetPointer ( Export, Ptr3d_exp, 'DELPDRY', ALLOC=.TRUE., __RC__ )
+    CALL ESMF_StateGet( INTSTATE, 'DELP_DRY', GcFld, RC=STATUS )
+    CALL ESMF_FieldGet( GcFld, 0, Ptr3D, __RC__ )
+       Ptr3d_exp = Ptr3d * 100.d0
+       Ptr3d => NULL()
 #endif
 
     !=======================================================================
@@ -1893,7 +1926,6 @@ CONTAINS
     ! Initialize carbon coupling / CO production from CO2 photolysis (if used) 
     CALL GEOS_CarbonInit( GC, GeosCF, State_Chm, State_Grid, __RC__ ) 
 
-    !=======================================================================
     ! All done
     !=======================================================================
 #endif
@@ -2528,7 +2560,10 @@ CONTAINS
 #endif
 
        ! Pass grid area [m2] obtained from dynamics component to State_Grid
-       State_Grid%Area_M2 = AREA
+       CALL MAPL_GetPointer( IMPORT, Ptr2d_R8, 'AREA', __RC__ )
+       State_Grid%Area_M2 = Ptr2d_R8
+       Ptr2d_R8 => NULL()
+
        !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
        ! KLUDGE (mps, 5/23/19):
        ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks, which
@@ -2645,8 +2680,8 @@ CONTAINS
                   VALUE=RST, RC=STATUS )
 
              ! Set spc conc to background value if rst skipped or var not there
-             IF ( RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
-                      RST == MAPL_RestartSkipInitial ) THEN
+             IF ( (RC /= ESMF_SUCCESS .OR. RST == MAPL_RestartBootstrap .OR.   &
+                  RST == MAPL_RestartSkipInitial) .AND. (.not. ThisSpc%Is_JacobianTracer) ) THEN
                 DO L = 1, State_Grid%NZ
                 DO J = 1, State_Grid%NY
                 DO I = 1, State_Grid%NX
@@ -2667,13 +2702,27 @@ CONTAINS
                         //' for species '//trim(ThisSpc%Name) 
                 ENDIF
              ENDIF
+
+             ! Do special handling if this is a Jacobian tracer             
+             IF ( ThisSpc%Is_JacobianTracer ) THEN
+                State_Chm%Species(IND)%Conc = State_Chm%Species(IND_('CH4'))%Conc
+                IF ( MAPL_am_I_Root()) THEN
+                   WRITE(*,*)  &
+                        '   INFO: using the initial concentrations of CH4'&
+                        //' for the Jacobian tracer '//trim(ThisSpc%Name) 
+                ENDIF
+             ENDIF
+
              ThisSpc => NULL()
           ENDDO
        ENDIF
 
        !=======================================================================
-       ! On first call, initialize certain State_Chm and State_Met arrays from
-       ! imports if they are found (ewl, 12/13/18)
+       ! On first call, initialize certain State_Chm arrays from
+       ! internal state (restart file) if they are found. Do not initialize
+       ! from met-fields in restart file that were added for post-processing.
+       ! Do not add delta pressure since used for mass conservation scaling
+       ! in FV3 prior advection which comes before GEOS-Chem.
        !=======================================================================
        IF ( FIRST ) THEN
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'H2O2AfterChem', notFoundOK=.TRUE., __RC__ )
@@ -2739,32 +2788,12 @@ CONTAINS
           ENDIF
           Ptr2D_R8 => NULL()
 
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'DELP_DRY', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%DELP_DRY) ) THEN
-             State_Met%DELP_DRY(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d_R8 => NULL()
-
-          CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'BXHEIGHT', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Met%BXHEIGHT) ) THEN
-             State_Met%BXHEIGHT(:,:,1:State_Grid%NZ) =       &
-                                  Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
-          ENDIF
-          Ptr3d_R8 => NULL()
-
           CALL MAPL_GetPointer( INTSTATE, Ptr3d_R8, 'TSTRAT_ADJ', notFoundOK=.TRUE., __RC__ )
           IF ( ASSOCIATED(Ptr3d_R8) .AND. ASSOCIATED(State_Chm%TStrat_Adj) ) THEN
              State_Chm%TStrat_Adj(:,:,1:State_Grid%NZ) =       &
                                   Ptr3d_R8(:,:,State_Grid%NZ:1:-1)
           ENDIF
-
           Ptr3d_R8 => NULL()
-          CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'TropLev', notFoundOK=.TRUE., __RC__ )
-          IF ( ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Met%TropLev) ) THEN
-             State_Met%TropLev = Ptr2d_R8
-          ENDIF
-          Ptr2d_R8 => NULL()
        ENDIF
 #endif
 
@@ -3081,7 +3110,9 @@ CONTAINS
        CALL MAPL_TimerOff(STATE, "CP_AFTR")
 
        ! Update non-species dynamic internal state arrays post-run
-       ! every timestep, except for area which can be set first run only
+       ! every timestep, except for area which can be set first run only.
+       ! Some of the fields are for post-processing but need to be updated
+       ! mid-run for inclusion in mid-run checkpoint files.
        CALL MAPL_GetPointer( INTSTATE, Ptr2d_R8, 'DryDepNitrogen', &
                              notFoundOK=.TRUE., __RC__ )
        IF (ASSOCIATED(Ptr2d_R8) .AND. ASSOCIATED(State_Chm%DryDepNitrogen)) THEN

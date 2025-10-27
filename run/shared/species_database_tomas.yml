@@ -5,7 +5,6 @@ AW_PROP: &AWproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   MP_SizeResAer: true
   MW_g: 18.0
@@ -136,7 +135,6 @@ DUST_PROP: &DUSTproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true
@@ -268,7 +266,6 @@ ECIL_PROP: &ECILproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true
@@ -400,7 +397,6 @@ ECOB_PROP: &ECOBproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   MP_SizeResAer: true
   MW_g: 12.01
@@ -532,7 +528,6 @@ H2SO4:
   DD_Hstar: 1.0e5
   Formula: H2SO4
   FullName: Sulfuric acid
-  Is_Advected: true
   Is_Gas: true
   Is_DryDep: true
   Is_WetDep: true
@@ -548,7 +543,6 @@ NK_PROP: &NKproperties
   DD_F0: 0.0
   DD_Hstar: 0.0
   FullName: Aerosol number, size bin = 1
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -681,7 +675,6 @@ OCIL_PROP: &OCILproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true
@@ -813,7 +806,6 @@ OCOB_PROP: &OCOBproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true
@@ -945,7 +937,6 @@ SF_PROP: &SFproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true
@@ -1077,7 +1068,6 @@ SS_PROP: &SSproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_WetDep: true
   MP_SizeResAer: true

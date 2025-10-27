@@ -823,12 +823,12 @@ CONTAINS
           ENDDO
 
           ! We know the boundary condition at the model top
-          L           = State_Grid%MaxChemLev
+          L           = State_Met%MaxChemLev
           DELZ        = State_Met%BXHEIGHT(I,J,L)
           Spc(NA)%Conc(I,J,L) =Spc(NA)%Conc(I,J,L) / &
                          ( 1.e+0_fp + DT_SETTL * VTS(L) / DELZ )
 
-          DO L = State_Grid%MaxChemLev-1, 1, -1
+          DO L = State_Met%MaxChemLev-1, 1, -1
              DELZ         = State_Met%BXHEIGHT(I,J,L)
              DELZ1        = State_Met%BXHEIGHT(I,J,L+1)
              Spc(NA)%Conc(I,J,L) = 1.e+0_fp / &
@@ -1448,7 +1448,7 @@ CONTAINS
        !$OMP PRIVATE( I, J, L, N, W, NOUT, LINTERP, S )
        DO W = 1, Input_Opt%NWVSELECT
        DO N = 1, NDUST
-       DO L = 1, State_Grid%MaxChemLev
+       DO L = 1, State_Met%MaxChemLev
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
 
@@ -1509,7 +1509,7 @@ CONTAINS
           !$OMP PARALLEL DO       &
           !$OMP DEFAULT( SHARED ) &
           !$OMP PRIVATE( I, J, L )
-          DO L = 1, State_Grid%MaxChemLev
+          DO L = 1, State_Met%MaxChemLev
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              State_Diag%AODDust(I,J,L) = SUM( tempOD(I,J,L,:,:) )
@@ -1526,7 +1526,7 @@ CONTAINS
        !$OMP PARALLEL DO       &
        !$OMP DEFAULT( SHARED ) &
        !$OMP PRIVATE( I, J, L )
-       DO L = 1, State_Grid%MaxChemLev
+       DO L = 1, State_Met%MaxChemLev
        DO J = 1, State_Grid%NY
        DO I = 1, State_Grid%NX
           State_Diag%AerSurfAreaDust(I,J,L) = SUM( TAREA(I,J,L,1:NDUST) )
