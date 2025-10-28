@@ -54,9 +54,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
 - Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
 - Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
-- Fixed typos in ind_ variable names in `KPP/carbon/carbon_Funcs.F90`
+- Fixed typos in `ind_` variable names in `KPP/carbon/carbon_Funcs.F90`
 - Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
-- Fixed bug in ObsPack to include instantaneously-sampled data whose  timestamps are within 1/2 of a model timestep of the end of the day 
+- Fixed bug in ObsPack to include instantaneously-sampled data whose
+  timestamps are within 1/2 of a model timestep of the end of the day
+- Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
