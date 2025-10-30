@@ -2485,7 +2485,7 @@ CONTAINS
        IS_HMS        = ( id_HMS      > 0                                    )
        IS_NH4        = ( id_NH4      > 0                                    )
        IS_NIT        = ( id_NIT      > 0                                    )
-       IS_DST        = ( id_DSTbin1  > 0 .and. id_DSTbin2 > 0 .and.         )
+       IS_DST        = ( id_DSTbin1  > 0 .and. id_DSTbin2 > 0 .and.          &
                          id_DSTbin3  > 0 .and. id_DSTbin4 > 0               )
        IS_SAL        = ( id_SALA     > 0 .and. id_SALC    > 0               )
        IS_POA        = ( id_POA1     > 0 .and. id_POA2    > 0               )
