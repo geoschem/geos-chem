@@ -112,11 +112,25 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 
-	# Change time cycle flag to allow missing species (GCClassic only)
+	#--------------------------------
+	# Updates for GC-Classic only
+	#--------------------------------
 	if [[ "x${model}" == "xGCClassic" ]]; then
+
+	    # Change time cycle flag to allow missing species
 	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
+
+	    # Make sure that GC-Classic benchmark simulations read the
+	    # restart file via GEOS-Chem and not HEMCO.  This will ensure
+	    # mass conservation when the run is broken up into several
+	    # stages, since restart file data is stored as REAL*8 but HEMCO
+	    # reads file data as REAL*4.
+	    replace_colon_sep_val "read_restart_as_real8" "true" geoschem_config.yml
 	fi
 
+	#---------------------------------
+	# Updates for GCClassic and GCHP
+	#---------------------------------
         sed_ie 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
 	sed_ie 's|SALA  0      3 |SALA  107    -1|'   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
 	sed_ie 's|SALC  0      3 |SALC  107    -1|'   HEMCO_Diagn.rc   #   "   "
@@ -132,10 +146,10 @@ function set_common_settings() {
 	# Turn @ into # characters for the benchmark simulation,
 	# which should cause MAPL to skip reading these lines.
 	# This is a workaround for a "input file to long" MAPL error.
-	sed_ie 's|@|#|'                                HISTORY.rc
+	sed_ie 's|@|#|'                               HISTORY.rc
 
 	# Remove the first comment character on diagnostics
-        sed_ie "s|#'|'|"                               HISTORY.rc
+        sed_ie "s|#'|'|"                              HISTORY.rc
     fi
 
     #------------------------------------------------------------------------

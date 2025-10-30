@@ -85,6 +85,7 @@ MODULE Input_Opt_Mod
      CHARACTER(LEN=10)           :: VerboseOnCores
      LOGICAL                     :: Verbose
      LOGICAL                     :: useTimers
+     LOGICAL                     :: read_restart_as_real8
 
      !----------------------------------------
      ! ADVECTED SPECIES MENU fields
@@ -239,7 +240,7 @@ MODULE Input_Opt_Mod
      LOGICAL                     :: LCONV
      LOGICAL                     :: LTURB
      LOGICAL                     :: LNLPBL
-     LOGICAL                     :: Reconstruct_Conv_Precip_Flux
+     LOGICAL                     :: Grell_Freitas_Convection
      INTEGER                     :: TS_CONV
 
      !----------------------------------------
@@ -578,6 +579,7 @@ CONTAINS
     Input_Opt%VerboseOnCores         = ''
     Input_Opt%Verbose                = .FALSE.
     Input_Opt%useTimers              = .FALSE.
+    Input_Opt%read_restart_as_real8  = .FALSE.
 
     !----------------------------------------
     ! ADVECTED SPECIES MENU fields
@@ -760,7 +762,7 @@ CONTAINS
     Input_Opt%LCONV                  = .FALSE.
     Input_Opt%LTURB                  = .FALSE.
     Input_Opt%LNLPBL                 = .FALSE.
-    Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+    Input_Opt%Grell_Freitas_Convection = .FALSE.
     Input_Opt%TS_CONV                = 0
 
     !----------------------------------------

@@ -282,6 +282,7 @@ CONTAINS
     INTEGER              :: fId,        vId
     INTEGER              :: N,          nObs
     INTEGER              :: nSpecies
+    REAL(fp)             :: tsDyn,      halfTsDyn
 
     ! Arrays
     INTEGER, ALLOCATABLE :: tmp_int(:)
@@ -301,6 +302,8 @@ CONTAINS
     ! Initialize
     RC                = GC_SUCCESS
     Window_Start_Time = .TRUE.
+    tsDyn             = DBLE( Input_Opt%Ts_Dyn )
+    halfTsDyn         = tsDyn * 0.5_fp
     ErrMsg            = ''
     ThisLoc           = &
      ' -> at ObsPack_Read_Input (in module ObsPack/obspack_mod.F90)'
@@ -527,7 +530,7 @@ CONTAINS
        !-----------------------
        ! Test for valid data
        !-----------------------
-       IF ( State_Diag%ObsPack_Longitude(N) <   - 180.0_f4 .or.              &
+       IF ( State_Diag%ObsPack_Longitude(N) <    -180.0_f4 .or.              &
             State_Diag%ObsPack_Longitude(N) >     180.0_f4 .or.              &
             State_Diag%ObsPack_Latitude(N)  <     -90.0_f4 .or.              &
             State_Diag%ObsPack_Latitude(N)  >      90.0_f4 .or.              &
@@ -606,7 +609,6 @@ CONTAINS
              State_Diag%ObsPack_Ival_End(N) =                                &
                   State_Diag%ObsPack_Ival_center(N)    + 1800.0_f8
 
-
           !------------------
           ! 90-minute window
           !------------------
@@ -640,6 +642,13 @@ CONTAINS
 
              State_Diag%ObsPack_Ival_End(N) =                                &
                   State_Diag%ObsPack_Ival_Center(N)
+
+             ! Extend the averaging interval end to capture data points
+             ! that are within half a dynamic timestep of the day's end
+             IF ( State_Diag%ObsPack_Ival_End(N) + tsDyn > 86400.0 ) THEN
+                State_Diag%ObsPack_Ival_End(N) =                             &
+                     State_Diag%ObsPack_Ival_End(N) + halfTsDyn
+             ENDIF
 
           !------------------
           ! Exit w/ error
@@ -948,7 +957,7 @@ CONTAINS
     ALLOCATE( aveEnd( nObs ), STAT=RC )
     CALL GC_CheckVar( 'obspack_mod.F90:aveEnd', 0, RC )
     IF ( RC /= GC_SUCCESS ) RETURN
-    aveEnd = State_Diag%ObsPack_Ival_Start
+    aveEnd = State_Diag%ObsPack_Ival_End
 
     ! Compute averaging interval
     ALLOCATE( aveTime( nObs ), STAT=RC )
@@ -1298,7 +1307,7 @@ CONTAINS
     USE State_Grid_Mod, ONLY : GrdState
     USE State_Met_Mod,  ONLY : MetState
     USE Time_Mod,       ONLY : Ymd_Extract
-    USE Timers_Mod,     ONLY : Timer_End, Timer_Start
+    USE Timers_Mod,     ONLY : Timer_End,   Timer_Start
     USE UnitConv_Mod,   ONLY : Check_Units, MOLES_SPECIES_PER_MOLES_DRY_AIR
 !
 ! !INPUT PARAMETERS:
@@ -1334,31 +1343,38 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  doSample
-    INTEGER             :: I,       J,        L,  N,  R,  S
-    INTEGER             :: Yr,      Mo,       Da, Hr, Mn, Sc
-    REAL(f8)            :: TsStart, TsEnd
+    LOGICAL             :: doSample,       endOfDay
+    LOGICAL             :: prtLog,         validObs
+    INTEGER             :: I,              J,         L
+    INTEGER             :: N,              R,         S
+    INTEGER             :: Yr,             Mo,        Da
+    INTEGER             :: Hr,             Mn,        Sc
+    REAL(f8)            :: HalfTsDyn,      Interval,  Tomorrow
+    REAL(f8)            :: TsStart,        TsDyn,     TsEnd
+    REAL(f8)            :: TsEndPlusTsDyn
 
     ! Strings
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg,         ThisLoc
 
-    !=================================================================
+    !========================================================================
     ! ObsPack_Sample begins here
-    !=================================================================
+    !========================================================================
 
     ! Initialize
-    RC       =  GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
-    prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
+    RC        =  GC_SUCCESS
+    TsDyn     = DBLE( Input_Opt%TS_DYN )
+    HalfTsDyn = tsDyn * 0.5_f8
+    ErrMsg    = ''
+    ThisLoc   = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
+    prtLog    = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).
     IF ( .not. State_Diag%Do_ObsPack ) RETURN
 
-    !=======================================================================
+    !========================================================================
     ! Unit conversion
-    !=======================================================================
+    !========================================================================
 
     ! Halt diags timer (so that unit conv can be timed separately)
     IF ( Input_Opt%useTimers ) THEN
@@ -1377,18 +1393,24 @@ CONTAINS
        CALL Timer_Start( "Diagnostics", RC )
     ENDIF
 
-    !=======================================================================
-    ! Sample the GEOS-CHem data corresponding to this location & time
-    !=======================================================================
+    !========================================================================
+    ! Sample the GEOS-Chem data corresponding to this location & time
+    !========================================================================
 
     ! Extract date and time into components
     CALL Ymd_Extract( yyyymmdd, Yr, Mo, Da )
     CALL Ymd_Extract( hhmmss,   Hr, Mn, Sc )
 
-    ! Compute elapsed seconds since 1970
-    TsEnd   = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
+    ! Compute elapsed seconds since 1970 at model date/time
+    TsEnd          = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
+    TsStart        = TsEnd - TsDyn
+    TsEndPlusTsDyn = TsEnd + TsDyn
 
-    TsStart = TsEnd - Input_Opt%TS_DYN
+    ! Compute elapsed seconds since 1970 at the start of the next day
+    Tomorrow       = Seconds_Since_1970( Yr, Mo, Da, 0, 0, 0 ) + 86400.0_f8
+
+    ! Are we within 1 model timestep of the next model day?
+    endOfDay       = ( ( Tomorrow - TsEnd ) <= TsDyn )
 
     ! Logfile header
     IF ( prtLog ) THEN
@@ -1405,39 +1427,77 @@ CONTAINS
     DO N = 1, State_Diag%ObsPack_nObs
 
        !initializing flag for whether sampling should occur at this timestep
-       doSample = .false.
+       doSample = .FALSE.
+       validObs = .TRUE.
 
-       SELECT CASE ( State_Diag%ObsPack_Strategy(N) )
-          CASE ( 0 )
-             ! Skip observation if the sampling strategy says to do so
+       SELECT CASE( State_Diag%ObsPack_Strategy(N) )
+
+          !-------------------------------------------------------------------
+          ! Skip observation if the sampling strategy says to do so
+          !-------------------------------------------------------------------
+          CASE( 0 )
              CYCLE
-          CASE ( 1:3 )
-             ! If the sample covers the entire dynamic timestep, then...
-             IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart .and.                &
-                  State_Diag%ObsPack_Ival_End(N)   >= TsEnd ) doSample = .true.
-          CASE ( 4 )
-             ! If Instantaneous sampling choose the closest timestep
-             IF ( (TsEnd - State_Diag%ObsPack_Ival_Center(N)) <= (Input_Opt%TS_DYN/2.) .and.    &
-                  (State_Diag%ObsPack_Ival_Center(N) - TsEnd) < (Input_Opt%TS_DYN/2.) ) doSample =.true.
+
+          !------------------------------------------------------------------
+          ! Time-averaging sampling strategies:
+          ! 1: 4-hour averaging window
+          ! 2: 1-hour averaging window
+          ! 3: 90-min averaging window
+          !------------------------------------------------------------------
+          CASE( 1:3 )
+
+             ! If the averaging window completely covers the dynamic
+             ! timestep, then take the sample
+             IF ( State_Diag%ObsPack_Ival_Start(N) <= TsStart        .and.   &
+                  State_Diag%ObsPack_Ival_End(N)   >= TsEnd        )  THEN
+                doSample = .TRUE.
+
+             ! If the averaging window spans past the end of the UTC date.
+             ! take the sample but truncate the averaging interval accordingly
+             ELSE IF ( State_Diag%ObsPack_Ival_Start(N) > TsStart    .and.   &
+                       State_Diag%ObsPack_Ival_End(N)   > TsEnd      .and.   &
+                       MOD( TsEndPlusTsDyn, 86400.0_fp ) == 0      )  THEN
+                doSample                       = .TRUE.
+                State_Diag%ObsPack_Ival_End(N) = TsEndPlusTsDyn
+
+             ENDIF
+
+          !------------------------------------------------------------------
+          ! Instantaneous sampling strategies
+          ! 4: Choose the closest timestep
+          !------------------------------------------------------------------
+          CASE( 4 )
+             
+             ! Take the sample if it lies within 1/2 of a model dynamic
+             ! timestep on either side of the current model time
+             Interval = TsEnd - State_Diag%ObsPack_Ival_Center(N)
+             doSample = ( -Interval <= HalfTsDyn .and. Interval < HalfTsDyn )
+
+             ! EDGE CASE: If we are on the last timestep before the end
+             ! of the model day, then also include data points that lie
+             ! within 1/2 model timestep of the end of the model day.
+             IF ( endOfDay .and. .not. doSample ) THEN
+                Interval = Tomorrow - State_Diag%ObsPack_Ival_Center(N)
+                doSample = ( Interval <= HalfTsDyn )
+             ENDIF
+
           CASE DEFAULT
-             ErrMsg = "Sample Strategy not implemented in ObsPack_Sample Subroutine"
+             ErrMsg = &
+              "Sample Strategy not implemented in ObsPack_Sample Subroutine"
              CALL GC_Error( ErrMsg, RC, ThisLoc )
              RETURN
        END SELECT
 
-
-
-       ! If sampling strategy time-step conditions are met, sample at these times
+       !---------------------------------------------------------------------
+       ! If sampling strategy time-step conditions are met,
+       ! sample at these times
+       !---------------------------------------------------------------------
        IF ( doSample ) THEN
 
-          ! Print the observations that are sampled here
-          IF ( prtLog ) THEN
-             WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
-          ENDIF
-
           ! Return grid box indices for the chemistry region
-          CALL ObsPack_Get_Indices( N, State_Diag, State_Grid, State_Met,    &
-                                    I, J, L, RC )
+          CALL ObsPack_Get_Indices( N,         State_Diag, State_Grid,       &
+                                    State_Met, I,          J,                &
+                                    L,         validObs,   RC               )
 
           ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
@@ -1446,14 +1506,26 @@ CONTAINS
              RETURN
           ENDIF
 
+          ! If the observation location is not valid (i.e. if it is outside
+          ! of a nested-grid domain) then go to the next observation
+          IF ( .not. validObs ) THEN
+             doSample = .FALSE.
+             CYCLE
+          ENDIF
+
+          ! Print the observations that are sampled here (valid obs only)
+          IF ( prtLog ) THEN
+             WRITE( 6, '(i6,1x,a)' ) N, TRIM( State_Diag%ObsPack_Id(N) )
+          ENDIF
+
           !------------------------
           ! Update sample counter
           !------------------------
           State_Diag%ObsPack_nSamples(N) = State_Diag%ObsPack_nSamples(N) + 1
 
-          !-----------------------
+          !------------------------
           ! Archive species
-          !-----------------------
+          !------------------------
 
           ! Loop over the # of requested species
           DO R = 1, State_Diag%ObsPack_nSpecies
@@ -1495,9 +1567,9 @@ CONTAINS
        WRITE( 6, '(a,/)' ) REPEAT( '=', 79 )
     ENDIF
 
-    !=======================================================================
+    !========================================================================
     ! Cleanup and quit
-    !=======================================================================
+    !========================================================================
 
     ! Halt diags timer (so that unit conv can be timed separately)
     IF ( Input_Opt%useTimers ) THEN
@@ -1525,8 +1597,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE ObsPack_Get_Indices( iObs, State_Diag, State_Grid, State_Met, &
-                                  I, J, L, RC )
+  SUBROUTINE ObsPack_Get_Indices( iObs,      State_Diag, State_Grid,         &
+                                  State_Met, I,          J,                  &
+                                  L,         validObs,   RC                 )
 !
 ! !USES:
 !
@@ -1545,6 +1618,7 @@ CONTAINS
 ! !OUTPUT PARAMETERS:
 !
     INTEGER,        INTENT(OUT) :: I, J, L      ! Lon, lat, level indices
+    LOGICAL,        INTENT(OUT) :: validObs     ! Is obs inside model grid?
     INTEGER,        INTENT(OUT) :: RC           ! Success or failure?
 !
 ! !REMARKS:
@@ -1559,24 +1633,26 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER             :: idx, I0, J0
-    REAL(f8)            :: Z
+    ! Scalars
+    INTEGER            :: idx, I0, J0
+    REAL(f8)           :: Z
 
-    !
-    CHARACTER(LEN=255)  :: ErrMsg, ThisLoc
+    ! Strings
+    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
 
     !========================================================================
     ! ObsPack_Get_Indices begins here!
     !========================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    ErrMsg  = ''
-    ThisLoc = ' -> at ObsPack_Get_Indices (in module ObsPack/obspack_mod.F90'
-
-    !-----------------------------------------------------------------------
+    RC       = GC_SUCCESS
+    validObs = .TRUE.
+    ErrMsg   = ''
+    ThisLoc  = ' -> at ObsPack_Get_Indices (in module ObsPack/obspack_mod.F90'
+    
+    !------------------------------------------------------------------------
     ! Exit with error if the observations have invalid lon/lat/alt values
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     IF ( State_Diag%ObsPack_Longitude(iObs) <    -180.0_f8   .or.            &
          State_Diag%ObsPack_Longitude(iObs) >     180.0_f8   .or.            &
          State_Diag%ObsPack_Latitude(iObs)  <     -90.0_f8   .or.            &
@@ -1592,14 +1668,28 @@ CONTAINS
        RETURN
     ENDIF
 
+    !------------------------------------------------------------------------
+    ! For nested grids, make sure the observation lies within the grid
+    ! domain.  Otherwise this will result in an out-of-bounds error.
+    !------------------------------------------------------------------------
+    IF ( State_Grid%NestedGrid ) THEN
+       IF ( State_Diag%ObsPack_Longitude(iObs) < State_Grid%XMin   .or.      &
+            State_Diag%ObsPack_Longitude(iObs) > State_Grid%XMax   .or.      &
+            State_Diag%ObsPack_Latitude(iObs)  < State_Grid%YMin   .or.      &
+            State_Diag%ObsPack_Latitude(iObs)  > State_Grid%YMax ) THEN
+          validObs = .FALSE.
+          RETURN
+       ENDIF
+    ENDIF
+
     ! Added correct definitions for I and J based on nested regions
     ! (lds, 8/25/11)
     I0 = State_Grid%XMinOffset
     J0 = State_Grid%YMinOffset
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find I corresponding to the ObsPack longitude value
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     I = INT( ( State_Diag%ObsPack_Longitude(iObs) + 180.0_f8                 &
                                                   - ( I0 * State_Grid%DX ) ) &
                                                   / State_Grid%DX + 1.5d0  )
@@ -1607,18 +1697,18 @@ CONTAINS
     ! Handle date line correctly (bmy, 4/23/04)
     IF ( I > State_Grid%NX ) I = I - State_Grid%NX
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find J corresponding to the ObsPack latitude value
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     J = INT( ( State_Diag%ObsPack_Latitude(iObs)  +  90.0_f8                 &
                                                   - ( J0 * State_Grid%DY ) ) &
                                                   / State_Grid%DY + 1.5d0  )
 
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     ! Find L corresponding to the ObsPack altitude value
     ! ObsPack altitude variable defined as MASL, so Z
     ! starts at surface height
-    !-----------------------------------------------------------------------
+    !------------------------------------------------------------------------
     Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1, State_Grid%NZ
        Z = Z + State_Met%BXHEIGHT(I,J,L)
@@ -1633,13 +1723,14 @@ CONTAINS
 
     Z = State_Met%PHIS(I,J) ! units [m]
     DO L = 1,State_Grid%NZ
-       Z=Z+State_Met%BXHEIGHT(I,J,L)
-       WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L),Z
+       Z = Z + State_Met%BXHEIGHT(I,J,L)
+       WRITE (6,*) L,' bxheight and z:', State_Met%BXHEIGHT(I,J,L), Z
     ENDDO
     WRITE( ErrMsg, 100 ) State_Diag%ObsPack_Altitude(iObs), Z,               &
                          State_Diag%ObsPack_Latitude(iObs),                  &
                          State_Diag%ObsPack_Longitude
-100 FORMAT( "Altitude ",f11.4, "m exceeds TOA of ",f11.4,"m at ",f11.4,"N,",f11.4,"E" )
+100 FORMAT( "Altitude ", f11.4, "m exceeds TOA of ", f11.4,                  &
+            "m at ",     f11.4, "N,",                f11.4, "E"             )
 
     CALL GC_Error( ErrMsg, RC, ThisLoc )
 

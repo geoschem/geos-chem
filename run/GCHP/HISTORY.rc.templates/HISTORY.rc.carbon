@@ -52,21 +52,21 @@ GRID_LABELS: #PE24x144-CF
 #==============================================================================
 # Declare collection names and toggle on/off with #
 #==============================================================================
-COLLECTIONS: 'Emissions',
-             'SpeciesConc',
+COLLECTIONS: 'SpeciesConc',
+             'Emissions',
              #'Metrics',
              #'Budget',
-             #'Carbon',
+             'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
              #'KppDiags',
-             #'LevelEdgeDiags',
              #'RxnConst',
              #'RxnRates',
              'StateMet',
+             #'StateMetLevEdge',
 ::
 #==============================================================================
 # Define collections
@@ -178,10 +178,10 @@ COLLECTIONS: 'Emissions',
                               'SpeciesConcVV_CO     ', 'GCHPchem',
                               'SpeciesConcVV_CO2    ', 'GCHPchem',
                               'SpeciesConcVV_OCS    ', 'GCHPchem',
-                              ##'SpeciesConcMND_CH4 ', 'GCHPchem',
-                              ##'SpeciesConcMND_CO  ', 'GCHPchem',
-                              ##'SpeciesConcMND_CO2 ', 'GCHPchem',
-                              ##'SpeciesConcMND_OCS ', 'GCHPchem',
+                              #'SpeciesConcMND_CH4 ', 'GCHPchem',
+                              #'SpeciesConcMND_CO  ', 'GCHPchem',
+                              #'SpeciesConcMND_CO2 ', 'GCHPchem',
+                              #'SpeciesConcMND_OCS ', 'GCHPchem',
 ::
 #==============================================================================
 # Budget defined as species kg/s in the column (full, troposphere, or PBL)
@@ -206,6 +206,10 @@ COLLECTIONS: 'Emissions',
                               'BudgetConvectionTrop_CH4      ', 'GCHPchem',
                               'BudgetConvectionPBL_CH4       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CH4 ', 'GCHPchem',
+                              'BudgetChemistryFull_CH4      ', 'GCHPchem',
+                              'BudgetChemistryTrop_CH4      ', 'GCHPchem',
+                              'BudgetChemistryPBL_CH4       ', 'GCHPchem',
+                              'BudgetChemistryLevs1to35_CH4 ', 'GCHPchem',
                               'BudgetEmisDryDepFull_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_CO       ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_CO        ', 'GCHPchem',
@@ -230,7 +234,7 @@ COLLECTIONS: 'Emissions',
                               'BudgetConvectionTrop_CO2      ', 'GCHPchem',
                               'BudgetConvectionPBL_CO2       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_CO2 ', 'GCHPchem',
-			      'BudgetEmisDryDepFull_OCS      ', 'GCHPchem',
+			                  'BudgetEmisDryDepFull_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepTrop_OCS      ', 'GCHPchem',
                               'BudgetEmisDryDepPBL_OCS       ', 'GCHPchem',
                               'BudgetEmisDryDepLevs1to35_OCS ', 'GCHPchem',
@@ -290,9 +294,9 @@ COLLECTIONS: 'Emissions',
   FV3Dynamics.frequency:      010000
   FV3Dynamics.duration:       010000
   FV3Dynamics.mode:           'time-averaged'
-  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
-                              'DryPLE ', 'DYNAMICS',
-                              'PLEadv ', 'DYNAMICS',
+  FV3Dynamics.fields:         'PLE_R4    ', 'DYNAMICS',
+                              'DryPLE_R4 ', 'DYNAMICS',
+                              'PLEadv_R4 ', 'DYNAMICS',
 ::
 #==============================================================================
   GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -302,11 +306,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevEdge.frequency:      010000
   GCHPctmEnvLevEdge.duration:       010000
   GCHPctmEnvLevEdge.mode:           'time-averaged'
-  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
-                                    'PLE0               ', 'GCHPctmEnv',
-                                    'PLE1               ', 'GCHPctmEnv',
-                                    'DryPLE0            ', 'GCHPctmEnv',
-                                    'DryPLE1            ', 'GCHPctmEnv',
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux_R4    ', 'GCHPctmEnv',
+                                    'PLE0_R4               ', 'GCHPctmEnv',
+                                    'PLE1_R4               ', 'GCHPctmEnv',
+                                    'DryPLE0_R4            ', 'GCHPctmEnv',
+                                    'DryPLE1_R4            ', 'GCHPctmEnv',
 ::
 #==============================================================================
   GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -316,28 +320,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevCenter.frequency:      010000
   GCHPctmEnvLevCenter.duration:       010000
   GCHPctmEnvLevCenter.mode:           'time-averaged'
-  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
-                                      'CX       ', 'GCHPctmEnv',
-                                      'CY       ', 'GCHPctmEnv',
-                                      'MFX      ', 'GCHPctmEnv',
-                                      'MFY      ', 'GCHPctmEnv',
-::
-#==============================================================================
-# Diagnostics on level edges
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:         'Met_CMFMC   ', 'GCHPchem',
-                                 'Met_PEDGE   ', 'GCHPchem',
-                                 'Met_PEDGEDRY', 'GCHPchem',
-                                 'Met_PFICU   ', 'GCHPchem',
-                                 'Met_PFILSAN ', 'GCHPchem',
-                                 'Met_PFLCU   ', 'GCHPchem',
-                                 'Met_PFLLSAN ', 'GCHPchem',
+  GCHPctmEnvLevCenter.fields:         'SPHU0_R4    ', 'GCHPctmEnv',
+                                      'CX_R4       ', 'GCHPctmEnv',
+                                      'CY_R4       ', 'GCHPctmEnv',
+                                      'MFX_R4      ', 'GCHPctmEnv',
+                                      'MFY_R4      ', 'GCHPctmEnv',
 ::
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
@@ -346,15 +333,15 @@ COLLECTIONS: 'Emissions',
   KppDiags.frequency:         010000
   KppDiags.duration:          010000
   KppDiags.mode:              'time-averaged'
-  KppDiags.fields:            'KppIntCounts                  ',
-                              'KppJacCounts                  ',
-                              'KppTotSteps                   ',
-                              'KppAccSteps                   ',
-                              'KppRejSteps                   ',
-                              'KppLuDecomps                  ',
-                              'KppSubsts                     ',
-                              'KppSmDecomps                  ',
-                              'KppTime                       ',
+  KppDiags.fields:            'KppIntCounts ', 'GCHPchem',
+                              'KppJacCounts ', 'GCHPchem',
+                              'KppTotSteps  ', 'GCHPchem',
+                              'KppAccSteps  ', 'GCHPchem',
+                              'KppRejSteps  ', 'GCHPchem',
+                              'KppLuDecomps ', 'GCHPchem',
+                              'KppSubsts    ', 'GCHPchem',
+                              'KppSmDecomps ', 'GCHPchem',
+                              'KppTime      ', 'GCHPchem',
 ::
 #==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
@@ -363,8 +350,8 @@ COLLECTIONS: 'Emissions',
   RxnRates.frequency:         010000
   RxnRates.duration:          010000
   RxnRates.mode:              'time-averaged'
-  RxnRates.fields:            'RxnRate_EQ0001                  ',
-                              'RxnRate_EQ0002                  ',
+  RxnRates.fields:            'RxnRate_EQ0001 ', 'GCHPchem',
+                              'RxnRate_EQ0002 ', 'GCHPchem',
 			      # ... add others as needed ...
 ::
 #==============================================================================
@@ -374,8 +361,8 @@ COLLECTIONS: 'Emissions',
   RxnConst.frequency:         010000
   RxnConst.duration:          010000
   RxnConst.mode:              'time-averaged'
-  RxnConst.fields:            'RxnConst_EQ0001                ',
-                              'RxnConst_EQ0002                ',
+  RxnConst.fields:            'RxnConst_EQ0001 ', 'GCHPchem',
+                              'RxnConst_EQ0002 ', 'GCHPchem',
 			      # ... add others as needed ...
 ::
 #==============================================================================
@@ -465,4 +452,20 @@ COLLECTIONS: 'Emissions',
                            'Met_V          ', 'GCHPchem',
                            'Met_V10M       ', 'GCHPchem',
                            'Met_Z0         ', 'GCHPchem',
+::
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:         'Met_CMFMC   ', 'GCHPchem',
+                                  'Met_PEDGE   ', 'GCHPchem',
+                                  #'Met_PEDGEDRY', 'GCHPchem',
+                                  #'Met_PFICU   ', 'GCHPchem',
+                                  #'Met_PFILSAN ', 'GCHPchem',
+                                  #'Met_PFLCU   ', 'GCHPchem',
+                                  #'Met_PFLLSAN ', 'GCHPchem',
 ::

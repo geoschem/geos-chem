@@ -338,7 +338,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
-printf "  3. GEOS-IT (Beta release)\n"
+printf "  3. GEOS-IT \n"
 printf "  4. GISS ModelE2.1 (GCAP 2.0)\n"
 
 valid_met=0
@@ -355,7 +355,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
-	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. To fix this issue, different GEOS-Chem \nconvection schemes are called based on simulation start time. This ensures \ncomparability in GEOS-Chem runs using GEOS-FP fields generated using the RAS \nconvection scheme and fields generated using Grell-Freitas, but only if the \nsimulation does not cross the June 1 2020 boundary. We therefore recommend \nsplitting up GEOS-FP runs in time such that a single simulation does not span \nthis date. For example, configure one run to end on June 1 2020 and then use \nits output restart to start another run on June 1. Alternatively consider using \nMERRA2 which was entirely generated with RAS, or GEOS-IT which was entirely \ngenerated with Grell-Freitas. If you wish to use a GEOS-FP meteorology year \ndifferent from your simulation year please create a GEOS-Chem GitHub issue for \nassistance to avoid accidentally using zero convective precipitation flux.\n"
 	printf "\n${fp_msg}\n"
 	printf "This warning will be printed to run directory file warnings.txt.\n"
 	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
@@ -1068,6 +1068,17 @@ if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true '\n"
 else
     RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
+fi
+
+# Disable PARANOX for 0.25 x 0.3125 and finer grids
+# See: https://github.com/geoschem/geos-chem/issues/3009
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    if [[ "x${grid_res}" == "x0125x015625" ]]  ||   \
+       [[ "x${grid_res}" == "x025x03125"   ]]; then
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='off'\n"
+    else
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='on '\n"
+    fi
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc

@@ -9,7 +9,6 @@ APMAMINE1:
   FullName: APM amines 1
   Henry_CR: 4100.0
   Henry_K0: 3.3e+6
-  Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
@@ -25,7 +24,6 @@ APMAMINE2:
   FullName: APM amines 2
   Henry_CR: 4100.0
   Henry_K0: 3.3e+6
-  Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
@@ -41,7 +39,6 @@ APMAMINE3:
   FullName: APM amines 3
   Henry_CR: 4100.0
   Henry_K0: 3.3e+6
-  Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
@@ -55,7 +52,6 @@ APMBCBIN01_PROP: &APMBC1properties
   DD_Hstar: 0.0
   Density: 1800.0
   Formula: C
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -84,7 +80,6 @@ APMBCBIN06_PROP: &APMBC6properties
   DD_Hstar: 0.0
   Density: 1800.0
   Formula: C
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -129,7 +124,6 @@ APMCTBC1:
   Density: 1800.0
   Formula: SO4
   FullName: APM CTSO4
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -144,7 +138,6 @@ APMCTBC2:
   Density: 1800.0
   Formula: LVSOA
   FullName: APM CTSLVSOA
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -160,7 +153,6 @@ APMCTDST1:
   Density: 2650.0
   Formula: SO4
   FullName: APM CTSO4
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -178,7 +170,6 @@ APMCTDST2:
   Density: 2650.0
   Formula: LVSOA
   FullName: APM CTLVSOA
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -195,7 +186,6 @@ APMCTOC1:
   Density: 1800.0
   Formula: SO4
   FullName: APM CTSO4
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -210,7 +200,6 @@ APMCTOC2:
   Density: 1800.0
   Formula: LVSOA
   FullName: APM CTSLVSOA
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -226,7 +215,6 @@ APMCTSEA1:
   Density: 2200.0
   Formula: SO4
   FullName: APM CTSO4
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -245,7 +233,6 @@ APMCTSEA2:
   Density: 2200.0
   Formula: LVSOA
   FullName: APM CTLVSOA
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -263,7 +250,6 @@ APMDSTBIN_PROP: &APMDSTproperties
   DD_Hstar: 0.0
   Density: 2650.0
   Formula: Dust
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -327,7 +313,6 @@ APMH2SO4:
   Density: 1800.0
   Formula: H2SO4
   FullName: APM sulfuric acid
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -342,7 +327,6 @@ APMLVSOA:
   Density: 1800.0
   Formula: LVSOA
   FullName: APM LVSOA
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -361,7 +345,6 @@ APMLVSOG:
   Density: 1800.0
   FullName: APM LV secondary organic gas
   Is_Aerosol: true    # APMLVSOG is aerosol in Ref code, ask Gan Luo
-  Is_Advected: true
   Is_DryDep: true
   #Is_Gas: true       # APMLVSOG is aerosol in Ref code, ask Gan Luo
   Is_WetDep: true
@@ -375,7 +358,6 @@ APMOCBIN_PROP: &APMOC1properties
   DD_Hstar: 0.0
   Density: 1300.0
   Formula: C
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
@@ -404,7 +386,6 @@ APMOCBIN06_PROP: &APMOC6properties
   DD_Hstar: 0.0
   Density: 1300.0
   Formula: C
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -448,7 +429,6 @@ APMSEABIN_PROP: &APMSEAproperties
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 2200.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true
@@ -525,7 +505,6 @@ APMSPBIN_PROP: &APMSPproperties
   DD_F0: 0.0
   DD_Hstar: 0.0
   Density: 1800.0
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_HygroGrowth: true

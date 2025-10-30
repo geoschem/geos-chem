@@ -4078,9 +4078,13 @@ END FUNCTION WASHFRAC_DUSTBIN
     ! CONV_F_PRIME begins here!
     !=================================================================
 
+#ifdef LUO_WETDEP
+    TIME = DT / 1800e+0_fp
+#else
     ! Assume the rainout event happens in 30 minutes (1800 s)
     ! Compute the minimum of DT / 1800s and 1.0
     TIME = MIN( DT / 1800e+0_fp, 1e+0_fp )
+#endif
 
     ! Compute F' for convective precipitation (Eq. 13, Jacob et al, 2000)
     ! 0.3  = FMAX, the maximum value of F' for convective precip

@@ -89,11 +89,11 @@
 #
 # ADDITIONAL PRE-RUN CONFIGURATION
 #
-# If a subsequent command fails, treat it as fatal (don't continue)
+# If a subsequent command fails, treat it as fatal (don't continue) (for debugging)
 set -e
 
-# For remainder of script, echo commands to the job's log file
-set -x
+# For remainder of script, echo commands to the job's log file (for debugging)
+#set -x
 
 # Unlimit resources to prevent OS killing GCHP due to resource usage/
 # Alternatively you can put this in your environment file.
@@ -118,6 +118,9 @@ log=gchp.${start_str:0:13}z.log
 source setCommonRunSettings.sh
 source setRestartLink.sh
 source checkRunSettings.sh
+
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
 
 #################################################################
 #

@@ -299,7 +299,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP\n"
-printf "  3. GEOS-IT (Beta release)\n"
+printf "  3. GEOS-IT\n"
 
 metSettingsDir=${gcdir}/run/shared/settings
 
@@ -318,7 +318,7 @@ while [ "${valid_met}" -eq 0 ]; do
        	met="geosfp"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
-	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. To fix this issue, different GEOS-Chem \nconvection schemes are called based on simulation start time. This ensures \ncomparability in GEOS-Chem runs using GEOS-FP fields generated using the RAS \nconvection scheme and fields generated using Grell-Freitas, but only if the \nsimulation does not cross the June 1 2020 boundary. We therefore recommend \nsplitting up GEOS-FP runs in time such that a single simulation does not span \nthis date. For example, configure one run to end on June 1 2020 and then use \nits output restart to start another run on June 1. Alternatively consider using \nMERRA2 which was entirely generated with RAS, or GEOS-IT which was entirely \ngenerated with Grell-Freitas. If you wish to use a GEOS-FP meteorology year \ndifferent from your simulation year please create a GEOS-Chem GitHub issue for \nassistance to avoid accidentally using zero convective precipitation flux.\n"
 	printf "\n${fp_msg}\n"
 	printf "This warning will be printed to run directory file warnings.txt.\n"
 	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
@@ -359,9 +359,9 @@ while [ "${valid_met}" -eq 0 ]; do
 
 	# Ask user to specify meteorology for advection.
 	printf "${thinline}Choose meteorology for advection:${thinline}"
-	printf "  1. 0.25x0.3125 3-hourly winds (recommended)\n"
-	printf "  2. C720 1-hourly derived winds (recommended for stretched grid)\n"
-	printf "  3. C720 1-hourly mass fluxes (beta)\n"
+	printf "  1. 0.25x0.3125 3-hourly winds (Recommended)\n"
+	printf "  2. C720 1-hourly derived winds (Recommended for stretched grid)\n"
+	printf "  3. C720 1-hourly mass fluxes (Beta)\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -415,7 +415,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	
  	# Ask user to specify processed or raw files
 	printf "${thinline}Choose meteorology files:${thinline}"
-	printf "  1. C180 processed files from the GEOS-Chem data archive (recommended)\n"
+	printf "  1. C180 processed files from the GEOS-Chem data archive (Recommended)\n"
 	printf "  2. C180 raw files downloaded from NASA GMAO\n"
 	printf "  3. 0.5x0.625 processed files from the GEOS-Chem data archive\n"
 	printf "  4. 0.5x0.625 raw files downloaded from NASA GMAO\n"
@@ -451,16 +451,16 @@ while [ "${valid_met}" -eq 0 ]; do
 	    adv_flux_src="3hr_wind"
 	elif [[ ${met_file_type} = "processed_cs" || ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
-	    printf "  1. C180 1-hourly mass fluxes\n"
-	    printf "  2. C180 3-hourly winds (recommended)\n"
+	    printf "  1. C180 3-hourly winds (Recommended)\n"
+	    printf "  2. C180 1-hourly mass fluxes (Beta)\n"
 	    valid_response=0
 	    while [ "${valid_response}" -eq 0 ]; do
 	        valid_response=1
 	        read -p "${USER_PROMPT}" response
 	        if [[ ${response} = "1" ]]; then
-		    adv_flux_src="1hr_mass_flux"
-	        elif [[ ${response} = "2" ]]; then
 		    adv_flux_src="3hr_wind"
+	        elif [[ ${response} = "2" ]]; then
+		    adv_flux_src="1hr_mass_flux"
 	        else
 	    	    valid_response=0
 	    	    printf "Invalid option. Try again.\n"
@@ -705,7 +705,7 @@ elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
-    restart_dir='v2023-01'
+    restart_dir='v2025-07'
     restart_name="${sim_name}"
 fi
 for N in 24 30 48 90 180

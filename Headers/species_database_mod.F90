@@ -157,7 +157,7 @@ CONTAINS
     REAL(f4)                    :: wd_rainouteff_luo(3)
 
     ! String arrays
-    CHARACTER(LEN=18)           :: tags(67)
+    CHARACTER(LEN=18)           :: tags(68)
     CHARACTER(LEN=QFYAML_StrLen):: a_str(2)
 
     ! Objects
@@ -210,11 +210,12 @@ CONTAINS
              "Is_Aerosol        ",  &
              "Is_DryAlt         ",  &
              "Is_DryDep         ",  &
-             "Is_HygroGrowth    ",  &
              "Is_Gas            ",  &
+             "Is_HygroGrowth    ",  &
              "Is_Hg0            ",  &
              "Is_Hg2            ",  &
              "Is_HgP            ",  &
+             "Is_JacobianTracer ",  &
              "Is_Photolysis     ",  &
              "Is_RadioNuclide   ",  &
              "Is_Tracer         ",  &
@@ -602,6 +603,13 @@ CONTAINS
                 SpcCount%nTracer       = SpcCount%nTracer + 1
                 ThisSpc%TracerId       = SpcCount%nTracer
                 ThisSpc%Is_Tracer      = v_bool
+             ENDIF
+         
+         ELSE IF ( INDEX( key, "%Is_JacobianTracer" ) > 0 ) THEN
+             CALL QFYAML_Add_Get( yml, key, v_bool, "", RC )
+             IF ( RC /= GC_SUCCESS ) GOTO 999
+             IF ( v_bool ) THEN
+                ThisSpc%Is_JacobianTracer = v_bool
              ENDIF
 
           ELSE IF ( INDEX( key, "%Is_WetDep" ) > 0 ) THEN

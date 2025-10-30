@@ -221,7 +221,7 @@ CONTAINS
     LOGICAL             :: t1,        t2
     INTEGER             :: Dt_Sec
     INTEGER             :: I,         J,          L
-    INTEGER             :: L_CG,      L_TP,       N,         units
+    INTEGER             :: L_CG,      L_TP,       N
     REAL(fp)            :: PEdge_Top, Esat 
     REAL(fp)            :: EsatA,     EsatB,      EsatC,     EsatD
     REAL(fp)            :: SPHU_kgkg, AVGW_moist, H,         FRAC
@@ -271,14 +271,15 @@ CONTAINS
     ThisLoc  = ' -> at AIRQNT (in module GeosCore/dao_mod.F)'
     Dt_Sec   = Get_Ts_Dyn()
 
-    ! Shadow variable for mixing ratio update
-    UpdtMR = .TRUE.
+    ! Shadow variable for mixing ratio update. Default is false.
+    UpdtMR = .FALSE.
     IF ( PRESENT(update_mixing_ratio) ) UpdtMR = update_mixing_ratio
 
     ! Pre-compute local solar time = UTC + Lon/15
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW )
+    !$OMP PARALLEL DO                                                       &
+    !$OMP DEFAULT( SHARED                                                  )&
+    !$OMP PRIVATE( I, J, FRLAND_NOSNOW_NOICE, FRWATER, FRICE, FRSNOW       )&
+    !$OMP COLLAPSE( 2                                                      )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -303,16 +304,24 @@ CONTAINS
        FRLAND_NOSNOW_NOICE = State_Met%FRLAND(I,J) - State_Met%FRSNOW(I,J)
 
        ! Water without sea ice
-       FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) - State_Met%FRSEAICE(I,J)
+       FRWATER = State_Met%FRLAKE(I,J) + State_Met%FROCEAN(I,J) -            &
+                 State_Met%FRSEAICE(I,J)
       
        ! Land ice and sea ice
        FRICE = State_Met%FRLANDICE(I,J) + State_Met%FRSEAICE(I,J)
 
        ! Set IsLand, IsWater, IsIce, IsSnow based on max fractional area
-       State_Met%IsLand(I,J)  = (FRLAND_NOSNOW_NOICE > MAX(FRWATER, FRICE, FRSNOW))
-       State_Met%IsWater(I,J) = (FRWATER > MAX(FRLAND_NOSNOW_NOICE, FRICE, FRSNOW))
-       State_Met%IsIce(I,J)   = (FRICE > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRSNOW))
-       State_Met%IsSnow(I,J)  = (FRSNOW > MAX(FRLAND_NOSNOW_NOICE, FRWATER, FRICE))
+       State_Met%IsLand(I,J)  =                                              &
+            ( FRLAND_NOSNOW_NOICE > MAX( FRWATER, FRICE, FRSNOW ) )
+
+       State_Met%IsWater(I,J) =                                              &
+            ( FRWATER > MAX( FRLAND_NOSNOW_NOICE, FRICE, FRSNOW ) )
+
+       State_Met%IsIce(I,J)   =                                              &
+            ( FRICE > MAX( FRLAND_NOSNOW_NOICE, FRWATER, FRSNOW ) )
+
+       State_Met%IsSnow(I,J)  =                                              &
+            ( FRSNOW > MAX( FRLAND_NOSNOW_NOICE, FRWATER, FRICE ) )
 
     ENDDO
     ENDDO
@@ -322,12 +331,12 @@ CONTAINS
     ! Update air quantities
     !=============================================================
 
-    !$OMP PARALLEL DO                                       &
-    !$OMP DEFAULT( SHARED                                 ) &
-    !$OMP PRIVATE( I,       J,         L,       Pedge_Top ) &
-    !$OMP PRIVATE( EsatA,   EsatB,     EsatC,   EsatD     ) &
-    !$OMP PRIVATE( Esat,    SPHU_kgkg                     ) &
-    !$OMP PRIVATE( XH2O, ADmoist                          )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,       J,         L,       Pedge_Top                   )&
+    !$OMP PRIVATE( EsatA,   EsatB,     EsatC,   EsatD                       )&
+    !$OMP PRIVATE( Esat,    SPHU_kgkg, XH2O,    ADmoist                     )&
+    !$OMP COLLAPSE( 3                                                       )
     DO L = 1, State_Grid%NZ
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
@@ -573,17 +582,7 @@ CONTAINS
             ( L <= State_Grid%MaxStratLev .and. State_Met%InStratMeso(I,J,L) )
 
        ! Is grid box (I,J,L) within the chemistry grid?
-       IF ( L > State_Grid%MaxChemLev ) THEN
-
-          ! Chemistry is not done higher than the mesopause
-          State_Met%InChemGrid(I,J,L) = .FALSE.
-
-       ELSE
-
-          ! Chemistry grid goes up to stratopause
-          State_Met%InChemGrid(I,J,L) = ( L <= State_Grid%MaxChemLev )
-
-       ENDIF
+       State_Met%InChemGrid(I,J,L) = ( L <= State_Grid%MaxChemLev )
 
     ENDDO
     ENDDO
@@ -598,9 +597,10 @@ CONTAINS
     ! Also compute if it is near local noon in a grid box.
     ! This will be used for the J-value diagnostics.
     !=================================================================
-    !$OMP PARALLEL DO       &
-    !$OMP DEFAULT( SHARED ) &
-    !$OMP PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC )
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I, J, L_CG, L_TP, H, Pb, Pt, FRAC                        )&
+    !$OMP COLLAPSE( 2                                                       )
     DO J = 1, State_Grid%NY
     DO I = 1, State_Grid%NX
 
@@ -678,8 +678,9 @@ CONTAINS
     ! NOTE: The only places where mixing ratio is not currently updated
     ! following air quantity change is during GEOS-Chem initialization and
     ! in transport after the pressure fixer is applied
-    IF ( UpdtMR ) THEN
-
+    IF ( UpdtMR .AND.                                  &
+         ( ABS( SUM(State_Met%DP_DRY_PREV )            &
+                - SUM(State_Met%DELP_DRY  ) ) < 1d-14 ) ) THEN
        ! The concentration update formula works only for dry mixing ratios
        ! (kg/kg or v/v) so check if units are correct
        IF ( .not. allSpeciesInDryMixingRatio( State_Chm ) ) THEN
@@ -689,20 +690,19 @@ CONTAINS
           RETURN
        ENDIF
 
-       !$OMP PARALLEL DO       &
-       !$OMP DEFAULT( SHARED ) &
-       !$OMP PRIVATE( I, J, L, N )
+       !$OMP PARALLEL DO                                                     &
+       !$OMP DEFAULT( SHARED                                                )&
+       !$OMP PRIVATE( I, J, L, N                                            )
        DO N = 1, State_Chm%nSpecies
 
-          units = State_Chm%Species(N)%Units
-
+          ! Tell OpenMP to vectorize this loop
+          !$OMP SIMD
           DO L = 1, State_Grid%NZ
           DO J = 1, State_Grid%NY
           DO I = 1, State_Grid%NX
              State_Chm%Species(N)%Conc(I,J,L) =                              &
-                                   State_Chm%Species(n)%Conc(I,J,L) *        &
-                                   State_Met%DP_DRY_PREV(I,J,L)     /        &
-                                   State_Met%DELP_DRY(I,J,L)
+             State_Chm%Species(N)%Conc(I,J,L) * State_Met%DP_DRY_PREV(I,J,L) &
+                                              / State_Met%DELP_DRY(I,J,L)
           ENDDO
           ENDDO
           ENDDO

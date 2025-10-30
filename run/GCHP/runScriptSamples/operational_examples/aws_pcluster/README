@@ -1,0 +1,7 @@
+Notes:
+Also, on AWS with EFA, it might be necessary to turn on WRITE_RESTART_BY_OSERVER and set numbers of O-servers in GCHP.rc to 6 to avoid crashes when writing restart files. See discussion in https://github.com/geoschem/GCHP/issues/493.
+
+Contact:
+Yuanjian Zhang at WashU
+yuanjianz @ GitHub
+yuanjian.z@wustl.edu

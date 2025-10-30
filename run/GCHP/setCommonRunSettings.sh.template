@@ -101,13 +101,13 @@ Diag_Collections=(SpeciesConc    \
                   JValues        \
                   KppDiags       \
                   KppARDiags     \
-                  LevelEdgeDiags \
                   Metrics        \
                   ProdLoss       \
                   RadioNuclide   \
                   RRTMG 	 \
                   StateChm	 \
                   StateMet       \
+                  StateMetLevEdge \
                   StratBM        \
                   Tomas          \
                   Transport	 \
@@ -427,7 +427,7 @@ MassFlux_Entry=$(grep "MFXC" ExtData.rc || echo "missing")
 if [[ ${MassFlux_Entry} != "missing" ]]; then
 
     #### Get met grid res (assume GEOS-IT and GEOS-FP are the only options)
-    C180_Entry=$(grep "MFXC.*C180x180x6" ExtData.rc || echo "missing")
+    C180_Entry=$(grep "MFXC.*C180" ExtData.rc || echo "missing")
     if [[ ${C180_Entry} != "missing" ]]; then
 	input_res=180
     else
@@ -668,8 +668,7 @@ else
     exit 1
 fi
 
-#### Time settings. This includes updating ExtData.rc entries for PS2,
-#### SPHU2, and TMPU2 such that read frequency matches dynamic frequency
+#### Time settings
 if [[ ${Model_Phase} == "FORWARD" ]]; then
    Reverse_Time=0
 else
@@ -694,9 +693,32 @@ replace_val RRTMG_DT      ${RRTMG_Timestep_sec}      GCHP.rc
 replace_val DYNAMICS_DT   ${TransConv_Timestep_sec}  GCHP.rc
 replace_val HEARTBEAT_DT  ${TransConv_Timestep_sec}  CAP.rc
 replace_val GCHPchem_REFERENCE_TIME ${TransConv_Timestep_HHMMSS} GCHP.rc
+
+#### Import modifications. This includes updating ExtData.rc entries for PS2,
+#### SPHU2, and TMPU2 such that read frequency matches dynamic frequency.
+#### It also includes updating mass flux and Courant number scaling if reading
+#### them from file.
+print_msg " "
+print_msg "Import settings:"
+print_msg "--------------------------------"
 update_dyn_freq PS2   ExtData.rc
 update_dyn_freq SPHU2 ExtData.rc
 update_dyn_freq TMPU2 ExtData.rc
+if [[ ${MassFlux_Entry} != "missing" ]]; then
+    # Mass flux scaling
+    mf_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
+    sed -i -e "0,/MFXC/ s/\(none\)[[:space:]].*\(MFXC\)/\1 ${mf_scaling} \2/" ExtData.rc
+
+    # Courant number scaling
+    cn_scaling=$(printf "%.7f" $(echo "${TransConv_Timestep_sec} / 450 * ${CS_RES} * ${CS_RES} / ${input_res} / ${input_res}" | bc -l) | awk '{if ($0 ~ /^\./) print "0" $0; else print $0}')
+    sed -i -e "0,/CX/ s/\(none\)[[:space:]].*\(CX\)/\1 ${cn_scaling} \2/" ExtData.rc
+
+    # Print if verbose
+    if [[ ${verbose} = "1" ]]; then
+	printf '%-30s : %-20s %-20s\n' "MFXC and MFYX input scaling" "${mf_scaling}" "ExtData.rc"
+	printf '%-30s : %-20s %-20s\n' "CX and CY input scaling" "${cn_scaling}" "ExtData.rc"
+    fi
+fi
 
 ##### Set commonly changed settings in geoschem_config.yml and GCHP.rc
 print_msg " "

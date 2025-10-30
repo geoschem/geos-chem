@@ -31,8 +31,8 @@ COLLECTIONS: 'CO2',
              'SpeciesConc',
              #'Budget',
              #'CloudConvFlux',
-             #'LevelEdgeDiags',      
              #'StateMet',
+             #'StateMetLevEdge',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -117,21 +117,21 @@ COLLECTIONS: 'CO2',
   CloudConvFlux.fields:       'CloudConvFlux_?ADV?           ',
 ::
 #==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
+# %%%%% THE StateMetLevEdge COLLECTION %%%%%
 #
 # Diagnostics that are defined on grid box level edges
 #
 # Available for all simulations
 #==============================================================================
-  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   00000000 010000,
-  LevelEdgeDiags.duration:    00000000 120000,
-  LevelEdgeDiags.mode:        'time-averaged'
-  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
-                              'Met_PEDGE                     ',
-                              'Met_PEDGEDRY                  ',
-                              'Met_PFICU                     ',
-                              'Met_PFILSAN                   ',
-                              'Met_PFLCU                     ',
-                              'Met_PFLLSAN                   ',
+  StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.frequency:   00000000 010000,
+  StateMetLevEdge.duration:    00000000 120000,
+  StateMetLevEdge.mode:        'time-averaged'
+  StateMetLevEdge.fields:      'Met_CMFMC                     ',
+                               'Met_PEDGE                     ',
+                               'Met_PEDGEDRY                  ',
+                               'Met_PFICU                     ',
+                               'Met_PFILSAN                   ',
+                               'Met_PFLCU                     ',
+                               'Met_PFLLSAN                   ',
 ::
