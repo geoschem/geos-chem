@@ -148,7 +148,7 @@ VerboseOnCores:              root       # Accepted values: root all
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
 105     DustL23M               : on    TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
-    --> Tuning factor          :       ${RUNDIR_DUSTL23M_TF}
+    --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
