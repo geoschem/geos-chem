@@ -49,6 +49,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Assigned `ExtState%TSKIN` from `State_Met%TS` and `ExtState%T2M` from `State_Met%T2M` in routine `ExtState_SetFields`
 - Renamed `&DST{1,2,3,4}properties` to `&METALS{1,2,3,4}properties` in `run/shared/species_database.yml`
 - Updated dust mass tuning factors for the `DustL23M` extension in `run/GCClassic/createRunDir.sh` and `run/GCHP/setCommonRunSettings.sh.template`
+- Replace `id_DST{1..4}` with `id_DSTbin{1..7}` in the `APMidtype` derived type and `APMIDS` object
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP

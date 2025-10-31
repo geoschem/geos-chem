@@ -132,7 +132,12 @@
       INTEGER :: id_BCPO,id_BCPI,id_OCPO, id_OCPI
       INTEGER :: id_MSA
       INTEGER :: id_SALA, id_SALC
-      INTEGER :: id_DST1,id_DST2,id_DST3,id_DST4
+
+      ! NOTE: Renamed these to GC_DSTbin{1..7} to avoid clashing
+      ! with the id_DSTbin1 species flag (@yantosca, 31 Oct 2025)
+      INTEGER :: id_GC_DSTbin1, id_GC_DSTbin2, id_GC_DSTbin3
+      INTEGER :: id_GC_DSTbin4, id_GC_DSTbin5, id_GC_DSTbin6
+      INTEGER :: id_GC_DSTbin7
 
       ! mono+sesq products
       INTEGER :: id_TSOA1, id_TSOG1
@@ -673,10 +678,13 @@
       APMIDS%id_SALA = Ind_('SALA')
       APMIDS%id_SALC = Ind_('SALC')
 
-      APMIDS%id_DST1 = Ind_('DST1')
-      APMIDS%id_DST2 = Ind_('DST2')
-      APMIDS%id_DST3 = Ind_('DST3')
-      APMIDS%id_DST4 = Ind_('DST4')
+      APMIDS%id_GC_DSTbin1 = Ind_('DSTbin1')
+      APMIDS%id_GC_DSTbin2 = Ind_('DSTbin2')
+      APMIDS%id_GC_DSTbin3 = Ind_('DSTbin3')
+      APMIDS%id_GC_DSTbin4 = Ind_('DSTbin4')
+      APMIDS%id_GC_DSTbin5 = Ind_('DSTbin5')
+      APMIDS%id_GC_DSTbin6 = Ind_('DSTbin6')
+      APMIDS%id_GC_DSTbin7 = Ind_('DSTbin7')
 
       APMIDS%id_TSOA1 = Ind_('TSOA1')
       APMIDS%id_TSOG1 = Ind_('TSOG1')

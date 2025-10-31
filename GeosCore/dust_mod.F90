@@ -1,4 +1,5 @@
 !------------------------------------------------------------------------------
+
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -139,7 +140,7 @@ CONTAINS
 #ifdef APM
     INTEGER            :: I,J,N, IDDST(HcoState%nDust)
     REAL(fp)           :: A_M2, E_DST, DTSRCE
-    CHARACTER(LEN=4)   :: S
+    CHARACTER(LEN=7)   :: S
     TYPE(SpcConc), POINTER :: Spc(:)
 #endif
 
@@ -165,13 +166,10 @@ CONTAINS
        ! algorithm below to work, we need to make sure all id's are
        ! not less than zero (bmy, 7/5/16)
       ! extend 7 dust bins for deposition (D. Zhang, 28 Jun 2024)
-      IF ( MAX( id_DSTbin1, 0 )  + &
-         MAX( id_DSTbin2, 0 )  + &
-         MAX( id_DSTbin3, 0 )  + &
-         MAX( id_DSTbin4, 0 )  + &
-         MAX( id_DSTbin5, 0 )  + &
-         MAX( id_DSTbin6, 0 )  + &
-         MAX( id_DSTbin7, 0 )  == 0 ) THEN
+      IF ( MAX( id_DSTbin1, 0 ) +  MAX( id_DSTbin2, 0 ) +                    &
+           MAX( id_DSTbin3, 0 ) +  MAX( id_DSTbin4, 0 ) +                    &
+           MAX( id_DSTbin5, 0 ) +  MAX( id_DSTbin6, 0 ) +                    &
+           MAX( id_DSTbin7, 0 ) == 0                        ) THEN
           IF ( LDUST ) THEN
              ErrMsg = 'LDUST=T but dust species are undefined!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -193,7 +191,7 @@ CONTAINS
 
     ! Save the HEMCO dust ID's in a vector
     DO N = 1, HcoState%nDust
-       WRITE( S, '("DST", i1)' ) N
+       WRITE( S, '("DSTbin", i1)' ) N
        IDDST(N) = HCO_GetHcoID( S, HcoState )
     ENDDO
 
