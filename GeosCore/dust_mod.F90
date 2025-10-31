@@ -49,9 +49,12 @@ MODULE DUST_MOD
 ! !PRIVATE TYPES:
 !
   ! Species ID flags
-  INTEGER               :: id_DSTbin1,  id_DSTbin2,  id_DSTbin3,   id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7
-  INTEGER               :: id_DALbin1,  id_DALbin2,  id_DALbin3,   id_DALbin4, id_DALbin5, id_DALbin6, id_DALbin7
-  INTEGER               :: id_DUST01, id_NK01
+  INTEGER               :: id_DSTbin1, id_DSTbin2, id_DSTbin3
+  INTEGER               :: id_DSTbin4, id_DSTbin5, id_DSTbin6
+  INTEGER               :: id_DSTbin7, id_DALbin1, id_DALbin2
+  INTEGER               :: id_DALbin3, id_DALbin4, id_DALbin5
+  INTEGER               :: id_DALbin6, id_DALbin7, id_DUST01
+  INTEGER               :: id_NK01
 
   ! Arrays
   REAL(fp), ALLOCATABLE :: FRAC_S(:)
@@ -2055,9 +2058,10 @@ CONTAINS
 
     ! Error check the dust uptake species
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( id_DALbin1 < 0 .or. id_DALbin2 < 0 .or. &
-            id_DALbin3 < 0 .or. id_DALbin4 < 0 .or. &
-            id_DALbin5 < 0 .or. id_DALbin6 < 0 .or. id_DALbin7 < 0) THEN
+       IF ( id_DALbin1 < 0 .or. id_DALbin2 < 0   .or.                    &
+            id_DALbin3 < 0 .or. id_DALbin4 < 0   .or.                    &
+            id_DALbin5 < 0 .or. id_DALbin6 < 0   .or.                    &
+            id_DALbin7 < 0                     ) THEN
           ErrMsg = 'Dust uptake species are undefined!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN

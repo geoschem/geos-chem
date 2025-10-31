@@ -246,31 +246,40 @@ function set_common_settings() {
     if [[ "x${sim_extra_option}" == "xaciduptake" ]]; then
 
         # Add DSTAL* species after DST4
-        prev_line='      - DST4'
-        new_line='\      - DSTAL1\
-      - DSTAL2\
-      - DSTAL3\
-      - DSTAL4
+        prev_line='      - DSTbin7'
+        new_line='\      - DSTALbin1\
+      - DSTALbin2\
+      - DSTALbin3\
+      - DSTALbin4\
+      - DSTALbin5\
+      - DSTALbin6\
+      - DSTALbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after NIT and NITs.
         prev_line='      - NITs'
-        new_line='\      - NITD1\
-      - NITD2\
-      - NITD3\
-      - NITD4
+        new_line='\      - NITDbin1\
+      - NITDbin2\
+      - NITDbin3\
+      - NITDbin4\
+      - NITDbin5\
+      - NITDbin6\
+      - NITDbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after SO4 and SO4s.
         prev_line='      - SO4s'
-        new_line='\      - SO4D1\
-      - SO4D2\
-      - SO4D3\
-      - SO4D4
+        new_line='\      - SO4Dbin1\
+      - SO4Dbin2\
+      - SO4Dbin3\
+      - SO4Dbin4\
+      - SO4Dbin5\
+      - SO4Dbin6\
+      - SO4Dbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
