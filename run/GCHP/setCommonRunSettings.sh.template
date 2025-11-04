@@ -798,13 +798,7 @@ replace_val      "AdvCore_Advection" "${ADVCORE_ADVECTION}" GCHP.rc
 print_msg ""
 print_msg "HEMCO settings:"
 print_msg "---------------"
-if [[ "x${dustL23M}" == "xon" ]]; then
-    replace_val "--> Mass tuning factor" "${Dust_SF}" HEMCO_Config.rc
-else
-    replace_val "--> Mass tuning factor" "-999.0"     HEMCO_Config.rc
-    
-fi
-if [[ "x${tomasDustDead}" == "xon" ]]; then
+if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
     replace_val "--> Mass tuning factor" "${Dust_SF}" HEMCO_Config.rc
 else
     replace_val "--> Mass tuning factor" "-999.0"     HEMCO_Config.rc
