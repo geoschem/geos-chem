@@ -1695,10 +1695,7 @@ CONTAINS
                       !-------------------------------
                       !%%% TOMAS SIMULATIONS %%%
                       !-------------------------------
-                      IF ( TRIM(SpcInfo%Name) == 'DST1' .or.                 &
-                           TRIM(SpcInfo%Name) == 'DST2' .or.                 &
-                           TRIM(SpcInfo%Name) == 'DST3' .or.                 &
-                           TRIM(SpcInfo%Name) == 'DST4' ) THEN
+                      IF ( INDEX( TRIM(SpcInfo%Name), 'DSTbin' ) > 0 ) THEN
 
                          ! Particle diameter, convert [m] -> [um]
                          DIAM  = A_RADI(K) * 2.e+0_f8
