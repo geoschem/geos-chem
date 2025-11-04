@@ -255,31 +255,31 @@ if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
     #------------------------------------------------------------------------
     if [[ "x${dustL23M}" == "xon" ]]; then
 
-        #----------
-        # GEOS-FP
-        #----------
+        #---------------------
+        # DustL23M + GEOS-FP
+        #---------------------
 	if [[ "x${metField}" == "xGEOSFP" ]]; then
-	                if [[ "x${CS_RES}" == "x24" ]]; then
-                            Dust_SF=6.794E-03
-	                elif [[ "x${CS_RES}" == "x48" ]]; then
-	                    Dust_SF=4.402E-03
-	                elif [[ "x${CS_RES}" == "x90" ]]; then
-	                    Dust_SF=3.533E-03
-	                elif [[ "x${CS_RES}" == "x180" ]]; then
-	                    Dust_SF=3.081E-03
-	                elif [[ "x${CS_RES}" == "x360" ]]; then
-	                    Dust_SF=2.924E-03
-	                else
-	                    msg="Dust mass tuning factors for ${CS_RES} are not available "
-	                    msg+="for GEOS-FP meteorology.  Please add the tuning factor "
-	                    msg+="you wish to use for this resolution."
-	                    echo "${msg}"
-                            exit 1
-	                fi
+            if [[ "x${CS_RES}" == "x24" ]]; then
+                Dust_SF=6.794E-03
+            elif [[ "x${CS_RES}" == "x48" ]]; then
+                Dust_SF=4.402E-03
+            elif [[ "x${CS_RES}" == "x90" ]]; then
+                Dust_SF=3.533E-03
+            elif [[ "x${CS_RES}" == "x180" ]]; then
+                Dust_SF=3.081E-03
+            elif [[ "x${CS_RES}" == "x360" ]]; then
+                Dust_SF=2.924E-03
+            else
+                msg="Dust mass tuning factors for ${CS_RES} are not available "
+                msg+="for GEOS-FP meteorology.  Please add the tuning factor "
+                msg+="you wish to use for this resolution."
+                echo "${msg}"
+                exit 1
+            fi
 
-        #----------
-        # GEOS-IT
-        #----------
+        #---------------------
+        # DustL23m + GEOS-IT
+        #---------------------
         elif [[ "x${metField}" == "xGEOSIT" ]]; then
             if [[ "x${CS_RES}" == "x30" ]]; then
                 Dust_SF=4.231E-03
@@ -297,9 +297,9 @@ if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
                 exit 1
             fi
     
-        #----------
-        # MERRA-2
-        #----------
+        #---------------------
+        # DustL23M + MERRA2
+        #---------------------
         elif [[ "x${metField}" == "xMERRA2" ]]; then
     	    if [[ "x${CS_RES}" == "x24" ]]; then
                 Dust_SF=7.944E-03
@@ -330,7 +330,7 @@ if [[ "x${dustL23M}" == "xon" || "x${tomasDustDead}" == "xon" ]]; then
     # Dust mass tuning factors for TOMAS_DustDead extension are the same
     # as were previously computed for the DustDead extension
     #------------------------------------------------------------------------
-    else
+    else       
         if [[ $CS_RES -eq 24 ]]; then
             if [[ "x${metField}" == "xMERRA2" ]]; then
                 Dust_SF=5.4856e-5
