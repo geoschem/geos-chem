@@ -319,8 +319,10 @@ CONTAINS
        isJacobian = .FALSE.
        IF ( INDEX( modelSpcName,'_jac' ) > 0 ) THEN
           dbSpcName = modelSpcName(1:LEN(trim(modelSpcName))-8)
-          write(*,*) "WARNING: Species ", trim(modelSpcName),        &
-               " will use species database properties for entry ", TRIM(dbSpcName)
+          IF ( Input_Opt%amIRoot ) &
+               WRITE(*,*) "WARNING: Species ", TRIM(modelSpcName), &
+               " will use species database properties for entry ", &
+               TRIM(dbSpcName)
           isJacobian = .TRUE.
        ENDIF
 #endif
