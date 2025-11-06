@@ -65,6 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
+- Removed extraneous division by `TS_EMIS` in routine `Chem_H2O2` (located in `GeosCore/sulfate_mod.F90`)
 
 ## [14.6.3] - 2025-07-28
 ### Added
