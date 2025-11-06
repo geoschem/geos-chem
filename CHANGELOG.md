@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 - Added clarifying comments in `flexgrid_read_met_mod.F90` for `TS` and `T2M` met fields
+- Added `&DSTbinproperties` and `&METALSproperties` YAML anchors in `run/shared/species_database.yml`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -47,10 +48,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated `DST1/DST1/DST3/DST4` to `TDST/DSTbin1/DSTbin2/.../DSTbin7` in `geoschem_config.yml`, `HEMCO_Config.rc`, and `HEMCO_Diagn.rc` template files for aerosol & fullchem simulations
 - Updated routine `ExtState_SetFields` in `hco_interface_gc_mod.F90` for readability and clarity
 - Assigned `ExtState%TSKIN` from `State_Met%TS` and `ExtState%T2M` from `State_Met%T2M` in routine `ExtState_SetFields`
-- Renamed `&DST{1,2,3,4}properties` to `&METALS{1,2,3,4}properties` in `run/shared/species_database.yml`
 - Updated dust mass tuning factors for the `DustL23M` extension in `run/GCClassic/createRunDir.sh` and `run/GCHP/setCommonRunSettings.sh.template`
 - Replaced `id_DST{1..4}` with `id_DSTbin{1..7}` in the `APMidtype` derived type and `APMIDS` object
-- Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`)
+- Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
+- Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -69,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in ObsPack to include instantaneously-sampled data whose
   timestamps are within 1/2 of a model timestep of the end of the day
 - Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
+- Fixed several inconsistencies in `species_database.yml`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
@@ -76,6 +78,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Removed entries for `DustGinoux` and `DustDead` extensions from `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
+- Removed `&DST{1,2,3,4}properties` in `run/shared/species_database.yml`
+
 
 ## [14.6.3] - 2025-07-28
 ### Added
