@@ -1,5 +1,4 @@
 !------------------------------------------------------------------------------
-
 !                  GEOS-Chem Global Chemical Transport Model                  !
 !------------------------------------------------------------------------------
 !BOP
@@ -165,11 +164,11 @@ CONTAINS
        ! NOTE: Ind_() returns -1 for species not found, so for the
        ! algorithm below to work, we need to make sure all id's are
        ! not less than zero (bmy, 7/5/16)
-      ! extend 7 dust bins for deposition (D. Zhang, 28 Jun 2024)
-      IF ( MAX( id_DSTbin1, 0 ) +  MAX( id_DSTbin2, 0 ) +                    &
-           MAX( id_DSTbin3, 0 ) +  MAX( id_DSTbin4, 0 ) +                    &
-           MAX( id_DSTbin5, 0 ) +  MAX( id_DSTbin6, 0 ) +                    &
-           MAX( id_DSTbin7, 0 ) == 0                        ) THEN
+       ! extend 7 dust bins for deposition (D. Zhang, 28 Jun 2024)
+       IF ( MAX( id_DSTbin1, 0 ) +  MAX( id_DSTbin2, 0 ) +                   &
+            MAX( id_DSTbin3, 0 ) +  MAX( id_DSTbin4, 0 ) +                   &
+            MAX( id_DSTbin5, 0 ) +  MAX( id_DSTbin6, 0 ) +                   &
+            MAX( id_DSTbin7, 0 ) == 0                        ) THEN
           IF ( LDUST ) THEN
              ErrMsg = 'LDUST=T but dust species are undefined!'
              CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -1357,10 +1356,12 @@ CONTAINS
        DO I = 1, State_Grid%NX
 
           ! dust stored in the IDST species bin of LUT variables
-          ODMDUST(I,J,L,IWV,N) = 0.75e+0_fp * &
-                                 State_Met%BXHEIGHT(I,J,L) * &
-                                 DUST(I,J,L,N) * QQAA(IWV,N,IDST,State_Chm%Phot%DRg)  / &
-                                 ( MSDENS(N) * REAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp) ! use REAA instead of RDAA (D. Zhang, Jun 28, 2024)
+          ! use REAA instead of RDAA (D. Zhang, Jun 28, 2024)
+          ODMDUST(I,J,L,IWV,N) =                                             &
+               0.75e+0_fp *                                                  &
+               State_Met%BXHEIGHT(I,J,L) *                                   &
+               DUST(I,J,L,N) * QQAA(IWV,N,IDST,State_Chm%Phot%DRg)  /        &
+               ( MSDENS(N) * REAA(N,IDST,State_Chm%Phot%DRg) * 1.0e-6_fp)
 
 #ifdef RRTMG
           !add dust optics to the RT code arrays

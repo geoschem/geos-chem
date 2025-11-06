@@ -4491,8 +4491,9 @@ CONTAINS
     DP    = DIAM * 1.e+6_f8
 
     ! Constant for settling velocity calculation
+    ! Add effects of dust nonsphericity for gravitational settling
+    ! (D. Zhang, Mar 3, 2025)
     CONST = 1.0_f8 / KAI * DEN * DIAM**2 * g0 / 18.e+0_f8 
-    ! Add effects of dust nonsphericity for gravitational settling (D. Zhang, Mar 3, 2025)
 
     !=================================================================
     !   # air molecule number density

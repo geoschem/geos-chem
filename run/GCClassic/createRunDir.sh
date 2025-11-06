@@ -730,8 +730,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     # If using GCAP / ModelE2.1 meteorology fields:
     #
     # Current scale factors are based on U10 and V10, while the latest
-    # mplementation of DEAD is using USTAR.  This may cause 10 times larger
-    # dust emissions than if properly scaled.
+    # implementation of DEAD is using USTAR.  This may cause 10 times
+    # larger dust emissions than if properly scaled.
     #
     # TODO: The dust tuning factors will need to be rescaled
     # for the ModelE2.1 meteorology, as we are retiring DustDead.
