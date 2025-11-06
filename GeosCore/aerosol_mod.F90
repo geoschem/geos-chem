@@ -805,13 +805,21 @@ CONTAINS
        !=====================================================================
        ! P A R T I C U L A T E   M A T T E R
        !
-       ! See this GEOS-Chem wiki page for the most up-to-date
+       ! See this documentation for the most up-to-date
        ! definitions of PM2.5 and PM10 used in GEOS-Chem:
        !
-       ! http://wiki.geos.chem.org/Particulate_Matter_in_GEOS-Chem
+       ! https://geos-chem.readthedocs.io/en/latest/geos-chem-shared-docs/supplemental-guides/pm25-pm10-guide.html
        !=====================================================================
 
+       !---------------------------------------------------------------------
        ! Particulate matter < 2.5um [kg/m3]
+       !
+       ! Contribution of primary aerosols
+       !
+       ! NOTE: The surface PM2.5 dust concentrations are calculated as
+       ! as DSTbin1 + DSTbin2 + DSTbin3 + 0.546 DSTbin4 as described in
+       ! Section 2.5 of https://doi.org/10.5194/gmd-18-6767-2025.
+       !---------------------------------------------------------------------
        State_Chm%AerMass%PM25(I,J,L)                          =              &
           State_Chm%AerMass%NH4(I,J,L)       * SIA_GROWTH     +              &
           State_Chm%AerMass%NIT(I,J,L)       * SIA_GROWTH     +              &
@@ -833,21 +841,15 @@ CONTAINS
              State_Chm%AerMass%OCPI(I,J,L)   * ORG_GROWTH
        ENDIF
 
-       ! Particulate matter < 10um [kg/m3]
-       State_Chm%AerMass%PM10(I,J,L)                          =              &
-          State_Chm%AerMass%PM25(I,J,L)                       +              &
-          SOILDUST(I,J,L,4)                  * 0.454_fp       +              &
-          SOILDUST(I,J,L,5)                                   +              &
-          SOILDUST(I,J,L,6)                                   +              &
-          SOILDUST(I,J,L,7)                  * 0.156_fp       +              &
-          State_Chm%AerMass%SALC(I,J,L)      * SSA_GROWTH
-
        !---------------------------------------------------------------------
-       ! Include either simple SOA (default) or Complex SOA in
-       ! PM2.5 calculation.  In simulations where both Simple SOA and
-       ! Complex SOA species are carried (i.e. "benchmark"), then
-       ! only the Simple SOA will be added to PM2.5 and PM10, in order
-       ! to avoid double-counting. (bmy, 03 Nov 2021)
+       ! Particulate matter < 2.5um [kg/m3]
+       !
+       ! Contribution of secondary organic aerosols
+       !
+       ! Include either simple SOA (default) or Complex SOA in PM2.5
+       ! calculation.  In simulations where both Simple SOA and Complex SOA
+       ! species are carried (i.e. "benchmark"), then only the Simple SOA
+       ! will be added to PM2.5 and PM10, in order to avoid double-counting.
        !---------------------------------------------------------------------
        IF ( Is_SimpleSOA ) THEN
           State_Chm%AerMass%PM25(I,J,L)                       =              &
@@ -870,13 +872,24 @@ CONTAINS
           ENDIF
        ENDIF
 
+       !---------------------------------------------------------------------
        ! Particulate matter < 10um [kg/m3]
+       !
+       ! PM10 = PM2.5 + contribution of coarse dust and seasalt aerosols
+       !
+       ! Include the remaining 45.4% of DSTbin4 (that is not already added
+       ! to PM2.5) into PM10.  Also include only 15.6% of DSTbin7 in PM10,
+       ! which is the fraction of the (Kok) particle size distribution that
+       ! has an aerodynamic diameter of 10 um or less.
+       ! See https://doi.org/10.5194/gmd-18-6767-2025 for details.
+       !---------------------------------------------------------------------
        State_Chm%AerMass%PM10(I,J,L)                          =              &
           State_Chm%AerMass%PM25(I,J,L)                       +              &
-          SOILDUST(I,J,L,5)                   * 0.7_fp        +              &
+          SOILDUST(I,J,L,4)                  * 0.454_fp       +              &
+          SOILDUST(I,J,L,5)                                   +              &
           SOILDUST(I,J,L,6)                                   +              &
-          SOILDUST(I,J,L,7)                   * 0.9_fp        +              &
-          State_Chm%AerMass%SALC(I,J,L)       * SSA_GROWTH
+          SOILDUST(I,J,L,7)                  * 0.156_fp       +              &
+          State_Chm%AerMass%SALC(I,J,L)      * SSA_GROWTH
 
        !---------------------------------------------------------------------
        ! Apply STP correction factor based on ideal gas law
