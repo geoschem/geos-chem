@@ -82,22 +82,22 @@ MODULE AEROSOL_MOD
 ! !PRIVATE TYPES:
 !
   ! Add tracer ID flags as module variables (bmy, 6/16/16)
-  INTEGER :: id_BCPI,  id_BCPO,  id_NH4,   id_NIT
-  INTEGER :: id_DSTbin1, id_DSTbin2, id_DSTbin3, id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7 ! extend 7 dust bins for deposition (D. Zhang, 28 Jun, 2024)
-  INTEGER :: id_OCPO,  id_OCPI,  id_SALA,  id_SALC
-  INTEGER :: id_SO4,   id_SO4s,  id_NITs,  id_NH4s
-  INTEGER :: id_POA1,  id_POA2,  id_OPOA1, id_OPOA2
-  INTEGER :: id_TSOA1, id_TSOA2, id_TSOA3, id_TSOA0
-  INTEGER :: id_ASOAN, id_ASOA1, id_ASOA2, id_ASOA3
-  INTEGER :: id_DUST01, id_SOAS,  id_SALACL, id_HMS   ! (jmm, 06/29/18)
-  INTEGER :: id_SOAGX, id_SOAIE
-  INTEGER :: id_INDIOL,id_LVOCOA
+  INTEGER :: id_BCPI,    id_BCPO,    id_NH4,     id_NIT
+  INTEGER :: id_DSTbin1, id_DSTbin2, id_DSTbin3, id_DSTbin4
+  INTEGER :: id_DSTbin5, id_DSTbin6, id_DSTbin7, id_OCPO
+  INTEGER :: id_OCPI,    id_SALA,    id_SALC,    id_SO4
+  INTEGER :: id_SO4s,    id_NITs,    id_NH4s,    id_POA1
+  INTEGER :: id_POA2,    id_OPOA1,   id_OPOA2,   id_TSOA1
+  INTEGER :: id_TSOA2,   id_TSOA3,   id_TSOA0,   id_ASOAN
+  INTEGER :: id_ASOA1,   id_ASOA2,   id_ASOA3,   id_DUST01
+  INTEGER :: id_SOAS,    id_SALACL,  id_HMS,     id_SOAGX
+  INTEGER :: id_SOAIE,   id_INDIOL,  id_LVOCOA
 
   ! Index to map between NRHAER and species database hygroscopic species
   ! NOTE: Increasing value of NRHAER in CMN_SIZE_Mod.F90 (e.g. if there is
   ! a new hygroscopic species) requires manual update of this mapping
   ! (ewl, 1/23/17)
-  INTEGER  :: Map_NRHAER(5)
+  INTEGER :: Map_NRHAER(5)
 
   
 CONTAINS
@@ -203,6 +203,11 @@ CONTAINS
     ! For errors
     CHARACTER(LEN=255)  :: ThisLoc
     CHARACTER(LEN=1023) :: ErrMsg
+!
+! !DEFINED_PARAMETERS
+!
+    REAL(fp), PARAMETER :: P_SFC_STP = 1013.25_fp  ! hPa
+    REAL(fp), PARAMETER :: T_298_K   = 298.0_fp    ! K
 
     !=================================================================
     ! AEROSOL_CONC begins here!
@@ -620,20 +625,13 @@ CONTAINS
        ! Preserve original code for non-TOMAS simulations
        !-----------------------------------------------------------
        IF ( LDUST ) THEN
-
-          ! Lump 1st dust tracer for het chem
-          ! Now use dust size distribution scheme to improve PM2.5
-          ! surface dust conc over western U.S. (L. Zhang, 6/25/15)
           SOILDUST(I,J,L,1) = Spc(id_DSTbin1)%Conc(I,J,L) / AIRVOL(I,J,L)
           SOILDUST(I,J,L,2) = Spc(id_DSTbin2)%Conc(I,J,L) / AIRVOL(I,J,L)
           SOILDUST(I,J,L,3) = Spc(id_DSTbin3)%Conc(I,J,L) / AIRVOL(I,J,L)
           SOILDUST(I,J,L,4) = Spc(id_DSTbin4)%Conc(I,J,L) / AIRVOL(I,J,L)
-
-          ! Other hetchem bins
           SOILDUST(I,J,L,5) = Spc(id_DSTbin5)%Conc(I,J,L) / AIRVOL(I,J,L)
           SOILDUST(I,J,L,6) = Spc(id_DSTbin6)%Conc(I,J,L) / AIRVOL(I,J,L)
           SOILDUST(I,J,L,7) = Spc(id_DSTbin7)%Conc(I,J,L) / AIRVOL(I,J,L)
-
        ENDIF
 
 #endif
@@ -885,13 +883,13 @@ CONTAINS
        !---------------------------------------------------------------------
        State_Chm%AerMass%PM25(I,J,L)                          =              &
           State_Chm%AerMass%PM25(I,J,L)                       *              &
-          ( 1013.25_fp / PMID(I,J,L) )                        *              &
-          ( T(I,J,L)   / 298.0_fp    )
+          ( P_SFC_STP / PMID(I,J,L) )                         *              &
+          ( T(I,J,L)  / T_298_K     )
 
        State_Chm%AerMass%PM10(I,J,L)                          =              &
           State_Chm%AerMass%PM10(I,J,L)                       *              &
-          ( 1013.25_fp / PMID(I,J,L) )                        *              &
-          ( T(I,J,L)   / 298.0_fp    )
+          ( P_SFC_STP / PMID(I,J,L) )                         *              &
+          ( T(I,J,L)  / T_298_K     )
 
       !===========================================================
       ! PDER [um] ! (hzhu, 04/05/2024)
@@ -927,82 +925,92 @@ CONTAINS
 #ifdef MODEL_GEOS
        ! PM2.5 sulfates
        IF ( State_Diag%Archive_PM25su ) THEN
-          State_Diag%PM25su(I,J,L) = ( State_Chm%AerMass%SO4(I,J,L) * SIA_GROWTH  ) &
-                                   * ( 1013.25_fp / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)   / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25su(I,J,L)                                           &
+               = ( State_Chm%AerMass%SO4(I,J,L)    * SIA_GROWTH  )           &
+               * ( P_SFC_STP                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 nitrates
        IF ( State_Diag%Archive_PM25ni ) THEN
-          State_Diag%PM25ni(I,J,L) = ( State_Chm%AerMass%NH4(I,J,L) * SIA_GROWTH    &
-                                   +   State_Chm%AerMass%NIT(I,J,L) * SIA_GROWTH  ) &
-                                   * ( 1013.25_fp / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)   / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25ni(I,J,L)                                           &
+               = ( State_Chm%AerMass%NH4(I,J,L)    * SIA_GROWTH              &
+               +   State_Chm%AerMass%NIT(I,J,L)    * SIA_GROWTH  )           &
+               * ( P_SFC_STP                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 BC
        IF ( State_Diag%Archive_PM25bc  ) THEN
-          State_Diag%PM25bc(I,J,L) = ( State_Chm%AerMass%BCPI(I,J,L) + State_Chm%AerMass%BCPO(I,J,L) ) &
-                                   * ( 1013.25_fp  / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)    / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25bc(I,J,L)                                           &
+               = ( State_Chm%AerMass%BCPI(I,J,L)                             &
+               +  State_Chm%AerMass%BCPO(I,J,L)                  )           &
+               * ( P_SFC_STP                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 OC
        IF ( State_Diag%Archive_PM25oc  ) THEN
-          State_Diag%PM25oc(I,J,L) = ( State_Chm%AerMass%OCPO(I,J,L)                 &
-                                   +   State_Chm%AerMass%OCPI(I,J,L) * ORG_GROWTH  ) &
-                                   * ( 1013.25_fp  / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)    / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25oc(I,J,L)                                           &
+               = ( State_Chm%AerMass%OCPO(I,J,L)                             &
+               +   State_Chm%AerMass%OCPI(I,J,L)   * ORG_GROWTH  )           &
+               * ( P_SFC_STD                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 dust
        IF ( State_Diag%Archive_PM25du  ) THEN
-          State_Diag%PM25du(I,J,L) = ( SOILDUST(I,J,L,1)           &
-                                   +   SOILDUST(I,J,L,2)           &
-                                   +   SOILDUST(I,J,L,3)           &
-                                   +   SOILDUST(I,J,L,4) * 0.546 ) & ! (D. Zhang, 02/28/2025)
-                                   * ( 1013.25_fp  / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)    / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25du(I,J,L)                                           &
+               = ( SOILDUST(I,J,L,1)                                         &
+               +   SOILDUST(I,J,L,2)                                         &
+               +   SOILDUST(I,J,L,3)                                         &
+               +   SOILDUST(I,J,L,4)               * 0.546       )           & 
+               * ( P_SFC_STD                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+              * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 sea salt
        IF ( State_Diag%Archive_PM25ss  ) THEN
-          State_Diag%PM25ss(I,J,L) = ( State_Chm%AerMass%SALA(I,J,L) * SSA_GROWTH  ) &
-                                   * ( 1013.25_fp  / PMID(I,J,L) ) &
-                                   * ( T(I,J,L)    / 298.0_fp    ) &
-                                   * 1.0e+9_fp
+          State_Diag%PM25ss(I,J,L)                                           &
+               = ( State_Chm%AerMass%SALA(I,J,L)   * SSA_GROWTH  )           &
+               * ( P_SFC_STD                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 SOA
        IF ( State_Diag%Archive_PM25soa ) THEN
-          State_Diag%PM25soa(I,J,L) = ( State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH    &
-                                    +   State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH    &
-                                    +   State_Chm%AerMass%SOAS(I,J,L)   * ORG_GROWTH    &
-                                    +   State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH  ) &
-                                    * ( 1013.25_fp    / PMID(I,J,L) ) &
-                                    * ( T(I,J,L)      / 298.0_fp    ) &
-                                    * 1.0e+9_fp
+          State_Diag%PM25soa(I,J,L) &
+               = ( State_Chm%AerMass%TSOA(I,J,L)   * ORG_GROWTH              &
+               +   State_Chm%AerMass%ASOA(I,J,L)   * ORG_GROWTH              &
+               +   State_Chm%AerMass%SOAS(I,J,L)   * ORG_GROWTH              &
+               +   State_Chm%AerMass%ISOAAQ(I,J,L) * ORG_GROWTH  )           &
+               * ( P_SFC_STD                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 nitrate 
        IF ( State_Diag%Archive_PM25nit ) THEN
-          State_Diag%PM25nit(I,J,L) = ( State_Chm%AerMass%NIT(I,J,L) * SIA_GROWTH  ) &
-                                    * ( 1013.25_fp / PMID(I,J,L) ) &
-                                    * ( T(I,J,L)   / 298.0_fp    ) &
-                                    * 1.0e+9_fp
+          State_Diag%PM25nit(I,J,L)                                          &
+               = ( State_Chm%AerMass%NIT(I,J,L)    * SIA_GROWTH   )          &
+               * ( P_SFC_STD                       / PMID(I,J,L)  )          &
+               * ( T(I,J,L)                        / T_298_K      )          &
+               * 1.0e+9_fp
        ENDIF
 
        ! PM2.5 ammonium 
        IF ( State_Diag%Archive_PM25nh4 ) THEN
-          State_Diag%PM25nh4(I,J,L) = ( State_Chm%AerMass%NH4(I,J,L) * SIA_GROWTH  ) &
-                                    * ( 1013.25_fp / PMID(I,J,L) ) &
-                                    * ( T(I,J,L)   / 298.0_fp    ) &
-                                    * 1.0e+9_fp
+          State_Diag%PM25nh4(I,J,L)                                          &
+               = ( State_Chm%AerMass%NH4(I,J,L)    * SIA_GROWTH  )           &
+               * ( P_SFC_STD                       / PMID(I,J,L) )           &
+               * ( T(I,J,L)                        / T_298_K     )           &
+               * 1.0e+9_fp
        ENDIF
 #endif
 
