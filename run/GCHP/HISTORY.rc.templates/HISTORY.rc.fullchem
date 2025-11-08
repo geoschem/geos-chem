@@ -74,7 +74,6 @@ COLLECTIONS: @#'DefaultCollection',
              #'Metrics',
              @#'KppDiags',
              @#'KppARDiags',
-             @#'LevelEdgeDiags',
              @#'ProdLoss',
              @##'RRTMG',
              @##'DynHeating',
@@ -83,6 +82,7 @@ COLLECTIONS: @#'DefaultCollection',
              #'SpeciesConc',
              @#'StateChm',
              #'StateMet',
+             @#'StateMetLevEdge',
              @#'StratBM',
              @##'Tomas',
              @#'UVFlux',
@@ -331,6 +331,14 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisNO_Lightning     ', 'GCHPchem',
                           'EmisNO_Ship          ', 'GCHPchem',
                           'EmisNO_Soil          ', 'GCHPchem',
+                          ####
+                          #### NOTE: EmisNO_Soil contains soil + fertilizer.
+                          #### EmisNO_Fert contains only fertilizer, and can
+                          #### only be used when the SoilNOx extension is on.
+                          #### Comment out EmisNO_Fert unless you REALLY
+                          #### need a separate diagnostic for fertilizer.
+                          ####
+                          ####'EmisNO_Fert          ', 'GCHPchem',
                           'EmisNO2_Total        ', 'GCHPchem',
                           'EmisNO2_Aircraft     ', 'GCHPchem',
                           'EmisNO2_Ship         ', 'GCHPchem',
@@ -364,6 +372,10 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisRCHO_Total       ', 'GCHPchem',
                           'EmisRCHO_Aircraft    ', 'GCHPchem',
                           'EmisRCHO_BioBurn     ', 'GCHPchem',
+                          ####
+                          #### NOTE: SESQ is not an advected species,
+                          #### so leave this commented out for now.
+                          ####
                           ####'EmisSESQ_Biogenic    ', 'GCHPchem',
                           'EmisSALA_Natural     ', 'GCHPchem',
                           'EmisBrSALA_Natural   ', 'GCHPchem',
@@ -393,6 +405,9 @@ COLLECTIONS: @#'DefaultCollection',
                           'EmisSOAS_Biogenic    ', 'GCHPchem',
                           'EmisSTYR_Total       ', 'GCHPchem',
                           'EmisSTYR_BioBurn     ', 'GCHPchem',
+                          'EmisTMB_Total        ', 'GCHPchem',
+                          'EmisTMB_Anthro       ', 'GCHPchem',
+                          'EmisTMB_Ship         ', 'GCHPchem',
                           'EmisTOLU_Total       ', 'GCHPchem',
                           'EmisTOLU_Anthro      ', 'GCHPchem',
                           'EmisTOLU_BioBurn     ', 'GCHPchem',
@@ -407,6 +422,7 @@ COLLECTIONS: @#'DefaultCollection',
                           'HcoConvectiveCloudTopHeight     ', 'GCHPchem',
                           #'InvCEDS_ALD2         ', 'GCHPchem',
                           #'InvCEDS_ALK4         ', 'GCHPchem',
+                          #'InvCEDS_ALK6         ', 'GCHPchem',
                           #'InvCEDS_BCPI         ', 'GCHPchem',
                           #'InvCEDS_BCPO         ', 'GCHPchem',
                           #'InvCEDS_BENZ         ', 'GCHPchem',
@@ -432,6 +448,7 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvCEDS_SO2          ', 'GCHPchem',
                           #'InvCEDS_SO4          ', 'GCHPchem',
                           #'InvCEDS_SOAP         ', 'GCHPchem',
+                          #'InvCEDS_TMB          ', 'GCHPchem',
                           #'InvCEDS_TOLU         ', 'GCHPchem',
                           #'InvCEDS_XYLE         ', 'GCHPchem',
                           #'InvGEIAnatural_NH3   ', 'GCHPchem',
@@ -444,8 +461,10 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvORDONEZ_CH2ICl    ', 'GCHPchem',
                           #'InvORDONEZ_CH2IBr    ', 'GCHPchem',
                           #'InvORDONEZ_CH3I      ', 'GCHPchem',
+                          #'InvGTChlorine_HCl    ', 'GCHPchem',
                           #'InvCEDSship_ALD2     ', 'GCHPchem',
                           #'InvCEDSship_ALK4     ', 'GCHPchem',
+                          #'InvCEDSship_ALK6     ', 'GCHPchem',
                           #'InvCEDSship_BCPI     ', 'GCHPchem',
                           #'InvCEDSship_BCPO     ', 'GCHPchem',
                           #'InvCEDSship_BENZ     ', 'GCHPchem',
@@ -466,6 +485,7 @@ COLLECTIONS: @#'DefaultCollection',
                           #'InvCEDSship_SO2      ', 'GCHPchem',
                           #'InvCEDSship_SO4      ', 'GCHPchem',
                           #'InvCEDSship_SOAP     ', 'GCHPchem',
+                          #'InvCEDSship_TMB      ', 'GCHPchem',
                           #'InvCEDSship_TOLU     ', 'GCHPchem',
                           #'InvCEDSship_XYLE     ', 'GCHPchem',
                           #'InvAEIC_ACET     ', 'GCHPchem',
@@ -594,9 +614,9 @@ COLLECTIONS: @#'DefaultCollection',
   FV3Dynamics.frequency:      010000
   FV3Dynamics.duration:       010000
   FV3Dynamics.mode:           'time-averaged'
-  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
-                              'DryPLE ', 'DYNAMICS',
-                              'PLEadv ', 'DYNAMICS',
+  FV3Dynamics.fields:         'PLE_R4    ', 'DYNAMICS',
+                              'DryPLE_R4 ', 'DYNAMICS',
+                              'PLEadv_R4 ', 'DYNAMICS',
 ::
 #==============================================================================
   GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -606,11 +626,11 @@ COLLECTIONS: @#'DefaultCollection',
   GCHPctmEnvLevEdge.frequency:      010000
   GCHPctmEnvLevEdge.duration:       010000
   GCHPctmEnvLevEdge.mode:           'time-averaged'
-  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
-                                    'PLE0               ', 'GCHPctmEnv',
-                                    'PLE1               ', 'GCHPctmEnv',
-                                    'DryPLE0            ', 'GCHPctmEnv',
-                                    'DryPLE1            ', 'GCHPctmEnv',
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux_R4    ', 'GCHPctmEnv',
+                                    'PLE0_R4               ', 'GCHPctmEnv',
+                                    'PLE1_R4               ', 'GCHPctmEnv',
+                                    'DryPLE0_R4            ', 'GCHPctmEnv',
+                                    'DryPLE1_R4            ', 'GCHPctmEnv',
 ::
 #==============================================================================
   GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -620,11 +640,11 @@ COLLECTIONS: @#'DefaultCollection',
   GCHPctmEnvLevCenter.frequency:      010000
   GCHPctmEnvLevCenter.duration:       010000
   GCHPctmEnvLevCenter.mode:           'time-averaged'
-  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
-                                      'CX       ', 'GCHPctmEnv',
-                                      'CY       ', 'GCHPctmEnv',
-                                      'MFX      ', 'GCHPctmEnv',
-                                      'MFY      ', 'GCHPctmEnv',
+  GCHPctmEnvLevCenter.fields:         'SPHU0_R4    ', 'GCHPctmEnv',
+                                      'CX_R4       ', 'GCHPctmEnv',
+                                      'CY_R4       ', 'GCHPctmEnv',
+                                      'MFX_R4      ', 'GCHPctmEnv',
+                                      'MFY_R4      ', 'GCHPctmEnv',
 ::
 #==============================================================================
 # %%%%% THE AerosolMass COLLECTION %%%%%
@@ -1428,30 +1448,6 @@ COLLECTIONS: @#'DefaultCollection',
                               'OHwgtByAirMassColumnFull    ', 'GCHPchem',
 ::
 #==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
-#
-# Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
-#==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:         'Met_CMFMC                     ', 'GCHPchem',
-                                 'Met_PEDGE                     ', 'GCHPchem',
-                                 'Met_PEDGEDRY                  ', 'GCHPchem',
-                                 'Met_PFICU                     ', 'GCHPchem',
-                                 'Met_PFILSAN                   ', 'GCHPchem',
-                                 'Met_PFLCU                     ', 'GCHPchem',
-                                 'Met_PFLLSAN                   ', 'GCHPchem',
-                                 'UpwardsMassFlux               ', 'GCHPctmEnv',
-
-::
-#==============================================================================
 # %%%%% THE ProdLoss COLLECTION %%%%%
 #
 # Chemical production and loss rates
@@ -1760,7 +1756,7 @@ COLLECTIONS: @#'DefaultCollection',
 #
 # Archives chemical reaction rates from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # Available for the fullchem simulations.
@@ -1772,15 +1768,15 @@ COLLECTIONS: @#'DefaultCollection',
   RxnRates.frequency:      010000
   RxnRates.duration:       010000
   RxnRates.mode:           'time-averaged'
-  RxnRates.fields:         'RxnRate_EQ001     ', 'GCHPchem',
-                           'RxnRate_EQ002     ', 'GCHPchem',
+  RxnRates.fields:         'RxnRate_EQ0001     ', 'GCHPchem',
+                           'RxnRate_EQ0002     ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE RxnConst COLLECTION %%%%%
 #
 # Archives chemical reaction rates constants from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # The units of reaction rate constants vary according to the number of reactants
@@ -1795,8 +1791,8 @@ COLLECTIONS: @#'DefaultCollection',
   RxnConst.frequency:      010000
   RxnConst.duration:       010000
   RxnConst.mode:           'time-averaged'
-  RxnConst.fields:         'RxnConst_EQ001    ', 'GCHPchem',
-                           'RxnConst_EQ002    ', 'GCHPchem',
+  RxnConst.fields:         'RxnConst_EQ0001    ', 'GCHPchem',
+                           'RxnConst_EQ0002    ', 'GCHPchem',
 ::
 #==============================================================================
 # %%%%% THE SpeciesConc COLLECTION %%%%%
@@ -2168,7 +2164,7 @@ COLLECTIONS: @#'DefaultCollection',
 #==============================================================================
 # %%%%% The StateMet time-averaged COLLECTION %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+# Fields of the State_Met object (also see the StateMetLevEdge collection)
 #
 # Available for all simulations
 #==============================================================================
@@ -2262,6 +2258,28 @@ COLLECTIONS: @#'DefaultCollection',
                       #'FracOfTimeInTrop    ', 'GCHPchem',
 ::
 #==============================================================================
+# %%%%% THE StateMetLevEdge COLLECTION %%%%%
+#
+# State_Met arrays that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:         'Met_CMFMC                     ', 'GCHPchem',
+                                  'Met_PEDGE                     ', 'GCHPchem',
+                                  'Met_PEDGEDRY                  ', 'GCHPchem',
+                                  'Met_PFICU                     ', 'GCHPchem',
+                                  'Met_PFILSAN                   ', 'GCHPchem',
+                                  'Met_PFLCU                     ', 'GCHPchem',
+                                  'Met_PFLLSAN                   ', 'GCHPchem',
+::
+#==============================================================================
 # %%%%% THE StratBM COLLECTION %%%%%
 #
 # Fields needed for GEOS-Chem 10-year stratospheric benchmarks
@@ -2297,8 +2315,7 @@ COLLECTIONS: @#'DefaultCollection',
   Tomas.frequency:      010000
   Tomas.duration:       010000
   Tomas.mode:           'time-averaged'
-  Tomas.fields:         'TomasH2SO4                  ', 'GCHPchem',
-                        'TomasH2SO4mass_bin01        ', 'GCHPchem',
+  Tomas.fields:         'TomasH2SO4mass_bin01        ', 'GCHPchem',
                         'TomasH2SO4mass_bin02        ', 'GCHPchem',
                         'TomasH2SO4mass_bin03        ', 'GCHPchem',
                         'TomasH2SO4mass_bin04        ', 'GCHPchem',
@@ -2328,7 +2345,6 @@ COLLECTIONS: @#'DefaultCollection',
                         'TomasH2SO4number_bin13      ', 'GCHPchem',
                         'TomasH2SO4number_bin14      ', 'GCHPchem',
                         'TomasH2SO4number_bin15      ', 'GCHPchem',
-                        'TomasCOAG                   ', 'GCHPchem',
                         'TomasCOAGmass_bin01         ', 'GCHPchem',
                         'TomasCOAGmass_bin02         ', 'GCHPchem',
                         'TomasCOAGmass_bin03         ', 'GCHPchem',
@@ -2359,7 +2375,6 @@ COLLECTIONS: @#'DefaultCollection',
                         'TomasCOAGnumber_bin13       ', 'GCHPchem',
                         'TomasCOAGnumber_bin14       ', 'GCHPchem',
                         'TomasCOAGnumber_bin15       ', 'GCHPchem',
-                        'TomasNUCL                   ', 'GCHPchem',
                         'TomasNUCRATEFN              ', 'GCHPchem',
                         'TomasNUCLmass_bin01         ', 'GCHPchem',
                         'TomasNUCLmass_bin02         ', 'GCHPchem',
@@ -2406,7 +2421,6 @@ COLLECTIONS: @#'DefaultCollection',
                         'TomasNUCRATEnumber_bin13    ', 'GCHPchem',
                         'TomasNUCRATEnumber_bin14    ', 'GCHPchem',
                         'TomasNUCRATEnumber_bin15    ', 'GCHPchem',
-                        'TomasAQOX                   ', 'GCHPchem',
                         'TomasAQOXmass_bin01         ', 'GCHPchem',
                         'TomasAQOXmass_bin02         ', 'GCHPchem',
                         'TomasAQOXmass_bin03         ', 'GCHPchem',
@@ -2437,7 +2451,6 @@ COLLECTIONS: @#'DefaultCollection',
                         'TomasAQOXnumber_bin13       ', 'GCHPchem',
                         'TomasAQOXnumber_bin14       ', 'GCHPchem',
                         'TomasAQOXnumber_bin15       ', 'GCHPchem',
-                        'TomasMNFIX                  ', 'GCHPchem',
                         'TomasMNFIXmass_bin01        ', 'GCHPchem',
                         'TomasMNFIXmass_bin02        ', 'GCHPchem',
                         'TomasMNFIXmass_bin03        ', 'GCHPchem',
@@ -2738,7 +2751,6 @@ COLLECTIONS: @#'DefaultCollection',
                         'TomasMNFIXcheck3number_bin13', 'GCHPchem',
                         'TomasMNFIXcheck3number_bin14', 'GCHPchem',
                         'TomasMNFIXcheck3number_bin15', 'GCHPchem',
-                        'TomasSOA                    ', 'GCHPchem',
                         'TomasSOAmass_bin01          ', 'GCHPchem',
                         'TomasSOAmass_bin02          ', 'GCHPchem',
                         'TomasSOAmass_bin03          ', 'GCHPchem',

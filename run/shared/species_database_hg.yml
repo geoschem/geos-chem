@@ -38,7 +38,6 @@ Hg0:
   DD_Hstar: 0.11
   Formula: 'Hg'
   FullName: Elemental mercury
-  Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_Hg0: true
@@ -48,7 +47,6 @@ Hg_CHEM_PROP: &HgChemProperties
   DD_Hstar: 1.0e+14
   Henry_CR: 8.40e+03
   Henry_K0: 1.40e+06
-  Is_Advected: true
   Is_DryDep: true
   Is_Gas: true
   Is_WetDep: true
@@ -58,7 +56,6 @@ Hg_CHEM_PROP: &HgChemProperties
 HgBr:
   Fullname: HgBr
   Formula: HgBr
-  Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
@@ -101,7 +98,6 @@ HgBr2:
 HgCl:
   Fullname: HgCl
   Formula: HgCl
-  Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: false
@@ -145,7 +141,6 @@ HgClOH:
 HgOH:
   Fullname: HgOH
   Formula: HgOH
-  Is_Advected: true
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
@@ -199,7 +194,6 @@ Hg2ClP:
 Hg2ORGP:
   Fullname: Hg(II) organic complex in aerosols
   Formula: R-Hg
-  Is_Advected: true
   Is_Aerosol: true
   Is_DryDep: true
   Is_Photolysis: true
@@ -212,7 +206,6 @@ Hg2ORGP:
 Hg2STRP:
   Fullname: Hg(II) in stratospheric aerosols
   Formula: Hg2+
-  Is_Advected: true
   Is_Aerosol: true
   Is_HgP: true
   MW_g: 200.59   # Use mol wt of atomic Hg

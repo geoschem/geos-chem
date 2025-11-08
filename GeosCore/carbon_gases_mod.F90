@@ -170,9 +170,10 @@ CONTAINS
     ! CO2 production from CO oxidation
     !========================================================================
 
-    ! If CO2 is an advected species but CO is not, use CO2_COPROD field
-    ! from HEMCO. Otherwise compute CO2 production via KPP.
-    IF ( id_CO2_adv > 0 .and. id_CO_adv <= 0 ) THEN
+    ! Use CO2_COPROD field instead of computing CO2 production in KPP
+    ! (the latter slows down the CO2 chemistry and produced differences
+    !  that need to be evaluated by the Carbon Gases Working Group)
+    IF ( id_CO2_adv > 0 ) THEN
 
        IF ( Input_Opt%amIRoot .and. FIRST ) THEN
           WRITE( 6, 100 )
@@ -309,12 +310,13 @@ CONTAINS
 
     ! Scalars
     LOGICAL                :: failed
-    INTEGER                :: HcoID,    I
-    INTEGER                :: J,        L
-    INTEGER                :: NA,       N
-    INTEGER                :: IERR
-    REAL(fp)               :: dtChem,   facDiurnal
+    INTEGER                :: HcoID,     I
+    INTEGER                :: J,         L
+    INTEGER                :: NA,        N
+    INTEGER                :: IERR,      S
+    REAL(fp)               :: dtChem,    facDiurnal
     REAL(fp)               :: tsPerDay
+    REAL(f4)               :: timeAfter, timeBefore
 
     ! Strings
     CHARACTER(LEN=255)     :: errMsg
@@ -331,13 +333,13 @@ CONTAINS
     REAL(fp)               :: OHdiurnalFac(State_Grid%NX, State_Grid%NY)
 
     ! Arrays for data read in via HEMCO
-    REAL(fp) :: Global_OH(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: Global_Cl(   State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: LCH4_by_OH(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: LCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_in_Strat(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_fr_CH4  (State_Grid%NX, State_Grid%NY, State_Grid%NZ)
-    REAL(fp) :: PCO_fr_NMVOC(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: Global_OH(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: Global_Cl(     State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: LCH4_in_Strat( State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: LCO_in_Strat(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_in_Strat(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_fr_CH4  (  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+    REAL(fp) :: PCO_fr_NMVOC(  State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
     !========================================================================
     ! Chem_Carbon_Gases begins here!
@@ -352,7 +354,9 @@ CONTAINS
     thisLoc  = &
      ' -> at Chem_Carbon_Gases (in module GeosCore/carbon_gases_mod.F90)'
 
+    !========================================================================
     ! First-time only safety checks
+    !========================================================================
     IF ( first ) THEN
 
        ! Exit if the HEMCO state object has not yet been initialized
@@ -378,84 +382,65 @@ CONTAINS
     ENDIF
 
     !========================================================================
-    ! Zero diagnostic archival arrays to make sure that we don't have any
-    ! leftover values from the last timestep near the top of the chemgrid.
+    ! Zero diagnostic arrays so that we don't have leftover values
+    ! from previous timesteps hanging around at the top of the chemgrid
     !========================================================================
-    IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-       State_Diag%OHconcAfterChem = 0.0_f4
-    ENDIF
-
-    IF ( State_Diag%Archive_Loss ) THEN
-       State_Diag%Loss = 0.0_f4
-    ENDIF
-
-    IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
-       State_Diag%ProdCOfromCH4 = 0.0_f4
-    ENDIF
-
-    IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
-       State_Diag%ProdCOfromNMVOC = 0.0_f4
-    ENDIF
-
+    CALL carbon_ZeroDiagArrays( State_Diag )
 
     !========================================================================
     ! Read chemical inputs (oxidant fields, concentrations) via HEMCO
     !========================================================================
     CALL ReadChemInputFields(                                                &
-         Input_Opt    = Input_Opt,                                           &
-         State_Grid   = State_Grid,                                          &
-         State_Met    = State_Met,                                           &
-         Global_OH    = Global_OH,                                           &
-         Global_Cl    = Global_Cl,                                           &
-         LCH4_by_OH   = LCH4_by_OH,                                          &
-         LCO_in_Strat = LCO_in_Strat,                                        &
-         PCO_in_Strat = PCO_in_Strat,                                        &
-         PCO_fr_CH4   = PCO_fr_CH4,                                          &
-         PCO_fr_NMVOC = PCO_fr_NMVOC,                                        &
-         RC           = RC                                                  )
+         Input_Opt     = Input_Opt,                                          &
+         State_Grid    = State_Grid,                                         &
+         State_Met     = State_Met,                                          &
+         Global_OH     = Global_OH,                                          &
+         Global_Cl     = Global_Cl,                                          &
+         LCH4_in_Strat = LCH4_in_Strat,                                      &
+         LCO_in_Strat  = LCO_in_Strat,                                       &
+         PCO_in_Strat  = PCO_in_Strat,                                       &
+         PCO_fr_CH4    = PCO_fr_CH4,                                         &
+         PCO_fr_NMVOC  = PCO_fr_NMVOC,                                       &
+         RC            = RC                                                  )
 
     !========================================================================
     ! Compute OH diurnal cycle scaling factor
     ! (this scales OH by the position of the sun, and zeroes it at night)
-    !========================================================================
+    !
     ! OH is only needed when CH4 or CO are included in the carbon species
+    !========================================================================
     IF ( id_CH4_adv > 0 .or. id_CO_adv > 0 ) THEN
-
        CALL Calc_Diurnal(                                                    &
             State_Grid   = State_Grid,                                       &
             State_Met    = State_Met,                                        &
             OHdiurnalFac = OHdiurnalFac                                     )
 
-    ENDIF
+       !========================================================================
+       ! HISTORY: Diagnostic archival of OH [molec/cm3]
+       !========================================================================
+       IF ( State_Diag%Archive_OHconcAfterChem ) THEN
 
-    !========================================================================
-    ! %%%%% HISTORY (aka netCDF diagnostics) %%%%%
-    !
-    ! Diagnostic archival of OH [molec/cm3]
-    !========================================================================
-    IF ( State_Diag%Archive_OHconcAfterChem ) THEN
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L                                               )&
-       !$OMP COLLAPSE( 3                                                    )
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
-
-          ! Archive OH if we are in the chemistry grid [molec/cm3]
-          IF ( State_Met%InChemGrid(I,J,L) ) THEN
-             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-                State_Diag%OHconcAfterChem(I,J,L) = Global_OH(I,J,L)         &
-                                                  * OHdiurnalFac(I,J)
+             ! Archive OH if we are in the chemistry grid [molec/cm3]
+             IF ( State_Met%InChemGrid(I,J,L) ) THEN
+                IF ( State_Diag%Archive_OHconcAfterChem ) THEN
+                   State_Diag%OHconcAfterChem(I,J,L) = Global_OH(I,J,L)         &
+                                                     * OHdiurnalFac(I,J)
+                ENDIF
              ENDIF
-          ENDIF
 
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+       ENDIF
     ENDIF
 
     ! Do not call KPP if neither CH4 or CO are advected species
@@ -477,7 +462,7 @@ CONTAINS
        ! Loop over grid boxes
        !$OMP PARALLEL DO                                                     &
        !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L, N                                            )&
+       !$OMP PRIVATE( I, J, L, N, timeBefore, timeAfter                     )&
        !$OMP COLLAPSE( 3                                                    )&
        !$OMP SCHEDULE( DYNAMIC, 24                                          )
        DO L = 1, State_Grid%NZ
@@ -496,8 +481,12 @@ CONTAINS
           TEMP_OVER_K300 = TEMP / 300.0_dp           ! T/300 term for equations
           K300_OVER_TEMP = 300.0_dp / TEMP           ! 300/T term for equations
           SUNCOS         = State_Met%SUNCOSmid(I,J)  ! Cos(SZA) ) [1]
+          timeBefore     = 0.0_fp
+          timeAfter      = 0.0_fp
 
+          !==================================================================
           ! Convert species to molec/cm3 for the KPP solver
+          !==================================================================
           CALL carbon_ConvertKgtoMolecCm3(                                   &
                I          = I,                                               &
                J          = J,                                               &
@@ -511,9 +500,14 @@ CONTAINS
                State_Met  = State_Met,                                       &
                State_Chm  = State_Chm                                       )
 
-          !================================================================
+          !==================================================================
           ! Update reaction rates
-          !================================================================
+          !==================================================================
+
+          ! Start measuring KPP-related routine timing for this grid box
+          IF ( State_Diag%Archive_KppTime ) THEN
+             CALL CPU_Time( timeBefore )
+          ENDIF
 
           ! Compute the rate constants that will be used
           CALL carbon_ComputeRateConstants(                                  &
@@ -523,7 +517,7 @@ CONTAINS
                dtChem           = dtChem,                                    &
                ConcClMnd        = Global_Cl(I,J,L),                          &
                ConcOHmnd        = Global_OH(I,J,L),                          &
-               LCH4_by_OH       = LCH4_by_OH(I,J,L),                         &
+               LCH4_in_Strat    = LCH4_in_Strat(I,J,L),                      &
                LCO_in_Strat     = LCO_in_Strat(I,J,L),                       &
                OHdiurnalFac     = OHdiurnalFac(I,J),                         &
                PCO_in_Strat     = PCO_in_Strat(I,J,L),                       &
@@ -539,7 +533,7 @@ CONTAINS
 
           !==================================================================
           ! Call the KPP integrator
-          !=====================================================================
+          !==================================================================
 
           ! Integrate the mechanism forward in time
           CALL Integrate(                                                    &
@@ -551,53 +545,26 @@ CONTAINS
           ! Trap potential errors
           IF ( IERR /= 1 ) failed = .TRUE.
 
-          !==================================================================
-          ! HISTORY: Archive KPP solver diagnostics
-          !==================================================================
-          IF ( State_Diag%Archive_KppDiags ) THEN
-
-             ! # of integrator calls
-             IF ( State_Diag%Archive_KppIntCounts ) THEN
-                State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
-             ENDIF
-
-             ! # of times Jacobian was constructed
-             IF ( State_Diag%Archive_KppJacCounts ) THEN
-                State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
-             ENDIF
-
-             ! # of internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
-                State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
-             ENDIF
-
-             ! # of accepted internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
-                State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
-             ENDIF
-
-             ! # of rejected internal timesteps
-             IF ( State_Diag%Archive_KppTotSteps ) THEN
-                State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
-             ENDIF
-
-             ! # of LU-decompositions
-             IF ( State_Diag%Archive_KppLuDecomps ) THEN
-                State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
-             ENDIF
-
-             ! # of forward and backwards substitutions
-             IF ( State_Diag%Archive_KppSubsts ) THEN
-                State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
-             ENDIF
-
-             ! # of singular-matrix decompositions
-             IF ( State_Diag%Archive_KppSmDecomps ) THEN
-                State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
-             ENDIF
+          ! Start measuring KPP-related routine timing for this grid box
+          IF ( State_Diag%Archive_KppTime ) THEN
+             CALL CPU_Time( timeAfter )
           ENDIF
 
+          !==================================================================
+          ! HISTORY: Update diags for KPP statistics + reaction rates
+          !==================================================================
+          CALL carbon_UpdateKppDiags(                                        &
+               I          = I,                                               &
+               J          = J,                                               &
+               L          = L,                                               &
+               ISTATUS    = ISTATUS,                                         &
+               timeBefore = timeBefore,                                      &
+               timeAfter  = timeAfter,                                       &
+               State_Diag = State_Diag                                      )
+
+          !==================================================================
           ! Convert species back to kg
+          !==================================================================
           CALL carbon_ConvertMolecCm3ToKg(                                   &
                I            = I,                                             &
                J            = J,                                             &
@@ -612,21 +579,13 @@ CONTAINS
                State_Met    = State_Met                                     )
 
           !==================================================================
-          ! HISTORY (aka netCDF diagnostics)
-          !
-          ! Production and loss of CO
+          ! HISTORY: Production and loss of CO
           !
           ! NOTE: Call functions in KPP/carbon/carbon_Funcs.F90 so
           ! that we avoid bringing in KPP species indices into this module.
           ! This avoids compile-time dependency errors.
-          !=====================================================================
-
-          ! Production of CO2 from CO oxidation [molec/cm3/s]
-          IF ( State_Diag%Archive_ProdCO2fromCO ) THEN
-             State_Diag%ProdCO2fromCO(I,J,L) =                               &
-                  carbon_Get_CO2fromOH_Flux( dtChem )
-          ENDIF
-       
+          !==================================================================
+      
           ! Production of CO from CH4
           IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
              State_Diag%ProdCOfromCH4(I,J,L) =                               &
@@ -644,6 +603,10 @@ CONTAINS
        ENDDO
        !$OMP END PARALLEL DO
 
+       !=====================================================================
+       ! Exit with error if the integration failed
+       ! (we cannot do this from within the parallel loop)
+       !=====================================================================
        IF ( failed ) THEN
           errMsg = 'KPP integration failed!'
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -671,7 +634,7 @@ CONTAINS
 ! !INTERFACE:
 !
   SUBROUTINE ReadChemInputFields( Input_Opt,    State_Grid,   State_Met,     &
-                                  Global_OH,    Global_Cl,    LCH4_by_OH,    &
+                                  Global_OH,    Global_Cl,    LCH4_in_Strat, &
                                   LCO_in_Strat, PCO_in_Strat, PCO_fr_CH4,    &
                                   PCO_fr_NMVOC, RC                          )
 !
@@ -699,10 +662,10 @@ CONTAINS
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
                                     State_Grid%NZ)  ! Cl conc
-    REAL(fp),       INTENT(OUT) :: LCH4_by_OH(                               &
+    REAL(fp),       INTENT(OUT) :: LCH4_in_Strat(                            &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
-                                    State_Grid%NZ)  ! L(CH4) by OH
+                                    State_Grid%NZ)  ! L(CH4) in strat
     REAL(fp),       INTENT(OUT) :: LCO_in_Strat(                             &
                                     State_Grid%NX,                           &
                                     State_Grid%NY,                           &
@@ -748,13 +711,13 @@ CONTAINS
      ' -> at ReadInputChemFields (in module GeosCore/carbon_gases_mod.F90)'
 
     ! Initialize fields to zero
-    Global_OH    = 0.0_fp
-    Global_Cl    = 0.0_fp
-    LCH4_by_OH   = 0.0_fp
-    LCO_in_Strat = 0.0_fp
-    PCO_in_Strat = 0.0_fp
-    PCO_fr_CH4   = 0.0_fp
-    PCO_fr_NMVOC = 0.0_fp
+    Global_OH     = 0.0_fp
+    Global_Cl     = 0.0_fp
+    LCH4_in_Strat = 0.0_fp
+    LCO_in_Strat  = 0.0_fp
+    PCO_in_Strat  = 0.0_fp
+    PCO_fr_CH4    = 0.0_fp
+    PCO_fr_NMVOC  = 0.0_fp
 
     ! Fields only needed if CH4 is an advected species
     IF ( id_CH4_adv > 0 ) THEN
@@ -764,8 +727,8 @@ CONTAINS
        ! Input via HEMCO ("CH4_LOSS" container) as [1/s]
        !------------------------------------------------------------------------
        DgnName = 'CH4_LOSS'
-       CALL HCO_GC_EvalFld( Input_Opt,  State_Grid, DgnName,                 &
-                            LCH4_by_OH, RC,         found=found             )
+       CALL HCO_GC_EvalFld( Input_Opt,     State_Grid, DgnName,              &
+                            LCH4_in_Strat, RC,         found=found          )
        IF ( RC /= GC_SUCCESS .or. .not. found ) THEN
           errMsg = 'Cannot get pointer to HEMCO field ' // TRIM( DgnName )
           CALL GC_Error( errMsg, RC, thisLoc )
@@ -907,7 +870,7 @@ CONTAINS
 !
 ! !USES:
 !
-    USE gckpp_Global,   ONLY : MW, SR_MW, HENRY_CR, HENRY_K0
+    USE gckpp_Global,   ONLY : SR_MW, HENRY_CR, HENRY_K0
     USE ErrCode_Mod
     USE Input_Opt_Mod,  ONLY : OptInput
     USE State_Chm_Mod,  ONLY : ChmState, Ind_
@@ -970,27 +933,16 @@ CONTAINS
     id_OCS_adv    = Ind_( 'OCS',   'A' )
     id_OH         = Ind_( 'FixedOH'    )
 
-    !========================================================================
-    ! Save physical parameters from the species_database.yml file into KPP
-    ! arrays located in module gckpp_Global.F90.  These do not vary with
-    ! (I,J,L) location, and so can be defined here in the init phase.
-    !========================================================================
-    DO KppId = 1, State_Chm%nKppSpc + State_Chm%nOmitted
-       N                  = State_Chm%Map_KppSpc(KppId)
-       IF ( N > 0 ) THEN
-          MW(KppId)       = State_Chm%SpcData(N)%Info%MW_g
-          SR_MW(KppId)    = SQRT( MW(KppId ) )
-          HENRY_K0(KppId) = State_Chm%SpcData(N)%Info%Henry_K0
-          HENRY_CR(KppId) = State_Chm%SpcData(N)%Info%Henry_CR
-
-          ! Also define xnumol factors = molec/kg ratios
-          ! These are useful in unit conversions
-          IF ( N == id_CH4 ) xnumol_CH4 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO  ) xnumol_CO  = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_CO2 ) xnumol_CO2 = AVO / ( MW(KppId) * 1.0e-3_fp )
-          IF ( N == id_OH  ) xnumol_OH  = AVO / ( MW(KppId) * 1.0e-3_fp )
-       ENDIF
-    ENDDO
+    ! Define xnumol factors = molec/kg ratios
+    ! These are useful in unit conversions
+    IF ( id_CH4 > 0 ) &
+       xnumol_CH4 = AVO / ( State_Chm%SpcData(id_CH4)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO  > 0 ) &
+       xnumol_CO  = AVO / ( State_Chm%SpcData(id_CO )%Info%MW_g * 1.0e-3_fp )
+    IF ( id_CO2 > 0 ) &
+       xnumol_CO2 = AVO / ( State_Chm%SpcData(id_CO2)%Info%MW_g * 1.0e-3_fp )
+    IF ( id_OH  > 0 ) &
+       xnumol_OH  = AVO / ( State_Chm%SpcData(id_OH )%Info%MW_g * 1.0e-3_fp )
 
     !========================================================================
     ! Initialize variables for COchemistry
@@ -1315,5 +1267,226 @@ CONTAINS
     ENDIF
 
   END SUBROUTINE InquireGlobalOHversion
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carbon_ZeroDiagArrays
+!
+! !DESCRIPTION: Zeroes diagnostic archival arrays to make sure that we
+!  don't have any leftover values from the last timestep near the top of
+!  the chemistry grid.  This was abstracted out of Chem_Carbon_Gases
+!  in order to reduce clutter.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE carbon_ZeroDiagArrays( State_Diag )
+!
+! !USES:
+!
+    USE State_Diag_Mod, ONLY : DgnState
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostic State object
+!
+! !REVISION HISTORY:
+!  06 May 2025 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+
+    !========================================================================
+    ! carbon_ZeroDiagArrays begins here!
+    !========================================================================
+
+    IF ( State_Diag%Archive_OHconcAfterChem ) THEN
+       State_Diag%OHconcAfterChem = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_Loss ) THEN
+       State_Diag%Loss = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+       State_Diag%ProdCOfromCH4 = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+       State_Diag%ProdCOfromNMVOC = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnRate ) THEN
+       State_Diag%RxnRate = 0.0_f4
+    ENDIF
+
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       State_Diag%RxnConst = 0.0_f4
+    ENDIF
+
+
+  END SUBROUTINE carbon_ZeroDiagArrays
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: carbon_UpdateKppDiags
+!
+! !DESCRIPTION: Updates History diagnostic arrays for KPP reaction rates,
+!  rate constants, and solver statistics.  This was abstracted out of
+!  routine Chem_Carbon_gases to reduce clutter.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE carbon_UpdateKppDiags( I,         J,          L,                &
+                                    ISTATUS,   timeBefore, timeAfter,        &
+                                    State_Diag                              )
+!
+! !USES:
+!
+    USE gckpp_Global,     ONLY : C,      RCONST
+    USE gckpp_Function,   ONLY : Fun
+    USE gckpp_Parameters, ONLY : NREACT, NSPEC,  NVAR
+    USE gckpp_Precision
+    USE State_Diag_Mod,   ONLY : DgnState
+!
+! !INPUT PARAMETERS:
+!
+    INTEGER,        INTENT(IN)    :: I, J, L      ! Grid box indices
+    INTEGER,        INTENT(IN)    :: ISTATUS(20)  ! KPP input options
+    REAL(f4),       INTENT(IN)    :: timeBefore   ! Time before rates + integ
+    REAL(f4),       INTENT(IN)    :: timeAfter    ! Time after  rates + integ
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(DgnState), INTENT(INOUT) :: State_Diag   ! Diagnostic State object
+!
+! !REVISION HISTORY:
+!  06 May 2025 - R. Yantosca - Initial version
+!  See the subsequent Git history with the gitk browser!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+
+    ! Scalars
+    INTEGER  :: N, S
+
+    ! Arrays
+    REAL(dp) :: Aout(NREACT)
+    REAL(dp) :: Vloc(NVAR)
+
+    !========================================================================
+    ! HISTORY: Archive KPP solver diagnostics
+    !
+    ! NOTE: If using the default Forward Euler (feuler) integrator, many of
+    ! these diagnostics will not have much variation as there is no internal
+    ! timestepping loop. But  But we will leave this here to facilitate
+    ! testing of other integrators, if so desired.
+    !========================================================================
+    IF ( State_Diag%Archive_KppDiags ) THEN
+
+       ! # of integrator calls
+       IF ( State_Diag%Archive_KppIntCounts ) THEN
+          State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+       ENDIF
+
+       ! # of times Jacobian was constructed
+       IF ( State_Diag%Archive_KppJacCounts ) THEN
+          State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
+       ENDIF
+
+       ! # of internal timesteps
+       IF ( State_Diag%Archive_KppTotSteps ) THEN
+          State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
+       ENDIF
+
+       ! # of accepted internal timesteps
+       IF ( State_Diag%Archive_KppAccSteps ) THEN
+          State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
+       ENDIF
+
+       ! # of rejected internal timesteps
+       IF ( State_Diag%Archive_KppRejSteps ) THEN
+          State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
+       ENDIF
+
+       ! # of LU-decompositions
+       IF ( State_Diag%Archive_KppLuDecomps ) THEN
+          State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
+       ENDIF
+
+       ! # of forward and backwards substitutions
+       IF ( State_Diag%Archive_KppSubsts ) THEN
+          State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+       ENDIF
+
+       ! # of singular-matrix decompositions
+       IF ( State_Diag%Archive_KppSmDecomps ) THEN
+          State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+       ENDIF
+
+       ! # of singular-matrix decompositions
+       IF ( State_Diag%Archive_KppTime ) THEN
+          State_Diag%KppTime(I,J,L) = timeAfter - timeBefore
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! HISTORY: Archive KPP reaction rates [molec cm-3 s-1]
+    !
+    ! See gckpp_Monitor.F90 for a list of chemical reactions
+    !========================================================================
+    IF ( State_Diag%Archive_RxnRate                                     .or. &
+         State_Diag%Archive_SatDiagnRxnRate                           ) THEN
+
+       ! Get equation rates (Aout)
+       CALL Fun( V    = C(1:NVAR),                                           &
+                 F    = C(NVAR+1:NSPEC),                                     &
+                 RCT  = RCONST,                                              &
+                 Vdot = Vloc,                                                &
+                 Aout = Aout                                                )
+
+       ! Archive the RxnRate diagnostic collection
+       IF ( State_Diag%Archive_RxnRate ) THEN
+          DO S = 1, State_Diag%Map_RxnRate%nSlots
+             N = State_Diag%Map_RxnRate%slot2Id(S)
+             State_Diag%RxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+
+       ! Archive the SatDiagnRxnRate diagnostic collection
+       IF ( State_Diag%Archive_SatDiagnRxnRate ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnRxnRate%nSlots
+             N = State_Diag%Map_SatDiagnRxnRate%slot2Id(S)
+             State_Diag%SatDiagnRxnRate(I,J,L,S) = Aout(N)
+          ENDDO
+       ENDIF
+    ENDIF
+
+    !========================================================================
+    ! HISTORY: Archive KPP reaction rate constants (RCONST).
+    !
+    ! The units vary.  They are already updated in Update_RCONST,
+    ! and do not require a call of Fun(). (hplin, 3/28/23)
+    !
+    ! See gckpp_Monitor.F90 for a list of chemical reactions
+    !========================================================================
+    IF ( State_Diag%Archive_RxnConst ) THEN
+       DO S = 1, State_Diag%Map_RxnConst%nSlots
+          N = State_Diag%Map_RxnConst%slot2Id(S)
+          State_Diag%RxnConst(I,J,L,S) = RCONST(N)
+       ENDDO
+    ENDIF
+
+  END SUBROUTINE carbon_UpdateKppDiags
 !EOC
 END MODULE Carbon_Gases_Mod

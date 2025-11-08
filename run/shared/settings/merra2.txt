@@ -13,21 +13,34 @@ RUNDIR_MET_LON_RES='0625'
 RUNDIR_MET_EXT='nc4'
 
 RUNDIR_MET_CN_YR=2015
-RUNDIR_MET_PRES_UNIT='Pa '
-RUNDIR_MET_PRES_SCALE='0.01'
 
 RUNDIR_METLIGHTNING='MERRA2'
 RUNDIR_METLIGHTNING_DIR="${RUNDIR_DATA_ROOT}/GEOS_0.5x0.625/MERRA2"
 RUNDIR_METLIGHTNING_RES='0.5x0.625'
 RUNDIR_LIGHTNOX_CLIM=false
+RUNDIR_LIGHTNOX_DIR='v2020-03'
 RUNDIR_MET_LCLIM='1980-2019'
 
 RUNDIR_PHOT_CLD_NLEV=34
 
+RUNDIR_OFFLINE_BIOVOC_DIR='v2021-12'
+RUNDIR_OFFLINE_DUST_DIR='v2021-08'
+RUNDIR_OFFLINE_SEASALT_DIR='v2019-01'
+RUNDIR_OFFLINE_SOILNOX_DIR='v2021-12'
 RUNDIR_OFFLINE_EMIS_RES='0.5x0.625'
 RUNDIR_OFFLINE_EMIS_LAT_RES='05'
 
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS="""
+# --- Wind, 3-hr time-averaged ---
+UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
+
+# --- Surface pressure, 3-hr instantaneous ---
+PS1 Pa  N Y 0        none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+PS2 Pa  N Y 0;001000 none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+
+# --- 3D variables, 3-hr instantaneous ---
+SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
+SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
 
 # --- 2D variables, 1-hr averaged ---
 ALBD     1 N Y F0;003000 none none ALBEDO   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
@@ -80,14 +93,6 @@ V10M m_s-1 N Y F0;003000 none none V10M ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x
 
 Z0 1 N Y F0;003000 none none Z0M ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A1.05x0625.nc4
 
-# --- Surface pressure, 3-hr instantaneous ---
-PS1 Pa  N Y 0        none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
-PS2 Pa  N Y 0;001000 none 0.01 PS ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
-
-# --- 3D variables, 3-hr instantaneous ---
-SPHU1 kg_kg-1 N Y 0        none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
-SPHU2 kg_kg-1 N Y 0;001000 none none QV ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
-
 TMPU1 K N Y 0        none none T ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
 TMPU2 K N Y 0;001000 none none T ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.I3.05x0625.nc4
 
@@ -103,8 +108,6 @@ DTRAIN 1 N Y F0;013000 none none DTRAIN   ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dy
 OMEGA Pa_s-1 N Y F0;013000 none none OMEGA ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
 
 RH - N Y F0;013000 none none RH ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
-
-UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3dyn.05x0625.nc4
 
 DQRCU    1 N Y F0;013000 none none DQRCU    ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4
 DQRLSAN  1 N Y F0;013000 none none DQRLSAN  ./MetDir/%y4/%m2/MERRA2.%y4%m2%d2.A3mstC.05x0625.nc4

@@ -449,6 +449,24 @@ CONTAINS
        State_Grid%Area_M2(I,J) = ( State_Grid%DX * PI_180 ) * &
                                    ( Re**2 ) * SIN_DIFF
 
+#ifdef LUO_WETDEP
+       State_Grid%DXSN_M(I,J) = Re *                                         &
+             ACOS( SIN( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   SIN( State_Grid%YMid(I,J)    * PI_180 ) +                 &
+                   COS( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   COS( State_Grid%YMid(I,J)    * PI_180 ) *                 &
+                   COS( State_Grid%XEdge(I+1,J) * PI_180   -                 &
+                        State_Grid%XEdge(I,J)   * PI_180) )
+
+       State_Grid%DYWE_M(I,J) = Re *                                         &
+             ACOS( SIN( State_Grid%YEdge_R(I,J  ) ) *                        &
+                   SIN( State_Grid%YEdge_R(I,J+1) ) +                        &
+                   COS( State_Grid%YEdge_R(I,J  ) ) *                        &
+                   COS( State_Grid%YEdge_R(I,J+1) ) *                        &
+                   COS( State_Grid%XMid(I,J)        * PI_180 -               &
+                        State_Grid%XMid(I,J)        * PI_180 ) )
+#endif
+
     ENDDO
     ENDDO
 

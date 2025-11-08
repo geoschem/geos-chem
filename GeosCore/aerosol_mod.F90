@@ -124,10 +124,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_CESM ) && !defined( MODEL_BCC )
     USE HCO_State_GC_Mod,     ONLY : HcoState
     USE HCO_Utilities_GC_Mod, ONLY : HCO_GC_EvalFld
 #endif
+
     USE Input_Opt_Mod,     ONLY : OptInput
     USE Species_Mod,       ONLY : SpcConc
     USE State_Chm_Mod,     ONLY : ChmState
@@ -280,25 +282,27 @@ CONTAINS
     ENDIF
 
     IF ( RC /= GC_SUCCESS ) RETURN
-#if !defined( MODEL_CESM )
+
+#if !defined( MODEL_CESM )  && !defined( MODEL_BCC )
     CALL HCO_GC_EvalFld( Input_Opt, State_Grid, Trim(FieldName), State_Chm%OMOC, RC, FOUND=FND )
 #else
     FND = .True.
     RC  = GC_SUCCESS
 #endif
 
+
     IF ( RC == GC_SUCCESS .AND. FND ) THEN
 
        ! Set OM/OC using spatially and seasonally varying data from
        ! Philip et al. (2014)
-       State_Chm%AerMass%OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA
-       State_chm%AerMass%OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA, OCPI, and OCPO
+       State_Chm%AerMass%OCFPOA(:,:)  = State_Chm%OMOC(:,:) ! OM/OC for POA and OCPO
+       State_chm%AerMass%OCFOPOA(:,:) = State_Chm%OMOC(:,:) ! OM/OC for OPOA and OCPI
 
     ELSE
 
        ! Use default global mean OM/OC recommended by the Aerosols WG
-       State_Chm%AerMass%OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA
-       State_chm%AerMass%OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA, OCPI, and OCPO
+       State_Chm%AerMass%OCFPOA(:,:)  = 1.4e+0_fp ! OM/OC for POA and OCPO
+       State_chm%AerMass%OCFOPOA(:,:) = 2.1e+0_fp ! OM/OC for OPOA and OCPI
 
     ENDIF
 
@@ -502,14 +506,16 @@ CONTAINS
           State_Chm%AerMass%BCPO(I,J,L) = Spc(id_BCPO)%Conc(I,J,L) / AIRVOL(I,J,L)
 
           ! Hydrophobic OC [kg/m3]
-          ! SOAupdate: Treat either OCPO (x2.1) or POA (x1.4)
+          ! Based on censensus from Aerosol WG, OM/OC ratio  is
+          ! 1.4 for POA1/2 in ComplexSOA_SVPOA and OCPO in SimpleSOA
+          ! 2.1 for OPOA1/2 in ComplexSOA_SVPOA and OCPI in SimpleSOA
           IF ( IS_POA ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = ( Spc(id_POA1)%Conc(I,J,L)     &
                              + Spc(id_POA2)%Conc(I,J,L) ) &
                            * State_Chm%AerMass%OCFPOA(I,J) / AIRVOL(I,J,L)
           ELSE IF ( IS_OCPO ) THEN
              State_Chm%AerMass%OCPO(I,J,L) = Spc(id_OCPO)%Conc(I,J,L) &
-                           * State_chm%AerMass%OCFOPOA(I,J) / AIRVOL(I,J,L)
+                           * State_chm%AerMass%OCFPOA(I,J) / AIRVOL(I,J,L)
           ENDIF
 
           ! Hydrophilic OC [kg/m3]
@@ -2352,7 +2358,7 @@ CONTAINS
 !
 ! !IROUTINE: init_aerosol
 !
-! !DESCRIPTION: Subroutine INIT\_AEROSOL initializes module variables
+! !DESCRIPTION: Subroutine INIT\_AEROSOL initializes module variables.
 !\\
 !\\
 ! !INTERFACE:
@@ -2393,133 +2399,168 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    INTEGER            :: N, SpcID
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    INTEGER                :: N, SpcID
+    CHARACTER(LEN=255)     :: ThisLoc
+    CHARACTER(LEN=512)     :: ErrMsg
 
     TYPE(Species), POINTER :: SpcInfo
     
-    !=================================================================
+    !========================================================================
     ! INIT_AEROSOL begins here!
-    !=================================================================
+    !========================================================================
 
     ! Initialize
     RC        = GC_SUCCESS
     ErrMsg    = ''
     ThisLoc   = ' -> at Init_Aerosol (in module GeosCore/aerosol_mod.F90)'
 
-    ! Exit immediately if this is a dry-run
-    IF ( Input_Opt%DryRun ) RETURN
+    !========================================================================
+    ! First-time initialization for various items (skip if dry-run)
+    !========================================================================
+    IF ( .not. Input_Opt%DryRun ) THEN
 
-    ! Add tracer ID flags as module variables (bmy, 6/16/16)
-    id_BCPI   = Ind_( 'BCPI'   )
-    id_BCPO   = Ind_( 'BCPO'   )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
-    id_DUST01 = Ind_( 'DUST01' )
-    id_NH4    = Ind_( 'NH4'    )
-    id_NIT    = Ind_( 'NIT'    )
-    id_OCPO   = Ind_( 'OCPO'   )
-    id_OCPI   = Ind_( 'OCPI'   )
-    id_SOAS   = Ind_( 'SOAS'   )
-    id_SALA   = Ind_( 'SALA'   )
-    id_SALC   = Ind_( 'SALC'   )
-    id_SALACL = Ind_( 'SALACL' )
-    id_SO4    = Ind_( 'SO4'    )
-    id_SO4s   = Ind_( 'SO4s'   )
-    id_HMS    = Ind_( 'HMS'    )
-    id_NITs   = Ind_( 'NITs'   )
-    id_POA1   = Ind_( 'POA1'   )
-    id_POA2   = Ind_( 'POA2'   )
-    id_OPOA1  = Ind_( 'OPOA1'  )
-    id_OPOA2  = Ind_( 'OPOA2'  )
-    id_TSOA1  = Ind_( 'TSOA1'  )
-    id_TSOA2  = Ind_( 'TSOA2'  )
-    id_TSOA3  = Ind_( 'TSOA3'  )
-    id_TSOA0  = Ind_( 'TSOA0'  )
-    id_ASOAN  = Ind_( 'ASOAN'  )
-    id_ASOA1  = Ind_( 'ASOA1'  )
-    id_ASOA2  = Ind_( 'ASOA2'  )
-    id_ASOA3  = Ind_( 'ASOA3'  )
-    id_SOAGX  = Ind_( 'SOAGX'  )
-    id_SOAIE  = Ind_( 'SOAIE'  )
-    id_INDIOL = Ind_( 'INDIOL' )
-    id_LVOCOA = Ind_( 'LVOCOA' )
+       !---------------------------------------------------------------------
+       ! Add tracer ID flags as module variables (bmy, 6/16/16)
+       !---------------------------------------------------------------------
+       id_BCPI   = Ind_( 'BCPI'   )
+       id_BCPO   = Ind_( 'BCPO'   )
+       id_DST1   = Ind_( 'DST1'   )
+       id_DST2   = Ind_( 'DST2'   )
+       id_DST3   = Ind_( 'DST3'   )
+       id_DST4   = Ind_( 'DST4'   )
+       id_DUST01 = Ind_( 'DUST01' )
+       id_NH4    = Ind_( 'NH4'    )
+       id_NIT    = Ind_( 'NIT'    )
+       id_OCPO   = Ind_( 'OCPO'   )
+       id_OCPI   = Ind_( 'OCPI'   )
+       id_SOAS   = Ind_( 'SOAS'   )
+       id_SALA   = Ind_( 'SALA'   )
+       id_SALC   = Ind_( 'SALC'   )
+       id_SALACL = Ind_( 'SALACL' )
+       id_SO4    = Ind_( 'SO4'    )
+       id_SO4s   = Ind_( 'SO4s'   )
+       id_HMS    = Ind_( 'HMS'    )
+       id_NITs   = Ind_( 'NITs'   )
+       id_POA1   = Ind_( 'POA1'   )
+       id_POA2   = Ind_( 'POA2'   )
+       id_OPOA1  = Ind_( 'OPOA1'  )
+       id_OPOA2  = Ind_( 'OPOA2'  )
+       id_TSOA1  = Ind_( 'TSOA1'  )
+       id_TSOA2  = Ind_( 'TSOA2'  )
+       id_TSOA3  = Ind_( 'TSOA3'  )
+       id_TSOA0  = Ind_( 'TSOA0'  )
+       id_ASOAN  = Ind_( 'ASOAN'  )
+       id_ASOA1  = Ind_( 'ASOA1'  )
+       id_ASOA2  = Ind_( 'ASOA2'  )
+       id_ASOA3  = Ind_( 'ASOA3'  )
+       id_SOAGX  = Ind_( 'SOAGX'  )
+       id_SOAIE  = Ind_( 'SOAIE'  )
+       id_INDIOL = Ind_( 'INDIOL' )
+       id_LVOCOA = Ind_( 'LVOCOA' )
 
-    ! Define logical flags
-    IS_OCPI    = ( id_OCPI  > 0 )
-    IS_OCPO    = ( id_OCPO  > 0 )
-    IS_BC      = ( id_BCPI  > 0 .AND. id_BCPO  > 0 )
-    IS_SO4     = ( id_SO4   > 0 )
-    IS_HMS     = ( id_HMS   > 0 )
-    IS_NH4     = ( id_NH4   > 0 )
-    IS_NIT     = ( id_NIT   > 0 )
-    IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
-    IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
-    IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
-    IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
-    IS_TSOA    = ( id_TSOA1 > 0 .AND. id_TSOA2 > 0 .AND. &
-                   id_TSOA3 > 0 .AND. id_TSOA0 > 0 )
-    IS_ASOA    = ( id_ASOAN > 0 .AND. id_ASOA1 > 0 .AND. &
-                   id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
-    IS_SOAGX   = ( id_SOAGX > 0 )
-    Is_SimpleSOA  = ( id_SOAS > 0 )
-    Is_ComplexSOA = Input_Opt%LSOA
+       !---------------------------------------------------------------------
+       ! Define logical flags (also as module variables)
+       !---------------------------------------------------------------------
+       IS_OCPI    = ( id_OCPI  > 0 )
+       IS_OCPO    = ( id_OCPO  > 0 )
+       IS_BC      = ( id_BCPI  > 0 .AND. id_BCPO  > 0 )
+       IS_SO4     = ( id_SO4   > 0 )
+       IS_HMS     = ( id_HMS   > 0 )
+       IS_NH4     = ( id_NH4   > 0 )
+       IS_NIT     = ( id_NIT   > 0 )
+       IS_DST     = ( id_DST1  > 0 .AND. id_DST2  > 0 )
+       IS_SAL     = ( id_SALA  > 0 .AND. id_SALC  > 0 )
+       IS_POA     = ( id_POA1  > 0 .AND. id_POA2  > 0 )
+       IS_OPOA    = ( id_OPOA1 > 0 .AND. id_OPOA2 > 0 )
+       IS_TSOA    = ( id_TSOA1 > 0 .AND. id_TSOA2 > 0 .AND. &
+                      id_TSOA3 > 0 .AND. id_TSOA0 > 0 )
+       IS_ASOA    = ( id_ASOAN > 0 .AND. id_ASOA1 > 0 .AND. &
+                      id_ASOA2 > 0 .AND. id_ASOA3 > 0 )
+       IS_SOAGX   = ( id_SOAGX > 0 )
+       Is_SimpleSOA  = ( id_SOAS > 0 )
+       Is_ComplexSOA = Input_Opt%LSOA
 
-    ! Initialize the mapping between hygroscopic species in the
-    ! species database and the species order in NRHAER
-    DO N = 1, NRHAER
+       !---------------------------------------------------------------------
+       ! Initialize the mapping between hygroscopic species in the
+       ! species database and the species order in NRHAER
+       !---------------------------------------------------------------------
+       DO N = 1, NRHAER
 
-       ! Get the species database index from the species database
-       ! mapping array for hygroscopic growth species
-       SpcID = State_Chm%Map_HygGrth(N)
+          ! Get the species database index from the species database
+          ! mapping array for hygroscopic growth species
+          SpcID = State_Chm%Map_HygGrth(N)
 
-       ! Point to the Species Database entry for species N
-       SpcInfo => State_Chm%SpcData(SpcID)%Info
+          ! Point to the Species Database entry for species N
+          SpcInfo => State_Chm%SpcData(SpcID)%Info
 
-       ! Set the mapping to the ordering of aerosol densities in RD_AOD
-       SELECT CASE ( TRIM(SpcInfo%Name) )
-       CASE ( 'SO4' )
-          Map_NRHAER(N) = 1
-       CASE ( 'BCPI' )
-          Map_NRHAER(N) = 2
-       CASE ( 'OCPI', 'POA1' )
-          Map_NRHAER(N) = 3
-       CASE ( 'SALA' )
-          Map_NRHAER(N) = 4
-       CASE ( 'SALC' )
-          Map_NRHAER(N) = 5
-       CASE DEFAULT
-          ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
-                   ' for NRHAER greater than 5!'
-          CALL GC_ERROR( ErrMsg, RC, 'Init_Aerosol in aerosol_mod.F90' )
-       END SELECT
+          ! Set the mapping to the ordering of aerosol densities in RD_AOD
+          SELECT CASE ( TRIM(SpcInfo%Name) )
+             CASE ( 'SO4' )
+                Map_NRHAER(N) = 1
+             CASE ( 'BCPI' )
+                Map_NRHAER(N) = 2
+             CASE ( 'OCPI', 'POA1' )
+                Map_NRHAER(N) = 3
+             CASE ( 'SALA' )
+                Map_NRHAER(N) = 4
+             CASE ( 'SALC' )
+                Map_NRHAER(N) = 5
+             CASE DEFAULT
+                ErrMsg = 'WARNING: aerosol diagnostics not defined' // &
+                         ' for NRHAER greater than 5!'
+                CALL GC_ERROR( ErrMsg, RC, 'Init_Aerosol in aerosol_mod.F90' )
+                SpcInfo => NULL()
+                RETURN
+          END SELECT
 
-       ! Free pointer
-       SpcInfo => NULL()
+          ! Free pointer
+          SpcInfo => NULL()
 
-    ENDDO
+       ENDDO
+    ENDIF
 
-    !------------------------------------------------------------------------
-    ! Read in AOD data
-    !------------------------------------------------------------------------
+    !========================================================================
+    ! The fullchem and aerosol simulations need at least one AOD wavelength
+    ! to be selected.  Return with an error if this is not the case.
+    !========================================================================
+    IF ( Input_Opt%NWVSELECT == 0 ) THEN
+       ErrMsg = 'For fullchem and aerosol-only simulations, you must '    // &
+                'specify the wavelength at which the AOD will be '        // &
+                'calculated.  (For fullchem simulations using RRTMG, '    // &
+                'you may specify up to 3 wavelengths.)  Check the '       // &
+                '"aod_wavelength_in_nm" tag (under the '                  // &
+                '"rrtmg_radiative_transfer_model" section) in your '      // &
+                '"geoschem_config.yml" file.'
+       CALL GC_Error( ErrMsg, RC, ThisLoc )
+       RETURN
+    ENDIF
+
+    !========================================================================
+    ! Read aerosol optics data
+    !========================================================================
     CALL RD_AOD( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in routine "RD_AOD"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
-    IF (Input_Opt%amIRoot) WRITE(6,*) 'Wavelength optics read successfully'
 
-    !------------------------------------------------------------------------
-    ! Compute the required wavelengths in the LUT to calculate requested AOD
-    !------------------------------------------------------------------------
-    CALL CALC_AOD( Input_Opt, State_Chm, RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       ErrMsg = 'Error encountered in routine "CALC_AOD"!'
-       CALL GC_Error( ErrMsg, RC, ThisLoc )
-       RETURN
+    ! Print a message if RD_AOD succeeded (skip if dry-run)
+    IF ( Input_Opt%amIRoot .and. .not. Input_Opt%DryRun ) THEN
+       WRITE( 6, '(a)' ) 'Wavelength optics read successfully'
+    ENDIF
+
+    !========================================================================
+    ! Compute the required wavelengths in the lookup table to
+    ! calculate the requested AOD (skip for dry-run simulations)
+    !========================================================================
+    IF ( .not. Input_Opt%DryRun ) THEN
+       CALL CALC_AOD( Input_Opt, State_Chm, RC )
+       IF ( RC /= GC_SUCCESS ) THEN
+          ErrMsg = 'Error encountered in routine "CALC_AOD"!'
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
     ENDIF
 
   END SUBROUTINE INIT_AEROSOL
@@ -2658,10 +2699,8 @@ CONTAINS
     ! but for now we are just treating the NAT like the sulfate... limited
     ! info but ref index is similar e.g. Scarchilli et al. (2005)
     !(DAR 05/2015)
-    DATA SPECFIL /"so4.dat","soot.dat","org.dat", &
-                  "ssa.dat","ssc.dat",            &
-                  "h2so4.dat","h2so4.dat",        &
-                  "dust.dat"/
+    SPECFIL = (/ "so4.dat  ", "soot.dat ", "org.dat  ", "ssa.dat  ",         &
+                 "ssc.dat  ", "h2so4.dat", "h2so4.dat", "dust.dat "        /)
 
     ! Loop over the array of filenames
     DO k = 1, State_Chm%Phot%NSPAA
@@ -2691,21 +2730,19 @@ CONTAINS
 300       FORMAT( a, ' ', a )
        ENDIF
 
-       ! For dry-run simulations, cycle to next file.
-       ! For regular simulations, throw an error if we can't find the file.
-       IF ( Input_Opt%DryRun ) THEN
-          CYCLE
-       ELSE
-          IF ( .not. FileExists ) THEN
-             WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-       ENDIF
+       ! For dry-run simulations, skip ahead to next file.
+       IF ( Input_Opt%DryRun ) CYCLE
 
        !--------------------------------------------------------------
        ! If not a dry-run, read data from each species file
        !--------------------------------------------------------------
+
+       ! Throw an error if we can't find the file
+       IF ( .not. FileExists ) THEN
+          WRITE( ErrMsg, 300 ) TRIM( FileMsg ), TRIM( ThisFile )
+          CALL GC_Error( ErrMsg, RC, ThisLoc )
+          RETURN
+       ENDIF
 
        ! Open file
        OPEN( NJ1, FILE=TRIM( THISFILE ), STATUS='OLD', IOSTAT=RC )
@@ -2775,7 +2812,7 @@ CONTAINS
    CALL freeUnit(NJ1)
 #endif
 
-  ! Free pointers
+    ! Free pointers
     WVAA   => NULL()
     RHAA   => NULL()
     RDAA   => NULL()

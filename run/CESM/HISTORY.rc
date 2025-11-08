@@ -75,12 +75,12 @@ COLLECTIONS: 'Metrics',
              'JValues',
              #'KppDiags',
 	     #'KppARDiags',
-             #'LevelEdgeDiags',
              'ProdLoss',
              #'RxnRates',
 	     #'RxnConst',
              'StateChm',
              #'StateMet',
+             #'StateMetLevEdge',
              #'StratBM',
              #'UVFlux',
 ::
@@ -580,26 +580,6 @@ COLLECTIONS: 'Metrics',
                               'KppcNONZERO                   ',
 ::
 #==============================================================================
-# %%%%% LevelEdgeDiags %%%%%
-#
-# Diagnostics that are defined on grid box level edges. Vertical dimension
-# size is one more than 3D fields in the StateMet collection.
-#
-# Available for all simulations
-#==============================================================================
-  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   {FREQUENCY}
-  LevelEdgeDiags.duration:    {DURATION}
-  LevelEdgeDiags.mode:        'time-averaged'
-  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
-                              'Met_PEDGE                     ',
-                              'Met_PEDGEDRY                  ',
-                              'Met_PFICU                     ',
-                              'Met_PFILSAN                   ',
-                              'Met_PFLCU                     ',
-                              'Met_PFLLSAN                   ',
-::
-#==============================================================================
 # %%%%% ProdLoss %%%%%
 #
 # Chemical production and loss rates
@@ -636,7 +616,7 @@ COLLECTIONS: 'Metrics',
 #
 # Archives chemical reaction rates from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnRate_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # Available for the fullchem simulations.
@@ -645,15 +625,15 @@ COLLECTIONS: 'Metrics',
   RxnRates.frequency:  {FREQUENCY}
   RxnRates.duration:   {DURATION}
   RxnRates.mode:       'time-averaged'
-  RxnRates.fields:     'RxnRate_EQ001                           ',
-                       'RxnRate_EQ002                           ',
+  RxnRates.fields:     'RxnRate_EQ0001                           ',
+                       'RxnRate_EQ0002                           ',
 ::
 #==============================================================================
 # %%%%% RxnConst %%%%%
 #
 # Archives chemical reaction rates constants from the KPP solver.
 # It is best to list individual reactions to avoid using too much memory.
-# Reactions should be listed as "RxnConst_EQnnn", where nnn is the reaction
+# Reactions should be listed as "RxnConst_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
 #
 # The units of reaction rate constants vary according to the number of reactants
@@ -665,8 +645,8 @@ COLLECTIONS: 'Metrics',
   RxnConst.frequency:  {FREQUENCY}
   RxnConst.duration:   {DURATION}
   RxnConst.mode:       'time-averaged'
-  RxnConst.fields:     'RxnConst_EQ001                          ',
-                       'RxnConst_EQ002                          ',
+  RxnConst.fields:     'RxnConst_EQ0001                          ',
+                       'RxnConst_EQ0002                          ',
 ::
 #==============================================================================
 # %%%%% StateChm %%%%%
@@ -705,9 +685,9 @@ COLLECTIONS: 'Metrics',
 #==============================================================================
 # %%%%% StateMet %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection). All
+# Fields of the State_Met object (also see the StateMetLevEdge collection). All
 # 3D fields are centered in the grid box, i.e. not at level edges. Vertical
-# dimension size is one more than 3D fields in the LevelEdgeDiags collection.
+# dimension size is one more than 3D fields in the StateMetLevEdge collection.
 #
 # Available for all simulations
 #==============================================================================
@@ -797,4 +777,24 @@ COLLECTIONS: 'Metrics',
                               'Met_V10M                      ',
                               'Met_Z0                        ',
                               'FracOfTimeInTrop              ',
+::
+#==============================================================================
+# %%%%% StateMetLevEdge %%%%%
+#
+# State_Met arrays that are defined on grid box level edges. Vertical dimension
+# size is one more than 3D fields in the StateMet collection.
+#
+# Available for all simulations
+#==============================================================================
+  StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.frequency:   {FREQUENCY}
+  StateMetLevEdge.duration:    {DURATION}
+  StateMetLevEdge.mode:        'time-averaged'
+  StateMetLevEdge.fields:      'Met_CMFMC                     ',
+                               'Met_PEDGE                     ',
+                               'Met_PEDGEDRY                  ',
+                               'Met_PFICU                     ',
+                               'Met_PFILSAN                   ',
+                               'Met_PFLCU                     ',
+                               'Met_PFLLSAN                   ',
 ::

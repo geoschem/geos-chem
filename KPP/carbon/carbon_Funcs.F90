@@ -92,13 +92,16 @@ CONTAINS
        C(ind_CO)  = Spc(id_CO)%Conc(I,J,L)  * xnumol_CO  / airvol_cm3
     ENDIF
 
-    IF ( id_CO2 > 0 ) THEN
-       C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
-    ENDIF
+    ! Comment out for now - CO2 chemistry is done explicitly in
+    ! carbon_gases_mod.F90
+    !IF ( id_CO2 > 0 ) THEN
+    !   C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
+    !ENDIF
 
     ! Initialize placeholder species to 1 molec/cm3
-    C(ind_DummyCH4)   = 1.0_dp
-    C(ind_DummyNMVOC) = 1.0_dp
+    C(ind_DummyCH4trop)  = 1.0_dp
+    C(ind_DummyCH4strat) = 1.0_dp
+    C(ind_DummyNMVOC)    = 1.0_dp
 
     ! Initialize fixed species to 1 molec/cm3
     ! These will later be set to values read via HEMCO
@@ -123,9 +126,9 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE carbon_ComputeRateConstants(                               &
+  SUBROUTINE carbon_ComputeRateConstants(                                    &
              I,             J,                 L,                            &
-             ConcClMnd,     ConcOHMnd,         LCH4_by_OH,                   &
+             ConcClMnd,     ConcOHMnd,         LCH4_in_Strat,                &
              LCO_in_Strat,  OHdiurnalFac,      PCO_fr_CH4_use,               &
              PCO_fr_CH4,    PCO_fr_NMVOC_use,  PCO_fr_NMVOC,                 &
              PCO_in_Strat,  dtChem,            State_Chm,                    &
@@ -142,7 +145,7 @@ CONTAINS
     INTEGER,        INTENT(IN) :: I, J, L
     REAL(fp),       INTENT(IN) :: ConcClMnd       ! Cl conc [molec/cm3]
     REAL(fp),       INTENT(IN) :: ConcOHmnd       ! OH conc [molec/cm3]
-    REAL(fp),       INTENT(IN) :: LCH4_by_OH      ! L(CH4) by OH [1/s]
+    REAL(fp),       INTENT(IN) :: LCH4_in_Strat   ! Strat L(CH4) [1/s]
     REAL(fp),       INTENT(IN) :: LCO_in_Strat    ! Strat L(CO) [molec/cm3/s]
     REAL(fp),       INTENT(IN) :: OHdiurnalFac    ! OH diurnal scale factor [1]
     LOGICAL,        INTENT(IN) :: PCO_fr_CH4_use  ! Use P(CO) fr CH4? [T/F]
@@ -184,30 +187,24 @@ CONTAINS
        !%%% TAGGED SPECIES HANDLING -- comment out for now
        !%%% State_Chm%SpcData(16)%Info%MW_g * 1.0e-3_fp ! kg/mol
 
-       !---------------------------------------------------------------------
-       ! k_Trop(1): Rate [1/s] for rxn: CH4 + OH_E = CO + CO_CH4
-       !---------------------------------------------------------------------
-
        ! OH and Cl concentrations [molec/cm3]
-       C(ind_FixedOH) = ConcOHmnd * OHdiurnalFac
+       C(ind_FixedOH) = ConcOHmnd
        C(ind_FixedCl) = ConcClMnd
 
-       ! CH4 + offline OH reaction rate [1/s]
-       ! Use rates saved from full-chemistry run (if CH4 is not advected)
+       !---------------------------------------------------------------------
+       ! k_Trop(1): Rate [1/s] for rxn for DummyCH4trop -> CO + PCOfromCH4
+       !---------------------------------------------------------------------
        IF ( PCO_fr_CH4_use ) THEN
-          k_Trop(1) = PCO_fr_CH4 * OHdiurnalFac
-          k_Trop(1) = SafeDiv( k_Trop(1), C(ind_CH4)*C(ind_FixedOH), 0.0_dp )
-       ELSE
-          k_Trop(1) = 2.45E-12_dp * EXP( -1775.0E+0_dp /TEMP )  ! JPL 1997
+          k_Trop(1) = PCO_fr_CH4     * OHdiurnalFac
        ENDIF
 
        !---------------------------------------------------------------------
-       ! k_Trop(2): Rate [1/s        ] for CO + FixedOH = CO2 + CO2fromOH
+       ! k_Trop(2): Rate [1/s] for CO + FixedOH = LCObyOH
        !---------------------------------------------------------------------
        k_Trop(2) = GC_OHCO()
 
        !---------------------------------------------------------------------
-       ! k_Trop(3): Rate [molec/cm3/s] for FixedNMVOC   = CO  + COfromNMVOC
+       ! k_Trop(3): Rate [molec/cm3/s] for FixedNMVOC   = CO  + PCOfromNMVOC
        !---------------------------------------------------------------------
        IF ( PCO_fr_NMVOC_use ) THEN
           k_Trop(3) = PCO_fr_NMVOC * OHdiurnalFac
@@ -220,21 +217,21 @@ CONTAINS
        !=====================================================================
 
        !---------------------------------------------------------------------
-       ! k_Strat(1): Loss rate [1/s] for CH4 -> DUMMY
-       ! k_Strat(3): Loss rate [1/s] for CO  -> CO2 + CO2fromOH
+       ! k_Strat(1): Loss rate [1/s] for CH4 -> LCH4inStrat
+       ! k_Strat(3): Loss rate [1/s] for CO  -> LCOinStrat
        !---------------------------------------------------------------------
-       k_Strat(1) = LCH4_by_OH
+       k_Strat(1) = LCH4_in_Strat
        k_Strat(3) = LCO_in_Strat
 
        !---------------------------------------------------------------------
-       ! k_Strat(2): Loss rate [molec/cm3/s] for DummyCH4 -> CO
+       ! k_Strat(2): Loss rate [molec/cm3/s] for DummyCH4strat -> CO
        !
        ! NOTE: This reaction rate is in molec/cm3/s instead of 1/s because
-       ! of the way the reaction is written.  CH4_E is a "dummy" species
-       ! that is set to 1, so the result of the integration (using the
-       ! forward Euler scheme) is
+       ! of the way the reaction is written.  DummyCH4strat is a "dummy"
+       ! species that is set to 1, so the result of the integration (using
+       ! the forward Euler scheme) is
        !
-       ! CO = k_Strat(2)  * CH4_E * DT
+       ! CO = k_Strat(2)  * dummyCH4strat * DT
        !    = molec/cm3/s * 1     * s
        !    = molec/cm3
        !
@@ -318,9 +315,11 @@ CONTAINS
        Spc(id_CO)%Conc(I,J,L) = C(ind_CO)  * convfac_CO
     ENDIF
 
-    IF ( id_CO2 > 0 ) THEN
-       Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
-    ENDIF
+    ! Comment out for now - CO2 chemistry is done explicitly in
+    ! carbon_gases_mod.F90
+    !IF ( id_CO2 > 0 ) THEN
+    !   Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
+    !ENDIF
 
     ! Free pointer
     Spc => NULL()
@@ -352,7 +351,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromCH4_Flux
 !EOC
@@ -382,7 +381,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromNMVOC_Flux
 !EOC
@@ -391,76 +390,42 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
-! !IROUTINE: carbon_get_co2fromoh_flux
+! !IROUTINE: GC_OHCO
 !
-! !DESCRIPTION: Returns the flux of CO2_OH in molec/cm3/s for diagnostics.
+! !DESCRIPTION: Returns the rate of tropospheric loss of CO due to chemical reaction with OH
 !\\
 !\\
 ! !INTERFACE:
 !
-  FUNCTION carbon_Get_CO2fromOH_Flux( dtChem ) RESULT ( flux )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: flux         ! CO2_OH flux [molec/cm3/s]
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    flux = C(ind_CO2fromOH) / dtChem     ! molec/cm3 --> molec/cm3/s
-
-  END FUNCTION carbon_Get_CO2fromOH_Flux
-!EOC
-!------------------------------------------------------------------------------
-!                  GEOS-Chem Global Chemical Transport Model                  !
-!------------------------------------------------------------------------------
-!BOP
-!
-! !IROUTINE: carbon_get_oh_e_flux
-!
-! !DESCRIPTION: Returns the flux of OH_E in molec/cm3/s for diagnostics.
-!\\
-!\\
-! !INTERFACE:
-!
-  FUNCTION carbon_Get_FixedOH_Flux( dtChem ) RESULT ( flux )
-!
-! !INPUT PARAMETERS:
-!
-    REAL(dp), INTENT(IN) :: dtChem       ! Chemistry timestep [s]
-!
-! !RETURN VALUE:
-!
-    REAL(dp)             :: flux         ! CO2_OH flux [kg/m2/s]
-
-!EOP
-!------------------------------------------------------------------------------
-!BOC
-
-    flux = C(ind_FixedOH) / dtChem       ! molec/cm3 --> molec/cm3/s
-
-  END FUNCTION carbon_Get_FixedOH_Flux
-
-
-  !==========================================================================
-  ! Rate-law functions
-  !==========================================================================
-
   FUNCTION GC_OHCO() RESULT( k )
-    !
-    ! Reaction rate for:
-    !    OH + CO = HO2 + CO2 (cf. JPL 15-10)
-    !
-    ! For this reaction, these Arrhenius law terms evaluate to 1:
-    !    (300/T)**b0 * EXP(c0/T)
-    ! because b0 = c0 = 0.  Therefore we can skip computing these
-    ! terms.  This avoids excess CPU cycles. (bmy, 12/18/20)
-    !
+
+!
+! !REMARKS:
+! Tropospheric loss of CO due to chemical rxn w/ OH
+!
+!  DECAY RATE
+!  The decay rate (KRATE) is calculated by:
+!
+!     OH + CO -> products (JPL 15-10)
+!     k = (1 + 0.6Patm) * 1.5E-13
+!
+!  KRATE has units of [ molec^2 CO / cm6 / s ]^-1,
+!  since this is a 2-body reaction.
+!
+! From JPL 2006: "The  reaction between HO and CO to yield
+! H + CO2 akes place on a potential energy surface that
+! contains the radical HOCO.  The yield of H and CO2 is
+! diminished as the pressure rises.  The loss of reactants
+! is thus the sum of two processes, an association to yield
+! HOCO and the chemical activation process yielding H and
+! CO2." So we now need two complicated reactions.
+!
+! GY( A0 = 5.9e-33, B0 = 1.,     A1 = 1.1e-12, B1 = -1.3e0,
+!     A2 = 1.5e-13, B2 = 0.,     A3 = 2.1e09,  B3 = -6.1e0 )
+!
+!EOP
+!------------------------------------------------------------------------------
+!BOC
     REAL(dp) :: klo1,   klo2,   khi1,  khi2
     REAL(dp) :: xyrat1, xyrat2, blog1, blog2,   fexp1
     REAL(dp) :: fexp2,  kco1,   kco2,  TEMP300, k
@@ -471,6 +436,7 @@ CONTAINS
     blog1  = LOG10( xyrat1 )
     fexp1  = 1.0_dp / ( 1.0_dp + blog1*blog1 )
     kco1   = klo1 * NUMDEN * 0.6_dp**fexp1 / ( 1.0_dp + xyrat1 )
+
     klo2   = 1.5E-13_dp
     khi2   = 2.1E+09_dp * K300_OVER_TEMP**(-6.1_dp)
     xyrat2 = klo2 * NUMDEN / khi2
@@ -480,5 +446,5 @@ CONTAINS
     k      = kco1 + kco2
 
   END FUNCTION GC_OHCO
-
+!EOC
 END MODULE carbon_Funcs

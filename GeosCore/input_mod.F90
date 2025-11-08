@@ -771,6 +771,34 @@ CONTAINS
     Input_Opt%UseTimers = v_bool
 
     !------------------------------------------------------------------------
+    ! Read restart file as REAL8 not REAL4 (GC-Classic only)
+    !
+    ! If true, then restart file is read as REAL4 through HEMCO. This option
+    ! introduces small differences when breaking up a simulation in time. However,
+    ! this is the only option if the restart file must be regridded or regionally
+    ! subsetted at run-time.
+    !
+    ! If false, then restart file is read as REAL8 through GEOS-Chem, enabling
+    ! bit-for-bit reproducibility when breaking up a run in time. This should
+    ! only be done for global simulations and if the restart file is the same
+    ! grid resolution as the run, e.g. 4x5 restart file for global 4x5 run.
+    !
+    ! If missing in config file then defaults to false and uses HEMCO for read.
+    !
+    ! Note that this is a GC-Classic only setting. GCHP always reads the restart
+    ! file as whatever precision it is within the file.
+    !------------------------------------------------------------------------
+    key    = "simulation%read_restart_as_real8"
+    v_bool = MISSING_BOOL
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%read_restart_as_real8 = v_bool
+
+    !------------------------------------------------------------------------
     ! Set start time of run in "time_mod.F90"
     !------------------------------------------------------------------------
     CALL Set_Begin_Time( Input_Opt%NYMDb, Input_Opt%NHMSb, RC  )
@@ -833,6 +861,8 @@ CONTAINS
                         TRIM( Input_Opt%MetField )
        WRITE( 6, 120 ) 'Turn on GEOS-Chem timers    : ',                     &
                         Input_Opt%useTimers
+       WRITE( 6, 120 ) 'Read restart as real8 (skip HEMCO for restart read): ', &
+                        Input_Opt%read_restart_as_real8
 #endif
     ENDIF
 
@@ -945,8 +975,8 @@ CONTAINS
     ENDIF
 
     ! Save the delta X and Y values
-    State_Grid%DY = Cast_and_RoundOff( subStrs(1), places=4 )
-    State_Grid%DX = Cast_and_RoundOff( subStrs(2), places=4 )
+    State_Grid%DY = Cast_and_RoundOff( subStrs(1), places=6 )
+    State_Grid%DX = Cast_and_RoundOff( subStrs(2), places=6 )
 
     !------------------------------------------------------------------------
     ! Level range
@@ -972,8 +1002,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%XMin = Cast_and_RoundOff( a_str(1), places=4 )
-    State_Grid%XMax = Cast_and_RoundOff( a_str(2), places=4 )
+    State_Grid%XMin = Cast_and_RoundOff( a_str(1), places=6 )
+    State_Grid%XMax = Cast_and_RoundOff( a_str(2), places=6 )
 
     ! Make sure values are in valid rangre
     IF ( State_Grid%XMin >= State_Grid%XMax ) THEN
@@ -1009,8 +1039,8 @@ CONTAINS
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
-    State_Grid%YMin = Cast_and_RoundOff( a_str(1), places=4 )
-    State_Grid%YMax = Cast_and_RoundOff( a_str(2), places=4 )
+    State_Grid%YMin = Cast_and_RoundOff( a_str(1), places=6 )
+    State_Grid%YMax = Cast_and_RoundOff( a_str(2), places=6 )
 
     ! Make sure values are in valid range
     IF ( State_Grid%YMin >= State_Grid%YMax ) THEN
@@ -2786,8 +2816,36 @@ CONTAINS
     Input_Opt%Do_Photolysis = v_bool
 
     !------------------------------------------------------------------------
-    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
+    ! FAST-JX menu
     !------------------------------------------------------------------------
+
+    ! Input directory path
+    key   = "operations%photolysis%fast-jx%fastjx_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%FAST_JX_DIR = TRIM( v_str )
+
+    !------------------------------------------------------------------------
+    ! CLOUD-J menu
+    !------------------------------------------------------------------------
+
+    ! Input directory path
+    key   = "operations%photolysis%cloud-j%cloudj_input_dir"
+    v_str = MISSING_STR
+    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
+    IF ( RC /= GC_SUCCESS ) THEN
+       errMsg = 'Error parsing ' // TRIM( key ) // '!'
+       CALL GC_Error( errMsg, RC, thisLoc )
+       RETURN
+    ENDIF
+    Input_Opt%CloudJ_DIR = TRIM( v_str )
+
+    ! Number levels with clouds to use in photolysis (Cloud-J var LWEPAR)
     key   = "operations%photolysis%cloud-j%num_levs_with_cloud"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2798,9 +2856,7 @@ CONTAINS
     ENDIF
     Input_Opt%NLevs_Phot_Cloud = v_int
 
-    !------------------------------------------------------------------------
     ! Cloud-J cloud scheme flag (Cloud-J var CLDFLAG)
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%cloud_scheme_flag"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2811,10 +2867,8 @@ CONTAINS
     ENDIF
     Input_Opt%Cloud_Flag = v_int
 
-    !------------------------------------------------------------------------
     ! Factor increase in cloud OD from layer to next below (Cloud-J var ATAU)
     !  - used for inserting extra cloud layers in Cloud-J
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%opt_depth_increase_factor"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2825,10 +2879,8 @@ CONTAINS
     ENDIF
     Input_Opt%OD_Increase_Factor = Cast_and_RoundOff( v_str, places=4 )
 
-    !------------------------------------------------------------------------
     ! Minimum cloud OD in uppermost inserted layer (Cloud-J var ATAU0)
     !  - used for inserting extra cloud layers in Cloud-J
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%min_top_inserted_cloud_OD"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2839,12 +2891,10 @@ CONTAINS
     ENDIF
     Input_Opt%Min_Cloud_OD = Cast_and_RoundOff( v_str, places=4 )
 
-    !------------------------------------------------------------------------
     ! Cloud correlation between max-overlap blocks (will set Cloud-J var CLDCOR)
     ! NOTE:
     !  - only used for cloud schemes 5 and above
     !  - 0.00 = random
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%cloud_overlap_correlation"
     v_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
@@ -2855,11 +2905,9 @@ CONTAINS
     ENDIF
     Input_Opt%Cloud_Corr = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Number of blocks with correlated cloud overlap (will set Cloud-J var LNRG)
     !  - only used for cloud schemes 5 and above
     !  - limited values possible: 0 = max-ran @ gaps, 3 = alt blocks, 6 = max-overlap
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%num_cloud_overlap_blocks"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2870,13 +2918,11 @@ CONTAINS
     ENDIF
     Input_Opt%Num_Max_Overlap = v_int
 
-    !------------------------------------------------------------------------
     ! Spherical Earth atmospheric correction (will set Cloud-J var ATM0)
     !  0 = flag
     !  1 = spherical (standard)
     !  2 = refractive
     !  3 = geometric
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%sphere_correction"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2887,13 +2933,11 @@ CONTAINS
     ENDIF
     Input_Opt%Sphere_Correction = v_int
 
-    !------------------------------------------------------------------------
     ! Number of wavelength bins in UV-Vis (will set Cloud-J var NWBIN)
     ! - limited values possible
     !  18 = standard full Fast-J
     !  12 = trop-only (0% err in trop, 33% performance savings)
     !   8 = trop-only (1-2% error in J-02 and J-OCS in upper trop, big savings)
-    !------------------------------------------------------------------------
     key   = "operations%photolysis%cloud-j%num_wavelength_bins"
     v_int = MISSING_INT
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_int, "", RC )
@@ -2904,9 +2948,7 @@ CONTAINS
     ENDIF
     Input_Opt%Num_WV_Bins = v_int
 
-    !------------------------------------------------------------------------
     ! Whether to use absorption of UV by water vapor
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%cloud-j%use_H2O_UV_absorption"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2918,32 +2960,10 @@ CONTAINS
     Input_Opt%USE_H2O_UV_Abs = v_bool
 
     !------------------------------------------------------------------------
-    ! Directories with photolysis input files
+    ! Overhead O3 menu
     !------------------------------------------------------------------------
 
-    key   = "operations%photolysis%input_directories%fastjx_input_dir"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%FAST_JX_DIR = TRIM( v_str )
-
-    key   = "operations%photolysis%input_directories%cloudj_input_dir"
-    v_str = MISSING_STR
-    CALL QFYAML_Add_Get( Config, TRIM( key ), v_str, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%CloudJ_DIR = TRIM( v_str )
-
-    !------------------------------------------------------------------------
-    ! Use online ozone in extinction calculations for FAST-JX?
-    !------------------------------------------------------------------------
+    ! Use online ozone in extinction calculations?
     key    = "operations%photolysis%overhead_O3%use_online_O3_from_model"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2954,9 +2974,7 @@ CONTAINS
     ENDIF
     Input_Opt%USE_ONLINE_O3 = v_bool
 
-    !------------------------------------------------------------------------
     ! Use ozone columns from met fields?
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_column_O3_from_met"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2967,9 +2985,7 @@ CONTAINS
     ENDIF
     Input_Opt%USE_O3_FROM_MET = v_bool
 
-    !------------------------------------------------------------------------
     ! Use ozone columns from TOMS?
-    !------------------------------------------------------------------------
     key    = "operations%photolysis%overhead_O3%use_TOMS_SBUV_O3"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2981,8 +2997,10 @@ CONTAINS
     Input_Opt%USE_TOMS_O3 = v_bool
 
     !------------------------------------------------------------------------
-    ! Photoylse nitrate aerosol?
+    ! Nitrate photolysis menu
     !------------------------------------------------------------------------
+
+    ! Photoylse nitrate aerosol?
     key    = "operations%photolysis%photolyze_nitrate_aerosol%activate"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
@@ -2993,9 +3011,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT = v_bool
 
-    !------------------------------------------------------------------------
     ! Scalar for JHNO3 for photoylsing NITs aerosol
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NITs_Jscale"
     v_str = MISSING_STR
@@ -3007,9 +3023,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT_JNITs = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! scalar for JHNO3 for photoylsing NIT aerosol (TMS, 23/08/18)
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%NIT_Jscale"
     v_str = MISSING_STR
@@ -3021,9 +3035,7 @@ CONTAINS
     ENDIF
     Input_Opt%hvAerNIT_JNIT = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Fraction for JNITS/NIT channel A (HNO2) for NITs photoylsis
-    !------------------------------------------------------------------------
     key   = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_A_HONO"
     v_str = MISSING_STR
@@ -3035,9 +3047,7 @@ CONTAINS
     ENDIF
     Input_Opt%JNITChanA = Cast_and_RoundOff( v_str, places=3 )
 
-    !------------------------------------------------------------------------
     ! Fraction for JNITs/NIT channel B (NO2) for NITs photoylsis
-    !------------------------------------------------------------------------
     key    = &
      "operations%photolysis%photolyze_nitrate_aerosol%percent_channel_B_NO2"
     v_str = MISSING_STR
@@ -3274,10 +3284,12 @@ CONTAINS
     ! for the non-local PBL scheme, full PBL for the full-mixing scheme.
     Input_Opt%PBL_DRYDEP = ( .not. Input_Opt%LNLPBL )
 
-    ! Set whether to reconstruct convective precipitation flux based on
+    ! Set whether to execute different convection subroutines based on
     ! meteorology source and simulation start date. This is important for
-    ! avoiding a bug where convective precipitation met-fields are all zero
-    ! in GEOS-IT for all years and in GEOS-FP following June 1, 2020.
+    ! correctly handling convection using diagnostics from different
+    ! convection parameterization.
+    ! RAS are MERRA2 and GEOS-FP before June 1, 2020
+    ! Grell-Freitas are GEOS-IT for all years and in GEOS-FP following June 1, 2020.
     !
     ! IMPORTANT NOTE: The logic for GEOS-FP assumes (1) meteorology year
     ! is the same as simulation year and (2) the simulation does not
@@ -3290,11 +3302,11 @@ CONTAINS
     !   (2) Do not run a GEOS-FP simulation across June 1, 2020. Split
     !       up the run in time to avoid this.
     IF ( Input_Opt%MetField == 'GEOSIT' ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSEIF ( Input_Opt%MetField == 'GEOSFP' .AND. Input_Opt%NYMDb >= 20200601 ) THEN
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .TRUE.
+       Input_Opt%Grell_Freitas_Convection = .TRUE.
     ELSE
-       Input_Opt%Reconstruct_Conv_Precip_Flux = .FALSE.
+       Input_Opt%Grell_Freitas_Convection = .FALSE.
     ENDIF
 
     ! Return success
@@ -3307,11 +3319,11 @@ CONTAINS
        WRITE( 6, 90  ) 'CONVECTION SETTINGS'
        WRITE( 6, 95  ) '-------------------'
        WRITE( 6, 100 ) 'Turn on cloud convection?   : ', Input_Opt%LCONV
-       WRITE( 6, 100 ) 'Reconstruct convective precipitation flux?   : ', &
-            Input_Opt%Reconstruct_Conv_Precip_Flux
+       WRITE( 6, 100 ) 'Grell-Freitas convection?   : ', &
+            Input_Opt%Grell_Freitas_Convection
 
        IF ( Input_Opt%MetField == 'GEOSFP' ) THEN
-          IF ( Input_Opt%Reconstruct_Conv_Precip_Flux ) THEN
+          IF ( Input_Opt%Grell_Freitas_Convection ) THEN
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is on or after 01Jun2020!'
           ELSE
              WRITE( 6, 90 ) 'WARNING: Convection will assume met data is prior to 01Jun2020!'
@@ -4610,6 +4622,8 @@ CONTAINS
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.5x0.625' ) THEN
        MAX_DYN = 600
     ELSE IF ( TRIM(State_Grid%GridRes) == '0.25x0.3125' ) THEN
+       MAX_DYN = 300
+    ELSE IF ( TRIM(State_Grid%GridRes) == '0.125x0.15625' ) THEN
        MAX_DYN = 300
     ELSE
        MAX_DYN = 3600

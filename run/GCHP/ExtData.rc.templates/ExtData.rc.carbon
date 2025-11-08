@@ -137,6 +137,9 @@ XLAIMULTI cm2_cm-2 N Y %y4-%m2-%d2T00:00:00 none none XLAIMULTI ./HcoDir/Yuan_XL
 # %%%%% CH4 emissions %%%%%
 #==============================================================================
 
+# --- UseTotalPriorEmis ---
+#CH4_Emis_Prior kg/m2/s N Y F%y4-%m2-%d2T00:00:00 none none EmisCH4_Total ../../prior_run/OutputDir/GEOSChem.Emissions.%y4%m2%d2_0000z.nc4
+
 # --- Gridded GHGI v2 Express Extension (Maasakkers et al., ES&T, 2023) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
 GHGI_EE_OIL_EXPLORATION   kg/m2/s N Y F%y4-01-01T00:00:00 none 2.66350462E-22 emi_ch4_1B2a_Petroleum_Systems_Exploration   ./HcoDir/CH4/v2023-07/Gridded_GHGI_v2/Express_Extension_Gridded_GHGI_Methane_v2_%y4.nc
@@ -190,10 +193,12 @@ CAN_WASTEWATER          kg/m2/s N Y - none none  wastewater_total           ./Hc
 CAN_OTHER               kg/m2/s N Y - none none  other_minor_sources_total  ./HcoDir/CH4/v2022-01/Scarpelli_Canada/can_emis_other_minor_sources_2018.nc
 
 # --- GFEI ---
-# Include scaling to convert molecules/cm2/s to kg/m2/s
-GFEI_CH4_OIL  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Oil_All.nc
-GFEI_CH4_GAS  kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Gas_All.nc
-GFEI_CH4_COAL kg/m2/s N Y - none 2.66350462E-22 emis_ch4  ./HcoDir/CH4/v2022-01/GFEIv2/Global_Fuel_Exploitation_Inventory_v2_2019_Coal.nc
+GFEI_CH4_OIL  kg/m2/s N Y - none none Oil_All  ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Oil_All.nc
+GFEI_CH4_GAS  kg/m2/s N Y - none none Gas_All  ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Gas_All.nc
+GFEI_CH4_COAL kg/m2/s N Y - none none Coal     ./HcoDir/CH4/v2025-08/GFEIv3/Global_Fuel_Exploitation_Inventory_v3_2020_Coal.nc
+
+# --- GRPI ---
+GRPI_CH4_RICE kg/m2/s N Y F2022-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2025-01/GRPI/GRPI_01x01.nc
 
 # --- EDGAR v8.0 ---
 EDGAR8_CH4_PRO_OIL             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_PRO_OIL_flx.nc         
@@ -218,8 +223,8 @@ EDGAR8_CH4_CHE                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 EDGAR8_CH4_IRO                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_IRO_flx.nc             
 
 # --- EDGAR v7 livestock ---
-EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
-EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-%m2-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4A      kg/m2/s N Y F%y4-01-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_ENF.0.1x0.1.nc
+EDGAR7_CH4_LIVESTOCK__4B      kg/m2/s N Y F%y4-01-01T00:00:00  none none  emi_ch4  ./HcoDir/CH4/v2023-04/EDGARv7/%y4/v7.0_FT2021_CH4_%y4_MNM.0.1x0.1.nc
 
 ## Comment out to avoid double counting with GFED
 ##EDGAR8_CH4_AWB                 kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_ch4 ./HcoDir/CH4/v2024-02/EDGARv8/%y4/v8.0_FT2022_GHG_CH4_%y4_AWB_flx.nc             
@@ -241,7 +246,10 @@ EDGAR8_CH4_SWD_INC             kg/m2/s N Y F%y4-%m2-01T00:00:00  none none emi_c
 
 # --- JPL WetCHARTs v1.0 (Bloom et al., https://doi.org/10.3334/ORNLDAAC/1502) ---
 # Include scaling to convert molecules/cm2/s to kg/m2/s
-JPLW_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+JPLW_CH4  kg/m2/s Y Y F2010-%m2-01T00:00:00 none 2.66350462E-22 emi_ch4  ./HcoDir/CH4/v2024-01/JPL_WetCharts/HEensemble/JPL_WetCharts_2010-2019.Ensemble_Mean.0.5x0.5.nc
+
+# --- LPJ MERRA2 (East et al., https://doi.org/10.1029/2024GL108494) ---
+LPJ_CH4  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none emis_ch4 ./HcoDir/CH4/v2025-09/LPJ_MERRA2/LPJ_MERRA2_%y4_0.5x0.5.nc
 
 # --- Geological seeps ---
 CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_CH4GeologicalEmis_ScaledToHmiel.1x1.nc
@@ -270,16 +278,15 @@ AEIC19_MONMEAN_CO kg/m2/s Y Y F2019-%m2-01T00:00:00 none none CO ./HcoDir/AEIC20
 #
 ##AEIC19_DAILY_CO   kg/m2/s Y Y F%y4-%m2-%d2T00:00:00 none none CO ./HcoDir/AEIC2019/v2022-03/2019/%m2/AEIC_2019%m2%d2.0.5x0.625.36L.nc
 
-# --- CEDSv2 emissions ---
-CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
-#
-CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp  ./HcoDir/CEDS/v2021-06/%y4/CO-em-anthro_CMIP_CEDS_%y4.nc
+# --- CEDS 0.1 x 0.1 ---
+CEDS_CO_AGR  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_agr ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_ENE  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ene ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_IND  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_ind ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_TRA  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_tra ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_RCO  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_rco ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SLV  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_slv ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_WST  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_wst ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
+CEDS_CO_SHP  kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO_shp ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO_0.1x0.1_%y4.nc
 
 #==============================================================================
 # --- CO2 emissions ---
@@ -298,7 +305,7 @@ SIB_BBIO_CO2 kg/m2/s N Y F%y4-%m2-%d2T%h2:00:00 none none CO2 ./HcoDir/CO2/v2022
 CO2_NET_TERRESTRIAL kg/m2/s N Y - none none CO2 ./HcoDir/CO2/v2022-11/BIO/Net_terrestrial_exch_5.29Pg.generic.1x1.nc
 
 # --- CO2 Ship Emissions ---
-CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2021-06/%y4/CO2-em-anthro_CMIP_CEDS_%y4.nc
+CEDS_CO2_SHP kg/m2/s N Y F%y4-%m2-01T00:00:00 none none CO2_shp ./HcoDir/CEDS/v2024-06/%y4/CEDS_CO2_0.1x0.1_%y4.nc
 
 # --- CO2: AEIC 2019 aircraft emissions ---
 AEIC19_MONMEAN_CO2 kg/m2/s Y Y F2019-%m2-01T00:00:00 none none FUELBURN ./HcoDir/AEIC2019/v2022-03/2019_monmean/AEIC_monmean_2019%m2.0.5x0.625.36L.nc
@@ -419,10 +426,27 @@ SHIP_LEVS     1 N Y - none none cmv_c3     ./HcoDir/VerticalScaleFactors/v2021-0
 
 # --- National fossil fuel CO2 scale factors (Nassar et al, 2013) ---
 CO2_DIURNAL 1 N Y F2006-01-01T%h2:00:00 none none diurnal_scale_factors ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_diurnal_scale_factors.nc
-CO2_WEEKLY  1 D Y F2006-01-01T00:00:00   none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
+CO2_WEEKLY  1 D Y F2006-01-%d2T00:00:00 none none weekly_scale_factors  ./HcoDir/CO2/v2015-04/FOSSIL/TIMES_weekly_scale_factors.nc
 
 # --- Domestic aviation surface correction factor ---
 AVIATION_SURF_CORR      1       Y  Y F2004-01-01T00:00:00  none none CO2 ./HcoDir/CO2/v2022-11/FOSSIL/Aviation_SurfCorr_SclFac.1x1.nc
+
+#========================================================
+# --- Scale factors for OH ---
+#========================================================
+#OH_pert_factor 1 N Y - none none oh_scale ./gridded_perturbation_oh_scale.nc
+
+#==============================================================================
+# --- Scale factors for posterior run ---
+#==============================================================================
+#EMIS_SF 1 N Y -   none none ScaleFactor gridded_posterior.nc
+
+#==============================================================================
+# --- Scale factors for analytical inversions ---
+#==============================================================================
+# Add perturbations to individual state vector element (N) following this format
+#SCALE_PERT       1 N Y 2000-01-01T00:00:00 none none scale       ./gridded_pert_scale_1.nc
+#SCALE_ELEM_000N  1 N Y 2000-01-01T00:00:00 none none StateVector ./StateVector.nc
 
 ###############################################################################
 ###

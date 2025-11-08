@@ -296,7 +296,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP\n"
-printf "  3. GEOS-IT (Beta release)\n"
+printf "  3. GEOS-IT\n"
 
 metSettingsDir=${gcdir}/run/shared/settings
 
@@ -315,7 +315,7 @@ while [ "${valid_met}" -eq 0 ]; do
        	met="geosfp"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
-	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. To fix this issue, different GEOS-Chem \nconvection schemes are called based on simulation start time. This ensures \ncomparability in GEOS-Chem runs using GEOS-FP fields generated using the RAS \nconvection scheme and fields generated using Grell-Freitas, but only if the \nsimulation does not cross the June 1 2020 boundary. We therefore recommend \nsplitting up GEOS-FP runs in time such that a single simulation does not span \nthis date. For example, configure one run to end on June 1 2020 and then use \nits output restart to start another run on June 1. Alternatively consider using \nMERRA2 which was entirely generated with RAS, or GEOS-IT which was entirely \ngenerated with Grell-Freitas. If you wish to use a GEOS-FP meteorology year \ndifferent from your simulation year please create a GEOS-Chem GitHub issue for \nassistance to avoid accidentally using zero convective precipitation flux.\n"
 	printf "\n${fp_msg}\n"
 	printf "This warning will be printed to run directory file warnings.txt.\n"
 	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
@@ -335,8 +335,10 @@ while [ "${valid_met}" -eq 0 ]; do
 
         # Ask user to specify processed or raw files
         printf "${thinline}Choose meteorology file type:${thinline}"
-	printf "  1. 0.25x0.3125 daily files pre-processed for GEOS-Chem\n"
-	printf "  2. 0.25x0.3125 hourly and 3-hourly raw files produced by GEOS\n"
+	printf "  1. 0.25x0.3125 processed files from the GEOS-Chem data archive\n"
+	printf "  2. 0.25x0.3125 raw files that you downloaded from NASA GMAO\n"
+	printf "\nNOTE: Processed files have unused variables removed, are vertically flipped,\n"
+	printf "and are concatenated into daily files. Using them speeds up GCHP runs.\n\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
@@ -352,46 +354,54 @@ while [ "${valid_met}" -eq 0 ]; do
 	    fi
 	done
 
-       	# If using raw files ask user to specify meteoerology for advection.
-	if [[ ${met_file_type} = "raw_ll" ]]; then
-	    printf "${thinline}Choose meteorology for advection:${thinline}"
-	    printf "  1. 0.25x0.3125 3-hourly winds\n"
-	    printf "  2. C720 1-hourly winds derived from mass fluxes (recommended for stretched grid)\n"
-	    printf "  3. C720 1-hourly mass fluxes\n"
-	    valid_response=0
-	    while [ "${valid_response}" -eq 0 ]; do
-		valid_response=1
-		read -p "${USER_PROMPT}" response
-		if [[ ${response} = "1" ]]; then
-		    adv_flux_src="wind"
-		elif [[ ${response} = "2" ]]; then
-		    adv_flux_src="derived_wind"
-		elif [[ ${response} = "3" ]]; then
-		    adv_flux_src="mass_flux"
-		else
-		    valid_response=0
-		    printf "Invalid option. Try again.\n"
-		fi
-	    done
-	fi
+	# Ask user to specify meteorology for advection.
+	printf "${thinline}Choose meteorology for advection:${thinline}"
+	printf "  1. 0.25x0.3125 3-hourly winds (Recommended)\n"
+	printf "  2. C720 1-hourly derived winds (Recommended for stretched grid)\n"
+	printf "  3. C720 1-hourly mass fluxes (Beta)\n"
+	valid_response=0
+	while [ "${valid_response}" -eq 0 ]; do
+	    valid_response=1
+	    read -p "${USER_PROMPT}" response
+	    if [[ ${response} = "1" ]]; then
+		adv_flux_src="3hr_wind"
+	    elif [[ ${response} = "2" ]]; then
+		adv_flux_src="1hr_derived_wind"
+	    elif [[ ${response} = "3" ]]; then
+		adv_flux_src="1hr_mass_flux"
+	    else
+		valid_response=0
+		printf "Invalid option. Try again.\n"
+	    fi
+	done
 	    
-	# Set ExtData.rc settings for met data. Different settings based options chosen above.
-	if [[ ${met_file_type} = "raw_ll" ]]; then
-
-	    # config file with advection meteorology
-	    if [[ ${adv_flux_src} = "wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_3hr_wind_ll.txt)\n"
-		
-	    elif [[ ${adv_flux_src} = "derived_wind" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.derived_1hr_wind_cs.txt)\n"
-		
-	    elif [[ ${adv_flux_src} = "mass_flux" ]]; then
-		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_1hr_mass_flux_cs.txt)\n"
+	# Set ExtData.rc settings for met data used for advection
+	if [[ ${adv_flux_src} = "3hr_wind" ]]; then
+	    if [[ ${met_file_type} = "processed_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_PS_SPHU.txt)\n"
+	    elif [[ ${met_file_type} = "raw_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_wind.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_PS_SPHU.txt)\n"
 	    fi
 
-	    # config file with everything else
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
+	elif [[ ${adv_flux_src} = "1hr_derived_wind" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.derived_1hr_c720_wind_PS_SPHU.txt)\n"
 	    
+	elif [[ ${adv_flux_src} = "1hr_mass_flux" ]]; then
+	    if [[ ${met_file_type} = "processed_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_1hr_c720_mass_flux_PS_SPHU_C.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.preprocessed_3hr_0.25x0.625_wind.txt)\n"
+	    elif [[ ${met_file_type} = "raw_ll" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_1hr_c720_mass_flux_PS_SPHU_C.txt)\n"
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/advection_met/geosfp.raw_3hr_0.25x0.625_wind.txt)\n"
+	    fi
+
+	fi
+
+	# Set ExtData.rc settings for met-fields used in GEOS-Chem
+	if [[ ${met_file_type} = "raw_ll" ]]; then
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
 	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
 	fi
@@ -402,27 +412,30 @@ while [ "${valid_met}" -eq 0 ]; do
 	
  	# Ask user to specify processed or raw files
 	printf "${thinline}Choose meteorology files:${thinline}"
-	printf "  1. Raw C180 (recommended)\n"
-	printf "  2. Raw 0.5x0.625 \n"
-	printf "  3. Pre-processed C180 (not yet available)\n"
-	printf "  4. Pre-processed 0.5x0.625 \n"
+	printf "  1. C180 processed files from the GEOS-Chem data archive (Recommended)\n"
+	printf "  2. C180 raw files downloaded from NASA GMAO\n"
+	printf "  3. 0.5x0.625 processed files from the GEOS-Chem data archive\n"
+	printf "  4. 0.5x0.625 raw files downloaded from NASA GMAO\n"
+	printf "\nNOTES:\n"
+	printf " - Processed files have unused variables removed, are vertically flipped,\n"
+	printf "   and are concatenated into daily files. Using them speeds up GCHP runs.\n"
+	printf " - Using input data on a cubed-sphere grid reduces regridding error in GCHP.\n\n"
 	valid_response=0
 	while [ "${valid_response}" -eq 0 ]; do
 	    valid_response=1
 	    read -p "${USER_PROMPT}" response
 	    if [[ ${response} = "1" ]]; then
+		met_file_type="processed_cs"
+		met_desc="processed_cs"
+	    elif [[ ${response} = "2" ]]; then
 		met_file_type="raw_cs"
 		met_desc="raw_cs"
-	    elif [[ ${response} = "2" ]]; then
-		met_file_type="raw_ll"
-		met_desc="raw_ll"
 	    elif [[ ${response} = "3" ]]; then
-		met_file_type="processed_cs"
-		valid_response=0
-		printf "Pre-processed GEOS-IT data at C180 resolution is not yet available. Try again.\n"
-	    elif [[ ${response} = "4" ]]; then
 		met_file_type="processed_ll"
 		met_desc="processed_ll"
+	    elif [[ ${response} = "4" ]]; then
+		met_file_type="raw_ll"
+		met_desc="raw_ll"
 	    else
 		valid_response=0
 		printf "Invalid option. Try again.\n"
@@ -431,20 +444,20 @@ while [ "${valid_met}" -eq 0 ]; do
 
 	# If using cubed-sphere raw files ask user to specify meteoerology for
 	# advection. If using raw lat-lon then always use winds.
-	if [[ ${met_file_type} = "raw_ll" ]]; then
-	    adv_flux_src="wind"
-	elif [[ ${met_file_type} = "raw_cs" ]]; then
+	if [[ ${met_file_type} = "raw_ll" || ${met_file_type} = "processed_ll" ]]; then
+	    adv_flux_src="3hr_wind"
+	elif [[ ${met_file_type} = "processed_cs" || ${met_file_type} = "raw_cs" ]]; then
 	    printf "${thinline}Choose meteorology for advection:${thinline}"
-	    printf "  1. C180 1-hourly mass fluxes (recommended)\n"
-	    printf "  2. C180 3-hourly winds\n"
+	    printf "  1. C180 3-hourly winds (Recommended)\n"
+	    printf "  2. C180 1-hourly mass fluxes (Beta)\n"
 	    valid_response=0
 	    while [ "${valid_response}" -eq 0 ]; do
 	        valid_response=1
 	        read -p "${USER_PROMPT}" response
 	        if [[ ${response} = "1" ]]; then
-	    	    adv_flux_src="mass_flux"
+		    adv_flux_src="3hr_wind"
 	        elif [[ ${response} = "2" ]]; then
-	    	    adv_flux_src="wind"
+		    adv_flux_src="1hr_mass_flux"
 	        else
 	    	    valid_response=0
 	    	    printf "Invalid option. Try again.\n"
@@ -470,47 +483,48 @@ while [ "${valid_met}" -eq 0 ]; do
 	    use_discover=n
 	fi
 	
-	# Set text files containing settings for met data. Different settings based options aboves.
+	# Set text files containing settings for met data. Different settings based options above.
 	if [[ ${met_file_type} = "processed_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_ll.txt)\n"
-	    
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_0.5x0.625.txt)\n"
+	
+	elif [[ ${met_file_type} = "processed_cs" ]]; then
+
+	    if [[ ${adv_flux_src} = "1hr_mass_flux" ]]; then
+	        RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.preprocessed_1hr_c180_mass_flux.txt)\n"
+	    elif [[ ${adv_flux_src} == "3hr_wind" ]]; then
+		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.preprocessed_3hr_c180_wind.txt)\n"
+	    fi
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_c180.txt)\n"
+
 	else
+
+	    # Using raw GEOS-IT data downloaded from GMAO
 	    if [[ ${use_discover} = "y" ]]; then
-		
-		# Settings for advection vars in ExtData.rc, running on discover
-	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_mass_flux.discover.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_cs.discover.txt)\n"  
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_wind_ll.discover.txt)\n"
+
+		if [[ ${met_file_type} = "raw_ll" ]]; then
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_0.5x0.625.txt)\n"
+		else
+	            if [[ ${adv_flux_src} = "1hr_mass_flux" ]]; then
+			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_1hr_c180_mass_flux.txt)\n"
+	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
+			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_3hr_c180_wind.txt)\n"
+		    fi
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_c180.txt)\n"
 		fi
-		
-		# Settings for all other met vars in ExtData.rc, running on discover
-		if [[ ${met_file_type} = "raw_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_cs.discover.txt)\n"
-		elif [[ ${met_file_type} = "raw_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/discover/geosit.raw_ll.discover.txt)\n"
+
+	    else
+		# Not using discover
+		if [[ ${met_file_type} = "raw_ll" ]]; then
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_0.5x0.625.txt)\n"
+		else
+	            if [[ ${adv_flux_src} = "1hr_mass_flux" ]]; then
+			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.raw_1hr_c180_mass_flux.txt)\n"
+	            elif [[ ${adv_flux_src} = "3hr_wind" ]]; then
+			RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.raw_3hr_c180_wind.txt)\n"
+		    fi
+		    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_c180.txt)\n"
 		fi
-		
-	    elif [[ ${use_discover} = "n" ]]; then
-		
-		# Settings for advection vars in ExtData.rc, NOT running on discover
-	        if [[ ${adv_flux_src} = "mass_flux" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_mass_flux.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_cs" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_cs.txt)\n"
-	        elif [[ ${adv_flux_src} == "wind" && ${met_file_type} == "raw_ll" ]]; then
-	            RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_wind_ll.txt)\n"
-		fi
-	        
-		# Settings for all other met vars in ExtData.rc, NOT running on discover
-		if [[ ${met_file_type} = "raw_cs" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_cs.txt)\n"
-		elif [[ ${met_file_type} = "raw_ll" ]]; then
-	    	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.raw_ll.txt)\n"
-		fi
-		
+
 	    fi
 	fi  # end GEOS-IT
 	
@@ -688,7 +702,7 @@ elif [[ "x${sim_name}" == "xTransportTracers" ]]; then
     restart_name="${sim_name}"
 elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
-    restart_dir='v2023-01'
+    restart_dir='v2025-07'
     restart_name="${sim_name}"
 fi
 for N in 24 30 48 90 180
@@ -724,12 +738,18 @@ RUNDIR_VARS+="RUNDIR_HIST_INST_FREQ='010000'\n"
 RUNDIR_VARS+="RUNDIR_HIST_MONTHLY_DIAG='1'\n"
 
 # Set default compute resources
-RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
-RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
-RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+if [[ "${met}" == "geosit" && "${adv_flux_src}" == "1hr_mass_flux" ]]; then
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='24'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='1'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='24'\n"
+else
+    RUNDIR_VARS+="RUNDIR_NUM_CORES='96'\n"
+    RUNDIR_VARS+="RUNDIR_NUM_NODES='2'\n"
+    RUNDIR_VARS+="RUNDIR_CORES_PER_NODE='48'\n"
+fi
 
 # Set default grid resolution
-if [[ "${met}" == "geosit" && "${adv_flux_src}" == "mass_flux" ]]; then
+if [[ "${met}" == "geosit" && "${adv_flux_src}" == "1hr_mass_flux" ]]; then
     RUNDIR_VARS+="RUNDIR_CS_RES='30'\n"
 else
     RUNDIR_VARS+="RUNDIR_CS_RES='24'\n"
@@ -896,6 +916,27 @@ printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
 printf "\n     https://readthedocs.org/projects/gchp/\n\n"
 
+#-----------------------------------------------------------------
+# Ask user whether to build the KPP-standalone box model
+#-----------------------------------------------------------------
+enable_kppsa=""
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    printf "${thinline}Do you want to build the KPP-Standalone Box Model? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" enable_kppsa
+	if [[ "x${enable_kppsa}" == "xy" ]]; then
+	    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml  ${rundir}
+	    chmod 644 ${rundir}/kpp_standalone_interface.yml
+	    valid_response=1
+	elif [[ "x${enable_kppsa}" = "xn" ]]; then
+	    valid_response=1
+	else
+	    printf "Input not recognized. Try again.\n"
+	fi
+    done
+fi
+
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
@@ -903,14 +944,15 @@ hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
 
 EXTRA_CMAKE_OPTIONS=""
-[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
-[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15 "
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40 "
 fi
+[[ "x${enable_kppsa}" == "xy" ]] && EXTRA_CMAKE_OPTIONS+="-DKPPSA=y"
 
 # Add to RUNDIR_VARS
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"

@@ -1559,8 +1559,7 @@ CONTAINS
 ! !IROUTINE: get_gc_restart
 !
 ! !DESCRIPTION: Subroutine GET\_GC\_RESTART reads species concentrations
-!  [mol/mol] from the GEOS-Chem restart file and uses them to initialize
-!  species concentrations in [kg/kg dry]. If species data are missing from
+!  [mol/mol] from the GEOS-Chem restart file. If species data are missing from
 !  the restart file, pre-configured background values are used. If using the
 !  mercury simulation, additional restart data are read from file.
 !\\
@@ -1576,7 +1575,7 @@ CONTAINS
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_State_GC_Mod,  ONLY : HcoState
-   USE PhysConstants,     ONLY : AIRMW
+   USE PhysConstants,     ONLY : AIRMW, G0_100
    USE Input_Opt_Mod,     ONLY : OptInput
    USE Species_Mod,       ONLY : Species, SpcConc
    USE State_Chm_Mod,     ONLY : ChmState
@@ -1584,10 +1583,17 @@ CONTAINS
    USE State_Met_Mod,     ONLY : MetState
    USE Time_Mod,          ONLY : Expand_Date
    USE Timers_Mod,        ONLY : Timer_End, Timer_Start
-   USE UnitConv_Mod
+   USE UnitConv_Mod,      ONLY : MOLES_SPECIES_PER_MOLES_DRY_AIR
 #ifdef APM
    USE APM_Init_Mod,      ONLY : APMIDS
 #endif
+
+   ! Netcdf libraries for local read of restart file
+   USE netCDF
+   USE m_netcdf_io_open
+   USE m_netcdf_io_read
+   USE m_netcdf_io_readattr
+   USE m_netcdf_io_close
 !
 ! !INPUT PARAMETERS:
 !
@@ -1616,11 +1622,12 @@ CONTAINS
    INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
    INTEGER                   :: previous_units
    LOGICAL                   :: FOUND              ! Found in restart file?
+   LOGICAL                   :: FOUND_DELP_DRY     ! Found layer delta P in restart?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
    CHARACTER(LEN=255)        :: MSG                ! message
-   CHARACTER(LEN=255)        :: v_name             ! variable name
-   REAL(fp)                  :: MW_g               ! species molecular weight
+   CHARACTER(LEN=255)        :: v_name_in_hemco    ! variable name in HEMCO
+   CHARACTER(LEN=255)        :: v_name_in_file     ! variable name in restart file
    REAL(fp)                  :: SMALL_NUM          ! small number threshold
 
    ! Temporary arrays and pointers
@@ -1640,6 +1647,34 @@ CONTAINS
    TYPE(SpcConc),    POINTER :: Spc(:)
    TYPE(Species),    POINTER :: SpcInfo
 
+   ! For local read of restart file
+   LOGICAL            :: Use_HEMCO_for_restart_read
+   LOGICAL            :: FileExists          ! Does input file exist?
+   INTEGER            :: fId, ierr, varid
+   CHARACTER(LEN=255) :: nc_dir              ! netCDF directory name
+   CHARACTER(LEN=255) :: nc_file             ! netCDF file name
+   CHARACTER(LEN=255) :: nc_path             ! netCDF path name
+   CHARACTER(LEN=255) :: a_name              ! netCDF attribute name
+   CHARACTER(LEN=255) :: a_val               ! netCDF attribute value
+   CHARACTER(LEN=6)   :: TimeStr
+   CHARACTER(LEN=8)   :: DateStr
+   INTEGER            :: st3d(3), ct3d(3)    ! For 3D arrays
+   INTEGER            :: st4d(4), ct4d(4)    ! For 4D arrays
+   REAL*8,  TARGET    :: Temp3D_r8(State_Grid%NX,State_Grid%NY,1)
+   REAL*4,  TARGET    :: Temp4D_r4(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,1)
+   REAL*8,  TARGET    :: Temp4D_r8(State_Grid%NX,State_Grid%NY, &
+                                       State_Grid%NZ,1)
+   REAL*8,  POINTER   :: Ptr3D_r8(:,:,:)
+   REAL*4,  POINTER   :: Ptr4D_r4(:,:,:,:)
+   REAL*8,  POINTER   :: Ptr4D_r8(:,:,:,:)
+
+   ! For species mass conservation
+   LOGICAL            :: update_mixing_ratio
+   REAL*8             :: AirMass
+   REAL*8,  TARGET    :: SpcMass(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+   REAL*8,  POINTER   :: SpcMassPtr(:,:,:)
+
    !=================================================================
    ! READ_GC_RESTART begins here!
    !=================================================================
@@ -1650,6 +1685,9 @@ CONTAINS
    ! Initialize pointers
    Ptr2D       => NULL()
    Ptr3D       => NULL()
+   Ptr3D_r8    => NULL()
+   Ptr4D_r4    => NULL()
+   Ptr4D_r8    => NULL()
    SpcInfo     => NULL()
 
    ! Name of this routine
@@ -1661,6 +1699,37 @@ CONTAINS
    ! Set pointer to species concentrations
    Spc => State_Chm%Species
 
+   ! Set how to read restart file. HEMCO will always be used to read the restart file
+   ! unless 'read_restart_as_real8: true' is added to the geoschem_config.yml simulation
+   ! menu of GC-Classic. Doing this is only allowed, i.e. will not stop with an error, if:
+   !    1. Simulation is not nested
+   !    2. Simulation is not Hg
+   !    3. Restart file is same grid resolution as the run resolution
+   !    4. Restart file with simulation start date in filename exists
+   ! This option is useful for testing bit-for-bit reproducibility of the model when
+   ! breaking up a run in time since HEMCO only reads in values as REAL4 while fields
+   ! are saved in the restart file and in the model as REAL8
+   Use_HEMCO_for_restart_read = .NOT. Input_Opt%read_restart_as_real8
+   IF ( .NOT. Use_HEMCO_for_restart_read ) THEN
+      IF ( State_Grid%NestedGrid ) THEN
+         CALL GC_Error( 'Nested grid restart files must be read through HEMCO', RC, Loc )
+         RETURN
+      ENDIF
+      IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
+         CALL GC_Error( 'Mercury simulation restart files must be read through HEMCO', RC, Loc )
+         RETURN
+      ENDIF
+      IF ( Input_Opt%amIRoot ) print *, "WARNING: Reading GEOS-Chem restart file as REAL8 locally rather than REAL4 through HEMCO"
+   ENDIF
+
+   ! FORMAT strings
+500   FORMAT( a                                                              )
+510   FORMAT( a21, ': Min = ', es15.9, '  Max = ', es15.9, '  Sum = ',es15.9 )
+520   FORMAT( a21, ': not found in GEOS-Chem restart file, setting to zero'  )
+530   FORMAT( '   Species ', i3, ', ', a9, ': Min = ', es15.9, ', Max = ', es15.9, '  Sum = ',es15.9 )
+540   FORMAT( '   Species ', i3, ', ', a9, ': not found in restart, setting to background = ', es15.9)
+550   FORMAT( '                           Global mass = ', es15.9 )
+
    !=================================================================
    ! Open GEOS-Chem restart file
    !=================================================================
@@ -1669,14 +1738,113 @@ CONTAINS
    WRITE( 6, '(a)'   ) REPEAT( '=', 79 )
    WRITE( 6, '(a,/)' ) 'R E S T A R T   F I L E   I N P U T'
 
+   ! Setup to read restart file locally
+   IF ( .NOT. Use_HEMCO_for_restart_read ) THEN
+
+      ! Directory and file name
+      nc_dir  = './Restarts/'
+      WRITE( DateStr, '(i8.8)' ) Input_Opt%NYMDb
+      WRITE( TimeStr, '(i6.6)' ) Input_Opt%NHMSb
+      nc_file = 'GEOSChem.Restart.' // DateStr // '_' // TimeStr(1:4) // 'z.nc4'
+      nc_path = TRIM( nc_dir ) // TRIM( nc_file )
+
+      ! Test if the file exists
+      INQUIRE( FILE=TRIM( nc_path ), EXIST=FileExists )
+
+      ! Test if the file exists and define an output string
+      IF ( FileExists ) THEN
+         Msg = 'Restart file: Opening'
+      ELSE
+         Msg = 'Restart file: REQUIRED FILE NOT FOUND'
+      ENDIF
+
+      ! Write to stdout for both regular and dry-run simulations
+      IF ( Input_Opt%amIRoot ) THEN
+         WRITE( 6, 300 ) TRIM( Msg ), TRIM( nc_path )
+300      FORMAT( a, ' ', a )
+      ENDIF
+
+      ! For dry-run simulations, return to calling program.
+      ! For regular simulations, throw an error if we can't find the file.
+      IF ( Input_Opt%DryRun ) THEN
+         RETURN
+      ELSE
+         IF ( .not. FileExists ) THEN
+            WRITE( Msg, 300 ) TRIM( Msg ), TRIM( nc_path )
+            CALL GC_Error( Msg, RC, Loc )
+            RETURN
+         ENDIF
+      ENDIF
+
+      ! Open file
+      CALL Ncop_Rd( fId, TRIM(nc_path) )
+
+   ENDIF
+
+   !=========================================================================
+   ! Get delta pressure per grid box stored in restart file to allow mass
+   ! conservation across consecutive runs. Set DP_DRY_PREV to this value
+   ! since it is the delta pressure used to create the restart file rather
+   ! than the current meteorology.
+   !========================================================================
+   v_name_in_hemco = 'DELPDRY'
+   v_name_in_file  = 'Met_DELPDRY'
+
+   IF ( use_HEMCO_for_restart_read ) THEN
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),  &
+           Ptr3D,     RC,         FOUND=FOUND_DELP_DRY )
+   ELSE
+      Temp4D_r8 = 0.0_fp
+      Ptr4D_r8 => Temp4D_r8
+      st4d   = (/  1,  1,  1,  1 /)
+      ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+      CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+      FOUND_DELP_DRY = .TRUE.
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+   ENDIF
+
+   IF ( FOUND_DELP_DRY ) THEN
+      IF ( use_HEMCO_for_restart_read ) THEN
+         State_Met%DP_DRY_PREV = Ptr3D
+      ELSE
+         State_Met%DP_DRY_PREV = Ptr4D_r8(:,:,:,1)
+      ENDIF
+      IF ( Input_Opt%amIRoot ) THEN
+         WRITE( 6, 510 ) ADJUSTL( v_name_in_file   ),         &
+              MINVAL(  State_Met%DP_DRY_PREV ),               &
+              MAXVAL(  State_Met%DP_DRY_PREV ),               &
+              SUM(     State_Met%DP_DRY_PREV )
+      ENDIF
+
+      ! Check if different from current meteorology. If yes, print warning and set flag.
+      IF ( ABS(SUM(State_Met%DP_DRY_PREV) - SUM(State_Met%DELP_DRY)) > 1.d-10 ) THEN
+         update_mixing_ratio = .TRUE.
+         WRITE (6,*) 'WARNING: Layer delta pressures found in the restart file differ from current '
+         WRITE (6,*) 'meteorology. All species concentrations will be scaled by the ratio of '
+         WRITE (6,*) 'restart file delta pressure to input meteorology delta pressure in order '
+         WRITE (6,*) 'to conserve species mass in the restart file. If you wish to avoid this '
+         WRITE (6,*) 'behavior then rerun using a restart file without Met_DELPDRY'
+      ENDIF
+   ELSE
+      WRITE (6,*) 'WARNING: Species mass cannot be computed from restart file concentrations '
+      WRITE (6,*) 'because Met_DELPDRY was not found in the restart file. Species '
+      WRITE (6,*) 'concentrations [mol/mol] in the restart file will be used in the first'
+      WRITE (6,*) 'timestep. No scaling will be done to conserve restart file mass.'
+   ENDIF
+
+   ! Nullify pointer
+   Ptr3D => NULL()
+   Ptr4D_r8 => NULL()
+
    !=================================================================
    ! Read species concentrations from NetCDF or use default
-   ! background [mol/mol]; store in State_Chm%Species%Conc in [kg/kg dry]
+   ! background [mol/mol]
    !=================================================================
 
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
-110 FORMAT( 'Min and Max of each species in restart file [mol/mol]:' )
+110 FORMAT( 'Min, max, and sum of each species in restart file [mol/mol], plus global mass if delta pressure found in file:' )
 
    ! Loop over species
    DO N = 1, State_Chm%nSpecies
@@ -1686,18 +1854,42 @@ CONTAINS
 
       ! Get info about this species from the species database
       SpcInfo => State_Chm%SpcData(N)%Info
-      MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
-      v_name = 'SPC_' // TRIM( SpcInfo%Name )
+      v_name_in_hemco = 'SPC_' // TRIM( SpcInfo%Name )
+      v_name_in_file  = 'SpeciesRst_' // TRIM( SpcInfo%Name )
 
       ! Initialize temporary array for this species and point to it
       Temp3D = 0.0_fp
       Ptr3D => Temp3D
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), &
-                          Ptr3D,     RC,         FOUND=FOUND )
+      If ( use_HEMCO_for_restart_read ) THEN
+
+         ! Get variable from HEMCO and store in local array
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name_in_hemco), &
+              Ptr3D,     RC,         FOUND=FOUND )
+
+      ELSE
+
+         ! Check if variable in file
+         ierr = NF90_Inq_VarId(fId, TRIM(v_name_in_file), varid)
+         IF (ierr /= NF90_NOERR) THEN
+            FOUND = .FALSE.
+         ELSE
+            ! Read from file
+            Temp4D_r8 = 0.0_fp
+            Ptr4D_r8 => Temp4D_r8
+            st4d   = (/  1,  1,  1,  1 /)
+            ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+            CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+            FOUND = .TRUE.
+
+            ! Read the units attribute
+            a_name = "units"
+            CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+         ENDIF
+
+      ENDIF
 
       ! Check if species data is in file
       IF ( FOUND ) THEN
@@ -1706,39 +1898,77 @@ CONTAINS
          SpcInfo%Is_InRestart = .FALSE.
       ENDIF
 
-      ! If data is in file, read in as [mol/mol] and convert to
-      ! [kg/kg dry]. Otherwise, set to background value [mol/mol]
-      ! either stored in species database (advected species all levels and
-      ! non-advected species levels in the chemistry grid) or a small number
-      ! (non-advected species levels above the chemistry grid) converted to
-      ! [kg/kg dry]
+      ! If data is in file, read in as [mol/mol]. Otherwise, set to
+      ! background value [mol/mol] either stored in species database
+      ! (advected species all levels and non-advected species levels
+      ! in the chemistry grid) or a small number (non-advected species
+      ! levels above the chemistry grid).
       IF ( SpcInfo%Is_InRestart ) THEN
 
-         ! Print the min & max of each species as it is read from
-         ! the restart file in mol/mol
-         IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 120 ) N, TRIM( SpcInfo%Name ), &
-                            MINVAL( Ptr3D ), MAXVAL( Ptr3D ), SUM ( Ptr3D(:,:,1:State_Grid%NZ) )
-120         FORMAT( 'Species ', i3, ', ', a8, ': Min = ', es15.9, &
-                    '  Max = ',es15.9, '  Sum = ',es15.9)
+         ! Set the mol/mol mixing ratio from the restart file
+         IF ( use_HEMCO_for_restart_read ) THEN
+            Spc(N)%Conc = Ptr3D
+         ELSE
+            Spc(N)%Conc = Ptr4D_r8(:,:,:,1)
          ENDIF
 
-         ! Convert file value [mol/mol] to [kg/kg dry] for storage
-         !$OMP PARALLEL DO       &
-         !$OMP DEFAULT( SHARED ) &
-         !$OMP PRIVATE( I, J, L )
-         DO L = 1, State_Grid%NZ
-         DO J = 1, State_Grid%NY
-         DO I = 1, State_Grid%NX
-            Spc(N)%Conc(I,J,L) = Ptr3D(I,J,L) * MW_g / AIRMW
-         ENDDO
-         ENDDO
-         ENDDO
-         !$OMP END PARALLEL DO
+         ! Print the min, max, and sum of each species in mol/mol
+         IF ( Input_Opt%amIRoot ) THEN
+            WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ),               &
+                 MINVAL( Spc(N)%Conc ), MAXVAL( Spc(N)%Conc ), SUM ( Spc(N)%Conc )
+         ENDIF
+
+         ! If DELP_DRY was found in the restart file:
+         !    1. Compute and print species global mass in file
+         !    2. Update mixing ratio to conserve mass if file delta pressure
+         !       differs from current meteorology
+         IF ( FOUND_DELP_DRY ) THEN
+
+            ! Also print mass based on restart file mixing ratio and meteorology
+            SpcMass = 0.d0
+            SpcMassPtr => SpcMass
+            !$OMP PARALLEL DO                 &
+            !$OMP DEFAULT( SHARED           ) &
+            !$OMP PRIVATE( I, J, L, AirMass ) &
+            !$OMP COLLAPSE( 3 )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               AirMass = State_Met%DP_DRY_PREV(I,J,L) * G0_100  &
+                    * State_Met%AREA_M2(I,J)
+               SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
+                    / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+            ENDDO
+            ENDDO
+            ENDDO
+            !$OMP END PARALLEL DO
+            WRITE(6,550) SUM( SpcMassPtr )
+            SpcMassPtr => NULL()
+
+            ! Update mixing ratio to conserve mass if current pressure different
+            ! from restart file pressure
+            IF ( update_mixing_ratio ) THEN
+               ! Update concentrations
+               !$OMP PARALLEL DO        &
+               !$OMP DEFAULT( SHARED  ) &
+               !$OMP PRIVATE( I, J, L ) &
+               !$OMP COLLAPSE( 3 )
+               DO L = 1, State_Grid%NZ
+               DO J = 1, State_Grid%NY
+               DO I = 1, State_Grid%NX
+                  Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L)   &
+                       * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+               !$OMP END PARALLEL DO
+            ENDIF
+
+         ENDIF
 
       ELSE
 
-         ! Set species to the background value converted to [kg/kg dry]
+         ! Set species to the background value
          !$OMP PARALLEL DO       &
          !$OMP DEFAULT( SHARED ) &
          !$OMP PRIVATE( I, J, L )
@@ -1752,21 +1982,18 @@ CONTAINS
             IF ( L > State_Grid%MaxChemLev .and. &
                      .NOT. SpcInfo%Is_Advected ) THEN
 
-               Spc(N)%Conc(I,J,L) = SMALL_NUM * MW_g / AIRMW
+               Spc(N)%Conc(I,J,L) = SMALL_NUM
 
             ! For all other cases, use the background value
             ! stored in the species database
             ELSE
 
-               Spc(N)%Conc(I,J,L) = SpcInfo%BackgroundVV &
-                                            * MW_g / AIRMW
+               Spc(N)%Conc(I,J,L) = SpcInfo%BackgroundVV
 
-               ! Print to log if debugging is on
+               ! Print to log a warning that background values will be used
                IF ( Input_Opt%amIRoot .AND. &
                     I == 1 .AND. J == 1 .AND. L == 1 ) THEN
-                  WRITE( 6, 140 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
-140               FORMAT('Species ', i3, ', ', a9, &
-                         ': Use background = ', es15.9)
+                  WRITE( 6, 540 ) N, TRIM( SpcInfo%Name ), SpcInfo%BackgroundVV
                ENDIF
 
 
@@ -1897,84 +2124,12 @@ CONTAINS
       ENDIF
 
       ! Set the initial unit flags
-      State_Chm%Species(N)%Units = KG_SPECIES_PER_KG_DRY_AIR
+      State_Chm%Species(N)%Units = MOLES_SPECIES_PER_MOLES_DRY_AIR
 
       ! Free pointer
       SpcInfo => NULL()
 
    ENDDO
-
-   ! If in debug mode, print out species min and max in [molec/cm3]
-   IF ( Input_Opt%Verbose ) THEN
-
-      ! Convert units
-      PRINT *, " "
-      PRINT *, "Species min and max in molec/cm3"
-
-      ! Halt HEMCO timer (so that unit conv can be timed separately)
-      IF ( Input_Opt%useTimers ) THEN
-         CALL Timer_End( "HEMCO", RC )
-      ENDIF
-
-      ! Convert units
-      CALL Convert_Spc_Units(                                                &
-           Input_Opt      = Input_Opt,                                       &
-           State_Chm      = State_Chm,                                       &
-           State_Grid     = State_Grid,                                      &
-           State_Met      = State_Met,                                       &
-           new_units      = MOLECULES_SPECIES_PER_CM3,                       &
-           previous_units = previous_units,                                  &
-           RC             = RC                                              )
-
-      ! Trap error
-      IF ( RC /= GC_SUCCESS ) THEN
-         Msg = 'Error returned from Convert_Spc_Units, call #1!'
-         CALL GC_Error( Msg, RC, Loc )
-         RETURN
-      ENDIF
-
-      ! Start HEMCO timer again
-      IF ( Input_Opt%useTimers ) THEN
-         CALL Timer_Start( "HEMCO", RC )
-      ENDIF
-
-      ! Print values
-      DO N = 1, State_Chm%nSpecies
-         SpcInfo => State_Chm%SpcData(N)%Info
-         WRITE(6,150) N, TRIM( SpcInfo%Name ),         &
-                         MINVAL( Spc(N)%Conc(:,:,:) ), &
-                         MAXVAL( Spc(N)%Conc(:,:,:) )
-150      FORMAT( 'Species ', i3, ', ', a9,             &
-                 ': Min = ', es15.9, ', Max = ', es15.9 )
-         SpcInfo => NULL()
-      ENDDO
-
-      ! Halt HEMCO timer (so that unit conv can be timed separately)
-      IF ( Input_Opt%useTimers ) THEN
-         CALL Timer_End( "HEMCO", RC )
-      ENDIF
-
-      ! Convert units back
-      CALL Convert_Spc_Units(                                                &
-           Input_Opt  = Input_Opt,                                           &
-           State_Chm  = State_Chm,                                           &
-           State_Grid = State_Grid,                                          &
-           State_Met  = State_Met,                                           &
-           new_units  = previous_units,                                      &
-           RC         = RC                                                  )
-
-      ! Trap error
-      IF ( RC /= GC_SUCCESS ) THEN
-         Msg = 'Error returned from Convert_Spc_Units, call #2!'
-         CALL GC_Error( Msg, RC, Loc )
-         RETURN
-      ENDIF
-
-      ! Start HEMCO timer again
-      IF ( Input_Opt%useTimers ) THEN
-         CALL Timer_Start( "HEMCO", RC )
-      ENDIF
-   ENDIF
 
    !=========================================================================
    ! Get variables for KPP mechanisms (right now just fullchem and Hg)
@@ -1985,33 +2140,44 @@ CONTAINS
       !----------------------------------------------------------------------
       ! KPP_HVALUE (count of internal timesteps at each grid box)
       !----------------------------------------------------------------------
-      v_name = 'KPP_HVALUE'
+      v_name_in_hemco = 'KPP_HVALUE'
+      v_name_in_file = 'Chem_KPPHvalue'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr3D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%KPPHvalue = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%KPPHvalue = Ptr3D
+         ELSE
+            State_Chm%KPPHvalue = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name              ),                  &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file      ),                  &
                             MINVAL(  State_Chm%KPPHvalue ),                  &
                             MAXVAL(  State_Chm%KPPHvalue ),                  &
                             SUM(     State_Chm%KPPHvalue )
          ENDIF
       ELSE
          State_Chm%KPPHvalue = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr3D => NULL()
-
-      ! FORMAT strings
-500   FORMAT( a                                                              )
-510   FORMAT( a21, ': Min = ', es15.9, '  Max = ', es15.9, '  Sum = ',es15.9 )
-520   FORMAT( a21, ': not found in restart, set to zero'                      )
+      Ptr4D_r8 => NULL()
 
    ENDIF
 
@@ -2023,54 +2189,86 @@ CONTAINS
       !----------------------------------------------------------------------
       ! WETDEP_N (wet-deposited nitrogen)
       !----------------------------------------------------------------------
-      v_name = 'WETDEP_N'
+      v_name_in_hemco = 'WETDEP_N'
+      v_name_in_file  = 'Chem_WetDepNitrogen'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr2D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1  /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%WetDepNitrogen = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%WetDepNitrogen = Ptr2D
+         ELSE
+            State_Chm%WetDepNitrogen = Ptr3D_r8(:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name                   ),             &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file           ),             &
                             MINVAL(  State_Chm%WetDepNitrogen ),             &
                             MAXVAL(  State_Chm%WetDepNitrogen ),             &
                             SUM(     State_Chm%WetDepNitrogen )
          ENDIF
       ELSE
          State_Chm%WetDepNitrogen = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) TRIM( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) TRIM( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! DRYDEP_N (dry-deposited nitrogen)
       !----------------------------------------------------------------------
-      v_name = 'DRYDEP_N'
+      v_name_in_hemco = 'DRYDEP_N'
+      v_name_in_file  = 'Chem_DryDepNitrogen'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr2D,     RC,         FOUND=FOUND )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%DryDepNitrogen = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%DryDepNitrogen = Ptr2D
+         ELSE
+            State_Chm%DryDepNitrogen = Ptr3D_r8(:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name                   ),             &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file           ),             &
                             MINVAL(  State_Chm%DryDepNitrogen ),             &
                             MAXVAL(  State_Chm%DryDepNitrogen ),             &
                             SUM(     State_Chm%DryDepNitrogen )
          ENDIF
       ELSE
          State_Chm%DryDepNitrogen = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
    ENDIF
 
@@ -2083,108 +2281,172 @@ CONTAINS
       !----------------------------------------------------------------------
       ! H2O2_AFTERCHEM
       !----------------------------------------------------------------------
-      v_name = 'H2O2_AFTERCHEM'
+      v_name_in_hemco = 'H2O2_AFTERCHEM'
+      v_name_in_file = 'Chem_H2O2AfterChem'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%H2O2AfterChem = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%H2O2AfterChem = Ptr3D
+         ELSE
+            State_Chm%H2O2AfterChem = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name                  ),              &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file          ),              &
                             MINVAL(  State_Chm%H2O2AfterChem ),              &
                             MAXVAL(  State_Chm%H2O2AfterChem ),              &
                             SUM(     State_Chm%H2O2AfterChem )
         ENDIF
       ELSE
          State_Chm%H2O2AfterChem = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! SO2_AFTERCHEM
       !----------------------------------------------------------------------
-      v_name = 'SO2_AFTERCHEM'
+      v_name_in_hemco = 'SO2_AFTERCHEM'
+      v_name_in_file  = 'Chem_SO2AfterChem'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%SO2AfterChem = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%SO2AfterChem = Ptr3D
+         ELSE
+            State_Chm%SO2AfterChem = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name                 ),               &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file         ),               &
                             MINVAL(  State_Chm%SO2AfterChem ),               &
                             MAXVAL(  State_Chm%SO2AfterChem ),               &
                             SUM(     State_Chm%SO2AfterChem )
          ENDIF
       ELSE
          State_Chm%SO2AfterChem = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! AeroH2O_SNA
       !----------------------------------------------------------------------
-      v_name = 'AEROH2O_SNA'
+      v_name_in_hemco = 'AEROH2O_SNA'
+      v_name_in_file  = 'Chem_AeroH2OSNA'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r8 = 0.0_fp
+         Ptr4D_r8 => Temp4D_r8
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr3D
+         ELSE
+            State_Chm%AeroH2O(:,:,:,NDUST+1) = Ptr4D_r8(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name                           ),     &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file                   ),     &
                             MINVAL(  State_Chm%AeroH2O(:,:,:,NDUST+1) ),     &
                             MAXVAL(  State_Chm%AeroH2O(:,:,:,NDUST+1) ),     &
                             SUM(     State_Chm%AeroH2O(:,:,:,NDUST+1) )
          ENDIF
       ELSE
          State_Chm%AeroH2O(:,:,:,NDUST+1) = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! ORVCsesq
       !----------------------------------------------------------------------
       IF ( Input_Opt%LCARB .AND. Input_Opt%LSOA ) THEN
 
-         v_name = 'ORVCSESQ'
+         v_name_in_hemco = 'ORVCSESQ'
+         v_name_in_file  = 'Chem_ORVCsesq'
 
-         ! Get variable from HEMCO and store in local array
-         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                             Ptr3D,     RC,         FOUND=FOUND                )
+         IF ( use_HEMCO_for_restart_read ) THEN
+            CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ), &
+                 Ptr3D,     RC,         FOUND=FOUND             )
+         ELSE
+            Temp4D_r8 = 0.0_fp
+            Ptr4D_r8 => Temp4D_r8
+            st4d   = (/  1,  1,  1,  1 /)
+            ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+            CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+            FOUND = .TRUE.
+            a_name = "units"
+            CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+         ENDIF
 
          ! Check if variable is in file
          IF ( FOUND ) THEN
-            State_Chm%ORVCsesq(:,:,:) = Ptr3D
+            IF ( use_HEMCO_for_restart_read ) THEN
+               State_Chm%ORVCsesq(:,:,:) = Ptr3D
+            ELSE
+               State_Chm%ORVCsesq(:,:,:) = Ptr4D_r8(:,:,:,1)
+            endif
             IF ( Input_Opt%amIRoot ) THEN
-               WRITE( 6, 510 ) ADJUSTL( v_name                           ),     &
+               WRITE( 6, 510 ) ADJUSTL( v_name_in_file            ),     &
                                MINVAL(  State_Chm%ORVCsesq(:,:,:) ),     &
                                MAXVAL(  State_Chm%ORVCsesq(:,:,:) ),     &
                                SUM(     State_Chm%ORVCsesq(:,:,:) )
             ENDIF
          ELSE
             State_Chm%ORVCsesq(:,:,:) = 0.0_fp
-            IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+            IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
          ENDIF
 
          ! Nullify pointer
          Ptr3D => NULL()
+         Ptr4D_r8 => NULL()
 
       ENDIF
 
@@ -2198,17 +2460,32 @@ CONTAINS
       !----------------------------------------------------------------------
       ! STATE_PSC (needed to initialize UCX)
       !----------------------------------------------------------------------
-      v_name = 'STATE_PSC'
+      v_name_in_hemco = 'STATE_PSC'
+      v_name_in_file  = 'Chem_StatePSC'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr3D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr3D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp4D_r4 = 0.0_fp
+         Ptr4D_r4 => Temp4D_r4
+         st4d   = (/  1,  1,  1,  1 /)
+         ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+         CALL NcRd( Ptr4D_r4, fId, TRIM(v_name_in_file), st4d, ct4d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%STATE_PSC = Ptr3D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%STATE_PSC = Ptr3D
+         ELSE
+            State_Chm%STATE_PSC = Ptr4D_r4(:,:,:,1)
+         ENDIF
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name              ),                  &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file      ),                  &
                             MINVAL(  State_Chm%STATE_PSC ),                  &
                             MAXVAL(  State_Chm%STATE_PSC ),                  &
                             SUM(     State_Chm%STATE_PSC )
@@ -2236,57 +2513,90 @@ CONTAINS
 
       ! Nullify pointer
       Ptr3D => NULL()
+      Ptr4D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! JOH (needed to initialize PARANOx)
       !----------------------------------------------------------------------
-      v_name = 'JOH'
+      v_name_in_hemco = 'JOH'
+      v_name_in_file  = 'Chem_JOH'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr2D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%JOH = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%JOH = Ptr2D
+         ELSE
+            State_Chm%JOH = Ptr3D_r8(:,:,1)
+         endif
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name       ),                         &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file ),                       &
                             MINVAL(  State_Chm%JOH ),                        &
                             MAXVAL(  State_Chm%JOH ),                        &
                             SUM(     State_Chm%JOH )
          ENDIF
       ELSE
          State_Chm%JOH = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
 
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
       !----------------------------------------------------------------------
       ! JNO2 (needed to initialize PARANOx)
       !----------------------------------------------------------------------
-      v_name = 'JNO2'
+      v_name_in_hemco = 'JNO2'
+      v_name_in_file  = 'Chem_JNO2'
 
-      ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),             &
-                          Ptr2D,     RC,         FOUND=FOUND                )
+      IF ( use_HEMCO_for_restart_read ) THEN
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),    &
+              Ptr2D,     RC,         FOUND=FOUND                )
+      ELSE
+         Temp3D_r8 = 0.0_fp
+         Ptr3D_r8 => Temp3D_r8
+         st3d   = (/  1,  1,  1 /)
+         ct3d   = (/ State_Grid%NX, State_Grid%NY, 1 /)
+         CALL NcRd( Ptr3D_r8, fId, TRIM(v_name_in_file), st3d, ct3d )
+         FOUND = .TRUE.
+         a_name = "units"
+         CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+      ENDIF
 
       ! Check if variable is in file
       IF ( FOUND ) THEN
-         State_Chm%JNO2 = Ptr2D
+         IF ( use_HEMCO_for_restart_read ) THEN
+            State_Chm%JNO2 = Ptr2D
+         ELSE
+            State_Chm%JNO2 = Ptr3D_r8(:,:,1)
+         endif
          IF ( Input_Opt%amIRoot ) THEN
-            WRITE( 6, 510 ) ADJUSTL( v_name         ),                       &
+            WRITE( 6, 510 ) ADJUSTL( v_name_in_file ),                       &
                             MINVAL(  State_Chm%JNO2 ),                       &
                             MAXVAL(  State_Chm%JNO2 ),                       &
                             SUM(     State_Chm%JNO2 )
          ENDIF
       ELSE
          State_Chm%JNO2 = 0.0_fp
-         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name )
+         IF ( Input_Opt%amIRoot ) WRITE( 6, 520 ) ADJUSTL( v_name_in_file )
       ENDIF
       ! Nullify pointer
       Ptr2D => NULL()
+      Ptr3D_r8 => NULL()
 
    ENDIF
 
@@ -2313,10 +2623,10 @@ CONTAINS
            CASE ( 3 )
               HgSpc    = 'HgP'
          END SELECT
-         v_name = 'OCEAN_' // TRIM( HgSpc )
+         v_name_in_hemco = 'OCEAN_' // TRIM( HgSpc )
 
          ! Get variable from HEMCO and store in local array
-         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),          &
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ), &
                              Ptr2D,     RC,         FOUND=FOUND             )
 
          ! Check if variable is in file
@@ -2335,20 +2645,20 @@ CONTAINS
             SELECT CASE( M )
                CASE ( 1 )
                   State_Chm%OceanHg0 = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco ),        &
                                   SUM( State_Chm%OceanHg0 ), 'kg'
                CASE ( 2 )
                   State_Chm%OceanHg2 = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco ),        &
                                   SUM( State_Chm%OceanHg2 ), 'kg'
                CASE ( 3 )
                   State_Chm%OceanHgP = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name            ),                 &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco ),        &
                                   SUM( State_Chm%OceanHgP ), 'kg'
             END SELECT
 
          ELSE
-            WRITE( 6, 230 ) TRIM( v_name )
+            WRITE( 6, 230 ) TRIM( v_name_in_hemco )
          ENDIF
 
          ! Nullify pointer
@@ -2373,10 +2683,10 @@ CONTAINS
                Prefix = 'SNOW_HG_LAND_STORED'  ! Non-reducible on land
          END SELECT
 
-         v_name = TRIM( Prefix )
+         v_name_in_hemco = TRIM( Prefix )
 
          ! Get variable from HEMCO and store in local array
-         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name ),          &
+         CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ), &
                              Ptr2D,     RC,         FOUND=FOUND             )
 
          ! Check if variable is in file
@@ -2386,24 +2696,24 @@ CONTAINS
             SELECT CASE( M )
                CASE ( 1 )
                   State_Chm%SnowHgOcean = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco            ),        &
                                   SUM( State_Chm%SnowHgOcean       ), 'kg'
                CASE ( 2 )
                   State_Chm%SnowHgOceanStored = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco            ),        &
                                   SUM( State_Chm%SnowHgOceanStored ),'kg'
                CASE ( 3 )
                   State_Chm%SnowHgLand = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco            ),        &
                                   SUM( State_Chm%SnowHgLand        ), 'kg'
                CASE ( 4 )
                   State_Chm%SnowHgLandStored = Ptr2D
-                  WRITE( 6, 240 ) TRIM( v_name                     ),        &
+                  WRITE( 6, 240 ) TRIM( v_name_in_hemco            ),        &
                                   SUM( State_Chm%SnowHgLandStored  ), 'kg'
                END SELECT
 
          ELSE
-            WRITE( 6, 230 ) TRIM( v_name )
+            WRITE( 6, 230 ) TRIM( v_name_in_hemco )
          ENDIF
 
       ENDDO
@@ -2488,7 +2798,7 @@ CONTAINS
    CHARACTER(LEN=60)    :: Prefix             ! utility string
    CHARACTER(LEN=255)   :: LOC                ! routine location
    CHARACTER(LEN=255)   :: MSG                ! message
-   CHARACTER(LEN=255)   :: v_name             ! variable name
+   CHARACTER(LEN=255)   :: v_name_in_hemco    ! variable name
    REAL(fp)             :: MW_g               ! species molecular weight
    CHARACTER(LEN=16)    :: STAMP
 
@@ -2530,7 +2840,7 @@ CONTAINS
 
    !=================================================================
    ! Read species concentrations from NetCDF [mol/mol] and
-   ! store in State_Chm%BoundaryCond in [kg/kg dry]
+   ! store in State_Chm%BoundaryCond
    !=================================================================
 
    ! Print header for min/max concentration to log
@@ -2553,14 +2863,14 @@ CONTAINS
       MW_g    =  SpcInfo%MW_g
 
       ! Define variable name
-      v_name = 'BC_' // TRIM( SpcInfo%Name )
+      v_name_in_hemco = 'BC_' // TRIM( SpcInfo%Name )
 
       ! Initialize temporary array for this species and point to it
       Temp3D = 0.0_fp
       Ptr3D => Temp3D
 
       ! Get variable from HEMCO and store in local array
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name), Ptr3D, RC, &
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM(v_name_in_hemco), Ptr3D, RC, &
                        TIDX=t_index, FOUND=FOUND )
 
       ! Check if BCs are found
@@ -2597,9 +2907,8 @@ CONTAINS
             ENDIF
          ENDIF
 
-         ! Use the background value stored in the species database
-         State_Chm%BoundaryCond(:,:,:,N) = SpcInfo%BackgroundVV &
-                                            * MW_g / AIRMW
+         ! Use the background value stored in the species database [mol/mol]
+         State_Chm%BoundaryCond(:,:,:,N) = SpcInfo%BackgroundVV
 
       ENDIF
 

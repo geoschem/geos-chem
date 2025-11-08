@@ -5,7 +5,7 @@
 #BSUB -n 24
 #BSUB -W 168:00
 #BSUB -R "rusage[mem=300GB] span[ptile=36] select[mem < 2TB]"
-#BSUB -a 'docker(geoschem/gchp:14.3.0)'
+#BSUB -a 'docker(1dandan/gchp-esmf8.3:latest)'
 #BSUB -o lsf-%J.txt
 #
 #
@@ -27,6 +27,7 @@ set -x
 
 # Unlimit resources to prevent OS killing GCHP due to resource usage/
 # Alternatively you can put this in your environment file.
+# This is not working on LSF system because ulimit settings are not passed to mpi-launched tasks.
 ulimit -c 0                  # coredumpsize
 ulimit -l unlimited          # memorylocked
 ulimit -u 50000              # maxproc
@@ -49,15 +50,18 @@ source setCommonRunSettings.sh
 source setRestartLink.sh
 source checkRunSettings.sh
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 #################################################################
 #
 # LAUNCH GCHP 
 #
 #
-   mpiexec -n 24 ./gchp > ${log}
+   mpiexec -n 24 ./execute.sh &> ${log}
    
    # For OpenMPI, enable oversubscription to allow more ranks to be assigned to a host than the number of slots that are available
-   # mpiexec --oversubscribe -n 24 ./gchp > ${log}
+   # mpiexec --oversubscribe -n 24 ./gchp &> ${log}
 #
 
 #################################################################
@@ -68,6 +72,7 @@ source checkRunSettings.sh
 # Rename mid-run checkpoint files, if any. Discard file if time corresponds
 # to run start time since duplicate with initial restart file.
 chkpnts=$(ls Restarts)
+N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )   
 for chkpnt in ${chkpnts}
 do
     if [[ "$chkpnt" == *"gcchem_internal_checkpoint."* ]]; then
@@ -88,8 +93,7 @@ if [[ "${new_start_str}" = "${start_str}" || "${new_start_str}" = "" ]]; then
    echo "ERROR: cap_restart either did not change or is empty."
    rm -f Restarts/gcchem_internal_checkpoint
    exit 1
-else
-    N=$(grep "CS_RES=" setCommonRunSettings.sh | cut -c 8- | xargs )    
+else 
     mv Restarts/gcchem_internal_checkpoint Restarts/GEOSChem.Restart.${new_start_str:0:13}z.c${N}.nc4
     source setRestartLink.sh
 fi

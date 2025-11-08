@@ -697,7 +697,7 @@ CONTAINS
                 CASE( 'xy' )
                    Item%NcChunkSizes = (/ Dims(1), Dims(2), 1 /)   ! xy
                 CASE( 'bx', 'by' )
-                   Item%NcChunkSizes = (/ Dims(1), 1          /)   ! bx, by
+                   Item%NcChunkSizes = (/ Dims(1), 1,       1 /)   ! bx, by
                 CASE DEFAULT
                    Item%NcChunkSizes = (/ Dims(1), 1,       1 /)   ! xz or yz
              END SELECT

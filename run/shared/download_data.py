@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-
 """
 Description:
 ------------
@@ -7,26 +6,26 @@ This Python script (assumes Python3) reads a GEOS-Chem or
 HEMCO-standalone log file containing dry-run output and does
 the following:
 
-    (1) Creates a list of unique files that are required for the
-        GEOS-Chem or HEMCO-standalone simulation;
+(1) Creates a list of unique files that are required for the
+    GEOS-Chem or HEMCO-standalone simulation;
 
-    (2) Creates a bash script to download missing files from the AWS
-        s3://gcgrid bucket or from a specified server;
+(2) Creates a bash script to download missing files from the AWS
+    s3://gcgrid bucket or from a specified server;
 
-    (3) Executes the bash script to download the necessary data;
+(3) Executes the bash script to download the necessary data;
 
-    (4) Removes the bash script upon successful download.
+(4) Removes the bash script upon successful download.
 
 
 Remarks:
 --------
-    (1) This script only requires the "os", "sys", "subprocess", and
-        PyYaml packages.
+(1) This script only requires the "os", "sys", "subprocess", and
+    PyYaml packages.
 
-    (2) Jiawei Zhuang found that it is much faster to issue aws s3 cp
-        commands from a bash script than a Python script.  Therefore,
-        in this routine we create a bash script with all of the
-        download commands that will be executed by the main routine.
+(2) Jiawei Zhuang found that it is much faster to issue aws s3 cp
+    commands from a bash script than a Python script.  Therefore,
+    in this routine we create a bash script with all of the
+    download commands that will be executed by the main routine.
 """
 
 # Imports
@@ -44,10 +43,7 @@ GEOSCHEM_INPUT_FILE = "./geoschem_config.yml"
 DATA_DOWNLOAD_SCRIPT = "./auto_generated_download_script.sh"
 
 
-def read_config_file(
-        config_file,
-        to_str=False
-):
+def read_config_file(config_file, to_str=False):
     """
     Reads configuration information from a YAML file.
 
@@ -74,24 +70,18 @@ def read_config_file(
         raise FileNotFoundError(msg) from err
 
 
-def extract_pathnames_from_log(
-        args
-):
+def extract_pathnames_from_log(args):
     """
     Returns a list of pathnames from a GEOS-Chem log file.
 
-    Args:
-    -----
-    args : dict
-        Contains output from function parse_args.
+    Args
+    args  : dict : Output from function parse_args
 
-    Returns:
-    --------
-    paths : dict
-        paths["comments"]: Dry-run comment lines.
-        paths["found"] : List of file paths found on disk.
-        paths["missing"]: List of file paths that are missing.
-        paths["local_prefix"]: Local data directory root.
+    Returns
+    paths : dict : paths["comments"]    : Dry-run comment lines.
+                   paths["found"]       : File paths found on disk.
+                   paths["missing"]     : File paths that are missing.
+                   paths["local_prefix"]: Local data directory root.
 
     Author:
     -------
@@ -105,6 +95,8 @@ def extract_pathnames_from_log(
     data_found = set()
     data_missing = set()
     dryrun_log = args["dryrun_log"]
+    portal = args["portal"]
+    remote = args["config"]["portals"][portal]["remote"]
 
     # Open file (or die with error)
     with open(dryrun_log, "r", encoding="UTF-8") as ifile:
@@ -116,7 +108,7 @@ def extract_pathnames_from_log(
         while line:
 
             # Replace double slashes with single slash
-            line = line.replace("CHEM_INPUTS//", "CHEM_INPUTS/")
+            line = line.replace("//", "/")
 
             # Convert line to uppercase for string match
             upcaseline = line.upper()
@@ -156,6 +148,15 @@ def extract_pathnames_from_log(
             if "ExtData" in path:
                 index = path.find("ExtData")
                 local_prefix = path[:index]
+                #
+                # Data stored at these portals do not have an ExtData/
+                # folder, so we must add "/ExtData" to the path manually:
+                # - https://geos-chem.s3-us-west-2.amazonaws.com
+                # - https://gcgrid.s3.amazonaws.com/
+                if "ExtData" not in local_prefix:
+                    if ".amazonaws.com" in remote:
+                        local_prefix = \
+                            f"{local_prefix}/ExtData".replace('//', '/')
                 break
 
         # Exit if the local path does not contain ExtData
@@ -168,6 +169,8 @@ def extract_pathnames_from_log(
         # The "sorted" command will return unique values
         ifile.close()
 
+        # Error check!  If ExtData appears more than once in
+        #if local_prefix.count("ExtData") > 1:
         paths = {
             "comments": comments,
             "found": found,
@@ -184,9 +187,8 @@ def get_run_info():
 
     Returns:
     -------
-    run_info : dict
-        Contains the GEOS-Chem run parameters: start_date,
-        start_time, end_date, end_time, met, grid, and sim.
+    run_info : dict : GEOS-Chem run parameters (start_date, start_time,
+                      end_date, end_time, met, grid, and sim)
     """
 
     # Read GEOS-Chem configuration file
@@ -230,77 +232,72 @@ def get_run_info():
     return run_info
 
 
-def get_grid_suffix(
-        resolution
-):
+def get_grid_suffix(resolution):
     """
     Given a model resolution, returns the grid filename suffix.
 
-    Args:
-    -----
-    resolution : str
-        The grid resolution (read from geoschem_config.yml)
+    Args
+    resolution : str : Grid resolution (from geoschem_config.yml)
 
-    Returns:
-    --------
-    suffix : str
-        The corresponding filename suffix
+    Returns
+    suffix     : str : The corresponding filename suffix
     """
-    if "4.0x5.0" in resolution:
-        return "4x5"
-    if "2.0x2.5" in resolution:
-        return "2x25"
-    if "0.5x0.625" in resolution:
-        return "05x0625"
-    return "025x03125"
+    mapping = {
+        "4.0x5.0": "4x5",
+        "2.0x2.5": "2x25",
+        "0.5x0.625": "05x0625",
+        "0.25x0.3125": "025x03125",
+        "0.125x0.15625": "0125x015625"
+    }
+    for (key, value) in mapping.items():
+        if key in resolution:
+            return value
+
+    raise ValueError(f"{resolution} is an invalid grid resolution!")
 
 
-def get_nest_suffix(
-        longitude
-):
+def get_nest_suffix(lon_range):
     """
     Given a model resolution, returns the nested-grid suffix.
 
-    Args:
-    -----
-    resolution : str
-        The grid resolution (read from geoschem_config.yml)
+    Args
+    resolution : str : Grid resolution (from geoschem_config.yml)
 
-    Returns:
-    --------
-    suffix : str
-        The corresponding nested-grid suffix
+    Returns
+    suffix     : str : The corresponding nested-grid suffix
     """
-    if "-130" in longitude or "-140" in longitude:
-        return "na"
-    if "60" in longitude or "70" in longitude:
-        return "as"
+    lon_range_str = f"{lon_range[0]}|{lon_range[1]}"
+    mapping = {
+        "-20.0|52.8125": "af",
+        "60.0|150.0": "as",
+        "70.0|140.0": "as",
+        "-30.0|50.0": "eu",
+        "-15.0|40.0": "eu",
+        "-20.0|70.0": "me",
+        "-140.0|-40.0": "na",
+        "-130.0|-60.0": "na",
+        "110.0|180.0": "oc",
+        "-87.8125|-31.25": "sa",
+        "20.0|180.0": "ru",
+    }
+    for (key, value) in mapping.items():
+        if key in lon_range_str:
+            return value
     return ""
 
 
-def get_remote_restart_filename(
-        local_prefix,
-        run_info,
-        rst_info
-):
+def get_remote_restart_filename(local_prefix, run_info, rst_info):
     """
     Returns the remote restart file name for a given
     GEOS-Chem Classic simulation type.
 
-    Args:
-    -----
-    local_prefix : str
-        The root data folder.  ExtData is a subfolder of this folder.
-    run_info : dict
-        Information read from geoschem_config.yml
-    rst_info : dict
-        Restart file paths (local and remote), as read from the
-        download_data.yml configuration file.
-
-    Returns:
-    --------
-    remote_rst : str
-        Path to the remote restart file
+    Args
+    local_prefix : str  : Root data folder (ExtData is a subdir of this)
+    run_info     : dict : Information read from geoschem_config.yml
+    rst_info     : dict : Restart file paths (local and remote), as read
+                          from the download_data.yml configuration file
+    Returns
+    remote_rst   : str  : Path to the remote restart file
     """
 
     # Simulation type
@@ -325,49 +322,31 @@ def get_remote_restart_filename(
     return os.path.join(root, rst_info[simulation]["remote"])
 
 
-def replace_entry_in_list(
-        the_list,
-        old_entry,
-        new_entry
-):
+def replace_entry_in_list(the_list, old_entry, new_entry):
     """
     Replaces a string entry in a list with a new entry.
 
-    Args:
-    -----
-    the_list : list of str
-       The list
-    old_entry : (str
-        Entry to replace
-    new_entry : str
-        Replacement text
+    Args
+    the_list  : list : List of string entries
+    old_entry : str  : Entry to replace
+    new_entry : str  : Replacement text
 
-    Returns:
-    --------
-    the_list : list of str
-        The modified list
+    Returns
+    the_list  : list : List with modified string entries
     """
     return list(map(lambda x: x.replace(old_entry, new_entry), the_list))
 
 
-def expand_restart_file_names(
-        paths,
-        args,
-        run_info
-):
+def expand_restart_file_names(paths, args, run_info):
     """
     Tests if the GEOS-Chem restart file is a symbolic link to
     ExtData.  If so, will append the link to the remote file
     to the line in which the restart file name is found.
 
-    Args:
-    ----
-    paths : dict
-        Contains output from function extract_pathnames_from_log.
-    args : dict
-        Contains output from function parse_args.
-    run_info : dict
-        Contains output from function get_run_info.
+    Args
+    paths    : dict : Output from function extract_pathnames_from_log
+    args     : dict : Output from function parse_args
+    run_info : dict : Output from function get_run_info
     """
 
     # Get the name of the remote restart file for this simulation
@@ -410,20 +389,13 @@ def expand_restart_file_names(
     return paths
 
 
-def write_unique_paths(
-        paths,
-        unique_log
-):
+def write_unique_paths(paths, unique_log):
     """
     Writes unique data paths from dry-run output to a file.
 
     Args:
-    -----
-        paths : dict
-            Contains output from function extract_pathnames_from_log.
-
-        unique_log : str
-            Log file that will hold unique data paths.
+    paths      : dict : Output from function extract_pathnames_from_log
+    unique_log : str  : Log file that will hold unique data paths
     """
     combined_paths = paths["found"] + paths["missing"]
     combined_paths.sort()
@@ -442,21 +414,15 @@ def write_unique_paths(
         raise RuntimeError(f"Could not write {unique_log}") from exc
 
 
-def create_download_script(
-        paths,
-        args
-):
+def create_download_script(paths, args):
     """
     Creates a data download script to obtain missing files
     from the s3://gcgrid bucket on the AWS cloud or from a
     specified server.
 
-    Args:
-    -----
-    paths : dict
-        Contains output from function extract_pathnames_from_log.
-    args : dict
-        Contains output from function parse_args.
+    Args
+    paths : dict : Output from function extract_pathnames_from_log
+    args  : dict : Output from function parse_args.
     """
 
     # Extract portal parameters
@@ -471,6 +437,33 @@ def create_download_script(
 
     # Create the data download script
     with open(DATA_DOWNLOAD_SCRIPT, "w", encoding="UTF-8") as ofile:
+
+        def write_linked_gmi_file_to_script(path, old_spc, new_spc):
+            """
+            Writes a command to rename a GMI file to the bash script
+            that downloads the data.  This is necessary since some
+            of the GMI files are symlinked.
+
+            Args
+            path    : str : Path of a GMI file
+            old_spc : str : Name of the old species
+            new_spc : str : Name of the new species
+            """
+            # Download the PMN file
+            index = path.find("ExtData") + 7
+            local_dir = os.path.dirname(path)
+            remote_path = remote_root + path[index:]
+            remote_path = remote_path.replace(new_spc, old_spc)
+            cmd = cmd_prefix + quote + remote_path + quote
+            if is_s3_bucket:
+                cmd += f" {local_dir}/"
+            print(cmd, file=ofile)
+
+            # Rename it to IPMN
+            cmd = f"mv {local_dir}/gmi.clim.{old_spc}.geos5.2x25.nc"
+            cmd +=f" {local_dir}/gmi.clim.{new_spc}.geos5.2x25.nc"
+            print(cmd, file=ofile)
+            print(file=ofile)
 
         # Write shebang line to script
         print("#!/bin/bash\n", file=ofile)
@@ -514,109 +507,35 @@ def create_download_script(
                 # ------------------------------------------------------
                 # Edge case: GMI IPMN file is really the PMN file
                 # ------------------------------------------------------
-
-                # Download the PMN file
-                index = path.find("ExtData") + 7
-                local_dir = os.path.dirname(path)
-                remote_path = remote_root + path[index:]
-                remote_path = remote_path.replace("IPMN", "PMN")
-                cmd = cmd_prefix + quote + remote_path + quote
-                if is_s3_bucket:
-                    cmd += " " + local_dir + "/"
-                print(cmd, file=ofile)
-
-                # Rename it to IPMN
-                cmd = "mv " + local_dir + "/gmi.clim.PMN.geos5.2x25.nc " + \
-                      local_dir + "/gmi.clim.IPMN.geos5.2x25.nc"
-                print(cmd, file=ofile)
+                write_linked_gmi_file_to_script(path, "PMN", "IPMN")
 
             elif "gmi.clim.NPMN.geos5.2x25.nc" in path:
 
                 # ------------------------------------------------------
                 # Edge case: GMI NPMN file is really the PMN file
                 # ------------------------------------------------------
-
-                # Download the PMN file
-                index = path.find("ExtData") + 7
-                local_dir = os.path.dirname(path)
-                remote_path = remote_root + path[index:]
-                remote_path = remote_path.replace("NPMN", "PMN")
-                cmd = cmd_prefix + quote + remote_path + quote
-                if is_s3_bucket:
-                    cmd += " " + local_dir + "/"
-                print(cmd, file=ofile)
-
-                # Rename it to NPMN
-                cmd = "mv " + local_dir + "/gmi.clim.PMN.geos5.2x25.nc " + \
-                      local_dir + "/gmi.clim.NPMN.geos5.2x25.nc"
-                print(cmd, file=ofile)
-                print(file=ofile)
+                write_linked_gmi_file_to_script(path, "PMN", "NPMN")
 
             elif "gmi.clim.RIPA.geos5.2x25.nc" in path:
 
                 # ------------------------------------------------------
                 # Edge case: GMI RIPA file is really the RIP file
                 # ------------------------------------------------------
-
-                # Download the RIP file
-                index = path.find("ExtData")+7
-                local_dir = os.path.dirname(path)
-                remote_path = remote_root + path[index:]
-                remote_path = remote_path.replace("RIPA", "RIP")
-                cmd = cmd_prefix + quote + remote_path + quote
-                if is_s3_bucket:
-                    cmd += " " + local_dir + "/"
-                print(cmd, file=ofile)
-
-                # Rename it to NPMN
-                cmd = "mv " + local_dir + "/gmi.clim.RIP.geos5.2x25.nc " + \
-                      local_dir + "/gmi.clim.RIPA.geos5.2x25.nc"
-                print(cmd, file=ofile)
-                print(file=ofile)
+                write_linked_gmi_file_to_script(path, "RIP", "RIPA")
 
             elif "gmi.clim.RIPB.geos5.2x25.nc" in path:
 
                 # ------------------------------------------------------
                 # Edge case: GMI RIPB file is really the RIP file
                 # ------------------------------------------------------
-
-                # Download the RIP file
-                index = path.find("ExtData")+7
-                local_dir = os.path.dirname(path)
-                remote_path = remote_root + path[index:]
-                remote_path = remote_path.replace("RIPB", "RIP")
-                cmd = cmd_prefix + quote + remote_path + quote
-                if is_s3_bucket:
-                    cmd += " " + local_dir + "/"
-                print(cmd, file=ofile)
-
-                # Rename it to RIPB
-                cmd = "mv " + local_dir + "/gmi.clim.RIP.geos5.2x25.nc " + \
-                      local_dir + "/gmi.clim.RIPB.geos5.2x25.nc"
-                print(cmd, file=ofile)
-                print(file=ofile)
+                write_linked_gmi_file_to_script(path, "RIP", "RIPB")
 
             elif "gmi.clim.RIPD.geos5.2x25.nc" in path:
 
                 # ------------------------------------------------------
                 # Edge case: GMI RIPD file is really the RIP file
                 # ------------------------------------------------------
-
-                # Download the RIP file
-                index = path.find("ExtData")+7
-                local_dir = os.path.dirname(path)
-                remote_path = remote_root + path[index:]
-                remote_path = remote_path.replace("RIPD", "RIP")
-                cmd = cmd_prefix + quote + remote_path + quote
-                if is_s3_bucket:
-                    cmd += " " + local_dir + "/"
-                print(cmd, file=ofile)
-
-                # Rename it to RIPD
-                cmd = "mv " + local_dir + "/gmi.clim.RIP.geos5.2x25.nc " + \
-                      local_dir + "/gmi.clim.RIPD.geos5.2x25.nc"
-                print(cmd, file=ofile)
-                print(file=ofile)
+                write_linked_gmi_file_to_script(path, "RIP", "RIPD")
 
             elif "ExtData" in path:
 
@@ -634,7 +553,11 @@ def create_download_script(
 
         # Kludge: Create a ExtData/CHEM_INPUTS folder if it
         # does not exist. This will prevent abnormal exits.
-        chem_dir = paths["local_prefix"] + 'ExtData/CHEM_INPUTS'
+        if "ExtData" in paths["local_prefix"]:
+            chem_dir = paths["local_prefix"] + '/CHEM_INPUTS'
+        else:
+            chem_dir = paths["local_prefix"] + '/ExtData/CHEM_INPUTS'
+
         cmd = f"if [[ ! -d {chem_dir} ]]; then mkdir {chem_dir}; fi"
         print(cmd, file=ofile)
         print(file=ofile)
@@ -644,17 +567,13 @@ def create_download_script(
         os.chmod(DATA_DOWNLOAD_SCRIPT, 0o755)
 
 
-def download_the_data(
-        args
-):
+def download_the_data(args):
     """
     Downloads GEOS-Chem data files from the AWS s3://gcgrid bucket
     or from a specified server.
 
-    Args:
-    -----
-    args : dict
-        Output of runction parse_args.
+    Args
+    args : dict : Output of runction parse_args.
     """
 
     # Get information about the run
@@ -680,6 +599,8 @@ def download_the_data(
     create_download_script(paths, args)
 
     #### DEBUG: Uncomment this if you wish to see the download script
+    #### and also comment out the previous 'if args["skip_download"]'
+    #### statement above
     #if args["skip_download"]:
     #    return
 
@@ -701,7 +622,6 @@ def parse_args():
     containing all of these settings.
 
     Returns:
-    --------
     args : dict
         args["config"] : Dict with global settings from download_data.yml
         args["dryrun_log"] Name of the GEOS-Chem dry-run log file
@@ -751,7 +671,6 @@ def parse_args():
                 skip_found = True
                 continue
 
-
     if dryrun_log is None:
         msg = "The dryrun log file was not supplied!  Exiting ..."
         raise ValueError(msg)
@@ -774,10 +693,9 @@ def main():
     Main program.  Gets command-line arguments and calls function
     download_the_data to initiate a data-downloading process.
 
-    Calling sequence:
-    -----------------
-        ./download_data.py log PORTAL-NAME
-        ./download_data.py log -skip-download  # Print unique log & exit
+    Calling sequence
+    ./download_data.py log PORTAL-NAME
+    ./download_data.py log -skip-download  # Print unique log & exit
     """
 
     # Download the data files from the remote server

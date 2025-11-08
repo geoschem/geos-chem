@@ -17,6 +17,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+  read_restart_as_real8: false
 
 #============================================================================
 # Grid settings
@@ -84,19 +85,17 @@ CH4_options:
 #============================================================================
 # Options for CO
 #============================================================================
-
 CO_options:
-  use_archived_PCO_from_CH4: false
+  use_archived_PCO_from_CH4: true
   use_archived_PCO_from_NMVOC: true
 
 #============================================================================
 # Options for CO2
 #============================================================================
-
 CO2_options:
 
   sources:
-    use_archived_PCO2_from_CO: false
+    use_archived_PCO2_from_CO: true
 
   tagged_species:
     tag_bio_and_ocean_CO2: false

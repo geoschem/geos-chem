@@ -1,0 +1,7 @@
+Note:
+This environment was built with the base GCC 11.3.1 on compute2 instead of the GCC 13 loaded with module. Please make sure you unload the GCC 13 module before using.
+
+Contact:
+Yuanjian Zhang at WashU
+yuanjianz @ GitHub
+yuanjian.z@wustl.edu

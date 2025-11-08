@@ -20,6 +20,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+  read_restart_as_real8: false
 
 #============================================================================
 # Grid settings
@@ -66,6 +67,7 @@ operations:
   photolysis:
     activate: true
     cloud-j:
+      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2025-01-Hg/
       num_levs_with_cloud: ${RUNDIR_PHOT_CLD_NLEV}
       cloud_scheme_flag: 3
       opt_depth_increase_factor: 1.050
@@ -75,9 +77,8 @@ operations:
       sphere_correction: 1
       num_wavelength_bins: 18
       use_H2O_UV_absorption: true
-    input_directories:
+    fast-jx:
       fastjx_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/FAST_JX/v2024-05-Hg/
-      cloudj_input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/CLOUD_J/v2024-09-Hg/
     overhead_O3:
       use_online_O3_from_model: ${RUNDIR_USE_ONLINE_O3}
       use_column_O3_from_met: true
@@ -124,7 +125,7 @@ operations:
 aerosols:
 
   optics:
-    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2024-08/
+    input_dir: ${RUNDIR_DATA_ROOT}/CHEM_INPUTS/Aerosol_Optics/v2025-03/
 
 #============================================================================
 # Settings specific to the Hg simulation

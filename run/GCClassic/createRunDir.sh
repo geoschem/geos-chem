@@ -329,7 +329,7 @@ fi
 printf "${thinline}Choose meteorology source:${thinline}"
 printf "  1. MERRA-2 (Recommended)\n"
 printf "  2. GEOS-FP \n"
-printf "  3. GEOS-IT (Beta release)\n"
+printf "  3. GEOS-IT \n"
 printf "  4. GISS ModelE2.1 (GCAP 2.0)\n"
 
 valid_met=0
@@ -346,7 +346,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
-	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. In addition, there is a bug in \nconvective precipitation flux following the switch where all values are zero \nin the input files. This bug is addressed by computing fluxes online for runs \nstarting on or after June 1 2020. The fix does not extend to the case of running \nacross the time boundary. Due to these issues we recommend splitting up GEOS-FP \nruns in time such that a single simulation does not span the switch. Configure \none run to end on June 1 2020 and then use its output restart to start another \nrun on June 1. Alternatively consider using MERRA2. If you wish to use a \nGEOS-FP meteorology year different from your simulation year please create a \nGEOS-Chem GitHub issue for assistance to avoid accidentally using zero \nconvective precipitation flux.\n"
+	fp_msg="WARNING: The convection scheme used to generate archived GEOS-FP meteorology \nfiles changed from RAS to Grell-Freitas starting June 1 2020 with impact on \nvertical transport. Discussion and analysis of the impact is available at \ngithub.com/geoschem/geos-chem/issues/1409. To fix this issue, different GEOS-Chem \nconvection schemes are called based on simulation start time. This ensures \ncomparability in GEOS-Chem runs using GEOS-FP fields generated using the RAS \nconvection scheme and fields generated using Grell-Freitas, but only if the \nsimulation does not cross the June 1 2020 boundary. We therefore recommend \nsplitting up GEOS-FP runs in time such that a single simulation does not span \nthis date. For example, configure one run to end on June 1 2020 and then use \nits output restart to start another run on June 1. Alternatively consider using \nMERRA2 which was entirely generated with RAS, or GEOS-IT which was entirely \ngenerated with Grell-Freitas. If you wish to use a GEOS-FP meteorology year \ndifferent from your simulation year please create a GEOS-Chem GitHub issue for \nassistance to avoid accidentally using zero convective precipitation flux.\n"
 	printf "\n${fp_msg}\n"
 	printf "This warning will be printed to run directory file warnings.txt.\n"
 	printf "${thinline}Enter y to acknowledge and proceed, or q to quit:${thinline}"
@@ -524,6 +524,7 @@ else
     printf "  3. 0.5  x 0.625\n"
     if [[ "x${met}" == "xgeosfp" ]]; then
 	printf "  4. 0.25 x 0.3125\n"
+	printf "  5. 0.125 x 0.15625\n"
     fi
 fi
 
@@ -539,17 +540,17 @@ while [ "${valid_res}" -eq 0 ]; do
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/2x25.txt)\n"
     elif [[ "x${res_num}" == "x3" ]]; then
 	grid_res='05x0625'
+	grid_res_long='0.5x0.625'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/05x0625.txt)\n"
-    elif [[ "x${res_num}" == "x4" ]]; then
-	# Error check: Don't allow a 0.25 x 0.3125 MERRA-2 rundir.
-	#  -- Melissa Sulprizio, Bob Yantosca (12 Sep 2023)
-	if [[ "x${met}" == "xmerra2" ]]; then
-	    valid_res=0
-	    printf "Cannot create a MERRA-2 rundir at 0.25 x 0.3125 "
-	    printf "resolution!\nPlease make another selection.\n"
-	fi
+    elif [[ "x${met}" == "xgeosfp" ]] && [[ "x${res_num}" == "x4" ]]; then
 	grid_res='025x03125'
+	grid_res_long='0.25x0.3125'
 	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/025x03125.txt)\n"
+    elif [[ "x${met}" == "xgeosfp" ]] && [[ "x${res_num}" == "x5" ]]; then
+	grid_res='0125x015625'
+	grid_res_long='0.125x0.15625'
+	RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/0125x015625.txt)\n"
+	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields_0125'\n"
     else
 	valid_res=0
 	printf "Invalid horizontal resolution option.\n"
@@ -557,14 +558,21 @@ while [ "${valid_res}" -eq 0 ]; do
     fi
 done
 
-if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" = "025x03125" ]]; then
+if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
     printf "${thinline}Choose horizontal grid domain:${thinline}"
     printf "  1. Global\n"
     printf "  2. Asia\n"
     printf "  3. Europe\n"
     printf "  4. North America\n"
-    printf "  5. Custom\n"
-
+    if [[ "${grid_res}" = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
+	printf "  5. South America\n"
+	printf "  6. Africa\n"
+    fi
+    if [[ "${grid_res}" = "025x03125" ]]; then
+	printf "  7. Middle East\n"
+	printf "  8. Oceania\n"
+	printf "  9. Russia\n"
+    fi
     valid_domain=0
     while [ "${valid_domain}" -eq 0 ]; do
 	read -p "${USER_PROMPT}" domain_num
@@ -572,45 +580,82 @@ if [[ "${met}" != "geosit" ]] && [[ "${grid_res}" = "05x0625" || "${grid_res}" =
 	if [[ ${domain_num} = "1" ]]; then
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/global_grid.txt)\n"
 	    RUNDIR_VARS+="RUNDIR_GRID_HALF_POLAR='true '\n"
+	    nested_sim="F"
 	else
 	    RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/nested_grid.txt)\n"
+	    nested_sim="T"
+
+	    # Asia
 	    if [[ ${domain_num} = "2" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AS'\n"
 		grid_nest="AS"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 60.0, 150.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-11.0,  55.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[ 70.0, 140.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 15.0,  55.0]'\n"
 		fi
+
+	    # Europe
 	    elif [[ ${domain_num} = "3" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='EU'\n"
 	        grid_nest="EU"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-30.0, 50.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 30.0, 70.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-15.0,  40.0 ]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 32.75, 61.25]'\n"
 		fi
+
+	    # North America
 	    elif [[ ${domain_num} = "4" ]]; then
 		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='NA'\n"
-		grid_nest+="NA"
+		grid_nest="NA"
 	        if [[ ${grid_res} = "05x0625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-140.0, -40.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[  10.0,  70.0]'\n"
-		elif [[ ${grid_res} = "025x03125" ]]; then
+		elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]]; then
 	            RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-130.0,  -60.0]'\n"
 		    RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[   9.75,  60.0]'\n"
 		fi
-	    elif [[ ${domain_num} = "5" ]]; then
-		grid_nest="CU"
-		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='custom'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='MinLon MaxLon'\n"
-	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='MinLat MaxLat'\n"
-	        printf "\n  -- You will need to manually set longitude and latitude"
-		printf "\n     bounds in the Grid Menu of geoschem_config.yml!\n"
+
+	    # South America (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "5" ]]; then
+		grid_nest="SA"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='SA'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-87.8125, -31.25]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-59.0,     16.0]'\n"
+
+	    # Africa (0.25 and 0.125 resolutions only)
+	    elif [[ ${grid_res} = "025x03125" ]] || [[ ${grid_res} = "0125x015625" ]] && [[ ${domain_num} = "6" ]]; then
+		grid_nest="AF"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='AF'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-20.0, 52.8125]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-37.0, 40.0]'\n"
+
+	    # Middle East (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "7" ]]; then
+		grid_nest="ME"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='ME'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[-20.0, 70.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[ 12.0, 44.0]'\n"
+
+	    # Oceania (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "8" ]]; then
+		grid_nest="OC"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='OC'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[110.0, 180.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[-50.0,   5.0]'\n"
+
+	    # Russia (0.25 resolution only)
+	    elif [[ ${grid_res} = "025x03125" ]] && [[ ${domain_num} = "9" ]]; then
+		grid_nest="RU"
+		RUNDIR_VARS+="RUNDIR_GRID_DOMAIN_NAME='RU'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LON_RANGE='[20.0,  180.0]'\n"
+	        RUNDIR_VARS+="RUNDIR_GRID_LAT_RANGE='[41.0,   83.0]'\n"
+
 	    else
   		valid_domain=0
 		printf "Invalid horizontal grid domain option. Try again.\n"
@@ -630,13 +675,15 @@ else
     fi
 fi
 
-
 RUNDIR_VARS+="$(cat ${shared_met_settings})\n"   # shared_met_settings needs to be included after RUNDIR_GRID_DIR is defined
 
 # Set timesteps according to grid resolution
 if [[ ${grid_res} = "05x0625" ]] || [[ ${grid_res} = "025x03125" ]]; then
     RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='300'\n"
     RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='600'\n"
+elif  [[ ${grid_res} = "0125x015625" ]]; then
+    RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='150'\n"
+    RUNDIR_VARS+="RUNDIR_CHEMISTRY_TS='300'\n"
 else
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	RUNDIR_VARS+="RUNDIR_TRANSPORT_TS='1800'\n"
@@ -669,6 +716,8 @@ fi
 #-----------------------------------------------------------------
 
 if [[ ${met} = "ModelE2.1" ]]; then
+    # Current scale factors are based on U10 and V10, while the latest implementation of DEAD is using USTAR
+    # May cause 10 times larger dust emissions than properly scaled
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
@@ -696,20 +745,19 @@ if [[ ${met} = "ModelE2.1" ]]; then
     fi
 else
     RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
-    # Use GEOS-FP values as placeholders for GEOS-IT until parameters derived
     if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
 	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
 	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8197e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='7.8533e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.6659e-5'\n"
 	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.7586e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.5412e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='8.3286e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8656e-5'\n"
 	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.0416e-4'\n"
+	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.1132e-5'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
 	fi
@@ -889,12 +937,6 @@ if [[ "x${sim_name}" == "xfullchem" ]]; then
     chmod 744 ${rundir}/metrics.py
 fi
 
-# Copy the KPP standalone interface config file to ther rundir (fullchem only)
-if [[ "x${sim_name}" == "xfullchem"  ]]; then
-    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml ${rundir}
-    chmod 644 ${rundir}/kpp_standalone_interface.yml
-fi
-
 # Set permissions
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
@@ -939,7 +981,10 @@ cd ${rundir}
 
 # Special handling for start/end date based on simulation so that
 # start year/month/day matches default initial restart file.
-if [[ "x${sim_name}" == "xHg"     ||
+if [[ "x${grid_res}" = "x0125x015625" ]]; then
+    startdate='20230101'
+    enddate='20230201'
+elif [[ "x${sim_name}" == "xHg"   ||
       "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'
@@ -978,6 +1023,17 @@ if [[ "${sim_extra_option}" == "benchmark" ]]; then
     RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='true '\n"
 else
     RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
+fi
+
+# Disable PARANOX for 0.25 x 0.3125 and finer grids
+# See: https://github.com/geoschem/geos-chem/issues/3009
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    if [[ "x${grid_res}" == "x0125x015625" ]]  ||   \
+       [[ "x${grid_res}" == "x025x03125"   ]]; then
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='off'\n"
+    else
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='on '\n"
+    fi
 fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
@@ -1067,10 +1123,10 @@ printf "\n  -- Default frequency and duration of diagnostics are set to monthly"
 printf "\n  -- Modify diagnostic settings in HISTORY.rc and HEMCO_Config.rc\n"
 
 if [[ "x${nested_sim}" == "xT" ]]; then
-    printf "\n  -- Nested-grid simulations use global high-reoslution met fields"
-    printf "\n     by default. To improve run time, you may choose to use cropped"
-    printf "\n     met fields by modifying the file paths and names in HEMCO_Config.rc"
-    printf "\n     to include the region string (e.g. 'AS', 'EU', 'NA').\n"
+    printf "\n  -- Nested-grid simulations use regional high-reoslution met fields"
+    printf "\n     by default. GEOS-Chem may also use a custom domain in which case"
+    printf "\n     global high-resolution met fields or custom cropped met fields"
+    printf "\n     can be used.\n"
 fi
 
 #--------------------------------------------------------------------
@@ -1129,6 +1185,22 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     if [[ "x${sim_extra_option}" != "xnone" ]]; then
 	singleCarbonSpecies "${sim_extra_option}" "${rundir}"
     fi
+fi
+
+# Add nested grid region to met field file path and name to avoid reading
+# global files
+if [[ "x${nested_sim}" == "xT" ]]; then
+
+    if [[ "x${grid_res}" = "x0125x015625" ]]; then
+	hco_met='HEMCO_Config.rc.gmao_metfields_0125'
+	sed_ie "s|GEOS_0.25x0.3125|GEOS_0.25x0.3125_${grid_nest}|" $hco_met
+	sed_ie "s|025x03125.\$NC|025x03125.${grid_nest}.\$NC|" $hco_met
+    else
+	hco_met='HEMCO_Config.rc.gmao_metfields'
+    fi
+    sed_ie "s|GEOS_${grid_res_long}|GEOS_${grid_res_long}_${grid_nest}|" $hco_met
+    sed_ie "s|\$RES|\$RES.${grid_nest}|" $hco_met
+
 fi
 
 #--------------------------------------------------------------------
@@ -1190,21 +1262,42 @@ while [ "$valid_response" -eq 0 ]; do
     fi
 done
 
+#-----------------------------------------------------------------
+# Ask user whether to build the KPP-standalone box model
+#-----------------------------------------------------------------
+enable_kppsa=""
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    printf "${thinline}Do you want to build the KPP-Standalone Box Model? (y/n)${thinline}"
+    valid_response=0
+    while [ "$valid_response" -eq 0 ]; do
+	read -p "${USER_PROMPT}" enable_kppsa
+	if [[ "x${enable_kppsa}" == "xy" ]]; then
+	    cp -r ${gcdir}/run/shared/kpp_standalone_interface.yml  ${rundir}
+	    chmod 644 ${rundir}/kpp_standalone_interface.yml
+	    valid_response=1
+	elif [[ "x${enable_kppsa}" = "xn" ]]; then
+	    valid_response=1
+	else
+	    printf "Input not recognized. Try again.\n"
+	fi
+    done
+fi
+
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
 hdr="\n>>>> REMINDER: You must compile with options:"
 ftr="<<<<\n"
-
 EXTRA_CMAKE_OPTIONS=""
-[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon"
-[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y"
+[[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
+[[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
-    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y"
-    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y"
-    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15"
-    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40"
+    [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
+    [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
+    [[ "x${sim_extra_option}" == "xTOMAS15" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=15 "
+    [[ "x${sim_extra_option}" == "xTOMAS40" ]] && EXTRA_CMAKE_OPTIONS="-DTOMAS=y -DTOMAS_BINS=40 "
 fi
+[[ "x${enable_kppsa}" == "xy" ]] && EXTRA_CMAKE_OPTIONS+="-DKPPSA=y"
 
 # Add to RUNDIR_VARS
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"

@@ -4,18 +4,252 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased - TBD
+## [Unreleased] - TBD
+### Added
+- Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
+- Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
+- Added subroutine `Print_Species_Global_Mass` to print_mod for use by GC-Classic
+- Added log print of species global mass at start of each timestep if verbose is true
+- Added print of global mass computed from restart file values if delta pressure present in restart file
+- Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
+- Added operational run scripts for WashU Compute2
+- Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
+- Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
+- Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
+- Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
+- Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
+
+### Changed
+- Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
+- Updated `EmisOCS_Bioburn` to `EmisOCS_BiomassBurn` in both GCHP `HEMCO_Diagn.rc.carbon` and `HISTORY.rc.carbon` template files
+- Updated the ESMF version from 8.4.2 to 8.6.1 in sample environment file `gchp.gcc12_openmpi4_cannon_rocky.env`
+- Changed call to `Accept_External_Date_Time` to also pass the seconds value, in order to prevent a WRF-GC bug
+- Removed convective washout for default scheme but keep it for LUO_WETDEP
+- Adapted Luo2023 WetDep for GF convection
+- Updated timestep scaling for convective precipitation areal fraction
+- Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
+- Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
+- Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
+- Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
+- Updated operational run script sample for WashU Compute1
+- Update GCHP AWS EFA operational run script examples to avoid crashes over large core counts
+- Updated GFEIv3 files to correct issue in original version
+- Updated `download_data.py` for compatibility with 0.125 x 0.15625 grids plus all pre-defined nested-grids
+- Restructured `download_data.py` to avoid several instances of repeated code
+- Changed `read_restart_as_real8` from `false` to `true` in `geoschem_config.yml` for GC-Classic benchmark simulations
+- Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
+- Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
+- Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
+- Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
+
+### Fixed
+- Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
+- Moved `EmisOCS_Total` to the head of the `EmisOCS` diagnostic entries in the GCHP `HISTORY.rc.carbon` template file
+- Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
+- Fixed precipitation formation rate unit in Luo2023 convective washout
+- Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
+- Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT`
+- Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
+- Fixed error where `//` were not being changed to `/` in `download_data.py`
+- Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
+- Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
+- Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
+- Fixed typos in `ind_` variable names in `KPP/carbon/carbon_Funcs.F90`
+- Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
+- Fixed bug in ObsPack to include instantaneously-sampled data whose
+  timestamps are within 1/2 of a model timestep of the end of the day
+- Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
+
 ### Removed
+- Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
+- Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
+- Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
+- Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
 - Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
 
-## [14.5.1] - 2025-01-10
+## [14.6.3] - 2025-07-28
 ### Added
-- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
-- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
+- Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
+- Added Grell-Freitas convection subroutine for post-GEOS-5.22 (GEOS-IT and GEOS-FP after June 2020)
+- Added GEOS-IT simulations to use offline emissions generated with GEOS-IT
+- Added meteorology-specific `OFFLINE_EMISSION_DIR` entries in shared directory for future use and backward compatibility
+- Added operational run script sample for AWS with EFA-enabled
+- Added operational run scripts for Harvard Cannon with Intel VTune commands
+- Added sample environment file for Harvard Cannon with GNU 14.2.0 compilers
+- Converted `F` in `DO_CONVECTION` from a variable to a pointer, for computational speedup
+- Changed OpenMP loop scheduling from `DYNAMIC` to `GUIDED` in routine `DO_CONVECTION`
+- Added `Diagn_APM` routine in `GeosCore/hcoi_gc_diagn_mod.F90` to restore HEMCO manual diagnostics for use w/ APM
+- Added hidden option to read GC-Classic restart file as real8 locally rather than real4 through HEMCO
+
+### Changed
+- Updated logic to include ObsPack observations that span UTC date boundaries
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Optimized parallel loops in `AIRQNT` routine in `GeosCore/calc_met_mod.F90`
+- Optimized parallel loops in `VDIFF` routine in `GeosCore/vdiff_mod.F90`
+- Placed error checks for infinity or NaN in `DO_CONVECTION` in `#ifdef DEBUG` preprocessor blocks
+- Collapsed several parallel DO loops in `GeosCore/carbon_mod.F90`
+- Changed met guidance in run directory creation to remove beta for GEOS-IT, make GCHP mass fluxes beta, and improve GEOS-FP warning
+- Changed path to carbon, CH4, CO2 simulation restart files to `ExtData/GEOSCHEM_RESTARTS/v2025-07` in `download_data.yml` and the GCHP `createRunDir.sh` script
 
 ### Fixed
-- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
+- Added missing 3rd element in assigment of `Item%NcChunkSizes` in `History/histitem_mod.F90`
+- Removed extra unit conversion to mol/mol on 0th hour boundary conditions in `History/history_mod.F90`
+- Reordered code in `aerosol_mod.F90` and `gc_environment_mod.F90` so that aerosol optics file paths will be printed to the dry-run log file
+- Fixed wrong mass flux and Courant number import scaling for GCHP runs that read these fields from offline files
+- Corrected GCHP carbon HISTORY.rc entries for KPPdiags, RxnRates, and RxnConst collections
+
+### Removed
+- Removed `#ifndef TOMAS` block at the start of the parallel loop in `DO_CONVECTION`
+- Removed redundant `IF/ELSE` statement in the 2nd parallel loop in routine `AIRQNT`
+- Removed redundant `ELSE` blocks in `DO_CONVECTION`
+- Removed redundant `units` variable in routine `AIRQNT`
+
+## [14.6.2] - 2025-06-11
+### Added
+- Added MCHgMAP geogenic emissions (2010-2020) from Dastoor et al. (2025)
+- Added MCHgMAP biomass emissions (2010-2020, GFED and FINN) from Dastoor et al. (2025)
+- Added NCAR Derecho operational example environment file `geoschem.intel24.env`
+
+### Changed
+- Modified `ObsPack/obspack_mod.F90` to use GEOS-Chem surface geopotential height (`PHIS`) for selecting model layer for comparison to obspack.
+- Updated NCAR Derecho run script to source the `geoschem.intel24.env` environment file
+
+### Fixed
+- Restored unit convertion for boundary conditions from mol/mol to kg/kg dry air
+
+### Fixed
+- Assigned ObsPack averaging interval end times (instead of start times) to the `aveEnd` variable in routine `ObsPack_Write_Output`
+- Fixed logic in `Obspack_Sample` to include observations whose averaging windows span a UTC date boundary
+
+## [14.6.1] - 2025-05-27
+### Added
+- Added `#InvCEDSshipALK6`, `#InvCEDS_TMB`, and `#InvCEDSship_TMB` (commented out by default) to `HEMCO_Diagn*` and GCHP `HISTORY.rc.fullchem` files
+- Added `EmisOCs*` diagnostics to `run/GCHP/HEMCO_Diagn.rc.templates/HEMCO_Diagn.rc.carbon` (these were missing)
+- Added entry for GFAS methanol for ExtData
+- Added `RxnConst` and `RxnRates` History collections to `HISTORY.rc.carbon` and `HISTORY.rc.Hg` template files
+- Added routine `Hg_UpdateKppDiags` to update the `KppDiags` history diagnostic arrays in `mercury_mod.F90`
+- Added `rrtmg_radiative_transfer_model:aod_wavelength_in_nm` to the GCClassic `geoschem_config.yml.aerosol` template file
+- Added an error trap in routine `Init_Aerosol` to make sure at least 1 AOD wavelength is selected for fullchem or aerosol-only simulations
+- Added operational example run script for GEOS-Chem Classic on NCAR Derecho cluster
+- Added options to run GCHP using C720 mass fluxes or derived winds with 0.25x0.3125 processed files for other meteorology
+
+### Changed
+- Updated GCHP template files `HEMCO_Diagn.rc.fullchem` and `HISTORY.rc.fullchem` so that the same emission diagnostics are requested in both
+- Changed `ALD2_PLANTDECAY` emissions category (for GEOS-Chem in NASA-GEOS ESM only) from 3 to 99 to not conflict with the anthropogenic transport sector
+- Abstracted diagnostic code out of `Chem_Carbon_Gases` and into PRIVATE subroutines in `GeosCore/carbon_gases_mod.F90`
+- Abstracted diagnostic code out of `ChemMercury` and into PRIVATE subroutines in `GeosCore/mercury_mod.F90`
+- Modified logic in `Init_State_Diag` so `KppDiags` diagnostic fields can be registered when using fullchem, Hg, or carbon mechanisms
+- Modified logic in `Init_State_Diag` so that `JValues` and `UVFlux` diagnostic fields can be registered when using fullchem or Hg simulations
+- Modified `Obspack_Read_Input` routine to look for `middle of the averaging interval` and `midpoint of the averaging interval` in the `time:comment` string
+- Wrapped several TOMAS print statements in `IF ( Input_Opt%Verbose )` blocks to avoid excessive printout when using GCHP-TOMAS
+- Changed GCHP recommended GEOS-IT options for meteorology from mass fluxes with raw C180 fields to 3hr winds with processed C180 fields.
+
+### Fixed
+- Restored the `UVFlux` diagnostic collection to the GCHP `fullchem_alldiags` integration test
+- Fixed outdated path for GFED4 daily fraction
+- Fixed entries for GEOS-IT preprocessed cubed-sphere wind in GCHP
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+
+### Removed
+- Removed unused run directory creation files for GCHP grid resolutions c24 and c48
+- Fixed index-based access of hydrophobic and hydrophilic carbon species in TOMAS.
+- Fixed the `KppTime` diagnostic in `Chem_Carbon_Gases`; it was not being updated properly
+- Fixed a bug in GCClassic and GCHP integration test scripts that caused `KppTime` not to be commented out in `fullchem_alldiags` tests
+- Removed most entries under the `photolysis` section in `geoschem_config.yml.aerosol` template file, as the aerosol-only simulation doesn't call Cloud-J
+- Removed setting `DELP_DRY` to zero in `hco_utilities_gc_mod.F90` when not found in the restart file to avoid negative concentrations
+
+## [14.6.0] - 2025-04-18
+### Added
+- Added CEDS 0.1 x 0.1 degree emissions (in `HEMCO/CEDS/v2024-06`)
+- Added met-field dependent dust tuning factors for GCHP C24 resolution in `setCommonRunSettings.sh`.  Others to be added later.
+- Added placeholder values for dust mass tuning factors in `HEMCO_Config.rc.GEOS`
+- Added dust scale factors for MERRA-2, GEOS-IT, and GEOS-FP when using USTAR for Dust DEAD extension
+- Added utility subroutine `Print_Species_Min_Max_Sum` to `print_mod.F90`
+- Added routine `Set_DryDepVel_Diagnostics` to `hco_interface_gc_mod.F90`
+- Added dry-run integration tests for selected simulations
+- Added `State_Diag%SatDiagnPMid` and `State_Diag%Archive_SatDiagnPMid` to save pressure at level midpoints to the `SatDiagn` collection
+- Added option to run GCClassic nested-grid simulations at 0.125x0.15625 resolution using GEOS-FP derived winds fields generated from c720 mass fluxes archived by GMAO
+- Added option for South America (SA), Africa (AF), Middle East (ME), Oceania (OC), and Russia (RU) regions to nested-grid simulations in GCClassic's createRunDir.sh
+- Added updates for compatibility with the Beijing Climate Centre Earth System Model
+- Added `run/shared/rtd_species_by_simulation.py` script to generate tables of species for each simulation for ReadtheDocs
+
+### Changed
+- Updated default CEDS from CEDSv2 (0.5 deg x 0.5 de) to new CEDS (0.1 deg x 0.1 deg)
+- Added the `KPP_INTEGRATOR_AUTOREDUCE` C-preprocessor switch integrator-specific handling
+- Added code to `KPP/*/CMakeLists.txt` to read the integrator name from the `*.kpp` file
+- Replaced `GOTO` statements with `IF/THEN/ELSE` blocks in `GeosCore/drydep_mod.F90`
+- Changed several diagnostic subroutines to expect species concentrations in mol/mol rather than kg/kg
+- Added precision when registering `State_Met` and `State_Chm` arrays to change output file precision to match precision in the model
+- Changed GEOS-Chem Classic restart file precision of species concentrations (`State_Chm%SpcRestart`) from `REAL*4` to `REAL*8` to match precision in the model
+- Moved GEOS-Chem Classic retrieval of restart variable DELPDRY from HEMCO to `GC_Get_Restart` for consistency with handling of all other restart variables
+- Moved dry dep velocity diagnostic outputs for sea flux and satellite diagnostic species into the `DryDep` collection
+- Moved computation of the `DryDepVelForAlt1` diagnostic into routine `Set_DryDepVel_Diagnostics` 
+- Updated `run/shared/download_data.yml` to use `--no-sign-request` for S3 downloads via anonymous login
+- Changed `KPP/CMakeLists.txt` to not call `add_directory(standalone)` unless we have configured with `-DKPPSA=y`
+- Moved Cloud-J and Fast-JX input directories to Cloud-J and new Fast-JX menus respectively in `geoschem_config.yml`
+- Updated photolysis and aerosol optics input directories to use new mineral dust values in `FJX_scat-aer.dat` and `dust.dat` based on spheroidal shapes
+- Set `State_Diag%Archive_SatDiagn` to true if `State_Diag%Archive_SatDiagnPMID` is true
+- Updated `RxnRates` and `RxnConst` diagnostic fields to use 4-digit reaction numbers.
+- Rebuilt `fullchem`, `Hg`, `carbon` chemical mechanisms with KPP 3.2.0
+- Changed the minimum KPP version to 3.2.0
+- Disabled the `KppTime` diagnostic output in the `fullchem_alldiags` integration tests; this will vary from run to run causing difference tests to fail
+- Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
+- Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
+- Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
+- Changed GCHPctmEnv and DYNAMICS diagnostic names in GCHP to include suffix '_R4'
+
+### Fixed
+- Fixed PDOWN definition to lower rather than upper edge
+- Moved where prescribed CH4 is applied in GEOS-Chem Classic to after emissions application so that updated PBL heights are used
+- Moved species concentration unit conversions between mol/mol and kg/kg to start and end of every timestep in GEOS-Chem Classic to remove differences introduced when reading and writing restart files
+- Fixed bug in restart file entry for `ORVCSESQ` in GEOS-Chem Classic fullchem HEMCO_Config.rc that resulted in initializing to all zeros
+- Fixed parallelization issue when computing `State_Chm%DryDepNitrogren` used in HEMCO soil NOx extension
+- Fixed bugs in column mass array affecting budget diagnostics for fixed level and PBL
+- Updated `SatDiagnColEmis` and `SatDiagnSurfFlux` arrays in `hco_interface_gc_mod.F90`, with `(I,J,S)` instead of `(:,:,S)`
+- Fixed incorrect description metadata for `FluxHg0FromAirToOcean` and `FluxHg0FromOceanToAir` diagnostics
+- Placed call to `Convert_Spc_Units` in `main.F90` within an `IF ( notDryrun )` block to avoid executing unit conversions in dryrun simulations
+- Modified CH4 reservoir timestamps in HEMCO_Config.rc to use months 1-12 to ensure HEMCO recalculates those fields monthly and properly applies the seasonal mask
+- Fixed path error `download_data.py` when downloading from `geoschem+http` or `nested+http` portals
+- Retrieve UV flux arrays from Cloud-J used to set UV flux diagnostics
+- Fixed issue in `download_data.py` that was adding an extra `ExtData` to file paths
+- Restored `UVFlux` diagnostic output in the `fullchem_alldiags` integration test
+- Restored convection and ConvertBox unit conversion parallelization to how it was prior to 14.4.0 to fix slowness in TOMAS simulations
+- Modified the carbon mechanism in KPP to separate tropospheric CH4 loss by OH from CO production by CH4 to remove dependency of CH4 and CO on each other and eliminate differences between CH4/tagCO simulations and the carbon simulation
+- Renamed several dummy species in the carbon mechanism for clarity
+- Fixed precision calculations within `co2_mod.F90` and `tagged_co_mod.F90` to eliminate differences with the carbon simulation
+- Fixed simulation date information printed by metrics.py for GCHP
+
+### Removed
+- Removed `CEDSv2`, `CEDS_GBDMAPS`, `CEDS_GBDMAPSbyFuelType` emissions entries from HEMCO and ExtData template files
+- Removed re-evaporation requirement for washout
+- Removed unused level argument passed to `SOIL_DRYDEP` and `SOIL_WETDEP`
+- Removed Fast-JX input directory from geoschem_config.yml files except for Hg simulation
+- Removed `History` attribute from ObsPack output netCDF files; the date info was causing difference tests to fail
+- Removed unused diagnostics: `Tomas_H2SO4`, `Tomas_COAG`, `Tomas_NUCL`, `Tomas_AQOX`, `Tomas_MNFIX`, `Tomas_SOA`
+- Removed diurnal cycle factor applied to OH in `KPP/carbon/carbon_Funcs.F90` to eliminate differences between CH4 and carbon simulations.
+- Removed diurbal cycle factor applied to OH in tagCO simulation for consistency with other carbon species
+- Removed unused functions from `carbon_get_CO2fromOH_flux` and `carbon_get_FixedOH_Flux` from `KPP/carbon/carbon_Funcs.F90`
+
+## [14.5.3] - 2025-03-04
+### Changed
+- Changed CESM `HEMCO_Config.rc` to read 3D AEIC emissions every timestep to avoid differences upon restart
+
+## [14.5.2] - 2025-02-12
+### Added
+- Implemented the Global Rice Patty Inventory (GRPI) for CH4 and carbon simulations to replace EDGAR rice emissions
+- Added run directory creation for processed cubed-sphere GEOS-IT meteorology
+- Added GC-Classic and GCHP environment files, build scripts, and run scripts for MSU Orion cluster
+
+### Changed
+- Updated GC-Classic and GCHP environment files, build scripts, and run scripts for NASA discover cluster
+- Updated rundir scripts to ask for confirmation before building the KPP-Standalone executable
+- Updated rundir scripts to print a reminder to compile with `-DKPPSA=y` to build the KPP-Standalone executable
+- Updated `integrationTestCreate.sh` and `parallelTestCreate.sh` scripts to decline building the KPP-Standalone.
+
+### Fixed
+- Fixed GCHP refresh time for `CO2_WEEKLY` scale factors so updated daily
+- Fixed bug in GCHP GEOS-IT run directory using raw lat-lon fields on NASA discover cluster
 
 ## [14.5.1] - 2025-01-10
 ### Added
@@ -32,6 +266,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Input_Opt logical for whether to reconstruct convective precipitation fluxes rather than use met-fields
 - Added to run directory creation a warning about convection discontinuity and bug if GEOS-FP meteorology is chosen
 - Added surface precipitation flux fields as inputs to GCHP
+- Added Australian Hg emissions for 2000-2019 from MacFarlane et. al. [2022], plus corresponding mask file
+- Added comments in GEOS-Chem Classic `HISTORY.rc` template files advising users not to change the `BoundaryConditions.frequency` setting
+- Added `.zenodo.json` for auto-DOI generation upon version releases
 
 ### Changed
 - Renamed `Emiss_Carbon_Gases` to `CO2_Production` in `carbon_gases_mod.F90`
@@ -64,10 +301,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in GC-Classic OCS emissions where unit conversion of km2 to m2 occurred twice
 - Changed dimension of EmisOCS_Total from 3D to 2D since all emissions for all sectors are 2D
 - Added fixes to only apply archived PCO_CH4 field for carbon simulations with CO only
+- Reverted CH4 livestock emissions to EDGAR v7 to avoid hotspots and to apply seasonality
 
 ### Removed
 - Removed duplicate `WD_RetFactor` tag for HgClHO2 in `species_database.yml`
 - Removed error messages in HEMCO interface pointing users to HEMCO log
+- Removed unused RUNDIR settings for GCHP pressure units and scaling
 
 ## [14.5.0] - 2024-11-07
 ### Added
@@ -162,7 +401,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added Cloud-J status output and error handling for it
 
 ### Changed
-- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation 
+- Alphabetically sort Complex SOA species into `geoschem_config.yml` in run directory creation
 - Use hard-coded years for met fields and BC files in `HEMCO_Config.rc` so they are not read hourly
 - Updated `run/CESM` with alphabetical sorting of species in `geoschem_config.yml`
 - Added clarifying comments in GCHP configuration files for several settings, particularly related to domain decomposition, mass fluxes, and stretched grid

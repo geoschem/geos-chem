@@ -156,6 +156,14 @@ MODULE State_Met_Mod
      !----------------------------------------------------------------------
      ! 3-D Fields
      !----------------------------------------------------------------------
+#ifdef LUO_WETDEP
+     REAL(fp), POINTER :: KINC          (:,:,:) ! Air refreshing rate [s-1]
+     REAL(fp), POINTER :: WUP           (:,:,:) ! TKE wind speed [m/s]
+     REAL(fp), POINTER :: TKICE         (:,:,:) ! Ice uptake rate [s-1]
+     REAL(fp), POINTER :: NUMCD         (:,:,:) ! Cloud Ice Number [cm-3]
+     REAL(fp), POINTER :: ICESF         (:,:,:) ! Cloud Ice Surface Area [cm2]
+     REAL(fp), POINTER :: RADCD         (:,:,:) ! Cloud Ice Radius [cm]
+#endif
      REAL(fp), POINTER :: CLDF          (:,:,:) ! 3-D cloud fraction [1]
      REAL(fp), POINTER :: CMFMC         (:,:,:) ! Cloud mass flux [kg/m2/s]
      REAL(fp), POINTER :: DQRCU         (:,:,:) ! Conv precip production rate
@@ -513,6 +521,14 @@ CONTAINS
     State_Met%REEVAP         => NULL()
     State_Met%REEVAP         => NULL()
     State_Met%PBL_MAX_L      = 0
+#ifdef LUO_WETDEP
+    State_Met%KINC           => NULL()
+    State_Met%WUP            => NULL()
+    State_Met%TKICE          => NULL()
+    State_Met%NUMCD          => NULL()
+    State_Met%ICESF          => NULL()
+    State_Met%RADCD          => NULL()
+#endif
 
   END SUBROUTINE Zero_State_Met
 !EOC
@@ -2059,6 +2075,74 @@ CONTAINS
        RETURN
     ENDIF
 
+#ifdef LUO_WETDEP
+    !------------------------------------------------------------------------
+    ! KINC [s-1]: Air refreshing rate
+    !------------------------------------------------------------------------
+    metId = 'KINC'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%KINC,                                        &
+         RC         = RC                                                    )
+    !------------------------------------------------------------------------
+    ! WUP [m/s]: TKE wind speed
+    !------------------------------------------------------------------------
+    metId = 'WUP'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%WUP,                                         &
+         RC         = RC                                                    )
+    !------------------------------------------------------------------------
+    ! TKICE [s]: Ice uptake rate
+    !------------------------------------------------------------------------
+    metId = 'TKICE'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%TKICE,                                       &
+         RC         = RC                                                    )
+    !------------------------------------------------------------------------
+    ! NUMCD [cm-3]: Cloud Ice Number
+    !------------------------------------------------------------------------
+    metId = 'NUMCD'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%NUMCD,                                        &
+         RC         = RC                                                    )
+    !------------------------------------------------------------------------
+    ! ICESF [cm2]: Cloud Ice Surface Area
+    !------------------------------------------------------------------------
+    metId = 'ICESF'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%ICESF,                                        &
+         RC         = RC                                                    )
+    !------------------------------------------------------------------------
+    ! RADCD [cm]: Cloud Ice Radius
+    !------------------------------------------------------------------------
+    metId = 'RADCD'
+    CALL Init_and_Register(                                                  &
+         Input_Opt  = Input_Opt,                                             &
+         State_Met  = State_Met,                                             &
+         State_Grid = State_Grid,                                            &
+         metId      = metId,                                                 &
+         Ptr2Data   = State_Met%RADCD,                                        &
+         RC         = RC                                                    )
+#endif
     !------------------------------------------------------------------------
     ! CLDF [1]
     !------------------------------------------------------------------------
@@ -3895,6 +3979,68 @@ CONTAINS
 #endif
     ENDIF
 
+#ifdef LUO_WETDEP
+    IF ( ASSOCIATED( State_Met%KINC ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%KINC => NULL()
+#else
+       DEALLOCATE( State_Met%KINC, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%KINC', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%KINC => NULL()
+#endif
+    ENDIF
+    IF ( ASSOCIATED( State_Met%WUP ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%WUP => NULL()
+#else
+       DEALLOCATE( State_Met%WUP, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%WUP', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%WUP => NULL()
+#endif
+    ENDIF
+    IF ( ASSOCIATED( State_Met%TKICE ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%TKICE => NULL()
+#else
+       DEALLOCATE( State_Met%TKICE, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%TKICE', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%TKICE => NULL()
+#endif
+    ENDIF
+    IF ( ASSOCIATED( State_Met%NUMCD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%NUMCD => NULL()
+#else
+       DEALLOCATE( State_Met%NUMCD, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%NUMCD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%NUMCD => NULL()
+#endif
+    ENDIF
+    IF ( ASSOCIATED( State_Met%ICESF ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%ICESF => NULL()
+#else
+       DEALLOCATE( State_Met%ICESF, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%ICESF', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%ICESF => NULL()
+#endif
+    ENDIF
+    IF ( ASSOCIATED( State_Met%RADCD ) ) THEN
+#if defined( ESMF_ ) || defined( MODEL_WRF )
+       State_Met%RADCD => NULL()
+#else
+       DEALLOCATE( State_Met%RADCD, STAT=RC  )
+       CALL GC_CheckVar( 'State_Met%RADCD', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+       State_Met%RADCD => NULL()
+#endif
+    ENDIF
+#endif
     IF ( ASSOCIATED( State_Met%CLDF ) ) THEN
 #if defined( ESMF_ ) || defined( MODEL_WRF )
        State_Met%CLDF => NULL()
@@ -4950,6 +5096,39 @@ CONTAINS
           IF ( isUnits ) Units = 'm'
           IF ( isRank  ) Rank  = 3
           IF ( isVLoc  ) VLoc  = VLocationCenter
+
+#ifdef LUO_WETDEP
+       CASE ( 'KINC' )
+          IF ( isDesc  ) Desc  = 'air refreshing rate'
+          IF ( isUnits ) Units = 's-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+       CASE ( 'WUP' )
+          IF ( isDesc  ) Desc  = 'TKE wind speed'
+          IF ( isUnits ) Units = 'm s-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+       CASE ( 'TKICE' )
+          IF ( isDesc  ) Desc  = 'ice uptake rate'
+          IF ( isUnits ) Units = 's-1'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+       CASE ( 'NUMCD' )
+          IF ( isDesc  ) Desc  = 'cloud ice number'
+          IF ( isUnits ) Units = 'cm-3'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+       CASE ( 'ICESF' )
+          IF ( isDesc  ) Desc  = 'cloud ice surface area'
+          IF ( isUnits ) Units = 'cm2'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+       CASE ( 'RADCD' )
+          IF ( isDesc  ) Desc  = 'cloud ice radius'
+          IF ( isUnits ) Units = 'cm'
+          IF ( isRank  ) Rank  = 3
+          IF ( isVLoc  ) VLoc  = VLocationCenter
+#endif
 
        CASE ( 'CLDF' )
           IF ( isDesc  ) Desc  = '3-D cloud fraction'
@@ -6343,6 +6522,7 @@ CONTAINS
          Units       = TRIM( Units      ),                                   &
          Description = TRIM( Desc       ),                                   &
          Data2d_4    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6476,6 +6656,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_4     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
        ENDDO
 
@@ -6502,6 +6683,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_4     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6616,6 +6798,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_8    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -6749,6 +6932,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( units      ),                            &
                Data2d_8     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -6776,6 +6960,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_8     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors
@@ -6890,6 +7075,7 @@ CONTAINS
          Description = TRIM( Desc       ),                                   &
          Units       = TRIM( Units      ),                                   &
          Data2d_I    = Ptr2Data,                                             &
+         Output_KindVal = type,                                              &
          RC          = RC                                                   )
 
     ! Trap potential errors
@@ -7019,6 +7205,7 @@ CONTAINS
                Description  = TRIM( thisDesc   ),                            &
                Units        = TRIM( Units      ),                            &
                Data2d_I     = Ptr2Data(:,:,N),                               &
+               Output_KindVal = type,                                        &
                RC           = RC                                            )
 
        ENDDO
@@ -7046,6 +7233,7 @@ CONTAINS
             Units        = TRIM( Units      ),                               &
             OnLevelEdges = onEdges,                                          &
             Data3d_I     = Ptr2Data,                                         &
+            Output_KindVal = type,                                           &
             RC           = RC                                               )
 
        ! Trap potential errors

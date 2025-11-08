@@ -13,7 +13,7 @@ portals:
     short_name: ga
     s3_bucket: True
     remote: s3://geos-chem
-    command: 'aws s3 cp '
+    command: 'aws s3 cp --no-sign-request '
     quote: ""
 
   # GEOS-Chem Input Data portal, download via HTTP/wget
@@ -31,7 +31,7 @@ portals:
     short_name: na
     s3_bucket: True
     remote: s3://gcgrid
-    command: 'aws s3 cp '
+    command: 'aws s3 cp --no-sign-request '
     quote: ""
 
   # GEOS-Chem Nested Input Data portal, download via HTTP/wget
@@ -58,7 +58,7 @@ restarts:
     remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
   carbon:
-    remote: v2023-01/GEOSChem.Restart.carbon.20190101_0000z.nc4
+    remote: v2025-07/GEOSChem.Restart.carbon.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
   fullchem:
     remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4

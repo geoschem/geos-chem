@@ -104,10 +104,12 @@ CONTAINS
 !
     USE ErrCode_Mod
     USE ERROR_MOD
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_KeepHalogensActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetKeepActive
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_UpdateKppDiags
     USE fullchem_AutoReduceFuncs, ONLY : fullchem_AR_SetIntegratorOptions
+#endif
     USE fullchem_HetStateFuncs,   ONLY : fullchem_SetStateHet
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertAlkToEquiv
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_ConvertEquivToAlk
@@ -177,8 +179,7 @@ CONTAINS
     INTEGER                :: P,          MONTH,     YEAR,     Day
     INTEGER                :: IERR,       S,         Thread
     INTEGER                :: errorCount, previous_units
-    REAL(fp)               :: SO4_FRAC,   T,         TIN
-    REAL(fp)               :: TOUT,       SR,        LWC
+    REAL(fp)               :: SO4_FRAC,   SR,        LWC
     REAL(dp)               :: KPPH_before_integrate
     ! Strings
     CHARACTER(LEN=255)     :: errMsg,     thisLoc
@@ -234,9 +235,10 @@ CONTAINS
 !
     ! Defines the slot in which the H-value from the KPP integrator is stored
     ! This should be the same as the value of Nhnew in gckpp_Integrator.F90
-    ! (assuming Rosenbrock solver).  Define this locally in order to break
-    ! a compile-time dependency.  -- Bob Yantosca (05 May 2022)
+    ! Define this locally in order to break a compile-time dependency.
+    !    -- Bob Yantosca (05 May 2022)
     INTEGER,     PARAMETER :: Nhnew = 3
+
     ! Add Nhexit, the last timestep length -- Obin Sturm (30 April 2024)
     INTEGER,     PARAMETER :: Nhexit = 2
 
@@ -329,6 +331,7 @@ CONTAINS
 
     !========================================================================
     ! Zero out certain species
+    ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
     !========================================================================
     DO N = 1, State_Chm%nSpecies
 
@@ -424,6 +427,7 @@ CONTAINS
 
     !=======================================================================
     ! Archive concentrations before chemistry
+    ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
     !=======================================================================
     IF ( State_Diag%Archive_ConcBeforeChem ) THEN
        ! Point to mapping obj specific to ConcBeforeChem diagnostic collection
@@ -475,31 +479,12 @@ CONTAINS
     ! probably safe to define them here outside the OpenMP loop.
     ! (bmy, 3/28/16)
     !
-    ! The ICNTRL vector specifies options for the solver.  We can
-    ! define ICNTRL outside of the "SOLVE CHEMISTRY" parallel loop
-    ! below because it is passed to KPP as INTENT(IN).
-    ! (bmy, 3/28/16)
-    !
-    ! ICNTRL now needs to be updated within the TimeLoop for the AR solver
-    ! (hplin, 4/13/22)
+    ! ICNTRL and RCNTRL now need to be updated within the TimeLoop for
+    ! the Rosenbrock_AutoReduce solver (hplin, 4/13/22)
     !========================================================================
-
-    !%%%%% TIMESTEPS %%%%%
-
-    ! mje Set up conditions for the integration
-    ! mje chemical timestep and convert it to seconds.
-    DT        = GET_TS_CHEM() ! [s]
-    T         = 0d0
-    TIN       = T
-    TOUT      = T + DT
-
-    !%%%%% CONVERGENCE CRITERIA %%%%%
-
-    ! Absolute tolerance
-    ATOL      = State_Chm%KPP_AbsTol
-
-    ! Relative tolerance
-    RTOL      = State_Chm%KPP_RelTol
+    DT   = GET_TS_CHEM()          ! Chemistry timestep [s]
+    ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
+    RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
@@ -522,11 +507,13 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Always consider halogens as "fast" species for auto-reduce
     !------------------------------------------------------------------------
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
     IF ( FIRSTCHEM .and. Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
        IF ( Input_Opt%AutoReduce_Is_KeepActive ) THEN
           CALL fullchem_AR_KeepHalogensActive( Input_Opt%amIRoot )
        ENDIF
     ENDIF
+#endif
 
     !========================================================================
     ! MAIN LOOP: Compute reaction rates and call chemical solver
@@ -594,9 +581,11 @@ CONTAINS
 #endif
 #endif
 
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
        ! Per discussions for Lin et al., force keepActive throughout the
        ! atmosphere if keepActive option is enabled. (hplin, 2/9/22)
        CALL fullchem_AR_SetKeepActive( option=.TRUE. )
+#endif
 
        ! Check if the current grid cell in this loop should have its
        ! full chemical state printed (concentrations, rates, constants)
@@ -675,6 +664,9 @@ CONTAINS
                 !    photolysis species index (range: 1..State_Chm%nPhotol)
                 !    for each of the FAST-JX photolysis species (range;
                 !    1..State_Chm%Phot%nMaxPhotRxns) in the GC_PHOTO_ID array
+                !
+                ! TODO: Abstract some of this to a subroutine,
+                !       to simplify DO_FULLCHEM
                 !============================================================
 
                 ! GC photolysis species index
@@ -764,6 +756,8 @@ CONTAINS
        ! This process has to be done before InChemGrid as it is supposed to
        ! be active everywhere, especially the stratosphere.
        ! (hplin, 5/30/23)
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !=====================================================================
 
        IF ( Input_Opt%correctConvUTLS .and. L .ge. State_Met%PBL_TOP_L(I,J) ) THEN
@@ -956,7 +950,7 @@ CONTAINS
        !=====================================================================
 
        ! Update the array of rate constants
-       CALL Update_RCONST( )
+       CALL Update_RCONST()
 
        !=====================================================================
        ! HISTORY (aka netCDF diagnostics)
@@ -967,6 +961,8 @@ CONTAINS
        ! NOTE: In KPP 2.5.0+, VAR and FIX are now private to the integrator
        ! and point to C.  Therefore, pass C(1:NVAR) instead of VAR and
        ! C(NVAR+1:NSPEC) instead of FIX to routine FUN.
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !=====================================================================
        IF ( State_Diag%Archive_RxnRate                                  .or. &
             State_Diag%Archive_SatDiagnRxnRate                        ) THEN
@@ -1007,6 +1003,7 @@ CONTAINS
 
        ENDIF
 
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
        !=====================================================================
        ! Set options for the KPP integrator in vectors ICNTRL and RCNTRL
        ! This now needs to be done within the parallel loop
@@ -1015,6 +1012,7 @@ CONTAINS
                                               State_Met, FirstChem,          &
                                               I,         J,         L,       &
                                               ICNTRL,    RCNTRL             )
+#endif
 
        !=====================================================================
        ! Integrate the box forwards
@@ -1029,10 +1027,10 @@ CONTAINS
        KPPH_before_integrate = State_Chm%KPPHvalue(I,J,L)
        local_RCONST          = RCONST
 
-       ! Call the Rosenbrock integrator
-       ! (with optional auto-reduce functionality)
-       CALL Integrate( TIN,    TOUT,    ICNTRL,                              &
-                       RCNTRL, ISTATUS, RSTATE, IERR                        )
+       ! Call the KPP integrator
+       ! NOTE: Some integrators (like LSODE) will overwrite the TIN value
+       ! upon exit.  To prevent this, pass 0.0, DT as the 1st 2 arguments.
+       CALL Integrate( 0.0_dp, DT, ICNTRL, RCNTRL, ISTATUS, RSTATE, IERR )
 
        ! Print grid box indices to screen if integrate failed
        IF ( IERR < 0 ) THEN
@@ -1076,7 +1074,7 @@ CONTAINS
        !=====================================================================
        ! HISTORY: Archive KPP solver diagnostics
        !
-       ! !TODO: Abstract this into a separate routine
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !=====================================================================
        IF ( State_Diag%Archive_KppDiags ) THEN
 
@@ -1125,11 +1123,13 @@ CONTAINS
              State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
           ENDIF
 
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
           ! Update autoreduce solver statistics
           ! (only if the autoreduction is turned on)
           IF ( Input_Opt%Use_AutoReduce ) THEN
              CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
           ENDIF
+#endif
        ENDIF
 
        !=====================================================================
@@ -1137,8 +1137,8 @@ CONTAINS
        !=====================================================================
        IF ( IERR < 0 ) THEN
 
-          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
-          ! C with concentrations prior to the 1st call to "Integrate".
+          ! Zero the first time step (Hstart).  Also reset C with
+          ! concentrations prior to the 1st call to "Integrate".
           RCNTRL(3) = 0.0_dp
           C         = C_before_integrate
 
@@ -1154,11 +1154,12 @@ CONTAINS
           ENDIF
 
           ! Update rates again
-          CALL Update_RCONST( )
+          CALL Update_RCONST()
 
-          ! Call the Rosenbrock integrator (w/ auto-reduction disabled)
-          CALL Integrate( TIN,    TOUT,    ICNTRL,                           &
-                          RCNTRL, ISTATUS, RSTATE, IERR                     )
+          ! Call the integrator
+          ! NOTE: Some integrators (like LSODE) will overwrite the TIN value
+          ! upon exit.  To prevent this, pass 0.0, DT as the 1st 2 arguments.
+          CALL Integrate( 0.0_dp, DT, ICNTRL, RCNTRL, ISTATUS, RSTATE, IERR )
 
           !==================================================================
           ! HISTORY: Archive KPP solver diagnostics
@@ -1355,6 +1356,8 @@ CONTAINS
        ! Obtain P/L with a unit [kg S] for tracing
        ! gas-phase sulfur species production (SO2, SO4, MSA)
        ! (win, 8/4/09)
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !-----------------------------------------------------------------
 
        ! Calculate H2SO4 production rate [kg s-1] in each
@@ -1400,6 +1403,8 @@ CONTAINS
 #ifdef MODEL_GEOS
        !--------------------------------------------------------------------
        ! Archive NOx lifetime [h]
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
           CALL Fun( V       = C(1:NVAR),                                     &
@@ -1450,6 +1455,8 @@ CONTAINS
        ! NOTE: KppId is the KPP ID # for each of the prod and loss
        ! diagnostic species.  This is the value used to index the
        ! KPP "C" array (in module gckpp_Global.F90).
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !====================================================================
 
        ! Chemical loss of species or families [molec/cm3/s]
@@ -1487,6 +1494,8 @@ CONTAINS
        !--------------------------------------------------------------------
        ! Archive prod/loss fields for CO in the carbon simulation [molec/cm3/s]
        ! (In practice, we only need to do this from benchmark simulations)
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
        !--------------------------------------------------------------------
        IF ( State_Diag%Archive_ProdCOfromCH4     .or.                        &
             State_Diag%Archive_ProdCOfromNMVOC ) THEN

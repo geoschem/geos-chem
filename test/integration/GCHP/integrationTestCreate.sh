@@ -213,16 +213,16 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     fi
 
     # c24 merra2 fullchem_standard
-    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_benchmark
-    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n2\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_RRTMG
-    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n8\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     # c24 merra2 fullchem_TOMAS15
-    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
+    create_rundir "1\n6\n1\n1\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on
@@ -242,7 +242,10 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     sed_ie "s|'RRTMG'|#'RRTMG'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'Tomas'|#'Tomas'|"     gchp_merra2_fullchem_alldiags/HISTORY.rc
     sed_ie "s|'DynHeat|#'DynHeat|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
-    sed_ie "s|'UVFlux'|#'UVFlux'|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
+
+    # Disable the KppTime diagnostic (time spent in integrator) as
+    # this will vary due to local conditions on the cluster/node
+    sed_ie "s|'KppTime|#'KppTime|"   gchp_merra2_fullchem_alldiags/HISTORY.rc
 
     # Switch back to the present directory
     cd "${thisDir}"
