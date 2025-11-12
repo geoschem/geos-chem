@@ -341,11 +341,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE ConcAfterChem COLLECTION %%%%%
 #
 # Concentrations of OH, HO2, O1D, O3P immediately after exiting the KPP solver
-# or OH after the CH4 specialty-simulation chemistry routine.
-#
-# OH:       Available for all full-chemistry simulations and CH4 specialty sim
-# HO2:      Available for all full-chemistry simulations
-# O1D, O3P: Availalbe for full-chemistry simulations using UCX mechanism
 #==============================================================================
   ConcAfterChem.template:     '%y4%m2%d2_%h2%n2z.nc4',
   ConcAfterChem.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -444,8 +439,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE ProdLoss COLLECTION %%%%%
 #
 # Chemical production and loss rates
-#
-# Available for full-chemistry, aerosol-only, and tagO3 simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}

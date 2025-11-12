@@ -41,6 +41,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
+- Renamed `Carbon` collection to `ProdLoss` collection in GCClassic and GCHP `HISTORY.rc.carbon` templates
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -67,6 +68,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
 - Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
+- Removed `OHconcAfterChem` from GCClassic and GCHP `HISTORY.rc.carbon` templates, as OH is fixed during the simulation
 
 ## [14.6.3] - 2025-07-28
 ### Added

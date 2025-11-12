@@ -56,16 +56,16 @@ COLLECTIONS: 'SpeciesConc',
              'Emissions',
              #'Metrics',
              #'Budget',
-             'Carbon',
              #'CloudConvFlux',
              #'ConcAfterChem',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
              #'KppDiags',
+             #'ProdLoss',
              #'RxnConst',
              #'RxnRates',
-             'StateMet',
+             #'StateMet',
              #'StateMetLevEdge',
 ::
 #==============================================================================
@@ -247,20 +247,6 @@ COLLECTIONS: 'SpeciesConc',
                               'BudgetConvectionPBL_OCS       ', 'GCHPchem',
                               'BudgetConvectionLevs1to35_OCS ', 'GCHPchem',
 ::
-#==============================================================================
-# Prod and loss terms from the carbon simulation (plus OH conc)
-  Carbon.template:        '%y4%m2%d2_%h2%n2z.nc4',
-  Carbon.format:          'CFIO',
-  Carbon.timestampStart:  .true.
-  Carbon.monthly:         1
-  Carbon.frequency:       010000
-  Carbon.duration:        010000
-  Carbon.mode:            'time-averaged'
-  Carbon.fields:          'OHconcAfterChem', 'GCHPchem',
-                          'ProdCOfromCH4  ', 'GCHPchem',
-                          'ProdCOfromNMVOC', 'GCHPchem',
-                          'ProdCO2fromCO  ', 'GCHPchem',
-::
 #===============================================================================
 # Cloud convective fluxes
   CloudConvFlux.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -342,6 +328,19 @@ COLLECTIONS: 'SpeciesConc',
                               'KppSubsts    ', 'GCHPchem',
                               'KppSmDecomps ', 'GCHPchem',
                               'KppTime      ', 'GCHPchem',
+::
+#==============================================================================
+# Prod and loss terms from the carbon simulation (plus OH conc)
+  ProdLoss.template:        '%y4%m2%d2_%h2%n2z.nc4',
+  ProdLoss.format:          'CFIO',
+  ProdLoss.timestampStart:  .true.
+  ProdLoss.monthly:         1
+  ProdLoss.frequency:       010000
+  ProdLoss.duration:        010000
+  ProdLoss.mode:            'time-averaged'
+  ProdLoss.fields:          'ProdCOfromCH4  ', 'GCHPchem',
+                            'ProdCOfromNMVOC', 'GCHPchem',
+                            'ProdCO2fromCO  ', 'GCHPchem',
 ::
 #==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
