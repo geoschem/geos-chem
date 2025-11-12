@@ -58,8 +58,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Restart COLLECTION %%%%%
 #
 # GEOS-Chem restart file fields
-#
-# Available for all simulations
 #==============================================================================
   Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          'End',
@@ -83,8 +81,6 @@ COLLECTIONS: 'Restart',
 #
 # GEOS-Chem species concentrations (default = all species)
 #
-# Available for all simulations
-#
 # Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
 #                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
@@ -101,8 +97,6 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
 # (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -166,8 +160,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE MercuryChem COLLECTION %%%%%
 #
 # Concentration and prod/loss diagnostics for mercury species
-#
-# Available for the Hg and tagged Hg simulations
 #==============================================================================
   MercuryChem.template:       '%y4%m2%d2_%h2%n2z.nc4',
   MercuryChem.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -189,8 +181,6 @@ COLLECTIONS: 'Restart',
 #
 # Concentration and prod/loss diagnostics for mercury species that are
 # not archived by HEMCO.
-#
-# Available for the Hg and tagged Hg simulations
 #==============================================================================
   MercuryEmis.template:       '%y4%m2%d2_%h2%n2z.nc4',
   MercuryEmis.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -205,8 +195,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE MercuryOcean COLLECTION %%%%%
 #
 # Oceanic masses and fluxes of mercury species
-#
-# Available for the Hg and tagged Hg simulations
 #==============================================================================
   MercuryOcean.template:      '%y4%m2%d2_%h2%n2z.nc4',
   MercuryOcean.frequency:     ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -226,8 +214,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE ProdLoss COLLECTION %%%%%
 #
 # Chemical production and loss rates
-#
-# Available for full-chemistry, aerosol-only, and tagO3 simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -239,8 +225,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE KppDiags COLLECTION %%%%%
 #
 # Diagnostics from the KPP solver.
-#
-# Available for fullchem, carbon, Hg simulations.
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
   KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -266,8 +250,6 @@ COLLECTIONS: 'Restart',
 #
 # The units of reaction rate constants vary according to the number of
 # reactants in the reaction.
-#
-# Available for fullchem, carbon, Hg simulations.
 #==============================================================================
   RxnConst.template:          '%y4%m2%d2_%h2%n2z.nc4',
   RxnConst.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -284,8 +266,6 @@ COLLECTIONS: 'Restart',
 # It is best to list individual reactions to avoid using too much memory.
 # Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
-#
-# Available for the fullchem, carbon, Hg simulations.
 #==============================================================================
   RxnRates.template:          '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -299,8 +279,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
 # GEOS-Chem data during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagn.format:            'CFIO',
@@ -336,8 +314,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagnEdge COLLECTION %%%%%
 #
 # GEOS-Chem data (on level edges) during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagnEdge.format:        'CFIO',
@@ -351,8 +327,6 @@ COLLECTIONS: 'Restart',
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the StateMetLevEdge collection)
-#
-# Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -441,8 +415,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StateMetLevEdge COLLECTION %%%%%
 #
 # Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
 #==============================================================================
   StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
   StateMetLevEdge.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -460,8 +432,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE WetLossConv COLLECTION %%%%%
 #
 # Loss of soluble species in convective updrafts
-#
-# Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
   WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -474,8 +444,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE WetLossLS COLLECTION %%%%%
 #
 # Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
-#
-# Available for all simulations that have soluble species
 #==============================================================================
 # Loss due to rainout and washout (per deposited species)
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
@@ -488,8 +456,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE BoundaryConditions COLLECTION %%%%%
 #
 # GEOS-Chem boundary conditions for use in nested grid simulations
-#
-# Available for all simulations
 #
 # NOTE: Do not change the BoundaryConditions.frequency setting below,
 # because GEOS-Chem nested-grid simulations expect to read boundary

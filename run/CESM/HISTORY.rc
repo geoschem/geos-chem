@@ -115,8 +115,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% AerosolMass %%%%%
 #
 # Aerosol and PM2.5 mass
-#
-# Available for full-chemistry and aerosol-only simulations
 #==============================================================================
   AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AerosolMass.frequency:      {FREQUENCY}
@@ -145,8 +143,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% Aerosols %%%%%
 #
 # Aerosol optical depth, surface area, number density, and hygroscopic growth
-#
-# Available for full-chemistry or aerosol-only simulations
 #==============================================================================
   Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
   Aerosols.frequency:         {FREQUENCY}
@@ -259,8 +255,6 @@ COLLECTIONS: 'Metrics',
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
 # This diagnostic is avaiable for all advected species.
-#
-# Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
   Budget.frequency:    {FREQUENCY}
@@ -316,8 +310,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% JValues %%%%%
 #
 # Photolysis rates (from the photolysis module)
-#
-# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
   JValues.frequency:          {FREQUENCY}
@@ -479,8 +471,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% UVFlux %%%%%
 #
 # UV fluxes (from the photolysis module)
-#
-# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   UVFlux.template:           '%y4%m2%d2_%h2%n2z.nc4',
   UVFlux.frequency:          {FREQUENCY}
@@ -545,8 +535,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% KppDiags %%%%%
 #
 # Diagnostics from the KPP solver.
-#
-# Available for full-chemistry simulations (all variations)
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
   KppDiags.frequency:         {FREQUENCY}
@@ -568,8 +556,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% KppARDiags %%%%%
 #
 # Diagnostics from the KPP solver when auto-reduction solver is used.
-#
-# Available for full-chemistry simulations only if auto-reduce is enabled.
 #==============================================================================
   KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
   KppARDiags.frequency:       {FREQUENCY}
@@ -583,8 +569,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% ProdLoss %%%%%
 #
 # Chemical production and loss rates
-#
-# Available for full-chemistry, aerosol-only, and tagO3 simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.frequency:         {FREQUENCY}
@@ -618,8 +602,6 @@ COLLECTIONS: 'Metrics',
 # It is best to list individual reactions to avoid using too much memory.
 # Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
-#
-# Available for the fullchem simulations.
 #==============================================================================
   RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.frequency:  {FREQUENCY}
@@ -638,8 +620,6 @@ COLLECTIONS: 'Metrics',
 #
 # The units of reaction rate constants vary according to the number of reactants
 # in the reaction.
-#
-# Available for the fullchem simulations.
 #==============================================================================
   RxnConst.template:   '%y4%m2%d2_%h2%n2z.nc4',
   RxnConst.frequency:  {FREQUENCY}
@@ -652,8 +632,6 @@ COLLECTIONS: 'Metrics',
 # %%%%% StateChm %%%%%
 #
 # Fields of the State_Chm object (see also Aerosols collection)
-#
-# Available for full-chemistry and aerosols-only simulations
 #==============================================================================
   StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateChm.frequency:         {FREQUENCY}
@@ -688,8 +666,6 @@ COLLECTIONS: 'Metrics',
 # Fields of the State_Met object (also see the StateMetLevEdge collection). All
 # 3D fields are centered in the grid box, i.e. not at level edges. Vertical
 # dimension size is one more than 3D fields in the StateMetLevEdge collection.
-#
-# Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.frequency:         {FREQUENCY}
@@ -783,8 +759,6 @@ COLLECTIONS: 'Metrics',
 #
 # State_Met arrays that are defined on grid box level edges. Vertical dimension
 # size is one more than 3D fields in the StateMet collection.
-#
-# Available for all simulations
 #==============================================================================
   StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
   StateMetLevEdge.frequency:   {FREQUENCY}

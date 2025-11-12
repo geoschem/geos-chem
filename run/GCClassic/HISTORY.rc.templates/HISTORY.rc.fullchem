@@ -68,8 +68,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Restart COLLECTION %%%%%
 #
 # GEOS-Chem restart file fields
-#
-# Available for all simulations
 #==============================================================================
   Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          ${RUNDIR_HIST_INST_FREQ}
@@ -98,8 +96,6 @@ COLLECTIONS: 'Restart',
 #
 # This diagnostic collection should always be left on.
 # Use the run-directory script ./metrics_fullchem.py to print results.
-#
-# Available for full-chemistry and CH4 simulations only.
 #==============================================================================
   Metrics.template:           '%y4%m2%d2_%h2%n2z.nc4',
   Metrics.frequency:          'End',
@@ -115,8 +111,6 @@ COLLECTIONS: 'Restart',
 #
 # GEOS-Chem species concentrations (default = all species)
 #
-# Available for all simulations
-#
 # Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
 #                                    SpeciesConcMND [molec/cm3]
 #==============================================================================
@@ -131,8 +125,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE AdvFluxVert COLLECTION %%%%%
 #
 # GEOS-Chem vertical mass flux of species in kg/s (default = O3 only)
-#
-# Available for all simulations
 #==============================================================================
   AdvFluxVert.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AdvFluxVert.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -144,8 +136,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE AerosolMass COLLECTION %%%%%
 #
 # Aerosol and PM2.5 mass
-#
-# Available for full-chemistry and aerosol-only simulations
 #==============================================================================
   AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
   AerosolMass.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -176,8 +166,6 @@ COLLECTIONS: 'Restart',
 # %%%%% The Aerosols COLLECTION %%%%%
 #
 # Aerosol optical depth, surface area, number density, and hygroscopic growth
-#
-# Available for full-chemistry or aerosol-only simulations
 #==============================================================================
   Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
   Aerosols.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -272,8 +260,6 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
 # (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -308,8 +294,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
 #
 # Cloud convective flux (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
   CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -355,8 +339,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE DryDep COLLECTION %%%%%
 #
 # Dry depositon fluxes and velocities (for all dry-depositing species)
-#
-# Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
   DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -371,8 +353,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE JValues COLLECTION %%%%%
 #
 # Photolysis rates (from the photolysis module)
-#
-# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   JValues.template:           '%y4%m2%d2_%h2%n2z.nc4',
   JValues.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -386,8 +366,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE UVFlux COLLECTION %%%%%
 #
 # UV fluxes (from the photolysis module)
-#
-# Available for all full-chemistry simulations with photolysis
 #==============================================================================
   UVFlux.template:           '%y4%m2%d2_%h2%n2z.nc4',
   UVFlux.frequency:          ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -401,8 +379,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE KppDiags COLLECTION %%%%%
 #
 # Diagnostics from the KPP solver.
-#
-# Available for full-chemistry simulations (all variations)
 #==============================================================================
   KppDiags.template:          '%y4%m2%d2_%h2%n2z.nc4',
   KppDiags.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -424,8 +400,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE KppARDiags COLLECTION %%%%%
 #
 # Diagnostics from the KPP solver when auto-reduction solver is used.
-#
-# Available for full-chemistry simulations only if auto-reduce is enabled.
 #==============================================================================
   KppARDiags.template:        '%y4%m2%d2_%h2%n2z.nc4',
   KppARDiags.frequency:       ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -540,8 +514,6 @@ COLLECTIONS: 'Restart',
 # It is best to list individual reactions to avoid using too much memory.
 # Reactions should be listed as "RxnRate_EQnnnn", where nnnn is the reaction
 # index as listed in KPP/fullchem/gckpp_Monitor.F90 (pad zeroes as needed).
-#
-# Available for the fullchem simulations.
 #==============================================================================
   RxnRates.template:   '%y4%m2%d2_%h2%n2z.nc4',
   RxnRates.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -560,8 +532,6 @@ COLLECTIONS: 'Restart',
 #
 # The units of reaction rate constants vary according to the number of reactants
 # in the reaction.
-#
-# Available for the fullchem simulations.
 #==============================================================================
   RxnConst.template:   '%y4%m2%d2_%h2%n2z.nc4',
   RxnConst.frequency:  ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -574,8 +544,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
 # GEOS-Chem data during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagn.format:            'CFIO',
@@ -645,8 +613,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagnEdge COLLECTION %%%%%
 #
 # GEOS-Chem data (on level edges) during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagnEdge.format:        'CFIO',
@@ -660,8 +626,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StateChm COLLECTION %%%%%
 #
 # Fields of the State_Chm object (see also Aerosols collection)
-#
-# Available for full-chemistry and aerosols-only simulations
 #==============================================================================
   StateChm.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateChm.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -694,8 +658,6 @@ COLLECTIONS: 'Restart',
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the StateMetLevEdge collection)
-#
-# Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -788,8 +750,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StateMetLevEdge COLLECTION %%%%%
 #
 # Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
 #==============================================================================
   StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
   StateMetLevEdge.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -807,8 +767,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StratBM COLLECTION %%%%%
 #
 # Fields needed for GEOS-Chem 10-year stratospheric benchmarks
-#
-# Available for full-chemistry simulations
 #==============================================================================
   StratBM.template:       '%y4%m2%d2_%h2%n2z.nc4',
   StratBM.frequency:      00000000 010000
@@ -826,8 +784,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Tomas Microphysics Rate COLLECTION %%%%%
 #
 # Tomas microphysics rates
-#
-# Available for full-chemistry and aerosol-only simulations
 #==============================================================================
   Tomas.template:       '%y4%m2%d2_%h2%n2z.nc4',
   Tomas.format:         'CFIO',
@@ -1307,8 +1263,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE WetLossConv COLLECTION %%%%%
 #
 # Loss of soluble species in convective updrafts
-#
-# Available for all simulations that have soluble species
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
   WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -1321,10 +1275,7 @@ COLLECTIONS: 'Restart',
 # %%%%% THE WetLossLS COLLECTION %%%%%
 #
 # Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
-#
-# Available for all simulations that have soluble species
-#==============================================================================
-# Loss due to rainout and washout (per deposited species)
+##==============================================================================
   WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
   WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
   WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
@@ -1335,8 +1286,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE BoundaryConditions COLLECTION %%%%%
 #
 # GEOS-Chem boundary conditions for use in nested grid simulations
-#
-# Available for all simulations
 #
 # NOTE: Do not change the BoundaryConditions.frequency setting below,
 # because GEOS-Chem nested-grid simulations expect to read boundary

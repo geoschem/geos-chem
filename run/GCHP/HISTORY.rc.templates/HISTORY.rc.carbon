@@ -62,10 +62,10 @@ COLLECTIONS: 'SpeciesConc',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
              #'KppDiags',
-             #'ProdLoss',
+             'ProdLoss',
              #'RxnConst',
              #'RxnRates',
-             #'StateMet',
+             'StateMet',
              #'StateMetLevEdge',
 ::
 #==============================================================================
@@ -330,7 +330,7 @@ COLLECTIONS: 'SpeciesConc',
                               'KppTime      ', 'GCHPchem',
 ::
 #==============================================================================
-# Prod and loss terms from the carbon simulation (plus OH conc)
+# Prod and loss terms from the carbon simulation
   ProdLoss.template:        '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.format:          'CFIO',
   ProdLoss.timestampStart:  .true.
