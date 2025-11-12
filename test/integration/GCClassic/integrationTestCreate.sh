@@ -276,8 +276,8 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Nested-grid simulations
     #=========================================================================
 
-    # 05x0625 merra2 fullchem_47L_na
-    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\n" "${log}"
+    # 05x0625_merra2_fullchem_47L_na
+    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on
