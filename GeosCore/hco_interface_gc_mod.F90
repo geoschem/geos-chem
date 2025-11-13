@@ -2389,21 +2389,21 @@ CONTAINS
 
     !------------------------------------------------------------------------
     ! %%%%% SNOMAS %%%%%
-    ! SNOWHGT is is mm H2O, which is the same as kg H2O/m2.
+    ! SNOMAS is is mm H2O, which is the same as kg H2O/m2.
     ! This is the unit of SNOMAS.
     !------------------------------------------------------------------------
 #ifdef MODEL_CLASSIC
-    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOMAS',                   &
-                     HMRC,     FIRST                                        )
+    CALL ExtDat_Set( HcoState, ExtState%SNOMAS, 'SNOMAS',                    &
+                     HMRC,     FIRST                                         )
 #else
-    CALL ExtDat_Set( HcoState, ExtState%SNOWHGT, 'SNOWHGT_FOR_EMIS',         &
-                     HMRC,     FIRST,             State_Met%SNOMAS          )
+    CALL ExtDat_Set( HcoState, ExtState%SNOMAS, 'SNOMAS_FOR_EMIS',           &
+                     HMRC,     FIRST,            State_Met%SNOMAS           )
 #endif
 
     ! Trap potential errors
     IF ( HMRC /= HCO_SUCCESS ) THEN
        RC     = HMRC
-       ErrMsg = 'Error encountered in "ExtDat_Set( SNOWHGT_FOR_EMIS )"!'
+       ErrMsg = 'Error encountered in "ExtDat_Set( SNOMAS_FOR_EMIS )"!'
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
