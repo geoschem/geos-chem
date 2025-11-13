@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 - Added clarifying comments in `flexgrid_read_met_mod.F90` for `TS` and `T2M` met fields
 - Added `&DSTbinproperties` and `&METALSproperties` YAML anchors in `run/shared/species_database.yml`
+- Added `DustL23M` as HEMCO extension 125 in `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -44,7 +45,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
 - Updated `run/shared/download_data.yml` so that aerosol and fullchem simulations will get the restart file from `GEOSCHEM_RESTARTS/GC_14.7.0`
-- Changed Extension 105 to be `DustL23M` instead of `DustDead` in `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem`
 - Updated `DST1/DST1/DST3/DST4` to `TDST/DSTbin1/DSTbin2/.../DSTbin7` in `geoschem_config.yml`, `HEMCO_Config.rc`, and `HEMCO_Diagn.rc` template files for aerosol & fullchem simulations
 - Updated routine `ExtState_SetFields` in `hco_interface_gc_mod.F90` for readability and clarity
 - Assigned `ExtState%TSKIN` from `State_Met%TS` and `ExtState%T2M` from `State_Met%T2M` in routine `ExtState_SetFields`
@@ -79,7 +79,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Removed entries for `DustGinoux` and `DustDead` extensions from `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
 - Removed `&DST{1,2,3,4}properties` in `run/shared/species_database.yml`
-
 
 ## [14.6.3] - 2025-07-28
 ### Added

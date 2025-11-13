@@ -136,7 +136,7 @@ function set_common_settings() {
 	sed_ie 's|SALC  0      3 |SALC  107    -1|'   HEMCO_Diagn.rc   #   "   "
 	sed_ie 's|AL  0      3 |AL  107    -1|'       HEMCO_Diagn.rc   #   "   "
 	sed_ie 's|CL  0      3 |CL  107    -1|'       HEMCO_Diagn.rc   #   "   "
-        sed_ie 's|0      3 |105    -1|'               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
+        sed_ie 's|0      3 |125    -1|'               HEMCO_Diagn.rc   # Use online dust (ExtNr=125)
         sed_ie 's|0      4 |108    -1|'               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108)
         sed_ie 's|NH3    105    -1|NH3    0      3 |' HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
         sed_ie 's|ALD2   105    -1|ALD2   0      3 |' HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0

@@ -172,8 +172,6 @@ VerboseOnCores:              root       # Accepted values: root all
 104     SoilNOx                : ${RUNDIR_SOILNOX_EXT}   NO
     --> UseSoilTemperature     :       false
     --> Use fertilizer NOx     :       true
-105     DustL23M               : ${RUNDIR_DUSTL23M_EXT}   TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
-    --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
@@ -211,8 +209,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> fraction POG1          :       0.49
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
-#see the note near scale factor 281 for the source of this emis factor
-115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
@@ -220,6 +216,15 @@ VerboseOnCores:              root       # Accepted values: root all
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
+125     DustL23M               : ${RUNDIR_DUSTL23M_EXT}   TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+    --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
+#see the note near scale factor 281 for the source of this emis factor
+126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
+#
+#
+##see the note near scale factor 281 for the source of this emis factor
+126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
+# ----- EXTENSIONS FOR TOMAS SIMULATIONS ONLY----------------------------------
 130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
     --> Reduce SS cold water   :       true
     --> Blowing Snow SS        :       true
@@ -3324,17 +3329,17 @@ VerboseOnCores:              root       # Accepted values: root all
 )))SoilNOx
 
 #===========================================================================
-# --- External fields needed for online DustL23M (Extension 105) ---
+# --- External fields needed for online DustL23M (Extension 125) ---
 #===========================================================================
 (((DustL23M
-105 L23M_A_bare       $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
-105 L23M_A_veg        $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
-105 L23M_Csah         $ROOT/DustL23M/v2025-07/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
-105 L23M_LAI          $ROOT/DustL23M/v2025-07/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
-105 L23M_fclay        $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
-105 L23M_BD           $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
-105 L23M_poros        $ROOT/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
-105 L23M_roughness_r  $ROOT/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
+125 L23M_A_bare       $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
+125 L23M_A_veg        $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
+125 L23M_Csah         $ROOT/DustL23M/v2025-07/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
+125 L23M_LAI          $ROOT/DustL23M/v2025-07/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
+125 L23M_fclay        $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
+125 L23M_BD           $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
+125 L23M_poros        $ROOT/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
+125 L23M_roughness_r  $ROOT/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
 )))DustL23M
 
 #==============================================================================
