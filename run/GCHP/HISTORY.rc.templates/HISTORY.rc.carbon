@@ -57,7 +57,6 @@ COLLECTIONS: 'SpeciesConc',
              #'Metrics',
              #'Budget',
              #'CloudConvFlux',
-             #'ConcAfterChem',
              #'FV3Dynamics',
              #'GCHPctmEnvLevCenter',
              #'GCHPctmEnvLevEdge',
@@ -260,17 +259,6 @@ COLLECTIONS: 'SpeciesConc',
                                 'CloudConvFlux_CO  ', 'GCHPchem',
                                 'CloudConvFlux_CO2 ', 'GCHPchem',
                                 'CloudConvFlux_OCS ', 'GCHPchem',
-::
-#==============================================================================
-# Concentrations of OH immediately after exiting the KPP solver
-  ConcAfterChem.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  ConcAfterChem.format:         'CFIO',
-  ConcAfterChem.timestampStart: .true.
-  ConcAfterChem.monthly:        1
-  ConcAfterChem.frequency:      010000
-  ConcAfterChem.duration:       010000
-  ConcAfterChem.mode:           'time-averaged'
-  ConcAfterChem.fields:         'OHconcAfterChem', 'GCHPchem',
 ::
 #==============================================================================
   FV3Dynamics.template:       '%y4%m2%d2_%h2%n2z.nc4',

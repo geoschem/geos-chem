@@ -30,8 +30,6 @@ EXPID:  ./OutputDir/GEOSChem
 COLLECTIONS: 'Restart',
              'SpeciesConc',
              #'Budget',
-             #'AerosolMass',
-             #'Aerosols',
              #'CloudConvFlux',
              #'DryDep',
              'ProdLoss',
@@ -40,8 +38,6 @@ COLLECTIONS: 'Restart',
              #'StateChm',
              'StateMet',
              #'StateMetLevEdge',
-             #'WetLossConv',
-             #'WetLossLS',
              #'BoundaryConditions',
 ::
 ###############################################################################
@@ -55,19 +51,12 @@ COLLECTIONS: 'Restart',
 # %%%%% THE Restart COLLECTION %%%%%
 #
 # GEOS-Chem restart file fields
-#
-# Available for all simulations
 #==============================================================================
   Restart.filename:           './Restarts/GEOSChem.Restart.%y4%m2%d2_%h2%n2z.nc4',
   Restart.frequency:          'End',
   Restart.duration:           'End',
   Restart.mode:               'instantaneous'
   Restart.fields:             'SpeciesRst_?ALL?               ',
-                              'Chem_AeroH2OSNA                ',
-                              'Chem_H2O2AfterChem             ',
-                              'Chem_SO2AfterChem              ',
-                              'Chem_DryDepNitrogen            ',
-                              'Chem_WetDepNitrogen            ',
                               'Met_DELPDRY                    ',
                               'Met_BXHEIGHT                   ',
                               'Met_TropLev                    ',
@@ -76,8 +65,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SpeciesConc COLLECTION %%%%%
 #
 # GEOS-Chem species concentrations (default = all species)
-#
-# Available for all simulations
 #
 # Concentrations may be saved out as SpeciesConcVV  [v/v dry air] or
 #                                    SpeciesConcMND [molec/cm3]
@@ -95,8 +82,6 @@ COLLECTIONS: 'Restart',
 # GEOS-Chem budget diagnostics defined as species kg/s in the column
 # (full, troposphere, or PBL) due to a single component (e.g. chemistry)
 # (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   Budget.template:     '%y4%m2%d2_%h2%n2z.nc4',
   Budget.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -128,106 +113,9 @@ COLLECTIONS: 'Restart',
                        'BudgetWetDepLevs1to35_?WET?          ',
 ::
 #==============================================================================
-# %%%%% THE AerosolMass COLLECTION %%%%%
-#
-# Aerosol and PM2.5 mass
-#
-# Available for full-chemistry and aerosol-only simulations
-#==============================================================================
-  AerosolMass.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  AerosolMass.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
-  AerosolMass.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
-  AerosolMass.mode:           'time-averaged'
-  AerosolMass.fields:         'AerMassBC                    ',
-                              'AerMassNH4                   ',
-                              'AerMassNIT                   ',
-                              'AerMassSAL                   ',
-                              'AerMassSO4                   ',
-                              'PM25                         ',
-                              'PM10                         ',
-                              'TotalOA                      ',
-                              'TotalOC                      ',
-::
-#==============================================================================
-# %%%%% The Aerosols COLLECTION %%%%%
-#
-# Aerosol optical depth, surface area, number density, and hygroscopic growth
-#
-# Available for full-chemistry or aerosol-only simulations
-#==============================================================================
-  Aerosols.template:          '%y4%m2%d2_%h2%n2z.nc4',
-  Aerosols.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
-  Aerosols.duration:          ${RUNDIR_HIST_TIME_AVG_DUR}
-  Aerosols.mode:              'time-averaged'
-  Aerosols.fields:            'AODDust                       ',
-                              'AODDustWL1_?DUSTBIN?          ',
-                              'AODHygWL1_?HYG?               ',
-                              'AODSOAfromAqIsopreneWL1       ',
-                              'AODStratLiquidAerWL1          ',
-                              'AODPolarStratCloudWL1         ',
-                              'AerHygroscopicGrowth_?HYG?    ',
-                              'AerNumDensityStratLiquid      ',
-                              'AerNumDensityStratParticulate ',
-                              'AerAqueousVolume              ',
-                              'AerSurfAreaDust               ',
-                              'AerSurfAreaHyg_?HYG?          ',
-                              'AerSurfAreaStratLiquid        ',
-                              'AerSurfAreaPolarStratCloud    ',
-                              'Chem_AeroAreaMDUST1           ',
-                              'Chem_AeroAreaMDUST2           ',
-                              'Chem_AeroAreaMDUST3'          ',
-                              'Chem_AeroAreaMDUST4           ',
-                              'Chem_AeroAreaMDUST5           ',
-                              'Chem_AeroAreaMDUST6           ',
-                              'Chem_AeroAreaMDUST7           ',
-                              'Chem_AeroAreaSULF             ',
-                              'Chem_AeroAreaBC               ',
-                              'Chem_AeroAreaOC               ',
-                              'Chem_AeroAreaSSA              ',
-                              'Chem_AeroAreaSSC              ',
-                              'Chem_AeroRadiMDUST1           ',
-                              'Chem_AeroRadiMDUST2           ',
-                              'Chem_AeroRadiMDUST3           ',
-                              'Chem_AeroRadiMDUST4           ',
-                              'Chem_AeroRadiMDUST5           ',
-                              'Chem_AeroRadiMDUST6           ',
-                              'Chem_AeroRadiMDUST7           ',
-                              'Chem_AeroRadiSULF             ',
-                              'Chem_AeroRadiBC               ',
-                              'Chem_AeroRadiOC               ',
-                              'Chem_AeroRadiSSA              ',
-                              'Chem_AeroRadiSSC              ',
-                              'Chem_WetAeroAreaMDUST1        ',
-                              'Chem_WetAeroAreaMDUST2        ',
-                              'Chem_WetAeroAreaMDUST3        ',
-                              'Chem_WetAeroAreaMDUST4        ',
-                              'Chem_WetAeroAreaMDUST5        ',
-                              'Chem_WetAeroAreaMDUST6        ',
-                              'Chem_WetAeroAreaMDUST7        ',
-                              'Chem_WetAeroAreaSULF          ',
-                              'Chem_WetAeroAreaBC            ',
-                              'Chem_WetAeroAreaOC            ',
-                              'Chem_WetAeroAreaSSA           ',
-                              'Chem_WetAeroAreaSSC           ',
-                              'Chem_WetAeroRadiMDUST1        ',
-                              'Chem_WetAeroRadiMDUST2        ',
-                              'Chem_WetAeroRadiMDUST3        ',
-                              'Chem_WetAeroRadiMDUST4        ',
-                              'Chem_WetAeroRadiMDUST5        ',
-                              'Chem_WetAeroRadiMDUST6        ',
-                              'Chem_WetAeroRadiMDUST7        ',
-                              'Chem_WetAeroRadiSULF          ',
-                              'Chem_WetAeroRadiBC            ',
-                              'Chem_WetAeroRadiOC            ',
-                              'Chem_WetAeroRadiSSA           ',
-                              'Chem_WetAeroRadiSSC           ',
-::
-#==============================================================================
 # %%%%% THE CloudConvFlux COLLECTION %%%%%
 #
 # Cloud convective flux (default = advected species)
-#
-# Available for all simulations
 #==============================================================================
   CloudConvFlux.template:     '%y4%m2%d2_%h2%n2z.nc4',
   CloudConvFlux.frequency:    ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -239,8 +127,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE DryDep COLLECTION %%%%%
 #
 # Dry depositon fluxes and velocities (for all dry-depositing species)
-#
-# Available for all simuations that have dry-depositing species
 #==============================================================================
   DryDep.template:            '%y4%m2%d2_%h2%n2z.nc4',
   DryDep.frequency:           ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -268,8 +154,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagn COLLECTION %%%%%
 #
 # GEOS-Chem data during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagn.template:          '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagn.format:            'CFIO',
@@ -306,8 +190,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE SatDiagnEdge COLLECTION %%%%%
 #
 # GEOS-Chem data (on level edges) during satellite overpass
-#
-# Available for all simulations
 #==============================================================================
   SatDiagnEdge.template:      '%y4%m2%d2_%h2%n2z.nc4',
   SatDiagnEdge.format:        'CFIO',
@@ -355,8 +237,6 @@ COLLECTIONS: 'Restart',
 # %%%%% The StateMet COLLECTION %%%%%
 #
 # Fields of the State_Met object (also see the StateMetLevEdge collection)
-#
-# Available for all simulations
 #==============================================================================
   StateMet.template:          '%y4%m2%d2_%h2%n2z.nc4',
   StateMet.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -445,8 +325,6 @@ COLLECTIONS: 'Restart',
 # %%%%% THE StateMetLevEdge COLLECTION %%%%%
 #
 # Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
 #==============================================================================
   StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
   StateMetLevEdge.frequency:   ${RUNDIR_HIST_TIME_AVG_FREQ}
@@ -459,34 +337,6 @@ COLLECTIONS: 'Restart',
                                'Met_PFILSAN                   ',
                                'Met_PFLCU                     ',
                                'Met_PFLLSAN                   ',
-::
-#==============================================================================
-# %%%%% THE WetLossConv COLLECTION %%%%%
-#
-# Loss of soluble species in convective updrafts
-#
-# Available for all simulations that have soluble species
-#==============================================================================
-  WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossConv.frequency:      ${RUNDIR_HIST_TIME_AVG_FREQ}
-  WetLossConv.duration:       ${RUNDIR_HIST_TIME_AVG_DUR}
-  WetLossConv.mode:           'time-averaged'
-  WetLossConv.fields:         'WetLossConv_?WET?             ',
-                              'WetLossConvFrac_?WET?         ',
-::
-#==============================================================================
-# %%%%% THE WetLossLS COLLECTION %%%%%
-#
-# Loss of soluble species in large-scale wetdep (i.e. rainout and washout)
-#
-# Available for all simulations that have soluble species
-#==============================================================================
-# Loss due to rainout and washout (per deposited species)
-  WetLossLS.template:         '%y4%m2%d2_%h2%n2z.nc4',
-  WetLossLS.frequency:        ${RUNDIR_HIST_TIME_AVG_FREQ}
-  WetLossLS.duration:         ${RUNDIR_HIST_TIME_AVG_DUR}
-  WetLossLS.mode:             'time-averaged'
-  WetLossLS.fields:           'WetLossLS_?WET?               ',
 ::
 #==============================================================================
 # %%%%% THE BoundaryConditions COLLECTION %%%%%
