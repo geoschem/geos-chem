@@ -950,17 +950,8 @@ fi
 chmod 744 ${rundir}/cleanRunDir.sh
 chmod 744 ${rundir}/archiveRun.sh
 
-# Copy species database.  NOTE: For the new Hg simulation via KPP, we need
-# to copy species_database_hg.yml to the rundir and rename it to
-# species_database.yml.  This is because the Hg simulation has several
-# inactive species that are active in the other simulations, and this
-# causes a conflict.  Work out a better solution later.
-#  -- Bob Yantosca, 10 Dec 2021
-if [[ "x${sim_name}" == "xHg" ]]; then
-    cp -r ${gcdir}/run/shared/species_database_hg.yml ${rundir}/species_database.yml
-else
-    cp -r ${gcdir}/run/shared/species_database.yml ${rundir}
-fi
+# Copy species database
+cp -r ${gcdir}/run/shared/species_database.yml ${rundir}
 
 # Append APM or TOMAS species to species database
 # Also copy APM input files to the run directory
