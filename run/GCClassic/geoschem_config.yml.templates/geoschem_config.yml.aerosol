@@ -110,7 +110,6 @@ operations:
       - SO4s
       - SOAP
       - SOAS
-      - TDST
 
   wet_deposition:
     activate: true

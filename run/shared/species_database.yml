@@ -5167,13 +5167,6 @@ STYR:
   FullName: Styrene
   Is_Gas: true
   MW_g: 104.1491
-TDST:
-  # NOTE: TDST is only used to obtain the total emitted mass across
-  # all dust bins, and should not be used for other processes.
-  Density: 2500.0
-  FullName: Total dust aerosol
-  MW_g: 29.0
-  Is_Aerosol: true
 TiF1:
   << : *METALSproperties
   Density: 2500.0
