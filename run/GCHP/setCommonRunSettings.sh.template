@@ -217,7 +217,7 @@ tomasDustDead=""
 Dust_SF=""
 
 # Check if DustL23M is turned on
-result=$(grep "105.*DustL23M" HEMCO_Config.rc || echo "missing")
+result=$(grep "125.*DustL23M" HEMCO_Config.rc || echo "missing")
 if [[ "x${result}" != "xmissing" ]]; then
     array=(${result// / })
     dustL23M=${array[3]}
