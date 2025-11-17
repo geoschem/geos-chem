@@ -21,6 +21,19 @@
 # Current directory
 thisDir=$(realpath .)
 
+# Load common functions
+. "${thisDir}/../../shared/commonFunctionsForTests.sh"
+
+# Do not let the tests proceed if a conda environment is activated,
+# which could result in GEOS-Chem being linked against incorrect libraries!
+activeCondaEnv=$(is_a_conda_env_activated)
+if [[ "x${activeCondaEnv}" == "xtrue" ]]; then
+    echo "ERROR: Tests cannot submitted when a conda environment is active!"
+    echo "This may result in GEOS-Chem Classic being linked against the wrong libraries."
+    echo "Please deactivate the environment and submit the tests again."
+    exit 1
+fi
+
 # Integration test root dir is one dir higher
 itRoot=$(realpath "${thisDir}/..")
 

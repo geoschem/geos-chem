@@ -821,7 +821,6 @@ function print_submodule_head_commits() {
 
 
 function toggle_geoschem_config_option() {
-
     #===================================================================
     # Toggles the "activate " option in geoschem_config.yml
     # for a given YAML tag to either "true " or "false".
@@ -841,4 +840,18 @@ function toggle_geoschem_config_option() {
     # Replace form feed with new line and delete temporary file
     cat "tmp.${1}" | tr '\t' '\n' > "${1}"
     rm -f "tmp.${1}"
+}
+
+
+function is_a_conda_env_activated() {
+    #===================================================================
+    # Determines if a conda environment is activated.  This will allow
+    # us to stop the integration or parallel tests in order to prevent
+    # GEOS-Chem from being linked against incorrect libraries.
+    #===================================================================
+    if [[ "x${CONDA_DEFAULT_ENV}" != "x" || "x${CONDA_PREFIX}" != "x" ]]; then
+	echo "true"
+	return
+    fi
+    return "false"
 }
