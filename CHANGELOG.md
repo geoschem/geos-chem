@@ -65,6 +65,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
+- Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
+- Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
 
 ## [14.6.3] - 2025-07-28
 ### Added

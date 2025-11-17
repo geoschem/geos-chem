@@ -2190,7 +2190,7 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   ! Remind users to run the ./metrics.py script to obtain OH metrics
   !--------------------------------------------------------------------------
-  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
      WRITE( 6, '(/,a)' ) REPEAT( '%', 65 )
      WRITE( 6, 300     ) 'To compute the OH metrics, execute the Python'
      WRITE( 6, 300     ) '  script "metrics.py" in this run directory. '

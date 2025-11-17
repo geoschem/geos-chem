@@ -1343,10 +1343,6 @@ ${RUNDIR_CO2_COPROD}
 #==============================================================================
 # --- Scale factors for posterior run ---
 #
-# Enable emission scale factors by setting the use_emission_scale_factor or
-# use_OH_scale_factor options to true in geoschem_config.yml. These fields are
-# obtained from HEMCO and applied in GEOS-Chem/GeosCore/global_ch4_mod.F90.
-#
 # Entries below are provided for examples only. Add your own here!
 #==============================================================================
 (((Emis_PosteriorSF

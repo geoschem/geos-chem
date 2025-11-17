@@ -111,9 +111,6 @@ printf "   5. POPs\n"
 printf "   6. Tagged O3\n"
 printf "   7. TransportTracers\n"
 printf "   8. Trace metals\n"
-printf "   9. CH4\n"
-printf "  10. CO2\n"
-printf "  11. Tagged CO\n"
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
     read -p "${USER_PROMPT}" sim_num
@@ -134,12 +131,6 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "8" ]]; then
 	sim_name=metals
-    elif [[ ${sim_num} = "9" ]]; then
-	sim_name=CH4
-    elif [[ ${sim_num} = "10" ]]; then
-	sim_name=CO2
-    elif [[ ${sim_num} = "11" ]]; then
-	sim_name=tagCO
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -940,8 +931,8 @@ if [[ ${met} = "ModelE2.1" ]] || [[ ${met} = "ModelE2.2" ]]; then
   cp ${gcdir}/run/shared/download_data.gcap2.40L.yml ${rundir}/download_data.yml
 fi
 
-# Copy the OH metrics Python script to the rundir (fullchem/CH4 only)
-if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xCH4" ]]; then
+# Copy the OH metrics Python script to the rundir (fullchem only)
+if [[ "x${sim_name}" == "xfullchem" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
 fi
@@ -994,9 +985,6 @@ if [[ "x${grid_res}" = "x0125x015625" ]]; then
     startdate='20230101'
     enddate='20230201'
 elif [[ "x${sim_name}" == "xHg"   ||
-      "x${sim_name}" == "xCH4"    ||
-      "x${sim_name}" == "xCO2"    ||
-      "x${sim_name}" == "xtagCO"  ||
       "x${sim_name}" == "xcarbon" ||
       "x${sim_name}" == "xTransportTracers" ]]; then
     startdate='20190101'

@@ -258,15 +258,6 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # 4x5 merra2 metals
     create_rundir "8\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
 
-    # 4x5 merra2 CH4
-    create_rundir "9\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 CO2
-    create_rundir "10\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 4x5 merra2 tagCO
-    create_rundir "11\n1\n1\n1\n${rundirsDir}\n\nn\n" "${log}"
-
     #=========================================================================
     # Create individual run directories: 4x5 and 47L (MERRA2)
     #=========================================================================
@@ -285,14 +276,8 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     # Nested-grid simulations
     #=========================================================================
 
-    # 0.5x0.625 NA merra2 CH4
-    create_rundir "9\n1\n3\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 0.25x0.3125 NA geosfp CH4
-    create_rundir "9\n2\ny\n4\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
-
-    # 0.125x0.15625 NA geosfp CH4
-    create_rundir "9\n2\ny\n5\n4\n1\n${rundirsDir}\n\nn\n" "${log}"
+    # 05x0625_merra2_fullchem_47L_na
+    create_rundir "1\n1\n1\n3\n4\n2\n${rundirsDir}\n\nn\nn\n" "${log}"
 
     #=========================================================================
     # Simulation with all diagnostics on

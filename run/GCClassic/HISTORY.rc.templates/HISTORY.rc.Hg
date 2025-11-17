@@ -227,7 +227,7 @@ COLLECTIONS: 'Restart',
 #
 # Chemical production and loss rates
 #
-# Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
+# Available for full-chemistry, aerosol-only, and tagO3 simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.frequency:         ${RUNDIR_HIST_TIME_AVG_FREQ}

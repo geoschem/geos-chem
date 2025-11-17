@@ -990,12 +990,10 @@ MODULE State_Diag_Mod
      TYPE(DgnMap),       POINTER :: Map_RadDecay
      LOGICAL                     :: Archive_RadDecay
 
-     !%%%%% CO2 specialty simulation %%%%%
+     !%%%%% Carbon simulation %%%%%
 
      REAL(f4),           POINTER :: ProdCO2fromCO(:,:,:)
      LOGICAL                     :: Archive_ProdCO2fromCO
-
-     !%%%%% CH4 specialty simulation %%%%%
 
      REAL(f4),           POINTER :: LossCH4byClinTrop(:,:,:)
      LOGICAL                     :: Archive_LossCH4byClinTrop
@@ -1006,7 +1004,6 @@ MODULE State_Diag_Mod
      REAL(f4),           POINTER :: LossCH4inStrat(:,:,:)
      LOGICAL                     :: Archive_LossCH4inStrat
 
-     ! %%%%% Tagged CO simulation %%%%%
      REAL(f4),           POINTER :: ProdCOfromCH4(:,:,:)
      LOGICAL                     :: Archive_ProdCOfromCH4
 
@@ -2558,12 +2555,10 @@ CONTAINS
     State_Diag%ProdPOPPBCPOfromNO3                 => NULL()
     State_Diag%Archive_ProdPOPPBCPOfromNO3         = .FALSE.
 
-    !%%%%% CO2 simulation diagnostics %%%%%
+    !%%%%% Carbon simulation diagnostics %%%%%
 
     State_Diag%ProdCO2fromCO                       => NULL()
     State_Diag%Archive_ProdCO2fromCO               = .FALSE.
-
-    !%%%%% CH4 simulation diagnostics %%%%%
 
     State_Diag%LossCH4byClinTrop                   => NULL()
     State_Diag%Archive_LossCH4byClinTrop           = .FALSE.
@@ -2573,8 +2568,6 @@ CONTAINS
 
     State_Diag%LossCH4inStrat                      => NULL()
     State_Diag%Archive_LossCH4inStrat              = .FALSE.
-
-    !%%%%% Tagged CO simulation diagnostics %%%%%
 
     State_Diag%ProdCOfromCH4                          => NULL()
     State_Diag%Archive_ProdCOfromCH4                  = .FALSE.
@@ -7404,15 +7397,13 @@ CONTAINS
     ! ALL FULL-CHEMISTRY SIMULATIONS
     ! (benchmark, standard, tropchem, *SOA*, aciduptake, marinePOA)
     !
-    ! and THE CH4 SPECIALTY SIMULATION
+    ! THE CARBON SIMULATION
     !=======================================================================
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
-         Input_Opt%ITS_A_CARBON_SIM                                     .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        ) THEN
+         Input_Opt%ITS_A_CARBON_SIM                                     ) THEN
 
        !--------------------------------------------------------------------
-       ! OH concentration upon exiting the FlexChem solver (fullchem
-       ! simulations) or the CH4 specialty simulation chemistry routine
+       ! OH concentration upon exiting the FlexChem solver
        !--------------------------------------------------------------------
        diagID  = 'OHconcAfterChem'
        CALL Init_and_Register(                                               &
@@ -7667,7 +7658,7 @@ CONTAINS
        !-------------------------------------------------------------------
        ! Halt with an error message if any of the following quantities
        ! have been requested as diagnostics in simulations other than
-       ! full-chemistry or CH4 simulations.
+       ! full-chemistry or carbon simulations.
        !
        ! This will prevent potential errors caused by the quantities
        ! being requested as diagnostic output when the corresponding
@@ -10120,7 +10111,6 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
-         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                    ) THEN
 
        !--------------------------------------------------------------------
@@ -10710,9 +10700,9 @@ CONTAINS
     !=======================================================================
     ! The production and loss diagnostics are only relevant for:
     !
-    ! THE CO2 SPECIALTY SIMULATION
+    ! CO2 IN THE CARBON SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CO2_SIM .or. Input_Opt%ITS_A_CARBON_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Prod of CO2 from CO oxidation
@@ -10763,10 +10753,9 @@ CONTAINS
     !=======================================================================
     ! These diagnostics are only relevant for:
     !
-    ! THE CH4 SPECIALTY SIMULATION
+    ! CH4 IN THE CARBON SIMULATION
     !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM      .or. &
-         Input_Opt%ITS_A_CARBON_SIM ) THEN
+    IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
 
        !--------------------------------------------------------------------
        ! Loss of CH4 by Cl in troposphere
@@ -10871,11 +10860,10 @@ CONTAINS
     !=======================================================================
     ! These diagnostics are only relevant for:
     !
-    ! THE CO SPECIALTY SIMULATION and
-    ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for tagCO)
+    ! THE CARBON SIMULATION and
+    ! THE FULL-CHEMISTRY SIMULATIONS (for archiving output for CO in carbon sim)
     !=======================================================================
-    IF ( Input_Opt%ITS_A_TAGCO_SIM                                      .or. & 
-         Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
+    IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                   ) THEN
 
        !--------------------------------------------------------------------

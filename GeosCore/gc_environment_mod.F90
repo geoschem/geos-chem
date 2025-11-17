@@ -394,7 +394,6 @@ CONTAINS
     USE Aerosol_Mod,        ONLY : Init_Aerosol
     USE Carbon_Mod,         ONLY : Init_Carbon
     USE Carbon_Gases_Mod,   ONLY : Init_Carbon_Gases
-    USE CO2_Mod,            ONLY : Init_CO2
     USE Depo_Mercury_Mod,   ONLY : Init_Depo_Mercury
     USE DiagList_Mod,       ONLY : DgnList
     USE Drydep_Mod,         ONLY : Init_Drydep
@@ -403,7 +402,6 @@ CONTAINS
     USE Error_Mod,          ONLY : Debug_Msg
     USE FullChem_Mod,       ONLY : Init_FullChem
     USE Get_Ndep_Mod,       ONLY : Init_Get_Ndep
-    USE Global_CH4_Mod,     ONLY : Init_Global_CH4
     USE Input_Mod,          ONLY : Do_Error_Checks
     USE Input_Opt_Mod,      ONLY : OptInput
     USE Land_Mercury_Mod,   ONLY : Init_Land_Mercury
@@ -416,7 +414,6 @@ CONTAINS
     USE State_Diag_Mod,     ONLY : DgnState
     USE State_Grid_Mod,     ONLY : GrdState
     USE Sulfate_Mod,        ONLY : Init_Sulfate
-    USE Tagged_CO_Mod,      ONLY : Init_Tagged_CO
     USE Tagged_O3_Mod,      ONLY : Init_Tagged_O3
     USE Vdiff_Mod,          ONLY : Init_Vdiff
     USE WetScav_Mod,        ONLY : Init_WetScav
@@ -684,43 +681,6 @@ CONTAINS
           RETURN
        ENDIF
     ENDIF
-
-    !-----------------------------------------------------------------
-    ! CO2
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CO2_SIM ) THEN
-       CALL Init_CO2( Input_Opt, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_CO2"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! CH4
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       CALL Init_Global_Ch4( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Init_Global_CH4"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !-----------------------------------------------------------------
-    ! Tagged CO
-    !-----------------------------------------------------------------
-    IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-       CALL Init_Tagged_CO( Input_Opt, State_Diag, State_Grid, RC )
-       IF ( RC /= GC_SUCCESS ) THEN
-          ErrMsg = 'Error encountered in "Tagged_CO"!'
-          CALL GC_Error( ErrMsg, RC, ThisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
 
     !-----------------------------------------------------------------
     ! Tagged O3
