@@ -7067,15 +7067,17 @@ CONTAINS
 !
     ! Scalars
     LOGICAL                   :: found
-    INTEGER                   :: Id,       N
-    INTEGER                   :: P,        L,      numTags
+    INTEGER                   :: Id, N, numTags, numWildCards, P, L
 
     ! Strings
     CHARACTER(LEN=36)         :: name
-    CHARACTER(LEN=255)        :: diagName, errMsg, thisLoc
+    CHARACTER(LEN=255)        :: diagName
+    CHARACTER(LEN=255)        :: errMsg
+    CHARACTER(LEN=255)        :: thisLoc
 
     ! Objects
-    TYPE(DgnTagList) :: TagList
+    TYPE(DgnTagList)          :: TagList
+    TYPE(DgnTagList)          :: WildCardList
 
     !=======================================================================
     ! GetProdLossSpecies begins here!
@@ -7133,12 +7135,23 @@ CONTAINS
                      found          = found,                                 &
                      numTags        = numTags,                               &
                      TagList        = TagList,                               &
+                     numWildCards   = numWildCards,                          &
+                     WildCardList   = WildCardList,                          &
                      RC             = RC                                    )
 
-                ! Check if the given loss species has been requested for
-                ! diagnostic archival before updating mapping vectors
+                ! Check if the given loss species or wildcard has been
+                ! requested for diagnostic archival before updating
+                ! mapping vectors.
                 IF ( found ) THEN
-                   CALL Query_Tag_in_TagList( TagList, name(2:), found, RC )
+
+                   IF ( numTags > 0 ) THEN
+                      CALL Query_Tag_in_TagList( TagList,       name(2:),    &
+                                                 found,         RC          )
+                   ELSE IF ( numWildCards > 0 ) THEN
+                      CALL Query_Tag_in_TagList( WildCardList, 'LOS',        &
+                                                 found,         RC          )
+                   ENDIF
+
                    IF ( found ) THEN
                       L                      = L + 1
                       State_Chm%Map_Loss(L)  = Id
@@ -7161,12 +7174,23 @@ CONTAINS
                      found          = found,                                 &
                      numTags        = numTags,                               &
                      TagList        = TagList,                               &
+                     numWildCards   = numWildCards,                          &
+                     WildCardList   = WildCardList,                          &
                      RC             = RC                                    )
 
-                ! Check if the given prod species has been requested for
-                ! diagnostic archival before updating mapping vectors
+                ! Check if the given prod species or wildcard has been
+                ! requested for diagnostic archival before updating
+                ! mapping vectors.
                 IF ( found ) THEN
-                   CALL Query_Tag_in_TagList( TagList, name(2:), found, RC )
+
+                   IF ( numTags > 0 ) THEN
+                      CALL Query_Tag_in_TagList( TagList,       name(2:),    &
+                                                 found,         RC          )
+                   ELSE IF ( numWildCards > 0 ) THEN
+                      CALL Query_Tag_in_TagList( WildCardList, 'PRD',        &
+                                                 found,         RC          )
+                   ENDIF
+
                    IF ( found ) THEN
                       P                      = P + 1
                       State_Chm%Map_Prod(P)  = Id

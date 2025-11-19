@@ -7,7 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 ## [Unreleased] - TBD
 ### Changed
 - Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
-- Updated routine `MapProdLossSpecies` to test if prod/loss family species are scheduled for diagnostic archival before populating mapping arrays
+- Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
 
 ### Removed
 - Removed commented-out code for tagged Hg species in `state_diag_mod.F90`
