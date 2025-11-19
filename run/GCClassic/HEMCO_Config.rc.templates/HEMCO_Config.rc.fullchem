@@ -220,10 +220,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
 #see the note near scale factor 281 for the source of this emis factor
 126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
-#
-#
-##see the note near scale factor 281 for the source of this emis factor
-126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
 # ----- EXTENSIONS FOR TOMAS SIMULATIONS ONLY----------------------------------
 130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
     --> Reduce SS cold water   :       true
