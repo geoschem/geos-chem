@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
+- Added IUPAC names for Hg species in `run/shared/species_database.yml`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`

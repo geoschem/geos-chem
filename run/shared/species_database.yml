@@ -1683,7 +1683,6 @@ HCOOH:
   Is_WetDep: true
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
-#-----------------------------------------
 Hg0:
   DD_F0: 3.0e-5
   DD_Hstar: 0.11
@@ -1705,49 +1704,49 @@ Hg_CHEM_PROP: &HgChemProperties
   WD_RetFactor: 1.0
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBr:
-  Fullname: HgBr
+  Fullname: Bromidomercury(I)
   Formula: HgBr
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrNO2:
   << : *HgChemProperties
-  Fullname: syn-HgBrONO
+  Fullname: syn-Bromido(nitrito-O)mercury(II)
   Formula: BrHgONO
   Is_Photolysis: true
 HgBrHO2:
   << : *HgChemProperties
-  Fullname: HgBrHO2
+  Fullname: Bromido(hydroperoxo)mercury(II)
   Formula:  BrHgOOH
   Is_Photolysis: true
 HgBrBrO:
   << : *HgChemProperties
-  Fullname: HgBrBrO
+  Fullname: Bromido(hypobromito-O)mercury(II)
   Formula: BrHgOBr
   Is_Photolysis: true
 HgBrClO:
   << : *HgChemProperties
-  Fullname: HgBrClO
+  Fullname: Bromido(hypochlorito-O)mercury(II)
   Formula: BrHgOCl
   Is_Photolysis: true
 HgBrO:
-  FullName: HgBrO
+  FullName: Hypobromitomercury(I)
   Formula: HgBrO
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrOH:
   << : *HgChemProperties
-  Fullname: HgBrOH
+  Fullname: Bromido(hydroxido)mercury(II)
   Formula: BrHgOH
   Is_Photolysis: true
   MW_g:
 HgBr2:
   << : *HgChemProperties
-  Fullname: HgBr2
+  Fullname: Dibromidomercury(II)
   Formula: HgBr2
   Is_Photolysis: true
 HgCl:
-  Fullname: HgCl
+  Fullname: Chloridomercury(I)
   Formula: HgCl
   Is_Gas: true
   Is_Photolysis: true
@@ -1755,80 +1754,80 @@ HgCl:
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgClNO2:
   << : *HgChemProperties
-  Fullname: syn-HgClONO
+  Fullname: syn-Chlorido(nitrito-kO)mercury(II)
   Formula: ClHgONO
   Is_Photolysis: true
 HgClHO2:
   << : *HgChemProperties
-  Fullname: HgClHO2
+  Fullname: Chlorido(hydroperoxido)mercury(II)
   Formula: ClHgOOH
   Is_Photolysis: true
 HgClClO:
   << : *HgChemProperties
-  Fullname: HgClClO
+  Fullname: Chlorido(hypochlorito-kO)mercury(II)
   Formula: ClHgOCl
   Is_Photolysis: true
 HgClBrO:
   << : *HgChemProperties
-  Fullname: HgClBrO
+  Fullname: Chlorido(hypobromito-kO)mercury(II)
   Formula: ClHgOBr
   Is_Photolysis: true
 HgClBr:
   << : *HgChemProperties
-  Fullname: HgClBr
+  Fullname: Bromidochloridomercury(II)
   Formula: HgBrCl
   Is_Photolysis: true
 HgClO:
-  Fullname: HgClO
+  Fullname: Hypochloritomercury(I)
   Formula: ClHgO
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgClOH:
   << : *HgChemProperties
-  Fullname: HgClOH
+  Fullname: Chlorido(hydroxido)mercury(II)
   Formula: ClHgOH
   Is_Photolysis: true
   MW_g:
 HgOH:
-  Fullname: HgOH
+  Fullname: Hydroxidomercury(I)
   Formula: HgOH
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHO:
-  Fullname: HgOHO
+  Fullname: Hydroperoxomercury(I)
   Formula: HgOHO
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHNO2:
   << : *HgChemProperties
-  Fullname: syn-HgOHONO
+  Fullname: syn-Hydroperoxido(hydroxido)mercury(II)
   Formula: HOHgONO
   Is_Photolysis: true
 HgOHHO2:
   << : *HgChemProperties
-  Fullname: HgOHHO2
+  Fullname: Hydroperoxo(hydroxido)mercury(II)
   Formula: HOHgOOH
   Is_Photolysis: true
 HgOHClO:
   << : *HgChemProperties
-  Fullname: HgBrClO
+  Fullname: Hydroxido(hypochlorito-O)mercury(II)
   Formula: HOHgOCl
   Is_Photolysis: true
   MW_g:
 HgOHBrO:
   << : *HgChemProperties
-  Fullname: HgOHBrO
+  Fullname: Hydroxido(hypobromito-O)mercury(II)
   Formula: HOHgOBr
   Is_Photolysis: true
 HgOHOH:
   << : *HgChemProperties
-  Fullname: HgOH2
+  Fullname: Dihydroxidomercury(II)
   Formula: HOHgOH
   Is_Photolysis: false
 HgCl2:
   << : *HgChemProperties
-  Fullname: HgCl2
+  Fullname: Dichloridomercury(II)
   Formula: HgCl2
   Is_Photolysis: false
 Hg2ClP:
