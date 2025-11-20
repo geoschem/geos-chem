@@ -134,7 +134,7 @@
       INTEGER :: id_SALA, id_SALC
 
       ! NOTE: Renamed these to GC_DSTbin{1..7} to avoid clashing
-      ! with the id_DSTbin1 species flag (@yantosca, 31 Oct 2025)
+      ! with the id_DSTbin1 species flag
       INTEGER :: id_GC_DSTbin1, id_GC_DSTbin2, id_GC_DSTbin3
       INTEGER :: id_GC_DSTbin4, id_GC_DSTbin5, id_GC_DSTbin6
       INTEGER :: id_GC_DSTbin7
