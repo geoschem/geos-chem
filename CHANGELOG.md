@@ -70,6 +70,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
 - Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
 - Removed commented-out code for tagged Hg species in `state_diag_mod.F90`
+- Removed extraneous division by `TS_EMIS` in routine `Chem_H2O2` (located in `GeosCore/sulfate_mod.F90`)
 
 ## [14.6.3] - 2025-07-28
 ### Added

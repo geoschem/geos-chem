@@ -2315,7 +2315,7 @@ CONTAINS
        ALPHA = 1.0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
-       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS ) * DT / ( ALPHA * M )
+       DH2O2 = ( PH2O2m(I,J,L) * DT ) / ( ALPHA * M )
 
        ! Final H2O2 [v/v]
        H2O2  = ( H2O20 / ALPHA + DH2O2 )
