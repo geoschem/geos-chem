@@ -16807,17 +16807,6 @@ CONTAINS
           numTags = State_Chm%nKppFix
        CASE( 'GAS',     'G' )
           numTags = State_Chm%nGasSpc
-      !------------------------------------------------------
-      ! Prior to 10/24/18:
-      ! Disable Hg tagging for now, but leave commented out
-      ! for future reference (bmy, 10/24/18)
-      !CASE( 'HG0'     )
-      !   numTags = State_Chm%N_Hg_Cats
-      !CASE( 'HG2'     )
-      !   numTags = State_Chm%N_Hg_Cats
-      !CASE( 'HGP'     )
-      !   numTags = State_Chm%N_Hg_Cats
-      !------------------------------------------------------
        CASE( 'HYG',     'H' )
           numTags = State_Chm%nHygGrth
        CASE( 'KPP',     'K' )
@@ -16956,7 +16945,8 @@ CONTAINS
     ! Get mapping index
     !=======================================================================
     SELECT CASE( TRIM( tagID ) )
-       CASE( 'ALL','ADV', 'DUSTBIN', 'TOMASBIN', 'PRD', 'LOS', 'RRTMG', 'UVFLX', 'RXN' )
+       CASE( 'ALL', 'ADV',   'DUSTBIN', 'TOMASBIN', 'PRD',                   &
+             'LOS', 'RRTMG', 'UVFLX',   'RXN'                               )
           D = N
        CASE( 'AER'  )
           D = State_Chm%Map_Aero(N)
@@ -16966,17 +16956,6 @@ CONTAINS
           D = State_Chm%Map_DryDep(N)
        CASE( 'GAS'  )
           D = State_Chm%Map_GasSpc(N)
-       !------------------------------------------------------
-       ! Prior to 10/24/18:
-       ! Disable Hg tagging for now, but leave commented out
-       ! for future reference (bmy, 10/24/18)
-       !CASE( 'HG0'  )
-       !   D = State_Chm%Hg0_Id_List(N)
-       !CASE( 'HG2'  )
-       !   D = State_Chm%Hg2_Id_List(N)
-       !CASE( 'HGP'  )
-       !   D = State_Chm%HgP_Id_List(N)
-       !------------------------------------------------------
        CASE( 'HYG'  )
           D = State_Chm%Map_HygGrth(N)
        CASE( 'VAR'  )

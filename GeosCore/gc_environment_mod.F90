@@ -194,20 +194,20 @@ CONTAINS
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(DgnList),       INTENT(IN)    :: Diag_List   ! Diagnostics list object
-    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List
+    TYPE(DgnList),       INTENT(IN)    :: Diag_List       ! Diagnostics List
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List ! Tagged Diag List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState),      INTENT(INOUT) :: State_Chm   ! Chemistry State object
-    TYPE(DgnState),      INTENT(INOUT) :: State_Diag  ! Diagnostics State object
-    TYPE(GrdState),      INTENT(INOUT) :: State_Grid  ! Grid State object
-    TYPE(MetState),      INTENT(INOUT) :: State_Met   ! Meteorology State object
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt       ! Input Options
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm       ! Chemistry State
+    TYPE(DgnState),      INTENT(INOUT) :: State_Diag      ! Diagnostics State
+    TYPE(GrdState),      INTENT(INOUT) :: State_Grid      ! Grid State
+    TYPE(MetState),      INTENT(INOUT) :: State_Met       ! Meteorology State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,             INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,             INTENT(OUT)   :: RC              ! Success or failure
 !
 ! !REMARKS:
 !  Need to add better error checking, currently we just return upon error.
@@ -232,10 +232,11 @@ CONTAINS
     !=======================================================================
     ! Initialize the Chemistry State object
     !=======================================================================
-    CALL Init_State_Chm(  Input_Opt  = Input_Opt,   &  ! Input Options
-                          State_Chm  = State_Chm,   &  ! Chemistry State
-                          State_Grid = State_Grid,  &  ! Grid State
-                          RC         = RC          )   ! Success or failure
+    CALL Init_State_Chm(  Input_Opt       = Input_Opt,                      &
+                          State_Chm       = State_Chm,                      &
+                          State_Grid      = State_Grid,                     &
+                          TaggedDiag_List = TaggedDiag_List,                &
+                          RC              = RC                             )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
@@ -265,10 +266,10 @@ CONTAINS
     !=======================================================================
     ! Initialize the Meteorology State object
     !=======================================================================
-    CALL Init_State_Met( Input_Opt   = Input_Opt,   &  ! Input Options
-                         State_Grid  = State_Grid,  &  ! Grid State
-                         State_Met   = State_Met,   &  ! Meteorology State
-                         RC          = RC          )   ! Success or failure?
+    CALL Init_State_Met( Input_Opt   = Input_Opt,                           &
+                         State_Grid  = State_Grid,                          &
+                         State_Met   = State_Met,                           &
+                         RC          = RC                                  )
 
     ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN

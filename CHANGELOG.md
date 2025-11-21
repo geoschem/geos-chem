@@ -59,6 +59,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed bug in ObsPack to include instantaneously-sampled data whose
   timestamps are within 1/2 of a model timestep of the end of the day
 - Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
+- Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
+- Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
@@ -67,6 +69,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
 - Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
+- Removed commented-out code for tagged Hg species in `state_diag_mod.F90`
 
 ## [14.6.3] - 2025-07-28
 ### Added
