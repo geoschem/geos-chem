@@ -42,6 +42,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
+- Updated routine `Zero_Diagnostics_StartOfTimestep` so that `State_Diag%DryDepChm` is zeroed at the start of each chemistry timestep
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -65,7 +66,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
 - Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
-- Removed code to zero `State_Diag%DryDepChm` and `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
+- Removed code to zero `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
 
 ## [14.6.3] - 2025-07-28
 ### Added

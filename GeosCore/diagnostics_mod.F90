@@ -311,8 +311,9 @@ CONTAINS
 !
 ! !USES:
 !
-    USE Input_Opt_Mod,    ONLY : OptInput
-    USE State_Diag_Mod,   ONLY : DgnState
+    USE Input_Opt_Mod,  ONLY : OptInput
+    USE State_Diag_Mod, ONLY : DgnState
+    USE Time_Mod,       ONLY : Its_Time_for_Chem
 !
 ! !INPUT PARAMETERS:
 !
@@ -335,7 +336,7 @@ CONTAINS
 !
 ! !LOCAL VARIABLES:
 !
-    CHARACTER(LEN=255)      :: ErrMsg, thisLoc
+    CHARACTER(LEN=255) :: ErrMsg, thisLoc
 
     !=======================================================================
     ! Zero_Diagnostics_StartofTimestep begins here
@@ -352,8 +353,11 @@ CONTAINS
     !---------------------
     IF ( Input_Opt%ITS_A_MERCURY_SIM ) THEN
 
-       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepChm = 0.0_f4
+       IF ( Its_Time_For_Chem() ) THEN
+          IF ( State_Diag%Archive_DryDepChm   .or.                           &
+               State_Diag%Archive_DryDep    ) THEN
+             State_Diag%DryDepChm = 0.0_f4
+          ENDIF
        ENDIF
 
        IF ( State_Diag%Archive_EmisHg2rivers ) THEN
@@ -381,8 +385,11 @@ CONTAINS
        ! iteration, the PBL height was higher than it is now, then we will
        ! have stored drydep fluxes up to that height, so we need to zero
        ! these out.)
-       IF ( State_Diag%Archive_DryDepChm .or. State_Diag%Archive_DryDep ) THEN
-          State_Diag%DryDepChm = 0.0_f4
+       IF ( Its_Time_For_Chem() )THEN
+          IF ( State_Diag%Archive_DryDepChm   .or.                           &
+               State_Diag%Archive_DryDep    ) THEN
+             State_Diag%DryDepChm = 0.0_f4
+          ENDIF
        ENDIF
        IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
           State_Diag%DryDepMix = 0.0_f4
