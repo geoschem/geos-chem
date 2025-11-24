@@ -993,7 +993,6 @@ CH4:
   Background_VV: 1.8e-6
   FullName: Methane
   MW_g: 16.04
-CH4_BBN:
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from biomass burning emissions
