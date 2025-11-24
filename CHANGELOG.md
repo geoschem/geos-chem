@@ -80,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
 - Removed entries for `DustGinoux` and `DustDead` extensions from `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
 - Removed `&DST{1,2,3,4}properties` in `run/shared/species_database.yml`
+- Removed references to `DustDead` and `DustGinoux` HEMCO extensios in template configuration files
 
 ## [14.6.3] - 2025-07-28
 ### Added

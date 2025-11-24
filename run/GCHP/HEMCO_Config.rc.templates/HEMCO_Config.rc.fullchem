@@ -132,7 +132,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
-#   OFFLINE_DUST        - DustDead or DustGinoux
+#   OFFLINE_DUST        - DustL23M
 #   OFFLINE_BIOGENICVOC - MEGAN
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
@@ -218,7 +218,7 @@ VerboseOnCores:              root       # Accepted values: root all
 125     DustL23M               : ${RUNDIR_DUSTL23M_EXT}   TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
     --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
 #see the note near scale factor 281 for the source of this emis factor
-126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTAL2/DSTAL3/DSTAL4
+126     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
 # ----- EXTENSIONS FOR TOMAS SIMULATIONS ONLY----------------------------------
 130     TOMAS_Jeagle           : ${RUNDIR_TOMAS_SEASALT}   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
     --> Reduce SS cold water   :       true
@@ -3336,15 +3336,6 @@ VerboseOnCores:              root       # Accepted values: root all
 125 L23M_poros        $ROOT/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
 125 L23M_roughness_r  $ROOT/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
 )))DustL23M
-
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
-#==============================================================================
-(((DustGinoux
-106 GINOUX_SAND   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SAND  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_SILT   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SILT  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_CLAY   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  CLAY  1985/1/1/0 C xy unitless * - 1 1
-)))DustGinoux
 
 #==============================================================================
 # --- Sea salt emissions (Extensions 107 and 130)

@@ -1752,7 +1752,7 @@ SOILNOX_NONARID 1 N Y - none none NON_ARID ./HcoDir/SOILNOX/v2014-07/soilNOx.cli
 SOILNOX_FERT kg/m3 N Y 2000-%m2-%d2T00:00:00 none none FERT ./HcoDir/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.time_corrected_for_GCHP.nc
 #
 #===========================================================================
-# --- External fields needed for online DustL23M (Extension 105) ---
+# --- External fields needed for online DustL23M (Extension 125) ---
 #===========================================================================
 L23M_A_bare      1      N Y %y4-01-01T00:00:00   none none LC_bare      ./HcoDir/DustL23M/v2025-07/LandCover/MCD12C1.LC.%y4.0.1.nc4
 L23M_A_veg       1      N Y %y4-01-01T00:00:00   none none LC_veg       ./HcoDir/DustL23M/v2025-07/LandCover/MCD12C1.LC.%y4.0.1.nc4
@@ -1776,11 +1776,6 @@ DEAD_SFC_TYP  count    N V - none none SFC_TYP  ./HcoDir/DUST_DEAD/v2019-06/dst_
 DEAD_GOC_SRC 1 N Y - none none GOC_SRC  ./HcoDir/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc
 #
 DEAD_VAI 1 Y Y 1985-%m2-01T00:00:00 none none VAI ./HcoDir/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc
-#
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106) ---
-# DustGinoux is turned off by default in HEMCO_Config.rc; fill in this section if turning on
-#==============================================================================
 #
 #==============================================================================
 # --- Sea salt emissions (Extension 107)
