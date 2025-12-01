@@ -19,6 +19,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 - Added IUPAC names for Hg species in `run/shared/species_database.yml`
+- Added `gc_4x5_merra2_carbon_ch4_straddle_00utc` integraton test which runs across a UTC date boundary
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`

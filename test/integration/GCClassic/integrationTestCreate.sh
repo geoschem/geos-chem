@@ -281,7 +281,7 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
 
     #=========================================================================
     # Simulation with all diagnostics on
-    #==========================================================================
+    #=========================================================================
 
     # Configuration files
     allDiagsDir="gc_4x5_merra2_fullchem_alldiags"
@@ -314,8 +314,27 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
     cp -r "${obsPk}" .
     toggle_geoschem_config_option "geoschem_config.yml" "obspack"     "true "
 
-    # Switch back to the present directory
-    cd "${thisDir}"
+    # Switch back to the rundirs folder
+    cd "${rundirsDir}"
+
+    #=========================================================================
+    # Simulation running across the 00 UTC boundary
+    #==================q======================================================
+    
+    # Create a run directory for this test by copying the carbon_CH4 rundir
+    straddleDir="gc_4x5_merra2_carbon_CH4_straddle_00z"
+    echo "... ${itRoot}/rundirs/${straddleDir}"
+    cp -r "gc_4x5_merra2_carbon_CH4" "${straddleDir}"
+    cd "${straddleDir}"
+
+    # Update config files (start at 18 UTC, end at 01 UTC next day)
+    sed_ie "s|20190101\, 000000|20190101\, 180000|" "geoschem_config.yml"
+    sed_ie "s|20190101\, 010000|20190102\, 010000|" "geoschem_config.yml"
+    sed_ie "s|00000000 010000|00000000 070000|"     "HISTORY.rc"
+    sed_ie "s|EFYO|EY|"                             "HEMCO_Config.rc"
+
+    # Switch back to the rundirs folder
+    cd "${rundirsDir}"
 
     #=========================================================================
     # Create rundirs for dry-run tests
@@ -326,18 +345,14 @@ if [[ "X${testsToRun}" == "XALL" ]]; then
            "gc_4x5_merra2_carbon"               \
 	   "gc_4x5_merra2_fullchem"             \
            "gc_4x5_merra2_fullchem_APM"         \
-           "gc_4x5_merra2_47L_fullchem_TOMAS15" \
            "gc_4x5_merra2_fullchem_benchmark"   \
            "gc_4x5_merra2_fullchem_RRTMG"       \
            "gc_4x5_merra2_Hg"                   \
            "gc_4x5_merra2_metals"               \
-           "gc_4x5_merra2_tagCO"                \
            "gc_4x5_merra2_tagO3"                \
-           "gc_4x5_merra2_TransportTracers"       )
+           "gc_4x5_merra2_TransportTracers"     \
+           "gc_4x5_47L_merra2_fullchem_TOMAS15" )
 
-    # Navigate to the rundirs folder
-    cd "${rundirsDir}"
-    
     # Create dryrun directories by direct copy
     for dir in ${dirs[@]}; do
 	echo "... ${itRoot}/rundirs/${dir}_dryrun"
@@ -370,6 +385,7 @@ unset rundirsDir
 unset superProjectDir
 unset scriptsDir
 unset sharedDir
+unset straddleDir
 unset thisDir
 unset utilsDir
 
