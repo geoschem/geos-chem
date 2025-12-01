@@ -572,7 +572,7 @@ BPINON:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 215.28
-  WD_RetFactor: 2.0e-2  
+  WD_RetFactor: 2.0e-2
 BPINOOH:
   DD_F0: 1.0
   DD_Hstar: 1.0e+5
@@ -810,7 +810,7 @@ C96O2:
   Formula: C10H17O3
   FullName: 2nd-gen peroxy radical from APIN
   Is_Gas: true
-  MW_g: 185.27  
+  MW_g: 185.27
 C96O2H:
   DD_F0: 1.0
   DD_Hstar: 3.14e+5
@@ -992,7 +992,7 @@ CH4:
   << : *CH4properties
   Background_VV: 1.8e-6
   FullName: Methane
-CH4_BBN:
+  MW_g: 16.04
   << : *CH4properties
   Background_VV: 1.0e-20
   FullName: Methane from biomass burning emissions
@@ -1682,432 +1682,164 @@ HCOOH:
   Is_WetDep: true
   MW_g: 46.03
   WD_RetFactor: 2.0e-2
-Hg0_PROP: &Hg0properties
+Hg0:
   DD_F0: 3.0e-5
   DD_Hstar: 0.11
   Formula: 'Hg'
+  FullName: Elemental mercury
   Is_DryDep: true
   Is_Gas: true
   Is_Hg0: true
   MW_g: 200.59
-Hg0:
-  << : *Hg0properties
-  FullName: Elemental mercury
-Hg0_ant:
-  << : *Hg0properties
-  FullName: Elemental mercury from Antarctic subsurface water
-Hg0_arc:
-  << : *Hg0properties
-  FullName: Elemental mercury from Arctic subsurface water
-Hg0_atl:
-  << : *Hg0properties
-  FullName: Elemental mercury from Mid-Atlantic subsurface water
-Hg0_bb:
-  << : *Hg0properties
-  FullName: Elemental mercury from biomass burning
-Hg0_cam:
-  << : *Hg0properties
-  FullName: Elemental mercury from Central America
-Hg0_can:
-  << : *Hg0properties
-  FullName: Elemental mercury from Canada
-Hg0_eaf:
-  << : *Hg0properties
-  FullName: Elemental mercury from East Africa
-Hg0_eas:
-  << : *Hg0properties
-  FullName: Elemental mercury from East Asia
-Hg0_eeu:
-  << : *Hg0properties
-  FullName: Elemental mercury from Eastern Europe
-Hg0_eur:
-  << : *Hg0properties
-  FullName: Elemental mercury from OECD Europe
-Hg0_geo:
-  << : *Hg0properties
-  FullName: Elemental mercury from geogenic sources
-Hg0_jpn:
-  << : *Hg0properties
-  FullName: Elemental mercury from Japan
-Hg0_mde:
-  << : *Hg0properties
-  FullName: Elemental mercury from Middle East
-Hg0_naf:
-  << : *Hg0properties
-  FullName: Elemental mercury from North Africa
-Hg0_nat:
-  << : *Hg0properties
-  FullName: Elemental mercury from North Atlantic subsurface water
-Hg0_npa:
-  << : *Hg0properties
-  FullName: Elemental mercury from North Pacific subsurface water
-Hg0_oce:
-  << : *Hg0properties
-  FullName: Elemental mercury from Oceania
-Hg0_ocn:
-  << : *Hg0properties
-  FullName: Elemental mercury from Indo-Pacific subsurface water
-Hg0_saf:
-  << : *Hg0properties
-  FullName: Elemental mercury from South Africa
-Hg0_sam:
-  << : *Hg0properties
-  FullName: Elemental mercury from South America
-Hg0_sas:
-  << : *Hg0properties
-  FullName: Elemental mercury from South Asia
-Hg0_sat:
-  << : *Hg0properties
-  FullName: Elemental mercury from South Atlantic subsurface water
-Hg0_sea:
-  << : *Hg0properties
-  FullName: Elemental mercury from Southeast Asia
-Hg0_so:
-  << : *Hg0properties
-  FullName: Elemental mercury from organic soil
-Hg0_sov:
-  << : *Hg0properties
-  FullName: Elemental mercury from former USSR
-Hg0_str:
-  << : *Hg0properties
-  FullName: Elemental mercury from stratosphere
-Hg0_usa:
-  << : *Hg0properties
-  FullName: Elemental mercury from USA
-Hg0_waf:
-  << : *Hg0properties
-  FullName: Elemental mercury from West Africa
-Hg2_PROP: &Hg2properties
+Hg_CHEM_PROP: &HgChemProperties
   DD_F0: 0.0
   DD_Hstar: 1.0e+14
-  Formula: 'Hg'
-  Henry_CR: 8400.0
-  Henry_K0: 1.4e+6
-  Is_DryDep: true
-  Is_Gas: true
-  Is_Hg2: true
-  Is_WetDep: true
-  MW_g: 200.59
-  WD_RetFactor: 1.0
-Hg2:
-  << : *Hg2properties
-  FullName: Divalent mercury
-Hg2_ant:
-  << : *Hg2properties
-  FullName: Divalent mercury from Antarctic subsurface water
-Hg2_arc:
-  << : *Hg2properties
-  FullName: Divalent mercury from Arctic subsurface water
-Hg2_atl:
-  << : *Hg2properties
-  FullName: Divalent mercury from Mid-Atlantic subsurface water
-Hg2_bb:
-  << : *Hg2properties
-  FullName: Divalent mercury from biomass burning
-Hg2_cam:
-  << : *Hg2properties
-  FullName: Divalent mercury from Central America
-Hg2_can:
-  << : *Hg2properties
-  FullName: Divalent mercury from Canada
-Hg2_eaf:
-  << : *Hg2properties
-  FullName: Divalent mercury from East Africa
-Hg2_eas:
-  << : *Hg2properties
-  FullName: Divalent mercury from East Asia
-Hg2_eeu:
-  << : *Hg2properties
-  FullName: Divalent mercury from Eastern Europe
-Hg2_eur:
-  << : *Hg2properties
-  FullName: Divalent mercury from OECD Europe
-Hg2_geo:
-  << : *Hg2properties
-  FullName: Divalent mercury from geogenic sources
-Hg2_jpn:
-  << : *Hg2properties
-  FullName: Divalent mercury from Japan
-Hg2_mde:
-  << : *Hg2properties
-  FullName: Divalent mercury from Middle East
-Hg2_naf:
-  << : *Hg2properties
-  FullName: Divalent mercury from North Africa
-Hg2_nat:
-  << : *Hg2properties
-  FullName: Divalent mercury from North Atlantic subsurface water
-Hg2_npa:
-  << : *Hg2properties
-  FullName: Divalent mercury from North Pacific subsurface water
-Hg2_oce:
-  << : *Hg2properties
-  FullName: Divalent mercury from Oceania
-Hg2_ocn:
-  << : *Hg2properties
-  FullName: Divalent mercury from Indo-Pacific subsurface water
-Hg2_saf:
-  << : *Hg2properties
-  FullName: Divalent mercury from South Africa
-Hg2_sam:
-  << : *Hg2properties
-  FullName: Divalent mercury from South America
-Hg2_sas:
-  << : *Hg2properties
-  FullName: Divalent mercury from South Asia
-Hg2_sat:
-  << : *Hg2properties
-  FullName: Divalent mercury from South Atlantic subsurface water
-Hg2_sea:
-  << : *Hg2properties
-  FullName: Divalent mercury from Southeast Asia
-Hg2_so:
-  << : *Hg2properties
-  FullName: Divalent mercury from organic soil
-Hg2_sov:
-  << : *Hg2properties
-  FullName: Divalent mercury from former USSR
-Hg2_str:
-  << : *Hg2properties
-  FullName: Divalent mercury from stratosphere
-Hg2_usa:
-  << : *Hg2properties
-  FullName: Divalent mercury from USA
-Hg2_waf:
-  << : *Hg2properties
-  FullName: Divalent mercury from West Africa
-HgP_PROP: &HgPproperties
-  DD_DvzAerSnow: 0.03
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Formula: 'Hg'
-  Is_DryDep: true
-  Is_Aerosol: true
-  Is_HgP: true
-  Is_WetDep: true
-  MW_g: 200.59
-  WD_AerScavEff: 1.0
-  WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 1.0]
-  WD_RainoutEff_Luo: [0.4, 1.0, 1.0]
-HgP:
-  << : *HgPproperties
-  FullName: Particulate mercury
-HgP_ant:
-  << : *HgPproperties
-  FullName: Particulate mercury from Antarctic subsurface water
-HgP_arc:
-  << : *HgPproperties
-  FullName: Particulate mercury from Arctic subsurface water
-HgP_atl:
-  << : *HgPproperties
-  FullName: Particulate mercury from Mid-Atlantic subsurface water
-HgP_bb:
-  << : *HgPproperties
-  FullName: Particulate mercury from biomass burning
-HgP_cam:
-  << : *HgPproperties
-  FullName: Particulate mercury from Central America
-HgP_can:
-  << : *HgPproperties
-  FullName: Particulate mercury from Canada
-HgP_eaf:
-  << : *HgPproperties
-  FullName: Particulate mercury from East Africa
-HgP_eas:
-  << : *HgPproperties
-  FullName: Particulate mercury from East Asia
-HgP_eeu:
-  << : *HgPproperties
-  FullName: Particulate mercury from Eastern Europe
-HgP_eur:
-  << : *HgPproperties
-  FullName: Particulate mercury from OECD Europe
-HgP_geo:
-  << : *HgPproperties
-  FullName: Particulate mercury from geogenic sources
-HgP_jpn:
-  << : *HgPproperties
-  FullName: Particulate mercury from Japan
-HgP_mde:
-  << : *HgPproperties
-  FullName: Particulate mercury from Middle East
-HgP_naf:
-  << : *HgPproperties
-  FullName: Particulate mercury from North Africa
-HgP_nat:
-  << : *HgPproperties
-  FullName: Particulate mercury from North Atlantic subsurface water
-HgP_npa:
-  << : *HgPproperties
-  FullName: Particulate mercury from North Pacific subsurface water
-HgP_oce:
-  << : *HgPproperties
-  FullName: Particulate mercury from Oceania
-HgP_ocn:
-  << : *HgPproperties
-  FullName: Particulate mercury from Indo-Pacific subsurface water
-HgP_saf:
-  << : *HgPproperties
-  FullName: Particulate mercury from South Africa
-HgP_sam:
-  << : *HgPproperties
-  FullName: Particulate mercury from South America
-HgP_sas:
-  << : *HgPproperties
-  FullName: Particulate mercury from South Asia
-HgP_sat:
-  << : *HgPproperties
-  FullName: Particulate mercury from South Atlantic subsurface water
-HgP_sea:
-  << : *HgPproperties
-  FullName: Particulate mercury from Southeast Asia
-HgP_so:
-  << : *HgPproperties
-  FullName: Particulate mercury from organic soil
-HgP_sov:
-  << : *HgPproperties
-  FullName: Particulate mercury from former USSR
-HgP_str:
-  << : *HgPproperties
-  FullName: Particulate mercury from stratosphere
-HgP_usa:
-  << : *HgPproperties
-  FullName: Particulate mercury from USA
-HgP_waf:
-  << : *HgPproperties
-  FullName: Particulate mercury from West Africa
-Hg_OTHER_PROP: &HgChemProperties
   Henry_CR: 8.40e+03
   Henry_K0: 1.40e+06
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true
   Is_WetDep: true
+  Is_Hg2: true
   WD_RetFactor: 1.0
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBr:
-  Fullname: HgBr
+  Fullname: Bromidomercury(I)
   Formula: HgBr
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 280.49
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrNO2:
-  Fullname: syn-HgBrONO
+  << : *HgChemProperties
+  Fullname: syn-Bromido(nitrito-O)mercury(II)
   Formula: BrHgONO
-  Is_DryDep: true
-  Is_Gas: true
   Is_Photolysis: true
-  MW_g: 326.50
 HgBrHO2:
   << : *HgChemProperties
-  Fullname: HgBrHO2
+  Fullname: Bromido(hydroperoxo)mercury(II)
   Formula:  BrHgOOH
-  MW_g: 313.50
+  Is_Photolysis: true
 HgBrBrO:
   << : *HgChemProperties
-  Fullname: HgBrBrO
+  Fullname: Bromido(hypobromito-O)mercury(II)
   Formula: BrHgOBr
-  MW_g:  376.40
+  Is_Photolysis: true
 HgBrClO:
   << : *HgChemProperties
-  Fullname: HgBrClO
+  Fullname: Bromido(hypochlorito-O)mercury(II)
   Formula: BrHgOCl
-  MW_g: 332.00
+  Is_Photolysis: true
+HgBrO:
+  FullName: Hypobromitomercury(I)
+  Formula: HgBrO
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrOH:
   << : *HgChemProperties
-  Fullname: HgBrOH
+  Fullname: Bromido(hydroxido)mercury(II)
   Formula: BrHgOH
-  MW_g: 297.50
+  Is_Photolysis: true
+  MW_g:
 HgBr2:
   << : *HgChemProperties
-  Fullname: HgBr2
+  Fullname: Dibromidomercury(II)
   Formula: HgBr2
-  MW_g:  360.40
+  Is_Photolysis: true
 HgCl:
-  Fullname: HgCl
+  Fullname: Chloridomercury(I)
   Formula: HgCl
   Is_Gas: true
   Is_Photolysis: true
   Is_WetDep: false
-  MW_g: 236.04
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgClNO2:
   << : *HgChemProperties
-  Fullname: syn-HgClONO
+  Fullname: syn-Chlorido(nitrito-kO)mercury(II)
   Formula: ClHgONO
-  MW_g: 282.00
+  Is_Photolysis: true
 HgClHO2:
   << : *HgChemProperties
-  Fullname: HgClHO2
+  Fullname: Chlorido(hydroperoxido)mercury(II)
   Formula: ClHgOOH
-  MW_g: 269.00
-  WD_RetFactor: 1.0
+  Is_Photolysis: true
 HgClClO:
   << : *HgChemProperties
-  Fullname: HgClClO
+  Fullname: Chlorido(hypochlorito-kO)mercury(II)
   Formula: ClHgOCl
-  MW_g: 287.50
+  Is_Photolysis: true
 HgClBrO:
   << : *HgChemProperties
-  Fullname: HgClBrO
+  Fullname: Chlorido(hypobromito-kO)mercury(II)
   Formula: ClHgOBr
-  MW_g: 332.00
+  Is_Photolysis: true
 HgClBr:
   << : *HgChemProperties
-  Fullname: HgClBr
+  Fullname: Bromidochloridomercury(II)
   Formula: HgBrCl
-  MW_g: 316.00
+  Is_Photolysis: true
+HgClO:
+  Fullname: Hypochloritomercury(I)
+  Formula: ClHgO
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgClOH:
   << : *HgChemProperties
-  Fullname: HgClOH
+  Fullname: Chlorido(hydroxido)mercury(II)
   Formula: ClHgOH
-  MW_g: 253.00
+  Is_Photolysis: true
+  MW_g:
 HgOH:
-  Fullname: HgOH
+  Fullname: Hydroxidomercury(I)
   Formula: HgOH
   Is_Gas: true
   Is_Photolysis: true
-  MW_g: 201.00
+  MW_g: 200.59   # Use mol wt of atomic Hg
+HgOHO:
+  Fullname: Hydroperoxomercury(I)
+  Formula: HgOHO
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHNO2:
   << : *HgChemProperties
-  Fullname: syn-HgOHONO
+  Fullname: syn-Hydroperoxido(hydroxido)mercury(II)
   Formula: HOHgONO
-  MW_g:  263.60
+  Is_Photolysis: true
 HgOHHO2:
   << : *HgChemProperties
-  Fullname: HgOHHO2
+  Fullname: Hydroperoxo(hydroxido)mercury(II)
   Formula: HOHgOOH
-  MW_g:  250.60
+  Is_Photolysis: true
 HgOHClO:
   << : *HgChemProperties
-  Fullname: HgBrClO
+  Fullname: Hydroxido(hypochlorito-O)mercury(II)
   Formula: HOHgOCl
-  MW_g:  269.0000
+  Is_Photolysis: true
+  MW_g:
 HgOHBrO:
   << : *HgChemProperties
-  Fullname: HgOHBrO
+  Fullname: Hydroxido(hypobromito-O)mercury(II)
   Formula: HOHgOBr
-  MW_g: 313.5000
+  Is_Photolysis: true
 HgOHOH:
   << : *HgChemProperties
-  Fullname: HgOH2
+  Fullname: Dihydroxidomercury(II)
   Formula: HOHgOH
-  MW_g:  234.60
+  Is_Photolysis: false
 HgCl2:
   << : *HgChemProperties
-  Fullname: HgCl2
+  Fullname: Dichloridomercury(II)
   Formula: HgCl2
-  MW_g:  271.5000
+  Is_Photolysis: false
 Hg2ClP:
   Fullname: Hg(II) chloride salts on sea-salt aerosols
   Formula: HgCln
   Is_Aerosol: true
   Is_DryDep: true
-  Is_HygroGrowth: false
   Is_WetDep: true
-  MW_g: 201.00
+  Is_HgP: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
   WD_AerScavEff: 1.0
   WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2ORGP:
   Fullname: Hg(II) organic complex in aerosols
   Formula: R-Hg
@@ -2115,15 +1847,17 @@ Hg2ORGP:
   Is_DryDep: true
   Is_Photolysis: true
   Is_WetDep: true
-  MW_g: 201.00
-  WD_AerScavEff: 1.0
+  Is_HgP: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  WD_AerScavEff: 0.8
   WD_KcScaleFac: [1.0, 0.5, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2STRP:
   Fullname: Hg(II) in stratospheric aerosols
   Formula: Hg2+
   Is_Aerosol: true
-  MW_g: 201.00
+  Is_HgP: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
 HI:
   DD_F0: 0.0
   DD_Hstar: 2.35e+16
@@ -2991,7 +2725,7 @@ LIMO:
   Is_Gas: true
   Is_WetDep: true
   MW_g: 136.26
-  WD_RetFactor: 2.0e-2  
+  WD_RetFactor: 2.0e-2
 LIMO2:
   Formula: C10H17O3
   FullName: Peroxy radical from LIMO
@@ -3044,17 +2778,17 @@ LISOPNO3:
   FullName: Dummy species to track oxidation of ISOP by NO3
   Is_Gas: true
   MW_g: 68.13
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LISOPOH:
   FullName: Dummy species to track oxidation of ISOP by OH
   Is_Gas: true
   MW_g: 68.13
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LNRO2H:
   FullName: Dummy species to track oxidation of NRO2 by HO2
   Is_Gas: true
   MW_g: 159.17
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LNRO2N:
   FullName: Dummy species to track oxidation of NRO2 by NO
   Is_Gas: true
@@ -3063,17 +2797,17 @@ LOx:
   FullName: Dummy species to track loss rate of Ox
   Is_Gas: true
   MW_g: 48.00
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LTRO2H:
   FullName: Dummy species to track oxidation of TRO2 by HO2
   Is_Gas: true
   MW_g: 173.16
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LTRO2N:
   FullName: Dummy species to track oxidation of TRO2 by NO
   Is_Gas: true
   MW_g: 173.16
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LVOC:
   DD_F0: 1.0
   DD_Hstar: 1.0e+8
@@ -3104,12 +2838,12 @@ LXRO2H:
   FullName: Dummy species to track oxidation of XRO2 by HO2
   Is_Gas: true
   MW_g: 187.19
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 LXRO2N:
   FullName: Dummy species to track oxidation of XRO2 by NO
   Is_Gas: true
   MW_g: 187.19
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 MACR:
   DD_F0: 1.0
   DD_Hstar: 6.5
@@ -4049,7 +3783,7 @@ PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
   MW_g: 28.01
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 PCOfromCH4:
   FullName: Dummy species to track CO produced from methane oxidation (carbon mechanism)
   Is_Gas: true
@@ -4075,7 +3809,7 @@ PH2O2:
   FullName: Dummy species to track production rate of H2O2
   Is_Gas: true
   MW_g: 34.02
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 PH2SO4:
   FullName: SO4 from gas-phase chemistry
   Is_Gas: true
@@ -4104,6 +3838,31 @@ PHEN:
   Is_WetDep: true
   MW_g: 94.11
   WD_RetFactor: 2.0e-2
+PHg0:
+  FullName: Gross production of Hg0
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
+PHg2:
+  FullName: Gross production of gaseous oxidized Hg
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
+PHg2Br:
+  FullName: Gaseous oxidized Hg production from Br
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
+PHg2OH:
+  FullName: Gaseous oxidized Hg production from OH
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e+25
+PHg2Cl:
+  FullName: Gaseous oxidized Hg production from Cl
+  Is_Gas: true
+  MW_g: 200.59   # Use mol wt of atomic Hg
+  KPP_AbsTol: 1.0e25
 PIN:
   DD_F0: 1.0
   DD_Hstar: 2.0e+6
@@ -4116,7 +3875,7 @@ PIN:
   Is_WetDep: true
   MW_g: 215.28
   WD_RetFactor: 2.0e-2
-PINAL: 
+PINAL:
   DD_F0: 1.0
   DD_Hstar: 1.0e+3
   Formula: C10H16O2
@@ -4143,7 +3902,7 @@ PINO3H:
   Henry_K0: 1.0e+5
   Is_DryDep: true
   Is_Gas: true
-  Is_Photolysis: true  
+  Is_Photolysis: true
   Is_WetDep: true
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
@@ -4450,7 +4209,7 @@ POx:
   FullName: Dummy species to track production rate of Ox
   Is_Gas: true
   MW_g: 48.00
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 PP:
   DD_F0: 1.0
   DD_Hstar: 2.94e+2
@@ -4521,7 +4280,7 @@ PSO4:
   FullName: Dummy species to track production of SO4
   Is_Gas: true
   MW_g: 96.06
-  KPP_AbsTol: 1.0e+25  
+  KPP_AbsTol: 1.0e+25
 PSO4AQ:
   FullName: SO4 from cloud chemistry
   Is_Gas: true
