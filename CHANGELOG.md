@@ -42,7 +42,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
-- Updated routine `Zero_Diagnostics_StartOfTimestep` so that `State_Diag%DryDepChm` is zeroed at the start of each chemistry timestep
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -59,7 +58,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed typos in ind_ variable names in `KPP/carbon/carbon_Funcs.F90`
 - Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
 - Fixed bug in ObsPack to include instantaneously-sampled data whose  timestamps are within 1/2 of a model timestep of the end of the day 
-- Fixed indexing error in routine `Grav_Settling` in module `GeosCore/sulfate_mod.F90`
+- Fixed indexing error in routine `Grav_Settling` (in module `GeosCore/sulfate_mod.F90`), which caused incorrect dry deposition diagnostics for some species
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
