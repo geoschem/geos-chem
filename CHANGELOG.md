@@ -64,6 +64,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
 - Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
 - Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
+- Fixed the species database entry of `DMS` to use `Is_Gas: true`, as DMS is a gas-phase species and not an aerosol
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files

@@ -1300,7 +1300,7 @@ DMS:
   FullName: Dimethyl sulfide
   Henry_CR: 3100.0
   Henry_K0: 0.48
-  Is_Aerosol: true
+  Is_Gas: true
   MW_g: 62.13
 DST1:
   << : *DST1properties
