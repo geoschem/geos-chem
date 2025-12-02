@@ -42,7 +42,7 @@ MODULE carbon_Funcs
   INTEGER  :: id_CO
   INTEGER  :: id_CO2
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
   ! Jacobian CH4 tracers
   INTEGER              :: numJacobianTracers
   INTEGER, ALLOCATABLE :: JacobianIDs(:)
@@ -120,7 +120,7 @@ CONTAINS
     !   C(ind_CO2) = Spc(id_CO2)%Conc(I,J,L) * xnumol_CO2 / airvol_cm3
     !ENDIF
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
     ! Do the same for Jacobian CH4 tracers, if any
     IF ( numJacobianTracers > 0 ) THEN
        DO N = 1, numJacobianTracers
@@ -344,7 +344,7 @@ CONTAINS
     !   Spc(id_CO2)%Conc(I,J,L) = C(ind_CO2) * airvol_cm3 / xnumol_CO2
     !ENDIF
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
     ! Do the same for Jacobian CH4 tracers, if any
     IF ( numJacobianTracers > 0 ) THEN
        DO N = 1, numJacobianTracers
@@ -534,7 +534,7 @@ CONTAINS
     ThisLoc  = &
        ' -> at carbon_InitCarbonKPPFuncs (in KPP/carbon/carbon_InitCarbonKPPFuncs.F90'
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
     ! Get number of Jacobian tracers, if any
     numJacobianTracers = 0
     DO N = 1, 999 ! Set max to very high number < 1000
@@ -609,7 +609,7 @@ CONTAINS
     ! Initialize
     RC       = GC_SUCCESS
 
-#ifdef JACOBIAN_RUN
+#ifdef JACOBIAN
     IF ( ALLOCATED( JacobianIDs ) ) THEN
        DEALLOCATE( JacobianIDs, STAT=RC )
        CALL GC_CheckVar( 'carbon_Funcs.F90:JacobianIDs', 1, RC )
