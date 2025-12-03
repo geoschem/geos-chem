@@ -1,3 +1,4 @@
+RUNDIR_MET_ADVECTION_FLUX_IS_TOP_DOWN=.false.
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_WIND="""
 # --- Wind, 3-hr time-averaged ---
 UA;VA m_s-1 N Y F0;013000 none none U;V ./MetDir/%y4/%m2/GEOSFP.%y4%m2%d2.A3dyn.025x03125.nc
