@@ -2977,10 +2977,22 @@ MCT:
   Is_WetDep: true
   MW_g: 124.0
   WD_RetFactor: 2.0e-2
+MDL::
+  DD_F0: 1.0
+  DD_Hstar: 1.3e+6
+  Formula: HOCH2OH
+  FullName: Methanediol
+  Henry_CR: 5200.0
+  Henry_K0: 8.1e+5
+  Is_DryDep: true
+  Is_Gas: true
+  Is_WetDep: true
+  MW_g: 64.05
+  WD_RetFactor: 2.0e-2
 MEKCO3:
- Formula: C3H5O4
- Is_Gas: true
- MW_g: 105.07
+  Formula: C3H5O4
+  Is_Gas: true
+  MW_g: 105.07
 MEK:
   Formula: RC(O)R
   FullName: Methyl Ethyl Ketone

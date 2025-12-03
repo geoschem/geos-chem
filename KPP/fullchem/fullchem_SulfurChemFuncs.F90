@@ -39,7 +39,7 @@ MODULE fullchem_SulfurChemFuncs
   INTEGER                :: id_NITs,   id_O3,     id_OH,     id_pFe
   INTEGER                :: id_SALA,   id_SALAAL, id_SALACL, id_SALC
   INTEGER                :: id_SALCAL, id_SALCCL, id_SO2,    id_SO4
-  INTEGER                :: id_SO4s
+  INTEGER                :: id_SO4s,   id_MDL
 !
 ! !DEFINED_PARAMETERS
 !
@@ -1022,6 +1022,7 @@ CONTAINS
     KaqO3_1                     = 0.0_fp
     KaqO2                       = 0.0_fp
     K_CLD                       = 0.0_fp
+    K_MDL                       = 0.0_fp
     HPLUS                       = 0.0_fp
 
     ! Factor to convert AIRDEN from [kg air/m3] to [molec air/cm3]
@@ -1382,6 +1383,9 @@ CONTAINS
           !          CloudHet2R( Spc(id_HMS)%Conc(I,J,L), &
           !                      Spc(id_OH)%Conc(I,J,L), FC, & ...)       ENDIF
        ENDIF
+
+       ! Rate [1/s] of CH2O(g) -> MDL(g)
+       K_MDL = Cloud_CH2O_MDL( Spc(id_MDL), Spc(id_CH2O), FC, TK, LWC )
 
 #ifdef TOMAS
        !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
@@ -3745,6 +3749,91 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOP
 !
+! !IROUTINE: Cloud_CH2O_MDL
+!
+! !DESCRIPTION: Function Cloud_CH2O_MDL calculates the conversion frequency 
+!  (1/s) of gas species HCHO to gas MDL due to heterogeneous chemistry on 
+!  clouds in a partially cloudy grid cell. The function uses the equations 
+!  S21, S24, S25. S25 is the final equation that shows the frequency of 
+!  gaseous HCHO to MDL in the unit of (1/s). 
+!
+!  Nguyen, T. L., Peeters, J., Müller, J. F., Perera, A., Bross, D. H., 
+!  Ruscic, B., & Stanton, J. F. (2023). "Methanediol from cloud-processed 
+!  formaldehyde is only a minor source of atmospheric formic acid", 
+!  _Proceedings of the National Academy of Sciences_, 120(48), e2304650120.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION Cloud_CH2O_MDL( MDL_g, CH2O_g, FC, TK, LWC )  RESULT( KMDL )
+!
+! !INPUT PARAMETERS:
+!
+    REAL(fp), INTENT(IN) :: FC      ! Cloud Fraction [0-1]
+    REAL(fp), INTENT(IN) :: MDL_g   ! Methanediol concentration [molec/cm3]
+    REAL(fp), INTENT(IN) :: CH2O_g  ! CH2O concentration [molec/cm3\
+    REAL(fp), INTENT(IN) :: TK      ! Temperature [K]
+    REAL(fp), INTENT(IN) :: LWC     ! Liq. water content w/in cloud
+!
+! !RETURN VALUE:
+!
+    REAL(fp)             :: KMDL    ! Rate of HCHO(g) -> MDL(g) [1/s]
+!
+! !REVISION HISTORY:
+!  15 Feb 2023 - L. H. Yang - Adaptation of Nyugen et al. (2023) 
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETERS:
+!
+    ! Residence time of air in clouds, s
+    REAL(FP), PARAMETER :: TAUC = 3600.0_fp
+
+    ! Fraction of MDL(aq) that transfers to gas phase upon cloud evaporation
+    REAL(FP), PARAMETER :: f_MDL_ag = 0.664_fp 
+!
+! !LOCAL VARIABLES:
+!
+    !REAL(FP) :: Y_MDL
+    REAL(FP) :: Y_MDL, Y_MDL_num, Y_MDL_denom
+    REAL(FP) :: Yprime_MDL
+    REAL(FP) :: MDL_0, CH2O_0, ratio_MDL_CH2O
+
+    ! Calculate Y_MDL which is an yield of MDL (g)
+    ! If LWC = 0, Y_MDL_denom will encounter division by zero error. 
+    ! So, set Y_MDL to be 0 if LWC is 0.   Otherwise, if LWC > 0, 
+    ! compute yield of MDL following equation S21 (Nguyen et al. 2023)
+    Y_MDL = 0.0_fp
+    IF ( LWC > 0.0_fp) THEN
+       Y_MDL_num     = ( (1.0_fp - FC) * f_MDL_ag + 1.0_fp &
+                     /  ( 1.38e-5_fp * EXP(6242.0_fp / TK) * TK * LWC ) )
+       Y_MDL_denom   = (1.0_fp + (1.0_fp + 0.0391_fp * EXP( -208.0_fp / TK)) &
+                     / ( 5.39e-7_fp * EXP(6034.0_fp / TK) * TK * LWC))
+       Y_MDL         = SafeDiv( Y_MDL_num, Y_MDL_denom, 0.0_fp ) 
+    ENDIF
+    
+    ! Since we do not explicitly define aqueous phase, these are just 
+    ! summation of gaseous phase
+    MDL_0  = MDL_g
+    CH2O_0 = CH2O_g + MDL_g 
+    
+    ! Ensure that we do not get 0 division error 
+    ratio_MDL_CH2O = SafeDiv( MDL_0, CH2O_0, 0.0_fp )
+
+    ! Calculate Y'MDL using equation S24 (Nguyen et al. 2023)
+    Yprime_MDL = MAX(0.0_fp, Y_MDL - (1.0_fp - Y_MDL) * ratio_MDL_CH2O )
+
+    ! Calculate KMDL (a frequency of HCHO (g) -> MDL (g)) as a 
+    ! function (1/s) following equation S25
+    KMDL = Yprime_MDL * (FC / TAUC)
+
+  END FUNCTION Cloud_CH2O_MDL
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
 ! !IROUTINE: fullchem_InitSulfurChem
 !
 ! !DESCRIPTION: Stores species indices in module variables for fast lookup.
@@ -3802,6 +3891,7 @@ CONTAINS
     id_HMS    = Ind_( 'HMS'    )
     id_HNO3   = Ind_( 'HNO3'   )
     id_MSA    = Ind_( 'MSA'    )
+    id_MDL    = Ind_( 'MDL'    )
     id_NH3    = Ind_( 'NH3'    )
     id_NH4    = Ind_( 'NH4'    )
     id_NIT    = Ind_( 'NIT'    )

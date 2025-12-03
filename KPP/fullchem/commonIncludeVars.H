@@ -93,6 +93,10 @@
   REAL(dp) :: K_CLD(6)
   !$OMP THREADPRIVATE( K_CLD )
 
+  ! HCHO cloud chemistry to MDL rates in cloud (1/s)
+  REAL(dp) :: K_MDL
+  !$OMP THREADPRIVATE( K_MDL )
+
   ! Liquid water conversion factor
   ! - Size = number of aerosol types (nAeroType)
   REAL(dp) :: CVFAC(14)
