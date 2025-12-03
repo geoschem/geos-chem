@@ -11,7 +11,7 @@ GEOS-Chem KPP file containing species and equations for the full chemistry
 FILE HISTORY
 ===============================================================================
 
-Version: 14.5.0
+Version: 14.8.0
 
 Please see "CHANGELOG_fullchem.md" in this folder for the revision history
 of the fullchem mechanism.
@@ -41,6 +41,7 @@ DEVELOPERS (initials and email/GitHub)
 * JPP  :  Justin Parrella          : justin.parrella@gmail.com
 * KHB  :  Kelvin Bates             : @kelvinhb
 * KRT  :  Katie Travis             : @ktravis213
+* LHY  :  Laura Yang               : @laura-hyesung-yang
 * LZHU :  Lei Zhu                  : leizhu@fas.harvard.edu
 * MJE  :  Mat Evans                : @msl3v
 * MPS  :  Melissa Sulprizio        : @msulprizio
@@ -62,7 +63,7 @@ REFERENCES (alphabetical order)
 * Atkinson2006   : https://doi.org/10.5194/acp-6-3625-2006
 * Bates2014      : https://doi.org/10.1021/jp4107958
 * Bates2019      : https://doi.org/10.5194/acp-19-9613-2019
-* Bates2021a     : https://doi.org/10.1029/2020JD033439
+* Bates2021a     : https://doi.org/10.1029/2020JD0334392.4d-12 
 * Bates2021b     : https://doi.org/10.5194/acp-2021-605
 * Brewer2023     : https://doi.org/10.1029/2022JD037257
 * Browne2011     : https://doi.org/10.5194/acp-11-4209-2011
@@ -106,6 +107,7 @@ REFERENCES (alphabetical order)
 * Travis2024     : https://doi.org/10.5194/egusphere-2024-951
 * Wolfe2012      : https://doi.org/ 10.1039/C2CP40388A, 2012
 * Xie2013        : https://doi.org/10.5194/acp-13-8439-2013
+* Yang2025       : https://doi.org/10.1029/2025GL118267
 
 ===============================================================================
 NOTES
@@ -367,6 +369,7 @@ MCRHNB     = IGNORE; {O2NOCH2C(OH)(CH3)CHO; Hydroxynitrate from MACR}
 MCRHP      = IGNORE; {HOCH2C(OOH)(CH3)CHO; Hydroxy-hydroperoxy-MACR}
 MCROHOO    = IGNORE; {peroxy radical from MACR + OH}
 MCT        = IGNORE; {methylcatechols}
+MDL        = IGNORE; {HOCH2OH; methanediol}
 MEKCO3     = IGNORE; {MEK peroxyacetyl radical}
 MEK        = IGNORE; {RC(O)R; Methyl ethyl ketone}
 MEKPN      = IGNORE; {MEK peroxynitrate, C3PAN1 from MCM}
@@ -492,10 +495,12 @@ HCl  + SALCAL       = SALCCL             : K_MT(5);
 HNO3 + SALCAL       = NITs               : K_MT(6);
 //
 // Cloud
+CH2O                = MDL                : K_MDL;           {Dec 2025; Yang2025; LHY}
+//
 // S(IV) --> S(VI)
 SO2 + H2O2          = SO4                : K_CLD(1);
 SO2 + O3            = SO4                : K_CLD(2);
-SO2 {+O2}           = SO4                : K_CLD(3);  {Mn & Fe catalysis + HET_DROP_CHEM()}
+SO2 {+O2}           = SO4                : K_CLD(3);        {Mn & Fe catalysis + HET_DROP_CHEM()}
 //
 // HMS
 CH2O + SO2          = HMS                : K_CLD(4);        {Sep 2021; Moch2020; MSL}
@@ -552,6 +557,7 @@ MP + OH = 0.700MO2 + 0.300OH +
  0.300CH2O + H2O :                           GCARR_ac(3.80d-12, 200.0d0);
 ATOOH + OH = 0.700ATO2 + 0.300MGLY +
  0.300OH + H2O :                             GCARR_ac(3.80d-12, 200.0d0);                                                      {2013/03/22; Paulot2009; FP,EAM,JMAO,MJE}
+MDL + OH = HCOOH + HO2 :                     2.4d-12 ;                                                                         {2025/12/03; Yang2025; LHY}
 CH2O + OH = CO + HO2 + H2O :                 GCARR_ac(5.50d-12, 125.0d0);
 NO2 + OH {+M} = HNO3 {+M} :                  GCJPLPR_aba(1.80d-30, 3.0d+00, 2.8d-11, 0.6d0);
 HNO3 + OH = H2O + NO3 :                      GCJPLPR_abab(3.9d-31,7.2d0,1.5d-13,4.8d0,0.6d0) + GCJPLAC_ababac(3.9d-31,7.2d0,1.5d-13,4.8d0,3.7d-14,2.4d2,0.6d0); {2023/04/18; JPL 19-5; KHB}
