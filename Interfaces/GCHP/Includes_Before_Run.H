@@ -162,7 +162,7 @@
 
   ! If meteorology vertical index is top down, flip imports coming from ExtData.
   if (nonadv_meteorology_is_top_down .or. &
-      adv_meteorology_flux_is_top_down .or &
+      adv_meteorology_flux_is_top_down .or. &
       adv_meteorology_humidity_is_top_down ) then
 
     z_lb = lbound(State_Met%CLDF,3)
