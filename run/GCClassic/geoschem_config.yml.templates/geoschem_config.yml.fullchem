@@ -20,6 +20,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+  read_restart_as_real8: false
 
 #============================================================================
 # Grid settings
@@ -307,6 +308,7 @@ operations:
       - MCRHNB
       - MCRHP
       - MCT
+      - MDL
       - MEK
       - MEKPN
       - MENO3

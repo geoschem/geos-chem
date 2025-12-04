@@ -88,7 +88,13 @@ loggers:
        handlers: [mpi_shared]
        level: WARNING
        root_level: WARNING
-       
+
+   MAPL.profiler:
+       handlers: [mpi_shared]
+       propagate: FALSE
+       level: WARNING
+       root_level: INFO
+
    CAP.EXTDATA:
        handlers: [mpi_shared]
        level: WARNING

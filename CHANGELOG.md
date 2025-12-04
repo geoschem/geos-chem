@@ -4,6 +4,81 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
+- Added comments to `HEMCO_Diagn.rc` template files instructing users on which ExtNr/Cat/Hier to use for online vs. offline biomass burning emissions
+- Added subroutine `Print_Species_Global_Mass` to print_mod for use by GC-Classic
+- Added log print of species global mass at start of each timestep if verbose is true
+- Added print of global mass computed from restart file values if delta pressure present in restart file
+- Added the capability for GCHP simulations to use CH4 restarts for Jacobian Tracers
+- Added operational run scripts for WashU Compute2
+- Added the option for LPJ_MERRA2 wetland CH4 emissions in CH4 and carbon simulations
+- Added GC-Classic config file option to read restart file as `REAL*8` via GEOS-Chem rather than HEMCO
+- Added new GCHP run-time option in GCHP.rc to print species mass proxy (Species 1 only) to log file from FV3
+- Added GEOS-Chem export in GCHP to send restart file (internal state) delta pressures to FV3 for mixing ratio scaling upon start-up
+- Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
+- Added IUPAC names for Hg species in `run/shared/species_database.yml`
+- Added `gc_4x5_merra2_carbon_ch4_straddle_00utc` integraton test which runs across a UTC date boundary
+- Added methanediol (MDL) as a transported gas-phase species and to the KPP fullchem and custom mechanisms
+- Added routine `Cloud_CH2O_MDL` in `KPP/fullchem/fullchem_SulfurChemFuncs.F90`
+
+### Changed
+- Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
+- Updated `EmisOCS_Bioburn` to `EmisOCS_BiomassBurn` in both GCHP `HEMCO_Diagn.rc.carbon` and `HISTORY.rc.carbon` template files
+- Updated the ESMF version from 8.4.2 to 8.6.1 in sample environment file `gchp.gcc12_openmpi4_cannon_rocky.env`
+- Changed call to `Accept_External_Date_Time` to also pass the seconds value, in order to prevent a WRF-GC bug
+- Removed convective washout for default scheme but keep it for LUO_WETDEP
+- Adapted Luo2023 WetDep for GF convection
+- Updated timestep scaling for convective precipitation areal fraction
+- Wrapped tests for infinity/NaN in `#ifdef DEBUG` blocks in `DO_GF_CLOUD_CONVECTION`
+- Changed optional argument `Update_Mixing_Ratio` in subroutine `Airqnt` to False by default
+- Change GC-Classic call to `Airqnt` to only update mixing ratios if advection is turned off
+- Updated mass flux and courant number import scaling in GCHP for compatibility with horizontal flux regridding in MAPL 2.59
+- Updated operational run script sample for WashU Compute1
+- Update GCHP AWS EFA operational run script examples to avoid crashes over large core counts
+- Updated GFEIv3 files to correct issue in original version
+- Updated `download_data.py` for compatibility with 0.125 x 0.15625 grids plus all pre-defined nested-grids
+- Restructured `download_data.py` to avoid several instances of repeated code
+- Changed `read_restart_as_real8` from `false` to `true` in `geoschem_config.yml` for GC-Classic benchmark simulations
+- Changed the default setting of `read_restart_as_real8` from `false` to `true` in template file `geoschem_config.yml.TransportTracers`
+- Disable PARANOX extension when using GEOS-Chem Classic 0.25x0.3125 or 0.125x0.15625 grids
+- Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
+- Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
+- Consolidated Hg species metdata from `run/shared/species_database_hg.yml` into `run/shared/species_database.yml`
+
+### Fixed
+- Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
+- Moved `EmisOCS_Total` to the head of the `EmisOCS` diagnostic entries in the GCHP `HISTORY.rc.carbon` template file
+- Fixed OM/OC ratio for OCPO in SimpleSOA to be 1.4 instead of 2.1
+- Fixed precipitation formation rate unit in Luo2023 convective washout
+- Fixed bug where species mass in restart file was not conserved in first timestep if run-time meteorology different from restart file meteorology
+- Fixed parallel errors in `convection_mod.F90` by setting `AER = . TRUE.` and `KIN = .TRUE.` before calling `WASHOUT`
+- Fixed Hg directional ocean flux diagnostics in the Hg simulation so that they equal net flux
+- Fixed error where `//` were not being changed to `/` in `download_data.py`
+- Change precision of area import from GCHP advection from `REAL*4` to native `REAL*8`
+- Fixed time-range and units for CH4 emission inventories to be consistent with the corresponding netCDF files in ExtData directory for `HEMCO_Config.rc` and `ExtData.rc`
+- Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
+- Fixed typos in `ind_` variable names in `KPP/carbon/carbon_Funcs.F90`
+- Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
+- Fixed bug in ObsPack to include instantaneously-sampled data whose
+  timestamps are within 1/2 of a model timestep of the end of the day
+- Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
+- Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
+- Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
+
+### Removed
+- Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
+- Removed `Is_Advected` tags from `run/shared/species_database*.yml` template files
+- Removed GCHP initialization of `State_Met` fields `TropLev`, `BxHeight`, and `DELP_DRY` from restart file values since over-written with values of current meteorology
+- Removed `OH_PosteriorSF` entry in carbon and CH4 HEMCO_Config.rc since never used
+- Retired the CO2, CH4, and tagCO simulations. These are now replaced by the carbon simulation, which can be used in joint or single-species mode.
+- Deleted `co2_mod.F90`, `global_ch4_mod.F90`, and `tagged_co_mod.F90`
+- Removed commented-out code for tagged Hg species in `state_diag_mod.F90`
+- Removed extraneous division by `TS_EMIS` in routine `Chem_H2O2` (located in `GeosCore/sulfate_mod.F90`)
+- Removed `run/shared/species_database_hg.yml`
+- Removed obsolete metadata for tagged Hg species from `run/shared/species_database.yml`
+
 ## [14.6.3] - 2025-07-28
 ### Added
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
@@ -133,6 +208,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated the `KPP-Standalone` for compatibility with KPP 3.2.0 and to write the proper number of header lines to skip before data begins
 - Set `use_archived_PCO_from_CH4` and `use_archived_PCO2_from_CO2` to true by default for carbon simulations
 - Updated CH4 global oil, gas, and coal emissions from GFEIv2 to GFEIv3
+- Changed GCHPctmEnv and DYNAMICS diagnostic names in GCHP to include suffix '_R4'
 
 ### Fixed
 - Fixed PDOWN definition to lower rather than upper edge

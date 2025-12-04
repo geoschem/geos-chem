@@ -47,6 +47,9 @@ if [[ $(( ${coreCount} % ${SLURM_NNODES} )) > 0 ]]; then
         ${planeCount}=$(( ${planeCount} + 1 ))
 fi
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 mpirun -np ${coreCount} ./gchp >> ${log}
 
 # If new start time in cap_restart is okay, rename restart file
