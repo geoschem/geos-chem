@@ -1385,7 +1385,11 @@ CONTAINS
        ENDIF
 
        ! Rate [1/s] of CH2O(g) -> MDL(g)
-       K_MDL = Cloud_CH2O_MDL( Spc(id_MDL), Spc(id_CH2O), FC, TK, LWC )
+       K_MDL = Cloud_CH2O_MDL( MDL_g  = Spc(id_MDL)%Conc(I,J,L),             &
+                               CH2O_g = Spc(id_CH2O)%Conc(I,J,L),            &
+                               FC     = FC,                                  &
+                               TK     = TK,                                  &
+                               LWC    = LWC                                 )
 
 #ifdef TOMAS
        !%%%%%%%%%%%%%%%%% BUG FIX FOR TOMAS %%%%%%%%%%%%%%%%%%%%%%%
@@ -3765,13 +3769,17 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  FUNCTION Cloud_CH2O_MDL( MDL_g, CH2O_g, FC, TK, LWC )  RESULT( KMDL )
+  FUNCTION Cloud_CH2O_MDL( MDL_g, CH2O_g, FC, TK, LWC ) RESULT( KMDL )
+!
+! USES:
+!
+    USE rateLawUtilFuncs, ONLY : SafeDiv
 !
 ! !INPUT PARAMETERS:
 !
-    REAL(fp), INTENT(IN) :: FC      ! Cloud Fraction [0-1]
     REAL(fp), INTENT(IN) :: MDL_g   ! Methanediol concentration [molec/cm3]
-    REAL(fp), INTENT(IN) :: CH2O_g  ! CH2O concentration [molec/cm3\
+    REAL(fp), INTENT(IN) :: CH2O_g  ! CH2O concentration [molec/cm3]
+    REAL(fp), INTENT(IN) :: FC      ! Cloud Fraction [0-1]
     REAL(fp), INTENT(IN) :: TK      ! Temperature [K]
     REAL(fp), INTENT(IN) :: LWC     ! Liq. water content w/in cloud
 !
@@ -3784,20 +3792,18 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 !
+! !LOCAL VARIABLES:
+!
+    REAL(fp)            :: MDL_0, CH2O_0,    ratio_MDL_CH2O
+    REAL(fp)            :: Y_MDL, Y_MDL_num, Y_MDL_denom,   Yprime_MDL
+!
 ! !DEFINED PARAMETERS:
 !
     ! Residence time of air in clouds, s
-    REAL(FP), PARAMETER :: TAUC = 3600.0_fp
+    REAL(fp), PARAMETER :: TAUC = 3600.0_fp
 
     ! Fraction of MDL(aq) that transfers to gas phase upon cloud evaporation
-    REAL(FP), PARAMETER :: f_MDL_ag = 0.664_fp 
-!
-! !LOCAL VARIABLES:
-!
-    !REAL(FP) :: Y_MDL
-    REAL(FP) :: Y_MDL, Y_MDL_num, Y_MDL_denom
-    REAL(FP) :: Yprime_MDL
-    REAL(FP) :: MDL_0, CH2O_0, ratio_MDL_CH2O
+    REAL(fp), PARAMETER :: f_MDL_ag = 0.664_fp 
 
     ! Calculate Y_MDL which is an yield of MDL (g)
     ! If LWC = 0, Y_MDL_denom will encounter division by zero error. 
@@ -3821,7 +3827,7 @@ CONTAINS
     ratio_MDL_CH2O = SafeDiv( MDL_0, CH2O_0, 0.0_fp )
 
     ! Calculate Y'MDL using equation S24 (Nguyen et al. 2023)
-    Yprime_MDL = MAX(0.0_fp, Y_MDL - (1.0_fp - Y_MDL) * ratio_MDL_CH2O )
+    Yprime_MDL = MAX( 0.0_fp, ( Y_MDL - (1.0_fp - Y_MDL) * ratio_MDL_CH2O ) )
 
     ! Calculate KMDL (a frequency of HCHO (g) -> MDL (g)) as a 
     ! function (1/s) following equation S25

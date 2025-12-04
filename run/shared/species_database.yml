@@ -2977,7 +2977,7 @@ MCT:
   Is_WetDep: true
   MW_g: 124.0
   WD_RetFactor: 2.0e-2
-MDL::
+MDL:
   DD_F0: 1.0
   DD_Hstar: 1.3e+6
   Formula: HOCH2OH
