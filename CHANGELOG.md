@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added chemistry budget diagnostics to GCHP carbon HISTORY.rc
 - Added IUPAC names for Hg species in `run/shared/species_database.yml`
 - Added `gc_4x5_merra2_carbon_ch4_straddle_00utc` integraton test which runs across a UTC date boundary
+- Added statement to zero the `State_Diag%DryDepChm` array in routine `Zero_Diagnostics_StartOfTimestep`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -59,11 +60,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated scaling factor ID at 3000 to avoid conflicts with CEDS_01x01 scaling factor enabled in carbon simulation for IMI analytical inversion
 - Fixed typos in `ind_` variable names in `KPP/carbon/carbon_Funcs.F90`
 - Fixed typo in GCHP operational run script for Harvard Cannon to properly retrieve the run duration string
-- Fixed bug in ObsPack to include instantaneously-sampled data whose
-  timestamps are within 1/2 of a model timestep of the end of the day
+- Fixed bug in ObsPack to include instantaneously-sampled data whose timestamps are within 1/2 of a model timestep of the end of the day
 - Fixed out-of-bounds error in `carbon_gases_mod.F90` that is caused by refernencing `OHdiurnalFac` array when it is not defined
 - Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
 - Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
+- Fixed indexing error in routine `Grav_Settling` (in module `GeosCore/sulfate_mod.F90`), which caused incorrect dry deposition diagnostics for some species
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
@@ -76,6 +77,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed extraneous division by `TS_EMIS` in routine `Chem_H2O2` (located in `GeosCore/sulfate_mod.F90`)
 - Removed `run/shared/species_database_hg.yml`
 - Removed obsolete metadata for tagged Hg species from `run/shared/species_database.yml`
+- Removed code to zero `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
 
 ## [14.6.3] - 2025-07-28
 ### Added
