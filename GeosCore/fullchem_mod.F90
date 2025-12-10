@@ -204,7 +204,7 @@ CONTAINS
     REAL(dp)               :: C_before_integrate(NSPEC)
     REAL(dp)               :: local_RCONST(NREACT)
 
-    ! For tagged CO saving
+    ! Fields needed for CO in the carbon simulation
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
     ! Objects
@@ -1492,7 +1492,7 @@ CONTAINS
        ENDIF
 
        !--------------------------------------------------------------------
-       ! Archive prod/loss fields for the TagCO simulation [molec/cm3/s]
+       ! Archive prod/loss fields for CO in the carbon simulation [molec/cm3/s]
        ! (In practice, we only need to do this from benchmark simulations)
        !
        ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
@@ -1513,12 +1513,12 @@ CONTAINS
           ! P(CO) from NMVOC is the remaining P(CO)
           PCO_NMVOC = PCO_TOT - PCO_CH4
 
-          ! Archive P(CO) from CH4 for tagCO simulations
+          ! Archive P(CO) from CH4 for CO in carbon simulations
           IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
              State_Diag%ProdCOfromCH4(I,J,L) = PCO_CH4
           ENDIF
 
-          ! Archive P(CO) from NMVOC for tagCO simulations
+          ! Archive P(CO) from NMVOC for CO in carbon simulations
           IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
              State_Diag%ProdCOfromNMVOC(I,J,L) = PCO_NMVOC
           ENDIF
@@ -2946,7 +2946,7 @@ CONTAINS
           KppID = Ind_( TRIM ( Fam_Names(N) ), 'K' )
 
           ! Find the KPP Id corresponding to PCO and LCH4
-          ! so that we can save output for tagged CO simulations
+          ! so that we can save output for CO in carbon simulations
           IF ( TRIM( Fam_Names(N) ) == 'PCO'  ) id_PCO  = KppId
           IF ( TRIM( Fam_Names(N) ) == 'LCH4' ) id_LCH4 = KppId
 
@@ -2984,8 +2984,8 @@ CONTAINS
 
     !------------------------------------------------------------------------
     ! If we are archiving the P(CO) from CH4 and from NMVOC from a fullchem
-    ! simulation for the tagCO simulation, throw an error if we cannot find
-    ! the PCO or LCH4 prod/loss families in this KPP mechanism.
+    ! simulation for the CO in carbon simulation, throw an error if we cannot
+    ! find the PCO or LCH4 prod/loss families in this KPP mechanism.
     !------------------------------------------------------------------------
     IF ( State_Diag%Archive_ProdCOfromCH4    .or.                            &
          State_Diag%Archive_ProdCOfromNMVOC ) THEN

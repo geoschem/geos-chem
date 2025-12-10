@@ -1575,7 +1575,7 @@ CONTAINS
    USE ErrCode_Mod
    USE Error_Mod
    USE HCO_State_GC_Mod,  ONLY : HcoState
-   USE PhysConstants,     ONLY : AIRMW
+   USE PhysConstants,     ONLY : AIRMW, G0_100
    USE Input_Opt_Mod,     ONLY : OptInput
    USE Species_Mod,       ONLY : Species, SpcConc
    USE State_Chm_Mod,     ONLY : ChmState
@@ -1622,6 +1622,7 @@ CONTAINS
    INTEGER                   :: I, J, L, M, N      ! lon, lat, lev, indexes
    INTEGER                   :: previous_units
    LOGICAL                   :: FOUND              ! Found in restart file?
+   LOGICAL                   :: FOUND_DELP_DRY     ! Found layer delta P in restart?
    CHARACTER(LEN=60)         :: Prefix             ! utility string
    CHARACTER(LEN=255)        :: LOC                ! routine location
    CHARACTER(LEN=255)        :: MSG                ! message
@@ -1667,6 +1668,12 @@ CONTAINS
    REAL*8,  POINTER   :: Ptr3D_r8(:,:,:)
    REAL*4,  POINTER   :: Ptr4D_r4(:,:,:,:)
    REAL*8,  POINTER   :: Ptr4D_r8(:,:,:,:)
+
+   ! For species mass conservation
+   LOGICAL            :: update_mixing_ratio
+   REAL*8             :: AirMass
+   REAL*8,  TARGET    :: SpcMass(State_Grid%NX,State_Grid%NY,State_Grid%NZ)
+   REAL*8,  POINTER   :: SpcMassPtr(:,:,:)
 
    !=================================================================
    ! READ_GC_RESTART begins here!
@@ -1719,8 +1726,9 @@ CONTAINS
 500   FORMAT( a                                                              )
 510   FORMAT( a21, ': Min = ', es15.9, '  Max = ', es15.9, '  Sum = ',es15.9 )
 520   FORMAT( a21, ': not found in GEOS-Chem restart file, setting to zero'  )
-530   FORMAT( 'Species ', i3, ', ', a9, ': Min = ', es15.9, ', Max = ', es15.9, '  Sum = ',es15.9 )
-540   FORMAT( 'Species ', i3, ', ', a9, ': not found in restart, setting to background = ', es15.9)
+530   FORMAT( '   Species ', i3, ', ', a9, ': Min = ', es15.9, ', Max = ', es15.9, '  Sum = ',es15.9 )
+540   FORMAT( '   Species ', i3, ', ', a9, ': not found in restart, setting to background = ', es15.9)
+550   FORMAT( '                           Global mass = ', es15.9 )
 
    !=================================================================
    ! Open GEOS-Chem restart file
@@ -1773,6 +1781,62 @@ CONTAINS
 
    ENDIF
 
+   !=========================================================================
+   ! Get delta pressure per grid box stored in restart file to allow mass
+   ! conservation across consecutive runs. Set DP_DRY_PREV to this value
+   ! since it is the delta pressure used to create the restart file rather
+   ! than the current meteorology.
+   !========================================================================
+   v_name_in_hemco = 'DELPDRY'
+   v_name_in_file  = 'Met_DELPDRY'
+
+   IF ( use_HEMCO_for_restart_read ) THEN
+      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),  &
+           Ptr3D,     RC,         FOUND=FOUND_DELP_DRY )
+   ELSE
+      Temp4D_r8 = 0.0_fp
+      Ptr4D_r8 => Temp4D_r8
+      st4d   = (/  1,  1,  1,  1 /)
+      ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
+      CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
+      FOUND_DELP_DRY = .TRUE.
+      a_name = "units"
+      CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
+   ENDIF
+
+   IF ( FOUND_DELP_DRY ) THEN
+      IF ( use_HEMCO_for_restart_read ) THEN
+         State_Met%DP_DRY_PREV = Ptr3D
+      ELSE
+         State_Met%DP_DRY_PREV = Ptr4D_r8(:,:,:,1)
+      ENDIF
+      IF ( Input_Opt%amIRoot ) THEN
+         WRITE( 6, 510 ) ADJUSTL( v_name_in_file   ),         &
+              MINVAL(  State_Met%DP_DRY_PREV ),               &
+              MAXVAL(  State_Met%DP_DRY_PREV ),               &
+              SUM(     State_Met%DP_DRY_PREV )
+      ENDIF
+
+      ! Check if different from current meteorology. If yes, print warning and set flag.
+      IF ( ABS(SUM(State_Met%DP_DRY_PREV) - SUM(State_Met%DELP_DRY)) > 1.d-10 ) THEN
+         update_mixing_ratio = .TRUE.
+         WRITE (6,*) 'WARNING: Layer delta pressures found in the restart file differ from current '
+         WRITE (6,*) 'meteorology. All species concentrations will be scaled by the ratio of '
+         WRITE (6,*) 'restart file delta pressure to input meteorology delta pressure in order '
+         WRITE (6,*) 'to conserve species mass in the restart file. If you wish to avoid this '
+         WRITE (6,*) 'behavior then rerun using a restart file without Met_DELPDRY'
+      ENDIF
+   ELSE
+      WRITE (6,*) 'WARNING: Species mass cannot be computed from restart file concentrations '
+      WRITE (6,*) 'because Met_DELPDRY was not found in the restart file. Species '
+      WRITE (6,*) 'concentrations [mol/mol] in the restart file will be used in the first'
+      WRITE (6,*) 'timestep. No scaling will be done to conserve restart file mass.'
+   ENDIF
+
+   ! Nullify pointer
+   Ptr3D => NULL()
+   Ptr4D_r8 => NULL()
+
    !=================================================================
    ! Read species concentrations from NetCDF or use default
    ! background [mol/mol]
@@ -1780,7 +1844,7 @@ CONTAINS
 
    ! Print header for min/max concentration to log
    WRITE( 6, 110 )
-110 FORMAT( 'Min, max, and sum of each species in restart file [mol/mol]:' )
+110 FORMAT( 'Min, max, and sum of each species in restart file [mol/mol], plus global mass if delta pressure found in file:' )
 
    ! Loop over species
    DO N = 1, State_Chm%nSpecies
@@ -1852,6 +1916,54 @@ CONTAINS
          IF ( Input_Opt%amIRoot ) THEN
             WRITE( 6, 530 ) N, TRIM( SpcInfo%Name ),               &
                  MINVAL( Spc(N)%Conc ), MAXVAL( Spc(N)%Conc ), SUM ( Spc(N)%Conc )
+         ENDIF
+
+         ! If DELP_DRY was found in the restart file:
+         !    1. Compute and print species global mass in file
+         !    2. Update mixing ratio to conserve mass if file delta pressure
+         !       differs from current meteorology
+         IF ( FOUND_DELP_DRY ) THEN
+
+            ! Also print mass based on restart file mixing ratio and meteorology
+            SpcMass = 0.d0
+            SpcMassPtr => SpcMass
+            !$OMP PARALLEL DO                 &
+            !$OMP DEFAULT( SHARED           ) &
+            !$OMP PRIVATE( I, J, L, AirMass ) &
+            !$OMP COLLAPSE( 3 )
+            DO L = 1, State_Grid%NZ
+            DO J = 1, State_Grid%NY
+            DO I = 1, State_Grid%NX
+               AirMass = State_Met%DP_DRY_PREV(I,J,L) * G0_100  &
+                    * State_Met%AREA_M2(I,J)
+               SpcMassPtr(I,J,L) = Spc(N)%Conc(I,J,L) * AirMass  &
+                    / ( AIRMW / State_Chm%SpcData(N)%Info%MW_g )
+            ENDDO
+            ENDDO
+            ENDDO
+            !$OMP END PARALLEL DO
+            WRITE(6,550) SUM( SpcMassPtr )
+            SpcMassPtr => NULL()
+
+            ! Update mixing ratio to conserve mass if current pressure different
+            ! from restart file pressure
+            IF ( update_mixing_ratio ) THEN
+               ! Update concentrations
+               !$OMP PARALLEL DO        &
+               !$OMP DEFAULT( SHARED  ) &
+               !$OMP PRIVATE( I, J, L ) &
+               !$OMP COLLAPSE( 3 )
+               DO L = 1, State_Grid%NZ
+               DO J = 1, State_Grid%NY
+               DO I = 1, State_Grid%NX
+                  Spc(N)%Conc(I,J,L) = Spc(N)%Conc(I,J,L)   &
+                       * State_Met%DP_DRY_PREV(I,J,L) / State_Met%DELP_DRY(I,J,L)
+               ENDDO
+               ENDDO
+               ENDDO
+               !$OMP END PARALLEL DO
+            ENDIF
+
          ENDIF
 
       ELSE
@@ -2018,45 +2130,6 @@ CONTAINS
       SpcInfo => NULL()
 
    ENDDO
-
-   !=========================================================================
-   ! Get delta pressure per grid box stored in restart file to allow mass
-   ! conservation across consecutive runs
-   !========================================================================
-   v_name_in_hemco = 'DELPDRY'
-   v_name_in_file  = 'Met_DELPDRY'
-
-   IF ( use_HEMCO_for_restart_read ) THEN
-      CALL HCO_GC_GetPtr( Input_Opt, State_Grid, TRIM( v_name_in_hemco ),  &
-           Ptr3D,     RC,         FOUND=FOUND )
-   ELSE
-      Temp4D_r8 = 0.0_fp
-      Ptr4D_r8 => Temp4D_r8
-      st4d   = (/  1,  1,  1,  1 /)
-      ct4d   = (/ State_Grid%NX, State_Grid%NY, State_Grid%NZ, 1 /)
-      CALL NcRd( Ptr4D_r8, fId, TRIM(v_name_in_file), st4d, ct4d )
-      FOUND = .TRUE.
-      a_name = "units"
-      CALL NcGet_Var_Attributes( fId,TRIM(v_name_in_file),TRIM(a_name),a_val )
-   ENDIF
-
-   IF ( FOUND ) THEN
-      IF ( use_HEMCO_for_restart_read ) THEN
-         State_Met%DELP_DRY = Ptr3D
-      ELSE
-         State_Met%DELP_DRY = Ptr4D_r8(:,:,:,1)
-      ENDIF
-      IF ( Input_Opt%amIRoot ) THEN
-         WRITE( 6, 510 ) ADJUSTL( v_name_in_file   ),         &
-              MINVAL(  State_Met%DELP_DRY ),               &
-              MAXVAL(  State_Met%DELP_DRY ),               &
-              SUM(     State_Met%DELP_DRY )
-      ENDIF
-   ENDIF
-
-   ! Nullify pointer
-   Ptr3D => NULL()
-   Ptr4D_r8 => NULL()
 
    !=========================================================================
    ! Get variables for KPP mechanisms (right now just fullchem and Hg)
@@ -2844,7 +2917,7 @@ CONTAINS
 
       ! Each time the boundary conditions are read, they have no longer been perturbed
       ! This value is sometimes set to True in set_boundary_conditions_mod.F90
-      IF ( ( Input_Opt%ITS_A_CH4_SIM .OR. Input_Opt%ITS_A_CARBON_SIM ) .AND. & 
+      IF ( Input_Opt%ITS_A_CARBON_SIM                 .AND. & 
            Input_Opt%DoPerturbCH4BoundaryConditions ) THEN
         State_Chm%IsCH4BCPerturbed = .FALSE.
       ENDIF

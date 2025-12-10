@@ -33,6 +33,7 @@ MODULE Print_Mod
 ! !PUBLIC MEMBER FUNCTIONS:
 !
   PUBLIC :: Print_Species_Min_Max_Sum
+  PUBLIC :: Print_Species_Global_Mass
 !
 ! !REMARKS:
 !
@@ -124,5 +125,105 @@ CONTAINS
          '  Max = ',es15.9, '  Sum = ',es15.9)
 
   END SUBROUTINE Print_Species_Min_Max_Sum
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Print_Species_Global_Mass
+!
+! !DESCRIPTION: Subroutine Print\_Species\_Global\_Mass prints the
+!   global sum of species mass in kg on the root thread to log.
+!   The default is to write all species. Arguments can be passed to
+!   to specify start index and stop index of State_Chm%Species array to
+!   limit species to one species or a consecutive sequence.
+!\\
+!\\
+! !INTERFACE:
+!
+  SUBROUTINE Print_Species_Global_Mass( msg,        Input_Opt,   State_Chm,  &
+                                        State_Met,  State_Grid,  RC,         &
+                                        nStart,     nStop                   )
+!
+! !INPUT PARAMETERS:
+!
+
+    CHARACTER(LEN=*), INTENT(IN)           :: msg        ! Message to print
+    TYPE(OptInput),   INTENT(IN)           :: Input_Opt  ! Input Options object
+    TYPE(ChmState),   INTENT(INOUT)        :: State_Chm  ! Chemistry State object
+    TYPE(MetState),   INTENT(IN)           :: State_Met  ! Meteorology State object
+    TYPE(GrdState),   INTENT(IN)           :: State_Grid ! Grid State object
+    INTEGER,          INTENT(IN), OPTIONAL :: nStart     ! Index of 1st species to print
+    INTEGER,          INTENT(IN), OPTIONAL :: nStop      ! Index of last species to print
+!
+! !OUTPUT PARAMETERS:
+!
+    INTEGER,          INTENT(OUT)   :: RC     ! Success or failure?
+!
+! !REMARKS:
+!
+! !REVISION HISTORY:
+!  07 Oct 2024 - E. Lundgren - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !LOCAL VARIABLES:
+!
+    ! Scalars
+    INTEGER            :: N, N_Start, N_Stop, previous_units
+
+    ! Strings
+    CHARACTER(LEN=255) :: errMsg, errLoc, units
+
+    !========================================================================
+    ! Print_Species_Global_Mass begins here!
+    !========================================================================
+
+    RC     = GC_SUCCESS
+    errMsg = ''
+    errLoc = ' -> at Print_Species_Global_Mass (in GeosUtil/print_mod.F90)'
+
+    ! Set defaults
+    N_START = 1
+    N_STOP = State_Chm%nSpecies
+
+    ! Override with optional args
+    IF ( PRESENT(nStart) ) N_START = nStart
+    IF ( PRESENT(nStop ) ) N_STOP  = nStop
+
+    ! Convert species to kg if needed
+    CALL Convert_Spc_Units(                &
+         Input_Opt      = Input_Opt,       &
+         State_Chm      = State_Chm,       &
+         State_Grid     = State_Grid,      &
+         State_Met      = State_Met,       &
+         new_units      = KG_SPECIES,      &
+         previous_units = previous_units,  &
+         RC             = RC              )
+
+    ! Write to log
+    WRITE(6,*) 'Global mass sum of each species [kg]'
+    IF ( Input_Opt%amIRoot ) THEN
+       DO N = N_START, N_STOP
+          WRITE( 6, 130 ) N, TRIM( State_Chm%SpcData(N)%Info%Name ), &
+               SUM( State_Chm%Species(N)%Conc(:,:,:) )
+       ENDDO
+    ENDIF
+
+    ! Convert species to original units
+    CALL Convert_Spc_Units(                   &
+         Input_Opt      = Input_Opt,          &
+         State_Chm      = State_Chm,          &
+         State_Grid     = State_Grid,         &
+         State_Met      = State_Met,          &
+         new_units      = previous_units,     &
+         RC             = RC                 )
+
+130 FORMAT( '   Species ', i3, ', ', a9, ': Global mass = ', es15.9 )
+
+  END SUBROUTINE Print_Species_Global_Mass
 !EOC
 END MODULE Print_Mod

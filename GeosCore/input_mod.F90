@@ -232,8 +232,8 @@ CONTAINS
     ! Get settings for specialty simulations from the YAML Config object
     !========================================================================
 
-    ! CH4/carbon simulation settings
-    IF ( Input_Opt%Its_A_CH4_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
+    ! Carbon simulation settings
+    IF ( Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CH4( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CH4"!'
@@ -242,10 +242,7 @@ CONTAINS
           CALL QFYAML_CleanUp( ConfigAnchored )
           RETURN
        ENDIF
-    ENDIF
 
-    ! CO simulation settings
-    IF ( Input_Opt%Its_A_TagCO_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO"!'
@@ -254,10 +251,7 @@ CONTAINS
           CALL QFYAML_CleanUp( ConfigAnchored )
           RETURN
        ENDIF
-    ENDIF
 
-    ! CO2/carbon simulation settings
-    IF ( Input_Opt%Its_A_CO2_Sim .or. Input_Opt%Its_A_Carbon_Sim ) THEN
        CALL Config_CO2( Config, Input_Opt, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           errMsg = 'Error in "Config_CO2"!'
@@ -425,20 +419,17 @@ CONTAINS
     Sim = To_UpperCase( TRIM( Input_Opt%SimulationName ) )
     IF ( TRIM(Sim) /= 'AEROSOL'                                        .and. &
          TRIM(Sim) /= 'CARBON'                                         .and. &
-         TRIM(Sim) /= 'CH4'                                            .and. &
-         TRIM(Sim) /= 'CO2'                                            .and. &
          TRIM(Sim) /= 'FULLCHEM'                                       .and. &
          TRIM(Sim) /= 'HG'                                             .and. &
          TRIM(Sim) /= 'METALS'                                         .and. &
          TRIM(Sim) /= 'POPS'                                           .and. &
-         TRIM(Sim) /= 'TAGCO'                                          .and. &
          TRIM(Sim) /= 'TAGO3'                                          .and. &
          TRIM(Sim) /= 'TRANSPORTTRACERS' ) THEN
          
        errMsg = Trim( Input_Opt%SimulationName) // ' is not a'            // &
                 ' valid simulation. Supported simulations are:'           // &
-                ' aerosol, carbon, CH4, CO2, fullchem, Hg, Metals, POPs,' // &
-                ' TransportTracers, TagCO, or TagO3.'
+                ' aerosol, carbon, fullchem, Hg, Metals, POPs,'           // &
+                ' TransportTracers, or TagO3.'
        CALL GC_Error( errMsg, RC, thisLoc )
        RETURN
     ENDIF
@@ -446,13 +437,10 @@ CONTAINS
     ! Set simulation type flags in Input_Opt
     Input_Opt%ITS_AN_AEROSOL_SIM   = ( TRIM(Sim) == 'AEROSOL'               )
     Input_Opt%ITS_A_CARBON_SIM     = ( TRIM(Sim) == 'CARBON'                )
-    Input_Opt%ITS_A_CH4_SIM        = ( TRIM(Sim) == 'CH4'                   )
-    Input_Opt%ITS_A_CO2_SIM        = ( TRIM(Sim) == 'CO2'                   )
     Input_Opt%ITS_A_FULLCHEM_SIM   = ( TRIM(Sim) == 'FULLCHEM'              )
     Input_Opt%ITS_A_MERCURY_SIM    = ( TRIM(Sim) == 'HG'                    )
     Input_Opt%ITS_A_TRACEMETAL_SIM = ( TRIM(Sim) == 'METALS'                )
     Input_Opt%ITS_A_POPS_SIM       = ( TRIM(Sim) == 'POPS'                  )
-    Input_Opt%ITS_A_TAGCO_SIM      = ( TRIM(Sim) == 'TAGCO'                 )
     Input_Opt%ITS_A_TAGO3_SIM      = ( TRIM(Sim) == 'TAGO3'                 )
     Input_Opt%ITS_A_TRACER_SIM     = ( TRIM(Sim) == 'TRANSPORTTRACERS'      )
 
@@ -1319,8 +1307,7 @@ CONTAINS
 
     IF ( TRIM( Input_Opt%MetField ) == 'MERRA2'                        .and. &
          TRIM( State_Grid%GridRes ) == '0.5x0.625' )                   THEN
-       IF ( Input_Opt%ITS_A_CH4_SIM     .or. &
-            Input_Opt%ITS_A_CO2_SIM )   THEN
+       IF ( Input_Opt%ITS_A_CARBON_SIM )   THEN
           IF ( Input_Opt%TS_DYN > 300 .or. Input_Opt%TS_CHEM > 600 )   THEN
              IF ( Input_Opt%amIRoot ) THEN
                 WRITE( 6,'(a)' ) ''
@@ -1332,7 +1319,8 @@ CONTAINS
                 WRITE( 6,'(a)' ) ' especially problematic when using total'
                 WRITE( 6,'(a)' ) ' column concentrations. To avoid the issue,'
                 WRITE( 6,'(a)' ) ' a timestep of 5/10 instead of 10/20 is'
-                WRITE( 6,'(a)' ) ' recommended for CH4 and CO2 simulations.'
+                WRITE( 6,'(a)' ) ' recommended for carbon simulations with.'
+                WRITE( 6,'(a)' ) ' CH4 and/or CO2 included.'
                 WRITE( 6,'(a)' ) ''
                 WRITE( 6,'(a)' ) 'You may remove this trap at your own peril,'
                 WRITE( 6,'(a)' ) ' by commenting out the call to GC_ERROR in'
@@ -1563,10 +1551,8 @@ CONTAINS
     !=================================================================
 
     ! Split into tagged species
-    IF ( Input_Opt%ITS_A_TAGCO_SIM .or. Input_Opt%ITS_A_TAGO3_SIM ) THEN
+    IF ( Input_Opt%ITS_A_TAGO3_SIM ) THEN
        Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 1 )  ! Tags if > 1 species
-    ELSE IF ( Input_Opt%ITS_A_CARBON_SIM ) THEN
-       Input_Opt%LSPLIT = ( Input_Opt%N_ADVECT > 4 )  ! Tags if > 4 species
     ELSE
        Input_Opt%LSPLIT = .FALSE.  
     ENDIF
@@ -2020,8 +2006,8 @@ CONTAINS
 !
 ! !IROUTINE: config_co
 !
-! !DESCRIPTION: Copies CO simulation information from the Config object
-!  to Input_Opt, and does necessary checks.
+! !DESCRIPTION: Copies CO information from the Config object to Input_Opt
+!  and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -2068,7 +2054,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from CH4 (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_archived_PCO_from_CH4"
+    key    = "CO_options%use_archived_PCO_from_CH4"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2081,7 +2067,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use P(CO) from NMVOC (archived from a fullchem simulation)?
     !------------------------------------------------------------------------
-    key    = "CO_simulation_options%use_archived_PCO_from_NMVOC"
+    key    = "CO_options%use_archived_PCO_from_NMVOC"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2095,7 +2081,7 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE(6,90 ) 'TAGGED CO SIMULATION SETTINGS'
+       WRITE(6,90 ) 'CO SETTINGS'
        WRITE(6,95 ) '(overwrites any other settings related to CO)'
        WRITE(6,95 ) '---------------------------------------------'
        WRITE(6,100) 'Use archived P(CO) from CH4?   :', Input_Opt%LPCO_CH4
@@ -2116,8 +2102,8 @@ CONTAINS
 !
 ! !IROUTINE: config_co2
 !
-! !DESCRIPTION: Copies CO2 simulation information from the Config object
-!  to Input_Opt, and does necessary checks.
+! !DESCRIPTION: Copies CO2 information from the Config object to Input_Opt
+!  and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -2163,7 +2149,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use archived fields of CO2 production from CO oxidation?
     !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%sources%use_archived_PCO2_from_CO"
+    key    = "CO2_options%sources%use_archived_PCO2_from_CO"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -2173,43 +2159,14 @@ CONTAINS
     ENDIF
     Input_Opt%LCHEMCO2 = v_bool
 
-    !------------------------------------------------------------------------
-    ! Turn on biosphere and ocean exchange region tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_bio_and_ocean_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LBIOSPHTAG = v_bool
-
-    !------------------------------------------------------------------------
-    ! Turn on fossil fuel emission region tagged species?
-    !------------------------------------------------------------------------
-    key    = "CO2_simulation_options%tagged_species%tag_land_fossil_fuel_CO2"
-    v_bool = MISSING_BOOL
-    CALL QFYAML_Add_Get( Config, key, v_bool, "", RC )
-    IF ( RC /= GC_SUCCESS ) THEN
-       errMsg = 'Error parsing ' // TRIM( key ) // '!'
-       CALL GC_Error( errMsg, RC, thisLoc )
-       RETURN
-    ENDIF
-    Input_Opt%LFOSSILTAG = v_bool
-
     !=================================================================
     ! Print to screen
     !=================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE( 6,90  ) 'CO2 SIMULATION SETTINGS'
+       WRITE( 6,90  ) 'CO2 SETTINGS'
        WRITE( 6,95  ) '(overwrites any other settings related to CO2)'
        WRITE( 6,95  ) '----------------------------------------------'
        WRITE( 6,100 ) 'Use archived P(CO2) from CO?  :', Input_Opt%LCHEMCO2
-       WRITE( 6, 95 ) 'Tagged CO2 settings'
-       WRITE( 6,100 ) '  Tag Biosphere/Ocean CO2     :', Input_Opt%LBIOSPHTAG
-       WRITE( 6,100 ) '  Tag Fossil Fuel CO2         :', Input_Opt%LFOSSILTAG
     ENDIF
 
     ! FORMAT statements
@@ -3522,12 +3479,7 @@ CONTAINS
     ! Error check settings
     !========================================================================
     
-    ! Turn off drydep for simulations that don't need it
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LDRYD = .FALSE.
-
     ! Turn off wetdep for simulations that don't need it
-    IF ( Input_Opt%ITS_A_CH4_SIM     ) Input_Opt%LWETD = .FALSE.
-    IF ( Input_Opt%ITS_A_TAGCO_SIM   ) Input_Opt%LWETD = .FALSE.
     IF ( Input_Opt%ITS_A_TAGO3_SIM   ) Input_Opt%LWETD = .FALSE.
 
     ! If CO2 effect on RS in turned on, calculate the scaling factor
@@ -4043,8 +3995,8 @@ CONTAINS
 !
 ! !IROUTINE: config_ch4
 !
-! !DESCRIPTION: Copies CH4 simulation information from the Config
-!  object to Input_Opt, and does necessary checks.
+! !DESCRIPTION: Copies CH4 information from the Config object to Input_Opt
+!  and does necessary checks.
 !\\
 !\\
 ! !INTERFACE:
@@ -4097,7 +4049,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use AIRS observational operator?
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%use_observational_operators%AIRS"
+    key    = "CH4_options%use_observational_operators%AIRS"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4110,7 +4062,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use GOSAT observational operator?
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%use_observational_operators%GOSAT"
+    key    = "CH4_options%use_observational_operators%GOSAT"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4123,7 +4075,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Use TCCON observational operator?
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%use_observational_operators%TCCON"
+    key    = "CH4_options%use_observational_operators%TCCON"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4136,7 +4088,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! Perturb CH4 boundary conditions?
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%analytical_inversion%perturb_CH4_boundary_conditions"
+    key    = "CH4_options%analytical_inversion%perturb_CH4_boundary_conditions"
     v_bool = MISSING_BOOL
     CALL QFYAML_Add_Get( Config, TRIM( key ), v_bool, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4149,7 +4101,7 @@ CONTAINS
     !------------------------------------------------------------------------
     ! How much to perturb CH4 boundary conditions by?
     !------------------------------------------------------------------------
-    key    = "CH4_simulation_options%analytical_inversion%CH4_boundary_condition_ppb_increase_NSEW"
+    key    = "CH4_options%analytical_inversion%CH4_boundary_condition_ppb_increase_NSEW"
     a_str = MISSING_STR
     CALL QFYAML_Add_Get( Config, TRIM( key ), a_str, "", RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -4166,7 +4118,7 @@ CONTAINS
     ! Print to screen
     !========================================================================
     IF ( Input_Opt%amIRoot ) THEN
-       WRITE(6,90 ) 'CH4 SIMULATION SETTINGS'
+       WRITE(6,90 ) 'CH4 SETTINGS'
        WRITE(6,95 ) '-----------------------'
        WRITE(6,100) 'Use AIRS obs operator?   : ', Input_Opt%AIRS_CH4_OBS
        WRITE(6,100) 'Use GOSAT obs operator?  : ', Input_Opt%GOSAT_CH4_OBS

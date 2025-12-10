@@ -1827,7 +1827,7 @@ CONTAINS
           ! Drydep flux in chemistry only
           S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
           IF ( S > 0 ) THEN
-             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+             State_Diag%DryDepChm(I,J,S) = FLUX
           ENDIF
        ENDIF
 
@@ -2315,7 +2315,7 @@ CONTAINS
        ALPHA = 1.0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
-       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS ) * DT / ( ALPHA * M )
+       DH2O2 = ( PH2O2m(I,J,L) * DT ) / ( ALPHA * M )
 
        ! Final H2O2 [v/v]
        H2O2  = ( H2O20 / ALPHA + DH2O2 )

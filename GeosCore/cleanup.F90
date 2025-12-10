@@ -17,7 +17,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
 !
   USE CARBON_MOD,              ONLY : CLEANUP_CARBON
   USE Carbon_Gases_Mod,        ONLY : Cleanup_Carbon_Gases
-  USE CO2_MOD,                 ONLY : CLEANUP_CO2
   USE DEPO_MERCURY_MOD,        ONLY : CLEANUP_DEPO_MERCURY
   USE DRYDEP_MOD,              ONLY : CLEANUP_DRYDEP
   USE DUST_MOD,                ONLY : CLEANUP_DUST
@@ -41,7 +40,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   USE SEASALT_MOD,             ONLY : CLEANUP_SEASALT
   USE SULFATE_MOD,             ONLY : CLEANUP_SULFATE
   USE State_Grid_Mod,          ONLY : GrdState
-  USE TAGGED_CO_MOD,           ONLY : CLEANUP_TAGGED_CO
   USE EMISSIONS_MOD,           ONLY : EMISSIONS_FINAL
   USE SFCVMR_MOD,              ONLY : FixSfcVmr_Final
   USE VDiff_Mod,               ONLY : Cleanup_Vdiff
@@ -123,7 +121,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   ! Call cleanup routines from individual F90 modules
   !=================================================================
   CALL CLEANUP_CARBON()
-  CALL CLEANUP_CO2()
   CALL CLEANUP_DRYDEP()
   CALL CLEANUP_DUST()
   CALL CLEANUP_ATE()
@@ -162,13 +159,6 @@ SUBROUTINE CLEANUP( Input_Opt, State_Grid, ERROR, RC )
   ENDIF
 #endif
 
-  ! Cleanup Tagged CO code
-  CALL CLEANUP_TAGGED_CO( RC )
-  IF ( RC /= GC_SUCCESS ) THEN
-     ErrMsg = 'Error encountered in "Cleanup_Tagged_CO"!'
-     CALL GC_Error( ErrMsg, RC, ThisLoc )
-     RETURN
-  ENDIF
 
   CALL CLEANUP_MERCURY()
   CALL CLEANUP_OCEAN_MERCURY()

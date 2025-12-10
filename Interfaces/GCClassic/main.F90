@@ -49,6 +49,7 @@ PROGRAM GEOS_Chem
   USE OLSON_LANDMAP_MOD     ! Computes IREG, ILAND, IUSE from Olson map
   USE PhysConstants         ! Physical constants
   USE PRESSURE_MOD          ! For computing pressure at grid boxes
+  USE Print_Mod             ! For verbose printing
   USE Grid_Registry_Mod     ! Registers horizontal/vertical grid metadata
   USE State_Chm_Mod         ! Derived type for Chemistry State object
   USE State_Diag_Mod        ! Derived type for Diagnostics State object
@@ -207,9 +208,6 @@ PROGRAM GEOS_Chem
   INTEGER                  :: id_H2O,        id_CH4,      id_CLOCK
   INTEGER                  :: previous_units
 
-  ! Reals
-  REAL(f8)                 :: TAU,           TAUb
-
   ! Strings
   CHARACTER(LEN=255)       :: ThisLoc,       ZTYPE
   CHARACTER(LEN=255)       :: historyConfigFile
@@ -251,8 +249,8 @@ PROGRAM GEOS_Chem
 
 #ifdef RRTMG
   ! For stratospheric adjustment
-  REAL(f8), ALLOCATABLE          :: DT_3D(:,:,:)
-  REAL(f8), ALLOCATABLE          :: HR_3D(:,:,:)
+  REAL(f8), ALLOCATABLE    :: DT_3D(:,:,:)
+  REAL(f8), ALLOCATABLE    :: HR_3D(:,:,:)
 #endif
 
   !==========================================================================
@@ -315,7 +313,7 @@ PROGRAM GEOS_Chem
   ENDIF
 
   !--------------------------------------------------------------------------
-  ! Initialize GEOS-Chem timers
+  ! Initialize GEOS-Chem Classic timers
   !--------------------------------------------------------------------------
   IF ( Input_Opt%useTimers ) THEN
 
@@ -347,13 +345,14 @@ PROGRAM GEOS_Chem
 
   !--------------------------------------------------------------------------
   ! Prepare the GEOS-Chem "dry run" option
-  ! If in a "dry-run" mode, GEOS-Chem will simply check whether files
-  ! are present (and possibly in the correct format) and go through
-  ! time-steps to check met fields and other IO issues.
-  ! No actual "compute" is performed.
+  !
+  ! If in a "dry-run" mode, GEOS-Chem will simply check whether files are
+  ! present (and possibly in the correct format) and go through time-steps
+  ! to check met fields and other IO issues. ! No actual "compute" is
+  ! performed.
   !
   ! The "dry-run" option is initialized using the command line extra
-  ! argument ./gcclassic --dry-run
+  ! argument ./gcclassic --dryrun
   !
   ! A log file can be specified with --log FILENAME.
   ! If no log file is specified, the default logfile will be
@@ -363,7 +362,6 @@ PROGRAM GEOS_Chem
   !
   ! Additionally, this flag must be set after reading input file, or
   ! its value will be overwritten by READ_INPUT_FILE.
-  ! (hplin, 11/1/19)
   !--------------------------------------------------------------------------
   CALL Init_Dry_Run( Input_Opt, RC )
   IF ( RC /= GC_SUCCESS ) THEN
@@ -491,12 +489,11 @@ PROGRAM GEOS_Chem
   ENDIF
 
   !--------------------------------------------------------------------------
-  ! Skip these operations when in dry-run mode
+  ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks,  which
+  ! require the AREA_M2 field saved out to the StateMet diagnostic
+  ! collection for computing emission totals.  Skip when in dry-run mode.
   !--------------------------------------------------------------------------
   IF ( notDryRun ) THEN
-     ! Copy to State_Met%AREA_M2 to avoid breaking GCHP benchmarks,
-     ! which require the AREA_M2 field saved out to the StateMet
-     ! diagnostic collection for computing emission totals.
      State_Met%Area_M2 = State_Grid%Area_M2
   ENDIF
 
@@ -545,8 +542,6 @@ PROGRAM GEOS_Chem
 
      ! Initialize module variables
      CALL Init_RRTMG_Rad_Transfer( Input_Opt, State_Diag, State_Grid, RC )
-
-     ! Trap potential errors
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_RRTMG_Rad_Transfer"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -597,8 +592,6 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   IF ( Input_Opt%LLINOZ ) THEN
      CALL Linoz_Read( Input_Opt, RC )
-
-     ! Trap potential errors
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Linoz_Read"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -610,8 +603,6 @@ PROGRAM GEOS_Chem
   NHMSb = GET_NHMSb()
   NYMD  = GET_NYMD()
   NYMDb = GET_NYMDb()
-  TAU   = GET_TAU()
-  TAUb  = GET_TAUb()
 
   !--------------------------------------------------------------------------
   !         ***** H I S T O R Y   I N I T I A L I Z A T I O N *****
@@ -627,8 +618,6 @@ PROGRAM GEOS_Chem
   ! (for dry-run, enter routine to print out HISTORY.rc status)
   CALL History_Init( Input_Opt,  State_Met,  State_Chm,                      &
                      State_Diag, State_Grid, RC                             )
-
-  ! Trap error
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "History_Init"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -654,8 +643,6 @@ PROGRAM GEOS_Chem
   ENDIF
 
   CALL Emissions_Init( Input_Opt, State_Chm, State_Grid, State_Met, RC )
-
-  ! Trap potential errors
   IF ( RC /= GC_SUCCESS ) THEN
      ErrMsg = 'Error encountered in "Emissions_Init"!'
      CALL Error_Stop( ErrMsg, ThisLoc )
@@ -737,8 +724,6 @@ PROGRAM GEOS_Chem
   ! Capture initial state of atmosphere for STE flux calc (ltm, 06/10/12)
   IF ( Input_Opt%LINEAR_CHEM .and. notDryRun ) THEN
      CALL Init_Linear_Chem( Input_Opt,  State_Chm, State_Met, State_Grid, RC )
-
-     ! Trap potential errors
      IF ( RC /= GC_SUCCESS ) THEN
         ErrMsg = 'Error encountered in "Init_Linear_Chem"!'
         CALL Error_Stop( ErrMsg, ThisLoc )
@@ -810,22 +795,18 @@ PROGRAM GEOS_Chem
     N_DYN  = GET_TS_DYN()
 
     !---------------------------------------------------------------------
-    ! %%%%% HISTORY (netCDF diagnostics) %%%%%
+    !               ***** H I S T O R Y   W R I T E *****
     !
-    ! Write HISTORY ITEMS in each diagnostic collection to disk
-    ! Appears at start of run to output instantaneous boundary conditions
-    ! at the start of the simulation with the correct time:
+    ! Ensure that instantaneous collections (e.g. BoundaryConditions)
+    ! are archived to disk at the start of the simulation.
     !---------------------------------------------------------------------
     IF ( notDryRun ) THEN
        IF ( Input_Opt%useTimers ) THEN
           CALL Timer_Start( "Diagnostics", RC )
        ENDIF
 
-       ! Write collections (such as BoundaryConditions) that need
-       ! to be defined at the start of the run
+       ! Write diagnostics to netCDF files
        CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
-
-       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered before timestepping in "History_Write"!'
           CALL Error_Stop( ErrMsg, ThisLoc )
@@ -856,7 +837,6 @@ PROGRAM GEOS_Chem
        HOUR          = GET_HOUR()
        MINUTE        = GET_MINUTE()
        SECOND        = GET_SECOND()
-       TAU           = GET_TAU()
        YEAR          = GET_YEAR()
        ELAPSED_TODAY = ( HOUR * 3600 ) + ( MINUTE * 60 ) + SECOND
 
@@ -866,6 +846,12 @@ PROGRAM GEOS_Chem
 
        ! Skip diagnostics & unit conversions for dry-run simulations
        IF ( notDryRun ) THEN
+
+          ! If verbose, print global mass per species at start of timestep
+          IF ( VerboseAndRoot ) THEN
+             CALL Print_Species_Global_Mass('', Input_Opt, &
+                  State_Chm, State_Met, State_Grid, RC )
+          ENDIF
 
           !------------------------------------------------------------------
           ! %%%%% HISTORY (netCDF diagnostics) %%%%%
@@ -924,8 +910,6 @@ PROGRAM GEOS_Chem
        ! Run HEMCO Phase 1
        CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid, &
                            State_Met, TimeForEmis, 1,          RC )
-
-       ! Trap potential errors
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Emissions_Run"!'
           CALL Error_Stop( ErrMsg, ThisLoc )
@@ -950,8 +934,6 @@ PROGRAM GEOS_Chem
           ! Do not do actual output for dry-run
           ! Write HEMCO diagnostics (ckeller, 4/1/15)
           CALL HCOI_GC_WriteDiagn( Input_Opt, .FALSE., RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "HCOI_GC_WriteDiagn" ' // &
                       '(writing HEMCO diagnostics)!'
@@ -975,8 +957,6 @@ PROGRAM GEOS_Chem
 
           ! Initialize Obspack for the new day
           CALL ObsPack_Init( NYMD,  NHMS, Input_Opt, State_Diag, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "ObsPack_Init"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -999,8 +979,6 @@ PROGRAM GEOS_Chem
 
           ! Initialize the State_Met%XLAI_NATIVE field from HEMCO
           CALL Get_XlaiNative_from_HEMCO( Input_Opt, State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Get_XlaiNative_from_HEMCO"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1009,8 +987,6 @@ PROGRAM GEOS_Chem
           ! Compute State_Met%XLAI (for drydep) and State_Met%MODISLAI,
           ! which is the average LAI per grid box (for soil NOx emissions)
           CALL Compute_Xlai( Input_Opt, State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Compute_Xlai"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1029,26 +1005,25 @@ PROGRAM GEOS_Chem
           CALL Interp( NSECb,     ELAPSED_TODAY, N_DYN, &
                        Input_Opt, State_Grid,    State_Met )
 
-          ! If we are not doing transport, then make sure that
-          ! the floating pressure is set to PSC2_WET (bdf, bmy, 8/22/02)
-          ! Now also includes PSC2_DRY (ewl, 5/4/16)
-          IF ( .not. Input_Opt%LTRAN ) THEN
+          ! Compute updated airmass quantities at each grid box.
+          IF ( Input_Opt%LTRAN ) THEN
+             ! No need to update mixing ratios if advection is on
+             ! since floating pressure will not change until advection
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
+          ELSE
+             ! If advection is off then (1) update the floating pressures now
+             ! (PFLT_DRY/WET) to the time-interpolated met pressures computed
+             ! in INTERP (PSC2_DRY/WET), and (2) update species mixing ratios
+             ! for new floating pressures to conserve species mass.
              CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Set_Floating_Pressures"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
+
+             CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
+                          RC, Update_Mixing_Ratio=.TRUE. )
           ENDIF
-
-          ! Compute updated airmass quantities at each grid box
-          ! and update tracer concentration to conserve tracer mass
-          ! (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, Update_Mixing_Ratio=.TRUE. )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "AirQnt"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1065,8 +1040,6 @@ PROGRAM GEOS_Chem
              CALL Set_H2O_Trac( Input_Opt%LSETH2O,                           &
                                 Input_Opt, State_Chm, State_Grid,            &
                                 State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Set_H2O_Trac" #1!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1080,8 +1053,6 @@ PROGRAM GEOS_Chem
           ! State_Met%SUNCOS     = at the current time
           ! State_Met%SUNCOSmid  = at the midpt of the chem timestep
           CALL Get_Cosine_SZA( Input_Opt, State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Get_Cosine_SZA"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1112,8 +1083,6 @@ PROGRAM GEOS_Chem
              ! Copy UV Albedo data (for photolysis) into the
              ! State_Met%UVALBEDO field. (bmy, 3/20/15)
              CALL Get_UvAlbedo( Input_Opt, State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Get_UvAlbedo"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1166,8 +1135,6 @@ PROGRAM GEOS_Chem
           IF ( Input_Opt%LTRAN ) THEN
              CALL Do_Transport( Input_Opt,  State_Chm, State_Diag, &
                                 State_Grid, State_Met, RC )
-
-             ! Trap potential error
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_Transport"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1184,8 +1151,6 @@ PROGRAM GEOS_Chem
           ! ... TOMAS microphysics: Always call SETUP_WETSCAV ...
           CALL Setup_WetScav( Input_Opt, State_Chm, State_Grid, &
                               State_Met, RC )
-
-          ! Trap potential error
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Setup_WetScav" (TOMAS)!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1198,8 +1163,6 @@ PROGRAM GEOS_Chem
                Input_Opt%LCHEM ) THEN
              CALL Setup_WetScav( Input_Opt, State_Chm, State_Grid, &
                                  State_Met, RC )
-
-             ! Trap potential error
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Setup_WetScav"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1241,7 +1204,6 @@ PROGRAM GEOS_Chem
        ! to better reflect the buffer zone's underlying BCs. (hplin, 7/28/23)
        IF ( State_Grid%NestedGrid .and. notDryRun ) THEN
           CALL Set_Boundary_Conditions( Input_Opt, State_Chm, State_Grid, RC )
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in call to "Set_Boundary_Conditions"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1260,8 +1222,6 @@ PROGRAM GEOS_Chem
           ! height is used by drydep and some of the emissions routines.
           ! (ckeller, 3/5/15)
           CALL Compute_PBL_Height( Input_Opt, State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Compute_PBL_Height"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1298,8 +1258,6 @@ PROGRAM GEOS_Chem
              ! Compute drydep velocities
              CALL Do_Drydep( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_Drydep!"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1336,8 +1294,6 @@ PROGRAM GEOS_Chem
           ! (ckeller, 4/1/15)
           CALL Emissions_Run( Input_Opt, State_Chm,   State_Diag, State_Grid, &
                               State_Met, TimeForEmis, 2,          RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Emissions_Run"! after drydep!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1363,10 +1319,8 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Set CH4 concentrations
-          CALL SET_CH4( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                        State_Met, RC )
-
-          ! Trap potential errors
+          CALL SET_CH4( Input_Opt,  State_Chm, State_Diag,                   &
+                        State_Grid, State_Met, RC                           )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in call to "SET_CH4"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1417,7 +1371,6 @@ PROGRAM GEOS_Chem
              CALL Set_DryDepVel_Diagnostics( Input_Opt,  State_Chm,       &
                                              State_Diag, State_Grid,      &
                                              State_Met,  RC              )
-
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = &
                      'Error encountered in "Update_DryDepVel_for_Turbday"!'
@@ -1441,8 +1394,6 @@ PROGRAM GEOS_Chem
           ! (ckeller, 3/5/15)
           CALL Do_Mixing( Input_Opt,  State_Chm, State_Diag, &
                           State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Do_Mixing"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1465,8 +1416,6 @@ PROGRAM GEOS_Chem
              ! Call the appropriate convection routine
              CALL Do_Convection( Input_Opt,  State_Chm, State_Diag, &
                                  State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_Convection"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1496,8 +1445,6 @@ PROGRAM GEOS_Chem
           ! the call to HEMCO emissions driver EMISSIONS_RUN. (bmy, 3/20/15)
           CALL Get_Overhead_O3_For_FastJ( Input_Opt,  State_Chm,             &
                                           State_Grid, State_Met, RC         )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Get_Overhead_O3_for_FastJ"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1511,8 +1458,6 @@ PROGRAM GEOS_Chem
                 CALL Set_H2O_Trac( .FALSE., &
                                    Input_Opt , State_Chm,    &
                                    State_Grid, State_Met, RC )
-
-                ! Trap potential errors
                 IF ( RC /= GC_SUCCESS ) THEN
                    ErrMsg = 'Error encountered in "Set_H2O_Trac" #2!'
                    CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1522,8 +1467,6 @@ PROGRAM GEOS_Chem
              ! Do GEOS-Chem chemistry
              CALL Do_Chemistry( Input_Opt,  State_Chm, State_Diag, &
                                 State_Grid, State_Met, RC )
-
-             ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Do_Chemistry"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1546,10 +1489,8 @@ PROGRAM GEOS_Chem
           ENDIF
 
           ! Do wet deposition
-          CALL Do_WetDep( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                          State_Met, RC )
-
-          ! Trap potential errors
+          CALL Do_WetDep( Input_Opt,  State_Chm, State_Diag,                 &
+                          State_Grid, State_Met, RC                         )
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Do_WetDep"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1577,8 +1518,6 @@ PROGRAM GEOS_Chem
           ! (skim, 02/05/11)
           CALL Recompute_OD( Input_Opt,  State_Chm, State_Diag, &
                              State_Grid, State_Met, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Recompute_OD"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -1666,8 +1605,6 @@ PROGRAM GEOS_Chem
                                       DT_3D      = DT_3D,                  &
                                       HR_3D      = HR_3D,                  &
                                       RC         = RC                     )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "Do_RRTMG_Rad_Transfer", ' // &
                       'for RRTMG output = ' // &
@@ -1724,173 +1661,166 @@ PROGRAM GEOS_Chem
 
        !=====================================================================
        !         ***** D I A G N O S T I C S   A R C H I V A L *****
+       !
+       ! NOTE: If emissions, chemistry, or drydep is active, then diagnostic
+       ! archival will be performed at the end of the chemistry timestep.
+       ! See https://github.com/geoschem/geos-chem/issues/3117 for info.
        !=====================================================================
        IF ( notDryRun ) THEN
 
-          !------------------------------------------------------------------
-          !            ***** H I S T O R Y   U P D A T E  *****
-          !------------------------------------------------------------------
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Diagnostics", RC )
           ENDIF
 
-          ! Set State_Diag arrays that rely on state at end of timestep
-          CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm,  &
-                                              State_Diag, State_Grid, &
-                                              State_Met,  RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Set_Diagnostics_EndOfTimestep"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          ! Archive aerosol mass and PM2.5 diagnostics
-          IF ( State_Diag%Archive_AerMass ) THEN
-             CALL Set_AerMass_Diagnostic( Input_Opt,  State_Chm, State_Diag, &
-                                          State_Grid, State_Met, RC )
-          ENDIF
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Set_AerMass_Diagnostic"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          ! Turn off diagnostics timer
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "Diagnostics", RC )
-          ENDIF
-
           !------------------------------------------------------------------
-          ! Set species concentration back to v/v dry air (mol/mol dry air)
-          ! prior to setting restart file arrays. Doing this conversion
-          ! every timestep is required for bit-for-bit reproducibility when
-          ! breaking up runs in time.
+          !    ***** A R C H I V E   D I A G N O S T I C S  (1 of 2) *****
           !------------------------------------------------------------------
-          CALL Convert_Spc_Units(                                            &
-               Input_Opt  = Input_Opt,                                       &
-               State_Chm  = State_Chm,                                       &
-               State_Grid = State_Grid,                                      &
-               State_Met  = State_Met,                                       &
-               new_units  = previous_units,                                  &
-               RC         = RC                                              )
+          IF ( Its_Time_For_Diag() ) THEN
 
-          ! Turn diagnostics timer back on
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "Diagnostics", RC )
-          ENDIF
-
-          ! Set diagnostics arrays in State_Diag that are in mol/mol
-          CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm, State_Diag,   &
-                                        State_Grid, State_Met, RC           )
-
-          ! Increment the timestep values by the heartbeat time
-          ! This is because we need to write out data with the timestamp
-          ! at the end of the heartbeat timestep (i.e. at end of run)
-          !
-          ! NOTE: This should now go before HISTORY_UPDATE, so that we
-          ! can recompute the update alarm interval properly for monthly
-          ! or yearly intervals spanning leap years. (bmy, 3/5/19)
-          CALL History_SetTime( Input_Opt, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "History_SetTime"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          ! Update each HISTORY ITEM from its data source
-          CALL History_Update( Input_Opt, State_Diag, RC )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "History_Update"!'
-             CALL Error_Stop( ErrMsg, ThisLoc )
-          ENDIF
-
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "Diagnostics", RC )
-          ENDIF
-
-          !------------------------------------------------------------------
-          !         ***** O B S P A C K   D I A G N O S T I C S *****
-          !------------------------------------------------------------------
-          IF ( Input_Opt%Do_ObsPack ) THEN
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "Diagnostics", RC )
-             ENDIF
-
-             ! Sample the observations in today's ObsPack file
-             CALL ObsPack_Sample( NYMD,      NHMS,       Input_Opt,          &
-                                  State_Chm, State_Diag, State_Grid,         &
-                                  State_Met, RC                             )
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "Diagnostics", RC )
-             ENDIF
-
-          ENDIF
-
-          !------------------------------------------------------------------
-          !    ***** P L A N E F L I G H T   D I A G   S E T U P  *****
-          !------------------------------------------------------------------
-          IF ( Input_Opt%Do_Planeflight .and. ITS_A_NEW_DAY() ) THEN
-
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_Start( "Diagnostics", RC)
-             ENDIF
-
-             ! Initialize planeflight diagnostic
-             CALL Setup_PlaneFlight( Input_Opt, State_Chm, State_Grid, &
-                                     State_Met, RC )
+             ! Set State_Diag arrays that rely on state at end of timestep
+             CALL Set_Diagnostics_EndofTimestep( Input_Opt,  State_Chm,      &
+                                                 State_Diag, State_Grid,     &
+                                                 State_Met,  RC             )
 
              ! Trap potential errors
              IF ( RC /= GC_SUCCESS ) THEN
-                ErrMsg = 'Error encountered in "Setup_Planeflight"!'
+                ErrMsg = &
+                   'Error encountered in "Set_Diagnostics_EndOfTimestep"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
 
-             IF ( Input_Opt%useTimers ) THEN
-                CALL Timer_End( "Diagnostics", RC )
+             ! Archive aerosol mass and PM2.5 diagnostics
+             IF ( State_Diag%Archive_AerMass ) THEN
+                CALL Set_AerMass_Diagnostic( Input_Opt,  State_Chm,          &
+                                             State_Diag, State_Grid,         &
+                                             State_Met,  RC                 )
              ENDIF
 
+             ! Trap potential errors
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "Set_AerMass_Diagnostic"!'
+                CALL Error_Stop( ErrMsg, ThisLoc )
+             ENDIF
           ENDIF
 
           !------------------------------------------------------------------
-          !  ***** C H 4   S I M U L A T I O N   D I A G N O S I C S *****
+          !            ***** U N I T   C O N V E R S I O N  *****
           !
-          ! Get CH4 columns by applying satellite observational operators
+          ! Set species concentration back to v/v dry air (mol/mol dry air)
+          ! prior to setting restart file arrays. Doing this conversion
+          ! every timestep is required for bit-for-bit reproducibility when
+          ! breaking up runs in time.  This has to be done before calling
+          ! routine Set_SpcConc_Diags_VVDry.
           !------------------------------------------------------------------
-          IF ( Input_Opt%Satellite_CH4_Columns ) THEN
-             IF ( ITS_A_NEW_HOUR() ) THEN
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_Start( "Diagnostics", RC)
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Diagnostics", RC )
+          ENDIF
+
+          ! Convert units
+          CALL Convert_Spc_Units(                                            &
+                  Input_Opt  = Input_Opt,                                    &
+                  State_Chm  = State_Chm,                                    &
+                  State_Grid = State_Grid,                                   &
+                  State_Met  = State_Met,                                    &
+                  new_units  = previous_units,                               &
+                  RC         = RC                                           )
+
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_Start( "Diagnostics", RC )
+          ENDIF
+
+          !------------------------------------------------------------------
+          !       ***** H I S T O R Y   U P D A T E   T I M E *****
+          !
+          ! Increment the timestep values by the heartbeat time.  This is
+          ! because we need to write out diagnostic quantities at the end
+          ! of the diagnostic timestep before the actual alarm timestep
+          ! (If archiving diagnostics hourly, write at 50 past the hour)
+          !------------------------------------------------------------------
+          CALL History_SetTime( Input_Opt, RC )
+
+          !------------------------------------------------------------------
+          !    ***** A R C H I V E   D I A G N O S T I C S  (2 of 2) *****
+          !------------------------------------------------------------------
+          IF ( Its_Time_For_Diag() ) THEN
+
+             ! Set diagnostics arrays in State_Diag that are in mol/mol
+             CALL Set_SpcConc_Diags_VVDry( Input_Opt,  State_Chm,            &
+                                           State_Diag, State_Grid,           &
+                                           State_Met,  RC                   )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "History_SetTime"!'
+                CALL Error_Stop( ErrMsg, ThisLoc )
+             ENDIF
+
+             ! Update each HISTORY ITEM from its data source
+             CALL History_Update( Input_Opt, State_Diag, RC )
+             IF ( RC /= GC_SUCCESS ) THEN
+                ErrMsg = 'Error encountered in "History_Update"!'
+                CALL Error_Stop( ErrMsg, ThisLoc )
+             ENDIF
+
+             !------------------------------------------------------------------
+             !         ***** O B S P A C K   D I A G N O S T I C S *****
+             !------------------------------------------------------------------
+             IF ( Input_Opt%Do_ObsPack ) THEN
+
+                ! Sample the observations in today's ObsPack file
+                CALL ObsPack_Sample( NYMD,      NHMS,       Input_Opt,       &
+                                     State_Chm, State_Diag, State_Grid,      &
+                                     State_Met, RC                          )
+
+             ENDIF
+
+             !------------------------------------------------------------------
+             !    ***** P L A N E F L I G H T   D I A G   S E T U P  *****
+             !
+             ! Initialize the Planeflight diagnostic only if it's a new day
+             !------------------------------------------------------------------
+             IF ( Input_Opt%Do_Planeflight .and. ITS_A_NEW_DAY() ) THEN
+
+                ! Initialize planeflight diagnostic
+                CALL Setup_PlaneFlight( Input_Opt, State_Chm, State_Grid, &
+                                        State_Met, RC )
+                IF ( RC /= GC_SUCCESS ) THEN
+                   ErrMsg = 'Error encountered in "Setup_Planeflight"!'
+                   CALL Error_Stop( ErrMsg, ThisLoc )
                 ENDIF
 
-                ! CH4 columns from the GOSAT instrument
-                IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
-                   CALL CALC_GOSAT_CH4_FORCE( Input_Opt,  State_Chm,         &
-                                              State_Grid, State_Met         )
-                ENDIF
+             ENDIF
 
-                ! CH4 columns from the AIRS instrument
-                IF ( Input_Opt%AIRS_CH4_OBS ) THEN
-                   CALL CALC_AIRS_CH4_FORCE( Input_Opt,  State_Chm,          &
-                                             State_Grid, State_Met          )
-                ENDIF
+             !---------------------------------------------------------------
+             !    ***** C H 4   C O L U M N   D I A G N O S T I C S *****
+             !
+             ! Get CH4 columns by applying satellite observational operators
+             !---------------------------------------------------------------
+             IF ( Input_Opt%Satellite_CH4_Columns ) THEN
+                IF ( ITS_A_NEW_HOUR() ) THEN
 
-                ! CH4 columns from the TCCON instrument
-                IF ( Input_Opt%TCCON_CH4_OBS ) THEN
-                   CALL CALC_TCCON_CH4_FORCE( Input_Opt,  State_Chm,         &
-                                              State_Grid, State_Met         )
-                ENDIF
+                   ! CH4 columns from the GOSAT instrument
+                   IF ( Input_Opt%GOSAT_CH4_OBS ) THEN
+                      CALL CALC_GOSAT_CH4_FORCE( Input_Opt,  State_Chm,      &
+                                                 State_Grid, State_Met      )
+                   ENDIF
 
-                IF ( Input_Opt%useTimers ) THEN
-                   CALL Timer_End( "Diagnostics", RC )
+                   ! CH4 columns from the AIRS instrument
+                   IF ( Input_Opt%AIRS_CH4_OBS ) THEN
+                      CALL CALC_AIRS_CH4_FORCE( Input_Opt,  State_Chm,       &
+                                                State_Grid, State_Met       )
+                   ENDIF
+
+                   ! CH4 columns from the TCCON instrument
+                   IF ( Input_Opt%TCCON_CH4_OBS ) THEN
+                      CALL CALC_TCCON_CH4_FORCE( Input_Opt,  State_Chm,      &
+                                                 State_Grid, State_Met      )
+                   ENDIF
                 ENDIF
              ENDIF
+          ENDIF
+
+          ! Stop diagnostics timer
+          IF ( Input_Opt%useTimers ) THEN
+             CALL Timer_End( "Diagnostics", RC )
           ENDIF
        ENDIF
 
@@ -1907,34 +1837,37 @@ PROGRAM GEOS_Chem
           CALL Debug_Msg( '### MAIN: after SET_ELAPSED_SEC' )
        ENDIF
 
-       IF ( notDryRun ) THEN
-          !==================================================================
-          !       ***** D I A G N O S T I C S   A R C H I V A L *****
-          !
-          !                 ***** C O N T I N U E D *****
-          !==================================================================
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_Start( "Diagnostics", RC )
-          ENDIF
 
-          !------------------------------------------------------------------
-          !    ***** P L A N E F L I G H T   D I A G N O S T I C  *****
-          !------------------------------------------------------------------
-          IF ( Input_Opt%Do_Planeflight ) THEN
+       !=====================================================================
+       !      ***** P L A N E F L I G H T   D I A G N O S T I C  *****
+       !
+       ! Archive quantities along flight track each diagnostic timestep
+       !=====================================================================
+       IF ( Input_Opt%Do_PlaneFlight ) THEN
+          IF ( notDryRun .and. Its_Time_For_Diag() ) THEN
+
+             ! Start timer
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_Start( "Diagnostics", RC )
+             ENDIF
+
              ! Archive data along the flight track
-             CALL PLANEFLIGHT( Input_Opt,  State_Chm, State_Diag, &
-                               State_Grid, State_Met, RC )
-
-             ! Trap potential errors
+             CALL PlaneFlight( Input_Opt,  State_Chm, State_Diag,            &
+                               State_Grid, State_Met, RC                    )
              IF ( RC /= GC_SUCCESS ) THEN
                 ErrMsg = 'Error encountered in "Planeflight"!'
                 CALL Error_Stop( ErrMsg, ThisLoc )
              ENDIF
-          ENDIF
-          IF ( VerboseAndRoot ) CALL Debug_Msg( '### MAIN: after Planeflight' )
 
-          IF ( Input_Opt%useTimers ) THEN
-             CALL Timer_End( "Diagnostics", RC )
+             ! Debug output
+             IF ( VerboseAndRoot ) THEN
+                CALL Debug_Msg( '### MAIN: after Planeflight' )
+             ENDIF
+
+             ! Stop timer
+             IF ( Input_Opt%useTimers ) THEN
+                CALL Timer_End( "Diagnostics", RC )
+             ENDIF
           ENDIF
        ENDIF
 
@@ -1970,19 +1903,18 @@ PROGRAM GEOS_Chem
           ENDIF
        ENDIF
 
-       !---------------------------------------------------------------------
+       !=====================================================================
        !               ***** H I S T O R Y   W R I T E *****
-       !---------------------------------------------------------------------
+       !
+       ! Archive diagnostics to netCDF files (or skip if it isn't time yet)
+       !=====================================================================
        IF ( notDryRun ) THEN
           IF ( Input_Opt%useTimers ) THEN
              CALL Timer_Start( "Diagnostics", RC )
           ENDIF
 
-          ! Write HISTORY ITEMS in each diagnostic collection to disk
-          ! (or skip writing if it is not the proper output time.
+          ! Write diagnostics to netCDF files
           CALL History_Write( Input_Opt, State_Chm, State_Diag, RC )
-
-          ! Trap potential errors
           IF ( RC /= GC_SUCCESS ) THEN
              ErrMsg = 'Error encountered in "History_Write"!'
              CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2016,8 +1948,6 @@ PROGRAM GEOS_Chem
 
     ! Force the output of a HEMCO restart file (ckeller, 4/1/15)
     CALL HCOI_GC_WriteDiagn( Input_Opt, .TRUE., RC )
-
-    ! Trap potential errors
     IF ( RC /= GC_SUCCESS ) THEN
        ErrMsg = 'Error encountered in "HCOI_GC_WriteDiagn"!'
        CALL Error_Stop( ErrMsg, ThisLoc )
@@ -2028,9 +1958,9 @@ PROGRAM GEOS_Chem
     ENDIF
 
     !------------------------------------------------------------------------
-    !         ***** O B S P A C K   D I A G N O S T I C S *****
+    !            ***** O B S P A C K   D I A G N O S T I C S *****
     !
-    ! Flush any unwritten ObsPack data to disk and finalize
+    ! Flush any unwritten ObsPack data to disk and finalize data arrays.
     !------------------------------------------------------------------------
     IF ( Input_Opt%Do_ObsPack ) THEN
 
@@ -2184,7 +2114,7 @@ PROGRAM GEOS_Chem
   !--------------------------------------------------------------------------
   ! Remind users to run the ./metrics.py script to obtain OH metrics
   !--------------------------------------------------------------------------
-  IF ( Input_Opt%ITS_A_FULLCHEM_SIM .or. Input_Opt%ITS_A_CH4_SIM ) THEN
+  IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
      WRITE( 6, '(/,a)' ) REPEAT( '%', 65 )
      WRITE( 6, 300     ) 'To compute the OH metrics, execute the Python'
      WRITE( 6, 300     ) '  script "metrics.py" in this run directory. '

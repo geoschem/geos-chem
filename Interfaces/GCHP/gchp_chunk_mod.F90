@@ -918,6 +918,7 @@ CONTAINS
                                     value_DAYOFYR  = dayOfYr,    &
                                     value_HOUR     = hour,       &
                                     value_MINUTE   = minute,     &
+                                    value_SECOND   = second,     &
                                     value_HELAPSED = hElapsed,   &
                                     value_UTC      = utc,        &
                                     RC             = RC         )

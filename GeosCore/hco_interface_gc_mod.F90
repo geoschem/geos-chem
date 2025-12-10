@@ -3612,11 +3612,8 @@ CONTAINS
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM                                   .or. &
          Input_Opt%ITS_AN_AEROSOL_SIM                                   .or. &
          Input_Opt%ITS_A_CARBON_SIM                                     .or. &
-         Input_Opt%ITS_A_CO2_SIM                                        .or. &
-         Input_Opt%ITS_A_CH4_SIM                                        .or. &
          Input_Opt%ITS_A_MERCURY_SIM                                    .or. &
          Input_Opt%ITS_A_POPS_SIM                                       .or. &
-         Input_Opt%ITS_A_TAGCO_SIM                                      .or. &
          Input_Opt%ITS_A_TAGO3_SIM                                      .or. &
          Input_Opt%ITS_A_TRACER_SIM                                     .or. &
          Input_Opt%ITS_A_TRACEMETAL_SIM ) THEN
@@ -3632,12 +3629,6 @@ CONTAINS
        ! along with LIMO!
        IF ( id_LIMO > 0 ) THEN
           nSpc = nSpc + 1
-       ENDIF
-
-       !%%%%% FOR THE CARBON OR TAGGED CO SIMULATIONS %%%%%
-       ! Add 5 extra species (ISOP, ACET, MTPA, LIMO, MTPO) for tagged CO
-       IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-          nSpc = nSpc + 5
        ENDIF
 
        ! Assign species variables
@@ -3700,49 +3691,6 @@ CONTAINS
              IF ( Input_Opt%Verbose ) THEN 
                 CALL HCO_SPEC2LOG(  HcoState, N )
              ENDIF
-          ENDIF
-
-          !------------------------------------------------------------------
-          ! %%%%% FOR THE TAGGED CO SIMULATION %%%%%
-          !
-          ! Add the non-advected species ISOP, ACET, MTPA, LIMO, MTPO
-          ! in the last 5 species slots (bmy, ckeller, 6/1/16)
-          !------------------------------------------------------------------
-          IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-             ! Add 5 additional species
-             DO L = 1, 5
-
-                ! ISOP, ACET, MONX follow the regular tagged CO species
-                M = State_Chm%nAdvect + L
-
-                ! Get the species name
-                SELECT CASE( L )
-                   CASE( 1 )
-                      ThisName = 'ISOP'
-                   CASE( 2 )
-                      ThisName = 'ACET'
-                   CASE( 3 )
-                      ThisName = 'MTPA'
-                   CASE( 4 )
-                      ThisName = 'LIMO'
-                   CASE( 5 )
-                      ThisName = 'MTPO'
-                END SELECT
-
-                ! Add physical properties to the HEMCO state
-                HcoState%Spc(M)%ModID      = M
-                HcoState%Spc(M)%SpcName    = TRIM( ThisName )
-                HcoState%Spc(M)%MW_g       = 12.0_hp
-                HcoState%Spc(M)%HenryK0    = 0.0_hp
-                HcoState%Spc(M)%HenryCR    = 0.0_hp
-                HcoState%Spc(M)%HenryPKa   = 0.0_hp
-
-                ! Logfile output (only written if debug printout is requested)
-                IF ( Input_Opt%Verbose ) THEN
-                   CALL HCO_SPEC2LOG( HcoState, M )
-                ENDIF
-             ENDDO
           ENDIF
 
           ! Add line to log-file
@@ -4408,10 +4356,7 @@ CONTAINS
          CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
          ! Call AIRQNT to compute initial air mass quantities
-         ! Do not update initial tracer concentrations since not read
-         ! from restart file yet (ewl, 10/28/15)
-         CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                      RC, update_mixing_ratio=.FALSE. )
+         CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
       ENDIF ! not 0.125x0.15625
 
@@ -4464,10 +4409,7 @@ CONTAINS
           CALL Set_Floating_Pressures( State_Grid, State_Met, RC )
 
           ! Call AIRQNT to compute initial air mass quantities
-          ! Do not update initial tracer concentrations since not read
-          ! from restart file yet (ewl, 10/28/15)
-          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, &
-                       RC, update_mixing_ratio=.FALSE. )
+          CALL AirQnt( Input_Opt, State_Chm, State_Grid, State_Met, RC )
 
        ENDIF
 
@@ -4609,6 +4551,10 @@ CONTAINS
 
     !=======================================================================
     ! Compute_Sflx_For_Vdiff begins here!
+    !
+    ! NOTE: The State_Chm%DryDepMix is zeroed in routine
+    ! "Zero_Diagnostics_StartOfTimestep", so we have removed
+    ! the code to zero them again here.
     !=======================================================================
 
     ! Initialize
@@ -4620,14 +4566,8 @@ CONTAINS
     errMsg  = ''
     thisLoc = &
     ' -> at Compute_Sflx_for_Vdiff (in module GeosCore/hco_interface_gc_mod.F90)'
-
     PNOXLoss_HNO3 => NULL()
     PNOxLoss_O3   => NULL()
-
-    ! Reset DryDepMix diagnostic so as not to accumulate from prior timesteps
-    IF ( State_Diag%Archive_DryDepMix .or. State_Diag%Archive_DryDep ) THEN
-       State_Diag%DryDepMix = 0.0_f4
-    ENDIF
 
     !=======================================================================
     ! Convert units to [v/v dry] aka [mol/mol dry]
@@ -5001,7 +4941,7 @@ CONTAINS
     !=======================================================================
     ! DIAGNOSTICS: Compute drydep flux loss due to mixing [molec/cm2/s]
     !
-    ! NOTE: Dry deposition of "tagged" species (e.g. in tagO3, tagCO, tagHg
+    ! NOTE: Dry deposition of "tagged" species (e.g. in tagO3, tagHg
     ! specialty simulations) are accounted for in species 1..nDrydep,
     ! so we don't need to do any further special handling.
     !=======================================================================
