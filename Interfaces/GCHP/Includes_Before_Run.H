@@ -90,7 +90,7 @@
   State_Met%PFLCU  (:,:,1:State_Grid%NZ+1) = PFLCU  (:,:,0:State_Grid%NZ)
   State_Met%PFLLSAN(:,:,1:State_Grid%NZ+1) = PFLLSAN(:,:,0:State_Grid%NZ)
 
-  if (nonadv_meteorology_is_top_down) then
+  if (met_nonadv_is_top_down) then
     z_lb = lbound(State_Met%CMFMC,3)
     z_ub = ubound(State_Met%CMFMC,3)
     State_Met%CMFMC(:,:,:)     = State_Met%CMFMC(:,:,z_ub:z_lb:-1)
@@ -104,7 +104,7 @@
   ! Note that this will end up affecting DELP and therefore
   ! State_Met%PEDGE_DRY, but that the major dry pressure variables are
   ! derived from PS1_DRY and PS2_DRY.
-  ! Thes will, in turn, be determined from PS1_WET and PS2_WET, which 
+  ! These will, in turn, be determined from PS1_WET and PS2_WET, which
   ! are set in the block above.
 
   ! Convert Pa -> hPa
@@ -160,14 +160,22 @@
   State_Met%PRECANV             = PRECANV * 86400d0          ! kg/m2/s to mm/day
   State_Met%PRECTOT             = PRECTOT * 86400d0          ! kg/m2/s to mm/day
 
-  ! If meteorology vertical index is top down, flip imports coming from ExtData.
-  if (nonadv_meteorology_is_top_down .or. &
-      adv_meteorology_flux_is_top_down .or. &
-      adv_meteorology_humidity_is_top_down ) then
+  ! If meteorology vertical direction is down then flip the StateMet array
+  if (met_nonadv_top_down .or. &
+      meteorology_wind_is_top_down .or. &
+      meteorology_humidity_is_top_down ) then
 
     z_lb = lbound(State_Met%CLDF,3)
     z_ub = ubound(State_Met%CLDF,3)
-    if (nonadv_meteorology_is_top_down) then
+    if (met_wind_is_top_down) then
+      State_Met%U(:,:,:)        = State_Met%U(:,:,z_ub:z_lb:-1)
+      State_Met%V(:,:,:)        = State_Met%V(:,:,z_ub:z_lb:-1)
+    endif
+    if (met_humidity_is_top_down) then
+      State_Met%SPHU1(:,:,:)    = State_Met%SPHU1(:,:,z_ub:z_lb:-1)
+      State_Met%SPHU2(:,:,:)    = State_Met%SPHU2(:,:,z_ub:z_lb:-1)
+    endif
+    if (met_nonadv_is_top_down) then
       State_Met%CLDF(:,:,:)     = State_Met%CLDF(:,:,z_ub:z_lb:-1)
       State_Met%DTRAIN(:,:,:)   = State_Met%DTRAIN(:,:,z_ub:z_lb:-1)
       State_Met%DQRCU(:,:,:)    = State_Met%DQRCU(:,:,z_ub:z_lb:-1)
@@ -179,21 +187,10 @@
       State_Met%TAUCLW(:,:,:)   = State_Met%TAUCLW(:,:,z_ub:z_lb:-1)
       State_Met%REEVAPCN(:,:,:) = State_Met%REEVAPCN(:,:,z_ub:z_lb:-1)
       State_Met%REEVAPLS(:,:,:) = State_Met%REEVAPLS(:,:,z_ub:z_lb:-1)
-      State_Met%TMPU1(:,:,:)     = State_Met%TMPU1(:,:,z_ub:z_lb:-1)
-      State_Met%TMPU2(:,:,:)     = State_Met%TMPU2(:,:,z_ub:z_lb:-1)
-      State_Met%U(:,:,:)         = State_Met%U(:,:,z_ub:z_lb:-1)
-      State_Met%V(:,:,:)         = State_Met%V(:,:,z_ub:z_lb:-1)
-      State_Met%OMEGA(:,:,:)     = State_Met%OMEGA(:,:,z_ub:z_lb:-1)
+      State_Met%TMPU1(:,:,:)    = State_Met%TMPU1(:,:,z_ub:z_lb:-1)
+      State_Met%TMPU2(:,:,:)    = State_Met%TMPU2(:,:,z_ub:z_lb:-1)
+      State_Met%OMEGA(:,:,:)    = State_Met%OMEGA(:,:,z_ub:z_lb:-1)
     endif
-    if (adv_meteorology_flux_is_top_down) then
-      State_Met%U(:,:,:)         = State_Met%U(:,:,z_ub:z_lb:-1)
-      State_Met%V(:,:,:)         = State_Met%V(:,:,z_ub:z_lb:-1)
-    endif
-    if (adv_meteorology_humidity_is_top_down) then
-      State_Met%SPHU1(:,:,:)     = State_Met%SPHU1(:,:,z_ub:z_lb:-1)
-      State_Met%SPHU2(:,:,:)     = State_Met%SPHU2(:,:,z_ub:z_lb:-1)
-    endif
-
   endif
 
   State_Met%SPHU                =(State_Met%SPHU1+State_Met%SPHU2)*0.5d0

@@ -136,9 +136,9 @@ MODULE Chem_GridCompMod
   TYPE(HistoryConfigObj), POINTER  :: HistoryConfig
   TYPE(ConfigObj),        POINTER  :: HcoConfig
   CLASS(Logger),          POINTER  :: lgr => null()
-  LOGICAL                          :: adv_meteorology_flux_is_top_down
-  LOGICAL                          :: adv_meteorology_humidity_is_top_down
-  LOGICAL                          :: nonadv_meteorology_is_top_down
+  LOGICAL                          :: met_wind_is_top_down
+  LOGICAL                          :: met_humidity_is_top_down
+  LOGICAL                          :: met_nonadvection_is_top_down
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX?
@@ -462,28 +462,18 @@ CONTAINS
     !=======================================================================
     ! Get meteorology vertical index orientation
     !=======================================================================
-    call ESMF_ConfigGetAttribute(myState%myCF,value=adv_meteorology_flux_is_top_down, &
-         label='MET_ADVECTION_FLUX_IS_TOP_DOWN:', Default=.false., __RC__ )
-    if (adv_meteorology_flux_is_top_down) then
-       call lgr%info('Configured to expect ''top-down'' flux met-fields (wind or mass flux) from ''ExtData''')
-    else
-       call lgr%info('Configured to expect ''bottom-up'' flux met-fields (wind or mass flux) data from ''ExtData''')
-    end if
+    call ESMF_ConfigGetAttribute(myState%myCF,value=met_wind_is_top_down, &
+         label='MET_WIND_IS_TOP_DOWN:', Default=.false., __RC__ )
 
-    call ESMF_ConfigGetAttribute(myState%myCF,value=adv_meteorology_humidity_is_top_down, &
+    call ESMF_ConfigGetAttribute(myState%myCF,value=met_humidity_is_top_down, &
          label='MET_HUMIDITY_IS_TOP_DOWN:', Default=.false., __RC__ )
-    if (adv_meteorology_humidity_is_top_down) then
-       call lgr%info('Configured to expect ''top-down'' humidity met-fields from ''ExtData''')
-    else
-       call lgr%info('Configured to expect ''bottom-up'' humidity met-fields from ''ExtData''')
-    end if
 
-    call ESMF_ConfigGetAttribute(myState%myCF,value=nonadv_meteorology_is_top_down, &
+    call ESMF_ConfigGetAttribute(myState%myCF,value=met_nonadv_is_top_down, &
          label='MET_NONADVECTION_IS_TOP_DOWN:', Default=.false., __RC__ )
-    if (nonadv_meteorology_is_top_down) then
-       call lgr%info('Configured to expect ''top-down'' for all other met-fields')
+    if (met_nonadv_is_top_down) then
+       call lgr%info('Configured to expect ''top-down'' for non-advection met-fields')
     else
-       call lgr%info('Configured to expect ''bottom-up'' for all other met-fields')
+       call lgr%info('Configured to expect ''bottom-up'' for non-advection met-fields')
     end if
 
 #if defined( MODEL_GEOS )

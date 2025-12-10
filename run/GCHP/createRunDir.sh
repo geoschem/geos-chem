@@ -399,11 +399,11 @@ while [ "${valid_met}" -eq 0 ]; do
 
 	fi
 
-	# Set ExtData.rc settings for met-fields used in GEOS-Chem
+	# Set ExtData.rc settings for met-fields used in GEOS-Chem outside of advection
 	if [[ ${met_file_type} = "raw_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.nonadv_raw_ll.txt)\n"
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.nonadv_preprocessed_ll.txt)\n"
 	fi
 	
     elif [[ ${met_num} = "3" ]]; then

@@ -23,16 +23,17 @@ LM: 72
 
 GEOSChem_CTM: 1
 
-# Settings related to meteorology field vertical flipping
-# Met-field vertical index is top down if using native fields from GMAO
+# Settings for vertical direction of imported met-fields always ued
+# NOTE: Met-field vertical index is top down if using native fields from GMAO
 #-----------------------------------------------------------------------
-MET_ADVECTION_FLUX_IS_TOP_DOWN: ${RUNDIR_MET_ADVECTION_FLUX_IS_TOP_DOWN}
+MET_WIND_IS_TOP_DOWN: ${RUNDIR_MET_WIND_IS_TOP_DOWN}
 MET_HUMIDITY_IS_TOP_DOWN: ${RUNDIR_MET_HUMIDITY_IS_TOP_DOWN}
-MET_OTHER_IS_TOP_DOWN: ${RUNDIR_MET_OTHER_IS_TOP_DOWN}
+MET_NONADVECTION_IS_TOP_DOWN: ${RUNDIR_MET_NONADVECTION_IS_TOP_DOWN}
 
-# Toggle to import mass fluxes for use in advection or compute from winds
+# Settings for using mass flux in advection
 #-----------------------------------------------------------------------
 IMPORT_MASS_FLUX_FROM_EXTDATA: ${RUNDIR_IMPORT_MASS_FLUX_FROM_EXTDATA}
+MET_MASS_FLUX_IS_TOP_DOWN: ${RUNDIR_MET_ADVECTION_FLUX_IS_TOP_DOWN}
 
 # Toggle to use total pressure (1) or dry pressure (0) in advection
 #-----------------------------------------------------------------------

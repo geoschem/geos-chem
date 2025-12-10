@@ -1,0 +1,59 @@
+This directory contains settings used for GCHP run directory creation if using GEOS-FP
+meteorology fields. Unlike in GEOS-Chem Classic, GEOS-FP data is by default at native
+resolution of 0.25x0.625, and either processed files or raw GMAO files may be used.
+
+In addition, users may swap out the input fields that are used for advection,
+specifically surface pressure, humidity, and winds, with raw GMAO data from an hourly
+C720 archive that includes mass fluxes and Courant numbers instead of wind. An
+additional C720 archive is available containing winds derived from mass fluxes,
+created in post-processing specifically for use with GEOS-Chem.
+
+The following files contain the settings for these various options, including
+their entries for ExtData.rc (which includes file paths) and whether file
+vertical direction is top-down (level 1 TOA) or bottom-up (level 1 surface), and
+therefore whether data must be flipped at run-time. Every run configuration will
+use one file for non-advection fields (section A below) and one or two files
+for advection fields (section B below).
+
+A. Non-advection fields, i.e. no surface pressure, humidity, and wind
+
+  1. geosfp.nonadv_raw_ll.txt
+     - Raw GMAO files
+     - 0.25x0625 grid resolution
+     - Vertical directory is top-down
+
+  2. geosfp.nonadv_preprocessed_ll.txt
+     - Processed files
+     - 0.25x0625 grid resolution
+     - Pre-processed means same as raw GMAO file data except vertically flipped,
+       unused fields removed, concatenated into daily files, and compressed
+     - Vertical direction is bottom-up
+
+B. Advection fields, i.e. surface pressure, humidity, and either wind or mass fluxes and Courant numbers
+
+  1. 3-hourly 0.25x0.625 fields
+
+     NOTE: Wind is in a separate file from surface pressure and humidity because
+     3-hourly wind must still be read if using C720 mass fluxes in advection.
+     That archive does not include wind but wind is a requirement in GCHP.
+
+       a. advection_met/geosfp.preprocessed_3hr_0.25x0.625_PS_SPHU.txt
+       b. advection_met/geosfp.preprocessed_3hr_0.25x0.625_wind.txt       
+          - Pre-processed files only
+	  - Vertical direction is bottom-up
+	  
+       c. advection_met/geosfp.raw_3hr_0.25x0.625_PS_SPHU.txt
+       d. advection_met/geosfp.raw_3hr_0.25x0.625_wind.txt
+          - Raw GMAO files only
+          - Vertical direction is top-down
+
+  2. 1-hourly C720 fields
+
+       a. advection_met/geosfp.raw_1hr_0.25x0.625_mass_flux_PS_SPHU_C.txt
+          - Raw GMAO files only
+	  - Vertical direction is top-down
+
+       b. advection_met/geosfp.derived_1hr_c720_wind_PS_SPHU.txt
+          - Wind is in pre-processed files
+	  - Surface pressure and humidity are from the raw GMAO C720 archive
+	  - Vertical direction is top-down
