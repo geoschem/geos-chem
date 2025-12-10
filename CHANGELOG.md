@@ -21,6 +21,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added IUPAC names for Hg species in `run/shared/species_database.yml`
 - Added `gc_4x5_merra2_carbon_ch4_straddle_00utc` integraton test which runs across a UTC date boundary
 - Added statement to zero the `State_Diag%DryDepChm` array in routine `Zero_Diagnostics_StartOfTimestep`
+- Added routine `Its_Time_For_Diag` to `GeosUtil/time_mod.F90`
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -45,6 +46,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
 - Consolidated Hg species metdata from `run/shared/species_database_hg.yml` into `run/shared/species_database.yml`
+- Updated `Interfaces/GCClassic/main.F90` so that diagnostic archival is done once per diagnostic timestep (i.e. the larger of the chemistry timestep or dynamic timestep)
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -78,6 +80,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `run/shared/species_database_hg.yml`
 - Removed obsolete metadata for tagged Hg species from `run/shared/species_database.yml`
 - Removed code to zero `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
+- 
 
 ## [14.6.3] - 2025-07-28
 ### Added
