@@ -23,7 +23,7 @@ A. If using lat-lon files:
      - Vertical direction is up
      - Contains fields used for FV3 advection as well as GEOS-Chem
 
-  2. geosfit.raw_0.5x0.625.txt
+  2. geosit.raw_0.5x0.625.txt
      - Raw GMAO files
      - 0.5x0.625 grid resolution
      - Vertical directory is down
@@ -33,42 +33,52 @@ B. If using cubed-sphere files:
 
   NOTE: When using C180 fields the settings are split across two different files:
   one file for non-advection fields and another file for advection fields. This
-  allows flexibility for using either 1-hourly mass fluxes or 3-hourly winds.
-  
+  allows flexibility for using either 1-hourly mass fluxes or 3-hourly winds to
+  drive the offline advection.
 
   1. Non-advection field settings:
 
-    a. geosit.nonadv_preprocessed_C180.txt
+    NOTE: Specifies all met-fields except wind, surface pressure,
+          humidity, mass flux and Courant numbers
+
+    a. geosit.nonadv_preprocessed_c180.txt
      - Processed files
-     - C180 grid resolution
      - Vertical direction is up
 
     b. geosit.nonadv_raw_c180.txt
      - Raw GMAO files
-     - C180 grid resolution
      - Vertical directory is down
 
   2. Advection field settings:
 
+    NOTE: Always specifies wind, surface pressure, and humidity.
+          Only specifies mass flux and Courant numbers if using
+
      a. geosit.preprocessed_3hr_c180_wind.txt
         - Processed files
-        - C180 grid resolution
         - Vertical direction is up
+
+     b. geosit.raw_3hr_c180_wind.txt
+        - Raw GMAO files
+        - Vertical direction is down
 
      c. geosit.preprocessed_1hr_c180_mass_flux.txt
         - Processed files
-        - C180 grid resolution
 	- Vertical direction is up
    
-     c. geosit.raw_3hr_c180_wind.txt
-        - Raw GMAO files
-        - C180 grid resolution
-        - Vertical direction is down
-
      d. geosit.raw_1hr_c180_mass_flux.txt
         - Raw GMAO files
-        - C180 grid resolution
 	- Vertical direction is down
+
+Each of these files contains some combination of the following settings
+used during run directory creation to ultimately populate settings
+in GCHP configuration file GCHP.rc:
+
+MET_MASS_FLUX_IS_TOP_DOWN
+MET_WIND_IS_TOP_DOWN
+MET_HUMIDITY_IS_TOP_DOWN
+MET_NONADVECTION_IS_TOP_DOWN
+IMPORT_MASS_FLUX_FROM_EXTDATA
 
 Additional files are provided to use on the NASA discover cluster. These are different
 than the non-discover files because they have different filenames than those

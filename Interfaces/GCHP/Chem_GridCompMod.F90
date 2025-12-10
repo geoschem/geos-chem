@@ -138,7 +138,7 @@ MODULE Chem_GridCompMod
   CLASS(Logger),          POINTER  :: lgr => null()
   LOGICAL                          :: met_wind_is_top_down
   LOGICAL                          :: met_humidity_is_top_down
-  LOGICAL                          :: met_nonadvection_is_top_down
+  LOGICAL                          :: met_nonadv_is_top_down
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX?

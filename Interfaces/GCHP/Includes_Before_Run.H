@@ -161,9 +161,9 @@
   State_Met%PRECTOT             = PRECTOT * 86400d0          ! kg/m2/s to mm/day
 
   ! If meteorology vertical direction is down then flip the StateMet array
-  if (met_nonadv_top_down .or. &
-      meteorology_wind_is_top_down .or. &
-      meteorology_humidity_is_top_down ) then
+  if (met_nonadv_is_top_down .or. &
+      met_wind_is_top_down .or. &
+      met_humidity_is_top_down ) then
 
     z_lb = lbound(State_Met%CLDF,3)
     z_ub = ubound(State_Met%CLDF,3)
