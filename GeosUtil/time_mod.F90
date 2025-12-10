@@ -71,6 +71,7 @@ MODULE TIME_MOD
   PUBLIC  :: GET_FIRST_BC_TIME
   PUBLIC  :: ITS_TIME_FOR_CHEM
   PUBLIC  :: ITS_TIME_FOR_CONV
+  PUBLIC  :: ITS_TIME_FOR_DIAG
   PUBLIC  :: ITS_TIME_FOR_DYN
   PUBLIC  :: ITS_TIME_FOR_EMIS
   PUBLIC  :: ITS_TIME_FOR_EXCH
@@ -2223,6 +2224,36 @@ CONTAINS
     FLAG = ( MOD( ELAPSED_SEC, TS_CONV ) == 0 )
 
   END FUNCTION ITS_TIME_FOR_CONV
+!EOC
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: Its_Time_For_Diag
+!
+! !DESCRIPTION: Function ITS\_TIME\_FOR\_DIAG returns TRUE if it is time to
+!  do diagnostic updating.
+!\\
+!\\
+! !INTERFACE:
+!
+  FUNCTION ITS_TIME_FOR_DIAG() RESULT( FLAG )
+!
+! !RETURN VALUE:
+!
+    LOGICAL :: FLAG
+!
+! !REVISION HISTORY:
+!  21 Mar 2003 - R. Yantosca - Initial Version
+! See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+    ! Is it time for dynamics?
+    FLAG = ( MOD( ELAPSED_SEC, TS_DIAG ) == 0 )
+
+  END FUNCTION ITS_TIME_FOR_DIAG
 !EOC
 !------------------------------------------------------------------------------
 !                  GEOS-Chem Global Chemical Transport Model                  !

@@ -4,6 +4,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Added
+- Added routine `Its_Time_For_Diag` to `GeosUtil/time_mod.F90`
+
+### Changed
+- Updated `Interfaces/GCClassic/main.F90` so that diagnostic archival is done once per diagnostic timestep (i.e. the larger of the chemistry timestep or dynamic timestep)
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files
@@ -48,6 +55,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
 - Consolidated Hg species metdata from `run/shared/species_database_hg.yml` into `run/shared/species_database.yml`
+<<<<<<< HEAD
 - Updated `run/shared/download_data.yml` so that aerosol and fullchem simulations will get the restart file from `GEOSCHEM_RESTARTS/GC_14.7.0`
 - Updated `DST1/DST1/DST3/DST4` to `TDST/DSTbin1/DSTbin2/.../DSTbin7` in `geoschem_config.yml`, `HEMCO_Config.rc`, and `HEMCO_Diagn.rc` template files for aerosol & fullchem simulations
 - Updated routine `ExtState_SetFields` in `hco_interface_gc_mod.F90` for readability and clarity
