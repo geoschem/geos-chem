@@ -494,7 +494,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	    elif [[ ${adv_flux_src} == "3hr_wind" ]]; then
 		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.preprocessed_3hr_c180_wind.txt)\n"
 	    fi
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_c180.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.nonadv_preprocessed_c180.txt)\n"
 
 	else
 
