@@ -26,7 +26,7 @@ A. If using lat-lon files:
   2. geosit.raw_0.5x0.625.txt
      - Raw GMAO files
      - 0.5x0.625 grid resolution
-     - Vertical directory is down
+     - Vertical direction is down
      - Contains fields used for FV3 advection as well as GEOS-Chem
 
 B. If using cubed-sphere files:
@@ -52,7 +52,8 @@ B. If using cubed-sphere files:
   2. Advection field settings:
 
     NOTE: Always specifies wind, surface pressure, and humidity.
-          Only specifies mass flux and Courant numbers if using
+          Mass flux and Courant numbers are also specified if GCHP
+          is configured to use them.
 
      a. geosit.preprocessed_3hr_c180_wind.txt
         - Processed files
