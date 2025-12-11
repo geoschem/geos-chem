@@ -65,6 +65,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated routines `Init_State_Chm`, `Init_Mapping_Vectors`, and `MapProdLossSpecies`to accept `TaggedDiag_List` as an argument
 - Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
 - Fixed indexing error in routine `Grav_Settling` (in module `GeosCore/sulfate_mod.F90`), which caused incorrect dry deposition diagnostics for some species
+- Fixed incorrect met vertical flipping in GCHP for cases where advection and non-advection met are from different sources, e.g. raw versus processed
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
