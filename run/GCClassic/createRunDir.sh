@@ -711,13 +711,22 @@ else
     RUNDIR_VARS+="RUNDIR_CENTER_LON_180='true '\n"
 fi
 
-#----------------------------------------------------------------
-# Horizontal resolution-dependent settings
-#-----------------------------------------------------------------
+#----------------------------------------------------------------------------
+# Horizontal resolution-dependent settings: Dust tuning
+#----------------------------------------------------------------------------
 
 if [[ ${met} = "ModelE2.1" ]]; then
-    # Current scale factors are based on U10 and V10, while the latest implementation of DEAD is using USTAR
-    # May cause 10 times larger dust emissions than properly scaled
+
+    # -----------------------------------------------------------------------
+    # If using GCAP / ModelE2.1 meteorology fields:
+    #
+    # Current scale factors are based on U10 and V10, while the latest
+    # implementation of DEAD is using USTAR.  This may cause 10 times
+    # larger dust emissions than if properly scaled.
+    #
+    # TODO: The dust tuning factors will need to be rescaled
+    # for the ModelE2.1 meteorology, as we are retiring DustDead.
+    # ----------------------------------------------------------------------
     if [[ "$runid" == "E213f10aF40oQ40nudge" ]]; then
         if [[ "$grid_res" ==  "4x5" ]]; then
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='0.00474046'\n"
@@ -744,25 +753,114 @@ if [[ ${met} = "ModelE2.1" ]]; then
 	fi
     fi
 else
+    #------------------------------------------------------------------------
+    # If using NASA GMAO meteorology fields:
+    #------------------------------------------------------------------------
     RUNDIR_VARS+="RUNDIR_GISS_RES='not_used'\n"
-    if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xaerosol" ]]; then
-	if [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
-	elif [[ "x${met}" == "xgeosfp" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8197e-5'\n"
-	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.6659e-5'\n"
-	elif [[ "x${met}" == "xmerra2" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.5412e-5'\n"
-	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x4x5" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8656e-5'\n"
-	elif [[ "x${met}" == "xgeosit" && "x${grid_res}" == "x2x25" ]]; then
-	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.1132e-5'\n"
+    if [[ "x${sim_name}" == "xfullchem" || \
+	  "x${sim_name}" == "xaerosol"     ]]; then
+	
+	if [[ "x${sim_extra_option}" == "xTOMAS15" || \
+	      "x${sim_extra_option}" == "xTOMAS40"    ]]; then
+
+	    #-------------------------------------------------------------
+	    # TOMAS simulations use the HEMCO TOMAS_DustDead extension.
+	    # Use the scaling factors previously computed for the
+	    # DustDead extension here.
+	    #-------------------------------------------------------------
+	    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='-999.0e0'\n"
+
+	    # GEOS-FP
+	    if [[ "x${met}" == "xgeosfp" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+ 		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.8632e-5'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8197e-5'\n"
+		else
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+		fi
+
+	    # GEOS-IT
+	    elif [[ "x${met}" == "xgeosit" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.8656e-5'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='3.1132e-5'\n" 
+		else
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+		fi
+
+	    # MERRA-2
+	    elif [[ "x${met}" == "xmerra2" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='5.6659e-5'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='4.5412e-5'\n"
+		else
+		    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+		fi
+
+	    # Other met fields have no tuning factors defined yet
+	    else
+		RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+	    fi
+
 	else
+
+	    #-------------------------------------------------------------
+	    # Fullchem simulations (non-TOMAS) and aerosol-only simulations
+	    # use the HEMCO DustL23M extension.  Dandan Zhang (@1Dandan)
+	    # has computed mass tuning factors for each combination of
+	    # met fields and horizontal resolution.  For more info, see:
+            # https://github.com/geoschem/geos-chem/pull/2946#issuecomment-3304249852
+	    #-------------------------------------------------------------
+
+	    # The DustDead extension is not used, set a missing value
 	    RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+	    
+	    # GEOS-FP
+	    if [[ "x${met}" == "xgeosfp" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='8.830E-03'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='4.862E-03'\n"
+		elif [[ "x${grid_res}" == "x025x03125" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='2.832E-03'\n"
+		fi
+
+	    # GEOS-IT
+	    elif [[ "x${met}" == "xgeosit" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='6.639E-03'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='3.662E-03'\n"
+		elif [[ "x${grid_res}" == "x05x0625" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='2.411E-03'\n"
+		fi
+
+	    # MERRA-2
+	    elif [[ "x${met}" == "xmerra2" ]]; then
+		if [[ "x${grid_res}" == "x4x5" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='1.047E-02'\n"
+		elif [[ "x${grid_res}" == "x2x25" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='5.750E-03'\n"
+		elif [[ "x${grid_res}" == "x05x0625" ]]; then
+		    RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='3.758E-03'\n"
+		fi
+
+	    # Other met fields have no tuning factors defined yet
+	    else
+		RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='-999.0e0'\n"
+	    fi
 	fi
+		
     else
+	#--------------------------------------------------------------------
+	# Simulations other than fullchem/aerosol do not use dust,
+	# so set missing values for the tuning factors
+	#--------------------------------------------------------------------
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_TF='-999.0e0'\n"
+	RUNDIR_VARS+="RUNDIR_DUSTL23M_TF='-999.0e0'\n"
     fi
 fi
 
@@ -1042,7 +1140,8 @@ if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gcap2_hemco.txt)\n"
 else
     if [[ "${sim_extra_option}" == "benchmark" ]]; then
-	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off '\n"
+	RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
@@ -1075,6 +1174,7 @@ else
 	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
@@ -1169,7 +1269,7 @@ done
 # input_options.yml and modifies diagnostic output based on simulation type.
 if [[ "x${sim_name}" = "xfullchem" ]]; then
     set_common_settings "${sim_extra_option}" "GCClassic"
-fi 
+fi
 
 # If necessary, edit config files for a carbon single species simulation
 if [[ "x${sim_name}" == "xcarbon" ]]; then

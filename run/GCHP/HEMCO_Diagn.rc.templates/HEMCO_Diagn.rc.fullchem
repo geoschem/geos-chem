@@ -209,12 +209,24 @@ EmisDMS_Ocean      DMS    101    -1  -1   2   kg/m2/s  DMS_emission_flux_from_oc
 ###############################################################################
 #####  Dust emissions                                                     #####
 ###############################################################################
-EmisDST1_Total     DST1   -1     -1  -1   2   kg/m2/s  DST1_emission_flux_from_all_sectors
-EmisDST1_Anthro    DST1   0      1   -1   2   kg/m2/s  DST1_emission_flux_from_anthropogenic
-EmisDST1_Natural   DST1   0      3   -1   2   kg/m2/s  DST1_emission_flux_from_natural_sources
-EmisDST2_Natural   DST2   0      3   -1   2   kg/m2/s  DST2_emission_flux_from_natural_sources
-EmisDST3_Natural   DST3   0      3   -1   2   kg/m2/s  DST3_emission_flux_from_natural_sources
-EmisDST4_Natural   DST4   0      3   -1   2   kg/m2/s  DST4_emission_flux_from_natural_sources
+# NOTE: Uncomment EmisDST_Total if you wish to obtain total
+# dust emissions from HEMCO standalone simulations
+#EmisDST_Total         TDST      -1     -1  -1   2   kg/m2/s  Total_dust_emission_flux_from_natural_sources
+EmisDSTbin1_Total     DSTbin1   -1     -1  -1   2   kg/m2/s  DSTbin1_emission_flux_from_all_sectors
+EmisDSTbin1_Anthro    DSTbin1   0      1   -1   2   kg/m2/s  DSTbin1_emission_flux_from_anthropogenic
+EmisDSTbin1_Natural   DSTbin1   0      3   -1   2   kg/m2/s  DSTbin1_emission_flux_from_natural_sources
+EmisDSTbin2_Total     DSTbin2   -1     -1  -1   2   kg/m2/s  DSTbin2_emission_flux_from_all_sectors
+EmisDSTbin2_Anthro    DSTbin2   0      1   -1   2   kg/m2/s  DSTbin2_emission_flux_from_anthropogenic
+EmisDSTbin2_Natural   DSTbin2   0      3   -1   2   kg/m2/s  DSTbin2_emission_flux_from_natural_sources
+EmisDSTbin3_Total     DSTbin3   -1     -1  -1   2   kg/m2/s  DSTbin3_emission_flux_from_all_sectors
+EmisDSTbin3_Anthro    DSTbin3   0      1   -1   2   kg/m2/s  DSTbin3_emission_flux_from_anthropogenic
+EmisDSTbin3_Natural   DSTbin3   0      3   -1   2   kg/m2/s  DSTbin3_emission_flux_from_natural_sources
+EmisDSTbin4_Total     DSTbin4   -1     -1  -1   2   kg/m2/s  DSTbin4_emission_flux_from_all_sectors
+EmisDSTbin4_Anthro    DSTbin4   0      1   -1   2   kg/m2/s  DSTbin4_emission_flux_from_anthropogenic
+EmisDSTbin4_Natural   DSTbin4   0      3   -1   2   kg/m2/s  DSTbin4_emission_flux_from_natural_sources
+EmisDSTbin5_Natural   DSTbin5   0      3   -1   2   kg/m2/s  DSTbin5_emission_flux_from_natural_sources
+EmisDSTbin6_Natural   DSTbin6   0      3   -1   2   kg/m2/s  DSTbin6_emission_flux_from_natural_sources
+EmisDSTbin7_Natural   DSTbin7   0      3   -1   2   kg/m2/s  DSTbin7_emission_flux_from_natural_sources
 
 ###############################################################################
 #####  EOH emissions                                                      #####
@@ -700,11 +712,26 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #InvSOILNOX_NO        NO     104  -1  -1  2   kg/m2/s  NO_emission_flux_from_SOINOX_extension_including_soil_and_fertilizer_emissions
 
 #=============================
-# DEAD (dust) Extension
+# DustL23M (dust) Extension
 #=============================
-#InvDEAD_DST1         DST1   105  -1  -1  2   kg/m2/s  DST1_emission_flux_from_DEAD_extension
-#InvDEAD_DST2         DST2   105  -1  -1  2   kg/m2/s  DST2_emission_flux_from_DEAD_extension
-#InvDEAD_DST3         DST3   105  -1  -1  2   kg/m2/s  DST3_emission_flux_from_DEAD_extension
+# NOTE: Uncomment InvDustL23M_TDST if you wish to obtain total
+# dust emissions from HEMCO standalone simulations
+##InvDustL23M_TDST            TDST      105  -1  -1  2   kg/m2/s  Total_dust_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin1         DSTbin1   105  -1  -1  2   kg/m2/s  DSTbin1_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin2         DSTbin2   105  -1  -1  2   kg/m2/s  DSTbin2_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin3         DSTbin3   105  -1  -1  2   kg/m2/s  DSTbin3_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin4         DSTbin4   105  -1  -1  2   kg/m2/s  DSTbin4_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin5         DSTbin5   105  -1  -1  2   kg/m2/s  DSTbin5_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin6         DSTbin6   105  -1  -1  2   kg/m2/s  DSTbin6_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin7         DSTbin7   105  -1  -1  2   kg/m2/s  DSTbin7_emission_flux_from_DustL23M_extension
+
+#===================================
+# DEAD (dust) Extension, for TOMAS
+#===================================
+#InvDEAD_DST1         DST1   131  -1  -1  2   kg/m2/s  DST1_emission_flux_from_DEAD_extension
+#InvDEAD_DST2         DST2   131  -1  -1  2   kg/m2/s  DST2_emission_flux_from_DEAD_extension
+#InvDEAD_DST3         DST3   131  -1  -1  2   kg/m2/s  DST3_emission_flux_from_DEAD_extension
+#InvDEAD_DST4         DST4   131  -1  -1  2   kg/m2/s  DST4_emission_flux_from_DEAD_extension
 #InvDEAD_DST4         DST4   105  -1  -1  2   kg/m2/s  DST4_emission_flux_from_DEAD_extension
 
 #=============================

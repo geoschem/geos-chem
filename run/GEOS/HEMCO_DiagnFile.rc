@@ -172,10 +172,13 @@ EMIS_CO_BG          CO      108  -1  -1   2   kg/m2/s  carbon_monoxide_biogenic_
 #
 EMIS_DMS            DMS    -1    -1  -1   2   kg/m2/s  dimethyl_sulfide_total_emission_mass_flux                                      kg_m-2_s-1
 #
-EMIS_DST1           DST1   -1    -1  -1   2   kg/m2/s  dust_aerosol_0.7_microns_emission_mass_flux                                    kg_m-2_s-1
-EMIS_DST2           DST2   -1    -1  -1   2   kg/m2/s  dust_aerosol_1.4_microns_emission_mass_flux                                    kg_m-2_s-1
-EMIS_DST3           DST3   -1    -1  -1   2   kg/m2/s  dust_aerosol_2.4_microns_emission_mass_flux                                    kg_m-2_s-1
-EMIS_DST4           DST4   -1    -1  -1   2   kg/m2/s  dust_aerosol_4.5_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin1        DSTbin1 -1    -1  -1   2   kg/m2/s  dust_aerosol_0.151_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin2        DSTbin2 -1    -1  -1   2   kg/m2/s  dust_aerosol_0.253_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin3        DSTbin3 -1    -1  -1   2   kg/m2/s  dust_aerosol_0.402_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin4        DSTbin4 -1    -1  -1   2   kg/m2/s  dust_aerosol_0.818_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin5        DSTbin5 -1    -1  -1   2   kg/m2/s  dust_aerosol_1.491_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin6        DSTbin6 -1    -1  -1   2   kg/m2/s  dust_aerosol_2.417_microns_emission_mass_flux                                    kg_m-2_s-1
+EMIS_DSTbin7        DSTbin7 -1    -1  -1   2   kg/m2/s  dust_aerosol_3.721_microns_emission_mass_flux                                    kg_m-2_s-1
 #
 EMIS_EOH            EOH    -1    -1  -1   2   kg/m2/s  ethanol_total_emission_mass_flux                                               kg_m-2_s-1
 EMIS_EOH_IND        EOH     0     1  -1   2   kg/m2/s  ethanol_industry_emission_mass_flux                                            kg_m-2_s-1

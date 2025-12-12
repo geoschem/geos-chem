@@ -2082,11 +2082,14 @@ CONTAINS
             DO J = 1, State_Grid%NY
             DO I = 1, State_Grid%NX
                ! Apply minimum value threshold where input conc is very low
-               Spc(N)%Conc(I,J,L) = &
-                  ( Spc(APMIDS%id_DST1)%Conc(I,J,L)    &
-                  + Spc(APMIDS%id_DST2)%Conc(I,J,L)    &
-                  + Spc(APMIDS%id_DST3)%Conc(I,J,L)    &
-                  + Spc(APMIDS%id_DST4)%Conc(I,J,L) )/6.D0
+               Spc(N)%Conc(I,J,L) =                                          &
+                 (  Spc(APMIDS%id_GC_DSTbin1)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin2)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin3)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin4)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin5)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin6)%Conc(I,J,L)                    &
+                  + Spc(APMIDS%id_GC_DSTbin7)%Conc(I,J,L) )/6.D0
             ENDDO
             ENDDO
             ENDDO

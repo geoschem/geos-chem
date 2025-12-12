@@ -132,7 +132,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
-#   OFFLINE_DUST        - DustDead or DustGinoux
+#   OFFLINE_DUST        - DustL23M
 #   OFFLINE_BIOGENICVOC - MEGAN
 #    - Note: MEGAN must always be on for species not in OFFLINE_BIOGENICVOC
 #   OFFLINE_SEASALT     - SeaSalt
@@ -170,15 +170,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : on    NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : on    DST1/DST2/DST3/DST4
-# Replace @MASS_TUNING_FACTOR with value matching run resolution
-#C24  --> Mass tuning factor     : 6.0e-4
-#C48  --> Mass tuning factor     : 5.0416e-4
-#C90  --> Mass tuning factor     : 4.0e-4
-#C180 --> Mass tuning factor     : 3.23e-4
-#C360 --> Mass tuning factor     : 2.35e-4
-#C720 --> Mass tuning factor     : 2.3e-4
-    --> Mass tuning factor     :       2.35e-4
 106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
@@ -225,7 +216,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
     --> FINN_subgrid_coag      :       false
-115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       $ROOT/VOLCANO/v2021-09/$YYYY/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
@@ -233,6 +223,27 @@ VerboseOnCores:              root       # Accepted values: root all
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
+125     DustL23M               : on    DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+    --> Mass tuning factor     :       2.35e-4
+##############################################################################
+# Mass tuning factors are resolution and met-source dependent
+# See https://github.com/geoschem/geos-chem/pull/2946#issuecomment-3465876899
+#    --> Mass tuning factor:       6.794E-03  # C24  GEOS-FP
+#    --> Mass tuning factor:       4.402E-03  # C48  GEOS-FP
+#    --> Mass tuning factor:       3.533E-03  # C90  GEOS-FP
+#    --> Mass tuning factor:       3.081E-03  # C180 GEOS-FP
+#    --> Mass tuning factor:       2.924E-03  # C360 GEOS-FP
+#    --> Mass tuning factor:       4.231E-03  # C30  GEOS-IT
+#    --> Mass tuning factor:       3.308E-03  # C48  GEOS-IT
+#    --> Mass tuning factor:       2.614E-03  # C90  GEOS-IT
+#    --> Mass tuning factor:       2.924E-03  # C180 GEOS-IT
+#    --> Mass tuning factor:       7.944E-03  # C24  MERRA-2
+#    --> Mass tuning factor:       4.253E-03  # C48  MERRA-2
+#    --> Mass tuning factor:       4.341E-03  # C90  MERRA-2
+#    --> Mass tuning factor:       3.932E-03  # C180 MERRA-2
+##############################################################################
+126     DustAlk                : off   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
+# ----- EXTENSIONS FOR TOMAS SIMULATIONS ONLY----------------------------------
 130     TOMAS_Jeagle           : off   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
 131     TOMAS_DustDead         : off   DUST01/DUST02/DUST03/DUST04/DUST05/DUST06/DUST07/DUST08/DUST09/DUST10/DUST11/DUST12/DUST13/DUST14/DUST15/DUST16/DUST17/DUST18/DUST19/DUST20/DUST21/DUST22/DUST23/DUST24/DUST25/DUST26/DUST27/DUST28/DUST29/DUST30/DUST31/DUST32/DUST33/DUST34/DUST35/DUST36/DUST37/DUST38/DUST39/DUST40
     --> Mass tuning factor     :       4.7586e-4

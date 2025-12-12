@@ -5006,11 +5006,14 @@ CONTAINS
     ! For TOMAS only: If DUST01 is present, the other dust species are too
     I = MAX( Ind_('DUST01','A'), 0 )
 #else
-    ! Non-TOMAS simulations: Need all DST1-DST4 species
-    I = MAX( Ind_('DST1','A'), 0 ) + &
-        MAX( Ind_('DST2','A'), 0 ) + &
-        MAX( Ind_('DST3','A'), 0 ) + &
-        MAX( Ind_('DST4','A'), 0 )
+    ! Non-TOMAS simulations: Need all DSTbin1-DSTbin7 species
+    I = MAX( Ind_('DSTbin1','A'), 0 ) + &
+        MAX( Ind_('DSTbin2','A'), 0 ) + &
+        MAX( Ind_('DSTbin3','A'), 0 ) + &
+        MAX( Ind_('DSTbin4','A'), 0 ) + &
+        MAX( Ind_('DSTbin5','A'), 0 ) + &
+        MAX( Ind_('DSTbin6','A'), 0 ) + &
+        MAX( Ind_('DSTbin7','A'), 0 )
 #endif
 
     IF ( Input_Opt%LDUST ) THEN
@@ -5032,21 +5035,30 @@ CONTAINS
     !             DUST SULFATE    AEROSOLS
     !             DUST ALKALINITY AEROSOLS
     !=================================================================
-    I = MAX( Ind_('NITd1'  ,'A'), 0 ) + &
-        MAX( Ind_('NITd2'  ,'A'), 0 ) + &
-        MAX( Ind_('NITd3'  ,'A'), 0 ) + &
-        MAX( Ind_('NITd4'  ,'A'), 0 ) + &
-        MAX( Ind_('SO4d1'  ,'A'), 0 ) + &
-        MAX( Ind_('SO4d2'  ,'A'), 0 ) + &
-        MAX( Ind_('SO4d3'  ,'A'), 0 ) + &
-        MAX( Ind_('SO4d4'  ,'A'), 0 ) + &
-        MAX( Ind_('DSTAL1' ,'A'), 0 ) + &
-        MAX( Ind_('DSTAL2' ,'A'), 0 ) + &
-        MAX( Ind_('DSTAL3' ,'A'), 0 ) + &
-        MAX( Ind_('DSTAL4' ,'A'), 0 )
+    I = MAX( Ind_('NITDbin1'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin2'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin3'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin4'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin5'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin6'  ,'A'), 0 ) + &
+        MAX( Ind_('NITDbin7'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin1'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin2'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin3'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin4'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin5'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin6'  ,'A'), 0 ) + &
+        MAX( Ind_('SO4Dbin7'  ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin1' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin2' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin3' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin4' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin5' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin6' ,'A'), 0 ) + &
+        MAX( Ind_('DSTALbin7' ,'A'), 0 )
 
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( I < 12 ) THEN
+       IF ( I < 21 ) THEN
           MSG = 'LDSTUP=T but COATED DUST AEROSOLS are undefined!'
           CALL GC_Error( Msg, RC, Location )
           RETURN

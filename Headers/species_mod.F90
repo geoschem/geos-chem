@@ -158,6 +158,7 @@ MODULE Species_Mod
      LOGICAL            :: WD_Is_H2SO4      ! Flag to denote H2SO4 wetdep
      LOGICAL            :: WD_Is_HNO3       ! Flag to denote HNO3 wetdep
      LOGICAL            :: WD_Is_SO2        ! Flag to denote SO2 wetdep
+     LOGICAL            :: WD_Is_DSTbin     ! Flag to denote dust wetdep (D. Zhang 28 Jun, 2024)
      LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
      REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
      REAL(fp)           :: WD_KcScaleFac(3) ! Temperature-dependent scale
@@ -166,6 +167,8 @@ MODULE Species_Mod
                                             !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
+     REAL(fp)           :: WD_WashoutRainPara(2) ! Parameters for washout efficiency of dust species due to rain precipitation
+     REAL(fp)           :: WD_WashoutSnowPara(2) ! Parameters for washout efficiency of dust species due to snow precipitation
 
      ! TransportTracers parameters
      CHARACTER(LEN=80)  :: Snk_Horiz        ! Where to apply sink horizontally?

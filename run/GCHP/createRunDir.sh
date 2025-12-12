@@ -757,7 +757,7 @@ fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
@@ -783,13 +783,14 @@ else
 	fi
     fi
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
+        RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
+        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
     else
-	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
+        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
+        RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
+        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
-    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"

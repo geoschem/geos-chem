@@ -123,7 +123,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
-#   OFFLINE_DUST        - DustDead or DustGinoux
+#   OFFLINE_DUST        - DustL23M
 #   OFFLINE_BIOGENICVOC - MEGAN
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
@@ -147,9 +147,6 @@ VerboseOnCores:              root       # Accepted values: root all
 # -----------------------------------------------------------------------------
 100     Custom                 : off   -
 101     SeaFlux                : on    DMS
-105     DustDead               : ${RUNDIR_DUSTDEAD_EXT}   DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       ${RUNDIR_DUSTDEAD_TF}
-106     DustGinoux             : off   DST1/DST2/DST3/DST4
 107     SeaSalt                : ${RUNDIR_SEASALT_EXT}   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
@@ -187,12 +184,13 @@ VerboseOnCores:              root       # Accepted values: root all
     --> fraction POG1          :       0.49
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
-#see the note near scale factor 281 for the source of this emis factor
-115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       ${RUNDIR_VOLC_TABLE}
     --> Volcano_Climatology    :       ${RUNDIR_VOLC_CLIMATOLOGY}
+125     DustL23M               : on    TDST/DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+    --> Mass tuning factor     :       ${RUNDIR_DUSTL23M_TF}
+
 ### END SECTION EXTENSION SWITCHES ###
 
 ###############################################################################
@@ -1723,21 +1721,33 @@ VerboseOnCores:              root       # Accepted values: root all
 # (Philip et al., 2017, ERL)
 #==============================================================================
 (((AFCID
-0 PM25FINE_1 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DST1 -    1 1
-0 PM25FINE_2 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DST1 1009 1 2
-0 PM25FINE_3 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DST1 1010 1 3
+0 PM25FINE_1_bin1 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DSTbin1 630/631    1 1
+0 PM25FINE_1_bin2 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DSTbin2 630/632    1 1
+0 PM25FINE_1_bin3 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DSTbin3 630/633    1 1
+0 PM25FINE_1_bin4 $ROOT/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc     PM25FINE 2015/1-12/1/0 C xy kg/m2/s  DSTbin4 630/634    1 1
+0 PM25FINE_2_bin1 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DSTbin1 630/631/1009 1 2
+0 PM25FINE_2_bin2 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DSTbin2 630/632/1009 1 2
+0 PM25FINE_2_bin3 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DSTbin3 630/633/1009 1 2
+0 PM25FINE_2_bin4 $ROOT/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc  PM25FINE 2012/1-12/1/0 C xy kg/m2/s  DSTbin4 630/634/1009 1 2
+0 PM25FINE_3_bin1 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DSTbin1 630/631/1010 1 3
+0 PM25FINE_3_bin2 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DSTbin2 630/632/1010 1 3
+0 PM25FINE_3_bin3 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DSTbin3 630/633/1010 1 3
+0 PM25FINE_3_bin4 $ROOT/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc  PM25FINE 2013/1-12/1/0 C xy kg/m2/s  DSTbin4 630/634/1010 1 3
 )))AFCID
 
 #==============================================================================
 # --- Offline dust emissions ---
 #==============================================================================
 (((OFFLINE_DUST
-(((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST1 - 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST2 - 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST3 - 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* EFY xy kg/m2/s DST4 - 3 2
-))).not.DustDead.or.DustGinoux
+(((.not.DustL23M
+0 EMIS_DSTbin1 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin1 621 3 2
+0 EMIS_DSTbin2 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin2 622 3 2
+0 EMIS_DSTbin3 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin3 623 3 2
+0 EMIS_DSTbin4 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin4 624 3 2
+0 EMIS_DSTbin5 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin5 625 3 2
+0 EMIS_DSTbin6 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin6 626 3 2
+0 EMIS_DSTbin7 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* EFY xy kg/m2/s DSTbin7 627 3 2
+))).not.DustL23M
 )))OFFLINE_DUST
 
 #==============================================================================
@@ -1805,28 +1815,19 @@ VerboseOnCores:              root       # Accepted values: root all
 101 ACET_SEAWATER   $ROOT/ACET/v2014-07/ACET_seawater.generic.1x1.nc ACET       2005/1/1/0    C xy kgC/m3 ACET 40 1 1
 )))SeaFlux
 
-#==============================================================================
-# --- Dust emissions using DEAD model (Extension 105) ---
-#==============================================================================
-(((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
-)))DustDead
-
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
-#==============================================================================
-(((DustGinoux
-106 GINOUX_SAND   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SAND  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_SILT   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SILT  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_CLAY   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  CLAY  1985/1/1/0 C xy unitless * - 1 1
-)))DustGinoux
+#===========================================================================
+# --- External fields needed for online DustL23M (Extension 125) ---
+#===========================================================================
+(((DustL23M
+125 L23M_A_bare       $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_bare       1998-2022/1/1/0    C xy 1           * - 1 1
+125 L23M_A_veg        $ROOT/DustL23M/v2025-07/LandCover/MCD12C1.LC.$YYYY.0.1.nc4           LC_veg        1998-2022/1/1/0    C xy 1           * - 1 1
+125 L23M_Csah         $ROOT/DustL23M/v2025-07/scale/DustL23_scale_025x03125_scaleSAv2.nc4  scale         2000/1/1/0         C xy 1           * - 1 1
+125 L23M_LAI          $ROOT/DustL23M/v2025-07/LandCover/XLAI_025x025_$YYYY_MonMean.nc4     LAI           2000-2020/1-12/1/0 C xy 1           * - 1 1
+125 L23M_fclay        $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             f_clay        2000/1/1/0         C xy 1           * - 1 1
+125 L23M_BD           $ROOT/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4             bulk_density  2000/1/1/0         C xy kg-soil/m3  * - 1 1
+125 L23M_poros        $ROOT/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4       poros         1980/1/1/0         C xy 1           * - 1 1
+125 L23M_roughness_r  $ROOT/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4  roughness_r   1997/1/1/0         C xy m           * - 1 1
+)))DustL23M
 
 #==============================================================================
 # --- Sea salt emissions (Extension 107)
@@ -2555,6 +2556,24 @@ ${RUNDIR_TES_CLIM_N2O}
 616 SSChloride   0.5504  - - - xy 1 1
 617 BrContent    2.11e-3 - - - xy 1 1
 )))OFFLINE_SEASALT
+
+(((OFFLINE_DUST
+621 mfrac_DSTbin1    3.344e-4  - - - xy 1 1
+622 mfrac_DSTbin2    1.593e-3  - - - xy 1 1
+623 mfrac_DSTbin3    1.194e-2  - - - xy 1 1
+624 mfrac_DSTbin4    3.430e-2  - - - xy 1 1
+625 mfrac_DSTbin5    1.248e-1  - - - xy 1 1
+626 mfrac_DSTbin6    2.573e-1  - - - xy 1 1
+627 mfrac_DSTbin7    5.698e-1  - - - xy 1 1
+)))OFFLINE_DUST
+
+(((AFCID
+630 half_AFCID       0.5       - - - xy 1 1
+631 mfrac_bin1       6.944e-3  - - - xy 1 1
+632 mfrac_bin2       3.307e-2  - - - xy 1 1
+633 mfrac_bin3       2.478e-1  - - - xy 1 1
+634 mfrac_bin4       7.121e-1  - - - xy 1 1
+)))AFCID
 
 )))EMISSIONS
 

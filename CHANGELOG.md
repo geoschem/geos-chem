@@ -21,6 +21,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Added IUPAC names for Hg species in `run/shared/species_database.yml`
 - Added `gc_4x5_merra2_carbon_ch4_straddle_00utc` integraton test which runs across a UTC date boundary
 - Added statement to zero the `State_Diag%DryDepChm` array in routine `Zero_Diagnostics_StartOfTimestep`
+- Added clarifying comments in `flexgrid_read_met_mod.F90` for `TS` and `T2M` met fields
+- Added `&DSTbinproperties` and `&METALSproperties` YAML anchors in `run/shared/species_database.yml`
+- Added `DustL23M` as HEMCO extension 125 in `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
 
 ### Changed
 - Replaced comments in template HEMCO configuration files directing users to obsolete wiki documentation with comments directing users to `hemco.readthedocs.io`
@@ -45,6 +48,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Commented out met-fields `PEDGEDRY`, `PFICU`, `PFILSAN`, `PFLCU`, and `PFLLSAN` by default in GC-Classic and GCHP carbon HISTORY.rc, and GC-Classic CH4 HISTORY.rc
 - Turned on Carbon collection in `HISTORY.rc` for carbon simulations by default
 - Consolidated Hg species metdata from `run/shared/species_database_hg.yml` into `run/shared/species_database.yml`
+- Updated `run/shared/download_data.yml` so that aerosol and fullchem simulations will get the restart file from `GEOSCHEM_RESTARTS/GC_14.7.0`
+- Updated `DST1/DST1/DST3/DST4` to `TDST/DSTbin1/DSTbin2/.../DSTbin7` in `geoschem_config.yml`, `HEMCO_Config.rc`, and `HEMCO_Diagn.rc` template files for aerosol & fullchem simulations
+- Updated routine `ExtState_SetFields` in `hco_interface_gc_mod.F90` for readability and clarity
+- Assigned `ExtState%TSKIN` from `State_Met%TS` and `ExtState%T2M` from `State_Met%T2M` in routine `ExtState_SetFields`
+- Updated dust mass tuning factors for the `DustL23M` extension in `run/GCClassic/createRunDir.sh` and `run/GCHP/setCommonRunSettings.sh.template`
+- Replaced `id_DST{1..4}` with `id_DSTbin{1..7}` in the `APMidtype` derived type and `APMIDS` object
+- Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
+- Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
+- Updated call to `ExtData_Set` in `hco_gc_interface_mod.F90` to accept `ExtState%SNOMAS`
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
@@ -66,6 +78,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Updated routine `MapProdLossSpecies` to test if prod/loss family species or wildcards are scheduled for diagnostic archival before populating mapping arrays
 - Fixed indexing error in routine `Grav_Settling` (in module `GeosCore/sulfate_mod.F90`), which caused incorrect dry deposition diagnostics for some species
 - Fixed incorrect met vertical flipping in GCHP for cases where advection and non-advection met are from different sources, e.g. raw versus processed
+- Fixed several inconsistencies in `species_database.yml`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
@@ -79,6 +92,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Removed `run/shared/species_database_hg.yml`
 - Removed obsolete metadata for tagged Hg species from `run/shared/species_database.yml`
 - Removed code to zero `State_DiagDryDepMix` in `Compute_SFlx_For_Vdiff`; these are zeroed previously in `Zero_Diagnostics_StartOfTimestep`
+- Removed entries for `DustGinoux` and `DustDead` extensions from `HEMCO_Config.rc.aerosol` and `HEMCO_Config.rc.fullchem` templates
+- Removed `&DST{1,2,3,4}properties` in `run/shared/species_database.yml`
+- Removed references to `DustDead` and `DustGinoux` HEMCO extensios in template configuration files
 
 ## [14.6.3] - 2025-07-28
 ### Added

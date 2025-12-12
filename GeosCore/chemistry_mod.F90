@@ -120,7 +120,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    INTEGER, SAVE      :: id_DST1, id_NK01, id_CO2   ! Species ID flags
+    INTEGER, SAVE      :: id_DSTbin1, id_NK01, id_CO2   ! Species ID flags
 
     ! Scalars
     INTEGER            :: N_TROP, N
@@ -152,7 +152,7 @@ CONTAINS
 
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
-       id_DST1 = Ind_('DST1')
+       id_DSTbin1 = Ind_('DSTbin1')
        id_NK01 = Ind_('NK01')
        id_CO2  = Ind_('CO2' )
     ENDIF
@@ -591,7 +591,7 @@ CONTAINS
           !------------------------------------------------------------------
           ! Do dust aerosol chemistry/removal
           !------------------------------------------------------------------
-          IF ( Input_Opt%LDUST .AND. id_DST1 > 0 ) THEN
+          IF ( Input_Opt%LDUST .AND. id_DSTbin1 > 0 ) THEN
              CALL ChemDust( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Diag = State_Diag,                         &

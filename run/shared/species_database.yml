@@ -76,72 +76,33 @@ APAN:
   Is_WetDep: true
   MW_g: 133.06
   WD_RetFactor: 2.0e-2
-DST1_PROP: &DST1properties
+METALS_PROP: &METALSproperties
   DD_DustDryDep: true
   DD_F0: 0.0
   DD_Hstar: 0.0
-  Density: 2500.0
   Is_Aerosol: true
   Is_DryDep: true
   Is_WetDep: true
-  Radius: 7.3e-7
-  WD_AerScavEff: 1.0
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST2_PROP: &DST2properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  Radius: 1.4e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST3_PROP: &DST3properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  Radius: 2.4e-6
-  WD_AerScavEff: 1.0
-  WD_CoarseAer: true
-  WD_KcScaleFac: [1.0, 1.0, 1.0]
-  WD_RainoutEff: [1.0, 1.0, 0.0]
-  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
-DST4_PROP: &DST4properties
-  DD_DustDryDep: true
-  DD_F0: 0.0
-  DD_Hstar: 0.0
-  Density: 2650.0
-  Is_Aerosol: true
-  Is_DryDep: true
-  Is_WetDep: true
-  Radius: 4.5e-6
   WD_AerScavEff: 1.0
   WD_CoarseAer: true
   WD_KcScaleFac: [1.0, 1.0, 1.0]
   WD_RainoutEff: [1.0, 1.0, 0.0]
   WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
 AlF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Al
-  Fullname: Aluminium on dust Reff = 0.7 microns
+  FullName: Aluminium on dust Reff = 0.7 microns
   MW_g: 26.98
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 AlF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Al
-  Fullname: Aluminium on dust, Reff = 1.4 microns
+  FullName: Aluminium on dust, Reff = 1.4 microns
   MW_g: 26.98
+  Radius: 1.4e-6
+  WD_CoarseAer: true
 ALD2:
   DD_F0: 1.0
   DD_Hstar: 1.1e+1
@@ -336,16 +297,19 @@ AROMPN:
   MW_g: 207.1
   WD_RetFactor: 2.0e-2
 AsF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: As
-  Fullname: Arsenic on dust Reff = 0.7 microns
+  FullName: Arsenic on dust Reff = 0.7 microns
   MW_g: 74.92
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 AsF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: As
-  Fullname: Arsenic on dust, Reff = 1.4 microns
+  FullName: Arsenic on dust, Reff = 1.4 microns
   MW_g: 74.92
+  Radius: 1.4e-6
 ASOA_PROP: &ASOAproperties
   DD_DvzAerSnow: 0.03
   DD_F0: 0.0
@@ -825,26 +789,33 @@ C96O2H:
   MW_g: 186.28
   WD_RetFactor: 2.0e-2
 CaF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Ca
-  Fullname: Calcium on dust Reff = 0.7 microns
+  FullName: Calcium on dust Reff = 0.7 microns
   MW_g: 40.08
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 CaF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Ca
-  Fullname: Calcium on dust, Reff = 1.4 microns
+  FullName: Calcium on dust, Reff = 1.4 microns
   MW_g: 40.08
+  Radius: 1.4e-6
 CaC3:
-  << : *DST3properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Ca
-  Fullname: Calcium on dust, Reff = 2.4 microns
+  FullName: Calcium on dust, Reff = 2.4 microns
   MW_g: 40.08
+  Radius: 2.4e-6
 CaC4:
-  << : *DST4properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Ca
-  Fullname: Calcium on dust, Reff = 4.5 microns
+  FullName: Calcium on dust, Reff = 4.5 microns
   MW_g: 40.08
+  Radius: 4.5e-6
 CCl4:
   Formula: CCl4
   FullName: Carbon tetrachloride
@@ -852,16 +823,19 @@ CCl4:
   Is_Photolysis: true
   MW_g: 153.82
 CdF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Cd
-  Fullname: Cadmium on dust Reff = 0.7 microns
+  FullName: Cadmium on dust Reff = 0.7 microns
   MW_g: 112.41
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 CdF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Cd
-  Fullname: Cadmium on dust, Reff = 1.4 microns
+  FullName: Cadmium on dust, Reff = 1.4 microns
   MW_g: 112.41
+  Radius: 1.4e-6
 CFC11:
   Formula: CCl3F
   FullName: CFC-11
@@ -1302,38 +1276,130 @@ DMS:
   Henry_K0: 0.48
   Is_Aerosol: true
   MW_g: 62.13
-DST1:
-  << : *DST1properties
-  FullName: Dust aerosol, Reff = 0.7 microns
+DSTbin_PROP: &DSTbinproperties
+  DD_DustDryDep: true
+  DD_F0: 0.0
+  DD_Hstar: 0.0
+  Is_Aerosol: true
+  Is_DryDep: true
+  Is_WetDep: true
+  WD_AerScavEff: 1.0
+  WD_Is_DSTbin: true
+  WD_KcScaleFac: [1.0, 1.0, 1.0]
+  WD_RainoutEff: [1.0, 1.0, 0.0]
+  WD_RainoutEff_Luo: [1.0, 0.1, 0.0]
+DSTbin1:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Dust aerosol, Reff = 0.151 microns
   MW_g: 29.0
-DST2:
-  << : *DST2properties
-  FullName: Dust aerosol, Reff = 1.4 microns
+  Radius: 1.51e-7
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+DSTbin2:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Dust aerosol, Reff = 0.253 microns
   MW_g: 29.0
-DST3:
-  << : *DST3properties
-  FullName: Dust aerosol, Reff = 2.4 microns
+  Radius: 2.53e-7
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]
+DSTbin3:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Dust aerosol, Reff = 0.402 microns
   MW_g: 29.0
-DST4:
-  << : *DST4properties
-  FullName: Dust aerosol, Reff = 4.5 microns
+  Radius: 4.02e-7
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+DSTbin4:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Dust aerosol, Reff = 0.818 microns
   MW_g: 29.0
-DSTAL1:
-  << : *DST1properties
-  FullName: Dust alkalinity, Reff = 0.7 microns
+  Radius: 8.18e-7
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+DSTbin5:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Dust aerosol, Reff = 1.491 microns
   MW_g: 29.0
-DSTAL2:
-  << : *DST2properties
-  FullName: Dust alkalinity, Reff = 1.4 microns
+  Radius: 1.491e-6
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+DSTbin6:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Dust aerosol, Reff = 2.417 microns
   MW_g: 29.0
-DSTAL3:
-  << : *DST3properties
-  FullName: Dust alkalinity, Reff = 2.4 microns
+  Radius: 2.417e-6
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+DSTbin7:
+  << : *DSTbinproperties
+  Density: 2650.0
+  Radius: 3.721e-6
   MW_g: 29.0
-DSTAL4:
-  << : *DST4properties
-  FullName: Dust alkalinity, Reff = 4.5 microns
+  FullName: Dust aerosol, Reff = 3.721 microns
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
+DSTALbin1:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: DSTbin1 alkalinity
   MW_g: 29.0
+  Radius: 1.51e-7
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+DSTALbin2:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: DSTbin2 alkalinity
+  MW_g: 29.0
+  Radius: 2.53e-7
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]
+DSTALbin3:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: DSTbin3 alkalinity
+  MW_g: 29.0
+  Radius: 4.02e-7
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+DSTALbin4:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: DSTbin4 alkalinity
+  MW_g: 29.0
+  Radius: 8.18e-7
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+DSTALbin5:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: DSTbin5 alkalinity
+  Radius: 1.491e-6
+  MW_g: 29.0
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+DSTALbin6:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: DSTbin6 alkalinity
+  MW_g: 29.0
+  Radius: 2.417e-6
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+DSTALbin7:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: DSTbin7 alkalinity
+  MW_g: 29.0
+  Radius: 3.721e-6
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
 DummyCH4trop:
   << : *CH4properties
   Background_VV: 1.8e-6
@@ -1469,16 +1535,19 @@ ETP:
   MW_g: 62.08
   WD_RetFactor: 2.0e-2
 FeF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Fe
-  Fullname: Iron on dust. Reff = 0.7 microns
+  FullName: Iron on dust. Reff = 0.7 microns
   MW_g: 55.84
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 FeF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Fe
-  Fullname: Iron on dust, Reff = 1.4 microns
+  FullName: Iron on dust, Reff = 1.4 microns
   MW_g: 55.84
+  Radius: 1.4e-6
 FixedCl:
   Formula: Cl
   FullName: Atomic chlorine (external input for carbon mechanism)
@@ -1703,29 +1772,29 @@ Hg_CHEM_PROP: &HgChemProperties
   WD_RetFactor: 1.0
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBr:
-  Fullname: Bromidomercury(I)
+  FullName: Bromidomercury(I)
   Formula: HgBr
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrNO2:
   << : *HgChemProperties
-  Fullname: syn-Bromido(nitrito-O)mercury(II)
+  FullName: syn-Bromido(nitrito-O)mercury(II)
   Formula: BrHgONO
   Is_Photolysis: true
 HgBrHO2:
   << : *HgChemProperties
-  Fullname: Bromido(hydroperoxo)mercury(II)
+  FullName: Bromido(hydroperoxo)mercury(II)
   Formula:  BrHgOOH
   Is_Photolysis: true
 HgBrBrO:
   << : *HgChemProperties
-  Fullname: Bromido(hypobromito-O)mercury(II)
+  FullName: Bromido(hypobromito-O)mercury(II)
   Formula: BrHgOBr
   Is_Photolysis: true
 HgBrClO:
   << : *HgChemProperties
-  Fullname: Bromido(hypochlorito-O)mercury(II)
+  FullName: Bromido(hypochlorito-O)mercury(II)
   Formula: BrHgOCl
   Is_Photolysis: true
 HgBrO:
@@ -1735,17 +1804,17 @@ HgBrO:
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgBrOH:
   << : *HgChemProperties
-  Fullname: Bromido(hydroxido)mercury(II)
+  FullName: Bromido(hydroxido)mercury(II)
   Formula: BrHgOH
   Is_Photolysis: true
   MW_g:
 HgBr2:
   << : *HgChemProperties
-  Fullname: Dibromidomercury(II)
+  FullName: Dibromidomercury(II)
   Formula: HgBr2
   Is_Photolysis: true
 HgCl:
-  Fullname: Chloridomercury(I)
+  FullName: Chloridomercury(I)
   Formula: HgCl
   Is_Gas: true
   Is_Photolysis: true
@@ -1753,84 +1822,84 @@ HgCl:
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgClNO2:
   << : *HgChemProperties
-  Fullname: syn-Chlorido(nitrito-kO)mercury(II)
+  FullName: syn-Chlorido(nitrito-kO)mercury(II)
   Formula: ClHgONO
   Is_Photolysis: true
 HgClHO2:
   << : *HgChemProperties
-  Fullname: Chlorido(hydroperoxido)mercury(II)
+  FullName: Chlorido(hydroperoxido)mercury(II)
   Formula: ClHgOOH
   Is_Photolysis: true
 HgClClO:
   << : *HgChemProperties
-  Fullname: Chlorido(hypochlorito-kO)mercury(II)
+  FullName: Chlorido(hypochlorito-kO)mercury(II)
   Formula: ClHgOCl
   Is_Photolysis: true
 HgClBrO:
   << : *HgChemProperties
-  Fullname: Chlorido(hypobromito-kO)mercury(II)
+  FullName: Chlorido(hypobromito-kO)mercury(II)
   Formula: ClHgOBr
   Is_Photolysis: true
 HgClBr:
   << : *HgChemProperties
-  Fullname: Bromidochloridomercury(II)
+  FullName: Bromidochloridomercury(II)
   Formula: HgBrCl
   Is_Photolysis: true
 HgClO:
-  Fullname: Hypochloritomercury(I)
+  FullName: Hypochloritomercury(I)
   Formula: ClHgO
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgClOH:
   << : *HgChemProperties
-  Fullname: Chlorido(hydroxido)mercury(II)
+  FullName: Chlorido(hydroxido)mercury(II)
   Formula: ClHgOH
   Is_Photolysis: true
   MW_g:
 HgOH:
-  Fullname: Hydroxidomercury(I)
+  FullName: Hydroxidomercury(I)
   Formula: HgOH
   Is_Gas: true
   Is_Photolysis: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHO:
-  Fullname: Hydroperoxomercury(I)
+  FullName: Hydroperoxomercury(I)
   Formula: HgOHO
   Is_Gas: true
   MW_g: 200.59   # Use mol wt of atomic Hg
 HgOHNO2:
   << : *HgChemProperties
-  Fullname: syn-Hydroperoxido(hydroxido)mercury(II)
+  FullName: syn-Hydroperoxido(hydroxido)mercury(II)
   Formula: HOHgONO
   Is_Photolysis: true
 HgOHHO2:
   << : *HgChemProperties
-  Fullname: Hydroperoxo(hydroxido)mercury(II)
+  FullName: Hydroperoxo(hydroxido)mercury(II)
   Formula: HOHgOOH
   Is_Photolysis: true
 HgOHClO:
   << : *HgChemProperties
-  Fullname: Hydroxido(hypochlorito-O)mercury(II)
+  FullName: Hydroxido(hypochlorito-O)mercury(II)
   Formula: HOHgOCl
   Is_Photolysis: true
   MW_g:
 HgOHBrO:
   << : *HgChemProperties
-  Fullname: Hydroxido(hypobromito-O)mercury(II)
+  FullName: Hydroxido(hypobromito-O)mercury(II)
   Formula: HOHgOBr
   Is_Photolysis: true
 HgOHOH:
   << : *HgChemProperties
-  Fullname: Dihydroxidomercury(II)
+  FullName: Dihydroxidomercury(II)
   Formula: HOHgOH
   Is_Photolysis: false
 HgCl2:
   << : *HgChemProperties
-  Fullname: Dichloridomercury(II)
+  FullName: Dichloridomercury(II)
   Formula: HgCl2
   Is_Photolysis: false
 Hg2ClP:
-  Fullname: Hg(II) chloride salts on sea-salt aerosols
+  FullName: Hg(II) chloride salts on sea-salt aerosols
   Formula: HgCln
   Is_Aerosol: true
   Is_DryDep: true
@@ -1841,7 +1910,7 @@ Hg2ClP:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2ORGP:
-  Fullname: Hg(II) organic complex in aerosols
+  FullName: Hg(II) organic complex in aerosols
   Formula: R-Hg
   Is_Aerosol: true
   Is_DryDep: true
@@ -1853,7 +1922,7 @@ Hg2ORGP:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
 Hg2STRP:
-  Fullname: Hg(II) in stratospheric aerosols
+  FullName: Hg(II) in stratospheric aerosols
   Formula: Hg2+
   Is_Aerosol: true
   Is_HgP: true
@@ -2583,26 +2652,33 @@ ITHN:
   MW_g: 197.17
   WD_RetFactor: 2.0e-2
 KF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: K
-  Fullname: Potassium on dust. Reff = 0.7 microns
+  FullName: Potassium on dust. Reff = 0.7 microns
   MW_g: 39.10
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 KF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: K
-  Fullname: Potassium on dust, Reff = 1.4 microns
+  FullName: Potassium on dust, Reff = 1.4 microns
   MW_g: 39.10
+  Radius: 1.4e-6
 KC3:
-  << : *DST3properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: K
-  Fullname: Potassium on dust, Reff = 2.4 microns
+  FullName: Potassium on dust, Reff = 2.4 microns
   MW_g: 39.10
+  Radius: 2.4e-6
 KC4:
-  << : *DST4properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: K
-  Fullname: Potassium on dust, Reff = 4.5 microns
+  FullName: Potassium on dust, Reff = 4.5 microns
   MW_g: 39.10
+  Radius: 4.5e-6
 KO2:
   Formula: C4H5O3
   FullName: Peroxy radical from >3 ketones
@@ -3015,26 +3091,33 @@ MENO3:
   Is_Photolysis: true
   MW_g: 77.05
 MgF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Mg
-  Fullname: Magnesium on dust. Reff = 0.7 microns
+  FullName: Magnesium on dust. Reff = 0.7 microns
   MW_g: 24.31
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 MgF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Mg
-  Fullname: Magnesium on dust, Reff = 1.4 microns
+  FullName: Magnesium on dust, Reff = 1.4 microns
   MW_g: 24.31
+  Radius: 1.4e-6
 MgC3:
-  << : *DST3properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Mg
-  Fullname: Magnesium on dust, Reff = 2.4 microns
+  FullName: Magnesium on dust, Reff = 2.4 microns
   MW_g: 24.31
+  Radius: 2.4e-6
 MgC4:
-  << : *DST4properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Mg
-  Fullname: Magnesium on dust, Reff = 4.5 microns
+  FullName: Magnesium on dust, Reff = 4.5 microns
   MW_g: 24.31
+  Radius: 4.5e-6
 MGLY:
   DD_F0: 1.0
   DD_Hstar: 3.7e+3
@@ -3049,16 +3132,19 @@ MGLY:
   MW_g: 72.07
   WD_RetFactor: 2.0e-2
 MnF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Mn
-  Fullname: Manganese on dust. Reff = 0.7 microns
+  FullName: Manganese on dust. Reff = 0.7 microns
   MW_g: 54.94
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 MnF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Mn
-  Fullname: Manganese on dust, Reff = 1.4 microns
+  FullName: Manganese on dust, Reff = 1.4 microns
   MW_g: 54.94
+  Radius: 1.4e-6
 MO2:
   Background_VV: 4.0e-15
   Formula: CH3O2
@@ -3413,16 +3499,19 @@ NH4:
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
 NiF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Ni
-  Fullname: Nickel on dust. Reff = 0.7 microns
+  FullName: Nickel on dust. Reff = 0.7 microns
   MW_g: 58.69
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 NiF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Ni
-  Fullname: Nickel on dust, Reff = 1.4 microns
+  FullName: Nickel on dust, Reff = 1.4 microns
   MW_g: 58.69
+  Radius: 1.4e-6
 NIT:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.01, 0.01]
@@ -3438,27 +3527,67 @@ NIT:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-NITD1:
-  << : *DST1properties
-  FullName: Nitrate on dust, Reff = 0.7 microns
-  MW_g: 29.0
-NITD2:
-  << : *DST2properties
-  FullName: Nitrate on dust, Reff = 1.4 microns
-  MW_g: 29.0
-NITD3:
-  << : *DST3properties
-  FullName: Nitrate on dust, Reff = 2.4 microns
-  MW_g: 29.0
-NITD4:
-  << : *DST4properties
-  FullName: Nitrate on dust, Reff = 4.5 microns
-  MW_g: 29.0
+NITDbin1:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Nitrate on DSTbin1
+  MW_g: 62.01
+  Radius: 1.51e-7
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+NITDbin2:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Nitrate on DSTbin2
+  MW_g: 62.01
+  Radius: 2.53e-7
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]
+NITDbin3:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Nitrate on DSTbin3
+  MW_g: 62.01
+  Radius: 4.02e-7
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+NITDbin4:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Nitrate on DSTbin4
+  MW_g: 62.01
+  Radius: 8.18e-7
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+NITDbin5:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Nitrate on DSTbin5
+  MW_g: 62.01
+  Radius: 1.491e-6
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+NITDbin6:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Nitrate on DSTbin6
+  MW_g: 62.01
+  Radius: 2.417e-6
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+NITDbin7:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Nitrate on DSTbin7
+  MW_g: 62.01
+  Radius: 3.721e-6
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
 NITs:
   << : *SALCproperties
   FullName: Inorganic nitrates on surface of seasalt aerosol
   Is_Photolysis: true
-  MW_g: 31.4
+  MW_g: 62.01
   WD_CoarseAer: true
 'NO':
   Background_VV: 4.0e-13
@@ -3769,16 +3898,19 @@ Pb210s:
   FullName: Lead-210 isotope stratospheric-source tracer
 # Src_Vert: stratosphere
 PbF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Pb
-  Fullname: Lead on dust. Reff = 0.7 microns
+  FullName: Lead on dust. Reff = 0.7 microns
   MW_g: 210.0
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 PbF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Pb
-  Fullname: Lead on dust, Reff = 1.4 microns
+  FullName: Lead on dust, Reff = 1.4 microns
   MW_g: 210.0
+  Radius: 1.4e-6
 PCO:
   FullName: Dummy species to track production rate of CO
   Is_Gas: true
@@ -3983,7 +4115,7 @@ POG1:
   DD_F0: 0.0
   DD_Hstar: 9.5
   FullName: Lumped gas primary SVOCs
-  Henry_CF: 4700.0
+  Henry_CR: 4700.0
   Henry_K0: 9.5
   Is_DryDep: true
   Is_Gas: true
@@ -3994,7 +4126,7 @@ POG2:
   DD_F0: 0.0
   DD_Hstar: 9.5
   FullName: Lumped gas primary SVOCs
-  Henry_CF: 4700.0
+  Henry_CR: 4700.0
   Henry_K0: 9.5
   Is_DryDep: true
   Is_Gas: true
@@ -4578,14 +4710,17 @@ SF6:
   Src_Add: true
   Src_Mode: HEMCO
 SiF1:
-  << : *DST1properties
-  Fullname: Silicon on dust, Reff = 0.7 microns
+  << : *METALSproperties
+  Density: 2500.0
+  FullName: Silicon on dust, Reff = 0.7 microns
   MW_g: 28.09
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 SiF2:
-  << : *DST2properties
-  Fullname: Silicon on dust, Reff = 1.4 microns
+  << : *METALSproperties
+  Density: 2650.0
+  FullName: Silicon on dust, Reff = 1.4 microns
   MW_g: 28.09
+  Radius: 1.4e-6
 SO2:
   DD_DvzAerSnow: 0.03
   DD_DvzMinVal: [0.2, 0.3]
@@ -4631,22 +4766,62 @@ SO4:
   WD_KcScaleFac: [1.0, 0.5, 1.0]
   WD_RainoutEff: [1.0, 0.0, 1.0]
   WD_RainoutEff_Luo: [0.4, 0.0, 1.0]
-SO4D1:
-  << : *DST1properties
-  FullName: Sulfate on dust, Reff = 0.7 microns
-  MW_g: 29.0
-SO4D2:
-  << : *DST2properties
-  FullName: Sulfate on dust, Reff = 1.4 microns
-  MW_g: 29.0
-SO4D3:
-  << : *DST3properties
-  FullName: Sulfate on dust, Reff = 2.4 microns
-  MW_g: 29.0
-SO4D4:
-  << : *DST4properties
-  FullName: Sulfate on dust, Reff = 4.5 microns
-  MW_g: 29.0
+SO4Dbin1:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Sulfate on DSTbin1
+  MW_g: 96.06
+  Radius: 1.51e-7
+  WD_WashoutRainPara: [3.99e-7, 0.71]
+  WD_WashoutSnowPara: [7.28e-6, 0.57]
+SO4Dbin2:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Sulfate on DSTbin2
+  MW_g: 96.06
+  Radius: 2.53e-7
+  WD_WashoutRainPara: [4.07e-7, 0.71]
+  WD_WashoutSnowPara: [1.34e-5, 0.56]  
+SO4Dbin3:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Sulfate on DSTbin3
+  MW_g: 96.06
+  Radius: 4.02e-7
+  WD_WashoutRainPara: [4.81e-7, 0.72]
+  WD_WashoutSnowPara: [2.72e-5, 0.56]
+SO4Dbin4:
+  << : *DSTbinproperties
+  Density: 2500.0
+  FullName: Sulfate on DSTbin4
+  MW_g: 96.06
+  Radius: 8.18e-7
+  WD_WashoutRainPara: [8.43e-7, 0.73]
+  WD_WashoutSnowPara: [6.03e-5, 0.55]
+SO4Dbin5:
+  << : *DSTbinproperties
+  Density: 2650.0
+  Radius: 1.491e-6
+  FullName: Sulfate on DSTbin5
+  MW_g: 96.06
+  WD_WashoutRainPara: [4.82e-5, 0.88]
+  WD_WashoutSnowPara: [4.15e-4, 0.61]
+SO4Dbin6:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Sulfate on DSTbin6
+  MW_g: 96.06
+  Radius: 2.417e-6
+  WD_WashoutRainPara: [2.17e-4, 0.87]
+  WD_WashoutSnowPara: [1.27e-3, 0.67]
+SO4Dbin7:
+  << : *DSTbinproperties
+  Density: 2650.0
+  FullName: Sulfate on DSTbin7
+  MW_g: 96.06
+  Radius: 3.721e-6
+  WD_WashoutRainPara: [3.37e-4, 0.84]
+  WD_WashoutSnowPara: [2.42e-3, 0.73]
 SO4H1:
   Formula: SO4
   FullName: Sulfate produced by HOBr
@@ -4670,7 +4845,7 @@ SO4H4:
 SO4s:
   << : *SALCproperties
   FullName: Sulfate on surface of seasalt aerosol
-  MW_g: 31.4
+  MW_g: 96.06
   WD_CoarseAer: true
 SOAGX:
   DD_DvzAerSnow: 0.03
@@ -4752,16 +4927,19 @@ STYR:
   Is_Gas: true
   MW_g: 104.1491
 TiF1:
-  << : *DST1properties
+  << : *METALSproperties
+  Density: 2500.0
   Formula: Ti
-  Fullname: Titanium on dust, Reff = 0.7 microns
+  FullName: Titanium on dust, Reff = 0.7 microns
   MW_g: 47.87
-  WD_CoarseAer: true
+  Radius: 7.3e-7
 TiF2:
-  << : *DST2properties
+  << : *METALSproperties
+  Density: 2650.0
   Formula: Ti
-  Fullname: Titanium on dust, Reff = 1.4 microns
+  FullName: Titanium on dust, Reff = 1.4 microns
   MW_g: 47.87
+  Radius: 1.4e-6
 TLFUO2:
   Formula: C5H7O5
   Is_Gas: true
