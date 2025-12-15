@@ -37,10 +37,10 @@ COLLECTIONS: 'SpeciesConc',
              #'DryDep',
              #'JValues',
              'KppDiags',
-             #'LevelEdgeDiags',      
              #'ProdLoss',
              #'StateChm',     
-             #'StateMet',      
+             #'StateMet',
+             #'StateMetLevEdge',
              #'WetLossConv',
              #'WetLossLS',
 ::
@@ -298,30 +298,11 @@ COLLECTIONS: 'SpeciesConc',
   KppDiags.fields:        'KppError                  ',
 ::
 #==============================================================================
-# %%%%% THE LevelEdgeDiags COLLECTION %%%%%
-#
-# Diagnostics that are defined on grid box level edges
-#
-# Available for all simulations
-#==============================================================================
-  LevelEdgeDiags.template:    '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.frequency:   00000000 010000,
-  LevelEdgeDiags.duration:    00000000 120000,
-  LevelEdgeDiags.mode:        'instantaneous'
-  LevelEdgeDiags.fields:      'Met_CMFMC                     ',
-                              'Met_PEDGE                     ',
-                              'Met_PEDGEDRY                  ',
-                              'Met_PFICU                     ',
-                              'Met_PFILSAN                   ',
-                              'Met_PFLCU                     ',
-                              'Met_PFLLSAN                   ',
-::
-#==============================================================================
 # %%%%% THE ProdLoss COLLECTION %%%%%
 #
 # Chemical production and loss rates
 #
-# Available for full-chemistry, aerosol-only, tagO3, and tagCO simulations
+# Available for full-chemistry, aerosol-only, and tagO3 simulations
 #==============================================================================
   ProdLoss.template:          '%y4%m2%d2_%h2%n2z.nc4',
   ProdLoss.frequency:         00000000 010000,
@@ -378,7 +359,7 @@ COLLECTIONS: 'SpeciesConc',
 #==============================================================================
 # %%%%% The StateMet COLLECTION %%%%%
 #
-# Fields of the State_Met object (also see the LevelEdgeDiags collection)
+# Fields of the State_Met object (also see the StateMetLevEdge collection)
 #
 # Available for all simulations
 #==============================================================================
@@ -387,6 +368,25 @@ COLLECTIONS: 'SpeciesConc',
   StateMet.duration:          00000000 120000,
   StateMet.mode:              'instantaneous'
   StateMet.fields:            'Met_AD                        ',
+::
+#==============================================================================
+# %%%%% THE StateMetLevEdge COLLECTION %%%%%
+#
+# Diagnostics that are defined on grid box level edges
+#
+# Available for all simulations
+#==============================================================================
+  StateMetLevEdge.template:    '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.frequency:   00000000 010000,
+  StateMetLevEdge.duration:    00000000 120000,
+  StateMetLevEdge.mode:        'instantaneous'
+  StateMetLevEdge.fields:      'Met_CMFMC                     ',
+                               'Met_PEDGE                     ',
+                               'Met_PEDGEDRY                  ',
+                               'Met_PFICU                     ',
+                               'Met_PFILSAN                   ',
+                               'Met_PFLCU                     ',
+                               'Met_PFLLSAN                   ',
 ::
 #==============================================================================
 # %%%%% THE WetLossConv COLLECTION %%%%%

@@ -181,51 +181,6 @@ function getCarbonRemote() {
     return $?
 }
 
-
-function getCH4Local() {
-    #========================================================================
-    # Returns local restart file path for the CH4 simulation
-    #
-    # 1st argument: Local restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_ch4_local}")
-    return $?
-}
-
-
-function getCH4Remote() {
-    #========================================================================
-    # Returns remote restart file path for the CH4 simulation
-    #
-    # 1st argument: Remote restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_ch4_remote}")
-    return $?
-}
-
-
-function getCO2Local() {
-    #========================================================================
-    # Returns local restart file path for the CO2 simulation
-    #
-    # 1st argument: Local restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_co2_local}")
-    return $?
-}
-
-
-function getCO2Remote() {
-    #========================================================================
-    # Returns remote restart file path for the CO2 simulation
-    #
-    # 1st argument: Remote restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_co2_remote}")
-    return $?
-}
-
-
 function getFullchemLocal() {
     #========================================================================
     # Returns local restart file path for fullchem simulations
@@ -341,28 +296,6 @@ function getPOPsRemote() {
     echo $(join "${1}" "${RUNDIR_restarts_pops_remote}")
     return $?
 }
-
-function getTagCOLocal() {
-    #========================================================================
-    # Returns local restart file path for the TagCO simulation
-    #
-    # 1st argument: Local restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_tagco_local}")
-    return $?
-}
-
-
-function getTagCORemote() {
-    #========================================================================
-    # Returns remote restart file path for the TagCO simulation
-    #
-    # 1st argument: Remote restart file directory
-    #========================================================================
-    echo $(join "${1}" "${RUNDIR_restarts_tagco_remote}")
-    return $?
-}
-
 
 function getTagO3Local() {
     #========================================================================
@@ -492,14 +425,6 @@ function copyRestartToRunDir() {
         remote_rst=$(getCarbonRemote "${rst_root}")
 	local_rst=$(getCarbonLocal "${loc_root}")
 
-    elif [[ "x${sim_name}" == "xCH4" ]]; then
-        remote_rst=$(getCH4Remote "${rst_root}")
-        local_rst=$(getCH4Local "${loc_root}")
-
-    elif [[ "x${sim_name}" == "xCO2" ]]; then
-        remote_rst=$(getCO2Remote "${rst_root}")
-        local_rst=$(getCO2Local "${loc_root}")
-
     elif [[ "x${sim_name}" == "xfullchem" ]]; then
         # NOTE: Also handles TOMAS40 and TOMAS15
         remote_rst=$(getFullchemRemote "${sim_extra_option}" "${rst_root}")
@@ -516,10 +441,6 @@ function copyRestartToRunDir() {
     elif [[ "x${sim_name}" == "xPOPs" ]]; then
         remote_rst=$(getPOPsRemote "${rst_root}")
         local_rst=$(getPOPsLocal "${loc_root}")
-
-    elif [[ "x${sim_name}" == "xtagCO" ]]; then
-        remote_rst=$(getTagCORemote "${rst_root}")
-        local_rst=$(getTagCOLocal "${loc_root}")
 
     elif [[ "x${sim_name}" == "xtagO3" ]]; then
         remote_rst=$(getTagO3Remote "${rst_root}")
