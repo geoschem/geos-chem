@@ -57,6 +57,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Replace hardwired values with constant parameters in routine `Aerosol_Conc` (in `GeosCore/aerosol_mod.F90`
 - Updated species database so that dust species use the anchor `&DSTbin properties` and metals species use `&METALSproperties`
 - Updated call to `ExtData_Set` in `hco_gc_interface_mod.F90` to accept `ExtState%SNOMAS`
+- Upated sample carbon simulation restart file to output generated from 10-year simulation
 
 ### Fixed
 - Restored entries for TMB emissions in `HEMCO_Config.rc.fullchem` template files for GCClassic and GCHP
