@@ -279,6 +279,13 @@ fi
 
 Model_Phase=FORWARD
 
+#------------------------------------------------
+#   MAPL ExtData versions
+#------------------------------------------------
+# Set to 2G to use ExtData2G; else will use legacy ExtData
+
+ExtData_version=
+
 
 ###############################
 ####   ERROR CHECKS
@@ -575,6 +582,17 @@ print_msg "------------------"
 replace_val NX            ${NX}                 GCHP.rc
 replace_val NY            ${NY}                 GCHP.rc
 replace_val CoresPerNode  ${NUM_CORES_PER_NODE} HISTORY.rc
+
+###  Set which version of ExtData will be used
+if [[ ${ExtData_version} == "2G" ]]; then
+    replace_val USE_EXTDATA2G  .TRUE.  CAP.rc
+    replace_val USE_EXTDATA2G  .true.   GCHP.rc
+    # NOTE: updates needs to be made in this script to all places that
+    # edit ExtData.rc... extdata.yaml needs to be added.
+else
+    replace_val USE_EXTDATA2G  .FALSE. CAP.rc
+    replace_val USE_EXTDATA2G  .false. GCHP.rc
+fi
 
 ###  Make sure adjoint diagnostics (if present) are commented out if using
 ### forward model, and uncommented if using adjoint.
