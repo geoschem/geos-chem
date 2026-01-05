@@ -159,7 +159,7 @@
   State_Met%PRECANV             = PRECANV * 86400d0          ! kg/m2/s to mm/day
   State_Met%PRECTOT             = PRECTOT * 86400d0          ! kg/m2/s to mm/day
 
-    ! If meteorology vertical index is top down, flip imports coming from ExtData.
+  ! If meteorology vertical index is top down, flip imports coming from ExtData.
   if (meteorology_vertical_index_is_top_down) then
     z_lb = lbound(State_Met%CLDF,3)
     z_ub = ubound(State_Met%CLDF,3)

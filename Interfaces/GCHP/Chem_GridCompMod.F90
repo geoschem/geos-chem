@@ -137,6 +137,7 @@ MODULE Chem_GridCompMod
   TYPE(ConfigObj),        POINTER  :: HcoConfig
   CLASS(Logger),          POINTER  :: lgr => null()
   LOGICAL                          :: meteorology_vertical_index_is_top_down
+  LOGICAL                          :: use_extdata2g
 
 #if defined( MODEL_GEOS )
   ! Is GEOS-Chem the provider for AERO, RATS, and/or Analysis OX?
@@ -458,15 +459,28 @@ CONTAINS
 #endif
 
     !=======================================================================
-    ! Get meteorology vertical index orientation
+    ! Get meteorology vertical index orientation, dependent on which
+    ! MAPL ExtData is used
     !=======================================================================
-    call ESMF_ConfigGetAttribute(myState%myCF,value=meteorology_vertical_index_is_top_down, &
-    label='METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN:', Default=.false., __RC__ )
-    if (meteorology_vertical_index_is_top_down) then
-       call lgr%info('Configured to expect ''top-down'' meteorological data from ''ExtData''')
+    call ESMF_ConfigGetAttribute(myState%myCF,value=use_extdata2g, &
+         label='USE_EXTDATA2G:', Default=.false., __RC__ )
+
+    ! If using MAPL ExtData2G then meteorology imports are always bottom up
+    ! due to automatic flipping in MAPL
+    if ( use_extdata2g ) then
+       meteorology_vertical_index_is_top_down = .false.
+       call lgr%info('Using MAPL ExtData2G; all ''top-down'' meteorological data will be automatically flipped to ''bottom-up'' prior to exporting to other gridcomps.')
     else
-       call lgr%info('Configured to expect ''bottom-up'' meteorological data from ''ExtData''')
-    end if
+       call ESMF_ConfigGetAttribute(myState%myCF,            &
+            value=meteorology_vertical_index_is_top_down,    &
+            label='METEOROLOGY_VERTICAL_INDEX_IS_TOP_DOWN:', &
+            Default=.false., __RC__ )
+       if (meteorology_vertical_index_is_top_down) then
+          call lgr%info('Configured to expect ''top-down'' meteorological data from ''ExtData''')
+       else
+          call lgr%info('Configured to expect ''bottom-up'' meteorological data from ''ExtData''')
+       end if
+    endif
 
 #if defined( MODEL_GEOS )
     ! Define imports to fill met fields needed for lightning
