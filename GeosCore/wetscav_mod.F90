@@ -5449,10 +5449,31 @@ CONTAINS
 !
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    REAL(fp)                      :: BAD !TL Added: 9/29/25: WetDep-Safety-Update
 
     !======================================================================
     ! SAFETY begins here!
     !======================================================================
+
+    ! TL Added: 9/29/25: Start WetDep-Safety-Update 
+    ! TL Added: 9/29/25: Following suggestion by yantosca (https://github.com/geoschem/geos-chem/issues/501)
+    ! TL Added: 9/29/25: To see if actually entering Safety
+    PRINT*, '>>> Entering SAFETY for species ', N
+    CALL FLUSH(6)
+
+    BAD = 0.0
+    ! TL Added: 9/29/25: WetDep-Safety-Update
+    IF ( MINVAL(Spc) < 0.0_fp) THEN
+       BAD = 1.0
+       PRINT*, 'Species', N, 'has a negative value',  &
+                  'at ', I, J, L, 'set to zero'
+    ENDIF
+
+    WHERE ( Spc < 0.0_fp )
+       ! Fix The Negative
+       Spc = 0.0_fp
+    ENDWHERE
+    !TL Added: 9/29/25: End WetDep-Safety-Update
 
     ! Initialize
     RC      = GC_SUCCESS

@@ -4,6 +4,11 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [14.6.3] - 2026-01-14
+### Added
+- TL Added a way for SAFETY in /GeosCore/wetscav_mod.F90 to set anything that is small or negative to a zero when it finds a case following suggestion by yantosca (https://github.com/geoschem/geos-chem/issues/501#) 
+Added for errors like: https://github.com/geoschem/geos-chem/issues/501#, https://github.com/geoschem/geos-chem/issues/259, https://github.com/geoschem/geos-chem/issues/2991, https://github.com/geoschem/geos-chem/issues/2663, https://github.com/geoschem/geos-chem/issues/259, https://github.com/geoschem/geos-chem/issues/610, https://github.com/geoschem/geos-chem/issues/759, https://github.com/geoschem/geos-chem/issues/2440, and the like 
+
 ## [14.6.3] - 2025-07-28
 ### Added
 - Added error check to exclude sampling ObsPack observations located outside of a nested-grid domain
