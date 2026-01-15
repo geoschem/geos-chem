@@ -716,14 +716,14 @@ HcoConvectiveCloudTopHeight     -1 103 -1 -1 2 level           Convective_cloud_
 #=============================
 # NOTE: Uncomment InvDustL23M_TDST if you wish to obtain total
 # dust emissions from HEMCO standalone simulations
-##InvDustL23M_TDST            TDST      105  -1  -1  2   kg/m2/s  Total_dust_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin1         DSTbin1   105  -1  -1  2   kg/m2/s  DSTbin1_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin2         DSTbin2   105  -1  -1  2   kg/m2/s  DSTbin2_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin3         DSTbin3   105  -1  -1  2   kg/m2/s  DSTbin3_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin4         DSTbin4   105  -1  -1  2   kg/m2/s  DSTbin4_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin5         DSTbin5   105  -1  -1  2   kg/m2/s  DSTbin5_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin6         DSTbin6   105  -1  -1  2   kg/m2/s  DSTbin6_emission_flux_from_DustL23M_extension
-#InvDustL23M_DSTbin7         DSTbin7   105  -1  -1  2   kg/m2/s  DSTbin7_emission_flux_from_DustL23M_extension
+##InvDustL23M_TDST            TDST      125  -1  -1  2   kg/m2/s  Total_dust_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin1         DSTbin1   125  -1  -1  2   kg/m2/s  DSTbin1_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin2         DSTbin2   125  -1  -1  2   kg/m2/s  DSTbin2_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin3         DSTbin3   125  -1  -1  2   kg/m2/s  DSTbin3_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin4         DSTbin4   125  -1  -1  2   kg/m2/s  DSTbin4_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin5         DSTbin5   125  -1  -1  2   kg/m2/s  DSTbin5_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin6         DSTbin6   125  -1  -1  2   kg/m2/s  DSTbin6_emission_flux_from_DustL23M_extension
+#InvDustL23M_DSTbin7         DSTbin7   125  -1  -1  2   kg/m2/s  DSTbin7_emission_flux_from_DustL23M_extension
 
 #===================================
 # DEAD (dust) Extension, for TOMAS
