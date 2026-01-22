@@ -3735,8 +3735,8 @@ CONTAINS
     ENDIF
 
 #if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
-   !setup shared mamory
-   ! Initialize window handles
+    ! Setup shared memory
+    ! Initialize window handles
     win_C_1D = MPI_WIN_NULL
     win_RCONST_1D = MPI_WIN_NULL
     win_ICNTRL_1D = MPI_WIN_NULL
