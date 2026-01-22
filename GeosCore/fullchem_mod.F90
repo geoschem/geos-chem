@@ -252,12 +252,13 @@ CONTAINS
     REAL(dp)               :: C_before_integrate(NSPEC)
     REAL(dp)               :: local_RCONST(NREACT)
 
+#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
     ! Local copy of all necessary KPP inputs
     INTEGER                :: IJL_to_Idx(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
     ! All the KPP inputs remapped to a 1-D array
     INTEGER                :: NCELL, NCELL_local, I_CELL
-
+#endif
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
