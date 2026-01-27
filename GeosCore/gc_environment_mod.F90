@@ -625,8 +625,9 @@ CONTAINS
     !-----------------------------------------------------------------
     ! Fullchem via KPP
     !-----------------------------------------------------------------
+
     IF ( Input_Opt%ITS_A_FULLCHEM_SIM ) THEN
-       CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
+       CALL Init_FullChem( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in "Init_FullChem"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )

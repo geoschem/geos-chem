@@ -17,6 +17,11 @@ MODULE FullChem_Mod
 !
   USE Precision_Mod
 
+#if defined(MPI_LOAD_BALANCE)
+  USE MPI
+  USE, INTRINSIC :: ISO_C_BINDING
+#endif
+
   IMPLICIT NONE
   PRIVATE
 !
@@ -82,6 +87,49 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvCountMon(:,:,:  )
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
+
+#if defined(MPI_LOAD_BALANCE)
+  ! For load balancing
+   INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
+   REAL(KIND=fp), POINTER :: C_1D(:,:)
+   REAL(KIND=fp), POINTER :: RCONST_1D(:,:)
+   INTEGER, POINTER       :: ICNTRL_1D(:,:)
+   REAL(KIND=fp), POINTER :: RCNTRL_1D(:,:)
+   INTEGER, POINTER       :: ISTATUS_1D(:,:)
+   REAL(KIND=fp), POINTER :: RSTATE_1D(:,:)
+   INTEGER, POINTER       :: cell_status(:)
+
+  ! MPI Shared Memory parameters
+   INTEGER :: shm_comm, shm_rank, shm_size, nrcntrl, nicntrl, nistatus, nrstate
+   INTEGER :: offset
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: size
+   INTEGER :: disp, ierr
+
+   ! Shared memory window handles
+   INTEGER :: win_C_1D, win_RCONST_1D
+   INTEGER :: win_ICNTRL_1D, win_RCNTRL_1D, win_ISTATUS_1D
+   INTEGER :: win_RSTATE_1D, win_next_cell_index, win_cell_status
+
+   ! flat pointers returned by MPI (INTEGER addresses)
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: C_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: RCONST_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: ICNTRL_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: RCNTRL_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: ISTATUS_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: RSTATE_1D_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: cell_status_flat_int
+   INTEGER(KIND=MPI_ADDRESS_KIND) :: next_cell_index_int   ! scalar
+
+   !Temporary C_PTRs (needed for TRANSFER to C_F_POINTER)
+   TYPE(C_PTR) :: C_1D_flat_ptr
+   TYPE(C_PTR) :: RCONST_1D_flat_ptr, ICNTRL_1D_flat_ptr
+   TYPE(C_PTR) :: RCNTRL_1D_flat_ptr, ISTATUS_1D_flat_ptr
+   TYPE(C_PTR) :: RSTATE_1D_flat_ptr, cell_status_flat_ptr
+   TYPE(C_PTR) :: next_cell_index_ptr
+
+   INTEGER, POINTER               :: next_cell_index        ! Fortran scalar
+   INTEGER :: NCELL_MAX, NCELL_TOTAL
+#endif   
 
 CONTAINS
 !EOC
@@ -204,6 +252,13 @@ CONTAINS
     REAL(dp)               :: C_before_integrate(NSPEC)
     REAL(dp)               :: local_RCONST(NREACT)
 
+#if defined(MPI_LOAD_BALANCE)
+    ! Local copy of all necessary KPP inputs
+    INTEGER                :: IJL_to_Idx(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
+
+    ! All the KPP inputs remapped to a 1-D array
+    INTEGER                :: NCELL, NCELL_local, I_CELL
+#endif
     ! For tagged CO saving
     REAL(fp)               :: LCH4, PCO_TOT, PCO_CH4, PCO_NMVOC
 
@@ -244,6 +299,12 @@ CONTAINS
 
     ! Suppress printing out KPP error messages after this many errors occur
     INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
+   
+#if defined(MPI_LOAD_BALANCE)
+    INTEGER :: origin_val, fetched_value
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: disp
+#endif
+   
 
     !========================================================================
     ! Do_FullChem begins here!
@@ -486,6 +547,23 @@ CONTAINS
     ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
+#if defined(MPI_LOAD_BALANCE)
+    ! For load balancing
+    NCELL_local = offset
+
+    ! Indexing
+    IJL_to_Idx   = 0
+    Idx_to_IJL   = 0
+
+    C_1D(:,offset+1:offset+NCELL_MAX)         = 0.0_fp
+    RCONST_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
+    ICNTRL_1D(:,offset+1:offset+NCELL_MAX)    = 0
+    RCNTRL_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
+    ISTATUS_1D(:,offset+1:offset+NCELL_MAX)   = 0
+    RSTATE_1D(:,offset+1:offset+NCELL_MAX)    = 0.0_fp
+    cell_status(offset+1:offset+NCELL_MAX)    = 1
+#endif
+
     !=======================================================================
     ! %%%%% SOLVE CHEMISTRY -- This is the main KPP solver loop %%%%%
     !=======================================================================
@@ -516,8 +594,9 @@ CONTAINS
 #endif
 
     !========================================================================
-    ! MAIN LOOP: Compute reaction rates and call chemical solver
+    ! MERGED MAIN LOOP: Compute reaction rates and call chemical solver
     !
+    ! For OpenMP builds:
     ! Variables not listed here are held THREADPRIVATE in gckpp_Global.F90
     ! !$OMP COLLAPSE(3) vectorizes the loop and !$OMP DYNAMIC(24) sends
     ! 24 boxes at a time to each core... then when that core is finished,
@@ -553,10 +632,8 @@ CONTAINS
        ! Other private variables will be assigned in Set_Kpp_GridBox_Values
        !=====================================================================
        IERR      = 0                        ! KPP success or failure flag
-       ISTATUS   = 0.0_dp                   ! Rosenbrock output
        ICNTRL    = 0                        ! Rosenbrock input (integer)
        RCNTRL    = 0.0_fp                   ! Rosenbrock input (real)
-       RSTATE    = 0.0_dp                   ! Rosenbrock output
        SO4_FRAC  = 0.0_fp                   ! Frac of SO4 avail for photolysis
        P         = 0                        ! GEOS-Chem photolyis species ID
        LCH4      = 0.0_fp                   ! P/L diag: Methane loss rate
@@ -579,6 +656,11 @@ CONTAINS
 #ifndef NO_OMP
        Thread    = OMP_GET_THREAD_NUM() + 1 ! OpenMP thread number
 #endif
+#endif
+
+#ifndef MPI_LOAD_BALANCE
+       ISTATUS   = 0.0_dp                   ! Rosenbrock output
+       RSTATE    = 0.0_dp                   ! Rosenbrock output
 #endif
 
 #ifdef KPP_INTEGRATOR_AUTOREDUCE
@@ -1014,6 +1096,19 @@ CONTAINS
                                               ICNTRL,    RCNTRL             )
 #endif
 
+#if defined(MPI_LOAD_BALANCE)
+       !=====================================================================
+       ! Rather than integrating, make a note of how many cells we actually have
+       !=====================================================================
+       NCELL_local = NCELL_local + 1
+       C_1D(:,NCELL_local)      = C(:)
+       RCONST_1D(:,NCELL_local) = RCONST(:)
+       ICNTRL_1D(:,NCELL_local) = ICNTRL(:)
+       RCNTRL_1D(:,NCELL_local) = RCNTRL(:)
+
+       IJL_to_Idx(I,J,L) = NCELL_local !map to shared memory
+       cell_status(NCELL_local) = cell_status(NCELL_local) - 1
+#else
        !=====================================================================
        ! Integrate the box forwards
        !=====================================================================
@@ -1545,6 +1640,594 @@ CONTAINS
           ENDIF
 
        ENDIF
+#endif
+    ENDDO ! I
+    ENDDO ! J
+    ENDDO ! L
+    !$OMP END PARALLEL DO
+
+
+
+#if defined(MPI_LOAD_BALANCE)
+   !=====================================================================
+   ! Shared integrate the box forwards
+   !=====================================================================
+   ! initialize shared counter
+   IF (shm_rank == 0) THEN
+      next_cell_index = 1
+   END IF
+
+   ! flush processor caches for every window 
+   ! Start access epochs for all shared-memory windows
+   CALL MPI_Win_lock_all(0, win_C_1D, RC)
+   CALL MPI_Win_lock_all(0, win_RCONST_1D, RC)
+   CALL MPI_Win_lock_all(0, win_ICNTRL_1D, RC)
+   CALL MPI_Win_lock_all(0, win_RCNTRL_1D, RC)
+   CALL MPI_Win_lock_all(0, win_ISTATUS_1D, RC)
+   CALL MPI_Win_lock_all(0, win_RSTATE_1D, RC)
+   CALL MPI_Win_lock_all(0, win_cell_status, RC)
+   CALL MPI_Win_lock_all(0, win_next_cell_index, RC)
+   
+   ! Ensure memory visibility of written shared-memory data
+   CALL MPI_Win_sync(win_C_1D,           RC)
+   CALL MPI_Win_sync(win_RCONST_1D,      RC)
+   CALL MPI_Win_sync(win_ICNTRL_1D,      RC)
+   CALL MPI_Win_sync(win_RCNTRL_1D,      RC)
+   CALL MPI_Win_sync(win_ISTATUS_1D,     RC)
+   CALL MPI_Win_sync(win_RSTATE_1D,      RC)
+   CALL MPI_Win_sync(win_cell_status,    RC)
+   CALL MPI_Win_sync(win_next_cell_index,RC)
+   
+   ! End access epochs
+   CALL MPI_Win_unlock_all(win_C_1D, RC)
+   CALL MPI_Win_unlock_all(win_RCONST_1D, RC)
+   CALL MPI_Win_unlock_all(win_ICNTRL_1D, RC)
+   CALL MPI_Win_unlock_all(win_RCNTRL_1D, RC)
+   CALL MPI_Win_unlock_all(win_ISTATUS_1D, RC)
+   CALL MPI_Win_unlock_all(win_RSTATE_1D, RC)
+   CALL MPI_Win_unlock_all(win_cell_status, RC)
+   CALL MPI_Win_unlock_all(win_next_cell_index, RC)
+   
+   ! wait until all processors writes data to memory
+   CALL MPI_Barrier(shm_comm, RC)
+   IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Barrier failed', RC, ThisLoc)
+      RETURN
+   ENDIF
+
+    !$OMP PARALLEL DO                                                        &
+    !$OMP DEFAULT( SHARED                                                   )&
+    !$OMP PRIVATE( I,        J,        L,       N                           )&
+    !$OMP PRIVATE( ICNTRL,   C_before_integrate                             )&
+    !$OMP PRIVATE( SO4_FRAC, IERR,     RCNTRL,  ISTATUS,   RSTATE           )&
+    !$OMP PRIVATE( SpcID,    KppID,    F,       P,         Vloc             )&
+    !$OMP PRIVATE( Aout,     Thread,   RC,      S,         LCH4             )&
+    !$OMP PRIVATE( OHreact,  PCO_TOT,  PCO_CH4, PCO_NMVOC, SR               )&
+    !$OMP PRIVATE( SIZE_RES, LWC                                            )&
+#ifdef MODEL_GEOS
+    !$OMP PRIVATE( NOxTau,     NOxConc, NOx_weight, NOx_tau_weighted        )&
+#endif
+    !$OMP COLLAPSE( 3                                                       )&
+    !$OMP SCHEDULE( DYNAMIC, 24                                             )&
+    !$OMP REDUCTION( +:errorCount                                           )
+
+   origin_val = 1                      ! add 1 each time
+   disp       = 0_MPI_ADDRESS_KIND     ! first integer in the window
+   CALL MPI_Win_lock_all(MPI_MODE_NOCHECK, win_next_cell_index, ierr)
+   DO
+      CALL MPI_Fetch_and_op(origin_val, fetched_value, MPI_INTEGER, 0, disp,  &
+                           MPI_SUM, win_next_cell_index, ierr)
+
+      ! CALL MPI_Win_sync(win_next_cell_index, ierr)
+      CALL MPI_Win_flush_local(0, win_next_cell_index, ierr)
+
+      ! WRITE (*,*) 'Rank', shm_rank, 'got ticket', fetched_value
+      IF (fetched_value > NCELL_total) EXIT
+      
+      I_CELL = fetched_value
+      IF (cell_status(I_CELL) > 0) CYCLE
+
+      cell_status(I_CELL) = cell_status(I_CELL) + 1
+ 
+       ! Skip to the end of the loop if we have failed integration twice
+       IF ( Failed2x ) CYCLE
+
+       ISTATUS   = 0.0_dp                   ! Rosenbrock output
+       RSTATE    = 0.0_dp                   ! Rosenbrock output
+       IERR = 0
+
+       ! Load in data from saved arrays
+       RCONST(:)   = RCONST_1D(:,I_CELL)
+       C(:)        = C_1D(:,I_CELL)
+       ICNTRL(:)   = ICNTRL_1D(:,I_CELL)
+       RCNTRL(:)   = RCNTRL_1D(:,I_CELL)
+
+       C_before_integrate(:) = C(:)
+
+       ! Call the KPP integrator
+       ! NOTE: Some integrators (like LSODE) will overwrite the TIN value
+       ! upon exit.  To prevent this, pass 0.0, DT as the 1st 2 arguments.
+       CALL Integrate( 0.0_dp, DT, ICNTRL, RCNTRL, ISTATUS, RSTATE, IERR )
+
+       ! Add to diagnostic arrays
+       RSTATE_1D(:,I_CELL)  = RSTATE(:)
+       ISTATUS_1D(:,I_CELL) = ISTATUS(:)
+
+       ! Print grid box indices to screen if integrate failed
+       IF ( IERR < 0 ) THEN
+
+          ! Turn off error output after a certain limit is reached
+          IF ( .not. doSuppress ) THEN
+             WRITE( 6, * ) '### INTEGRATE RETURNED ERROR AT: ', I, J, L
+             errorCount = errorCount + 1
+             IF ( errorCount > INTEGRATE_FAIL_TOGGLE ) THEN
+                WRITE( 6, '(a)' ) &
+                   '### Further error output has been switched off'
+                doSuppress = .TRUE.
+             ENDIF
+          ENDIF
+
+          !=====================================================================
+          ! Try another time if it failed
+          !=====================================================================
+
+          ! Zero the first time step (Hstart, used by Rosenbrock).  Also reset
+          ! C with concentrations prior to the 1st call to "Integrate".
+          RCNTRL(3) = 0.0_dp
+          C         = C_before_integrate
+
+#if defined( MODEL_GEOS )
+          ! In GEOS also inflate the error tolerances (cakelle2, 2023/10/26)
+          ATOL = 1.0e-2_dp * Input_Opt%KppTolScale
+          RTOL = 1.0e-2_dp * Input_Opt%KppTolScale
+#endif
+
+          ! Disable auto-reduce solver for the second iteration for safety
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             RCNTRL(12) = -1.0_dp ! without using ICNTRL
+          ENDIF
+
+          ! Update rates again
+          ! NOT POSSIBLE - relevant arrays no longer exist
+          !CALL Update_RCONST( )
+          RCONST(:) = RCONST_1D(:,I_CELL)
+
+
+          ! Call the integrator
+          ! NOTE: Some integrators (like LSODE) will overwrite the TIN value
+          ! upon exit.  To prevent this, pass 0.0, DT as the 1st 2 arguments.
+          CALL Integrate( 0.0_dp, DT, ICNTRL, RCNTRL, ISTATUS, RSTATE, IERR )
+
+
+          ! Again, store ISTATUS and RSTATE
+          ! ISTATUS is all counts
+          ISTATUS_1D(:,I_CELL) = ISTATUS_1D(:,I_CELL) + ISTATUS(:)
+          RSTATE_1D(:,I_CELL) = RSTATE(:)
+
+          !==================================================================
+          ! Exit upon the second failure
+          !==================================================================
+          IF ( IERR < 0 ) THEN
+
+             ! Print error message
+             WRITE(6,     '(a   )' ) '## INTEGRATE FAILED TWICE !!! '
+             WRITE(ERRMSG,'(a,i3)' ) 'Integrator error code :', IERR
+
+#if defined( MODEL_GEOS ) || defined( MODEL_WRF ) || defined( MODEL_CESM )
+             IF ( Input_Opt%KppStop ) THEN
+                CALL ERROR_STOP(ERRMSG, 'INTEGRATE_KPP')
+             ELSE
+                ! Revert to concentrations prior to 1st call to "Integrate"
+                C = C_before_integrate
+             ENDIF
+
+             !! Keep track of error boxes
+             !IF ( State_Diag%Archive_KppError ) THEN
+             !   State_Diag%KppError(I,J,L) = State_Diag%KppError(I,J,L) + 1.0
+             !ENDIF
+#else
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+             ! Make sure only one thread at a time executes this block
+             !$OMP CRITICAL
+             !
+             ! Set a flag to break out of loop gracefully
+             ! NOTE: You can set a GDB breakpoint here to examine the error
+             Failed2x = .TRUE.
+
+             ! Print concentrations at failure grid box
+             PRINT*, REPEAT( '#', 79 )
+             PRINT*, '### KPP DEBUG OUTPUT!'
+             PRINT*, '### Species concentrations'! at problem box ', I, J, L
+             PRINT*, REPEAT( '#', 79 )
+             DO N = 1, NSPEC
+                PRINT*, C(N), TRIM( ADJUSTL( SPC_NAMES(N) ) )
+             ENDDO
+
+             ! Print rate constants at failure grid box
+             PRINT*, REPEAT( '#', 79 )
+             PRINT*, '### KPP DEBUG OUTPUT!'
+             PRINT*, '### Reaction rates'! at problem box ', I, J, L
+             PRINT*, REPEAT( '#', 79 )
+             DO N = 1, NREACT
+                PRINT*, RCONST(N), TRIM( ADJUSTL( EQN_NAMES(N) ) )
+             ENDDO
+             !
+             !$OMP END CRITICAL
+             !%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+             ! Start skipping to end of loop upon 2 failures in a row
+             CYCLE
+#endif
+          ENDIF
+
+       ENDIF
+
+       !=====================================================================
+       ! Continue upon successful return...
+       !=====================================================================
+
+       ! Revert Alkalinity (only when using sulfur chemistry in KPP)
+       IF ( .not. State_Chm%Do_SulfateMod_SeaSalt ) THEN
+          CALL fullchem_ConvertEquivToAlk()
+       ENDIF
+
+       ! Copy C back into C_1D
+       C_1D(:,I_CELL) = C(:)
+       RCONST_1D(:,I_CELL) = RCONST(:)
+    ENDDO
+
+    !end access epoch
+    CALL MPI_Win_unlock_all(win_next_cell_index, ierr)
+
+    CALL MPI_Barrier(shm_comm, RC)
+    IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Barrier failed', RC, ThisLoc)
+      RETURN
+    ENDIF
+
+    DO L = 1, State_Grid%NZ
+    DO J = 1, State_Grid%NY
+    DO I = 1, State_Grid%NX
+       ! Figure out which cell the data should be allocated to
+       N       = IJL_to_Idx(I,J,L)
+      !  WRITE (6,'(A,I4,A,3(I6,1X),A,I8)') 'shm_rank=', shm_rank, '  I,J,L=', I, J, L, '  NCELL_local=', N
+
+       If (N.le.0) Cycle
+
+       ! Copy data back in
+       C       = C_1D(:,N)
+       RCONST  = RCONST_1D(:,N)
+       RSTATE  = RSTATE_1D(:,N)
+       ISTATUS = ISTATUS_1D(:,N)
+
+       ! Save Hnew (the last predicted but not taken step) from the 3rd slot
+       ! of RSTATE into State_Chm so that it can be written to the restart
+       ! file.  For simulations that are broken into multiple stages,
+       ! Hstart will be initialized to the value of Hnew from the restart
+       ! file at startup (see above).
+       State_Chm%KPPHvalue(I,J,L) = RSTATE(Nhnew)
+
+       ! Save cpu time spent for bulk of KPP-related routines for 
+       ! History archival (hplin, 11/8/21)
+       IF ( State_Diag%Archive_KppTime ) THEN
+         call cpu_time(TimeEnd)
+         State_Diag%KppTime(I,J,L) = TimeEnd - TimeStart
+       ENDIF
+
+       !=====================================================================
+       ! HISTORY: Archive KPP solver diagnostics
+       !
+       ! !TODO: Abstract this into a separate routine
+       !=====================================================================
+       IF ( State_Diag%Archive_KppDiags ) THEN
+
+          ! Check for negative concentrations after first integration
+          IF ( State_Diag%Archive_KppNegatives0 ) THEN
+             State_Diag%KppNegatives0(I,J,L) = REAL( COUNT( C < 0.0_dp ), KIND=4 )
+          ENDIF
+
+          ! # of integrator calls
+          IF ( State_Diag%Archive_KppIntCounts ) THEN
+             State_Diag%KppIntCounts(I,J,L) = ISTATUS(1)
+          ENDIF
+
+          ! # of times Jacobian was constructed
+          IF ( State_Diag%Archive_KppJacCounts ) THEN
+             State_Diag%KppJacCounts(I,J,L) = ISTATUS(2)
+          ENDIF
+
+          ! # of internal timesteps
+          IF ( State_Diag%Archive_KppTotSteps ) THEN
+             State_Diag%KppTotSteps(I,J,L) = ISTATUS(3)
+          ENDIF
+
+          ! # of accepted internal timesteps
+          IF ( State_Diag%Archive_KppAccSteps ) THEN
+             State_Diag%KppAccSteps(I,J,L) = ISTATUS(4)
+          ENDIF
+
+          ! # of rejected internal timesteps
+          IF ( State_Diag%Archive_KppRejSteps ) THEN
+             State_Diag%KppRejSteps(I,J,L) = ISTATUS(5)
+          ENDIF
+
+          ! # of LU-decompositions
+          IF ( State_Diag%Archive_KppLuDecomps ) THEN
+             State_Diag%KppLuDecomps(I,J,L) = ISTATUS(6)
+          ENDIF
+
+          ! # of forward and backwards substitutions
+          IF ( State_Diag%Archive_KppSubsts ) THEN
+             State_Diag%KppSubsts(I,J,L) = ISTATUS(7)
+          ENDIF
+
+          ! # of singular-matrix decompositions
+          IF ( State_Diag%Archive_KppSmDecomps ) THEN
+             State_Diag%KppSmDecomps(I,J,L) = ISTATUS(8)
+          ENDIF
+
+         ! ! rank of column
+         !  IF ( State_Diag%Archive_KppRank ) THEN
+         !     State_Diag%KppRank(I,J,L) = Input_Opt%thisCPU
+         !  ENDIF
+
+         !  ! index of column on rank
+         !  IF ( State_Diag%Archive_KppIndexOnRank ) THEN
+         !     State_Diag%KppIndexOnRank(I,J,L) = N - offset
+         !  ENDIF
+          
+#ifdef KPP_INTEGRATOR_AUTOREDUCE
+          ! Update autoreduce solver statistics
+          ! (only if the autoreduction is turned on)
+          IF ( Input_Opt%Use_AutoReduce ) THEN
+             CALL fullchem_AR_UpdateKppDiags( I, J, L, RSTATE, State_Diag )
+          ENDIF
+#endif
+       ENDIF
+
+       ! Write chemical state to file for the kpp standalone interface
+       ! No external logic needed, this subroutine exits early if the
+       ! chemical state should not be printed (psturm, 03/23/24)
+       CALL KppSa_Write_Samples(                                             &
+            I            = I,                                                &
+            J            = J,                                                &
+            L            = L,                                                &
+            initC        = C_before_integrate,                               &
+            localRCONST  = local_RCONST,                                     &
+            initHvalue   = KPPH_before_integrate,                            &
+            exitHvalue   = RSTATE(Nhexit),                                   &
+            ICNTRL       = ICNTRL,                                           &
+            RCNTRL       = RCNTRL,                                           &
+            State_Grid   = State_Grid,                                       &
+            State_Chm    = State_Chm,                                        &
+            State_Met    = State_Met,                                        &
+            Input_Opt    = Input_Opt,                                        &
+            KPP_TotSteps = ISTATUS(3),                                       &
+            RC           = RC                                               )
+
+       !=====================================================================
+       ! Check we have no negative values and copy the concentrations
+       ! calculated from the C array back into State_Chm%Species%Conc
+       !=====================================================================
+
+       ! Loop over KPP species
+       DO N = 1, NSPEC
+
+          ! GEOS-Chem species ID
+          SpcID = State_Chm%Map_KppSpc(N)
+
+          ! Skip if this is not a GEOS-Chem species
+          IF ( SpcID <= 0 ) CYCLE
+
+          ! Scan for negatives
+          IF ( State_Diag%Archive_KppNegatives ) THEN
+             IF ( C(N) < 0.0_dp ) THEN 
+                State_Diag%KppNegatives(I,J,L) = State_Diag%KppNegatives(I,J,L) + 1.0_f4
+             ENDIF
+          ENDIF
+
+          ! Set negative concentrations to zero
+          C(N) = MAX( C(N), 0.0_dp )
+
+          ! Copy concentrations back into State_Chm%Species
+          State_Chm%Species(SpcID)%Conc(I,J,L) = REAL( C(N), kind=fp )
+
+       ENDDO
+
+#ifdef TOMAS
+       !-----------------------------------------------------------------
+       ! FOR TOMAS MICROPHYSICS:
+       !
+       ! Obtain P/L with a unit [kg S] for tracing
+       ! gas-phase sulfur species production (SO2, SO4, MSA)
+       ! (win, 8/4/09)
+       !-----------------------------------------------------------------
+
+       ! Calculate H2SO4 production rate [kg s-1] in each
+       ! time step (win, 8/4/09)
+       H2SO4_RATE(I,J,L) = C(ind_PH2SO4) / AVO * 98.e-3_fp * &
+                           State_Met%AIRVOL(I,J,L)    * &
+                           1.0e+6_fp / DT  ! kg s-1 box-1
+
+       IF ( H2SO4_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_RATE negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", H2SO4_RATE(I,J,L), "  setting to 0.0d0"
+          H2SO4_RATE(I,J,L) = 0.0d0
+       ENDIF
+
+       PSO4AQ_RATE(I,J,L) = C(ind_PSO4AQ) / AVO * 98.e-3_fp * &
+                            State_Met%AIRVOL(I,J,L)    * &
+                            1.0e+6_fp ! kg per timestep box-1
+
+       IF ( PSO4AQ_RATE(I,J,L) < 0.0d0) THEN
+          write(*,*) "PSO4AQ_RATE negative in fullchem_mod.F90", &
+               I, J, L, "was:", PSO4AQ_RATE(I,J,L), "  setting to 0.0d0"
+          PSO4AQ_RATE(I,J,L) = 0.0d0
+       ENDIF
+#endif
+
+#ifdef MODEL_CESM
+       !---------------------------------------------------------------------
+       ! Calculate H2SO4 production rate for coupling to CESM 
+       ! (interface to MAM4 nucleation)
+       !---------------------------------------------------------------------
+
+       ! mol/mol = molec cm-3 * g * mol(Air)-1 * kg g-1 * m-3 cm3 / (molec mol-1 * kg m-3) = mol/molAir
+       State_Chm%H2SO4_PRDR(I,J,L) = C(id_PSO4) * AIRMW * 1e-3_fp * 1.0e+6_fp /&
+                                     (AVO * State_Met%AIRDEN(I,J,L))
+
+       IF ( State_Chm%H2SO4_PRDR(I,J,L) < 0.0d0) THEN
+          write(*,*) "H2SO4_PRDR negative in fullchem_mod.F90!!", &
+               I, J, L, "was:", State_Chm%H2SO4_PRDR(I,J,L), "  setting to 0.0d0"
+          State_Chm%H2SO4_PRDR(I,J,L) = 0.0d0
+       ENDIF
+#endif
+
+#ifdef MODEL_GEOS
+       !--------------------------------------------------------------------
+       ! Archive NOx lifetime [h]
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
+       !--------------------------------------------------------------------
+       IF ( State_Diag%Archive_NoxTau .OR. State_Diag%Archive_TropNOxTau ) THEN
+          CALL Fun( V       = C(1:NVAR),                                     &
+                    F       = C(NVAR+1:NSPEC),                               &
+                    RCT     = RCONST,                                        &
+                    Vdot    = Vloc,                                          &
+                    Aout    = Aout                                          )
+          NOxTau = Vloc(ind_NO) + Vloc(ind_NO2) + Vloc(ind_NO3)         &
+                 + 2.*Vloc(ind_N2O5) + Vloc(ind_ClNO2) + Vloc(ind_HNO2) &
+                 + Vloc(ind_HNO4)
+          NOxConc = C(ind_NO) + C(ind_NO2) + C(ind_NO3) + 2.*C(ind_N2O5)         &
+                  + C(ind_ClNO2) + C(ind_HNO2) + C(ind_HNO4)
+          ! NOx chemical lifetime per grid cell
+          IF ( State_Diag%Archive_NoxTau ) THEN
+             NoxTau = ( NOxConc / (-1.0_f4*NOxTau) ) / 3600.0_f4
+             IF ( NoxTau > 0.0_f4 ) THEN
+                State_Diag%NOxTau(I,J,L) = min(1.0e10_f4,max(1.0e-10_f4,NOxTau))
+             ELSE
+                State_Diag%NOxTau(I,J,L) = max(-1.0e10_f4,min(-1.0e-10_f4,NOxTau))
+             ENDIF
+          ENDIF
+          ! NOx chemical lifetime per trop. column
+          IF ( State_Diag%Archive_TropNOxTau ) THEN
+             NOx_weight = ( NOxConc )*State_Met%AIRDEN(I,J,L)*State_Met%DELP_DRY(I,J,L)
+             NOx_tau_weighted = ( NOxConc / ( -1.0_f4*NOxTau*3600.0_f4 ) )*NOx_weight
+             IF ( ABS(NOx_tau_weighted) < 1.0e8 ) THEN
+               NOx_tau_weighted = ( NINT(NOx_tau_weighted)*1.0e6 )*1.0e-6_f4
+             ELSE
+                IF ( NOx_tau_weighted > 0.0 ) THEN
+                   NOx_tau_weighted = 1.0e8
+                ELSE
+                   NOx_tau_weighted = -1.0e8
+                ENDIF
+             ENDIF
+             IF ( State_Met%InTroposphere(I,J,L) ) THEN
+               TROPv_NOx_mass(I,J) = TROPv_NOx_mass(I,J) + NOx_weight
+               TROPv_NOx_tau(I,J)  = TROPv_NOx_tau(I,J) + NOx_tau_weighted
+             ENDIF
+          ENDIF
+       ENDIF
+#endif
+
+       !====================================================================
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Prod and loss of families or species [molec/cm3/s]
+       !
+       ! NOTE: KppId is the KPP ID # for each of the prod and loss
+       ! diagnostic species.  This is the value used to index the
+       ! KPP "C" array (in module gckpp_Global.F90).
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
+       !====================================================================
+
+       ! Chemical loss of species or families [molec/cm3/s]
+       IF ( State_Diag%Archive_Loss ) THEN
+          DO S = 1, State_Diag%Map_Loss%nSlots
+             KppId = State_Diag%Map_Loss%slot2Id(S)
+             State_Diag%Loss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Chemical production of species or families [molec/cm3/s]
+       IF ( State_Diag%Archive_Prod ) THEN
+          DO S = 1, State_Diag%Map_Prod%nSlots
+             KppID = State_Diag%Map_Prod%slot2Id(S)
+             State_Diag%Prod(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: Chemical loss [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnLoss ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnLoss%nSlots
+             KppId = State_Diag%Map_SatDiagnLoss%slot2Id(S)
+             State_Diag%SatDiagnLoss(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       ! Satellite diagnostic: Chemical production [molec/cm3/s]
+       IF ( State_Diag%Archive_SatDiagnProd ) THEN
+          DO S = 1, State_Diag%Map_SatDiagnProd%nSlots
+             KppID = State_Diag%Map_SatDiagnProd%slot2Id(S)
+             State_Diag%SatDiagnProd(I,J,L,S) = C(KppID) / DT
+          ENDDO
+       ENDIF
+
+       !--------------------------------------------------------------------
+       ! Archive prod/loss fields for the TagCO simulation [molec/cm3/s]
+       ! (In practice, we only need to do this from benchmark simulations)
+       !
+       ! TODO: Abstract this to a subroutine, to simplify DO_FULLCHEM
+       !--------------------------------------------------------------------
+       IF ( State_Diag%Archive_ProdCOfromCH4     .or.                        &
+            State_Diag%Archive_ProdCOfromNMVOC ) THEN
+
+          ! Total production of CO
+          PCO_TOT   = C(id_PCO) / DT
+
+          ! Loss of CO from CH4
+          LCH4      = C(id_LCH4) / DT
+
+          ! P(CO)_CH4 is LCH4. Cap so that it is never greater
+          ! than total P(CO) to prevent negative P(CO)_NMVOC.
+          PCO_CH4   = MIN( LCH4, PCO_TOT )
+
+          ! P(CO) from NMVOC is the remaining P(CO)
+          PCO_NMVOC = PCO_TOT - PCO_CH4
+
+          ! Archive P(CO) from CH4 for tagCO simulations
+          IF ( State_Diag%Archive_ProdCOfromCH4 ) THEN
+             State_Diag%ProdCOfromCH4(I,J,L) = PCO_CH4
+          ENDIF
+
+          ! Archive P(CO) from NMVOC for tagCO simulations
+          IF ( State_Diag%Archive_ProdCOfromNMVOC ) THEN
+             State_Diag%ProdCOfromNMVOC(I,J,L) = PCO_NMVOC
+          ENDIF
+
+       ENDIF
+
+       !====================================================================
+       ! HISTORY (aka netCDF diagnostics)
+       !
+       ! Write out OH reactivity.  The OH reactivity is defined here as the
+       ! inverse of its life-time. In a crude ad-hoc approach, manually add
+       ! all OH reactants (ckeller, 9/20/2017)
+       !====================================================================
+       IF ( State_Diag%Archive_OHreactivity           .or.                   &
+            State_Diag%Archive_SatDiagnOHreactivity ) THEN
+
+          ! Archive OH reactivity diagnostic
+          CALL Get_OHreactivity ( C, RCONST, OHreact )
+          IF ( State_Diag%Archive_OHreactivity ) THEN
+             State_Diag%OHreactivity(I,J,L) = OHreact
+          ENDIF
+          IF ( State_Diag%Archive_SatDiagnOHreactivity ) THEN
+             State_Diag%SatDiagnOHreactivity(I,J,L) = OHreact
+          ENDIF
+
+       ENDIF
     ENDDO
     ENDDO
     ENDDO
@@ -1559,6 +2242,7 @@ CONTAINS
        CALL GC_Error( ErrMsg, RC, ThisLoc )
        RETURN
     ENDIF
+#endif
 
 #if defined( MODEL_GEOS )
     IF ( State_Diag%Archive_TropNOxTau ) THEN
@@ -1699,7 +2383,6 @@ CONTAINS
 
     ! Set FIRSTCHEM = .FALSE. -- we have gone thru one chem step
     FIRSTCHEM = .FALSE.
-
   END SUBROUTINE Do_FullChem
 !EOC
 #ifdef TOMAS
@@ -2720,7 +3403,7 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_FullChem( Input_Opt, State_Chm, State_Diag, RC )
+  SUBROUTINE Init_FullChem( Input_Opt, State_Chm, State_Diag, State_Grid, RC )
 !
 ! !USES:
 !
@@ -2729,19 +3412,21 @@ CONTAINS
     USE fullchem_SulfurChemFuncs, ONLY : fullchem_InitSulfurChem
     USE Gckpp_Monitor,            ONLY : Eqn_Names, Fam_Names
     USE Gckpp_Precision
-    USE Gckpp_Parameters,         ONLY : nFam, nReact
+    USE Gckpp_Parameters,         ONLY : nFam, nReact, nSpec
     USE Gckpp_Global,             ONLY : Henry_K0, Henry_CR, MW, SR_MW
     USE Input_Opt_Mod,            ONLY : OptInput
     USE KppSa_Interface_Mod,      ONLY : KppSa_Config
     USE State_Chm_Mod,            ONLY : ChmState
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
+    USE State_Grid_Mod,           ONLY : GrdState
 !
 ! !INPUT PARAMETERS:
 !
     TYPE(OptInput), INTENT(IN)  :: Input_Opt   ! Input Options object
     TYPE(ChmState), INTENT(IN)  :: State_Chm   ! Diagnostics State object
     TYPE(DgnState), INTENT(IN)  :: State_Diag  ! Diagnostics State object
+    TYPE(GrdState), INTENT(IN)  :: State_Grid  ! Grid State object
 !
 ! !OUTPUT PARAMETERS:
 !
@@ -2761,6 +3446,14 @@ CONTAINS
 
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
+
+#if defined(MPI_LOAD_BALANCE)
+    INTEGER :: NCELL_local, i
+    INTEGER(KIND=MPI_ADDRESS_KIND) :: win_size
+    INTEGER :: disp
+    INTEGER, ALLOCATABLE :: sizes(:)
+    INTEGER, ALLOCATABLE :: prefix(:)
+#endif
 
     !========================================================================
     ! Init_FullChem begins here!
@@ -3040,6 +3733,290 @@ CONTAINS
        RETURN
     ENDIF
 
+#if defined(MPI_LOAD_BALANCE)
+    ! Setup shared memory
+    ! Initialize window handles
+    win_C_1D = MPI_WIN_NULL
+    win_RCONST_1D = MPI_WIN_NULL
+    win_ICNTRL_1D = MPI_WIN_NULL
+    win_RCNTRL_1D = MPI_WIN_NULL
+    win_ISTATUS_1D = MPI_WIN_NULL
+    win_RSTATE_1D = MPI_WIN_NULL
+    win_cell_status = MPI_WIN_NULL
+
+    nicntrl = 20 
+    nrcntrl = 20
+    nistatus = 20
+    nrstate = 20
+
+  ! MPI shared memory setup
+    CALL MPI_Comm_split_type(Input_Opt%mpiComm, MPI_COMM_TYPE_SHARED, 0, MPI_INFO_NULL, shm_comm, RC)
+    IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Comm_split_type failed', RC, ThisLoc)
+      RETURN
+    ENDIF
+    CALL MPI_Comm_rank(shm_comm, shm_rank, RC)
+    IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Comm_rank failed', RC, ThisLoc)
+      RETURN
+    ENDIF
+    CALL MPI_Comm_size(shm_comm, shm_size, RC)
+    IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Comm_size failed', RC, ThisLoc)
+      RETURN
+    ENDIF
+  
+
+    NCELL_local = State_Grid%NX * State_Grid%NY * State_Grid%NZ
+    NCELL_MAX = NCELL_local
+
+   Allocate(Idx_to_IJL      (3, NCELL_MAX)     , STAT=RC)
+   CALL GC_CheckVar( 'fullchem_mod.F90:Idx_to_IJL', 0, RC )
+   IF ( RC /= GC_SUCCESS ) Then
+      CALL GC_Error( 'Failed to allocate Idx_to_IJL', RC, ThisLoc )
+      RETURN
+   END IF
+
+
+   !gather local sizes
+    IF (shm_rank == 0) ALLOCATE(sizes(shm_size))
+    CALL MPI_Gather(NCELL_local, 1, MPI_INTEGER, sizes, 1, MPI_INTEGER,        &
+                    0, shm_comm, ierr)
+    
+    !build prefix sum and NCELL_total on rank-0    
+    IF (shm_rank == 0) THEN
+       ALLOCATE(prefix(shm_size))
+       prefix(1) = 0
+       DO i = 2, shm_size
+          prefix(i) = prefix(i-1) + sizes(i-1)
+       END DO
+       NCELL_total = prefix(shm_size) + sizes(shm_size)
+    END IF
+    
+    !broadcast node-wide constants and my true offset
+    CALL MPI_Bcast(NCELL_total, 1, MPI_INTEGER, 0, shm_comm, ierr)
+    
+    IF (.NOT. ALLOCATED(prefix)) ALLOCATE(prefix(1))   ! dummy for non-root
+    CALL MPI_Scatter(prefix, 1, MPI_INTEGER, offset, 1, MPI_INTEGER,           &
+                     0, shm_comm, ierr)
+    IF (shm_rank == 0) DEALLOCATE(prefix, sizes)
+    
+
+   ! debug print: check shared memory size
+   !  WRITE(6, *) 'shm_rank:', shm_rank, 'shm_size:', shm_size
+   !  WRITE(6, *) 'NCELL_local:', NCELL_local, 'NCELL_total:', NCELL_total, 'offset:', offset
+
+   !  WRITE(6, *) 'NSPEC:', NSPEC, 'NREACT:', NREACT, 'NRSTATE:', NRSTATE
+   !  WRITE(6, *) 'NICNTRL:', NICNTRL, 'NRCNTRL:', NRCNTRL, 'NISTATUS:', NISTATUS
+
+    
+! Allocate shared memory windows
+  disp = SIZEOF(C_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NSPEC, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, C_1D_flat_int, win_C_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for C_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_C_1D, 0, win_size, disp, C_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for C_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  C_1D_flat_ptr = TRANSFER(C_1D_flat_int, C_1D_flat_ptr)
+  CALL C_F_POINTER(C_1D_flat_ptr, C_1D, [NSPEC, NCELL_total])
+  IF (.NOT. ASSOCIATED(C_1D)) THEN
+      CALL GC_Error('C_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF
+
+  disp = SIZEOF(RCONST_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NREACT, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, RCONST_1D_flat_int, win_RCONST_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for RCONST_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_RCONST_1D, 0, win_size, disp, RCONST_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for RCONST_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  RCONST_1D_flat_ptr = TRANSFER(RCONST_1D_flat_int, RCONST_1D_flat_ptr)
+  CALL C_F_POINTER(RCONST_1D_flat_ptr, RCONST_1D, [NREACT, NCELL_total])
+  IF (.NOT. ASSOCIATED(RCONST_1D)) THEN
+      CALL GC_Error('RCONST_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF  
+  
+  disp = SIZEOF(ICNTRL_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NICNTRL, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, ICNTRL_1D_flat_int, win_ICNTRL_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for ICNTRL_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_ICNTRL_1D, 0, win_size, disp, ICNTRL_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for ICNTRL_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  ICNTRL_1D_flat_ptr = TRANSFER(ICNTRL_1D_flat_int, ICNTRL_1D_flat_ptr)
+  CALL C_F_POINTER(ICNTRL_1D_flat_ptr, ICNTRL_1D, [NICNTRL, NCELL_total])
+  IF (.NOT. ASSOCIATED(ICNTRL_1D)) THEN
+      CALL GC_Error('ICNTRL_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF  
+  
+
+  disp = SIZEOF(RCNTRL_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NRCNTRL, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, RCNTRL_1D_flat_int, win_RCNTRL_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for RCNTRL_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_RCNTRL_1D, 0, win_size, disp, RCNTRL_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for RCNTRL_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  RCNTRL_1D_flat_ptr = TRANSFER(RCNTRL_1D_flat_int, RCNTRL_1D_flat_ptr)
+  CALL C_F_POINTER(RCNTRL_1D_flat_ptr, RCNTRL_1D, [NRCNTRL, NCELL_total])
+  IF (.NOT. ASSOCIATED(RCNTRL_1D)) THEN
+      CALL GC_Error('RCNTRL_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF  
+  
+
+  disp = SIZEOF(ISTATUS_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NISTATUS, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, ISTATUS_1D_flat_int, win_ISTATUS_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for ISTATUS_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_ISTATUS_1D, 0, win_size, disp, ISTATUS_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for ISTATUS_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  ISTATUS_1D_flat_ptr = TRANSFER(ISTATUS_1D_flat_int, ISTATUS_1D_flat_ptr)
+  CALL C_F_POINTER(ISTATUS_1D_flat_ptr, ISTATUS_1D, [NISTATUS, NCELL_total])
+  IF (.NOT. ASSOCIATED(ISTATUS_1D)) THEN
+      CALL GC_Error('ISTATUS_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF  
+  
+
+  disp = SIZEOF(RSTATE_1D(1,1))
+  IF (shm_rank == 0) THEN
+      win_size = INT(NRSTATE, KIND=MPI_ADDRESS_KIND) * INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+      win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, RSTATE_1D_flat_int, win_RSTATE_1D, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_allocate_shared failed for RSTATE_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  CALL MPI_Win_shared_query(win_RSTATE_1D, 0, win_size, disp, RSTATE_1D_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+      CALL GC_Error('MPI_Win_shared_query failed for RSTATE_1D', RC, ThisLoc)
+      RETURN
+  ENDIF
+  RSTATE_1D_flat_ptr = TRANSFER(RSTATE_1D_flat_int, RSTATE_1D_flat_ptr)
+  CALL C_F_POINTER(RSTATE_1D_flat_ptr, RSTATE_1D, [NRSTATE, NCELL_total])
+  IF (.NOT. ASSOCIATED(RSTATE_1D)) THEN
+      CALL GC_Error('RSTATE_1D is not associated after C_F_POINTER', RC, ThisLoc)
+      RETURN
+  ENDIF  
+
+
+  disp = SIZEOF(cell_status(1))
+  IF (shm_rank == 0) THEN
+     win_size = INT(NCELL_total, KIND=MPI_ADDRESS_KIND) * INT(disp, KIND=MPI_ADDRESS_KIND)
+  ELSE
+     win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm, cell_status_flat_int, win_cell_status, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+     CALL GC_Error('MPI_Win_allocate_shared failed for cell_status', RC, ThisLoc)
+     RETURN
+  END IF
+  
+  CALL MPI_Win_shared_query(win_cell_status, 0, win_size, disp, cell_status_flat_int, RC)
+  IF (RC /= MPI_SUCCESS) THEN
+     CALL GC_Error('MPI_Win_shared_query failed for cell_status', RC, ThisLoc)
+     RETURN
+  END IF
+  
+  cell_status_flat_ptr = TRANSFER(cell_status_flat_int, cell_status_flat_ptr)
+  CALL C_F_POINTER(cell_status_flat_ptr, cell_status, [NCELL_total])
+  
+  IF (.NOT. ASSOCIATED(cell_status)) THEN
+     CALL GC_Error('cell_status is not associated after C_F_POINTER', RC, ThisLoc)
+     RETURN
+  END IF
+
+
+  disp = SIZEOF(next_cell_index)
+  IF (shm_rank == 0) THEN
+     win_size = INT(disp, KIND=MPI_ADDRESS_KIND) 
+  ELSE
+     win_size = 0
+  END IF
+  
+  CALL MPI_Win_allocate_shared(win_size, disp, MPI_INFO_NULL, shm_comm,  &
+                               next_cell_index_int, win_next_cell_index, ierr)
+  IF (ierr /= MPI_SUCCESS) THEN
+     CALL GC_Error('MPI_Win_allocate_shared failed for next_cell_index', ierr, ThisLoc)
+     RETURN
+  END IF
+  
+  CALL MPI_Win_shared_query(win_next_cell_index, 0, win_size, disp,      &
+                            next_cell_index_int, ierr)
+  IF (ierr /= MPI_SUCCESS) THEN
+     CALL GC_Error('MPI_Win_shared_query failed for next_cell_index', ierr, ThisLoc)
+     RETURN
+  END IF
+  
+  next_cell_index_ptr = TRANSFER(next_cell_index_int, next_cell_index_ptr)
+  CALL C_F_POINTER(next_cell_index_ptr, next_cell_index)
+  
+  IF (.NOT. ASSOCIATED(next_cell_index)) THEN
+     CALL GC_Error('next_cell_index not associated', RC, ThisLoc)
+     RETURN
+  END IF
+
+#endif   
+  
   END SUBROUTINE Init_FullChem
 !EOC
 !------------------------------------------------------------------------------
@@ -3113,6 +4090,84 @@ CONTAINS
     ! psturm, 03/22/2024
     CALL KppSa_Cleanup( RC )
 
+#if defined(MPI_LOAD_BALANCE)
+    ! Arrays for load balancing
+    If ( ASSOCIATED( C_1D ) ) Then
+      NULLIFY(C_1D)
+    ENDIF
+
+    If ( ASSOCIATED( RCONST_1D ) ) Then
+      NULLIFY(RCONST_1D)
+    ENDIF
+
+    If ( ASSOCIATED( ICNTRL_1D ) ) Then
+      NULLIFY(ICNTRL_1D)
+    ENDIF
+
+    If ( ASSOCIATED( RCNTRL_1D ) ) Then
+      NULLIFY(RCNTRL_1D)
+    ENDIF
+
+    If ( ASSOCIATED( ISTATUS_1D ) ) Then
+      NULLIFY(ISTATUS_1D) 
+    ENDIF
+
+    If ( ASSOCIATED( RSTATE_1D ) ) Then
+      NULLIFY(RSTATE_1D)
+    ENDIF
+
+    If ( ASSOCIATED( cell_status ) ) Then
+      NULLIFY(cell_status)
+    ENDIF
+
+    IF (ASSOCIATED(next_cell_index)) THEN
+      NULLIFY(next_cell_index)
+    END IF
+
+    If ( ALLOCATED( Idx_to_IJL ) ) Then
+       Deallocate(Idx_to_IJL, STAT=RC)
+       CALL GC_CheckVar( 'fullchem_mod.F90:Idx_to_IJL', 2, RC )
+       IF ( RC /= GC_SUCCESS ) RETURN
+    ENDIF
+   
+   IF (win_C_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_C_1D, ierr)
+   END IF
+   
+   IF (win_RCONST_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_RCONST_1D, ierr)
+   END IF
+   
+   IF (win_ICNTRL_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_ICNTRL_1D, ierr)
+   END IF
+   
+   IF (win_RCNTRL_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_RCNTRL_1D, ierr)
+   END IF
+
+   IF (win_ISTATUS_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_ISTATUS_1D, ierr)
+   END IF
+   
+   IF (win_RSTATE_1D /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_RSTATE_1D, ierr)
+   END IF
+   
+   IF (win_cell_status /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_cell_status, ierr)
+   END IF
+
+   IF (win_next_cell_index /= MPI_Win_NULL) THEN
+      CALL MPI_Win_free(win_next_cell_index, ierr)
+   END IF
+
+   IF (shm_comm /= MPI_COMM_NULL) THEN
+      CALL MPI_Comm_free(shm_comm, ierr)
+   END IF
+
+#endif
+   
   END SUBROUTINE Cleanup_FullChem
 !EOC
 END MODULE FullChem_Mod
