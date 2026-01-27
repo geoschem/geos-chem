@@ -3420,7 +3420,6 @@ CONTAINS
     USE State_Chm_Mod,            ONLY : Ind_
     USE State_Diag_Mod,           ONLY : DgnState
     USE State_Grid_Mod,           ONLY : GrdState
-    USE Timers_Mod
 !
 ! !INPUT PARAMETERS:
 !
