@@ -17,7 +17,7 @@ MODULE FullChem_Mod
 !
   USE Precision_Mod
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
   USE MPI
   USE, INTRINSIC :: ISO_C_BINDING
 #endif
@@ -88,7 +88,7 @@ MODULE FullChem_Mod
   REAL(f4), ALLOCATABLE :: JvSumDay  (:,:,:,:)
   REAL(f4), ALLOCATABLE :: JvSumMon  (:,:,:,:)
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
   ! For load balancing
    INTEGER, ALLOCATABLE   :: Idx_to_IJL(:,:)
    REAL(KIND=fp), POINTER :: C_1D(:,:)
@@ -252,7 +252,7 @@ CONTAINS
     REAL(dp)               :: C_before_integrate(NSPEC)
     REAL(dp)               :: local_RCONST(NREACT)
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     ! Local copy of all necessary KPP inputs
     INTEGER                :: IJL_to_Idx(State_Grid%NX, State_Grid%NY, State_Grid%NZ)
 
@@ -300,7 +300,7 @@ CONTAINS
     ! Suppress printing out KPP error messages after this many errors occur
     INTEGER,     PARAMETER :: INTEGRATE_FAIL_TOGGLE = 20
    
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     INTEGER :: origin_val, fetched_value
     INTEGER(KIND=MPI_ADDRESS_KIND) :: disp
 #endif
@@ -547,7 +547,7 @@ CONTAINS
     ATOL = State_Chm%KPP_AbsTol   ! Absolute tolerance
     RTOL = State_Chm%KPP_RelTol   ! Relative tolerance
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     ! For load balancing
     NCELL_local = offset
 
@@ -1096,7 +1096,7 @@ CONTAINS
                                               ICNTRL,    RCNTRL             )
 #endif
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
        !=====================================================================
        ! Rather than integrating, make a note of how many cells we actually have
        !=====================================================================
@@ -1648,7 +1648,7 @@ CONTAINS
 
 
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
    !=====================================================================
    ! Shared integrate the box forwards
    !=====================================================================
@@ -3447,7 +3447,7 @@ CONTAINS
     ! Strings
     CHARACTER(LEN=255) :: ErrMsg,   ThisLoc
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     INTEGER :: NCELL_local, i
     INTEGER(KIND=MPI_ADDRESS_KIND) :: win_size
     INTEGER :: disp
@@ -3733,7 +3733,7 @@ CONTAINS
        RETURN
     ENDIF
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     ! Setup shared memory
     ! Initialize window handles
     win_C_1D = MPI_WIN_NULL
@@ -4090,7 +4090,7 @@ CONTAINS
     ! psturm, 03/22/2024
     CALL KppSa_Cleanup( RC )
 
-#if defined(MODEL_GCHP) && defined(MPI_LOAD_BALANCE)
+#if defined(MPI_LOAD_BALANCE)
     ! Arrays for load balancing
     If ( ASSOCIATED( C_1D ) ) Then
       NULLIFY(C_1D)
