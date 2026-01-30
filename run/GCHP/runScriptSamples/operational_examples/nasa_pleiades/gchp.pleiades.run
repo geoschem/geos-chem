@@ -62,6 +62,9 @@ echo "-m plane  : ${planeCount}" >> ${log}
 echo ' ' >> ${log}
 echo '===> Run started at' `date` >> ${log}
 
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
+
 mpiexec -n $coreCount ./gchp >> $log 2>&1 &
 tail --pid=$! -f $log
 #mpiexec dplace -s1 -c 4-11 ./grinder < run_input > output

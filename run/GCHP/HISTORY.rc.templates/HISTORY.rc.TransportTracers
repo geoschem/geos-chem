@@ -61,10 +61,10 @@ COLLECTIONS: 'Emissions',
              'FV3Dynamics',
              'GCHPctmEnvLevCenter',
              'GCHPctmEnvLevEdge',
-             'LevelEdgeDiags',      
              'RadioNuclide',
              'SpeciesConc',
              'StateMet',
+             'StateMetLevEdge',
              'WetLossConv',
              'WetLossLS',
 ::
@@ -532,9 +532,9 @@ COLLECTIONS: 'Emissions',
   FV3Dynamics.frequency:      010000
   FV3Dynamics.duration:       010000
   FV3Dynamics.mode:           'time-averaged'
-  FV3Dynamics.fields:         'PLE    ', 'DYNAMICS',
-                              'DryPLE ', 'DYNAMICS',
-                              'PLEadv ', 'DYNAMICS',
+  FV3Dynamics.fields:         'PLE_R4    ', 'DYNAMICS',
+                              'DryPLE_R4 ', 'DYNAMICS',
+                              'PLEadv_R4 ', 'DYNAMICS',
 ::
 #==============================================================================
   GCHPctmEnvLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -544,11 +544,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevEdge.frequency:      010000
   GCHPctmEnvLevEdge.duration:       010000
   GCHPctmEnvLevEdge.mode:           'time-averaged'
-  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux    ', 'GCHPctmEnv',
-                                    'PLE0               ', 'GCHPctmEnv',
-                                    'PLE1               ', 'GCHPctmEnv',
-                                    'DryPLE0            ', 'GCHPctmEnv',
-                                    'DryPLE1            ', 'GCHPctmEnv',
+  GCHPctmEnvLevEdge.fields:         'UpwardsMassFlux_R4    ', 'GCHPctmEnv',
+                                    'PLE0_R4               ', 'GCHPctmEnv',
+                                    'PLE1_R4               ', 'GCHPctmEnv',
+                                    'DryPLE0_R4            ', 'GCHPctmEnv',
+                                    'DryPLE1_R4            ', 'GCHPctmEnv',
 ::
 #==============================================================================
   GCHPctmEnvLevCenter.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -558,28 +558,11 @@ COLLECTIONS: 'Emissions',
   GCHPctmEnvLevCenter.frequency:      010000
   GCHPctmEnvLevCenter.duration:       010000
   GCHPctmEnvLevCenter.mode:           'time-averaged'
-  GCHPctmEnvLevCenter.fields:         'SPHU0    ', 'GCHPctmEnv',
-                                      'CX       ', 'GCHPctmEnv',
-                                      'CY       ', 'GCHPctmEnv',
-                                      'MFX      ', 'GCHPctmEnv',
-                                      'MFY      ', 'GCHPctmEnv',
-::
-#==============================================================================
-  LevelEdgeDiags.template:       '%y4%m2%d2_%h2%n2z.nc4',
-  LevelEdgeDiags.format:         'CFIO',
-  LevelEdgeDiags.timestampStart: .true.
-  LevelEdgeDiags.monthly:        1
-  LevelEdgeDiags.frequency:      010000
-  LevelEdgeDiags.duration:       010000
-  LevelEdgeDiags.mode:           'time-averaged'
-  LevelEdgeDiags.fields:    'Met_CMFMC          ', 'GCHPchem',
-                            'Met_PEDGE          ', 'GCHPchem',
-                            'Met_PEDGEDRY       ', 'GCHPchem',
-                            'Met_PFICU          ', 'GCHPchem',
-                            'Met_PFILSAN        ', 'GCHPchem',
-                            'Met_PFLCU          ', 'GCHPchem',
-                            'Met_PFLLSAN        ', 'GCHPchem',
-                            'UpwardsMassFlux    ', 'GCHPctmEnv',
+  GCHPctmEnvLevCenter.fields:         'SPHU0_R4    ', 'GCHPctmEnv',
+                                      'CX_R4       ', 'GCHPctmEnv',
+                                      'CY_R4       ', 'GCHPctmEnv',
+                                      'MFX_R4      ', 'GCHPctmEnv',
+                                      'MFY_R4      ', 'GCHPctmEnv',
 ::
 #==============================================================================
   RadioNuclide.template:       '%y4%m2%d2_%h2%n2z.nc4',
@@ -715,6 +698,22 @@ COLLECTIONS: 'Emissions',
                             'Met_V              ', 'GCHPchem',
                             'Met_V10M           ', 'GCHPchem',
                             'Met_Z0             ', 'GCHPchem',
+::
+#==============================================================================
+  StateMetLevEdge.template:       '%y4%m2%d2_%h2%n2z.nc4',
+  StateMetLevEdge.format:         'CFIO',
+  StateMetLevEdge.timestampStart: .true.
+  StateMetLevEdge.monthly:        1
+  StateMetLevEdge.frequency:      010000
+  StateMetLevEdge.duration:       010000
+  StateMetLevEdge.mode:           'time-averaged'
+  StateMetLevEdge.fields:         'Met_CMFMC          ', 'GCHPchem',
+                                  'Met_PEDGE          ', 'GCHPchem',
+                                  'Met_PEDGEDRY       ', 'GCHPchem',
+                                  'Met_PFICU          ', 'GCHPchem',
+                                  'Met_PFILSAN        ', 'GCHPchem',
+                                  'Met_PFLCU          ', 'GCHPchem',
+                                  'Met_PFLLSAN        ', 'GCHPchem',
 ::
 #==============================================================================
   WetLossConv.template:       '%y4%m2%d2_%h2%n2z.nc4',

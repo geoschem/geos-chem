@@ -5,11 +5,16 @@
 #
 # !MODULE: HEMCO_Diagn.rc
 #
-# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO
+#  (for carbon gases simulations).
 #\\
 #\\
 # !REMARKS:
-#  Customized for the carbon simulation.
+#  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
+#
+#  NOTES FOR BIOMASS BURNING:
+#  1. For GFED extension,    set ExtNr = 111, Cat = -1, Hier = -1.
+#  2. For offline emissions, set ExtNr = 0,   Cat =  5, Hier = -1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
@@ -62,7 +67,6 @@ EmisCO2_BiomassBurn   CO2    111   -1   -1   2  kg/m2/s  CO2_biomass_burning_emi
 ###############################################################################
 EmisOCS_Total         OCS      0   -1   -1   2  kg/m2/s  OCS_emission_flux_from_all_sectors
 EmisOCS_Anthro        OCS      0    1   -1   2  kg/m2/s  OCS_emission_flux_from_anthropogenic
-EmisOCS_Bioburn       OCS      0    2   -1   2  kg/m2/s  OCS_emission_flux_from_biomass_burning
+EmisOCS_BiomassBurn   OCS      0    2   -1   2  kg/m2/s  OCS_emission_flux_from_biomass_burning
 EmisOCS_MissingOcean  OCS      0    3   -1   2  kg/m2/s  OCS_emission_flux_from_missing_ocean
 EmisOCS_Ocean         OCS      0    4   -1   2  kg/m2/s  OCS_emission_flux_from_ocean
-
