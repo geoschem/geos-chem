@@ -106,6 +106,7 @@ printf "   2. TransportTracers\n"
 printf "   3. CO2 w/ CMS-Flux emissions\n"
 printf "   4. Tagged O3\n"
 printf "   5. Carbon\n"
+printf "   6. ctmEnv (skips GEOS-Chem and advection)\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -121,6 +122,8 @@ while [ "${valid_sim}" -eq 0 ]; do
 	sim_name=tagO3
     elif [[ ${sim_num} = "5" ]]; then
 	sim_name=carbon
+    elif [[ ${sim_num} = "6" ]]; then
+	sim_name=ctmEnv
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -203,7 +206,7 @@ if [[ ${sim_name} = "fullchem" ]]; then
     done
 
 # Currently no transport tracer extra options
-elif [[ ${sim_name} = "TransportTracers" ]]; then
+elif [[ ${sim_name} = "TransportTracers" ]] || [[ ${sim_name} = "ctmEnv" ]]; then
     sim_extra_option=none
 
 # Ask user to specify carbon simulation options
@@ -637,7 +640,7 @@ mkdir -p ${rundir}/Restarts
 cp ${gcdir}/run/shared/cleanRunDir.sh ${rundir}
 cp ./archiveRun.sh                    ${rundir}
 cp ./logging.yml                      ${rundir}
-cp ./README.md                        ${rundir}
+cp ./README                           ${rundir}
 cp ./setEnvironmentLink.sh            ${rundir}
 cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
@@ -645,7 +648,7 @@ cp ./gitignore                        ${rundir}/.gitignore
 
 # Copy file to auto-update common settings. Use adjoint version for CO2.
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
-
+    
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
     cp -r ${gcdir}/run/shared/metrics.py  ${rundir}
     chmod 744 ${rundir}/metrics.py
@@ -707,6 +710,8 @@ elif [[ ${sim_name} = "carbon" ]]; then
     start_date='20190101'
     restart_dir='v2025-07'
     restart_name="${sim_name}"
+elif [[ ${sim_name} = "ctmEnv" ]]; then
+    start_date='20210101'
 fi
 for N in 24 30 48 90 180
 do
@@ -846,14 +851,31 @@ if [[ "x${sim_name}" == "xcarbon" ]]; then
     fi
 fi
 
+#-----------------------------------------------------------------
+# If doing a ctmEnv simulation then simplify the run directory
+#-----------------------------------------------------------------
+if [[ "${sim_name}" == "ctmEnv" ]]; then
+    cp ${srcrundir}/setCommonRunSettings.sh.ctmEnv  ${rundir}/setCommonRunSettings.sh
+    rm ${rundir}/geoschem_config.yml
+    rm ${rundir}/HEMCO_Config.rc
+    rm ${rundir}/HEMCO_Diagn.rc
+    rm ${rundir}/species_database.yml
+    rm ${rundir}/checkRunSettings.sh
+    rm ${rundir}/ChemDir
+    rm ${rundir}/HcoDir
+    rm ${rundir}/setRestartLink.sh
+    rm ${rundir}/CreateRunDirLogs/rundir_vars.txt
+    rm -rf ${rundir}/Restarts
+fi
+
+#--------------------------------------------------------------------
+# Update files anavigate back to source code directory
+#--------------------------------------------------------------------
 # Call setCommonRunSettings.sh so that all config files are consistent with its
 # default settings. Suppress informational prints.
 chmod +x setCommonRunSettings.sh
 ./setCommonRunSettings.sh --silent
 
-#--------------------------------------------------------------------
-# Navigate back to source code directory
-#--------------------------------------------------------------------
 cd ${srcrundir}
 
 #----------------------------------------------------------------------
@@ -906,14 +928,16 @@ while [ "$valid_response" -eq 0 ]; do
 done
 
 printf "\n${thinline}Created ${rundir}\n"
-printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
-printf "\n  -- This run directory is set up for simulation start date $start_date"
-printf "\n  -- Restart files for this date at different grid resolutions are in the"
-printf "\n     Restarts subdirectory"
-printf "\n  -- To update start time, edit configuration file cap_restart and"
-printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
-printf "\n     where YYYYMMDD_HHmm is start date and time"
-printf "\n  -- Edit other commonly changed run settings in setCommonRunSettings.sh"
+printf "\n  -- This run directory is set up for simulation start date ${start_date}"
+if [[ "${sim_name}" != "ctmEnv" ]]; then
+    printf "\n  -- See ${rundir_config_dirname}/${rundir_config_logname} for summary of default run directory settings"
+    printf "\n  -- Restart files for this date at different grid resolutions are in the"
+    printf "\n     Restarts subdirectory"
+    printf "\n  -- To update start time, edit configuration file cap_restart and"
+    printf "\n     add or symlink file Restarts/GEOSChem.Restart.YYYYMMDD_HHmmz.cN.nc"
+    printf "\n     where YYYYMMDD_HHmm is start date and time"
+fi
+printf "\n  -- Edit commonly changed run settings in setCommonRunSettings.sh"
 printf "\n  -- See build/README for compilation instructions"
 printf "\n  -- Example run scripts are in the runScriptSamples subdirectory"
 printf "\n  -- For more information visit the GCHP user guide at"
@@ -943,12 +967,13 @@ fi
 #---------------------------------------------------------------------------
 # Add reminders to compile with CMake options for simulations that need them
 #---------------------------------------------------------------------------
-hdr="\n>>>> REMINDER: You must compile with options:"
-ftr="<<<<\n"
+hdr="\n\n>>>> REMINDER: You must compile with options:"
+ftr="<<<<\n\n"
 
 EXTRA_CMAKE_OPTIONS=""
 [[ "x${sim_name}" == "xcarbon" ]] && EXTRA_CMAKE_OPTIONS="-DMECH=carbon "
 [[ "x${sim_name}" == "xHg"     ]] && EXTRA_CMAKE_OPTIONS="-DMECH=Hg -DFASTJX=y "
+[[ "x${sim_name}" == "xctmEnv" ]] && EXTRA_CMAKE_OPTIONS="-DMODEL_CTMENV=y "
 if [[ "x${sim_name}" == "xfullchem" ]]; then
     [[ "x${sim_extra_option}" == "xAPM"     ]] && EXTRA_CMAKE_OPTIONS="-DAPM=y "
     [[ "x${sim_extra_option}" == "xRRTMG"   ]] && EXTRA_CMAKE_OPTIONS="-DRRTMG=y "
@@ -961,7 +986,11 @@ fi
 RUNDIR_VARS+="EXTRA_CMAKE_OPTIONS=${EXTRA_CMAKE_OPTIONS}"
 
 # Print a reminder to compile with extra CMake options, if necessary
-[[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]] && printf "${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+build_msg="${hdr} ${EXTRA_CMAKE_OPTIONS} ${ftr}"
+if [[ "x${EXTRA_CMAKE_OPTIONS}" != "x" ]]; then
+    printf "${build_msg}"
+    echo -e ${build_msg} >> ${rundir}/README
+fi
 
 #---------------------------------------------------------------------------
 # Create build directory README file
@@ -976,39 +1005,10 @@ printf "${msg}" > ${rundir}/build/README
 unset msg
 
 #-----------------------------------------------------------------
-# Add the version info to the top of the rundir configuration log
-#-----------------------------------------------------------------
-
-# Add a caveat that these rundir settings only go with this commit
-printf "\n\n IMPORTANT: ONLY USE THESE RUNDIR SETTINGS WITH THIS COMMIT!\n" >> ${version_log}
-
-# Add a "# " characters to the front of each line so we can use
-# it as a comment heading for ${rundir_config_logname}
-sed 's/^/# /' ${version_log} > tmp.txt
-mv tmp.txt ${version_log}
-
-# Add the version log to the top of the rundir config log
-cat ${version_log} ${rundir_config_log} > tmp.txt
-mv tmp.txt ${rundir_config_log}
-
-# Remove the version log
-rm -rf ${version_log}
-
-# Save the updated rundir_vars file to the git repo
-if [[ "x${enable_git}" == "xy" ]]; then
-    if [[ -f ${rundir_config_log} ]]; then
-	cd ${rundir}
-	git add ${rundir_config_log}
-	git commit -m "Update header of ${rundir_config_dirname}/${rundir_config_lognbame}" > /dev/null
-	cd ${srcrundir}
-    fi
-fi
-
-#-----------------------------------------------------------------
 # Create and populate warnings file
 #-----------------------------------------------------------------
 if [[ $met == "geosfp" ]]; then
-   echo -e ${fp_msg} > ${rundir}/warnings.txt
+    echo -e ${fp_msg} > ${rundir}/warnings.txt
 fi
 
 exit 0

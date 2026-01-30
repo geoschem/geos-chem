@@ -13,8 +13,7 @@
 #\\
 #\\
 # !REMARKS:
-#  See The HEMCO User's Guide for file details:
-#    http://wiki.geos-chem.org/The_HEMCO_User%27s_Guide
+#  See hemco.readthedocs.io for more information.
 #
 # !REVISION HISTORY:
 #  See https://github.com/geoschem/geos-chem for complete history
@@ -129,6 +128,7 @@ VerboseOnCores:              root       # Accepted values: root all
     --> GFAS                   :       false    # 2003-2021
     --> BB4MIPS                :       ${RUNDIR_CMIP6_FIELDS}    # 1850-2100
     --> GFED4_CLIMATOLOGY      :       false    # If true, turn off GFED ext below
+    --> FINNv25                :       false    # 2012-2023
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
@@ -212,13 +212,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CO to SOAP             :       0.013
     --> GFED_subgrid_coag      :       false
 #see the note near scale factor 281 for the source of this emis factor
-114     FINN                   : off   NO/CO/ALK4/ACET/MEK/ALD2/PRPE/C2H2/C2H4/C3H8/CH2O/C2H6/SO2/NH3/BCPI/BCPO/OCPI/OCPO/GLYC/HAC/SOAP/STYR/EBZ/TMB/ROH/RCOOH/RCHO/ACTA/EOH/HCOOH/ISOP/MACR/MVK/MOH/R4N2/FURA
-    --> FINN_daily             :       false
-    --> Scaling_CO             :       1.0
-    --> Scaling_SOAP           :       0.013
-    --> hydrophilic BC         :       0.2
-    --> hydrophilic OC         :       0.5
-    --> FINN_subgrid_coag      :       false
 115     DustAlk                : ${RUNDIR_DUSTALK_EXT}   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
@@ -3038,6 +3031,54 @@ VerboseOnCores:              root       # Accepted values: root all
 )))GFAS
 
 #==============================================================================
+# --- FINNv2.5 biomass burning ---
+# Uses dataset derived with combined fire detection from MODIS and VIIRS.
+# Data downloaded from: https://rda.ucar.edu/datasets/d312009/dataaccess/
+# Uses FINN emissions processed for MOZART for multiple species not processed
+#       for general use (not specific to any model) or for GEOS-Chem.
+#       Naming convention of inventory developers preserved for traceability.
+# Description of development of data available here:
+#       https://gmd.copernicus.org/articles/16/3873/2023/
+#==============================================================================
+(((FINNv25
+0 FINNv25_CO    $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_CO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_CO              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s CO     75     5 3
+0 FINNv25_SOAP  -                                                                                                                     -                               -                     -  -  -                SOAP   75/281 5 3
+0 FINNv25_NO    $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_NO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_NO              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s NO     75     5 3
+0 FINNv25_NO2   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_NO2_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc             fire_modisviirs_NO2             2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s NO2    75     5 3
+0 FINNv25_BCPI  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_BC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_BC              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s BCPI   75/70  5 3
+0 FINNv25_BCPO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_BC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_BC              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s BCPO   75/71  5 3
+0 FINNv25_OCPI  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_OC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_OC              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s OCPI   75/72  5 3
+0 FINNv25_OCPO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_OC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc              fire_modisviirs_OC              2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s OCPO   75/73  5 3
+0 FINNv25_SO2   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_SO2_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc             fire_modisviirs_SO2             2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s SO2    75     5 3
+0 FINNv25_pFe   -                                                                                                                     -                               -                     -  -  -                pFe    75/66  5 3
+0 FINNv25_NH3   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-NH3_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc      fire_modisviirs_MOZART-NH3      2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s NH3    75     5 3
+0 FINNv25_ACET  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-ACET_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-ACET   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s ACET   75     5 3
+0 FINNv25_ALK4  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-ALK4_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-ALK4   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s ALK4   75     5 3
+0 FINNv25_PRPE  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-PRPE_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-PRPE   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s PRPE   75     5 3
+0 FINNv25_C2H2  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-C2H2_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-C2H2   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s C2H2   75     5 3
+0 FINNv25_C2H4  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-C2H4_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-C2H4   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s C2H4   75     5 3
+0 FINNv25_C2H6  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-C2H6_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-C2H6   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s C2H6   75     5 3
+0 FINNv25_C3H8  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-C3H8_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-C3H8   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s C3H8   75     5 3
+0 FINNv25_CH2O  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-CH2O_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-CH2O   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s CH2O   75     5 3
+0 FINNv25_ISOP  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-ISOP_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc     fire_modisviirs_MOZART-ISOP     2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s ISOP   75     5 3
+0 FINNv25_BENZ  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-BENZ_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-BENZ   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s BENZ   75     5 3
+0 FINNv25_TOLU  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-TOLU_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-TOLU   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s TOLU   75     5 3
+0 FINNv25_XYLE  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-XYLE_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-XYLE   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s XYLE   75     5 3
+0 FINNv25_GLYC  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-GLYC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-GLYC   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s GLYC   75     5 3
+0 FINNv25_MGLY  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-MGLY_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_GEOSCHEM-MGLY   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s MGLY   75     5 3
+0 FINNv25_HAC   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-HAC_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc    fire_modisviirs_GEOSCHEM-HAC    2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s HAC    75     5 3
+0 FINNv25_MEK   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_GEOSCHEM-MEK_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc    fire_modisviirs_GEOSCHEM-MEK    2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s MEK    75     5 3
+0 FINNv25_HCOOH $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-HCOOH_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc    fire_modisviirs_MOZART-HCOOH    2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s HCOOH  75     5 3
+0 FINNv25_HONO  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-HONO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc     fire_modisviirs_MOZART-HONO     2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s HNO2   75     5 3
+0 FINNv25_ALD2  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-CH3CHO_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_MOZART-CH3CHO   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s ALD2   75     5 3
+0 FINNv25_EOH   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-C2H5OH_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc   fire_modisviirs_MOZART-C2H5OH   2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s EOH    75     5 3
+0 FINNv25_MOH   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-CH3OH_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc    fire_modisviirs_MOZART-CH3OH    2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s MOH    75     5 3
+0 FINNv25_ACTA  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-CH3COOH_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc  fire_modisviirs_MOZART-CH3COOH  2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s ACTA   75     5 3
+0 FINNv25_MVK   $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-MVK_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc      fire_modisviirs_MOZART-MVK      2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s MVK    75     5 3
+0 FINNv25_MACR  $ROOT/FINNv25/v2025-06/$YYYY/emissions-finnv2.5modvrs_MOZART-MACR_bb_surface_daily_$YYYY0101-$YYYY1231_0.1x0.1.nc     fire_modisviirs_MOZART-MACR     2012-2023/1-12/1-31/0 EF xy molecules/cm^2/s MACR   75     5 3
+)))FINNv25
+
+#==============================================================================
 # --- BB4MIPs biomass burning ---
 #==============================================================================
 (((BB4MIPS
@@ -3396,32 +3437,6 @@ VerboseOnCores:              root       # Accepted values: root all
 111 GFED_FRAC_3HOUR $ROOT/GFED4/v2023-03/$YYYY/GFED4_3hrfrac_gen.025x025.$YYYY$MM.nc   GFED_FRAC3HR 2010-2023/1-12/1/0-23  RF xy 1 * - 1 1
 )))GFED_3hourly
 )))GFED4
-
-#==============================================================================
-# --- FINN v1.5 biomass burning emissions (Extension 114)
-#==============================================================================
-(((.not.FINN_daily
-114 FINN_VEGTYP1       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_VEGTYP2       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_VEGTYP3       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_VEGTYP4       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_VEGTYP5       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_VEGTYP9       $ROOT/FINN/v2015-02/FINN_monthly_$YYYY_0.25x0.25.compressed.nc fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-))).not.FINN_daily
-
-(((FINN_daily
-114 FINN_DAILY_VEGTYP1 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype1 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_DAILY_VEGTYP2 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype2 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_DAILY_VEGTYP3 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype3 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_DAILY_VEGTYP4 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype4 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_DAILY_VEGTYP5 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype5 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-114 FINN_DAILY_VEGTYP9 $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25.compressed.nc   fire_vegtype9 2002-2016/1-12/1/0 RF xy kg/m2/s * - 1 1
-
-(((FINN_subgrid_coag
-114 FINN_DAILY_NUMBER  $ROOT/FINN/v2015-02/FINN_daily_$YYYY_0.25x0.25_with_num.nc     number        2002-2016/1-12/1/0 RF xy unitless * - 1 1
-)))FINN_subgrid_coag
-
-)))FINN_daily
 
 )))EMISSIONS
 

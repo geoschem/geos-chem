@@ -414,34 +414,33 @@ CONTAINS
             State_Grid   = State_Grid,                                       &
             State_Met    = State_Met,                                        &
             OHdiurnalFac = OHdiurnalFac                                     )
-    ENDIF
 
-    !========================================================================
-    ! HISTORY: Diagnostic archival of OH [molec/cm3]
-    !========================================================================
-    IF ( State_Diag%Archive_OHconcAfterChem ) THEN
+       !========================================================================
+       ! HISTORY: Diagnostic archival of OH [molec/cm3]
+       !========================================================================
+       IF ( State_Diag%Archive_OHconcAfterChem ) THEN
 
-       !$OMP PARALLEL DO                                                     &
-       !$OMP DEFAULT( SHARED                                                )&
-       !$OMP PRIVATE( I, J, L                                               )&
-       !$OMP COLLAPSE( 3                                                    )
-       DO L = 1, State_Grid%NZ
-       DO J = 1, State_Grid%NY
-       DO I = 1, State_Grid%NX
+          !$OMP PARALLEL DO                                                  &
+          !$OMP DEFAULT( SHARED                                             )&
+          !$OMP PRIVATE( I, J, L                                            )&
+          !$OMP COLLAPSE( 3                                                 )
+          DO L = 1, State_Grid%NZ
+          DO J = 1, State_Grid%NY
+          DO I = 1, State_Grid%NX
 
-          ! Archive OH if we are in the chemistry grid [molec/cm3]
-          IF ( State_Met%InChemGrid(I,J,L) ) THEN
-             IF ( State_Diag%Archive_OHconcAfterChem ) THEN
-                State_Diag%OHconcAfterChem(I,J,L) = Global_OH(I,J,L)         &
-                                                  * OHdiurnalFac(I,J)
+             ! Archive OH if we are in the chemistry grid [molec/cm3]
+             IF ( State_Met%InChemGrid(I,J,L) ) THEN
+                IF ( State_Diag%Archive_OHconcAfterChem ) THEN
+                   State_Diag%OHconcAfterChem(I,J,L) = Global_OH(I,J,L)         &
+                                                     * OHdiurnalFac(I,J)
+                ENDIF
              ENDIF
-          ENDIF
 
-       ENDDO
-       ENDDO
-       ENDDO
-       !$OMP END PARALLEL DO
-
+          ENDDO
+          ENDDO
+          ENDDO
+          !$OMP END PARALLEL DO
+       ENDIF
     ENDIF
 
     ! Do not call KPP if neither CH4 or CO are advected species

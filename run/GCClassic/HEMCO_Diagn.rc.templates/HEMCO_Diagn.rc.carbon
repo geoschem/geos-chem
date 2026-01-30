@@ -5,11 +5,16 @@
 #
 # !MODULE: HEMCO_Diagn.rc
 #
-# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO
+#  (for carbon gases simulations).
 #\\
 #\\
 # !REMARKS:
-#  Customized for the carbon simulation.
+#  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
+#
+#  NOTES FOR BIOMASS BURNING:
+#  1. For GFED extension,    set ExtNr = 111, Cat = -1, Hier = -1.
+#  2. For offline emissions, set ExtNr = 0,   Cat =  5, Hier = -1
 #EOP
 #------------------------------------------------------------------------------
 #BOC
