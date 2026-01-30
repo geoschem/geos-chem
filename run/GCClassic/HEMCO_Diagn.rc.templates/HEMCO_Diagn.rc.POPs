@@ -5,11 +5,12 @@
 #
 # !MODULE: HEMCO_Diagn.rc 
 #
-# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO
+#  (for POPs simulations).
 #\\
 #\\
 # !REMARKS:
-#  Customized for the POPs simulation.
+#  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
 #
 # !REVISION HISTORY:
 #  13 Mar 2019 - M. Sulprizio- Initial version

@@ -282,6 +282,7 @@ CONTAINS
     INTEGER              :: fId,        vId
     INTEGER              :: N,          nObs
     INTEGER              :: nSpecies
+    REAL(fp)             :: tsDyn,      halfTsDyn
 
     ! Arrays
     INTEGER, ALLOCATABLE :: tmp_int(:)
@@ -301,6 +302,8 @@ CONTAINS
     ! Initialize
     RC                = GC_SUCCESS
     Window_Start_Time = .TRUE.
+    tsDyn             = DBLE( Input_Opt%Ts_Dyn )
+    halfTsDyn         = tsDyn * 0.5_fp
     ErrMsg            = ''
     ThisLoc           = &
      ' -> at ObsPack_Read_Input (in module ObsPack/obspack_mod.F90)'
@@ -639,6 +642,13 @@ CONTAINS
 
              State_Diag%ObsPack_Ival_End(N) =                                &
                   State_Diag%ObsPack_Ival_Center(N)
+
+             ! Extend the averaging interval end to capture data points
+             ! that are within half a dynamic timestep of the day's end
+             IF ( State_Diag%ObsPack_Ival_End(N) + tsDyn > 86400.0 ) THEN
+                State_Diag%ObsPack_Ival_End(N) =                             &
+                     State_Diag%ObsPack_Ival_End(N) + halfTsDyn
+             ENDIF
 
           !------------------
           ! Exit w/ error
@@ -1333,25 +1343,30 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    LOGICAL             :: prtLog,  doSample, validObs
-    INTEGER             :: I,       J,        L
-    INTEGER             :: N,       R,        S
-    INTEGER             :: Yr,      Mo,       Da
-    INTEGER             :: Hr,      Mn,       Sc
-    REAL(f8)            :: TsStart, TsEnd,    TsEndPlusTsDyn
+    LOGICAL             :: doSample,       endOfDay
+    LOGICAL             :: prtLog,         validObs
+    INTEGER             :: I,              J,         L
+    INTEGER             :: N,              R,         S
+    INTEGER             :: Yr,             Mo,        Da
+    INTEGER             :: Hr,             Mn,        Sc
+    REAL(f8)            :: HalfTsDyn,      Interval,  Tomorrow
+    REAL(f8)            :: TsStart,        TsDyn,     TsEnd
+    REAL(f8)            :: TsEndPlusTsDyn
 
     ! Strings
-    CHARACTER(LEN=255)  :: ErrMsg,  ThisLoc
+    CHARACTER(LEN=255)  :: ErrMsg,         ThisLoc
 
     !========================================================================
     ! ObsPack_Sample begins here
     !========================================================================
 
     ! Initialize
-    RC       =  GC_SUCCESS
-    ErrMsg   = ''
-    ThisLoc  = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
-    prtLog   = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
+    RC        =  GC_SUCCESS
+    TsDyn     = DBLE( Input_Opt%TS_DYN )
+    HalfTsDyn = tsDyn * 0.5_f8
+    ErrMsg    = ''
+    ThisLoc   = ' -> at ObsPack_Sample (in module ObsPack/obspack_mod.F90)'
+    prtLog    = (Input_Opt%amIRoot .and. ( .not. Input_Opt%ObsPack_Quiet ) )
 
     ! Return if ObsPack sampling is turned off (perhaps
     ! because there are no data at this time).
@@ -1386,10 +1401,16 @@ CONTAINS
     CALL Ymd_Extract( yyyymmdd, Yr, Mo, Da )
     CALL Ymd_Extract( hhmmss,   Hr, Mn, Sc )
 
-    ! Compute elapsed seconds since 1970
+    ! Compute elapsed seconds since 1970 at model date/time
     TsEnd          = Seconds_Since_1970( Yr, Mo, Da, Hr, Mn, Sc )
-    TsStart        = TsEnd - Input_Opt%TS_DYN
-    TsEndPlusTsDyn = TsEnd + Input_Opt%TS_DYN
+    TsStart        = TsEnd - TsDyn
+    TsEndPlusTsDyn = TsEnd + TsDyn
+
+    ! Compute elapsed seconds since 1970 at the start of the next day
+    Tomorrow       = Seconds_Since_1970( Yr, Mo, Da, 0, 0, 0 ) + 86400.0_f8
+
+    ! Are we within 1 model timestep of the next model day?
+    endOfDay       = ( ( Tomorrow - TsEnd ) <= TsDyn )
 
     ! Logfile header
     IF ( prtLog ) THEN
@@ -1446,11 +1467,18 @@ CONTAINS
           ! 4: Choose the closest timestep
           !------------------------------------------------------------------
           CASE( 4 )
-             IF ( ( TsEnd - State_Diag%ObsPack_Ival_Center(N)  ) <=          &
-                  ( Input_Opt%TS_DYN / 2.0_fp                  )     .and.   &
-                  ( State_Diag%ObsPack_Ival_Center(N) - TsEnd  ) <           &
-                  ( Input_Opt%TS_DYN / 2.0_fp                  )    ) THEN
-                doSample = .TRUE.
+             
+             ! Take the sample if it lies within 1/2 of a model dynamic
+             ! timestep on either side of the current model time
+             Interval = TsEnd - State_Diag%ObsPack_Ival_Center(N)
+             doSample = ( -Interval <= HalfTsDyn .and. Interval < HalfTsDyn )
+
+             ! EDGE CASE: If we are on the last timestep before the end
+             ! of the model day, then also include data points that lie
+             ! within 1/2 model timestep of the end of the model day.
+             IF ( endOfDay .and. .not. doSample ) THEN
+                Interval = Tomorrow - State_Diag%ObsPack_Ival_Center(N)
+                doSample = ( Interval <= HalfTsDyn )
              ENDIF
 
           CASE DEFAULT

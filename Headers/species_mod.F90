@@ -118,6 +118,7 @@ MODULE Species_Mod
      LOGICAL            :: Is_Photolysis    ! Is it an photolysis species?
      LOGICAL            :: Is_RadioNuclide  ! Is it a radionuclide species?
      LOGICAL            :: Is_Tracer        ! Is it a transport tracer?
+     LOGICAL            :: Is_JacobianTracer  ! Is it a Jacobian tracer?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
 
@@ -157,6 +158,7 @@ MODULE Species_Mod
      LOGICAL            :: WD_Is_H2SO4      ! Flag to denote H2SO4 wetdep
      LOGICAL            :: WD_Is_HNO3       ! Flag to denote HNO3 wetdep
      LOGICAL            :: WD_Is_SO2        ! Flag to denote SO2 wetdep
+     LOGICAL            :: WD_Is_DSTbin     ! Flag to denote dust wetdep (D. Zhang 28 Jun, 2024)
      LOGICAL            :: WD_CoarseAer     ! T=coarse aerosol; F=fine aerosol
      REAL(fp)           :: WD_AerScavEff    ! Aerosol scavenging efficiency
      REAL(fp)           :: WD_KcScaleFac(3) ! Temperature-dependent scale
@@ -165,6 +167,8 @@ MODULE Species_Mod
                                             !  in F_AEROSOL (wetscav_mod.F90)
      REAL(fp)           :: WD_RainoutEff(3) ! Temperature-dependent scale
                                             !  factors for rainout efficiency
+     REAL(fp)           :: WD_WashoutRainPara(2) ! Parameters for washout efficiency of dust species due to rain precipitation
+     REAL(fp)           :: WD_WashoutSnowPara(2) ! Parameters for washout efficiency of dust species due to snow precipitation
 
      ! TransportTracers parameters
      CHARACTER(LEN=80)  :: Snk_Horiz        ! Where to apply sink horizontally?
@@ -402,6 +406,7 @@ CONTAINS
     Spc%Is_Photolysis   = MISSING_BOOL
     Spc%Is_RadioNuclide = MISSING_BOOL
     Spc%Is_Tracer       = MISSING_BOOL
+    Spc%Is_JacobianTracer = MISSING_BOOL
     Spc%Is_WetDep       = MISSING_BOOL
     Spc%Src_Add         = MISSING_BOOL
     Spc%MP_SizeResAer   = MISSING_BOOL
@@ -731,7 +736,14 @@ CONTAINS
           WRITE( 6, 110 )    "Snk_Vert       ",  TRIM(ThisSpc%Snk_Vert)
 
        ENDIF
-
+       
+       !--------------------------------------------------------------------
+       ! Is the species a Jacobian Tracer (for IMI)?
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_JacobianTracer ) THEN
+          WRITE( 6, 130 )    "Is_JacobianTracer ",  ThisSpc%Is_JacobianTracer
+       ENDIF
+       
        !--------------------------------------------------------------------
        ! Is the species a mercury species?
        !--------------------------------------------------------------------

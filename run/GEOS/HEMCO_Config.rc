@@ -105,18 +105,6 @@ VerboseOnCores:              root       # Accepted values: root all
 104     SoilNOx           : on    NO 
     --> UseSoilTemperature:       false
     --> Use fertilizer NOx:       true
-105     DustDead          : on    DST1/DST2/DST3/DST4
-    --> Mass tuning factor:       2.454e-4 
-##################################################################
-# Mass tuning factors are resolution and met-source dependent
-#    --> Mass tuning factor:       3.7410e-5  # C24  GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C30  GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C48  GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C90  GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C180 GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C360 GEOS-IT
-#    --> Mass tuning factor:       X.XXXXe-5  # C720 GEOS-IT
-##################################################################
 107     SeaSalt                : on    SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
     --> SALA upper radius      :       0.5
@@ -177,6 +165,25 @@ VerboseOnCores:              root       # Accepted values: root all
     --> Scaling_OCPO      :       0.5
     --> Scaling_OCPI      :       0.5
     --> Scaling_SOAP      :       0.013
+125     DustL23M           : on    DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+    --> Mass tuning factor:       2.454e-4
+##############################################################################
+# Mass tuning factors are resolution and met-source dependent
+# See https://github.com/geoschem/geos-chem/pull/2946#issuecomment-3465876899
+#    --> Mass tuning factor:       6.794E-03  # C24  GEOS-FP
+#    --> Mass tuning factor:       4.402E-03  # C48  GEOS-FP
+#    --> Mass tuning factor:       3.533E-03  # C90  GEOS-FP
+#    --> Mass tuning factor:       3.081E-03  # C180 GEOS-FP
+#    --> Mass tuning factor:       2.924E-03  # C360 GEOS-FP
+#    --> Mass tuning factor:       4.231E-03  # C30  GEOS-IT
+#    --> Mass tuning factor:       3.308E-03  # C48  GEOS-IT
+#    --> Mass tuning factor:       2.614E-03  # C90  GEOS-IT
+#    --> Mass tuning factor:       2.924E-03  # C180 GEOS-IT
+#    --> Mass tuning factor:       7.944E-03  # C24  MERRA-2
+#    --> Mass tuning factor:       4.253E-03  # C48  MERRA-2
+#    --> Mass tuning factor:       4.341E-03  # C90  MERRA-2
+#    --> Mass tuning factor:       3.932E-03  # C180 MERRA-2
+##############################################################################
 ### END SECTION EXTENSION SWITCHES 
 
 ####################################################################################
