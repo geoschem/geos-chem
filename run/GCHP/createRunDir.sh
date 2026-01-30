@@ -774,26 +774,23 @@ else
 	RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
     else
 	RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	fi
     fi
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
         RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
     else
-        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
         RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
+    RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
+    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
 fi
 RUNDIR_VARS+="$(cat ${metSettingsDir}/gmao_hemco.txt)\n"

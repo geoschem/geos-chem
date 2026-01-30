@@ -1158,20 +1158,17 @@ else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_SEASALT_EXT='off'\n"
+	    RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	    if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='on '\n"
-		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='false'\n"
 	    else
 		RUNDIR_VARS+="RUNDIR_TOMAS_SEASALT='off'\n"
-		RUNDIR_VARS+="RUNDIR_OFFLINE_SEASALT='true '\n"
 	    fi
 	fi
 	if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
 	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
 	else
 	    RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-	    RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
 	fi
 	RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
@@ -1179,6 +1176,7 @@ else
 	RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
 	RUNDIR_VARS+="RUNDIR_OFFLINE_SOILNOX='true '\n"
+	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
     RUNDIR_VARS+="$(cat ${gcdir}/run/shared/settings/gmao_hemco.txt)\n"
 fi
