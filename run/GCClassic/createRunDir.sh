@@ -342,7 +342,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
     elif [[ ${met_num} = "2" ]]; then
 	met="geosfp"
-	shared_met_settings=${gcdir}/run/shared/settings/geosfp/geosfp.preprocessed_ll.txt
+	shared_met_settings=${gcdir}/run/shared/settings/geosfp/geosfp.nonadv_preprocessed_ll.txt
 	RUNDIR_VARS+="RUNDIR_MET_FIELD_CONFIG='HEMCO_Config.rc.gmao_metfields'\n"
 
 	# Print warning about GEOS-FP and require user to acknowledge it.
