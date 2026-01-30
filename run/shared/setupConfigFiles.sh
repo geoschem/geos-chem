@@ -112,17 +112,31 @@ function set_common_settings() {
     #------------------------------------------------------------------------
     if [[ "x${sim_extra_option}" == "xbenchmark" ]]; then
 
-	# Change time cycle flag to allow missing species (GCClassic only)
+	#--------------------------------
+	# Updates for GC-Classic only
+	#--------------------------------
 	if [[ "x${model}" == "xGCClassic" ]]; then
+
+	    # Change time cycle flag to allow missing species
 	    sed_ie 's|EFYO|CYS|' HEMCO_Config.rc
+
+	    # Make sure that GC-Classic benchmark simulations read the
+	    # restart file via GEOS-Chem and not HEMCO.  This will ensure
+	    # mass conservation when the run is broken up into several
+	    # stages, since restart file data is stored as REAL*8 but HEMCO
+	    # reads file data as REAL*4.
+	    replace_colon_sep_val "read_restart_as_real8" "true" geoschem_config.yml
 	fi
 
+	#---------------------------------
+	# Updates for GCClassic and GCHP
+	#---------------------------------
         sed_ie 's|NO     0      3 |NO     104    -1|' HEMCO_Diagn.rc   # Use online soil NOx (ExtNr=104)
 	sed_ie 's|SALA  0      3 |SALA  107    -1|'   HEMCO_Diagn.rc   # Use online sea salt (ExtNr=107)
 	sed_ie 's|SALC  0      3 |SALC  107    -1|'   HEMCO_Diagn.rc   #   "   "
 	sed_ie 's|AL  0      3 |AL  107    -1|'       HEMCO_Diagn.rc   #   "   "
 	sed_ie 's|CL  0      3 |CL  107    -1|'       HEMCO_Diagn.rc   #   "   "
-        sed_ie 's|0      3 |105    -1|'               HEMCO_Diagn.rc   # Use online dust (ExtNr=105)
+        sed_ie 's|0      3 |125    -1|'               HEMCO_Diagn.rc   # Use online dust (ExtNr=125)
         sed_ie 's|0      4 |108    -1|'               HEMCO_Diagn.rc   # Use MEGAN (ExtNr=108)
         sed_ie 's|NH3    105    -1|NH3    0      3 |' HEMCO_Diagn.rc   # NaturalNH3 is always ExtNr=0
         sed_ie 's|ALD2   105    -1|ALD2   0      3 |' HEMCO_Diagn.rc   # PlantDecay is always ExtNr=0
@@ -132,10 +146,10 @@ function set_common_settings() {
 	# Turn @ into # characters for the benchmark simulation,
 	# which should cause MAPL to skip reading these lines.
 	# This is a workaround for a "input file to long" MAPL error.
-	sed_ie 's|@|#|'                                HISTORY.rc
+	sed_ie 's|@|#|'                               HISTORY.rc
 
 	# Remove the first comment character on diagnostics
-        sed_ie "s|#'|'|"                               HISTORY.rc
+        sed_ie "s|#'|'|"                              HISTORY.rc
     fi
 
     #------------------------------------------------------------------------
@@ -232,31 +246,40 @@ function set_common_settings() {
     if [[ "x${sim_extra_option}" == "xaciduptake" ]]; then
 
         # Add DSTAL* species after DST4
-        prev_line='      - DST4'
-        new_line='\      - DSTAL1\
-      - DSTAL2\
-      - DSTAL3\
-      - DSTAL4
+        prev_line='      - DSTbin7'
+        new_line='\      - DSTALbin1\
+      - DSTALbin2\
+      - DSTALbin3\
+      - DSTALbin4\
+      - DSTALbin5\
+      - DSTALbin6\
+      - DSTALbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add NITD* species after NITs.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after NIT and NITs.
         prev_line='      - NITs'
-        new_line='\      - NITD1\
-      - NITD2\
-      - NITD3\
-      - NITD4
+        new_line='\      - NITDbin1\
+      - NITDbin2\
+      - NITDbin3\
+      - NITDbin4\
+      - NITDbin5\
+      - NITDbin6\
+      - NITDbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 
 	# Add SO4* species after SO4s.  NOTE: This is non-alphabetical,
 	# but avoids double-adding these species after SO4 and SO4s.
         prev_line='      - SO4s'
-        new_line='\      - SO4D1\
-      - SO4D2\
-      - SO4D3\
-      - SO4D4
+        new_line='\      - SO4Dbin1\
+      - SO4Dbin2\
+      - SO4Dbin3\
+      - SO4Dbin4\
+      - SO4Dbin5\
+      - SO4Dbin6\
+      - SO4Dbin7
 '
 	insert_text "${prev_line}" "${new_line}" geoschem_config.yml
 

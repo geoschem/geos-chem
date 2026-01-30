@@ -103,9 +103,8 @@ RUNDIR_VARS+="RUNDIR_DATA_ROOT=$GC_DATA_ROOT\n"
 printf "${thinline}Choose simulation type:${thinline}"
 printf "   1. Full chemistry\n"
 printf "   2. TransportTracers\n"
-printf "   3. CO2 w/ CMS-Flux emissions\n"
+printf "   3. Carbon\n"
 printf "   4. Tagged O3\n"
-printf "   5. Carbon\n"
 
 valid_sim=0
 while [ "${valid_sim}" -eq 0 ]; do
@@ -116,11 +115,9 @@ while [ "${valid_sim}" -eq 0 ]; do
     elif [[ ${sim_num} = "2" ]]; then
 	sim_name=TransportTracers
     elif [[ ${sim_num} = "3" ]]; then
-	sim_name=CO2
+	sim_name=carbon
     elif [[ ${sim_num} = "4" ]]; then
 	sim_name=tagO3
-    elif [[ ${sim_num} = "5" ]]; then
-	sim_name=carbon
     else
         valid_sim=0
 	printf "Invalid simulation option. Try again.\n"
@@ -402,11 +399,11 @@ while [ "${valid_met}" -eq 0 ]; do
 
 	fi
 
-	# Set ExtData.rc settings for met-fields used in GEOS-Chem
+	# Set ExtData.rc settings for met-fields used in GEOS-Chem outside of advection
 	if [[ ${met_file_type} = "raw_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.raw_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.nonadv_raw_ll.txt)\n"
 	elif [[ ${met_file_type} = "processed_ll" ]]; then
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.preprocessed_ll.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosfp/geosfp.nonadv_preprocessed_ll.txt)\n"
 	fi
 	
     elif [[ ${met_num} = "3" ]]; then
@@ -497,7 +494,7 @@ while [ "${valid_met}" -eq 0 ]; do
 	    elif [[ ${adv_flux_src} == "3hr_wind" ]]; then
 		RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/advection_met/geosit.preprocessed_3hr_c180_wind.txt)\n"
 	    fi
-	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.preprocessed_c180.txt)\n"
+	    RUNDIR_VARS+="$(cat ${metSettingsDir}/geosit/geosit.nonadv_preprocessed_c180.txt)\n"
 
 	else
 
@@ -643,7 +640,7 @@ cp ./setRestartLink.sh                ${rundir}
 cp ./checkRunSettings.sh              ${rundir}
 cp ./gitignore                        ${rundir}/.gitignore
 
-# Copy file to auto-update common settings. Use adjoint version for CO2.
+# Copy file to auto-update common settings
 cp ./setCommonRunSettings.sh.template  ${rundir}/setCommonRunSettings.sh
 
 if [[ "x${sim_name}" == "xfullchem" || "x${sim_name}" == "xcarbon" ]]; then
@@ -760,7 +757,7 @@ fi
 
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ "${sim_extra_option}" == "benchmark" ]]; then
-    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"
+    RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SEASALT_EXT='on '\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='on '\n"
@@ -786,13 +783,14 @@ else
 	fi
     fi
     if [[ ${sim_extra_option} =~ "TOMAS" ]]; then
-	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
-	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
+        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
+        RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='on '\n"
+        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='false'\n"
     else
-	RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
-	RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n" 
+        RUNDIR_VARS+="RUNDIR_DUSTL23M_EXT='off'\n"
+        RUNDIR_VARS+="RUNDIR_TOMAS_DUSTDEAD='off'\n"
+        RUNDIR_VARS+="RUNDIR_OFFLINE_DUST='true '\n"
     fi
-    RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_MEGAN_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_SOILNOX_EXT='off'\n"
     RUNDIR_VARS+="RUNDIR_OFFLINE_BIOVOC='true '\n"
