@@ -79,6 +79,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - Fixed indexing error in routine `Grav_Settling` (in module `GeosCore/sulfate_mod.F90`), which caused incorrect dry deposition diagnostics for some species
 - Fixed incorrect met vertical flipping in GCHP for cases where advection and non-advection met are from different sources, e.g. raw versus processed
 - Fixed several inconsistencies in `species_database.yml`
+- Fixed incorrect unit conversion from v/v -> molec/cm3 in `planeflight_mod.F90`
 
 ### Removed
 - Removed entries for FINN v1.5 biomass burning emissions from template HEMCO configuration files
