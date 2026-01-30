@@ -120,6 +120,9 @@ MODULE Species_Mod
      LOGICAL            :: Is_Tracer        ! Is it a transport tracer?
      LOGICAL            :: Is_WetDep        ! Is it wet-deposited?
      LOGICAL            :: Is_InRestart     ! Is it in the restart file?
+#ifdef JACOBIAN
+     LOGICAL            :: Is_JacobianTracer  ! Is it a Jacobian tracer?
+#endif
 
      ! Molecular weights
      REAL(fp)           :: MW_g             ! Species molecular weight [g/mol]
@@ -411,6 +414,9 @@ CONTAINS
     Spc%WD_Is_HNO3      = MISSING_BOOL
     Spc%WD_Is_SO2       = MISSING_BOOL
     Spc%WD_LiqAndGas    = MISSING_BOOL
+#ifdef JACOBIAN
+    Spc%Is_JacobianTracer = MISSING_BOOL
+#endif
 
     ! Integers
     Spc%AdvectId        = MISSING_INT
@@ -731,6 +737,15 @@ CONTAINS
           WRITE( 6, 110 )    "Snk_Vert       ",  TRIM(ThisSpc%Snk_Vert)
 
        ENDIF
+       
+#ifdef JACOBIAN
+       !--------------------------------------------------------------------
+       ! Is the species a Jacobian Tracer (for IMI)?
+       !--------------------------------------------------------------------
+       IF ( ThisSpc%Is_JacobianTracer ) THEN
+          WRITE( 6, 130 )    "Is_JacobianTracer ",  ThisSpc%Is_JacobianTracer
+       ENDIF
+#endif
 
        !--------------------------------------------------------------------
        ! Is the species a mercury species?

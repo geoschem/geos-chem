@@ -1037,6 +1037,17 @@ else
     RUNDIR_VARS+="RUNDIR_USE_GCCLASSIC_TIMERS='false'\n"
 fi
 
+# Disable PARANOX for 0.25 x 0.3125 and finer grids
+# See: https://github.com/geoschem/geos-chem/issues/3009
+if [[ "x${sim_name}" == "xfullchem" ]]; then
+    if [[ "x${grid_res}" == "x0125x015625" ]]  ||   \
+       [[ "x${grid_res}" == "x025x03125"   ]]; then
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='off'\n"
+    else
+       RUNDIR_VARS+="RUNDIR_PARANOX_EXT='on '\n"
+    fi
+fi
+
 # Assign appropriate file paths and settings in HEMCO_Config.rc
 if [[ ${met} = "ModelE2.1" ]]; then
     RUNDIR_VARS+="RUNDIR_DUSTDEAD_EXT='on '\n"

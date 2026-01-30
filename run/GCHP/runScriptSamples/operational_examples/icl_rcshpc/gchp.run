@@ -19,8 +19,11 @@ ulimit -u 50000              # maxproc
 ulimit -v unlimited          # vmemoryuse
 ulimit -s unlimited          # stacksize
 
-# Exit if command fails, and log all commands
-set -xe
+# Exit if command fails
+set -e
+
+# Debug option to print all commands executed in this script
+#set -x
 
 # Define log name to include simulation start date
 start_str=$(sed 's/ /_/g' cap_restart)
@@ -32,6 +35,9 @@ source setCommonRunSettings.sh > ${log}
 source setRestartLink.sh >> ${log}
 source gchp.env >> ${log}
 source checkRunSettings.sh >> ${log}
+
+# Turn off exit if command fails to allow script to finish if GCHP exits early
+set +e
 
 # Run the code
 mpirun ./gchp >> $log

@@ -24,8 +24,6 @@
 #  Short	     |  	   |	 | V |Item|Intervl| Sub | Def  |	Long
 #  Name 	     |   Units     | Dim |Loc|Type| R | A |Tiles| ault |	Name
 # -------------------|-------------|-----|---|----|---|---|-----|------|--------------------------
-# AIRDENS            |  kg m-3     | xyz | C |    |   |   |     |      | air_density
-  AREA               |     m2    | xy  |   |    |   |   |	|      | 
   FRLAKE             |     1	   | xy  |   |    |   |   |	|      | 
   FRLAND             |     1	   | xy  |   |    |   |   |	|      | 
   FRLANDIC           |     1	   | xy  |   |    |   |   |	|      | 
@@ -46,8 +44,6 @@
   PARDF              |     1	   | xy  |   |    |   |   |	|      | 
   PARDR              |     1	   | xy  |   |    |   |   |	|      | 
   PBLH               |     1	   | xy  |   |    |   |   |	|      | 
-# PLE                |     1       | xyz | E |    |   |   |     |      |
-# DryPLE             |     1       | xyz | E |    |   |   |     |      |
   SEAICE00           |     1	   | xy  |   |    |   |   |	|      | 
   SEAICE10           |     1	   | xy  |   |    |   |   |	|      | 
   SEAICE20           |     1	   | xy  |   |    |   |   |	|      | 
