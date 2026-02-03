@@ -1,0 +1,34 @@
+#!/bin/bash
+#
+#SBATCH --ntasks-per-node 48
+#SBATCH -N 1
+#SBATCH -t 00:30:00
+#SBATCH -p queue2
+#SBATCH --job-name=build
+
+#################################################################
+#
+# ADDITIONAL PRE-RUN CONFIGURATION
+#
+# If a subsequent command fails, treat it as fatal (don't continue)
+set -e
+
+# Alternatively you can put this in your environment file.
+ulimit -c 0                  # coredumpsize
+ulimit -l unlimited          # memorylocked
+ulimit -u 50000              # maxproc
+ulimit -v unlimited          # vmemoryuse
+ulimit -s unlimited          # stacksize
+#################################################################
+
+source ~/spack/share/spack/setup-env.sh
+spack env activate compute_env
+source gchp.env
+
+cd build
+cmake ../CodeDir -DRUNDIR=.. -DMECH=carbon
+make -j
+make install
+cd ..
+
+echo "Build complete!"
