@@ -44,6 +44,14 @@ export OMPI_MCA_btl=vader,tcp,self
 export OMPI_MCA_btl_tcp_if_exclude="lo,docker0,virbr0"
 export OMPI_MCA_btl_if_exclude="lo,docker0,virbr0"
 
+# Disable shared memory for EFA to avoid crashes
+export FI_EFA_ENABLE_SHM_TRANSFER=0
+export OMPI_MCA_mtl_ofi_provider_exclude=shm
+
+# Maybe alleviate PKE entries exhausted warnings
+export FI_EFA_RDM_NUM_RX_PKTS=16384 
+export FI_EFA_RDM_NUM_TX_PKTS=16384
+
 mpiexec -np ${SLURM_NTASKS} --map-by core --bind-to core bash ./execute.sh > ${log}
 
 #################################################################

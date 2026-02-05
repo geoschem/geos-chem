@@ -66,7 +66,7 @@ MODULE CMN_SIZE_MOD
   INTEGER, PARAMETER :: NDSTBIN = 30
 #endif
 #else
-  INTEGER, PARAMETER :: NDSTBIN = 4
+  INTEGER, PARAMETER :: NDSTBIN = 7 ! (Extend to 7 dust bins, D. Zhang, 5 Mar 2025)
 #endif
 !
 ! !REVISION HISTORY:

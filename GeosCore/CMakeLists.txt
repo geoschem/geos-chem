@@ -28,7 +28,6 @@ add_library(GeosCore
   cldice_HBrHOBr_rxn.F90
   cldj_interface_mod.F90
   cleanup.F90
-  co2_mod.F90
   convection_mod.F90
   depo_mercury_mod.F90
   diagnostics_mod.F90
@@ -41,7 +40,6 @@ add_library(GeosCore
   gc_environment_mod.F90
   get_ndep_mod.F90
   global_br_mod.F90
-  global_ch4_mod.F90
   gosat_ch4_mod.F90
   hcoi_gc_diagn_mod.F90
   hco_state_gc_mod.F90
@@ -70,7 +68,6 @@ add_library(GeosCore
   set_global_ch4_mod.F90
   sfcvmr_mod.F90
   sulfate_mod.F90
-  tagged_co_mod.F90
   tagged_o3_mod.F90
   tccon_ch4_mod.F90
   toms_mod.F90

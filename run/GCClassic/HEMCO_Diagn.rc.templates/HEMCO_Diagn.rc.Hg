@@ -5,11 +5,12 @@
 #
 # !MODULE: HEMCO_Diagn.rc 
 #
-# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO.
+# !DESCRIPTION: Configuration file for netCDF diagnostic output from HEMCO
+#  (for the Hg simulation).
 #\\
 #\\
 # !REMARKS:
-#  Customized for the Hg simulation.
+#  For more information about HEMCO diagnostics, see hemco.readthedocs.io.
 #
 # !REVISION HISTORY:
 #  Use the gitk browser to view the Git history

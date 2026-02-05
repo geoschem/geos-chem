@@ -1253,6 +1253,7 @@ CONTAINS
     REAL(fp)               :: Ki, SO2LOSS
 #ifdef LUO_WETDEP
     REAL(fp)               :: LIQCLD, ICECLD
+    REAL(fp)               :: YCLDICE, FICE, FC, RAINRATE
 #endif
 
     ! Pointers
@@ -1370,6 +1371,34 @@ CONTAINS
 
     ENDIF
     
+#ifdef LUO_WETDEP
+    IF(p_T<237.D0 .AND. State_Met%CLDF(I,J,L)>1.D-6)THEN
+
+      YCLDICE = State_Met%QI(I,J,L)*State_Met%AIRDEN(I,J,L)*1.0D3
+      IF(YCLDICE>1.D-20)THEN
+
+        FICE=State_Met%CLDF(I,J,L)*YCLDICE/&
+        (YCLDICE+State_Met%QL(I,J,L)*State_Met%AIRDEN(I,J,L)*1.0D3)
+
+        IF(FICE>1.D-6)THEN
+
+          IF(SpcInfo%WD_RainoutEff(3)>0.6D0)THEN
+            RAINFRAC = RAINFRAC*(1.D0-EXP(-MIN(100.D0,DT*State_Met%TKICE(I,J,L))))
+          ENDIF
+        ENDIF
+      ENDIF
+    ENDIF
+
+    FC=MAX(1.D-4,State_Met%CLDF(I,J,L))
+    IF(RAINFRAC>0.D0)THEN
+      RAINRATE = RAINFRAC/DT/FC
+
+      RAINFRAC = RAINFRAC*(State_Met%KINC(I,J,L)/ &
+                (State_Met%KINC(I,J,L)+ &
+                (1.D0-FC)*RAINRATE))
+    ENDIF
+#endif
+
     ! Free pointer
     p_pHCloud => NULL()
 #else
@@ -1679,6 +1708,7 @@ CONTAINS
 #endif
 #ifdef LUO_WETDEP
     REAL(f8)               :: Hplus, HCSO2, HCNH3, Ks1, Ks2, T_Term
+    REAL(fp)               :: WASHRATE
 #endif
 
     ! Strings
@@ -1907,11 +1937,22 @@ CONTAINS
        CALL WASHFRAC_SIZE_AEROSOL( DT, F, PP, TK, N, I, J, L, &
                                    State_Met, State_Chm, WASHFRAC, RC )
 #endif
+    
+    !-----------------------------------------------------------------
+    ! Washout for dust species (D. Zhang, 28 Jun 2024)
+    !-----------------------------------------------------------------
+    ELSEIF (SpcInfo%WD_Is_DSTbin) THEN
+       ! Washout is a kinetic process
+       KIN      = .TRUE.
 
+       ! Compute washout fraction
+       WASHFRAC = WASHFRAC_DUSTBIN( SpcInfo%WD_WashoutRainPara(1), SpcInfo%WD_WashoutRainPara(2), &
+                           SpcInfo%WD_WashoutSnowPara(1), SpcInfo%WD_WashoutSnowPara(2), &
+                           DT, F, PP, TK)
     !-----------------------------------------------------------------
     ! Washout for coarse aerosol species (Reff >= 1um)
     !-----------------------------------------------------------------
-    ELSE IF ( SpcInfo%WD_CoarseAer ) THEN
+    ELSE IF ( ( .not. SpcInfo%WD_Is_DSTbin ) .and. SpcInfo%WD_CoarseAer ) THEN
 
        ! Washout is a kinetic process
        KIN      = .TRUE.
@@ -1933,12 +1974,17 @@ CONTAINS
 
        ! Compute washout fraction
 #ifdef LUO_WETDEP
+       IF(TK>258.D0)THEN
        ! Luo et al scheme: Compute washout fraction.  If the efficiency
        ! for T > 258 K is less than .999, treat it as hydrophobic aerosol
        IF ( SpcInfo%WD_RainoutEff(3) < 0.999_fp ) THEN
           WASHFRAC = WASHFRAC_FINE_AEROSOLLUOPO( DT, F, PP, TK )
        ELSE
           WASHFRAC = WASHFRAC_FINE_AEROSOLLUOPI( DT, F, PP, TK )
+       ENDIF
+
+       ELSE
+          WASHFRAC = WASHFRAC_FINE_AEROSOLLUOPO( DT, F, PP, TK )
        ENDIF
 #else
        ! Default scheme: Compute washout fraction, but always
@@ -1955,6 +2001,22 @@ CONTAINS
     IF(.not.KIN)THEN
       KIN      = .TRUE.
       WASHFRAC = F*WASHFRAC
+    ENDIF
+    ENDIF
+
+    IF(WASHFRAC>0.D0)THEN
+      IF(KIN)THEN
+        WASHRATE = WASHFRAC/DT/F
+
+        WASHFRAC = WASHFRAC*(State_Met%KINC(I,J,L)/ &
+                  (State_Met%KINC(I,J,L)+ &
+                  (1.D0-F)*WASHRATE))
+      ELSE
+        WASHRATE = WASHFRAC/DT
+
+        WASHFRAC = WASHFRAC*(State_Met%KINC(I,J,L)/ &
+                  (State_Met%KINC(I,J,L)+ &
+                  (1.D0-F)*WASHRATE))
     ENDIF
     ENDIF
 #endif
@@ -2338,6 +2400,83 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
+!------------------------------------------------------------------------------
+!                  GEOS-Chem Global Chemical Transport Model                  !
+!------------------------------------------------------------------------------
+!BOP
+!
+! !IROUTINE: washfrac_dustbin
+!
+! !DESCRIPTION: Function WASHFRAC\_DUSTBIN returns the fraction of
+!  dust species lost to washout.
+!\\
+!\\
+! !INTERFACE:
+!
+    FUNCTION WASHFRAC_DUSTBIN( RainPara1, RainPara2, SnowPara1, SnowPara2, DT, F, PP, TK) &
+      RESULT( WASHFRAC )
+!
+! !INPUT PARAMETERS:
+!
+   REAL(fp),       INTENT(IN)  :: RainPara1   ! prefactor for washout due to rain precipotation
+   REAL(fp),       INTENT(IN)  :: RainPara2   ! Exponent for washout due to rain precipotation
+   REAL(fp),       INTENT(IN)  :: SnowPara1   ! prefactor for washout due to snow precipotation
+   REAL(fp),       INTENT(IN)  :: SnowPara2   ! Exponent for washout due to snow precipotation
+   REAL(fp),       INTENT(IN)  :: DT          ! Timestep of washout event [s]
+   REAL(fp),       INTENT(IN)  :: F           ! Fraction of grid box that is
+                                              !  precipitating [unitless]
+   REAL(fp),       INTENT(IN)  :: PP          ! Precip rate thru bottom of grid
+                                              !  box (I,J,L)  [cm3 H2O/cm2 air/s]
+   REAL(fp),       INTENT(IN)  :: TK          ! Temperature in grid box [K]
+!
+! !RETURN VALUE:
+!
+   REAL(fp)                    :: WASHFRAC    ! Fraction of soluble species
+!
+! !REVISION HISTORY:
+!  25 Jun 2024 - D. Zhang - Initial version
+!  See https://github.com/geoschem/geos-chem for complete history
+!EOP
+!------------------------------------------------------------------------------
+!BOC
+!
+! !DEFINED PARAMETER:
+   
+!  
+   ! Washout rate constant for aerosols: aP^b (p: mm h^-1)
+
+   !=================================================================
+   ! WASHFRAC_DUSTBIN begins here!
+   !=================================================================
+   IF ( ( TK >= 268e+0_fp ) .OR. ITS_A_POPS_SIM ) THEN
+
+      !---------------------------------
+      ! T >= 268K (or POPS simulation)
+      !---------------------------------
+      IF ( F > 0e+0_fp ) THEN
+         WASHFRAC = F *(1e+0_fp - EXP( - RainPara1 * &
+                    (PP / F*3.6e+4_fp ) ** RainPara2 * DT ))
+      ELSE
+         WASHFRAC = 0e+0_fp
+      ENDIF
+
+   ELSE
+
+      !---------------------------------
+      ! T < 268K
+      !---------------------------------
+      IF ( F > 0e+0_fp ) THEN
+         WASHFRAC = F *(1e+0_fp - EXP( - SnowPara1 * &
+                    (PP / F*3.6e+4_fp ) ** SnowPara2 * DT ))
+      ELSE
+         WASHFRAC = 0e+0_fp
+      ENDIF
+
+   ENDIF
+
+END FUNCTION WASHFRAC_DUSTBIN
+!EOC
+
   FUNCTION WASHFRAC_FINE_AEROSOL( DT, F, PP, TK ) &
        RESULT( WASHFRAC )
 !
@@ -3939,9 +4078,13 @@ CONTAINS
     ! CONV_F_PRIME begins here!
     !=================================================================
 
+#ifdef LUO_WETDEP
+    TIME = DT / 1800e+0_fp
+#else
     ! Assume the rainout event happens in 30 minutes (1800 s)
     ! Compute the minimum of DT / 1800s and 1.0
     TIME = MIN( DT / 1800e+0_fp, 1e+0_fp )
+#endif
 
     ! Compute F' for convective precipitation (Eq. 13, Jacob et al, 2000)
     ! 0.3  = FMAX, the maximum value of F' for convective precip
@@ -4544,8 +4687,13 @@ CONTAINS
 
           ! Define ALPHA, the fraction of the raindrops that
           ! re-evaporate when falling from (I,J,L+1) to (I,J,L)
+#ifdef LUO_WETDEP
+          ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100e+0_fp )       &
+                  / MAX( 1.D-30, PDOWN(L+1,I,J) )
+#else
           ALPHA = ( ABS( Q ) * State_Met%BXHEIGHT(I,J,L) * 100e+0_fp )       &
                   / ( PDOWN(L+1,I,J) )
+#endif
 
           ! Restrict ALPHA to be less than 1 (>1 is unphysical)
           ! (hma, 24-Dec-2010)

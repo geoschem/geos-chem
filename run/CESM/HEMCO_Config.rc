@@ -133,7 +133,7 @@ VerboseOnCores:              root       # Accepted values: root all
 # ----- OFFLINE EMISSIONS -----------------------------------------------------
 # To use online emissions instead set the offline emissions to 'false' and the
 # corresponding HEMCO extension to 'on':
-#   OFFLINE_DUST        - DustDead or DustGinoux
+#   OFFLINE_DUST        - DustL23M
 #   OFFLINE_BIOGENICVOC - MEGAN
 #   OFFLINE_SEASALT     - SeaSalt
 #   OFFLINE_SOILNOX     - SoilNOx
@@ -171,9 +171,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> CDF table              :       $ROOT/LIGHTNOX/v2014-07/light_dist.ott2010.dat
 104     SoilNOx                : off   NO
     --> Use fertilizer NOx     :       true
-105     DustDead               : off   DST1/DST2/DST3/DST4
-    --> Mass tuning factor     :       4.7586e-4
-106     DustGinoux             : off   DST1/DST2/DST3/DST4
 #ewl: Use BRSALA or BrSALA, BrSALC or BRSALC. Did this change in standard model?
 107     SeaSalt                : off   SALA/SALC/SALACL/SALCCL/SALAAL/SALCAL/BrSALA/BrSALC/MOPO/MOPI
     --> SALA lower radius      :       0.01
@@ -224,7 +221,6 @@ VerboseOnCores:              root       # Accepted values: root all
     --> hydrophilic BC         :       0.2
     --> hydrophilic OC         :       0.5
     --> FINN_subgrid_coag      :       false
-115     DustAlk                : off   DSTAL1/DSTAL2/DSTAL3/DSTAL4
 117     Volcano                : on    SO2
     --> Volcano_Source         :       AeroCom
     --> Volcano_Table          :       $ROOT/VOLCANO/v2024-04/$YYYY/$MM/so2_volcanic_emissions_Carns.$YYYY$MM$DD.rc
@@ -232,6 +228,11 @@ VerboseOnCores:              root       # Accepted values: root all
 120     Inorg_Iodine           : on    HOI/I2
     --> Emit HOI               :       true
     --> Emit I2                :       true
+125     DustL23M               : off   DSTbin1/DSTbin2/DSTbin3/DSTbin4/DSTbin5/DSTbin6/DSTbin7
+    --> Mass tuning factor     :       -999.0
+#see the note near scale factor 281 for the source of this emis factor
+126     DustAlk                : off   DSTALbin1/DSTALbin2/DSTALbin3/DSTALbin4/DSTALbin5/DSTALbin6/DSTALbin7
+# ----- EXTENSIONS FOR TOMAS SIMULATIONS ONLY----------------------------------
 130     TOMAS_Jeagle           : off   SS01/SS02/SS03/SS04/SS05/SS06/SS07/SS08/SS09/SS10/SS11/SS12/SS13/SS14/SS15/SS16/SS17/SS18/SS19/SS20/SS21/SS22/SS23/SS24/SS25/SS26/SS27/SS28/SS29/SS30/SS31/SS32/SS33/SS34/SS35/SS36/SS37/SS38/SS39/SS40
     --> Reduce SS cold water   :       true
     --> Blowing Snow SS        :       true
@@ -3224,15 +3225,19 @@ ch
 
 #==============================================================================
 # --- Offline dust emissions ---
+#
 # NOTE: Use flag C if running in CESM
 #==============================================================================
 (((OFFLINE_DUST
-(((.not.DustDead.or.DustGinoux
-0 EMIS_DST1 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST1 1980-2022/1-12/1-31/* C xy kg/m2/s DST1 - 3 2
-0 EMIS_DST2 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST2 1980-2022/1-12/1-31/* C xy kg/m2/s DST2 - 3 2
-0 EMIS_DST3 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST3 1980-2022/1-12/1-31/* C xy kg/m2/s DST3 - 3 2
-0 EMIS_DST4 $ROOT/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/0.5x0.625/$YYYY/$MM/dust_emissions_05.$YYYY$MM$DD.nc EMIS_DST4 1980-2022/1-12/1-31/* C xy kg/m2/s DST4 - 3 2
-))).not.DustDead.or.DustGinoux
+(((.not.DustL23M
+0 EMIS_DSTbin1 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin1 621 3 2
+0 EMIS_DSTbin2 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin2 622 3 2
+0 EMIS_DSTbin3 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin3 623 3 2
+0 EMIS_DSTbin4 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin4 624 3 2
+0 EMIS_DSTbin5 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin5 625 3 2
+0 EMIS_DSTbin6 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin6 626 3 2
+0 EMIS_DSTbin7 $ROOT/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/$YYYY/$MM/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.$YYYY$MM$DD.nc EMIS 1980-2022/1-12/1-31/* C xy kg/m2/s DSTbin7 627 3 2
+))).not.DustL23M
 )))OFFLINE_DUST
 
 #==============================================================================
@@ -3368,18 +3373,8 @@ ch
 )))SoilNOx
 
 #==============================================================================
-# --- Dust emissions using DEAD model (Extensions 105 and 131) ---
+# --- Dust emissions using DEAD model (Extension 131) ---
 #==============================================================================
-(((DustDead
-105 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
-105 DEAD_MF_CACO3   $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CaCO3 1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_CLY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_CLY   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_MF_SND     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      MF_SND   1985/1/1/0    C xy fraction *    -    1 1
-105 DEAD_SFC_TYP    $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      SFC_TYP  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
-105 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
-)))DustDead
 (((TOMAS_DustDead
 131 DEAD_EF_GEO     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      EF_GEO   1985/1/1/0    C xy factor   *    -    1 1
 131 DEAD_LF_DRY     $ROOT/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc      LF_DRY   1985/1/1/0    C xy factor   *    -    1 1
@@ -3390,15 +3385,6 @@ ch
 131 DEAD_GOC_SRC    $ROOT/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc  GOC_SRC  1985/1/1/0    C xy unitless *    -    1 1
 131 DEAD_VAI        $ROOT/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc      VAI      1985/1-12/1/0 C xy unitless *    -    1 1
 )))TOMAS_DustDead
-
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106)
-#==============================================================================
-(((DustGinoux
-106 GINOUX_SAND   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SAND  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_SILT   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  SILT  1985/1/1/0 C xy unitless * - 1 1
-106 GINOUX_CLAY   $ROOT/DUST_GINOUX/v2014-07/NSP.dust.geos.4x5.nc  CLAY  1985/1/1/0 C xy unitless * - 1 1
-)))DustGinoux
 
 #==============================================================================
 # --- Sea salt emissions (Extensions 107 and 130)
