@@ -258,8 +258,8 @@ CH4_SEEPS kg/m2/s N Y - none none  emi_ch4  ./HcoDir/CH4/v2020-04/Seeps/Etiope_C
 CH4_RES_DAM kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Dam_Emissions.0.1x0.1.nc
 CH4_RES_SFC kg/m2/s N Y - none none CH4emis  ./HcoDir/CH4/v2024-01/ResME/ResME_Surface_Emissions.0.1x0.1.nc
 
-# --- Emissions from termites (Fung et al 1991) ---
-CH4_TERMITES    kg/m2/s N Y - none none  CH4  ./HcoDir/CH4/v2022-11/4x5/termites.geos.4x5.nc
+# --- Emissions from termites (CAMS-GLOB-TERM.v1.1) ---
+CH4_TERMITES kg/m2/s Y Y F2000-%m2-01T00:00:00 none none  CH4  ./HcoDir/CH4/2026-02/CAMS_Termites/CAMS-GLOB-TERM_v1.1_methane_2000.nc
 
 # --- Soil absorption fro MeMo model (Murguia-Flores et al. 2018, GMD) ---
 #

@@ -4,6 +4,13 @@ This file documents all notable changes to the GEOS-Chem repository starting in 
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/), and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - TBD
+### Changed
+- Update termite CH4 emissions to the CAMS-GLOB-TERM_v1.1 product
+
+### Removed
+- Retired Fung termite and soil absorption emission options from carbon simulation
+
 ## [14.7.0] - 2026-02-05
 ### Added
 - Added entries for FINNv25 biomass burning emissions to template HEMCO configuration files

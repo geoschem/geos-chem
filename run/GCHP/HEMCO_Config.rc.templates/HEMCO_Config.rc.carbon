@@ -76,8 +76,7 @@ Mask fractions:              false
     --> SEEPS                  :       true     # 2012
     --> LAKES                  :       false    # 2009-2015
     --> RESERVOIRS             :       true     # 2022
-    --> FUNG_TERMITES          :       true     # 1985
-    --> FUNG_SOIL_ABSORPTION   :       false    # 2009-2015
+    --> CAMS_TERMITES          :       true     # 2000
     --> MeMo_SOIL_ABSORPTION   :       true     # 1990-2009 or clim.
     --> CMIP6_SFC_LAND_ANTHRO  :       false    # 1850-2100
     --> CMIP6_SHIP             :       false    # 1850-2100
@@ -539,19 +538,11 @@ Mask fractions:              false
 )))RESERVOIRS
 
 #==============================================================================
-# --- CH4: Soil absorption & termites from Fung et al, 1991 ---
-#
-# NOTES:
-# - Multiply soil absorption by -1 to get a "negative" flux.
-#   (Only apply the scaling factor when adding to the total CH4 simulation)
-# - Use updated soil absorption emissions with seasonality applied
+# --- CH4: Termites from CAMS-GLOB-TERM.v1.1 ---
 #==============================================================================
-(((FUNG_TERMITES
-0 CH4_TERMITES     $ROOT/CH4/v2022-11/4x5/termites.geos.4x5.nc CH4 1985/1/1/0 C xy kg/m2/s CH4 - 13 1
-)))FUNG_TERMITES
-(((FUNG_SOIL_ABSORPTION
-0 CH4_SOILABSORB   $ROOT/CH4/v2019-10/Fung_SoilAbs/Soil_Absorption_4x5_$YYYY.nc CH4 2009-2015/1-12/1/0 C xy molec/cm2/s CH4 1 14 1
-)))FUNG_SOIL_ABSORPTION
+(((CAMS_TERMITES
+0 CH4_TERMITES $ROOT/HEMCO/CH4/v2026-02/CAMS_Termites/CAMS-GLOB-TERM_v1.1_methane_2000.nc CH4_termites 2000/1-12/1/0 C xy kg/m2/s CH4 - 13 1
+)))CAMS_TERMITES
 
 #==============================================================================
 # --- CH4: Soil absorption from MeMo model (Murguia-Flores et al. 2018, GMD) ---
@@ -1240,6 +1231,7 @@ Mask fractions:              false
 * XLAI72 $ROOT/Yuan_XLAI/v2021-06/Yuan_proc_MODIS_XLAI.025x025.$YYYY.nc XLAI72 2000-2020/1-12/1-31/0 I xy cm2/cm2 * - 1 1
 )))YUAN_MODIS_LAI
 
+#==============================================================================
 # --- Chemistry inputs ---
 #==============================================================================
 (((CHEMISTRY_INPUT
@@ -1333,7 +1325,7 @@ ${RUNDIR_CO2_COPROD}
 #------------------------------------------------------------------------------
 1 NEGATIVE -1.0 - - - xy 1 1
 
-#==============================================================================
+#------------------------------------------------------------------------------
 # --- Perturbation factors ---
 #
 # Default scaling factor of 1.0 for OH field, which will be changed for Jacobian and posterior OptimizeOH run
@@ -1346,7 +1338,7 @@ ${RUNDIR_CO2_COPROD}
 # Entries below are provided for examples only. Add your own here!
 #==============================================================================
 (((Emis_PosteriorSF
-3 EMIS_SF    gridded_posterior.nc            ScaleFactor 2000/1/1/0 C xy 1 1
+3 EMIS_SF    gridded_posterior.nc  ScaleFactor 2000/1/1/0         C xy 1 1
 )))Emis_PosteriorSF
 
 #==============================================================================
