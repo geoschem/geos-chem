@@ -73,7 +73,7 @@ restarts:
     remote: v2020-02/GEOSChem.Restart.POPs_BaP.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
   tago3:
-    remote: GC_14.5.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
+    remote: GC_14.7.0/GEOSChem.Restart.fullchem.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
   tomas15:
     remote: v2021-12/GEOSChem.Restart.TOMAS15.20190701_0000z.nc4
@@ -82,5 +82,5 @@ restarts:
     remote: v2021-12/GEOSChem.Restart.TOMAS40.20190701_0000z.nc4
     local:  GEOSChem.Restart.20190701_0000z.nc4
   transporttracers:
-    remote: GC_14.2.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
+    remote: GC_14.7.0/GEOSChem.Restart.TransportTracers.20190101_0000z.nc4
     local:  GEOSChem.Restart.20190101_0000z.nc4
