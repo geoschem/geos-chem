@@ -329,10 +329,8 @@ MODULE State_Chm_Mod
 #endif
 
      !-----------------------------------------------------------------------
-     ! Fields for CH4 specialty simulation
+     ! Fields for CH4 in the carbon simulation
      !-----------------------------------------------------------------------
-     REAL(fp),          POINTER :: BOH        (:,:,:  ) ! OH values [molec/cm3]
-     REAL(fp),          POINTER :: BCl        (:,:,:  ) ! Cl values [v/v]
      LOGICAL                    :: IsCH4BCPerturbed     ! Is CH4 BC perturbed?
 
 #ifdef APM
@@ -543,8 +541,6 @@ CONTAINS
     State_Chm%TO3_DAILY         => NULL()
     State_Chm%TOMS1             => NULL()
     State_Chm%TOMS2             => NULL()
-    State_Chm%BOH               => NULL()
-    State_Chm%BCl               => NULL()
     State_Chm%SFC_CH4           => NULL()
 
     State_Chm%UCX_REGRID        => NULL()
@@ -665,30 +661,34 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_State_Chm( Input_Opt, State_Chm, State_Grid, RC )
+  SUBROUTINE Init_State_Chm( Input_Opt,       State_Chm, State_Grid,         &
+                             TaggedDiag_List, RC                            )
 !
 ! !USES:
 !
     USE ErrCode_Mod
     USE CharPak_Mod,          ONLY : To_UpperCase
-    USE CMN_Size_Mod,         ONLY : NDUST, NAER
-    USE GCKPP_Parameters,     ONLY : NSPEC
+    USE CMN_Size_Mod,         ONLY : NAER
+    USE CMN_Size_Mod,         ONLY : NDUST
+    USE GcKpp_Parameters,     ONLY : NSPEC
     USE Input_Opt_Mod,        ONLY : OptInput
     USE Species_Database_Mod, ONLY : Init_Species_Database
     USE State_Grid_Mod,       ONLY : GrdState
+    USE TaggedDiagList_Mod,   ONLY : TaggedDgnList
 !
 ! !INPUT PARAMETERS:
 !
-    TYPE(GrdState), INTENT(IN)    :: State_Grid  ! Grid State object
+    TYPE(GrdState),      INTENT(IN)    :: State_Grid      ! Grid State object
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List ! Tagged Diag List
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt       ! Input Options
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm       ! Chemistry State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Return code
+    INTEGER,             INTENT(OUT)   :: RC              ! Return code
 !
 ! !REMARKS:
 !  In the near future we will put some error trapping on the allocations
@@ -852,7 +852,7 @@ CONTAINS
 
     ! Also get the number of the prod/loss species.  For fullchem simulations,
     ! the prod/loss species are listed in FAM_NAMES in gckpp_Monitor.F90,
-    ! but for certain other simulations (tagO3, tagCO), advected species
+    ! but for certain other simulations (tagO3, carbon), advected species
     ! can have prod and loss diagnostic entries.
     CALL GetNumProdLossSpecies( Input_Opt, State_Chm, RC )
     IF ( RC /= GC_SUCCESS ) THEN
@@ -937,7 +937,7 @@ CONTAINS
     !========================================================================
     ! Initialize the 1-D mapping vectors (e.g. State_Chm%Map_DryDep)
     !========================================================================
-    CALL Init_Mapping_Vectors( Input_Opt, State_Chm, RC )
+    CALL Init_Mapping_Vectors( Input_Opt, State_Chm, TaggedDiag_List, RC )
     IF ( RC /= GC_SUCCESS ) THEN
        errMsg = 'Error encountered in "Init_Mapping_Vectors" routine!'
        CALL GC_Error( errMsg, RC, thisLoc )
@@ -2278,42 +2278,6 @@ CONTAINS
     ENDIF
 
     !=======================================================================
-    ! Initialize State_Chm quantities pertinent to CH4 simulations
-    !=======================================================================
-    IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-       ! Global OH and Cl from HEMCO input
-       chmId = 'BOH'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%BOH,                                      &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-
-       chmId = 'BCl'
-       CALL Init_and_Register(                                               &
-            Input_Opt  = Input_Opt,                                          &
-            State_Chm  = State_Chm,                                          &
-            State_Grid = State_Grid,                                         &
-            chmId      = chmId,                                              &
-            Ptr2Data   = State_Chm%BCl,                                      &
-            RC         = RC                                                 )
-
-       IF ( RC /= GC_SUCCESS ) THEN
-          errMsg = TRIM( errMsg_ir ) // TRIM( chmId )
-          CALL GC_Error( errMsg, RC, thisLoc )
-          RETURN
-       ENDIF
-    ENDIF
-
-    !=======================================================================
     ! Initialize State_Chm quantities pertinent to RRTMG simulations
     !=======================================================================
     If (Input_Opt%LRAD) Then
@@ -2419,21 +2383,26 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE Init_Mapping_Vectors( Input_Opt, State_Chm, RC )
+  SUBROUTINE Init_Mapping_Vectors( Input_Opt, State_Chm, TaggedDiag_List, RC )
 !
 ! !USES:
 !
-    USE GCKPP_Parameters, ONLY : NSPEC
-    USE Input_Opt_Mod,    ONLY : OptInput
+    USE GcKpp_Parameters,   ONLY : NSPEC
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE TaggedDiagList_Mod, ONLY : TaggedDgnList
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List ! Tagged Diag List
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt       ! Input Options
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm       ! Chemistry State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Success or failure
+    INTEGER,             INTENT(OUT)   :: RC              ! Success or failure
 !
 ! !REVISION HISTORY:
 !  06 Jan 2015 - R. Yantosca - Initial version
@@ -2792,7 +2761,7 @@ CONTAINS
     ! Set up the mapping for PRODUCTION AND LOSS DIAGNOSTIC SPECIES
     !------------------------------------------------------------------------
     IF ( State_Chm%nProd > 0 .or. State_Chm%nLoss > 0 ) THEN
-       CALL MapProdLossSpecies( Input_Opt, State_Chm, RC )
+       CALL MapProdLossSpecies( Input_Opt, State_Chm, TaggedDiag_List, RC )
        IF ( RC /= GC_SUCCESS ) THEN
           ErrMsg = 'Error encountered in routine "MapProdLossSpecies"!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
@@ -3674,20 +3643,6 @@ CONTAINS
        CALL GC_CheckVar( 'State_Chm%TLSTT', 2, RC )
        IF ( RC /= GC_SUCCESS ) RETURN
        State_Chm%TLSTT => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%BOH ) ) THEN
-       DEALLOCATE( State_Chm%BOH, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BOH', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BOH => NULL()
-    ENDIF
-
-    IF ( ASSOCIATED( State_Chm%BCl ) ) THEN
-       DEALLOCATE( State_Chm%BCl, STAT=RC )
-       CALL GC_CheckVar( 'State_Chm%BCl', 2, RC )
-       IF ( RC /= GC_SUCCESS ) RETURN
-       State_Chm%BCl => NULL()
     ENDIF
 
 #ifdef LUO_WETDEP
@@ -4809,16 +4764,6 @@ CONTAINS
           IF ( isDesc  ) Desc  = 'TLSTT'
           IF ( isUnits ) Units = ''
           IF ( isRank  ) Rank  = 4
-
-       CASE( 'BOH' )
-          IF ( isDesc  ) Desc  = 'OH values, CH4 specialty simulation only'
-          IF ( isUnits ) Units = 'molec/cm3'
-          IF ( isRank  ) Rank  = 3
-
-       CASE( 'BCL' )
-          IF ( isDesc  ) Desc  = 'Cl values, CH4 specialty simulation only'
-          IF ( isUnits ) Units = 'v/v'
-          IF ( isRank  ) Rank  = 3
 
        CASE( 'QQ3D' )
           IF ( isDesc  ) Desc  = 'Rate of new precipitation formation'
@@ -6971,24 +6916,11 @@ CONTAINS
           IF ( Fam_Names(N)(1:1) == 'P' ) State_Chm%nProd = State_Chm%nProd + 1
        ENDDO
 
-    ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-       !------------------------------
-       ! Tagged CO simulation
-       !------------------------------
-
-       ! Each advected species can have a loss diagnostic attached ...
-       State_Chm%nLoss = State_Chm%nAdvect
-
-       ! ... but no prod diagnostics.  These will get archived by separate
-       ! array fields of the State_Diag object (e.g. ProdCOfromISOP, etc.)
-       State_Chm%nProd = 0
-
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
               Input_Opt%ITS_A_CARBON_SIM      ) THEN
 
        !------------------------------
-       ! Tagged O3 simulation
+       ! Tagged O3 or carbon simulation
        !-----------------------------
 
        ! Each advected species can have a prod and loss diagnostic attached
@@ -7019,22 +6951,31 @@ CONTAINS
 !\\
 ! !INTERFACE:
 !
-  SUBROUTINE MapProdLossSpecies( Input_Opt, State_Chm, RC )
+  SUBROUTINE MapProdLossSpecies( Input_Opt, State_Chm, TaggedDiag_List, RC )
 !
 ! !USES:
 !
-    USE GcKpp_Monitor,    ONLY : Fam_Names
-    USE GcKpp_Parameters, ONLY : nFam
-    USE Input_Opt_Mod,    ONLY : OptInput
+    USE CharPak_Mod,        ONLY : To_UpperCase
+    USE GcKpp_Monitor,      ONLY : Fam_Names
+    USE GcKpp_Parameters,   ONLY : nFam
+    USE Input_Opt_Mod,      ONLY : OptInput
+    USE TaggedDiagList_Mod, ONLY : DgnTagList
+    USE TaggedDiagList_Mod, ONLY : TaggedDgnList
+    USE TaggedDiagList_Mod, ONLY : Query_Tag_in_TagList
+    USE TaggedDiagList_Mod, ONLY : Query_TaggedDiagList
 !
 ! !INPUT/OUTPUT PARAMETERS:
 !
-    TYPE(OptInput), INTENT(INOUT) :: Input_Opt   ! Input Options object
-    TYPE(ChmState), INTENT(INOUT) :: State_Chm   ! Chemistry State object
+    TYPE(TaggedDgnList), INTENT(IN)    :: TaggedDiag_List ! Tag Diag. List
+!
+! !INPUT/OUTPUT PARAMETERS:
+!
+    TYPE(OptInput),      INTENT(INOUT) :: Input_Opt       ! Input Options
+    TYPE(ChmState),      INTENT(INOUT) :: State_Chm       ! Chemistry State
 !
 ! !OUTPUT PARAMETERS:
 !
-    INTEGER,        INTENT(OUT)   :: RC          ! Return code
+    INTEGER,              INTENT(OUT)  :: RC              ! Return code
 !
 ! !REMARKS:
 !
@@ -7048,23 +6989,29 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! Scalars
-    INTEGER            :: Id,     N
-    INTEGER            :: P,      L
+    LOGICAL                   :: found
+    INTEGER                   :: Id, N, numTags, numWildCards, P, L
 
     ! Strings
-    CHARACTER(LEN=36)  :: Name
-    CHARACTER(LEN=255) :: ErrMsg, ThisLoc
+    CHARACTER(LEN=36)         :: name
+    CHARACTER(LEN=255)        :: diagName
+    CHARACTER(LEN=255)        :: errMsg
+    CHARACTER(LEN=255)        :: thisLoc
+
+    ! Objects
+    TYPE(DgnTagList)          :: TagList
+    TYPE(DgnTagList)          :: WildCardList
 
     !=======================================================================
     ! GetProdLossSpecies begins here!
     !=======================================================================
 
     ! Initialize
-    RC      = GC_SUCCESS
-    P       = 0
-    L       = 0
-    ErrMsg  = ''
-    ThisLoc = &
+    RC       =  GC_SUCCESS
+    P        =  0
+    L        =  0
+    ErrMsg   =  ''
+    ThisLoc  =  &
          ' -> at MapProdLossSpecies (in module Headers/state_chm_mod.F90)'
 
     !=======================================================================
@@ -7079,28 +7026,104 @@ CONTAINS
        ! Loop over the number of prod/loss species
        DO N = 1, nFam
 
+          ! Initialize
+          name     = ''
+          diagName = ''
+          found    = .FALSE.
+
           ! Get the KPP prod/loss species from the FAM_NAMES
           ! array in the gckpp_Parameters.F90 module.
           ! NOTE: This is the KPP ID number (index of "VAR" array)
           ! and not the GEOS-Chem "main" species index!!!
           Id = Ind_( TRIM( Fam_Names(N) ), 'K' )
 
-          ! Add the species
+          ! Try to add the species if it is valid
           IF ( Id > 0 ) THEN
 
              ! KPP prod/loss species name
              Name = TRIM( Fam_Names(N) )
 
-             ! Fix the name so that it is of the form Prod_<spcname> or
-             ! Loss_<spcname>.  This will facilitate the new diagnostics.
+             !---------------------------------------------------------------
+             ! Loss species
+             !---------------------------------------------------------------
              IF ( Name(1:1) == 'L' ) THEN
-                L                      = L + 1
-                State_Chm%Map_Loss(L)  = Id
-                State_Chm%Name_Loss(L) = 'Loss_' // TRIM( Name(2:) )
+
+                ! The diagnostic name will be `Loss_' + the KPP family name
+                diagName = 'Loss_' // TRIM( Name(2:) )
+
+                ! Check if the TaggedDiag_List exists for "Loss"
+                CALL Query_TaggedDiagList(                                   &
+                     TaggedDiagList = TaggedDiag_List,                       &
+                     diagName       = 'Loss',                                &
+                     found          = found,                                 &
+                     numTags        = numTags,                               &
+                     TagList        = TagList,                               &
+                     numWildCards   = numWildCards,                          &
+                     WildCardList   = WildCardList,                          &
+                     RC             = RC                                    )
+
+                ! Check if the given loss species or wildcard has been
+                ! requested for diagnostic archival before updating
+                ! mapping vectors.
+                IF ( found ) THEN
+
+                   IF ( numTags > 0 ) THEN
+                      CALL Query_Tag_in_TagList( TagList,       name(2:),    &
+                                                 found,         RC          )
+                   ELSE IF ( numWildCards > 0 ) THEN
+                      CALL Query_Tag_in_TagList( WildCardList, 'LOS',        &
+                                                 found,         RC          )
+                   ENDIF
+
+                   IF ( found ) THEN
+                      L                      = L + 1
+                      State_Chm%Map_Loss(L)  = Id
+                      State_Chm%Name_Loss(L) = TRIM( diagName )
+                   ENDIF
+                ENDIF
+
+             !---------------------------------------------------------------
+             ! Prod species
+             !---------------------------------------------------------------
              ELSE IF ( Name(1:1) == 'P' ) THEN
-                P                      = P + 1
-                State_Chm%Map_Prod(P)  = Id
-                State_Chm%Name_Prod(P) = 'Prod_' // TRIM( Name(2:) )
+
+                ! The diagnostic name will be `Prod_' + the KPP family name
+                diagName = 'Prod_' // TRIM( Name(2:) )
+
+                ! Check if the TaggedDiag_List exists for "Prod"
+                CALL Query_TaggedDiagList(                                   &
+                     TaggedDiagList = TaggedDiag_List,                       &
+                     diagName       = 'Prod',                                &
+                     found          = found,                                 &
+                     numTags        = numTags,                               &
+                     TagList        = TagList,                               &
+                     numWildCards   = numWildCards,                          &
+                     WildCardList   = WildCardList,                          &
+                     RC             = RC                                    )
+
+                ! Check if the given prod species or wildcard has been
+                ! requested for diagnostic archival before updating
+                ! mapping vectors.
+                IF ( found ) THEN
+
+                   IF ( numTags > 0 ) THEN
+                      CALL Query_Tag_in_TagList( TagList,       name(2:),    &
+                                                 found,         RC          )
+                   ELSE IF ( numWildCards > 0 ) THEN
+                      CALL Query_Tag_in_TagList( WildCardList, 'PRD',        &
+                                                 found,         RC          )
+                   ENDIF
+
+                   IF ( found ) THEN
+                      P                      = P + 1
+                      State_Chm%Map_Prod(P)  = Id
+                      State_Chm%Name_Prod(P) = TRIM( diagName )
+                   ENDIF
+                ENDIF
+
+             !---------------------------------------------------------------
+             ! Invalid prod/loss species
+             !---------------------------------------------------------------
              ELSE
                 ErrMsg = 'Invalid prod/loss species name!' //                &
                           TRIM( Fam_Names(N) )
@@ -7108,6 +7131,9 @@ CONTAINS
                 RETURN
              ENDIF
 
+          !------------------------------------------------------------------
+          ! Could not find KPP species
+          !------------------------------------------------------------------
           ELSE
 
              ! Invalid species, exit with error!
@@ -7120,23 +7146,7 @@ CONTAINS
 
        ENDDO
 
-    ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
 
-       !--------------------------------------------------------------------
-       ! Tagged CO simulations
-       !--------------------------------------------------------------------
-
-       ! Each advected species can have an attached loss diagnostic ...
-       DO Id = 1, State_Chm%nLoss
-          Name = 'Loss_' // TRIM( State_Chm%SpcData(Id)%Info%Name )
-          State_Chm%Name_Loss(Id) = TRIM( Name )
-          State_Chm%Map_Loss(Id)  = Id
-       ENDDO
-
-       ! ... but not an attached prod diagnostic.  These will be
-       ! archived by other fields of the State_Diag object.
-       State_Chm%Name_Prod => NULL()
-       State_Chm%Map_Prod  => NULL()
 
     ELSE IF ( Input_Opt%ITS_A_TAGO3_SIM         .or.                         &
               Input_Opt%ITS_A_CARBON_SIM      ) THEN

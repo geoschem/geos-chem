@@ -1,3 +1,5 @@
+RUNDIR_MET_WIND_IS_TOP_DOWN=.true.
+
 RUNDIR_MET_EXTDATA_PRIMARY_EXPORTS_FOR_WIND="""
 # --- Wind, 3-hr time-averaged ---
 UA;VA     m_s-1         N Y F0;013000 none  none U;V        ./MetDir/Y%y4/M%m2/D%d2/GEOS.fp.asm.tavg3_3d_asm_Nv.%y4%m2%d2_%h2%n2.V01.nc4 2014-02-11T01:30:00P03:00

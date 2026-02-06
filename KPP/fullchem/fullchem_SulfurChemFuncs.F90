@@ -32,14 +32,14 @@ MODULE fullchem_SulfurChemFuncs
 ! !PUBLIC TYPES:
 !
   ! Species ID flags
-  INTEGER                :: id_ACTA,   id_CH2O,   id_DMS,    id_DST1
-  INTEGER                :: id_DST2,   id_DST3,   id_DST4,   id_H2O2
-  INTEGER                :: id_HCL,    id_HCOOH,  id_HMS,    id_HNO3
-  INTEGER                :: id_MSA,    id_NH3,    id_NH4,    id_NIT
-  INTEGER                :: id_NITs,   id_O3,     id_OH,     id_pFe
-  INTEGER                :: id_SALA,   id_SALAAL, id_SALACL, id_SALC
-  INTEGER                :: id_SALCAL, id_SALCCL, id_SO2,    id_SO4
-  INTEGER                :: id_SO4s
+  INTEGER                :: id_ACTA,    id_CH2O,    id_DMS,     id_H2O2
+  INTEGER                :: id_DSTbin1, id_DSTbin2, id_DSTbin3, id_DSTbin4
+  INTEGER                :: id_DSTbin5, id_DSTbin6, id_DSTbin7, id_HCL
+  INTEGER                :: id_HCOOH,   id_HMS,     id_HNO3,    id_MSA
+  INTEGER                :: id_NH3,     id_NH4,     id_NIT,     id_NITs
+  INTEGER                :: id_O3,      id_OH,      id_pFe,     id_SALA
+  INTEGER                :: id_SALAAL,  id_SALACL,  id_SALC,    id_SALCAL
+  INTEGER                :: id_SALCCL,  id_SO2,     id_SO4,     id_SO4s
 !
 ! !DEFINED_PARAMETERS
 !
@@ -1216,9 +1216,10 @@ CONTAINS
        !
        ! Get dust concentrations [MND -> ng/m3]
 
-       DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7_fp + Spc(id_DST2)%Conc(I,J,L) + &
-            Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) )            &
-            * 1.e+15_fp * State_Chm%SpcData(id_DST1)%Info%MW_g / AVO
+        DUST = ( Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + Spc(id_DSTbin3)%Conc(I,J,L) + &
+        Spc(id_DSTbin4)%Conc(I,J,L) + Spc(id_DSTbin5)%Conc(I,J,L) +       &
+        Spc(id_DSTbin6)%Conc(I,J,L) + Spc(id_DSTbin7)%Conc(I,J,L) ) * 1.e+15_fp * &
+        State_Chm%SpcData(id_DSTbin1)%Info%MW_g / AVO
 
        ! Conversion from dust mass to Ca2+ and Mg2+ mol:
        !     0.071*(1/40.08)+0.011*(1/24.31) = 2.22e-3
@@ -1391,13 +1392,18 @@ CONTAINS
 #else
 
        ! For other simulations, Sum up the contributions from
-       ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
+       ! DSTbin1 thru DSTbin7 tracers into ALKdst.
        ! mcl/cm3 -> ug/m3
-       ALKdst = ( Spc(id_DST1)%Conc(I,J,L) + Spc(id_DST2)%Conc(I,J,L) +      &
-            Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) * CNVFAC * &
-            1.e+9_fp * State_Met%AD(I,J,L)                       &
-            / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
-            / State_Met%AIRVOL(I,J,L)
+        ALKdst = ( Spc(id_DSTbin1)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin2)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin3)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin4)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin5)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin6)%Conc(I,J,L) +                             &
+                   Spc(id_DSTbin7)%Conc(I,J,L) )                             &
+                 * CNVFAC * 1.e+9_fp * State_Met%AD(I,J,L)                   &
+                 / ( AIRMW / State_Chm%SpcData(id_DSTbin1)%Info%MW_g )       &
+                 / State_Met%AIRVOL(I,J,L)
 #endif
 
        ! mcl/cm3 -> ug/m3
@@ -3792,10 +3798,13 @@ CONTAINS
     id_ACTA   = Ind_( 'ACTA'   )
     id_CH2O   = Ind_( 'CH2O'   )
     id_DMS    = Ind_( 'DMS'    )
-    id_DST1   = Ind_( 'DST1'   )
-    id_DST2   = Ind_( 'DST2'   )
-    id_DST3   = Ind_( 'DST3'   )
-    id_DST4   = Ind_( 'DST4'   )
+    id_DSTbin1   = Ind_( 'DSTbin1'   )
+    id_DSTbin2   = Ind_( 'DSTbin2'   )
+    id_DSTbin3   = Ind_( 'DSTbin3'   )
+    id_DSTbin4   = Ind_( 'DSTbin4'   )
+    id_DSTbin5   = Ind_( 'DSTbin5'   )
+    id_DSTbin6   = Ind_( 'DSTbin6'   )
+    id_DSTbin7   = Ind_( 'DSTbin7'   )
     id_H2O2   = Ind_( 'H2O2'   )
     id_HCL    = Ind_( 'HCL'    )
     id_HCOOH  = Ind_( 'HCOOH'  )

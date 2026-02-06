@@ -1640,17 +1640,29 @@ EOH_PLANTDECAY  kgC/m2/s Y Y F1985-%m2-01T00:00:00 none none HET_RESP ./HcoDir/A
 #==============================================================================
 # --- Anthropogenic dust emissions (AFCID)---
 #==============================================================================
-PM25FINE_1 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
-PM25FINE_2 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
-PM25FINE_3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_1_bin1 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin2 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin3 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_1_bin4 kg/m2/s Y Y 2015-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_ECLIPSE_2015.geos.2x25.nc
+PM25FINE_2_bin1 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin2 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin3 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_2_bin4 kg/m2/s Y Y 2012-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_MEIC_2012.generic.025x025.nc
+PM25FINE_3_bin1 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin2 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin3 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
+PM25FINE_3_bin4 kg/m2/s Y Y 2013-%m2-01T00:00:00 none none PM25FINE ./HcoDir/AFCID/v2018-04/PM25FINE_IITB_2013.generic.025x025.nc
 #
 #==============================================================================
 # --- Offline dust emissions (OFFLINE_DUST)---
 #==============================================================================
-EMIS_DST1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST1 ./HcoDir/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST2 ./HcoDir/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST3 ./HcoDir/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.%y4%m2%d2.nc
-EMIS_DST4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS_DST4 ./HcoDir/OFFLINE_DUST/${RUNDIR_OFFLINE_DUST_DIR}/${RUNDIR_OFFLINE_EMIS_RES}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.%y4%m2%d2.nc
+EMIS_DSTbin1 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin2 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin3 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin4 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin5 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin6 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
+EMIS_DSTbin7 kg/m2/s N Y %y4-%m2-%d2T%h2:00:00 none none EMIS ./HcoDir/OFFLINE_DUST/v2025-03/${RUNDIR_OFFLINE_EMIS_RES}/${RUNDIR_MET}/%y4/%m2/dust_emissions_${RUNDIR_OFFLINE_EMIS_LAT_RES}.${RUNDIR_MET}.%y4%m2%d2.nc
 #
 #==============================================================================
 # --- Offline biogenic VOC emissions (OFFLINE_BIOGENICVOC) ---
@@ -1739,8 +1751,20 @@ SOILNOX_NONARID 1 N Y - none none NON_ARID ./HcoDir/SOILNOX/v2014-07/soilNOx.cli
 #
 SOILNOX_FERT kg/m3 N Y 2000-%m2-%d2T00:00:00 none none FERT ./HcoDir/SOILNOX/v2014-07/soilNOx.fert_res.generic.05x05.time_corrected_for_GCHP.nc
 #
+#===========================================================================
+# --- External fields needed for online DustL23M (Extension 125) ---
+#===========================================================================
+L23M_A_bare      1      N Y %y4-01-01T00:00:00   none none LC_bare      ./HcoDir/DustL23M/v2025-07/LandCover/MCD12C1.LC.%y4.0.1.nc4
+L23M_A_veg       1      N Y %y4-01-01T00:00:00   none none LC_veg       ./HcoDir/DustL23M/v2025-07/LandCover/MCD12C1.LC.%y4.0.1.nc4
+L23M_Csah        1      N Y F2000-01-01T00:00:00 none none scale        ./HcoDir/DustL23M/v2025-07/scale/DustL23_scale_025x03125_scaleSAv2.nc4
+L23M_LAI         1      N Y %y4-%m2-01T00:00:00  none none LAI          ./HcoDir/DustL23M/v2025-07/LandCover/XLAI_025x025_%y4_MonMean.nc4
+L23M_fclay       1      N Y F2000-01-01T00:00:00 none none f_clay       ./HcoDir/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4
+L23M_BD          kg/m3  N Y F2000-01-01T00:00:00 none none bulk_density ./HcoDir/DustL23M/v2025-07/GSDE/GSDE_clay-sand-silt_0.1.nc4
+L23M_poros       1      N Y F1980-01-01T00:00:00 none none poros        ./HcoDir/DustL23M/v2025-07/poros/MERRA2.const_2d_lnd_Nx.poros.nc4
+L23M_roughness_r m      N Y F1997-01-01T00:00:00 none none roughness_r  ./HcoDir/DustL23M/v2025-07/roughness/Surf_roughness_min_rocks_1997.nc4
+#
 #==============================================================================
-# --- Dust emissions using DEAD model (Extension 105) ---
+# --- Dust emissions using DEAD model (Extension 131) ---
 #==============================================================================
 DEAD_EF_GEO   factor   N Y - none none EF_GEO   ./HcoDir/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc
 DEAD_LF_DRY   factor   N Y - none none LF_DRY   ./HcoDir/DUST_DEAD/v2019-06/dst_tibds.geos.2x25.nc
@@ -1752,11 +1776,6 @@ DEAD_SFC_TYP  count    N V - none none SFC_TYP  ./HcoDir/DUST_DEAD/v2019-06/dst_
 DEAD_GOC_SRC 1 N Y - none none GOC_SRC  ./HcoDir/DUST_DEAD/v2019-06/GOCART_src_fn.geos.2x25.nc
 #
 DEAD_VAI 1 Y Y 1985-%m2-01T00:00:00 none none VAI ./HcoDir/DUST_DEAD/v2019-06/dst_tvbds.geos.2x25.nc
-#
-#==============================================================================
-# --- Dust emissions using Paul Ginoux's mechanism (Extension 106) ---
-# DustGinoux is turned off by default in HEMCO_Config.rc; fill in this section if turning on
-#==============================================================================
 #
 #==============================================================================
 # --- Sea salt emissions (Extension 107)
@@ -1815,7 +1834,7 @@ GFED_FRAC_DAY 1 N Y %y4-%m2-%d2T00:00:00 none none GFED_FRACDAY ./HcoDir/GFED4/v
 GFED_FRAC_3HOUR 1 N Y %y4-%m2-01T%h2:00:00 none none GFED_FRAC3HR ./HcoDir/GFED4/v2023-03/%y4/GFED4_3hrfrac_gen.025x025.%y4%m2.nc
 #
 #==============================================================================
-# --- FINN v1.5 biomass burning emissions (Extension 114)
+# --- FINN v2.5 biomass burning emissions (Extension 114)
 # FINN is off by default in HEMCO_Config.rc; fill in this section if turning on
 #==============================================================================
 #

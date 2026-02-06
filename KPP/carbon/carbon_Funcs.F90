@@ -192,7 +192,7 @@ CONTAINS
        C(ind_FixedCl) = ConcClMnd
 
        !---------------------------------------------------------------------
-       ! k_Trop(1): Rate [1/s] for rxn for DummyCH4trop -> CO + COfromCH4
+       ! k_Trop(1): Rate [1/s] for rxn for DummyCH4trop -> CO + PCOfromCH4
        !---------------------------------------------------------------------
        IF ( PCO_fr_CH4_use ) THEN
           k_Trop(1) = PCO_fr_CH4     * OHdiurnalFac
@@ -351,7 +351,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromCH4) / dtChem     ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromCH4_Flux
 !EOC
@@ -381,7 +381,7 @@ CONTAINS
 !------------------------------------------------------------------------------
 !BOC
 
-    flux = C(ind_COfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
+    flux = C(ind_PCOfromNMVOC) / dtChem   ! molec/cm3 --> molec/cm3/s
 
   END FUNCTION carbon_Get_COfromNMVOC_Flux
 !EOC

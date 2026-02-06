@@ -169,20 +169,23 @@ MODULE SULFATE_MOD
 
   ! Species ID flags
   INTEGER                :: id_AS,     id_AHS,    id_AW01
-  INTEGER                :: id_DAL1,   id_DAL2,   id_DAL3
-  INTEGER                :: id_DAL4,   id_DMS,    id_DST1
-  INTEGER                :: id_DST2,   id_DST3,   id_DST4
+  INTEGER                :: id_DALbin1, id_DALbin2, id_DALbin3 
+  INTEGER                :: id_DALbin4, id_DALbin5, id_DALbin6, id_DALbin7
+  INTEGER                :: id_DSTbin1, id_DSTbin2, id_DSTbin3 
+  INTEGER                :: id_DSTbin4, id_DSTbin5, id_DSTbin6, id_DSTbin7 ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
   INTEGER                :: id_H2O2,   id_HNO3,   id_LET
   INTEGER                :: id_MSA,    id_NH3,    id_NH4
-  INTEGER                :: id_NH4aq,  id_NIT,    id_NITd1
-  INTEGER                :: id_NITd2,  id_NITd3,  id_NITd4
+  INTEGER                :: id_NH4aq,  id_NIT,    id_DMS
+  INTEGER                :: id_NITDbin1, id_NITDbin2, id_NITDbin3, id_NITDbin4
+  INTEGER                :: id_NITDbin5, id_NITDbin6, id_NITDbin7
   INTEGER                :: id_NITs,   id_NK01,   id_NK05
   INTEGER                :: id_NK08,   id_NK10,   id_NK20
   INTEGER                :: id_NO3,    id_O3,     id_OH
   INTEGER                :: id_SALA,   id_SALC,   id_SF01
   INTEGER                :: id_SO2,    id_SO4,    id_SO4aq
-  INTEGER                :: id_SO4d1,  id_SO4d2,  id_SO4d3
-  INTEGER                :: id_SO4d4,  id_SO4s,   id_pFe
+  INTEGER                :: id_SO4Dbin1,  id_SO4Dbin2,  id_SO4Dbin3, id_SO4Dbin4
+  INTEGER                :: id_SO4Dbin5,  id_SO4Dbin6,  id_SO4Dbin7
+  INTEGER                :: id_SO4s,   id_pFe
   INTEGER                :: id_SALACL, id_HCL,    id_SALCCL
   INTEGER                :: id_SALAAL, id_SALCAL
   INTEGER                :: id_HOBr,   id_SO4H1,  id_SO4H2
@@ -192,10 +195,11 @@ MODULE SULFATE_MOD
 
 
   ! Species drydep ID flags
-  INTEGER                :: DRYSO4s,   DRYNITs,   DRYSO4d1
-  INTEGER                :: DRYSO4d2,  DRYSO4d3,  DRYSO4d4
-  INTEGER                :: DRYNITd1,  DRYNITd2,  DRYNITd3
-  INTEGER                :: DRYNITd4
+  INTEGER                :: DRYSO4s,   DRYNITs
+  INTEGER                :: DRYSO4dbin1,  DRYSO4dbin2,  DRYSO4dbin3, DRYSO4dbin4
+  INTEGER                :: DRYSO4dbin5,  DRYSO4dbin6,  DRYSO4dbin7
+  INTEGER                :: DRYNITdbin1,  DRYNITdbin2,  DRYNITdbin3, DRYNITdbin4
+  INTEGER                :: DRYNITdbin5,  DRYNITdbin6,  DRYNITdbin7
 
 CONTAINS
 !EOC
@@ -451,77 +455,132 @@ CONTAINS
        !----------------------------------------------------------------
        ! These species are only used for the aciduptake simulations
        !----------------------------------------------------------------
+       ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
        IF ( LDSTUP ) THEN
 
-          ! SO4d1 [kg] gravitational settling
-          IF ( id_SO4d1 > 0 ) THEN
+          ! SO4dbin1 [kg] gravitational settling
+          IF ( id_SO4dbin1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_SO4d1,  RC )
+                                 State_Met, id_SO4dbin1,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d1')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin1')
              ENDIF
           ENDIF
 
-          ! SO4d2 [kg] gravitational settling
-          IF ( id_SO4d2 > 0 ) THEN
+          ! SO4dbin2 [kg] gravitational settling
+          IF ( id_SO4dbin2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_SO4d2,  RC )
+                                 State_Met, id_SO4dbin2,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d2')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin2')
              ENDIF
           ENDIF
 
-          ! SO4d3 [kg] gravitational settling
-          IF ( id_SO4d3 > 0 ) THEN
+          ! SO4dbin3 [kg] gravitational settling
+          IF ( id_SO4dbin3 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_SO4d3,  RC )
+                                 State_Met, id_SO4dbin3,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d3')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin3')
              ENDIF
           ENDIF
 
-          ! SO4d4 [kg] gravitational settling
-          IF ( id_SO4d4 > 0 ) THEN
+          ! SO4dbin4 [kg] gravitational settling
+          IF ( id_SO4dbin4 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_SO4d4,  RC )
+                                 State_Met, id_SO4dbin4,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4d4')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin4')
              ENDIF
           ENDIF
 
-          ! NITd1 [kg] gravitational settling
-          IF ( id_NITd1 > 0 ) THEN
+          ! SO4dbin5 [kg] gravitational settling
+          IF ( id_SO4dbin5 > 0 ) THEN
+            CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                State_Met, id_SO4dbin5,  RC )
+            IF ( Input_Opt%Verbose ) THEN
+               CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin5')
+            ENDIF
+         ENDIF
+
+          ! SO4dbin6 [kg] gravitational settling
+          IF ( id_SO4dbin6 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_NITd1,  RC )
+                                 State_Met, id_SO4dbin6,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd1')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin6')
              ENDIF
           ENDIF
 
-          ! NITd2 [kg] gravitational settling
-          IF ( id_NITd2 > 0 ) THEN
+          ! SO4dbin7 [kg] gravitational settling
+          IF ( id_SO4dbin7 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_NITd2,  RC )
+                                 State_Met, id_SO4dbin7,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd2')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, SO4dbin7')
              ENDIF
           ENDIF
 
-          ! NITd3 [kg] gravitational settling
-          IF ( id_NITd3 > 0 ) THEN
+          ! NITdbin1 [kg] gravitational settling
+          IF ( id_NITdbin1 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_NITd3,  RC )
+                                 State_Met, id_NITdbin1,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd3')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin1')
              ENDIF
           ENDIF
 
-          ! NITd4 [kg] gravitational settling
-          IF ( id_NITd4 > 0 ) THEN
+          ! NITdbin2 [kg] gravitational settling
+          IF ( id_NITdbin2 > 0 ) THEN
              CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
-                                 State_Met, id_NITd4,  RC )
+                                 State_Met, id_NITdbin2,  RC )
              IF ( Input_Opt%Verbose ) THEN
-                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITd4')
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin2')
+             ENDIF
+          ENDIF
+
+          ! NITdbin3 [kg] gravitational settling
+          IF ( id_NITdbin3 > 0 ) THEN
+             CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                 State_Met, id_NITdbin3,  RC )
+             IF ( Input_Opt%Verbose ) THEN
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin3')
+             ENDIF
+          ENDIF
+
+          ! NITdbin4 [kg] gravitational settling
+          IF ( id_NITdbin4 > 0 ) THEN
+             CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                 State_Met, id_NITdbin4,  RC )
+             IF ( Input_Opt%Verbose ) THEN
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin4')
+             ENDIF
+          ENDIF
+
+          ! NITdbin5 [kg] gravitational settling
+          IF ( id_NITdbin5 > 0 ) THEN
+             CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                 State_Met, id_NITdbin5,  RC )
+             IF ( Input_Opt%Verbose ) THEN
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin5')
+             ENDIF
+          ENDIF
+
+          ! NITdbin6 [kg] gravitational settling
+          IF ( id_NITdbin6 > 0 ) THEN
+             CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                 State_Met, id_NITdbin6,  RC )
+             IF ( Input_Opt%Verbose ) THEN
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin6')
+             ENDIF
+          ENDIF
+
+          ! NITdbin7 [kg] gravitational settling
+          IF ( id_NITdbin7 > 0 ) THEN
+             CALL GRAV_SETTLING( Input_Opt, State_Chm, State_Diag, State_Grid, &
+                                 State_Met, id_NITdbin7,  RC )
+             IF ( Input_Opt%Verbose ) THEN
+                CALL DEBUG_MSG( '### CHEMSULFATE: GRAV_SET, NITdbin7')
              ENDIF
           ENDIF
        ENDIF
@@ -1598,7 +1657,7 @@ CONTAINS
 
     ! Return if tracers are undefined
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( id_SO4d1 < 0 .and. id_NITd1 < 0 ) RETURN ! tdf
+       IF ( id_SO4dbin1 < 0 .and. id_NITdbin1 < 0 ) RETURN ! tdf
     ENDIF
 
     ! Copy fields from INPUT_OPT to local variables for use below
@@ -1827,7 +1886,7 @@ CONTAINS
           ! Drydep flux in chemistry only
           S = State_Diag%Map_DryDepChm%id2slot(DryDep_Id)
           IF ( S > 0 ) THEN
-             State_Diag%DryDepChm(I,J,DryDep_Id) = FLUX
+             State_Diag%DryDepChm(I,J,S) = FLUX
           ENDIF
        ENDIF
 
@@ -2315,7 +2374,7 @@ CONTAINS
        ALPHA = 1.0_fp + ( KOH + PHOTJ + FREQ ) * DT
 
        ! Delta H2O2 [v/v]
-       DH2O2 = ( PH2O2m(I,J,L) / TS_EMIS ) * DT / ( ALPHA * M )
+       DH2O2 = ( PH2O2m(I,J,L) * DT ) / ( ALPHA * M )
 
        ! Final H2O2 [v/v]
        H2O2  = ( H2O20 / ALPHA + DH2O2 )
@@ -3189,17 +3248,23 @@ CONTAINS
           ! jmm (12/3/18)
           !
           ! Get dust concentrations [v/v -> ng/m3]
+
+! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
 #ifdef LUO_WETDEP
-          DUST = ( Spc(id_DST1)%Conc(I,J,L)*one_m_KRATE + Spc(id_DST2)%Conc(I,J,L) +     &
-                   Spc(id_DST3)%Conc(I,J,L)             + Spc(id_DST4)%Conc(I,J,L)   )   &
+          DUST = ( (Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + &
+                    Spc(id_DSTbin3)%Conc(I,J,L) + Spc(id_DSTbin4)%Conc(I,J,L))*one_m_KRATE + &
+                   Spc(id_DSTbin5)%Conc(I,J,L) +     &
+                   Spc(id_DSTbin6)%Conc(I,J,L)             + Spc(id_DSTbin7)%Conc(I,J,L)   )   &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
-               / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g        )   &
+               / ( AIRMW   / State_Chm%SpcData(id_DSTbin1)%Info%MW_g        )   &
                / State_Met%AIRVOL(I,J,L)
 #else
-          DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7_fp + Spc(id_DST2)%Conc(I,J,L) +          &
-                   Spc(id_DST3)%Conc(I,J,L)        + Spc(id_DST4)%Conc(I,J,L)   )        &
+          DUST = ( (Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + &
+                    Spc(id_DSTbin3)%Conc(I,J,L) + Spc(id_DSTbin4)%Conc(I,J,L))*0.7_fp + &
+                    Spc(id_DSTbin5)%Conc(I,J,L) +          &
+                   Spc(id_DSTbin6)%Conc(I,J,L)        + Spc(id_DSTbin7)%Conc(I,J,L)   )        &
                * 1.e+12_fp * State_Met%AD(I,J,L)                             &
-               / ( AIRMW   / State_Chm%SpcData(id_DST1)%Info%MW_g )          &
+               / ( AIRMW   / State_Chm%SpcData(id_DSTbin1)%Info%MW_g )          &
                / State_Met%AIRVOL(I,J,L)
 #endif
 
@@ -3252,10 +3317,12 @@ CONTAINS
              ! carry DST1-4.  Set DUST to zero here. (mps, 2/2/18)
              DUST = 0e+0_fp
 #else
-             DUST = ( Spc(id_DST1)%Conc(I,J,L)*0.7 + Spc(id_DST2)%Conc(I,J,L) + &
-                      Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) * &
+             DUST = ( (Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + &
+                       Spc(id_DSTbin3)%Conc(I,J,L) + Spc(id_DSTbin4)%Conc(I,J,L))*0.7 + &
+                      Spc(id_DSTbin5)%Conc(I,J,L) + &
+                      Spc(id_DSTbin6)%Conc(I,J,L) + Spc(id_DSTbin7)%Conc(I,J,L) ) * &
                       1.e+12_fp * State_Met%AD(I,J,L) &
-                      / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
+                      / ( AIRMW / State_Chm%SpcData(id_DSTbin1)%Info%MW_g ) &
                       / State_Met%AIRVOL(I,J,L)
 #endif
 
@@ -3778,10 +3845,12 @@ CONTAINS
 
           ! For other simulations, Sum up the contributions from
           ! DST1 thru DST4 tracers into ALKdst. (bmy, 1/28/14)
-          ALKdst = ( Spc(id_DST1)%Conc(I,J,L) + Spc(id_DST2)%Conc(I,J,L) +            &
-                     Spc(id_DST3)%Conc(I,J,L) + Spc(id_DST4)%Conc(I,J,L) ) *          &
+          ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
+          ALKdst = ( Spc(id_DSTbin1)%Conc(I,J,L) + Spc(id_DSTbin2)%Conc(I,J,L) + Spc(id_DSTbin3)%Conc(I,J,L) + &
+                     Spc(id_DSTbin4)%Conc(I,J,L) + Spc(id_DSTbin5)%Conc(I,J,L) + Spc(id_DSTbin6)%Conc(I,J,L) + &
+                     Spc(id_DSTbin7)%Conc(I,J,L)) *          &
                      1.e+9_fp * State_Met%AD(I,J,L)                       &
-                     / ( AIRMW / State_Chm%SpcData(id_DST1)%Info%MW_g ) &
+                     / ( AIRMW / State_Chm%SpcData(id_DSTbin1)%Info%MW_g ) &
                      / State_Met%AIRVOL(I,J,L)
 #endif
 
@@ -5308,11 +5377,14 @@ CONTAINS
 
     ! Update dust alkalinity
     ! NB Hardwired for 4 size bins                    tdf 04/08/08
-
-    Spc(id_DAL1)%Conc(I,J,L) = MAX( ALKA(1), MINDAT )
-    Spc(id_DAL2)%Conc(I,J,L) = MAX( ALKA(2), MINDAT )
-    Spc(id_DAL3)%Conc(I,J,L) = MAX( ALKA(3), MINDAT )
-    Spc(id_DAL4)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
+    ! Update to 7 dust bins (D. Zhang, 5 Mar 2025)
+    Spc(id_DALbin1)%Conc(I,J,L) = MAX( ALKA(1), MINDAT )
+    Spc(id_DALbin2)%Conc(I,J,L) = MAX( ALKA(2), MINDAT )
+    Spc(id_DALbin3)%Conc(I,J,L) = MAX( ALKA(3), MINDAT )
+    Spc(id_DALbin4)%Conc(I,J,L) = MAX( ALKA(4), MINDAT )
+    Spc(id_DALbin5)%Conc(I,J,L) = MAX( ALKA(5), MINDAT )
+    Spc(id_DALbin6)%Conc(I,J,L) = MAX( ALKA(6), MINDAT )
+    Spc(id_DALbin7)%Conc(I,J,L) = MAX( ALKA(7), MINDAT )
 
     ! Free pointers
     Spc    => NULL()
@@ -7658,10 +7730,13 @@ CONTAINS
 
        IF ( LDSTUP ) THEN
           ! Initial Sulfate w/in dust bins [v/v]   ! tdf 04/07/08
-          SO40d(1) = Spc(id_SO4d1)%Conc(I,J,L)
-          SO40d(2) = Spc(id_SO4d2)%Conc(I,J,L)
-          SO40d(3) = Spc(id_SO4d3)%Conc(I,J,L)
-          SO40d(4) = Spc(id_SO4d4)%Conc(I,J,L)
+          SO40d(1) = Spc(id_SO4dbin1)%Conc(I,J,L)
+          SO40d(2) = Spc(id_SO4dbin2)%Conc(I,J,L)
+          SO40d(3) = Spc(id_SO4dbin3)%Conc(I,J,L)
+          SO40d(4) = Spc(id_SO4dbin4)%Conc(I,J,L)
+          SO40d(5) = Spc(id_SO4dbin5)%Conc(I,J,L)
+          SO40d(6) = Spc(id_SO4dbin6)%Conc(I,J,L)
+          SO40d(7) = Spc(id_SO4dbin7)%Conc(I,J,L)
        ENDIF
 
        !==============================================================
@@ -7682,10 +7757,13 @@ CONTAINS
        ! SO4d (SO4 w/in dust aerosol) chemistry:     tdf 04/07/08
        !==============================================================
        IF ( LDSTUP ) THEN
-          IDTRC(1) = id_SO4d1
-          IDTRC(2) = id_SO4d2
-          IDTRC(3) = id_SO4d3
-          IDTRC(4) = id_SO4d4
+          IDTRC(1) = id_SO4dbin1
+          IDTRC(2) = id_SO4dbin2
+          IDTRC(3) = id_SO4dbin3
+          IDTRC(4) = id_SO4dbin4
+          IDTRC(5) = id_SO4dbin5
+          IDTRC(6) = id_SO4dbin6
+          IDTRC(7) = id_SO4dbin7
 
           ! tdf Loop over size bins
           DO IBIN = 1, NDSTBIN
@@ -8144,8 +8222,9 @@ CONTAINS
     ! If we are doing a dust uptake simulation,
     ! return if dust uptake tracers are undefined
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( id_NITd1 < 0 .or. id_NITd2 < 0   .or. &
-            id_NITd3 < 0 .or. id_NITd4 < 0 ) RETURN
+       IF ( id_NITdbin1 < 0 .or. id_NITdbin2 < 0 .or. &
+            id_NITdbin3 < 0 .or. id_NITdbin4 < 0 .or. &
+            id_NITdbin5 < 0 .or. id_NITdbin6 < 0 .or. id_NITdbin7 < 0 ) RETURN
 
     ENDIF
 
@@ -8158,10 +8237,13 @@ CONTAINS
     ! Assign pointers to Spc arrays for loop over dust size bins,
     ! since this can be done outside the parallel DO loop.
     ! These will be set to a missing value (-1) if undefined.
-    IDTRC(1) = id_NITd1
-    IDTRC(2) = id_NITd2
-    IDTRC(3) = id_NITd3
-    IDTRC(4) = id_NITd4
+    IDTRC(1) = id_NITdbin1
+    IDTRC(2) = id_NITdbin2
+    IDTRC(3) = id_NITdbin3
+    IDTRC(4) = id_NITdbin4
+    IDTRC(5) = id_NITdbin5
+    IDTRC(6) = id_NITdbin6
+    IDTRC(7) = id_NITdbin7
 
     !$OMP PARALLEL DO       &
     !$OMP DEFAULT( SHARED ) &
@@ -8193,10 +8275,13 @@ CONTAINS
           NITd     = 0.0_fp
 
           ! Initial NITRATE w/in dust bins [v/v]
-          NIT0d(1) = Spc(id_NITd1)%Conc(I,J,L)
-          NIT0d(2) = Spc(id_NITd2)%Conc(I,J,L)
-          NIT0d(3) = Spc(id_NITd3)%Conc(I,J,L)
-          NIT0d(4) = Spc(id_NITd4)%Conc(I,J,L)
+          NIT0d(1) = Spc(id_NITdbin1)%Conc(I,J,L)
+          NIT0d(2) = Spc(id_NITdbin2)%Conc(I,J,L)
+          NIT0d(3) = Spc(id_NITdbin3)%Conc(I,J,L)
+          NIT0d(4) = Spc(id_NITdbin4)%Conc(I,J,L)
+          NIT0d(5) = Spc(id_NITdbin5)%Conc(I,J,L)
+          NIT0d(6) = Spc(id_NITdbin6)%Conc(I,J,L)
+          NIT0d(7) = Spc(id_NITdbin7)%Conc(I,J,L)
 
           ! Loop over size bins
           DO IBIN = 1, NDSTBIN
@@ -9119,18 +9204,25 @@ CONTAINS
     !=================================================================
 
     ! Define flags for species ID's
+    ! 7 dust bins (D. Zhang, 5 Mar 2025)
     id_AS    = Ind_('AS'       )
     id_AHS   = Ind_('AHS'      )
     id_AW01  = Ind_('AW01'     )
-    id_DAL1  = Ind_('DSTAL1'   )
-    id_DAL2  = Ind_('DSTAL2'   )
-    id_DAL3  = Ind_('DSTAL3'   )
-    id_DAL4  = Ind_('DSTAL4'   )
+    id_DALbin1  = Ind_('DSTALbin1'   )
+    id_DALbin2  = Ind_('DSTALbin2'   )
+    id_DALbin3  = Ind_('DSTALbin3'   )
+    id_DALbin4  = Ind_('DSTALbin4'   )
+    id_DALbin5  = Ind_('DSTALbin5'   )
+    id_DALbin6  = Ind_('DSTALbin6'   )
+    id_DALbin7  = Ind_('DSTALbin7'   )
     id_DMS   = Ind_('DMS'      )
-    id_DST1  = Ind_('DST1'     )
-    id_DST2  = Ind_('DST2'     )
-    id_DST3  = Ind_('DST3'     )
-    id_DST4  = Ind_('DST4'     )
+    id_DSTbin1  = Ind_('DSTbin1'     )
+    id_DSTbin2  = Ind_('DSTbin2'     )
+    id_DSTbin3  = Ind_('DSTbin3'     )
+    id_DSTbin4  = Ind_('DSTbin4'     )
+    id_DSTbin5  = Ind_('DSTbin5'     )
+    id_DSTbin6  = Ind_('DSTbin6'     )
+    id_DSTbin7  = Ind_('DSTbin7'     )
     id_H2O2  = Ind_('H2O2'     )
     id_HNO3  = Ind_('HNO3'     )
     id_HOBr  = Ind_('HOBr'     )
@@ -9141,10 +9233,13 @@ CONTAINS
     id_NH4   = Ind_('NH4'      )
     id_NH4aq = Ind_('NH4aq'    )
     id_NIT   = Ind_('NIT'      )
-    id_NITd1 = Ind_('NITD1'    )
-    id_NITd2 = Ind_('NITD2'    )
-    id_NITd3 = Ind_('NITD3'    )
-    id_NITd4 = Ind_('NITD4'    )
+    id_NITdbin1 = Ind_('NITDbin1'    )
+    id_NITdbin2 = Ind_('NITDbin2'    )
+    id_NITdbin3 = Ind_('NITDbin3'    )
+    id_NITdbin4 = Ind_('NITDbin4'    )
+    id_NITdbin5 = Ind_('NITDbin5'    )
+    id_NITdbin6 = Ind_('NITDbin6'    )
+    id_NITdbin7 = Ind_('NITDbin7'    )
     id_NITs  = Ind_('NITs'     )
     id_NK01  = Ind_('NK01'     )
     id_NK05  = Ind_('NK05'     )
@@ -9162,10 +9257,13 @@ CONTAINS
     id_SO2   = Ind_('SO2'      )
     id_SO4   = Ind_('SO4'      )
     id_SO4aq = Ind_('SO4aq'    )
-    id_SO4d1 = Ind_('SO4D1'    )
-    id_SO4d2 = Ind_('SO4D2'    )
-    id_SO4d3 = Ind_('SO4D3'    )
-    id_SO4d4 = Ind_('SO4D4'    )
+    id_SO4dbin1 = Ind_('SO4Dbin1'    )
+    id_SO4dbin2 = Ind_('SO4Dbin2'    )
+    id_SO4dbin3 = Ind_('SO4Dbin3'    )
+    id_SO4dbin4 = Ind_('SO4Dbin4'    )
+    id_SO4dbin5 = Ind_('SO4Dbin5'    )
+    id_SO4dbin6 = Ind_('SO4Dbin6'    )
+    id_SO4dbin7 = Ind_('SO4Dbin7'    )
     id_SO4s  = Ind_('SO4s'     )
     id_SALACL= Ind_('SALACL'   )
     id_HCL   = Ind_('HCL'     )
@@ -9184,22 +9282,30 @@ CONTAINS
 
     ! Define flags for species drydep indices
     DRYNITs  = Ind_('NITs', 'D')
-    DRYNITd1 = Ind_('NITD1','D')
-    DRYNITd2 = Ind_('NITD2','D')
-    DRYNITd3 = Ind_('NITD3','D')
-    DRYNITd4 = Ind_('NITD4','D')
+    DRYNITdbin1 = Ind_('NITDbin1','D')
+    DRYNITdbin2 = Ind_('NITDbin2','D')
+    DRYNITdbin3 = Ind_('NITDbin3','D')
+    DRYNITdbin4 = Ind_('NITDbin4','D')
+    DRYNITdbin5 = Ind_('NITDbin5','D')
+    DRYNITdbin6 = Ind_('NITDbin6','D')
+    DRYNITdbin7 = Ind_('NITDbin7','D')
     DRYSO4s  = Ind_('SO4s', 'D')
-    DRYSO4d1 = Ind_('SO4d1','D')
-    DRYSO4d2 = Ind_('SO4d2','D')
-    DRYSO4d3 = Ind_('SO4d3','D')
-    DRYSO4d4 = Ind_('SO4d4','D')
+    DRYSO4dbin1 = Ind_('SO4dbin1','D')
+    DRYSO4dbin2 = Ind_('SO4dbin2','D')
+    DRYSO4dbin3 = Ind_('SO4dbin3','D')
+    DRYSO4dbin4 = Ind_('SO4dbin4','D')
+    DRYSO4dbin5 = Ind_('SO4dbin5','D')
+    DRYSO4dbin6 = Ind_('SO4dbin6','D')
+    DRYSO4dbin7 = Ind_('SO4dbin7','D')
 
     ! Error check the dust uptake species
     IF ( Input_Opt%LDSTUP ) THEN
-       IF ( id_DAL1  < 0 .or. id_DAL2  < 0 .or. id_DAL3  < 0   .or. &
-            id_DAL4  < 0 .or. id_NITd1 < 0 .or. id_NITd2 < 0   .or. &
-            id_NITd3 < 0 .or. id_NITd4 < 0 .or. id_SO4d1 < 0   .or. &
-            id_SO4d2 < 0 .or. id_SO4d3 < 0 .or. id_SO4d4 < 0 ) THEN
+       IF ( id_DALbin1  < 0 .or. id_DALbin2  < 0 .or. id_DALbin3  < 0   .or. &
+            id_DALbin4  < 0 .or. id_DALbin5  < 0 .or. id_DALbin6  < 0   .or. id_DALbin7  < 0 .or. &
+            id_NITdbin1 < 0 .or. id_NITdbin2 < 0 .or. id_NITdbin3 < 0   .or. &
+            id_NITdbin4 < 0 .or. id_NITdbin5 < 0 .or. id_NITdbin6 < 0   .or. id_NITdbin7 < 0 .or. &
+            id_SO4dbin1 < 0 .or. id_SO4dbin2 < 0 .or. id_SO4dbin3 < 0   .or. &
+            id_SO4dbin4 < 0 .or. id_SO4dbin5 < 0 .or. id_SO4dbin6 < 0   .or. id_SO4dbin7 < 0 ) THEN
           ErrMsg =' Dust uptake tracers are undefined!'
           CALL GC_Error( ErrMsg, RC, ThisLoc )
           RETURN

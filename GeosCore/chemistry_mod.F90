@@ -64,7 +64,6 @@ CONTAINS
     USE ErrCode_Mod
     USE ERROR_MOD
     USE FullChem_Mod,     ONLY : Do_FullChem
-    USE GLOBAL_CH4_MOD,   ONLY : CHEMCH4
     USE Input_Opt_Mod,    ONLY : OptInput
     USE AEROSOL_THERMODYNAMICS_MOD,  ONLY : DO_ATE
     USE LINEAR_CHEM_MOD,  ONLY : DO_LINEAR_CHEM
@@ -79,7 +78,6 @@ CONTAINS
     USE State_Diag_Mod,   ONLY : DgnState
     USE State_Grid_Mod,   ONLY : GrdState
     USE State_Met_Mod,    ONLY : MetState
-    USE TAGGED_CO_MOD,    ONLY : CHEM_TAGGED_CO
     USE TAGGED_O3_MOD,    ONLY : CHEM_TAGGED_O3
     USE TIME_MOD,         ONLY : GET_TS_CHEM
     USE Tracer_Mod,       ONLY : Tracer_Sink_Phase
@@ -122,7 +120,7 @@ CONTAINS
 ! !LOCAL VARIABLES:
 !
     ! SAVEd scalars
-    INTEGER, SAVE      :: id_DST1, id_NK01, id_CO2   ! Species ID flags
+    INTEGER, SAVE      :: id_DSTbin1, id_NK01, id_CO2   ! Species ID flags
 
     ! Scalars
     INTEGER            :: N_TROP, N
@@ -154,7 +152,7 @@ CONTAINS
 
     ! Save species ID"s on first call
     IF ( FIRST ) THEN
-       id_DST1 = Ind_('DST1')
+       id_DSTbin1 = Ind_('DSTbin1')
        id_NK01 = Ind_('NK01')
        id_CO2  = Ind_('CO2' )
     ENDIF
@@ -593,7 +591,7 @@ CONTAINS
           !------------------------------------------------------------------
           ! Do dust aerosol chemistry/removal
           !------------------------------------------------------------------
-          IF ( Input_Opt%LDUST .AND. id_DST1 > 0 ) THEN
+          IF ( Input_Opt%LDUST .AND. id_DSTbin1 > 0 ) THEN
              CALL ChemDust( Input_Opt  = Input_Opt,                          &
                             State_Chm  = State_Chm,                          &
                             State_Diag = State_Diag,                         &
@@ -943,46 +941,6 @@ CONTAINS
                 CALL Timer_End( "=> Linearized chem", RC )
              ENDIF
 
-          ENDIF
-
-       !=====================================================================
-       ! Tagged CO
-       !=====================================================================
-       ELSE IF ( Input_Opt%ITS_A_TAGCO_SIM ) THEN
-
-          ! Do tagged CO chemistry
-          CALL Chem_Tagged_CO( Input_Opt  = Input_Opt,                       &
-                               State_Chm  = State_Chm,                       &
-                               State_Diag = State_Diag,                      &
-                               State_Grid = State_Grid,                      &
-                               State_Met  = State_Met,                       &
-                               RC         = RC                              )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "Chem_Tagged_CO"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
-          ENDIF
-
-       !=====================================================================
-       ! CH4
-       !=====================================================================
-       ELSE IF ( Input_Opt%ITS_A_CH4_SIM ) THEN
-
-          ! Do CH4 chemistry
-          CALL ChemCh4( Input_Opt  = Input_Opt,                              &
-                        State_Chm  = State_Chm,                              &
-                        State_Diag = State_Diag,                             &
-                        State_Grid = State_Grid,                             &
-                        State_Met  = State_Met,                              &
-                        RC         = RC                                     )
-
-          ! Trap potential errors
-          IF ( RC /= GC_SUCCESS ) THEN
-             ErrMsg = 'Error encountered in "ChemCh4"!'
-             CALL GC_Error( ErrMsg, RC, ThisLoc )
-             RETURN
           ENDIF
 
        !=====================================================================

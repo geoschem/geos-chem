@@ -1,0 +1,88 @@
+This directory contains settings used for GCHP run directory creation if using GEOS-IT
+meteorology fields. Unlike in GEOS-Chem Classic, GEOS-IT data is available in
+native cubed-sphere grid resolution (C180) as well as lat-lon (0.5x0.625). Users
+may also choose between using pre-processed files generated specifically for use
+with GEOS-Chem, or raw data downloaded directly from GMAO. Pre-processed files
+contain the same data as raw GMAO files except are vertically flipped, have
+unused fields removed, are concatenated into daily files, and are compressed to
+reduce storage requirements.
+
+If using C180 fields, users may also choose whether to use mass fluxes or winds
+in advection.
+
+The following files contain the settings for these various options such as
+input file paths in ExtData.rc and whether the vertical direction in the file
+is down (level 1 = TOA) or up (level 1 = surface). Note that all
+raw GMAO data is down while all processed files are up.
+
+A. If using lat-lon files:
+
+  1. geosit.preprocessed_0.5x0.625.txt
+     - Processed files
+     - 0.5x0.625 grid resolution
+     - Vertical direction is up
+     - Contains fields used for FV3 advection as well as GEOS-Chem
+
+  2. geosit.raw_0.5x0.625.txt
+     - Raw GMAO files
+     - 0.5x0.625 grid resolution
+     - Vertical direction is down
+     - Contains fields used for FV3 advection as well as GEOS-Chem
+
+B. If using cubed-sphere files:
+
+  NOTE: When using C180 fields the settings are split across two different files:
+  one file for non-advection fields and another file for advection fields. This
+  allows flexibility for using either 1-hourly mass fluxes or 3-hourly winds to
+  drive the offline advection.
+
+  1. Non-advection field settings:
+
+    NOTE: Specifies all met-fields except wind, surface pressure,
+          humidity, mass flux and Courant numbers
+
+    a. geosit.nonadv_preprocessed_c180.txt
+     - Processed files
+     - Vertical direction is up
+
+    b. geosit.nonadv_raw_c180.txt
+     - Raw GMAO files
+     - Vertical directory is down
+
+  2. Advection field settings:
+
+    NOTE: Always specifies wind, surface pressure, and humidity.
+          Mass flux and Courant numbers are also specified if GCHP
+          is configured to use them.
+
+     a. geosit.preprocessed_3hr_c180_wind.txt
+        - Processed files
+        - Vertical direction is up
+
+     b. geosit.raw_3hr_c180_wind.txt
+        - Raw GMAO files
+        - Vertical direction is down
+
+     c. geosit.preprocessed_1hr_c180_mass_flux.txt
+        - Processed files
+	- Vertical direction is up
+   
+     d. geosit.raw_1hr_c180_mass_flux.txt
+        - Raw GMAO files
+	- Vertical direction is down
+
+Each of these files contains some combination of the following settings
+used during run directory creation to ultimately populate settings
+in GCHP configuration file GCHP.rc:
+
+MET_MASS_FLUX_IS_TOP_DOWN
+MET_WIND_IS_TOP_DOWN
+MET_HUMIDITY_IS_TOP_DOWN
+MET_NONADVECTION_IS_TOP_DOWN
+IMPORT_MASS_FLUX_FROM_EXTDATA
+
+Additional files are provided to use on the NASA discover cluster. These are different
+than the non-discover files because they have different filenames than those
+downloaded from the NASA data portal.
+
+

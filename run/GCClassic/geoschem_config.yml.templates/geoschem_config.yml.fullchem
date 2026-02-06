@@ -20,6 +20,7 @@ simulation:
     activate: false
     on_cores: root       # Allowed values: root all
   use_gcclassic_timers: ${RUNDIR_USE_GCCLASSIC_TIMERS}
+  read_restart_as_real8: false
 
 #============================================================================
 # Grid settings
@@ -206,10 +207,13 @@ operations:
       - CO
       - CSL
       - DMS
-      - DST1
-      - DST2
-      - DST3
-      - DST4
+      - DSTbin1
+      - DSTbin2
+      - DSTbin3
+      - DSTbin4
+      - DSTbin5
+      - DSTbin6
+      - DSTbin7
       - EBZ
       - EOH
       - ETHLN
